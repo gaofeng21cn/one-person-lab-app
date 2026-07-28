@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
+import { isGitCheckout } from '../active-shell-checkout.ts';
 import { assertFile, root } from './validation-config.ts';
 import {
   validateGuiAuthority,
@@ -44,6 +45,11 @@ export function validateContractShape(contract) {
 
   const shellPaths = resolveActiveShellPaths({ contract });
   assertFile(shellPaths.shellRoot, 'active shell root');
+  if (!isGitCheckout(shellPaths.shellRoot)) {
+    throw new Error(
+      `Active shell root ${shellPaths.shellRootForDisplay} must be a standalone Git checkout; archive snapshots are valid only for isolated consumer projections.`,
+    );
+  }
   assertFile(shellPaths.packageManifestPath, 'active shell package.json');
   assertFile(shellPaths.agentsGuidePath, 'active shell AGENTS.md');
   if (defaultReleaseAdapter) {

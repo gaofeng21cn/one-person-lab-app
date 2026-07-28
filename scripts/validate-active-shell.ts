@@ -2,6 +2,7 @@
 
 import { assertAppRootBoundary } from './app-root-boundary.ts';
 import { readAppShellAdapterContract, resolveActiveShellPaths } from './app-shell-adapter.ts';
+import { ensureActiveShellCheckout } from './active-shell-checkout.ts';
 import { readJson } from './validate-active-shell/assertions.ts';
 import { validateContractShape } from './validate-active-shell/active-shell-contract.ts';
 import { runCommand } from './validate-active-shell/command-runner.ts';
@@ -38,6 +39,13 @@ assertAppRootBoundary({ phase: 'active shell validation' });
 const args = parseArgs(process.argv);
 const contract = readAppShellAdapterContract();
 const shellPaths = resolveActiveShellPaths({ contract });
+const requestedShellRef = process.env.OPL_APP_SHELL_REF?.trim();
+ensureActiveShellCheckout({
+  shellRoot: shellPaths.shellRoot,
+  repo: process.env.OPL_APP_SHELL_REPO || `git@github.com:${contract.shell_source.owner_repo}.git`,
+  ref: requestedShellRef || contract.shell_source.default_ref || 'main',
+  alignRef: Boolean(requestedShellRef),
+});
 const guiProductContract = readJson(guiProductContractPath);
 const runtimeBridge = readJson(runtimeBridgePath);
 const pageStateMatrix = readJson(pageStateMatrixPath);

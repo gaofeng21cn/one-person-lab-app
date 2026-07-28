@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs as parseNodeArgs } from 'node:util';
+import { ensureActiveShellCheckout, isGitCheckout } from './active-shell-checkout.ts';
 import { parseStrictBoolean } from './release-readiness-args.ts';
 
 const defaultRepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -670,12 +671,27 @@ export function buildReleaseSourceGateReport(
       message: `Active shell checkout is missing at ${shellRoot}.`,
     });
   } else {
+    const shellTopLevelResult = runner('git', ['rev-parse', '--show-toplevel'], {
+      cwd: shellRoot,
+      env: commandEnvironment,
+    });
+    const shellTopLevel = shellTopLevelResult.status === 0 ? firstLine(shellTopLevelResult.stdout) : '';
+    const standaloneShellCheckout = Boolean(
+      shellTopLevel && canonicalPath(shellTopLevel) === canonicalPath(shellRoot),
+    );
     addCheck(checks, {
       id: 'active_shell_checkout',
-      status: 'passed',
-      message: `Active shell checkout exists at ${shellRoot}.`,
+      status: standaloneShellCheckout ? 'passed' : 'failed',
+      message: standaloneShellCheckout
+        ? `Active shell checkout is a standalone Git checkout at ${shellRoot}.`
+        : `Active shell root ${shellRoot} must be a standalone Git checkout; archive snapshots are valid only for isolated consumer projections.${commandDetail(shellTopLevelResult) ? ` ${commandDetail(shellTopLevelResult)}` : ''}`,
+      expected: canonicalPath(shellRoot),
+      actual: shellTopLevel || undefined,
+      command: commandText('git', ['rev-parse', '--show-toplevel']),
     });
-    shellSha = resolveGitRef(shellRoot, options.shellRef, runner, commandEnvironment);
+    shellSha = standaloneShellCheckout
+      ? resolveGitRef(shellRoot, options.shellRef, runner, commandEnvironment)
+      : null;
     addCheck(checks, {
       id: 'active_shell_ref_resolved',
       status: shellSha ? 'passed' : 'failed',
@@ -686,7 +702,9 @@ export function buildReleaseSourceGateReport(
       actual: shellSha ?? undefined,
       command: commandText('git', ['rev-parse', '--verify', '--quiet', `${options.shellRef}^{commit}`]),
     });
-    const shellHeadResult = runner('git', ['rev-parse', 'HEAD'], { cwd: shellRoot, env: commandEnvironment });
+    const shellHeadResult = standaloneShellCheckout
+      ? runner('git', ['rev-parse', 'HEAD'], { cwd: shellRoot, env: commandEnvironment })
+      : { status: 1, stdout: '', stderr: 'active shell root is not a standalone Git checkout' };
     const shellHead = shellHeadResult.status === 0 ? firstLine(shellHeadResult.stdout) : '';
     addCheck(checks, {
       id: 'active_shell_checkout_identity',
@@ -956,6 +974,17 @@ export function writeReleaseSourceGateReport(options: ReleaseSourceGateOptions, 
   fs.writeFileSync(options.output, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 }
 
+export function prepareReleaseSourceShell(options: ReleaseSourceGateOptions): void {
+  // Preserve an existing non-Git projection so the source-gate report can reject it with typed evidence.
+  if (fs.existsSync(options.shellRoot) && !isGitCheckout(options.shellRoot)) return;
+  ensureActiveShellCheckout({
+    shellRoot: options.shellRoot,
+    repo: process.env.OPL_APP_SHELL_REPO || 'git@github.com:gaofeng21cn/opl-aion-shell.git',
+    ref: options.shellRef,
+    alignRef: true,
+  });
+}
+
 function isMainModule(): boolean {
   return import.meta.url === pathToFileURL(process.argv[1] ?? '').href;
 }
@@ -963,6 +992,7 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   try {
     const options = parseReleaseSourceGateArgs(process.argv.slice(2));
+    prepareReleaseSourceShell(options);
     const report = buildReleaseSourceGateReport(options);
     writeReleaseSourceGateReport(options, report);
     if (options.json) {

@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {
   buildReleaseSourceGateReport,
   parseReleaseSourceGateArgs,
+  prepareReleaseSourceShell,
   type CommandRunner,
   type ReleaseSourceGateOptions,
 } from '../../scripts/validate-release-source-gate.ts';
@@ -94,6 +97,9 @@ function runner(overrides: Record<string, { status: number; stdout?: string; std
     }
     if (command === 'git' && args.join(' ') === 'rev-parse --show-toplevel' && commandOptions.cwd === repoRoot) {
       return { status: 0, stdout: `${repoRoot}\n`, stderr: '' };
+    }
+    if (command === 'git' && args.join(' ') === 'rev-parse --show-toplevel' && commandOptions.cwd === shellRoot) {
+      return { status: 0, stdout: `${shellRoot}\n`, stderr: '' };
     }
     if (command === 'git' && args.join(' ') === 'remote get-url origin' && commandOptions.cwd === repoRoot) {
       return { status: 0, stdout: 'https://github.com/gaofeng21cn/one-person-lab-app.git\n', stderr: '' };
@@ -281,6 +287,51 @@ test('release source gate rejects a shell checkout that differs from its resolve
   assert.equal(checkStatus(report, 'active_shell_ref_resolved'), 'passed');
   assert.equal(checkStatus(report, 'active_shell_checkout_identity'), 'failed');
   assert.equal(report.admission.immutable_cohort, null);
+});
+
+test('release source gate rejects an archive directory as the active shell checkout', () => {
+  const report = buildReleaseSourceGateReport(
+    options(),
+    runner({
+      [`${shellRoot} $ git rev-parse --show-toplevel`]: {
+        status: 128,
+        stderr: 'fatal: not a git repository (or any of the parent directories): .git\n',
+      },
+    }),
+    '2026-06-30T00:00:00.000Z',
+    {
+      variables: {},
+      pathExists: (candidatePath) => candidatePath === shellRoot || candidatePath === frameworkRoot,
+      readJson: (candidatePath) => readSourceJson(candidatePath),
+    },
+  );
+
+  assert.equal(report.status, 'failed');
+  assert.equal(report.admission.status, 'blocked');
+  assert.equal(checkStatus(report, 'active_shell_checkout'), 'failed');
+  assert.match(
+    report.checks.find((check) => check.id === 'active_shell_checkout')?.message ?? '',
+    /archive snapshots are valid only for isolated consumer projections/,
+  );
+  assert.equal(checkStatus(report, 'active_shell_ref_resolved'), 'failed');
+  assert.equal(report.admission.immutable_cohort, null);
+});
+
+test('release source gate preserves an archive root for typed rejection', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-source-gate-archive-'));
+  try {
+    const archiveRoot = path.join(root, 'aionui');
+    const marker = path.join(archiveRoot, 'archive-marker.txt');
+    fs.mkdirSync(archiveRoot, { recursive: true });
+    fs.writeFileSync(marker, 'preserve-me\n');
+
+    prepareReleaseSourceShell(options({ shellRoot: archiveRoot }));
+
+    assert.equal(fs.readFileSync(marker, 'utf8'), 'preserve-me\n');
+    assert.equal(fs.existsSync(path.join(archiveRoot, '.git')), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('release source gate rejects environment injection before boundary execution', () => {
