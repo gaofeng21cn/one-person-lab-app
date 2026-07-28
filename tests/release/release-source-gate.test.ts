@@ -47,6 +47,7 @@ function readSourceJson(candidatePath: string, shellName = 'one-person-lab-aion-
 function options(overrides: Partial<ReleaseSourceGateOptions> = {}): ReleaseSourceGateOptions {
   return {
     version: '26.6.30',
+    operationFingerprint: null,
     expectedAppHead: appHead,
     shellRef: 'main',
     frameworkRef: 'main',
@@ -103,6 +104,15 @@ function runner(overrides: Record<string, { status: number; stdout?: string; std
       && commandOptions.cwd === repoRoot
     ) {
       return { status: 0, stdout: `${appHead}\trefs/heads/main\n`, stderr: '' };
+    }
+    if (
+      command === 'git'
+      && args[0] === 'merge-base'
+      && args[1] === '--is-ancestor'
+      && args[2] === appHead
+      && commandOptions.cwd === repoRoot
+    ) {
+      return { status: 0, stdout: '', stderr: '' };
     }
     if (command === 'git' && args.join(' ') === 'status --porcelain --untracked-files=normal' && commandOptions.cwd === repoRoot) {
       return { status: 0, stdout: '', stderr: '' };
@@ -216,13 +226,16 @@ test('release source gate rejects an abbreviated expected App SHA', () => {
   assert.equal(report.admission.immutable_cohort, null);
 });
 
-test('release source gate blocks when live origin/main has advanced and does not run expensive gates', () => {
+test('release source gate keeps a frozen cohort valid when live origin/main advances but retains it', () => {
   const remoteMain = 'f'.repeat(40);
   const calls: string[] = [];
   const baseRunner = runner({
     [`${repoRoot} $ git ls-remote --heads origin refs/heads/main`]: {
       status: 0,
       stdout: `${remoteMain}\trefs/heads/main\n`,
+    },
+    [`${repoRoot} $ git merge-base --is-ancestor ${appHead} ${remoteMain}`]: {
+      status: 0,
     },
   });
   const report = buildReleaseSourceGateReport(
@@ -239,13 +252,11 @@ test('release source gate blocks when live origin/main has advanced and does not
     },
   );
 
-  assert.equal(report.status, 'failed');
-  assert.equal(report.admission.status, 'blocked');
+  assert.equal(report.status, 'passed');
+  assert.equal(report.admission.status, 'passed');
   assert.equal(checkStatus(report, 'app_remote_main_resolved'), 'passed');
-  assert.equal(checkStatus(report, 'app_current_main_identity'), 'failed');
-  assert.equal(report.typed_blocker?.next_action, 'repair_pre_admission');
-  assert.equal(calls.some((call) => call.startsWith('npm ') || call.startsWith('bun ')), false);
-  assert.equal(calls.some((call) => call.includes('run-active-shell-tests.ts')), false);
+  assert.equal(checkStatus(report, 'app_frozen_commit_reachable'), 'passed');
+  assert.equal(report.typed_blocker, null);
 });
 
 test('release source gate rejects a shell checkout that differs from its resolved cohort ref', () => {
@@ -338,7 +349,7 @@ test('release source gate passes for clean canonical main and an immutable sourc
   assert.equal(report.framework_sha, frameworkHead);
   assert.equal(checkStatus(report, 'expected_app_head'), 'passed');
   assert.equal(checkStatus(report, 'app_worktree_clean'), 'passed');
-  assert.equal(checkStatus(report, 'app_current_main_identity'), 'passed');
+  assert.equal(checkStatus(report, 'app_frozen_commit_reachable'), 'passed');
   assert.equal(checkStatus(report, 'immutable_cohort_identity'), 'passed');
   assert.equal(checkStatus(report, 'app_release_boundary_contract'), 'passed');
   assert.equal(checkStatus(report, 'shell_product_profile_consumer'), 'passed');
@@ -349,6 +360,7 @@ test('release source gate passes for clean canonical main and an immutable sourc
   assert.equal(report.admission.status, 'passed');
   assert.deepEqual(report.admission.immutable_cohort, {
     version: '26.6.30',
+    operation_fingerprint: null,
     app_sha: appHead,
     shell_sha: shellHead,
     framework_sha: frameworkHead,

@@ -402,9 +402,13 @@ test('Stable and protected Manual Preview are isolated from scheduled Nightly an
   }
 });
 
-test('new Standard runs source preflight and seals protected admission in the same run', () => {
+test('new Standard binds one pre-issued authority before source preflight and seals its run-bound control in the same run', () => {
   const stable = parseWorkflow('release-stable.yml');
   assert.equal(stable.env.OPL_FRAMEWORK_RELEASE_ABI_REF, undefined);
+  for (const input of ['authority_id', 'authority_carrier', 'authority_digest']) {
+    assert.equal(stable.on.workflow_dispatch.inputs[input].required, true);
+  }
+  assert.match(stable['run-name'], /authority:\$\{\{ inputs\.authority_id \}\}/);
   assert.equal(stable.on.workflow_dispatch.inputs.source_qualification_run_id.required, false);
   assert.equal(stable.on.workflow_dispatch.inputs.source_qualification_receipt_digest.required, false);
   assert.equal(
@@ -415,7 +419,20 @@ test('new Standard runs source preflight and seals protected admission in the sa
     stable.jobs['source-qualification'].with.operation_scope,
     'stable_operation_source_preflight',
   );
-  assert.deepEqual(stable.jobs.admission.needs, ['source-qualification']);
+  assert.deepEqual(stable.jobs['source-qualification'].needs, ['protected-operation-admission']);
+  assert.equal(
+    stable.jobs['source-qualification'].with.app_ref,
+    '${{ needs.protected-operation-admission.outputs.app_ref }}',
+  );
+  assert.equal(
+    stable.jobs['source-qualification'].with.shell_ref,
+    '${{ needs.protected-operation-admission.outputs.shell_ref }}',
+  );
+  assert.equal(
+    stable.jobs['source-qualification'].with.framework_ref,
+    '${{ needs.protected-operation-admission.outputs.framework_ref }}',
+  );
+  assert.deepEqual(stable.jobs.admission.needs, ['protected-operation-admission', 'source-qualification']);
   assert.match(
     String(stable.jobs.admission.if),
     /inputs\.operation != 'standard'.*needs\.source-qualification\.result == 'success'/,
@@ -447,16 +464,50 @@ test('new Standard runs source preflight and seals protected admission in the sa
     stableAdmission.slice(stableAdmission.indexOf('resume_standard|append_full)')),
     /canonical_framework_sha|OPL_FRAMEWORK_RELEASE_ABI_REF/,
   );
-  const protectedAdmission = stable.jobs['protected-admission'];
-  assert.equal(protectedAdmission.environment, 'release-stable');
-  assert.deepEqual(protectedAdmission.needs, ['admission']);
-  assert.equal(protectedAdmission.steps.some(
+  const protectedControl = stable.jobs['protected-operation-admission'];
+  assert.equal(protectedControl.environment, 'release-stable');
+  assert.equal(protectedControl.needs, undefined);
+  assert.equal(protectedControl.steps.some(
+    (step: Record<string, unknown>) => String(step.run ?? '').includes('validate-release-source-gate.ts'),
+  ), true);
+  assert.equal(protectedControl.steps.some(
+    (step: Record<string, unknown>) => String(step.run ?? '').includes('release-dispatch-guard.ts preflight'),
+  ), true);
+  assert.equal(protectedControl.steps.some(
+    (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-operation-control.ts decode-carrier'),
+  ), true);
+  assert.equal(protectedControl.steps.some(
+    (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-operation-control.ts bind'),
+  ), true);
+  const authorityStepIndex = protectedControl.steps.findIndex(
+    (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-operation-control.ts decode-carrier'),
+  );
+  const dependencyStepIndex = protectedControl.steps.findIndex(
+    (step: Record<string, unknown>) => step.name === 'Install source-gate dependencies',
+  );
+  assert.ok(authorityStepIndex >= 0 && authorityStepIndex < dependencyStepIndex);
+  const stableSource = readWorkflow('release-stable.yml');
+  assert.doesNotMatch(stableSource, /openssl rand/);
+  assert.doesNotMatch(stableSource, /operation_id="stable-\$\{GITHUB_RUN_ID\}"/);
+  assert.doesNotMatch(stableSource, /stable-operation-control\.ts create(?:\s|$)/);
+  assert.equal(protectedControl.steps.some(
+    (step: Record<string, any>) => step.with?.name === 'opl-stable-operation-control-${{ github.run_id }}',
+  ), true);
+  const stableAdmissionManifest = stable.jobs['stable-admission-manifest'];
+  assert.equal(stableAdmissionManifest.environment, 'release-stable');
+  assert.deepEqual(stableAdmissionManifest.needs, ['admission', 'protected-operation-admission']);
+  assert.equal(stableAdmissionManifest.steps.some(
     (step: Record<string, unknown>) => step.name === 'Verify protected Apple credentials in the Stable entry',
   ), true);
-  assert.equal(protectedAdmission.steps.some(
+  assert.equal(stableAdmissionManifest.steps.some(
     (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-release-admission-manifest.ts create'),
   ), true);
-  assert.equal(stable.jobs.standard.needs.includes('protected-admission'), true);
+  assert.equal(stable.jobs.standard.needs.includes('protected-operation-admission'), true);
+  assert.equal(stable.jobs.standard.needs.includes('stable-admission-manifest'), true);
+  assert.equal(
+    stable.jobs.standard.with.stable_operation_control_artifact,
+    'opl-stable-operation-control-${{ github.run_id }}',
+  );
 
   for (const name of ['_release-standard-publish.yml', '_release-full-addon.yml']) {
     const workflow = parseWorkflow(name);
@@ -539,12 +590,12 @@ test('Stable resolves the unique nested source qualification receipt and fails c
   const admissionRun = String(stable.jobs.admission.steps.find(
     (step: Record<string, unknown>) => step.name === 'Admit one bounded Bundle operation',
   )?.run ?? '');
-  const protectedAdmission = stable.jobs['protected-admission'];
-  const protectedRun = String(protectedAdmission.steps.find(
+  const stableAdmissionManifest = stable.jobs['stable-admission-manifest'];
+  const protectedRun = String(stableAdmissionManifest.steps.find(
     (step: Record<string, unknown>) => step.name === 'Seal one same-run Stable admission manifest',
   )?.run ?? '');
 
-  for (const [name, run] of [['admission', admissionRun], ['protected-admission', protectedRun]] as const) {
+  for (const [name, run] of [['admission', admissionRun], ['stable-admission-manifest', protectedRun]] as const) {
     const resolver = sourceQualificationReceiptResolver(run);
     const nested = runSourceQualificationReceiptResolver(resolver, 'nested');
     assert.equal(nested.status, 0, `${name}: ${nested.stderr}`);
@@ -561,7 +612,7 @@ test('Stable resolves the unique nested source qualification receipt and fails c
   assert.match(admissionRun, /--receipt "\$qualification_receipt_path"/);
   assert.match(protectedRun, /--receipt "\$qualification_receipt_path"/);
   assert.match(protectedRun, /--source-qualification-receipt "\$qualification_receipt_path"/);
-  const protectedUpload = protectedAdmission.steps.find(
+  const protectedUpload = stableAdmissionManifest.steps.find(
     (step: Record<string, unknown>) => step.name === 'Upload same-run protected admission evidence',
   );
   assert.match(
@@ -1482,8 +1533,8 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     false,
   );
   const stableWorkflow = parseWorkflow('release-stable.yml');
-  assert.equal(stableWorkflow.jobs['protected-admission'].environment, 'release-stable');
-  assert.equal(stableWorkflow.jobs['protected-admission'].steps.some(
+  assert.equal(stableWorkflow.jobs['stable-admission-manifest'].environment, 'release-stable');
+  assert.equal(stableWorkflow.jobs['stable-admission-manifest'].steps.some(
     (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-release-admission-manifest.ts create'),
   ), true);
   assert.equal(setupSigning.env.BUILD_CERTIFICATE_BASE64, '${{ secrets.BUILD_CERTIFICATE_BASE64 }}');

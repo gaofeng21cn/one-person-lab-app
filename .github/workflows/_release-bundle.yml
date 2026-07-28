@@ -71,6 +71,16 @@ on:
         required: false
         default: ''
         type: string
+      stable_operation_control_artifact:
+        description: Exact protected Stable operation-control artifact for a future Stable operation
+        required: false
+        default: ''
+        type: string
+      stable_operation_control_digest:
+        description: Exact authority digest for the protected Stable operation-control artifact
+        required: false
+        default: ''
+        type: string
     outputs:
       source_run_id:
         description: Run containing the exported Standard checkpoint
@@ -125,6 +135,20 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Checkout exact App control verifier
+        if: ${{ inputs.channel == 'stable' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          ref: ${{ inputs.app_ref }}
+          path: app-source
+
+      - name: Download protected Stable operation control
+        if: ${{ inputs.channel == 'stable' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ inputs.stable_operation_control_artifact }}
+          path: stable-operation-control
+
       - name: Admit one-shot Bundle build operation
         shell: bash
         run: |
@@ -147,6 +171,16 @@ jobs:
             status=failed
             reason=stable_does_not_use_preview_override
           fi
+          if [ "$publication_channel" = stable ]; then
+            [[ '${{ inputs.stable_operation_control_artifact }}' =~ ^opl-stable-operation-control-[1-9][0-9]*$ ]] || {
+              status=failed
+              reason=missing_protected_operation_control
+            }
+            [[ '${{ inputs.stable_operation_control_digest }}' =~ ^sha256:[0-9a-f]{64}$ ]] || {
+              status=failed
+              reason=missing_protected_operation_control_digest
+            }
+          fi
           if [ "$publication_channel" != stable ] && [ '${{ inputs.include_full }}' = true ]; then
             status=failed
             reason=non_stable_full_request
@@ -161,6 +195,45 @@ jobs:
             '{schema:"opl_release_operation_admission_receipt.v1",status:$status,reason:$reason,operation:$operation,run_id:$run_id,run_attempt:env.GITHUB_RUN_ATTEMPT}' \
             > release-failure-evidence/operation-admission.json
           test "$status" = passed
+
+      - name: Consume one protected Stable operation control before cold work
+        if: ${{ inputs.channel == 'stable' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          controls=()
+          while IFS= read -r control; do controls+=("$control"); done < <(
+            find stable-operation-control -type f -name stable-operation-control.json -print | LC_ALL=C sort
+          )
+          test "${#controls[@]}" -eq 1
+          control="${controls[0]}"
+          test -f "$control" && test ! -L "$control"
+          test "$(jq -er .authority_digest "$control")" = '${{ inputs.stable_operation_control_digest }}'
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts verify \
+            --control "$control" --app-root app-source \
+            --source-gate stable-operation-control/source-gate.json \
+            --pre-nonce-guard stable-operation-control/pre-nonce-guard.json \
+            --expected-run-id "$GITHUB_RUN_ID" --expected-actor "$GITHUB_ACTOR" \
+            --expected-app-sha '${{ inputs.app_ref }}' \
+            --expected-shell-sha '${{ inputs.shell_ref }}' \
+            --expected-framework-sha '${{ inputs.framework_ref }}'
+          nonce="$(jq -er .nonce "$control")"
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts consume \
+            --control "$control" --operation-id "$(jq -er .operation_id "$control")" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --nonce "$nonce" \
+            --output stable-operation-control/stable-operation-consumption.json
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts verify \
+            --control "$control" --input stable-operation-control/stable-operation-consumption.json
+
+      - name: Upload consumed Stable operation control
+        if: ${{ always() && inputs.channel == 'stable' && hashFiles('stable-operation-control/stable-operation-consumption.json') != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opl-stable-operation-consumption-${{ github.run_id }}
+          path: stable-operation-control
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload Bundle admission evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -195,6 +268,32 @@ jobs:
         with:
           ref: ${{ inputs.app_ref }}
           fetch-depth: 0
+
+      - name: Download and verify consumed Stable operation control
+        if: ${{ inputs.channel == 'stable' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: opl-stable-operation-consumption-${{ github.run_id }}
+          path: stable-operation-control
+
+      - name: Require one matching consumed Stable operation control
+        if: ${{ inputs.channel == 'stable' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          control=stable-operation-control/stable-operation-control.json
+          consumption=stable-operation-control/stable-operation-consumption.json
+          test -f "$control" && test ! -L "$control"
+          test -f "$consumption" && test ! -L "$consumption"
+          test "$(jq -er .authority_digest "$control")" = '${{ inputs.stable_operation_control_digest }}'
+          node --experimental-strip-types scripts/stable-operation-control.ts verify \
+            --control "$control" --input "$consumption" \
+            --app-root . --source-gate stable-operation-control/source-gate.json \
+            --pre-nonce-guard stable-operation-control/pre-nonce-guard.json \
+            --expected-run-id "$GITHUB_RUN_ID" --expected-actor "$GITHUB_ACTOR" \
+            --expected-app-sha '${{ inputs.app_ref }}' \
+            --expected-shell-sha '${{ inputs.shell_ref }}' \
+            --expected-framework-sha '${{ inputs.framework_ref }}'
 
       - name: Checkout Shell source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10

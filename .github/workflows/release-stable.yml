@@ -1,5 +1,5 @@
 name: OPL Stable Release Bundle
-run-name: OPL Stable ${{ inputs.operation }} ${{ github.run_id }}
+run-name: OPL Stable ${{ inputs.operation }} authority:${{ inputs.authority_id }} run:${{ github.run_id }}
 
 on:
   workflow_dispatch:
@@ -13,6 +13,18 @@ on:
           - standard
           - resume_standard
           - append_full
+      authority_id:
+        description: Pre-issued canonical Stable authority identity for this one operation
+        required: true
+        type: string
+      authority_carrier:
+        description: Canonical base64url pre-issued Stable authority JSON carrier
+        required: true
+        type: string
+      authority_digest:
+        description: SHA-256 digest declared by the pre-issued authority carrier
+        required: true
+        type: string
       version:
         description: Legacy raw Standard input; must be empty because the admission manifest owns version allocation
         required: false
@@ -70,17 +82,212 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  protected-operation-admission:
+    if: ${{ inputs.operation == 'standard' }}
+    runs-on: macos-14
+    timeout-minutes: 30
+    environment: release-stable
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      app_ref: ${{ steps.control.outputs.app_ref }}
+      shell_ref: ${{ steps.control.outputs.shell_ref }}
+      framework_ref: ${{ steps.control.outputs.framework_ref }}
+      operation_id: ${{ steps.control.outputs.operation_id }}
+      control_digest: ${{ steps.control.outputs.control_digest }}
+      authority_id: ${{ steps.authority.outputs.authority_id }}
+    steps:
+      - name: Reject bare or rerun Stable request before expensive work
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test '${{ inputs.operation }}' = standard
+          test -n '${{ inputs.authority_id }}'
+          test -n '${{ inputs.authority_carrier }}'
+          [[ '${{ inputs.authority_digest }}' =~ ^sha256:[0-9a-f]{64}$ ]]
+          test -z '${{ inputs.version }}${{ inputs.shell_ref }}${{ inputs.framework_ref }}${{ inputs.source_run_id }}${{ inputs.source_artifact }}${{ inputs.source_qualification_run_id }}${{ inputs.source_qualification_receipt_digest }}'
+          test '${{ inputs.include_full }}' = false
+
+      - name: Checkout frozen App source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          ref: ${{ github.sha }}
+          path: app-source
+          fetch-depth: 0
+
+      - name: Decode and verify pre-issued Stable authority before dependency installation
+        id: authority
+        env:
+          AUTHORITY_ID: ${{ inputs.authority_id }}
+          AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
+          AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts decode-carrier \
+            --input "$AUTHORITY_CARRIER" --authority-id "$AUTHORITY_ID" \
+            --authority-digest "$AUTHORITY_DIGEST" \
+            --output stable-operation-authority.json
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts verify-authority \
+            --authority stable-operation-authority.json \
+            --authority-id "$AUTHORITY_ID" --authority-digest "$AUTHORITY_DIGEST" \
+            --app-root app-source --expected-actor "$GITHUB_ACTOR" --expected-app-sha "$GITHUB_SHA"
+          app_sha="$(jq -er .cohort.app_sha stable-operation-authority.json)"
+          shell_sha="$(jq -er .cohort.shell_sha stable-operation-authority.json)"
+          framework_sha="$(jq -er .cohort.framework_sha stable-operation-authority.json)"
+          operation_id="$(jq -er .operation_id stable-operation-authority.json)"
+          objective_fingerprint="$(jq -er .objective_fingerprint stable-operation-authority.json)"
+          test "$app_sha" = "$GITHUB_SHA"
+          for value in "$shell_sha" "$framework_sha"; do
+            [[ "$value" =~ ^[0-9a-f]{40}$ ]]
+          done
+          {
+            echo "authority_id=$AUTHORITY_ID"
+            echo "operation_id=$operation_id"
+            echo "objective_fingerprint=$objective_fingerprint"
+            echo "app_ref=$app_sha"
+            echo "shell_ref=$shell_sha"
+            echo "framework_ref=$framework_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout frozen Shell authority cohort
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          repository: gaofeng21cn/opl-aion-shell
+          ref: ${{ steps.authority.outputs.shell_ref }}
+          path: app-source/shells/aionui
+          fetch-depth: 0
+
+      - name: Checkout frozen Framework authority cohort
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          repository: gaofeng21cn/one-person-lab
+          ref: ${{ steps.authority.outputs.framework_ref }}
+          path: framework-source
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app-source/package-lock.json
+
+      - name: Install source-gate dependencies
+        working-directory: app-source
+        run: npm ci --ignore-scripts
+
+      - name: Bind one pre-issued Stable authority to this run
+        id: control
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_sha="$(git -C app-source rev-parse HEAD)"
+          shell_sha="$(git -C app-source/shells/aionui rev-parse HEAD)"
+          framework_sha="$(git -C framework-source rev-parse HEAD)"
+          for value in "$app_sha" "$shell_sha" "$framework_sha"; do
+            [[ "$value" =~ ^[0-9a-f]{40}$ ]]
+          done
+          test "$app_sha" = '${{ steps.authority.outputs.app_ref }}'
+          test "$shell_sha" = '${{ steps.authority.outputs.shell_ref }}'
+          test "$framework_sha" = '${{ steps.authority.outputs.framework_ref }}'
+          node --experimental-strip-types app-source/scripts/validate-release-source-gate.ts \
+            --operation-fingerprint '${{ steps.authority.outputs.objective_fingerprint }}' \
+            --app-ref "$app_sha" \
+            --shell-ref "$shell_sha" \
+            --framework-ref "$framework_sha" \
+            --repo-root app-source \
+            --shell-root app-source/shells/aionui \
+            --framework-root framework-source \
+            --require-shell-format true \
+            --run-shell-tests true \
+            --output source-gate.json
+          node --experimental-strip-types app-source/scripts/release-dispatch-guard.ts preflight \
+            --workflow .github/workflows/release-stable.yml \
+            --expected-app-sha "$app_sha" \
+            --expected-shell-sha "$shell_sha" \
+            --expected-framework-sha "$framework_sha" \
+            --current-run-id "$GITHUB_RUN_ID" \
+            --authority-id '${{ steps.authority.outputs.authority_id }}' \
+            --source-gate-report source-gate.json \
+            --output pre-nonce-guard.json
+          node - app-source critical-blobs.json <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const path = require('path');
+          const [root, output] = process.argv.slice(2);
+          const files = [
+            '.github/workflows/release-stable.yml',
+            '.github/workflows/release-source-qualification.yml',
+            '.github/workflows/_release-bundle.yml',
+            '.github/workflows/_release-standard-publish.yml',
+            '.github/workflows/_release-full-addon.yml',
+            '.github/workflows/_release-webui-carrier.yml',
+            '.github/workflows/release-webui-publication-promote.yml',
+            'contracts/app-release-channel.json',
+          ];
+          const blobs = Object.fromEntries(files.map((file) => [
+            file,
+            `sha256:${crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')}`,
+          ]));
+          fs.writeFileSync(output, `${JSON.stringify(blobs, null, 2)}\n`);
+          NODE
+          source_gate_digest="sha256:$(shasum -a 256 source-gate.json | awk '{print $1}')"
+          pre_nonce_guard_digest="sha256:$(shasum -a 256 pre-nonce-guard.json | awk '{print $1}')"
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts bind \
+            --authority stable-operation-authority.json \
+            --authority-digest '${{ inputs.authority_digest }}' \
+            --actor "$GITHUB_ACTOR" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --source-gate-digest "$source_gate_digest" \
+            --pre-nonce-guard-digest "$pre_nonce_guard_digest" \
+            --output stable-operation-control.json
+          node --experimental-strip-types app-source/scripts/stable-operation-control.ts verify \
+            --control stable-operation-control.json --app-root app-source \
+            --source-gate source-gate.json --pre-nonce-guard pre-nonce-guard.json \
+            --expected-run-id "$GITHUB_RUN_ID" --expected-actor "$GITHUB_ACTOR" \
+            --expected-app-sha "$app_sha" --expected-shell-sha "$shell_sha" --expected-framework-sha "$framework_sha"
+          {
+            echo "app_ref=$app_sha"
+            echo "shell_ref=$shell_sha"
+            echo "framework_ref=$framework_sha"
+            echo "operation_id=$(jq -er .operation_id stable-operation-control.json)"
+            echo "control_digest=$(jq -er .authority_digest stable-operation-control.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable operation control evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opl-stable-operation-control-${{ github.run_id }}
+          path: |
+            stable-operation-control.json
+            stable-operation-authority.json
+            source-gate.json
+            pre-nonce-guard.json
+            critical-blobs.json
+          if-no-files-found: error
+          retention-days: 30
+
   source-qualification:
     if: ${{ inputs.operation == 'standard' }}
+    needs: [protected-operation-admission]
     permissions:
       contents: read
       actions: read
     uses: ./.github/workflows/release-source-qualification.yml
     with:
       operation_scope: stable_operation_source_preflight
+      app_ref: ${{ needs.protected-operation-admission.outputs.app_ref }}
+      shell_ref: ${{ needs.protected-operation-admission.outputs.shell_ref }}
+      framework_ref: ${{ needs.protected-operation-admission.outputs.framework_ref }}
 
   admission:
-    needs: [source-qualification]
+    needs: [protected-operation-admission, source-qualification]
     if: ${{ always() && (inputs.operation != 'standard' || needs.source-qualification.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -199,6 +406,9 @@ jobs:
                 echo "::error::Verified source qualification App ref does not match the workflow executor."
                 exit 1
               }
+              test "$verified_app_ref" = '${{ needs.protected-operation-admission.outputs.app_ref }}'
+              test "$SHELL_REF" = '${{ needs.protected-operation-admission.outputs.shell_ref }}'
+              test "$FRAMEWORK_REF" = '${{ needs.protected-operation-admission.outputs.framework_ref }}'
               ;;
             resume_standard|append_full)
               [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]] || {
@@ -261,9 +471,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  protected-admission:
+  stable-admission-manifest:
     if: ${{ needs.admission.outputs.operation == 'standard' }}
-    needs: [admission]
+    needs: [admission, protected-operation-admission]
     runs-on: macos-14
     timeout-minutes: 15
     environment: release-stable
@@ -376,7 +586,7 @@ jobs:
 
   standard:
     if: ${{ needs.admission.outputs.operation == 'standard' }}
-    needs: [admission, protected-admission]
+    needs: [admission, protected-operation-admission, stable-admission-manifest]
     permissions:
       contents: write
       actions: read
@@ -385,15 +595,17 @@ jobs:
       mode: execute
       operation: standard
       channel: stable
-      version: ${{ needs.protected-admission.outputs.version }}
+      version: ${{ needs.stable-admission-manifest.outputs.version }}
       include_full: ${{ fromJSON(needs.admission.outputs.include_full) }}
       package_compatibility_abi: ${{ needs.admission.outputs.package_compatibility_abi }}
       package_compatibility_version_range: ${{ needs.admission.outputs.package_compatibility_version_range }}
-      app_ref: ${{ needs.protected-admission.outputs.app_ref }}
-      shell_ref: ${{ needs.protected-admission.outputs.shell_ref }}
-      framework_ref: ${{ needs.protected-admission.outputs.framework_ref }}
+      app_ref: ${{ needs.protected-operation-admission.outputs.app_ref }}
+      shell_ref: ${{ needs.protected-operation-admission.outputs.shell_ref }}
+      framework_ref: ${{ needs.protected-operation-admission.outputs.framework_ref }}
       operation_started_at: ${{ needs.admission.outputs.operation_started_at }}
       operation_deadline_at: ${{ needs.admission.outputs.operation_deadline_at }}
+      stable_operation_control_artifact: opl-stable-operation-control-${{ github.run_id }}
+      stable_operation_control_digest: ${{ needs.protected-operation-admission.outputs.control_digest }}
     secrets: inherit
 
   resume-standard:

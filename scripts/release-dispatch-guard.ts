@@ -95,6 +95,7 @@ export type OwnerWorkflowRun = {
   head_sha: string;
   run_attempt: number;
   created_at: string;
+  display_title: string;
 };
 
 export type OwnerRunsResult =
@@ -144,6 +145,8 @@ export type PreNonceGuardInput = {
   expectedFrameworkSha: string;
   workflow: string;
   sourceGateReport: unknown;
+  currentRunId?: string;
+  authorityId?: string;
   priorFailureFingerprint?: unknown;
   currentFailureFingerprint?: unknown;
   maxReadAttempts?: number;
@@ -414,6 +417,7 @@ function normalizeOwnerRun(value: unknown): OwnerWorkflowRun | null {
     || !Number.isSafeInteger(Number(run.run_attempt))
     || typeof run.created_at !== 'string'
     || !Number.isFinite(Date.parse(run.created_at))
+    || typeof run.display_title !== 'string'
   ) {
     return null;
   }
@@ -427,6 +431,7 @@ function normalizeOwnerRun(value: unknown): OwnerWorkflowRun | null {
     head_sha: run.head_sha.toLowerCase(),
     run_attempt: Number(run.run_attempt),
     created_at: run.created_at,
+    display_title: run.display_title,
   };
 }
 
@@ -473,12 +478,6 @@ export function extractUniqueOwnerWorkflowRun(
   };
 }
 
-function matchesExpectedWireSha(result: WireRefResult, expectedSha: string): boolean {
-  return result.status === 'ok'
-    && fullShaPattern.test(expectedSha)
-    && result.sha === expectedSha.toLowerCase();
-}
-
 function validateSourceGateReport(input: PreNonceGuardInput): {
   schema: 'opl_app_release_source_gate.v1';
   status: 'passed';
@@ -499,6 +498,17 @@ function validateSourceGateReport(input: PreNonceGuardInput): {
     || cohort?.framework_sha !== input.expectedFrameworkSha.toLowerCase()
   ) {
     throw new Error('Source-gate report does not pass and bind the exact pre-nonce cohort.');
+  }
+  const frozenCohortReachable = Array.isArray(report.checks)
+    && report.checks.some(
+      (check: unknown) => check !== null
+        && typeof check === 'object'
+        && !Array.isArray(check)
+        && (check as Record<string, unknown>).id === 'app_frozen_commit_reachable'
+        && (check as Record<string, unknown>).status === 'passed',
+    );
+  if (!frozenCohortReachable) {
+    throw new Error('Source-gate report does not prove that the frozen App commit remains reachable.');
   }
   return {
     schema: 'opl_app_release_source_gate.v1',
@@ -571,6 +581,18 @@ export function buildPreNonceDispatchGuard(
     if (!fullShaPattern.test(value)) throw new Error(`Expected ${label} identity must be a full SHA.`);
   }
   const sourceGate = validateSourceGateReport(input);
+  if (input.currentRunId !== undefined && !/^[1-9][0-9]*$/.test(input.currentRunId)) {
+    throw new Error('Current GitHub run id must be a positive integer when provided.');
+  }
+  if (
+    input.authorityId !== undefined
+    && !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(input.authorityId)
+  ) {
+    throw new Error('Stable operation authority_id is not canonical.');
+  }
+  if ((input.currentRunId === undefined) !== (input.authorityId === undefined)) {
+    throw new Error('Run-bound Stable authority reconciliation requires both current_run_id and authority_id.');
+  }
   const failureFingerprintGuard = evaluateFailureFingerprintGuard(input);
   const identities: Record<'app' | 'shell' | 'framework', WireRefResult | null> = {
     app: null,
@@ -599,52 +621,6 @@ export function buildPreNonceDispatchGuard(
       redispatch_allowed: false,
     } as const;
   }
-  const expected = {
-    app: input.expectedAppSha,
-    shell: input.expectedShellSha,
-    framework: input.expectedFrameworkSha,
-  };
-  const wireReads = [
-    { name: 'app', repository: appRepository, remote: repositoryRemotes.app },
-    { name: 'shell', repository: 'gaofeng21cn/opl-aion-shell', remote: repositoryRemotes.shell },
-    { name: 'framework', repository: 'gaofeng21cn/one-person-lab', remote: repositoryRemotes.framework },
-  ] as const;
-  for (const wireRead of wireReads) {
-    const result = resolveGitWireRef({
-      repository: wireRead.repository,
-      remote: wireRead.remote,
-      maxAttempts,
-      runner: dependencies.runner,
-      cwd: dependencies.cwd,
-    });
-    identities[wireRead.name] = result;
-    if (matchesExpectedWireSha(result, expected[wireRead.name])) continue;
-    const failureKind = result.status === 'failed' ? result.failure_kind : 'protocol';
-    const failureCode = result.status === 'failed' ? result.failure_code : 'invalid_response';
-    return {
-      schema: 'opl_release_dispatch_guard.v1',
-      phase: 'pre_nonce',
-      status: 'blocked',
-      failure_class: failureKind,
-      failure_code: failureCode,
-      credential_failure: failureKind === 'credential',
-      reason: result.status === 'failed'
-        ? result.detail
-        : `${wireRead.name} wire identity ${result.sha} does not match expected ${expected[wireRead.name]}.`,
-      source_gate: sourceGate,
-      failure_fingerprint_guard: failureFingerprintGuard,
-      wire_identities: identities,
-      owner_run_query: null,
-      owner_run_match_count: null,
-      nonce_consumed: false,
-      mutation_invocation_count: 0,
-      mutation_retry_count: 0,
-      read_only_guard_replacement_allowed: true,
-      dispatch_allowed: false,
-      redispatch_allowed: false,
-    } as const;
-  }
-
   const ownerRuns = readOwnerWorkflowRuns({
     workflow: input.workflow,
     maxAttempts,
@@ -701,7 +677,7 @@ export function buildPreNonceDispatchGuard(
       redispatch_allowed: false,
     } as const;
   }
-  const activeMatches = normalizedRuns
+  const exactMatches = normalizedRuns
     .filter((run): run is OwnerWorkflowRun => run !== null)
     .filter((run) => (
       run.path === input.workflow
@@ -709,9 +685,18 @@ export function buildPreNonceDispatchGuard(
       && run.event === 'workflow_dispatch'
       && run.head_branch === 'main'
       && run.run_attempt === 1
-      && activeRunStatuses.has(run.status)
+      && (input.authorityId === undefined || run.display_title.includes(input.authorityId))
     ));
-  const passed = activeMatches.length === 0;
+  const activeMatches = exactMatches.filter((run) => activeRunStatuses.has(run.status));
+  const ownRunMatches = input.currentRunId === undefined
+    ? []
+    : exactMatches.filter((run) => String(run.id) === input.currentRunId);
+  const priorConsumptionMatches = input.currentRunId === undefined
+    ? []
+    : exactMatches.filter((run) => String(run.id) !== input.currentRunId);
+  const passed = input.currentRunId === undefined
+    ? activeMatches.length === 0
+    : ownRunMatches.length === 1 && priorConsumptionMatches.length === 0;
   return {
     schema: 'opl_release_dispatch_guard.v1',
     phase: 'pre_nonce',
@@ -720,8 +705,12 @@ export function buildPreNonceDispatchGuard(
     failure_code: passed ? null : 'invalid_response',
     credential_failure: false,
     reason: passed
-      ? 'Wire identities match and the single owner workflow-runs query found no active exact attempt.'
-      : `Found ${activeMatches.length} active exact owner run(s); a new dispatch is forbidden.`,
+      ? input.currentRunId === undefined
+        ? 'The source gate proves the frozen cohort remains reachable and the single owner workflow-runs query found no active exact attempt.'
+        : 'The source gate proves the frozen cohort remains reachable and exactly one current run owns the pre-issued authority with no prior consumption.'
+      : input.currentRunId === undefined
+        ? `Found ${activeMatches.length} active exact owner run(s); a new dispatch is forbidden.`
+        : `Authority reconciliation requires exactly the current run and no prior authority consumer; observed current=${ownRunMatches.length} prior=${priorConsumptionMatches.length}.`,
     source_gate: sourceGate,
     failure_fingerprint_guard: failureFingerprintGuard,
     wire_identities: identities,
@@ -731,7 +720,7 @@ export function buildPreNonceDispatchGuard(
       logical_query_count: ownerRuns.logical_query_count,
       parser: ownerRuns.parser,
     },
-    owner_run_match_count: activeMatches.length,
+    owner_run_match_count: input.currentRunId === undefined ? activeMatches.length : exactMatches.length,
     nonce_consumed: false,
     mutation_invocation_count: 0,
     mutation_retry_count: 0,
@@ -828,6 +817,8 @@ if (isMainModule()) {
         'expected-shell-sha': { type: 'string' },
         'expected-framework-sha': { type: 'string' },
         'source-gate-report': { type: 'string' },
+        'current-run-id': { type: 'string' },
+        'authority-id': { type: 'string' },
         'prior-failure-fingerprint': { type: 'string' },
         'current-failure-fingerprint': { type: 'string' },
         'operation-started-at': { type: 'string' },
@@ -848,6 +839,12 @@ if (isMainModule()) {
           path.resolve(requiredOption(values['source-gate-report'], 'source-gate-report')),
           'utf8',
         )),
+        currentRunId: typeof values['current-run-id'] === 'string'
+          ? values['current-run-id']
+          : undefined,
+        authorityId: typeof values['authority-id'] === 'string'
+          ? values['authority-id']
+          : undefined,
         priorFailureFingerprint: typeof values['prior-failure-fingerprint'] === 'string'
           ? JSON.parse(fs.readFileSync(path.resolve(values['prior-failure-fingerprint']), 'utf8'))
           : undefined,

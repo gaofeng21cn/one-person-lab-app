@@ -10,6 +10,21 @@ on:
         required: false
         default: stable_operation_source_preflight
         type: string
+      app_ref:
+        description: Exact protected App cohort SHA; empty only for a standalone diagnostic dispatch
+        required: false
+        default: ''
+        type: string
+      shell_ref:
+        description: Exact protected Shell cohort SHA; empty only for a standalone diagnostic dispatch
+        required: false
+        default: ''
+        type: string
+      framework_ref:
+        description: Exact protected Framework cohort SHA; empty only for a standalone diagnostic dispatch
+        required: false
+        default: ''
+        type: string
     outputs:
       receipt_digest:
         description: Immutable source preflight receipt digest
@@ -54,13 +69,24 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
-          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch|workflow_call) ;;
+            *) echo "::error::Stable source qualification requires workflow_dispatch or the protected Stable caller."; exit 1 ;;
+          esac
           test "$GITHUB_REF" = refs/heads/main
+          if [ "$GITHUB_EVENT_NAME" = workflow_call ]; then
+            for ref in '${{ inputs.app_ref }}' '${{ inputs.shell_ref }}' '${{ inputs.framework_ref }}'; do
+              [[ "$ref" =~ ^[0-9a-f]{40}$ ]] || {
+                echo "::error::The protected Stable caller must bind each frozen cohort ref to one exact SHA."
+                exit 1
+              }
+            done
+          fi
 
       - name: Checkout exact App main
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.app_ref || github.sha }}
           path: app
           fetch-depth: 0
 
@@ -100,12 +126,14 @@ jobs:
           }
           app_sha="$(git -C app rev-parse HEAD)"
           app_tree="$(git -C app rev-parse 'HEAD^{tree}')"
-          shell_sha="$(resolve_main_wire gaofeng21cn/opl-aion-shell)"
-          framework_sha="$(resolve_main_wire gaofeng21cn/one-person-lab)"
+          shell_sha='${{ inputs.shell_ref }}'
+          framework_sha='${{ inputs.framework_ref }}'
+          if [ -z "$shell_sha" ]; then shell_sha="$(resolve_main_wire gaofeng21cn/opl-aion-shell)"; fi
+          if [ -z "$framework_sha" ]; then framework_sha="$(resolve_main_wire gaofeng21cn/one-person-lab)"; fi
           for identity in "$app_sha" "$app_tree" "$shell_sha" "$framework_sha"; do
             [[ "$identity" =~ ^[0-9a-f]{40}$ ]]
           done
-          test "$app_sha" = "$GITHUB_SHA"
+          test "$app_sha" = '${{ inputs.app_ref || github.sha }}'
           {
             echo "app_sha=$app_sha"
             echo "app_tree=$app_tree"

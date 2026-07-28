@@ -64,7 +64,8 @@ type CommandOptions = {
 export type CommandRunner = (command: string, args: string[], options: CommandOptions) => CommandResult;
 
 export type ReleaseSourceGateOptions = {
-  version: string;
+  version: string | null;
+  operationFingerprint: string | null;
   expectedAppHead: string;
   shellRef: string;
   frameworkRef: string;
@@ -105,7 +106,8 @@ type SourceGateBlocker = {
 };
 
 type ImmutableCohortIdentity = {
-  version: string;
+  version: string | null;
+  operation_fingerprint: string | null;
   app_sha: string;
   shell_sha: string;
   framework_sha: string;
@@ -116,7 +118,8 @@ export type ReleaseSourceGateReport = {
   generated_at: string;
   status: 'passed' | 'failed';
   repo_root: string;
-  version: string;
+  version: string | null;
+  operation_fingerprint: string | null;
   expected_app_head: string;
   app_head: string | null;
   shell_ref: string;
@@ -150,6 +153,7 @@ function usage(): void {
 
 Options:
   --version <version>              Release version for the candidate cohort.
+  --operation-fingerprint <value>  Version-independent admitted operation identity.
   --app-ref <sha>                  Expected App repository HEAD commit.
   --expected-app-head <sha>        Alias for --app-ref.
   --shell-ref <ref>                Active shell ref to resolve in shells/aionui. Default: main.
@@ -167,7 +171,8 @@ Options:
 
 function defaultOptions(): ReleaseSourceGateOptions {
   return {
-    version: process.env.OPL_RELEASE_VERSION || '',
+    version: process.env.OPL_RELEASE_VERSION || null,
+    operationFingerprint: process.env.OPL_RELEASE_OPERATION_FINGERPRINT || null,
     expectedAppHead: process.env.OPL_EXPECTED_APP_HEAD || process.env.GITHUB_SHA || '',
     shellRef: process.env.OPL_SHELL_REF || 'main',
     frameworkRef: process.env.OPL_FRAMEWORK_REF || 'main',
@@ -188,6 +193,7 @@ export function parseReleaseSourceGateArgs(argv: string[]): ReleaseSourceGateOpt
     tokens: true,
     options: {
       version: { type: 'string' },
+      'operation-fingerprint': { type: 'string' },
       'app-ref': { type: 'string' },
       'expected-app-head': { type: 'string' },
       'shell-ref': { type: 'string' },
@@ -207,6 +213,7 @@ export function parseReleaseSourceGateArgs(argv: string[]): ReleaseSourceGateOpt
     process.exit(0);
   }
   parsed.version = values.version ?? parsed.version;
+  parsed.operationFingerprint = values['operation-fingerprint'] ?? parsed.operationFingerprint;
   const expectedAppHeadToken = tokens
     .filter((token) => token.kind === 'option' && (token.name === 'app-ref' || token.name === 'expected-app-head'))
     .at(-1);
@@ -225,7 +232,20 @@ export function parseReleaseSourceGateArgs(argv: string[]): ReleaseSourceGateOpt
   parsed.output = values.output ?? parsed.output;
   parsed.json = values.json ?? parsed.json;
 
-  if (!parsed.version.trim()) throw new Error('Pass --version <version> or set OPL_RELEASE_VERSION.');
+  if (
+    (!parsed.version || !parsed.version.trim())
+    && (!parsed.operationFingerprint || !parsed.operationFingerprint.trim())
+  ) {
+    throw new Error('Pass --version <version> or --operation-fingerprint <value>.');
+  }
+  if (parsed.version && !parsed.version.trim()) parsed.version = null;
+  if (parsed.operationFingerprint && !parsed.operationFingerprint.trim()) parsed.operationFingerprint = null;
+  if (
+    parsed.operationFingerprint
+    && !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,191}$/.test(parsed.operationFingerprint)
+  ) {
+    throw new Error('operation-fingerprint is not canonical.');
+  }
   if (!parsed.expectedAppHead.trim()) {
     throw new Error('Pass --app-ref <sha>/--expected-app-head <sha> or set OPL_EXPECTED_APP_HEAD/GITHUB_SHA.');
   }
@@ -233,6 +253,8 @@ export function parseReleaseSourceGateArgs(argv: string[]): ReleaseSourceGateOpt
   if (!parsed.frameworkRef.trim()) throw new Error('Pass --framework-ref <ref> or set OPL_FRAMEWORK_REF.');
   return {
     ...parsed,
+    version: parsed.version,
+    operationFingerprint: parsed.operationFingerprint,
     repoRoot: path.resolve(parsed.repoRoot),
     shellRoot: path.resolve(parsed.shellRoot),
     frameworkRoot: path.resolve(parsed.frameworkRoot),
@@ -311,7 +333,10 @@ function buildCommandEnvironment(source: NodeJS.ProcessEnv, options: ReleaseSour
   for (const [name, value] of Object.entries(source)) {
     if (value !== undefined && commandEnvironmentAllowlist.has(name)) commandEnvironment[name] = value;
   }
-  commandEnvironment.OPL_RELEASE_VERSION = options.version;
+  if (options.version !== null) commandEnvironment.OPL_RELEASE_VERSION = options.version;
+  if (options.operationFingerprint !== null) {
+    commandEnvironment.OPL_RELEASE_OPERATION_FINGERPRINT = options.operationFingerprint;
+  }
   commandEnvironment.OPL_EXPECTED_APP_HEAD = options.expectedAppHead;
   commandEnvironment.OPL_SHELL_ROOT = options.shellRoot;
   commandEnvironment.OPL_APP_SHELL_ROOT = options.shellRoot;
@@ -329,7 +354,6 @@ function releaseEnvironmentProblems(source: NodeJS.ProcessEnv, options: ReleaseS
     .filter((name) => typeof source[name] === 'string' && source[name]!.trim())
     .map((name) => `${name} must be unset`);
   const exactBindings: Array<[string, string]> = [
-    ['OPL_RELEASE_VERSION', options.version],
     ['OPL_EXPECTED_APP_HEAD', options.expectedAppHead],
     ['OPL_SHELL_REF', options.shellRef],
     ['OPL_FRAMEWORK_REF', options.frameworkRef],
@@ -340,6 +364,16 @@ function releaseEnvironmentProblems(source: NodeJS.ProcessEnv, options: ReleaseS
     ['OPL_REQUIRE_SHELL_FORMAT', String(options.requireShellFormat)],
     ['OPL_RELEASE_SOURCE_GATE_RUN_SHELL_TESTS', String(options.runShellTests)],
   ];
+  if (options.version !== null) {
+    exactBindings.push(['OPL_RELEASE_VERSION', options.version]);
+  } else if (source.OPL_RELEASE_VERSION !== undefined) {
+    problems.push('OPL_RELEASE_VERSION must be unset for a versionless operation.');
+  }
+  if (options.operationFingerprint !== null) {
+    exactBindings.push(['OPL_RELEASE_OPERATION_FINGERPRINT', options.operationFingerprint]);
+  } else if (source.OPL_RELEASE_OPERATION_FINGERPRINT !== undefined) {
+    problems.push('OPL_RELEASE_OPERATION_FINGERPRINT must be unset when no operation fingerprint is admitted.');
+  }
   for (const [name, expected] of exactBindings) {
     const actual = source[name];
     if (actual !== undefined && actual !== expected) problems.push(`${name} conflicts with the admitted option`);
@@ -470,6 +504,7 @@ export function buildReleaseSourceGateReport(
     const immutableCohort = admissionFailedCheckIds.length === 0 && appHead && shellSha && frameworkSha
       ? {
           version: options.version,
+          operation_fingerprint: options.operationFingerprint,
           app_sha: normalizedSha(appHead),
           shell_sha: shellSha,
           framework_sha: frameworkSha,
@@ -481,6 +516,7 @@ export function buildReleaseSourceGateReport(
       status: checks.every((check) => check.status === 'passed') ? 'passed' : 'failed',
       repo_root: options.repoRoot,
       version: options.version,
+      operation_fingerprint: options.operationFingerprint,
       expected_app_head: options.expectedAppHead,
       app_head: appHead || null,
       shell_ref: options.shellRef,
@@ -594,15 +630,21 @@ export function buildReleaseSourceGateReport(
     command: commandText('git', ['ls-remote', '--heads', 'origin', 'refs/heads/main']),
   });
   addCheck(checks, {
-    id: 'app_current_main_identity',
-    status: remoteMainSha !== null && sameSha(appHead, remoteMainSha) && sameSha(options.expectedAppHead, remoteMainSha)
-      ? 'passed'
-      : 'failed',
-    message: remoteMainSha !== null && sameSha(appHead, remoteMainSha) && sameSha(options.expectedAppHead, remoteMainSha)
-      ? 'Local App HEAD, expected App commit, and live origin/main are the same immutable commit.'
-      : 'Stable admission requires local App HEAD and expected App commit to exactly equal live origin/main.',
+    id: 'app_frozen_commit_reachable',
+    status: (
+      remoteMainSha !== null
+      && isFullSha(options.expectedAppHead)
+      && runner('git', ['merge-base', '--is-ancestor', options.expectedAppHead, remoteMainSha], {
+        cwd: options.repoRoot,
+        env: commandEnvironment,
+      }).status === 0
+    ) ? 'passed' : 'failed',
+    message: remoteMainSha !== null
+      ? 'The frozen App commit remains reachable from live origin/main; live head advancement does not invalidate the admitted cohort.'
+      : 'Stable admission requires a resolvable live origin/main to prove frozen commit reachability.',
     expected: remoteMainSha ?? 'live origin/main',
-    actual: `${appHead || '(unresolved)'} / ${options.expectedAppHead}`,
+    actual: options.expectedAppHead,
+    command: commandText('git', ['merge-base', '--is-ancestor', options.expectedAppHead, remoteMainSha ?? 'origin/main']),
   });
 
   const appStatusResult = runner('git', ['status', '--porcelain', '--untracked-files=normal'], {

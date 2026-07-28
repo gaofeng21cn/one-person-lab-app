@@ -29,6 +29,7 @@ function sourceGateReport() {
         framework_sha: frameworkSha,
       },
     },
+    checks: [{ id: 'app_frozen_commit_reachable', status: 'passed' }],
   };
 }
 
@@ -43,6 +44,7 @@ function ownerRun(id: number, overrides: Record<string, unknown> = {}) {
     head_sha: appSha,
     run_attempt: 1,
     created_at: '2026-07-26T06:00:10.000Z',
+    display_title: 'OPL Stable standard authority-42',
     ...overrides,
   };
 }
@@ -210,7 +212,7 @@ test('successful post-dispatch readback identifies one run without mutation retr
   assert.equal(report.redispatch_allowed, false);
 });
 
-test('pre-nonce guard uses three wire reads and one owner query with no cross-repo API identity call', () => {
+test('pre-nonce guard consumes the frozen-reachability source gate and one owner query without moving-main checks', () => {
   const calls: string[] = [];
   const base = successfulRunner();
   const report = buildPreNonceDispatchGuard({
@@ -227,12 +229,55 @@ test('pre-nonce guard uses three wire reads and one owner query with no cross-re
   });
 
   assert.equal(report.status, 'passed');
-  assert.equal(calls.filter((entry) => entry.startsWith('git ls-remote')).length, 3);
+  assert.equal(calls.filter((entry) => entry.startsWith('git ls-remote')).length, 0);
   assert.equal(calls.filter((entry) => entry.startsWith('gh api')).length, 1);
   assert.equal(calls.some((entry) => /commits\/main|git\/ref\/heads\/main/.test(entry)), false);
   assert.equal(report.owner_run_query?.logical_query_count, 1);
   assert.equal(report.dispatch_allowed, true);
   assert.equal(report.nonce_consumed, false);
+});
+
+test('pre-nonce guard permits only its own authority-bound run and rejects any second matching run', () => {
+  const own = ownerRun(42);
+  const another = ownerRun(43);
+  const reconciled = buildPreNonceDispatchGuard({
+    workflow,
+    expectedAppSha: appSha,
+    expectedShellSha: shellSha,
+    expectedFrameworkSha: frameworkSha,
+    sourceGateReport: sourceGateReport(),
+    currentRunId: '42',
+    authorityId: 'authority-42',
+  }, { runner: successfulRunner([own]) });
+  assert.equal(reconciled.status, 'passed');
+
+  const blocked = buildPreNonceDispatchGuard({
+    workflow,
+    expectedAppSha: appSha,
+    expectedShellSha: shellSha,
+    expectedFrameworkSha: frameworkSha,
+    sourceGateReport: sourceGateReport(),
+    currentRunId: '42',
+    authorityId: 'authority-42',
+  }, { runner: successfulRunner([own, another]) });
+  assert.equal(blocked.status, 'blocked');
+  assert.equal(blocked.owner_run_match_count, 2);
+});
+
+test('pre-nonce guard rejects a repeated pre-issued authority even after an earlier run completed', () => {
+  const prior = ownerRun(41, { status: 'completed', conclusion: 'success' });
+  const current = ownerRun(42);
+  const report = buildPreNonceDispatchGuard({
+    workflow,
+    expectedAppSha: appSha,
+    expectedShellSha: shellSha,
+    expectedFrameworkSha: frameworkSha,
+    sourceGateReport: sourceGateReport(),
+    currentRunId: '42',
+    authorityId: 'authority-42',
+  }, { runner: successfulRunner([prior, current]) });
+  assert.equal(report.status, 'blocked');
+  assert.match(report.reason, /no prior authority consumer/);
 });
 
 test('unchanged Stable failure fingerprint denies dispatch before any wire or owner read', () => {
