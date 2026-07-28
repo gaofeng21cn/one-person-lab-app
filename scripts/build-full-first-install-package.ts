@@ -37,9 +37,17 @@ import { prepareRuntime } from './build-full-first-install-package/staging.ts';
 import { resolveOfficeCliReleaseSource } from './build-full-first-install-package/upstream-release.ts';
 import { fileSha256 } from './release-file-helpers.ts';
 import {
+  deriveManualLocalAppIdentity,
+  stampManualLocalAppIdentity,
+} from './manual-latest-build/common.ts';
+import {
   assertReleaseVersionNotFuture,
   assertUpdaterVersionMatchesDisplay,
 } from './release-version.ts';
+
+const MANUAL_LOCAL_BUNDLE_VERSION_ENV = 'OPL_MANUAL_LOCAL_BUNDLE_VERSION';
+const MANUAL_LOCAL_SOURCE_PROVENANCE_ENV = 'OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256';
+const MANUAL_LOCAL_SOURCE_LOCK_ENV = 'OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256';
 
 function readJsonIfExists(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -86,10 +94,40 @@ function buildFullPublicReleaseManifest(input) {
   };
 }
 
+function resolveManualLocalAppIdentity(options) {
+  const bundleVersion = process.env[MANUAL_LOCAL_BUNDLE_VERSION_ENV]?.trim() || '';
+  const sourceProvenanceSha256 = process.env[MANUAL_LOCAL_SOURCE_PROVENANCE_ENV]?.trim() || '';
+  const sourceLockSha256 = process.env[MANUAL_LOCAL_SOURCE_LOCK_ENV]?.trim() || '';
+  const supplied = [bundleVersion, sourceProvenanceSha256, sourceLockSha256].some(Boolean);
+  if (!options.appOnly) {
+    if (supplied) {
+      throw new Error('Manual local App identity is allowed only with --app-only');
+    }
+    return null;
+  }
+  if (!bundleVersion || !sourceProvenanceSha256 || !sourceLockSha256) {
+    throw new Error(
+      'Manual local App build requires bundle version, source provenance, and source-lock identity',
+    );
+  }
+  const expected = deriveManualLocalAppIdentity(
+    options.updaterVersion,
+    sourceProvenanceSha256,
+  );
+  if (bundleVersion !== expected.bundle_version || !/^[0-9a-f]{64}$/.test(sourceLockSha256)) {
+    throw new Error('Manual local App build identity does not match its public updater and source lock');
+  }
+  return {
+    ...expected,
+    source_lock_sha256: sourceLockSha256,
+  };
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   assertReleaseVersionNotFuture('stable', options.version);
   assertUpdaterVersionMatchesDisplay('stable', options.version, options.updaterVersion);
+  const manualLocalAppIdentity = resolveManualLocalAppIdentity(options);
   const artifactNames = buildFullPackageArtifactNames(options.version);
   fs.mkdirSync(options.outDir, { recursive: true });
 
@@ -169,7 +207,7 @@ function main() {
       env: {
         ...process.env,
         OPL_RELEASE_VERSION: options.version,
-        OPL_UPDATER_VERSION: options.updaterVersion,
+        OPL_UPDATER_VERSION: manualLocalAppIdentity?.bundle_version ?? options.updaterVersion,
         OPL_REQUIRE_FULL_RUNTIME: '1',
       },
     });
@@ -181,6 +219,9 @@ function main() {
   const dmgFormat = resolveFullDmgFormat();
   process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
   const builtApp = findBuiltApp(options.guiRoot);
+  if (manualLocalAppIdentity) {
+    stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
+  }
   const precompressionGatePath = path.join(options.outDir, 'full-precompression-gate.json');
   const precompressionStartedAt = monotonicSeconds();
   const precompressionGate = runFullPackagePrecompressionGate({
@@ -199,6 +240,8 @@ function main() {
       status: 'full_local_app_built',
       version: options.version,
       updater_version: options.updaterVersion,
+      bundle_version: manualLocalAppIdentity.bundle_version,
+      build_identity: manualLocalAppIdentity,
       app_bundle: builtApp,
       runtime_cache_events: runtimeCacheEventsPath,
       runtime_currentness_probe: runtimeCurrentnessProbePath,

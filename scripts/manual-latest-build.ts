@@ -14,10 +14,13 @@ import {
 import {
   assertDevelopmentRepoSnapshotsUnchanged,
   commandResult,
+  deriveManualLocalAppIdentity,
   fileSha256,
   manualVersions,
+  manualSourceProvenanceSha256,
   readJson,
   requireFile,
+  type StampedManualLocalAppIdentity,
   type RepoSnapshot,
   snapshotDevelopmentRepo,
   writeJson,
@@ -508,6 +511,7 @@ function persistInstallationFailure(
   options: ReturnType<typeof parseOptions> & { help: false },
   sourceLock: unknown,
   sourceLockPath: string,
+  buildIdentity: StampedManualLocalAppIdentity,
   error: ManualAppInstallationError,
 ) {
   const attemptId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`;
@@ -523,6 +527,8 @@ function persistInstallationFailure(
     mode: 'local-app',
     display_version: options.version,
     updater_version: options.updaterVersion,
+    bundle_version: buildIdentity.bundle_version,
+    build_identity: buildIdentity,
     source_lock_sha256: fileSha256(sourceLockPath),
     source_lock: sourceLock,
     installation: error.receipt,
@@ -708,6 +714,7 @@ function runBuild(
   snapshots: ReturnType<typeof repoSnapshots>,
   upstreams: ReturnType<typeof prepareLatestUpstreams>,
   aioncoreBinding: ReturnType<typeof resolveAioncoreManagedCodexBinding>,
+  buildIdentity: StampedManualLocalAppIdentity,
 ) {
   const args = [
     '--experimental-strip-types',
@@ -737,7 +744,18 @@ function runBuild(
   if (options.reuseGuiViteOutput) args.push('--reuse-gui-vite-output');
   commandResult(process.execPath, args, {
     cwd: appRoot,
-    env: buildEnvironment(snapshots),
+    env: {
+      ...buildEnvironment(snapshots),
+      OPL_MANUAL_LOCAL_BUNDLE_VERSION: options.mode === 'local-app'
+        ? buildIdentity.bundle_version
+        : '',
+      OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256: options.mode === 'local-app'
+        ? buildIdentity.source_provenance_sha256
+        : '',
+      OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256: options.mode === 'local-app'
+        ? buildIdentity.source_lock_sha256
+        : '',
+    },
     timeoutMs: 2 * 60 * 60 * 1000,
   });
 }
@@ -796,7 +814,7 @@ function main() {
       snapshots.shellRoot,
     );
     const upstreams = prepareLatestUpstreams(path.join(options.cacheRoot, 'upstreams'));
-    const sourceLock = {
+    const sourceProvenance = {
       schema: 'opl_manual_latest_build_source_lock.v1',
       display_version: options.version,
       updater_version: options.updaterVersion,
@@ -815,18 +833,42 @@ function main() {
       runtime_dependencies: buildManualRuntimeDependencyLock(aioncoreBinding),
       upstreams,
     };
+    const localAppIdentity = deriveManualLocalAppIdentity(
+      options.updaterVersion,
+      manualSourceProvenanceSha256(sourceProvenance),
+    );
+    const sourceLock = {
+      ...sourceProvenance,
+      local_app_identity: localAppIdentity,
+    };
     fs.mkdirSync(buildOutDir, { recursive: true });
     const stagedSourceLockPath = path.join(buildOutDir, 'manual-latest-source-lock.json');
     const sourceLockPath = path.join(options.outDir, 'manual-latest-source-lock.json');
     writeJson(stagedSourceLockPath, sourceLock);
+    const sourceLockSha256 = fileSha256(stagedSourceLockPath);
+    const stampedLocalAppIdentity = {
+      ...localAppIdentity,
+      source_lock_sha256: sourceLockSha256,
+    };
     if (options.printPlan) {
-      console.log(JSON.stringify({ status: 'manual_latest_plan_ready', source_lock: sourceLockPath, ...sourceLock }, null, 2));
+      console.log(JSON.stringify({
+        status: 'manual_latest_plan_ready',
+        source_lock: sourceLockPath,
+        source_lock_sha256: sourceLockSha256,
+        ...sourceLock,
+      }, null, 2));
       completed = true;
       return;
     }
 
     const buildOptions = { ...options, outDir: buildOutDir };
-    runBuild(buildOptions, snapshots, upstreams, aioncoreBinding);
+    runBuild(
+      buildOptions,
+      snapshots,
+      upstreams,
+      aioncoreBinding,
+      stampedLocalAppIdentity,
+    );
     assertAioncoreManagedCodexBindingUnchanged(
       aioncoreBinding,
       resolveAioncoreManagedCodexBinding(snapshots.shellRoot),
@@ -838,8 +880,10 @@ function main() {
         installation = installLocalApp({
           builtApp: findBuiltApp(snapshots.shellRoot),
           installPath: options.installPath,
-          expectedDisplayVersion: options.version,
-          expectedUpdaterVersion: options.updaterVersion,
+          expectedVersionIdentity: {
+            display_version: options.version,
+            ...stampedLocalAppIdentity,
+          },
           launch: options.launch,
         });
       } catch (error) {
@@ -848,6 +892,7 @@ function main() {
             options,
             sourceLock,
             stagedSourceLockPath,
+            stampedLocalAppIdentity,
             error,
           );
           console.error(JSON.stringify({
@@ -875,8 +920,12 @@ function main() {
       mode: options.mode,
       display_version: options.version,
       updater_version: options.updaterVersion,
+      bundle_version: options.mode === 'local-app'
+        ? stampedLocalAppIdentity.bundle_version
+        : options.updaterVersion,
+      build_identity: options.mode === 'local-app' ? stampedLocalAppIdentity : null,
       source_lock: sourceLockPath,
-      source_lock_sha256: fileSha256(stagedSourceLockPath),
+      source_lock_sha256: sourceLockSha256,
       output,
       installation,
     });

@@ -7,6 +7,17 @@ import { resolveReleaseVersionIdentity } from '../release-version.ts';
 
 export type JsonRecord = Record<string, any>;
 
+export type ManualLocalAppIdentity = {
+  build_kind: 'local-development';
+  public_updater_version: string;
+  bundle_version: string;
+  source_provenance_sha256: string;
+};
+
+export type StampedManualLocalAppIdentity = ManualLocalAppIdentity & {
+  source_lock_sha256: string;
+};
+
 type CommandOptions = {
   cwd?: string;
   capture?: boolean;
@@ -57,6 +68,77 @@ export function readJson(filePath: string): JsonRecord {
 export function writeJson(filePath: string, payload: unknown) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+export function manualSourceProvenanceSha256(payload: unknown) {
+  return crypto.createHash('sha256')
+    .update(`${JSON.stringify(payload, null, 2)}\n`)
+    .digest('hex');
+}
+
+export function deriveManualLocalAppIdentity(
+  publicUpdaterVersion: string,
+  sourceProvenanceSha256: string,
+): ManualLocalAppIdentity {
+  if (!/^\d+\.\d+\.\d+$/.test(publicUpdaterVersion)) {
+    throw new Error(`Manual local App public updater version is invalid: ${publicUpdaterVersion || '<empty>'}`);
+  }
+  if (!/^[0-9a-f]{64}$/.test(sourceProvenanceSha256)) {
+    throw new Error('Manual local App source provenance SHA-256 must be an exact lowercase hex digest');
+  }
+  return {
+    build_kind: 'local-development',
+    public_updater_version: publicUpdaterVersion,
+    bundle_version: `${publicUpdaterVersion}-local.src${sourceProvenanceSha256.slice(0, 12)}`,
+    source_provenance_sha256: sourceProvenanceSha256,
+  };
+}
+
+export function stampManualLocalAppIdentity(
+  appPath: string,
+  identity: StampedManualLocalAppIdentity,
+) {
+  const expected = deriveManualLocalAppIdentity(
+    identity.public_updater_version,
+    identity.source_provenance_sha256,
+  );
+  if (
+    identity.build_kind !== expected.build_kind
+    || identity.bundle_version !== expected.bundle_version
+    || !/^[0-9a-f]{64}$/.test(identity.source_lock_sha256)
+  ) {
+    throw new Error('Manual local App identity does not match its source provenance');
+  }
+  const plistPath = requireFile(
+    path.join(appPath, 'Contents', 'Info.plist'),
+    'Manual local App Info.plist',
+  );
+  const values = {
+    OPLBuildKind: identity.build_kind,
+    OPLPublicUpdaterVersion: identity.public_updater_version,
+    OPLSourceProvenanceSHA256: identity.source_provenance_sha256,
+    OPLSourceLockSHA256: identity.source_lock_sha256,
+  };
+  for (const [key, value] of Object.entries(values)) {
+    const replaced = commandResult('plutil', [
+      '-replace', key, '-string', value, plistPath,
+    ], {
+      capture: true,
+      allowFailure: true,
+    });
+    if (replaced.status !== 0) {
+      commandResult('plutil', ['-insert', key, '-string', value, plistPath], {
+        capture: true,
+      });
+    }
+    const observed = commandOutput('plutil', [
+      '-extract', key, 'raw', '-o', '-', plistPath,
+    ]);
+    if (observed !== value) {
+      throw new Error(`Manual local App Info.plist ${key} mismatch after stamping`);
+    }
+  }
+  return identity;
 }
 
 export function fileSha256(filePath: string) {

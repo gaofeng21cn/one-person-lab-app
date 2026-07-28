@@ -6,6 +6,7 @@ import {
   commandResult,
   readJson,
   requireDirectory,
+  type ManualLocalAppIdentity,
 } from './common.ts';
 
 const FULL_MANIFEST_REF = path.join(
@@ -20,9 +21,19 @@ export type ManualAppVersionIdentity = {
   bundle_id: string;
   display_version: string | null;
   updater_version: string;
+  public_updater_version: string;
+  bundle_version: string;
+  build_kind: string | null;
+  source_provenance_sha256: string | null;
+  source_lock_sha256: string | null;
   cf_bundle_short_version: string;
   cf_bundle_version: string;
   full_manifest: string | null;
+};
+
+export type ExpectedManualAppVersionIdentity = ManualLocalAppIdentity & {
+  display_version: string;
+  source_lock_sha256: string;
 };
 
 export type ManualAppSignatureVerification = {
@@ -73,6 +84,16 @@ export class ManualAppInstallationError extends Error {
 
 function plistValue(appPath: string, key: string) {
   return commandOutput('plutil', ['-extract', key, 'raw', '-o', '-', path.join(appPath, 'Contents', 'Info.plist')]);
+}
+
+function optionalPlistValue(appPath: string, key: string) {
+  const result = commandResult('plutil', [
+    '-extract', key, 'raw', '-o', '-', path.join(appPath, 'Contents', 'Info.plist'),
+  ], {
+    capture: true,
+    allowFailure: true,
+  });
+  return result.status === 0 ? String(result.stdout).trim() : null;
 }
 
 function processPattern(appPath: string) {
@@ -159,7 +180,7 @@ function verifyAppSignature(
   return verification;
 }
 
-function readAppVersionIdentity(appPath: string): ManualAppVersionIdentity {
+export function readAppVersionIdentity(appPath: string): ManualAppVersionIdentity {
   requireDirectory(appPath, 'App bundle');
   const shortVersion = plistValue(appPath, 'CFBundleShortVersionString');
   const bundleVersion = plistValue(appPath, 'CFBundleVersion');
@@ -172,10 +193,16 @@ function readAppVersionIdentity(appPath: string): ManualAppVersionIdentity {
   const manifest = fs.statSync(manifestPath, { throwIfNoEntry: false })?.isFile()
     ? readJson(manifestPath)
     : null;
+  const publicUpdaterVersion = optionalPlistValue(appPath, 'OPLPublicUpdaterVersion') || shortVersion;
   return {
     bundle_id: plistValue(appPath, 'CFBundleIdentifier'),
     display_version: typeof manifest?.version === 'string' ? manifest.version : null,
-    updater_version: shortVersion,
+    updater_version: publicUpdaterVersion,
+    public_updater_version: publicUpdaterVersion,
+    bundle_version: shortVersion,
+    build_kind: optionalPlistValue(appPath, 'OPLBuildKind'),
+    source_provenance_sha256: optionalPlistValue(appPath, 'OPLSourceProvenanceSHA256'),
+    source_lock_sha256: optionalPlistValue(appPath, 'OPLSourceLockSHA256'),
     cf_bundle_short_version: shortVersion,
     cf_bundle_version: bundleVersion,
     full_manifest: manifest ? manifestPath : null,
@@ -202,20 +229,28 @@ function inspectExistingApp(appPath: string) {
 
 export function assertManualAppVersionIdentity(
   actual: ManualAppVersionIdentity,
-  expectedDisplayVersion: string,
-  expectedUpdaterVersion: string,
+  expected: ExpectedManualAppVersionIdentity,
 ) {
   if (actual.bundle_id !== 'cn.onepersonlab.opl'
-    || actual.display_version !== expectedDisplayVersion
-    || actual.updater_version !== expectedUpdaterVersion
-    || actual.cf_bundle_short_version !== expectedUpdaterVersion
-    || actual.cf_bundle_version !== expectedUpdaterVersion) {
+    || actual.display_version !== expected.display_version
+    || actual.updater_version !== expected.public_updater_version
+    || actual.public_updater_version !== expected.public_updater_version
+    || actual.bundle_version !== expected.bundle_version
+    || actual.build_kind !== expected.build_kind
+    || actual.source_provenance_sha256 !== expected.source_provenance_sha256
+    || actual.source_lock_sha256 !== expected.source_lock_sha256
+    || actual.cf_bundle_short_version !== expected.bundle_version
+    || actual.cf_bundle_version !== expected.bundle_version) {
     throw new Error(
       'Built App version identity mismatch: '
       + `bundle_id=${actual.bundle_id} display=${actual.display_version ?? '<missing>'} `
-      + `updater=${actual.updater_version} short=${actual.cf_bundle_short_version} `
-      + `bundle=${actual.cf_bundle_version}; expected display=${expectedDisplayVersion} `
-      + `updater=${expectedUpdaterVersion}`,
+      + `updater=${actual.updater_version} local_bundle=${actual.bundle_version} `
+      + `build_kind=${actual.build_kind ?? '<missing>'} `
+      + `source_provenance=${actual.source_provenance_sha256 ?? '<missing>'} `
+      + `source_lock=${actual.source_lock_sha256 ?? '<missing>'} `
+      + `short=${actual.cf_bundle_short_version} bundle=${actual.cf_bundle_version}; `
+      + `expected display=${expected.display_version} updater=${expected.public_updater_version} `
+      + `local_bundle=${expected.bundle_version} source_lock=${expected.source_lock_sha256}`,
     );
   }
 }
@@ -223,8 +258,7 @@ export function assertManualAppVersionIdentity(
 export function installLocalApp(input: {
   builtApp: string;
   installPath: string;
-  expectedDisplayVersion: string;
-  expectedUpdaterVersion: string;
+  expectedVersionIdentity: ExpectedManualAppVersionIdentity;
   launch: boolean;
 }) {
   if (process.platform !== 'darwin') {
@@ -235,7 +269,7 @@ export function installLocalApp(input: {
     throw new Error(`Unsafe App install path: ${installPath}`);
   }
   const built = verifyApp(input.builtApp);
-  assertManualAppVersionIdentity(built, input.expectedDisplayVersion, input.expectedUpdaterVersion);
+  assertManualAppVersionIdentity(built, input.expectedVersionIdentity);
 
   const parent = path.dirname(installPath);
   fs.mkdirSync(parent, { recursive: true });
@@ -243,7 +277,7 @@ export function installLocalApp(input: {
   const stagedApp = path.join(stagingRoot, path.basename(installPath));
   commandResult('ditto', [input.builtApp, stagedApp], { timeoutMs: 300_000 });
   const staged = verifyApp(stagedApp);
-  assertManualAppVersionIdentity(staged, input.expectedDisplayVersion, input.expectedUpdaterVersion);
+  assertManualAppVersionIdentity(staged, input.expectedVersionIdentity);
 
   let existing: ReturnType<typeof inspectExistingApp> | null = null;
   let stop = { was_running: false, stopped_pids: [] as number[] };
@@ -278,14 +312,14 @@ export function installLocalApp(input: {
     });
     phase = 'verify_installed';
     installed = verifyApp(installPath);
-    assertManualAppVersionIdentity(installed, input.expectedDisplayVersion, input.expectedUpdaterVersion);
+    assertManualAppVersionIdentity(installed, input.expectedVersionIdentity);
     if (input.launch) {
       phase = 'launch_installed';
       commandResult('open', [installPath], { timeoutMs: 30_000 });
       launchProcessIds = waitForInstalledApp(installPath);
       phase = 'verify_launched';
       installed = verifyApp(installPath);
-      assertManualAppVersionIdentity(installed, input.expectedDisplayVersion, input.expectedUpdaterVersion);
+      assertManualAppVersionIdentity(installed, input.expectedVersionIdentity);
     }
     succeeded = true;
   } catch (error) {
