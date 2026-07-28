@@ -46,10 +46,11 @@ function hasCurrentCodexReview(reviews: GitHubReview[], headSha: string): boolea
 
 function hasTerminalCodexReaction(reactions: GitHubReaction[], headUpdatedAt: string): boolean {
   const headUpdatedAtMs = Date.parse(headUpdatedAt);
+  if (!Number.isFinite(headUpdatedAtMs)) return false;
   return reactions.some((reaction) => {
     if (!isCodexBot(reaction.user?.login) || reaction.content !== '+1') return false;
     const reactedAtMs = Date.parse(String(reaction.created_at ?? ''));
-    return Number.isFinite(reactedAtMs) && (!Number.isFinite(headUpdatedAtMs) || reactedAtMs >= headUpdatedAtMs);
+    return Number.isFinite(reactedAtMs) && reactedAtMs >= headUpdatedAtMs;
   });
 }
 

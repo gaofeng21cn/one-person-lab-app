@@ -67,6 +67,17 @@ test('Codex review gate ignores a reaction from before the server-side head boun
   assert.equal(result.status, 'waiting');
 });
 
+test('Codex review gate fails closed when the server-side head boundary is invalid', () => {
+  const result = evaluateCodexReviewGate({
+    headSha,
+    headUpdatedAt: 'invalid',
+    reviews: [],
+    reactions: [{ user: { login: bot }, content: '+1', created_at: '2026-07-28T00:00:01Z' }],
+    reviewThreads: [],
+  });
+  assert.equal(result.status, 'waiting');
+});
+
 test('Codex review gate workflow keeps the check pending until a terminal result and updates the PR head directly', () => {
   const source = fs.readFileSync(path.join(process.cwd(), '.github', 'workflows', 'codex-review-gate.yml'), 'utf8');
   const workflow = parseYaml(source) as Record<string, any>;
