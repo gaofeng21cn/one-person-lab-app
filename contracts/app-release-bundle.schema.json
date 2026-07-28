@@ -196,7 +196,7 @@
         {
           "type": "object",
           "properties": {
-            "assets": { "type": "array", "minItems": 6, "maxItems": 6 }
+            "assets": { "type": "array", "minItems": 8, "maxItems": 8 }
           }
         }
       ]

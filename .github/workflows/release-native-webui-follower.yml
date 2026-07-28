@@ -28,7 +28,8 @@ jobs:
       contents: read
       actions: read
     outputs:
-      eligible: ${{ steps.handoff.outputs.eligible }}
+      linux_eligible: ${{ steps.handoff.outputs.linux_eligible }}
+      macos_eligible: ${{ steps.handoff.outputs.macos_eligible }}
       stable_authority_run_id: ${{ steps.handoff.outputs.stable_authority_run_id }}
       app_ref: ${{ steps.handoff.outputs.app_ref }}
       shell_ref: ${{ steps.handoff.outputs.shell_ref }}
@@ -36,7 +37,8 @@ jobs:
       opl_version: ${{ steps.handoff.outputs.opl_version }}
       release_bundle_digest: ${{ steps.handoff.outputs.release_bundle_digest }}
       source_run_id: ${{ steps.handoff.outputs.source_run_id }}
-      publication_artifact_name: ${{ steps.handoff.outputs.publication_artifact_name }}
+      linux_publication_artifact_name: ${{ steps.handoff.outputs.linux_publication_artifact_name }}
+      macos_publication_artifact_name: ${{ steps.handoff.outputs.macos_publication_artifact_name }}
       standard_identity_sha256: ${{ steps.handoff.outputs.standard_identity_sha256 }}
     steps:
       - name: Admit one successful canonical Stable authority run
@@ -63,7 +65,6 @@ jobs:
             and (.head_sha | test("^[0-9a-f]{40}$"))
           ' stable-authority-run.json >/dev/null
           activation_artifact="opl-release-activation-${STABLE_AUTHORITY_RUN_ID}"
-          publication_prefix="native-webui-publication-"
           gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_AUTHORITY_RUN_ID/artifacts?per_page=100" \
             > stable-authority-artifacts.json
@@ -78,19 +79,31 @@ jobs:
               ;;
             *) echo "::error::Stable authority run contains duplicate Latest activation artifacts."; exit 1 ;;
           esac
-          publication_count="$(jq -r --arg prefix "$publication_prefix" \
-            '[.[]?.artifacts[]? | select(.expired == false and (.name | startswith($prefix)))] | length' \
-            stable-authority-artifacts.json)"
-          case "$publication_count" in
-            0) echo "publication_artifact=" >> "$GITHUB_OUTPUT" ;;
-            1)
-              publication_artifact="$(jq -r --arg prefix "$publication_prefix" \
-                '[.[]?.artifacts[]? | select(.expired == false and (.name | startswith($prefix)))][0].name' \
-                stable-authority-artifacts.json)"
-              echo "publication_artifact=$publication_artifact" >> "$GITHUB_OUTPUT"
-              ;;
-            *) echo "::error::Stable authority run contains duplicate Native publication artifacts."; exit 1 ;;
-          esac
+          for target in linux-x86_64 darwin-arm64; do
+            suffix="-${target}-${STABLE_AUTHORITY_RUN_ID}-1"
+            publication_count="$(jq -r --arg prefix "native-webui-publication-" --arg suffix "$suffix" \
+              '[.[]?.artifacts[]? | select(
+                .expired == false
+                and (.name | startswith($prefix))
+                and (.name | endswith($suffix))
+              )] | length' stable-authority-artifacts.json)"
+            case "$publication_count" in
+              0) publication_artifact="" ;;
+              1)
+                publication_artifact="$(jq -r --arg prefix "native-webui-publication-" --arg suffix "$suffix" \
+                  '[.[]?.artifacts[]? | select(
+                    .expired == false
+                    and (.name | startswith($prefix))
+                    and (.name | endswith($suffix))
+                  )][0].name' stable-authority-artifacts.json)"
+                ;;
+              *) echo "::error::Stable authority run contains duplicate ${target} Native publication artifacts."; exit 1 ;;
+            esac
+            case "$target" in
+              linux-x86_64) echo "linux_publication_artifact=$publication_artifact" >> "$GITHUB_OUTPUT" ;;
+              darwin-arm64) echo "macos_publication_artifact=$publication_artifact" >> "$GITHUB_OUTPUT" ;;
+            esac
+          done
 
       - name: Download exact Latest activation evidence
         if: ${{ steps.authority.outputs.activation_artifact_found == 'true' }}
@@ -109,9 +122,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ '${{ steps.authority.outputs.activation_artifact_found }}' != true ] \
-            || [ -z '${{ steps.authority.outputs.publication_artifact }}' ]; then
-            echo "eligible=false" >> "$GITHUB_OUTPUT"
+          if [ '${{ steps.authority.outputs.activation_artifact_found }}' != true ]; then
+            echo "linux_eligible=false" >> "$GITHUB_OUTPUT"
+            echo "macos_eligible=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           handoffs=()
@@ -126,7 +139,8 @@ jobs:
           status="$(jq -er .status "$handoff")"
           case "$status" in
             skipped_legacy_identity_unavailable)
-              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              echo "linux_eligible=false" >> "$GITHUB_OUTPUT"
+              echo "macos_eligible=false" >> "$GITHUB_OUTPUT"
               exit 0
               ;;
             ready) ;;
@@ -157,7 +171,16 @@ jobs:
             and .latest_activation.framework_terminal_status == "complete"
           ' "$handoff" >/dev/null
           {
-            echo "eligible=true"
+            if [ -n '${{ steps.authority.outputs.linux_publication_artifact }}' ]; then
+              echo "linux_eligible=true"
+            else
+              echo "linux_eligible=false"
+            fi
+            if [ -n '${{ steps.authority.outputs.macos_publication_artifact }}' ]; then
+              echo "macos_eligible=true"
+            else
+              echo "macos_eligible=false"
+            fi
             echo "stable_authority_run_id=$STABLE_AUTHORITY_RUN_ID"
             echo "app_ref=$(jq -er .release.cohort.app_sha "$handoff")"
             echo "shell_ref=$(jq -er .release.cohort.shell_sha "$handoff")"
@@ -165,12 +188,13 @@ jobs:
             echo "opl_version=$(jq -er .release.version "$handoff")"
             echo "release_bundle_digest=$(jq -er .release.bundle_digest "$handoff")"
             echo "source_run_id=$(jq -er .source.artifact_run_id "$handoff")"
-            echo "publication_artifact_name=${{ steps.authority.outputs.publication_artifact }}"
+            echo "linux_publication_artifact_name=${{ steps.authority.outputs.linux_publication_artifact }}"
+            echo "macos_publication_artifact_name=${{ steps.authority.outputs.macos_publication_artifact }}"
             echo "standard_identity_sha256=$(jq -er .source.standard_identity_sha256 "$handoff")"
           } >> "$GITHUB_OUTPUT"
 
-  native-webui-carrier:
-    if: ${{ needs.resolve-handoff.outputs.eligible == 'true' }}
+  native-webui-linux-readback:
+    if: ${{ needs.resolve-handoff.outputs.linux_eligible == 'true' }}
     needs: [resolve-handoff]
     permissions:
       contents: read
@@ -183,7 +207,30 @@ jobs:
       shell_ref: ${{ needs.resolve-handoff.outputs.shell_ref }}
       framework_ref: ${{ needs.resolve-handoff.outputs.framework_ref }}
       opl_version: ${{ needs.resolve-handoff.outputs.opl_version }}
+      target_platform: linux
+      target_architecture: x86_64
       release_bundle_digest: ${{ needs.resolve-handoff.outputs.release_bundle_digest }}
       source_run_id: ${{ needs.resolve-handoff.outputs.source_run_id }}
-      publication_artifact_name: ${{ needs.resolve-handoff.outputs.publication_artifact_name }}
+      publication_artifact_name: ${{ needs.resolve-handoff.outputs.linux_publication_artifact_name }}
+      standard_identity_sha256: ${{ needs.resolve-handoff.outputs.standard_identity_sha256 }}
+
+  native-webui-macos-readback:
+    if: ${{ needs.resolve-handoff.outputs.macos_eligible == 'true' }}
+    needs: [resolve-handoff]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_release-native-webui-carrier.yml
+    with:
+      mode: readback
+      stable_authority_run_id: ${{ needs.resolve-handoff.outputs.stable_authority_run_id }}
+      app_ref: ${{ needs.resolve-handoff.outputs.app_ref }}
+      shell_ref: ${{ needs.resolve-handoff.outputs.shell_ref }}
+      framework_ref: ${{ needs.resolve-handoff.outputs.framework_ref }}
+      opl_version: ${{ needs.resolve-handoff.outputs.opl_version }}
+      target_platform: darwin
+      target_architecture: arm64
+      release_bundle_digest: ${{ needs.resolve-handoff.outputs.release_bundle_digest }}
+      source_run_id: ${{ needs.resolve-handoff.outputs.source_run_id }}
+      publication_artifact_name: ${{ needs.resolve-handoff.outputs.macos_publication_artifact_name }}
       standard_identity_sha256: ${{ needs.resolve-handoff.outputs.standard_identity_sha256 }}

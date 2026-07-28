@@ -699,6 +699,23 @@ jobs:
           test -x "$release_installer"
           cmp "$source_installer" "$release_installer"
 
+      - name: Generate the frozen universal installer asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types app-source/scripts/generate-frozen-universal-installer.ts \
+            --source app-source/install.sh \
+            --output standard-assets/opl-install.sh \
+            --version '${{ needs.freeze.outputs.version }}' \
+            --app-sha '${{ needs.freeze.outputs.app_sha }}' \
+            --shell-sha '${{ needs.freeze.outputs.shell_sha }}' \
+            --framework-sha '${{ needs.freeze.outputs.framework_sha }}' \
+            --repository "$GITHUB_REPOSITORY"
+          test -f standard-assets/opl-install.sh
+          test ! -L standard-assets/opl-install.sh
+          test -x standard-assets/opl-install.sh
+          bash -n standard-assets/opl-install.sh
+
       - name: Seal one immutable Standard artifact identity
         id: seal
         shell: bash
@@ -740,10 +757,10 @@ jobs:
           retention-days: 30
 
   checkpoint-standard:
-    if: ${{ always() && inputs.mode == 'execute' && needs.admission.result == 'success' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' && ((inputs.publication_channel || inputs.channel) != 'stable' || (needs.prepare-native-webui.result == 'success' && needs.prepare-native-webui.outputs.prepare_status == 'qualified')) }}
+    if: ${{ always() && inputs.mode == 'execute' && needs.admission.result == 'success' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' && ((inputs.publication_channel || inputs.channel) != 'stable' || (needs.prepare-native-webui.result == 'success' && needs.prepare-native-webui.outputs.prepare_status == 'qualified' && needs.prepare-native-webui-macos.result == 'success' && needs.prepare-native-webui-macos.outputs.prepare_status == 'qualified')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [admission, freeze, seal-standard-identity, prepare-native-webui]
+    needs: [admission, freeze, seal-standard-identity, prepare-native-webui, prepare-native-webui-macos]
     permissions:
       contents: read
       actions: read
@@ -792,17 +809,25 @@ jobs:
           name: ${{ needs.seal-standard-identity.outputs.standard_artifact_name }}
           path: bound-standard
 
-      - name: Download qualified Native bytes before immutable carrier assembly
+      - name: Download qualified Linux Native bytes before immutable carrier assembly
         if: ${{ (inputs.publication_channel || inputs.channel) == 'stable' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: ${{ needs.prepare-native-webui.outputs.qualified_artifact_name }}
-          path: native-release
+          path: native-release/linux-x86_64
+
+      - name: Download qualified macOS Native bytes before immutable carrier assembly
+        if: ${{ (inputs.publication_channel || inputs.channel) == 'stable' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ needs.prepare-native-webui-macos.outputs.qualified_artifact_name }}
+          path: native-release/darwin-arm64
 
       - name: Materialize verified Native qualification for the portable checkpoint
         if: ${{ (inputs.publication_channel || inputs.channel) == 'stable' }}
         env:
-          NATIVE_ARTIFACT: ${{ needs.prepare-native-webui.outputs.qualified_artifact_name }}
+          LINUX_NATIVE_ARTIFACT: ${{ needs.prepare-native-webui.outputs.qualified_artifact_name }}
+          MACOS_NATIVE_ARTIFACT: ${{ needs.prepare-native-webui-macos.outputs.qualified_artifact_name }}
           RELEASE_TAG: v${{ needs.freeze.outputs.version }}
           BUNDLE_DIGEST: ${{ needs.freeze.outputs.bundle_digest }}
           APP_SHA: ${{ needs.freeze.outputs.app_sha }}
@@ -817,35 +842,45 @@ jobs:
             find native-release -type l -print | LC_ALL=C sort
           )
           test "${#native_symlinks[@]}" -eq 0
-          manifests=()
-          statuses=()
-          while IFS= read -r manifest; do manifests+=("$manifest"); done < <(
-            find native-release -type f -name publication-manifest.json -print | LC_ALL=C sort
-          )
-          while IFS= read -r status; do statuses+=("$status"); done < <(
-            find native-release -type f -name prepare-status.json -print | LC_ALL=C sort
-          )
-          test "${#manifests[@]}" -eq 1
-          test "${#statuses[@]}" -eq 1
-          test -s "${manifests[0]}" && test ! -L "${manifests[0]}"
-          test -s "${statuses[0]}" && test ! -L "${statuses[0]}"
-          test "$(dirname "${manifests[0]}")" = "$(dirname "${statuses[0]}")"
-          jq -e --arg artifact "$NATIVE_ARTIFACT" '
-            .schema == "opl_app_native_webui_prepare_status.v1"
-            and .status == "qualified"
-            and .qualified_artifact_name == $artifact
-          ' "${statuses[0]}" >/dev/null
-          node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
-            --manifest "${manifests[0]}" --output "$RUNNER_TEMP/native-upload-actions-source.json"
-          jq -e \
-            --arg tag "$RELEASE_TAG" --arg bundle "$BUNDLE_DIGEST" \
-            --arg app "$APP_SHA" --arg shell "$SHELL_SHA" --arg framework "$FRAMEWORK_SHA" '
-              .schema == "opl_app_native_webui_upload_actions.v1"
-              and .tag == $tag
-              and .release_bundle_digest == $bundle
-              and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
-              and (.upload_actions | length == 5)
-            ' "$RUNNER_TEMP/native-upload-actions-source.json" >/dev/null
+          for target in linux-x86_64 darwin-arm64; do
+            manifest="native-release/$target/publication-manifest.json"
+            status="native-release/$target/prepare-status.json"
+            test -s "$manifest" && test ! -L "$manifest"
+            test -s "$status" && test ! -L "$status"
+            case "$target" in
+              linux-x86_64)
+                platform=linux
+                architecture=x86_64
+                artifact="$LINUX_NATIVE_ARTIFACT"
+                ;;
+              darwin-arm64)
+                platform=darwin
+                architecture=arm64
+                artifact="$MACOS_NATIVE_ARTIFACT"
+                ;;
+            esac
+            jq -e --arg artifact "$artifact" '
+              .schema == "opl_app_native_webui_prepare_status.v1"
+              and .status == "qualified"
+              and .qualified_artifact_name == $artifact
+            ' "$status" >/dev/null
+            node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
+              --manifest "$manifest" --output "$RUNNER_TEMP/native-upload-actions-$target.json"
+            jq -e \
+              --arg tag "$RELEASE_TAG" --arg bundle "$BUNDLE_DIGEST" \
+              --arg app "$APP_SHA" --arg shell "$SHELL_SHA" --arg framework "$FRAMEWORK_SHA" \
+              --arg platform "$platform" --arg architecture "$architecture" '
+                .schema == "opl_app_native_webui_upload_actions.v1"
+                and .tag == $tag
+                and .release_bundle_digest == $bundle
+                and .platform == $platform
+                and .architecture == $architecture
+                and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
+                and (.upload_actions | length == 5)
+              ' "$RUNNER_TEMP/native-upload-actions-$target.json" >/dev/null
+          done
+          cmp native-release/linux-x86_64/install-web.sh native-release/darwin-arm64/install-web.sh
+          cmp native-release/linux-x86_64/install-web.sh.sha256 native-release/darwin-arm64/install-web.sh.sha256
           test ! -e native-qualified
           mkdir native-qualified
           cp -a native-release/. native-qualified/
@@ -863,18 +898,17 @@ jobs:
           while IFS= read -r status; do qualified_statuses+=("$status"); done < <(
             find native-qualified -type f -name prepare-status.json -print | LC_ALL=C sort
           )
-          test "${#qualified_manifests[@]}" -eq 1
-          test "${#qualified_statuses[@]}" -eq 1
-          cmp "${manifests[0]}" "${qualified_manifests[0]}"
-          cmp "${statuses[0]}" "${qualified_statuses[0]}"
-          jq -e --arg artifact "$NATIVE_ARTIFACT" '
-            .schema == "opl_app_native_webui_prepare_status.v1"
-            and .status == "qualified"
-            and .qualified_artifact_name == $artifact
-          ' "${qualified_statuses[0]}" >/dev/null
-          node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
-            --manifest "${qualified_manifests[0]}" --output "$RUNNER_TEMP/native-upload-actions-checkpoint.json"
-          cmp "$RUNNER_TEMP/native-upload-actions-source.json" "$RUNNER_TEMP/native-upload-actions-checkpoint.json"
+          test "${#qualified_manifests[@]}" -eq 2
+          test "${#qualified_statuses[@]}" -eq 2
+          for target in linux-x86_64 darwin-arm64; do
+            cmp "native-release/$target/publication-manifest.json" "native-qualified/$target/publication-manifest.json"
+            cmp "native-release/$target/prepare-status.json" "native-qualified/$target/prepare-status.json"
+            node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
+              --manifest "native-qualified/$target/publication-manifest.json" \
+              --output "$RUNNER_TEMP/native-upload-actions-checkpoint-$target.json"
+            cmp "$RUNNER_TEMP/native-upload-actions-$target.json" \
+              "$RUNNER_TEMP/native-upload-actions-checkpoint-$target.json"
+          done
 
       - name: Download consumed Stable operation control for durable carrier binding
         if: ${{ inputs.channel == 'stable' }}
@@ -934,22 +968,25 @@ jobs:
             while IFS= read -r manifest; do manifests+=("$manifest"); done < <(
               find native-qualified -type f -name publication-manifest.json -print | LC_ALL=C sort
             )
-            test "${#manifests[@]}" -eq 1
-            node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
-              --manifest "${manifests[0]}" --output native-upload-actions.json
-            jq -e \
-              --arg tag "v${{ needs.freeze.outputs.version }}" \
-              --arg bundle "$BUNDLE_DIGEST" \
-              --arg app '${{ needs.freeze.outputs.app_sha }}' \
-              --arg shell '${{ needs.freeze.outputs.shell_sha }}' \
-              --arg framework '${{ needs.freeze.outputs.framework_sha }}' \
-              '
-                .schema == "opl_app_native_webui_upload_actions.v1"
-                and .tag == $tag
-                and .release_bundle_digest == $bundle
-                and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
-                and (.upload_actions | length == 5)
-              ' native-upload-actions.json >/dev/null
+            test "${#manifests[@]}" -eq 2
+            for target in linux-x86_64 darwin-arm64; do
+              node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
+                --manifest "native-qualified/$target/publication-manifest.json" \
+                --output "native-upload-actions-$target.json"
+              jq -e \
+                --arg tag "v${{ needs.freeze.outputs.version }}" \
+                --arg bundle "$BUNDLE_DIGEST" \
+                --arg app '${{ needs.freeze.outputs.app_sha }}' \
+                --arg shell '${{ needs.freeze.outputs.shell_sha }}' \
+                --arg framework '${{ needs.freeze.outputs.framework_sha }}' \
+                '
+                  .schema == "opl_app_native_webui_upload_actions.v1"
+                  and .tag == $tag
+                  and .release_bundle_digest == $bundle
+                  and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
+                  and (.upload_actions | length == 5)
+                ' "native-upload-actions-$target.json" >/dev/null
+            done
           fi
           if [ '${{ inputs.channel }}' = stable ]; then
             control=stable-operation-control/stable-operation-control.json
@@ -1065,11 +1102,31 @@ jobs:
       shell_ref: ${{ needs.freeze.outputs.shell_sha }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       opl_version: ${{ needs.freeze.outputs.version }}
+      target_platform: linux
+      target_architecture: x86_64
+      release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}
+
+  prepare-native-webui-macos:
+    if: ${{ inputs.mode == 'execute' && (inputs.publication_channel || inputs.channel) == 'stable' }}
+    needs: [freeze]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_release-native-webui-carrier.yml
+    with:
+      mode: prepare
+      stable_authority_run_id: ${{ github.run_id }}
+      app_ref: ${{ needs.freeze.outputs.app_sha }}
+      shell_ref: ${{ needs.freeze.outputs.shell_sha }}
+      framework_ref: ${{ needs.freeze.outputs.framework_sha }}
+      opl_version: ${{ needs.freeze.outputs.version }}
+      target_platform: darwin
+      target_architecture: arm64
       release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}
 
   publish-standard:
-    if: ${{ always() && inputs.mode == 'execute' && needs.freeze.result == 'success' && needs.checkpoint-standard.result == 'success' && ((inputs.publication_channel || inputs.channel) != 'stable' || (needs.prepare-native-webui.result == 'success' && needs.prepare-native-webui.outputs.prepare_status == 'qualified')) }}
-    needs: [freeze, checkpoint-standard, prepare-native-webui]
+    if: ${{ always() && inputs.mode == 'execute' && needs.freeze.result == 'success' && needs.checkpoint-standard.result == 'success' && ((inputs.publication_channel || inputs.channel) != 'stable' || (needs.prepare-native-webui.result == 'success' && needs.prepare-native-webui.outputs.prepare_status == 'qualified' && needs.prepare-native-webui-macos.result == 'success' && needs.prepare-native-webui-macos.outputs.prepare_status == 'qualified')) }}
+    needs: [freeze, checkpoint-standard, prepare-native-webui, prepare-native-webui-macos]
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
       mode: execute
@@ -1084,5 +1141,6 @@ jobs:
       operation_started_at: ${{ needs.freeze.outputs.operation_started_at }}
       operation_deadline_at: ${{ needs.freeze.outputs.operation_deadline_at }}
       qualified_native_artifact_name: ${{ (inputs.publication_channel || inputs.channel) == 'stable' && needs.prepare-native-webui.outputs.qualified_artifact_name || '' }}
+      qualified_native_macos_artifact_name: ${{ (inputs.publication_channel || inputs.channel) == 'stable' && needs.prepare-native-webui-macos.outputs.qualified_artifact_name || '' }}
       qualified_native_source_run_id: ${{ (inputs.publication_channel || inputs.channel) == 'stable' && github.run_id || '' }}
     secrets: inherit

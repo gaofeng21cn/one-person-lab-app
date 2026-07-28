@@ -11,6 +11,7 @@ const installerPath = path.join(appRoot, 'install.sh');
 
 type RunOptions = {
   osName: string;
+  archName?: string;
   args?: string[];
   nativeProbeStatus?: number;
   withNativeVerifier?: boolean;
@@ -46,7 +47,9 @@ function runInstaller(options: RunOptions) {
   if (options.publicNativeRelease) {
     const version = '26.7.27';
     const tag = `v${version}`;
-    const base = `one-person-lab-webui-${version}-linux-x86_64`;
+    const platform = options.osName === 'Darwin' ? 'darwin' : 'linux';
+    const architecture = options.archName === 'arm64' ? 'arm64' : 'x86_64';
+    const base = `one-person-lab-webui-${version}-${platform}-${architecture}`;
     const appSha = 'e'.repeat(40);
     const qualificationReceipt = {
       schema: 'opl_app_native_webui_qualification_receipt.v1',
@@ -54,8 +57,8 @@ function runInstaller(options: RunOptions) {
       version,
       release_bundle_digest: `sha256:${'f'.repeat(64)}`,
       stable_authority_run_id: '12345',
-      platform: 'linux',
-      architecture: 'x86_64',
+      platform,
+      architecture,
       non_root: true,
       cohort: {
         app_sha: appSha,
@@ -98,7 +101,10 @@ function runInstaller(options: RunOptions) {
   fs.writeFileSync(
     path.join(binDir, 'uname'),
     `#!/usr/bin/env sh
-printf '%s\\n' "$TEST_UNAME_S"
+case "\${1:-}" in
+  -m) printf '%s\\n' "$TEST_UNAME_M" ;;
+  *) printf '%s\\n' "$TEST_UNAME_S" ;;
+esac
 `
   );
   fs.writeFileSync(
@@ -158,6 +164,7 @@ cat >/dev/null || true
       ...process.env,
       PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}`,
       TEST_UNAME_S: options.osName,
+      TEST_UNAME_M: options.archName ?? (options.osName === 'Darwin' ? 'arm64' : 'x86_64'),
       TEST_NATIVE_PROBE_STATUS: String(options.nativeProbeStatus ?? 1),
       TEST_NATIVE_INSTALLER_SOURCE: nativeVerifierPath,
       OPL_ROUTING_TEST_LOG: logPath,
@@ -194,11 +201,11 @@ test('macOS personal default routes to Desktop bootstrap', () => {
   assert.doesNotMatch(result.log, /install-docker-webui/);
 });
 
-test('Linux personal default uses explicit Container fallback when no Native candidate is configured', () => {
+test('Linux personal default uses explicit Container fallback when no Native artifact is available', () => {
   const result = runInstaller({ osName: 'Linux', args: ['--yes'] });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stderr, /Native WebUI is not yet available as a verified artifact/);
+  assert.match(result.stderr, /No verified OPL Native WebUI artifact is available/);
   assert.match(result.log, /install-docker-webui\.sh/);
   assert.match(result.log, /bash:-s -- --yes/);
   assert.doesNotMatch(result.log, /--probe-artifact/);
@@ -232,7 +239,7 @@ test('Latest pointer never substitutes for a passed Native qualification receipt
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.log, /releases\/latest/);
   assert.match(result.log, /\.qualification\.json/);
-  assert.match(result.stderr, /Native WebUI is not yet available as a verified artifact/);
+  assert.match(result.stderr, /No verified OPL Native WebUI artifact is available/);
   assert.match(result.log, /install-docker-webui\.sh/);
   assert.doesNotMatch(result.log, /--probe-artifact/);
 });
@@ -383,12 +390,51 @@ test('explicit Native request fails closed without a verified OPL artifact', () 
   assert.doesNotMatch(result.log, /install-docker-webui/);
 });
 
-test('Native artifact identity does not imply support or qualification', () => {
+test('Native route is limited to the qualified initial platform set', () => {
   const source = fs.readFileSync(installerPath, 'utf8');
 
-  assert.match(source, /Native WebUI development candidate is currently implemented only for Linux hosts/);
+  assert.match(source, /Native WebUI is currently supported only on Linux x86_64 and macOS arm64 hosts/);
   assert.doesNotMatch(source, /Native WebUI selection is currently qualified/);
   assert.doesNotMatch(source, /opl-native-webui-probe\.log/);
+});
+
+test('generic WebUI mode chooses verified Native on Linux x86_64 and macOS arm64', () => {
+  const linux = runInstaller({
+    osName: 'Linux',
+    args: ['--webui', '--yes'],
+    nativeProbeStatus: 0,
+    publicNativeRelease: true,
+  });
+  assert.equal(linux.status, 0, linux.stderr);
+  assert.match(linux.log, /--version 26\.7\.27$/m);
+  assert.doesNotMatch(linux.log, /install-docker-webui\.sh/);
+
+  const macos = runInstaller({
+    osName: 'Darwin',
+    archName: 'arm64',
+    args: ['--webui', '--yes'],
+    nativeProbeStatus: 0,
+    publicNativeRelease: true,
+  });
+  assert.equal(macos.status, 0, macos.stderr);
+  assert.match(macos.log, /one-person-lab-webui-26\.7\.27-darwin-arm64/);
+  assert.doesNotMatch(macos.log, /install-docker-webui\.sh/);
+  assert.doesNotMatch(macos.log, /--with-app/);
+});
+
+test('frozen Container WebUI routing forwards the exact release tag', () => {
+  const result = runInstaller({
+    osName: 'Darwin',
+    args: ['--webui', '--yes'],
+    env: {
+      OPL_CONTAINER_WEBUI_TAG: '26.7.29',
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.log, /install-docker-webui\.sh/);
+  assert.match(result.log, /bash:-s -- --tag 26\.7\.29 --yes/);
+  assert.doesNotMatch(result.log, /--tag latest/);
 });
 
 test('server and isolated scenarios route to Container even when a Native candidate exists', () => {

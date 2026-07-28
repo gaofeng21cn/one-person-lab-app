@@ -26,13 +26,21 @@ test('distribution/install SSOT validates the current and approved state split',
     'implemented_pending_first_publication_readback',
   );
   assert.equal(release.distribution_semantics.topology_counts.current_publication_carrier_families, 3);
-  assert.equal(release.distribution_semantics.topology_counts.current_production_publication_paths, 4);
+  assert.equal(release.distribution_semantics.topology_counts.current_production_publication_paths, 5);
   assert.equal(install.distribution_install_model.topology_counts.current_ordinary_install_entrypoint_families, 4);
-  assert.equal(install.distribution_install_model.topology_counts.current_supported_app_runtime_forms, 2);
+  assert.equal(install.distribution_install_model.topology_counts.current_supported_app_runtime_forms, 3);
   assert.equal(install.distribution_install_model.topology_counts.approved_target_app_runtime_forms, 3);
   assert.equal(
     install.distribution_install_model.runtime_forms.native_webui.public_install_status,
-    'not_published',
+    'published_digest_bound',
+  );
+  assert.deepEqual(
+    install.distribution_install_model.runtime_forms.native_webui.supported_targets,
+    ['linux_x86_64'],
+  );
+  assert.deepEqual(
+    install.distribution_install_model.runtime_forms.native_webui.implemented_targets_pending_publication,
+    ['macos_arm64'],
   );
   assert.deepEqual(
     install.distribution_install_model.installer_convergence.approved_universal_target.native_webui_public_discovery,
@@ -51,6 +59,7 @@ test('distribution/install SSOT validates the current and approved state split',
       exact_tag_download_url_required: true,
       probe_before_selection_required: true,
       pre_publication_fallback: 'container_webui',
+      target_selection: 'host_platform_and_architecture',
     },
   );
   assert.equal(
@@ -60,6 +69,10 @@ test('distribution/install SSOT validates the current and approved state split',
   assert.equal(
     install.distribution_install_model.homebrew_carriers.full.formula_dependency_target,
     false,
+  );
+  assert.equal(
+    install.distribution_install_model.homebrew_carriers.native_webui.technical_feasibility,
+    'feasible_same_command_cross_platform',
   );
   assert.equal(
     release.distribution_semantics.approved_targets.homebrew_full.generation_status,

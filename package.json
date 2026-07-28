@@ -91,6 +91,7 @@
     "release:framework-adapter": "node --experimental-strip-types scripts/framework-release-adapter.ts",
     "release:deadline": "node --experimental-strip-types scripts/release-operation-deadline.ts",
     "release:bind-standard": "node --experimental-strip-types scripts/bind-standard-release-track.ts",
+    "release:generate-universal-installer": "node --experimental-strip-types scripts/generate-frozen-universal-installer.ts",
     "release:version:validate": "node --experimental-strip-types scripts/release-version.ts",
     "release:nightly-version:resolve": "node --experimental-strip-types scripts/resolve-nightly-version.ts",
     "release:source-gate": "node --experimental-strip-types scripts/validate-release-source-gate.ts",

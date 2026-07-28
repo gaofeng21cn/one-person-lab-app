@@ -61,6 +61,11 @@ on:
         required: false
         default: ''
         type: string
+      qualified_native_macos_artifact_name:
+        description: Exact qualified macOS arm64 Native asset artifact to include in the same immutable Stable Release carrier; empty outside Stable.
+        required: false
+        default: ''
+        type: string
       qualified_native_source_run_id:
         description: Exact Bundle run that produced the qualified Native asset artifact.
         required: false
@@ -843,47 +848,63 @@ jobs:
           native_manifests=()
           native_prepare_statuses=()
           while IFS= read -r manifest; do native_manifests+=("$manifest"); done < <(
-            find immutable-carrier-input -type f -name publication-manifest.json -print | LC_ALL=C sort
+            find immutable-carrier-input -type f -path '*/native-qualified/*/publication-manifest.json' -print | LC_ALL=C sort
           )
           while IFS= read -r status; do native_prepare_statuses+=("$status"); done < <(
-            find immutable-carrier-input -type f -name prepare-status.json -print | LC_ALL=C sort
+            find immutable-carrier-input -type f -path '*/native-qualified/*/prepare-status.json' -print | LC_ALL=C sort
           )
-          test "${#native_manifests[@]}" -eq 1
-          test "${#native_prepare_statuses[@]}" -eq 1
-          native_source_dir="$(dirname "${native_prepare_statuses[0]}")"
-          test "$native_source_dir" = "$(dirname "${native_manifests[0]}")"
-          test -d "$native_source_dir" && test ! -L "$native_source_dir"
+          test "${#native_manifests[@]}" -eq 2
+          test "${#native_prepare_statuses[@]}" -eq 2
+          native_qualified_source_dir="$(dirname "$(dirname "${native_prepare_statuses[0]}")")"
+          test -d "$native_qualified_source_dir" && test ! -L "$native_qualified_source_dir"
           native_symlinks=()
           while IFS= read -r link; do native_symlinks+=("$link"); done < <(
-            find "$native_source_dir" -type l -print | LC_ALL=C sort
+            find "$native_qualified_source_dir" -type l -print | LC_ALL=C sort
           )
           test "${#native_symlinks[@]}" -eq 0
-          test "$(jq -er '
-            select(.schema == "opl_app_native_webui_prepare_status.v1" and .status == "qualified")
-            | .qualified_artifact_name
-            | strings
-          ' "${native_prepare_statuses[0]}")" = '${{ inputs.qualified_native_artifact_name }}'
           test ! -e native-qualified
-          cp -a "$native_source_dir" native-qualified
+          cp -a "$native_qualified_source_dir" native-qualified
           test ! -e native-release
           mkdir native-release
-          cp -al native-qualified/. native-release/
-          node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
-            --manifest native-release/publication-manifest.json \
-            --output native-upload-actions.json
-          jq -e \
-            --arg tag '${{ needs.restore.outputs.tag }}' \
-            --arg bundle '${{ needs.restore.outputs.bundle_digest }}' \
-            --arg app '${{ needs.restore.outputs.app_ref }}' \
-            --arg shell '${{ needs.restore.outputs.shell_ref }}' \
-            --arg framework '${{ needs.restore.outputs.framework_source_ref }}' \
-            '
-              .schema == "opl_app_native_webui_upload_actions.v1"
-              and .tag == $tag
-              and .release_bundle_digest == $bundle
-              and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
-              and (.upload_actions | length == 5)
-            ' native-upload-actions.json >/dev/null
+          cp -a native-qualified/. native-release/
+          diff -r native-qualified native-release
+          for target in linux-x86_64 darwin-arm64; do
+            native_source_dir="native-qualified/$target"
+            native_manifest="$native_source_dir/publication-manifest.json"
+            native_status="$native_source_dir/prepare-status.json"
+            test -d "$native_source_dir" && test ! -L "$native_source_dir"
+            case "$target" in
+              linux-x86_64) expected_artifact='${{ inputs.qualified_native_artifact_name }}' ;;
+              darwin-arm64) expected_artifact='${{ inputs.qualified_native_macos_artifact_name }}' ;;
+            esac
+            test "$(jq -er '
+              select(.schema == "opl_app_native_webui_prepare_status.v1" and .status == "qualified")
+              | .qualified_artifact_name
+              | strings
+            ' "$native_status")" = "$expected_artifact"
+            node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
+              --manifest "native-release/$target/publication-manifest.json" \
+              --output "native-upload-actions-$target.json"
+            jq -e \
+              --arg tag '${{ needs.restore.outputs.tag }}' \
+              --arg bundle '${{ needs.restore.outputs.bundle_digest }}' \
+              --arg app '${{ needs.restore.outputs.app_ref }}' \
+              --arg shell '${{ needs.restore.outputs.shell_ref }}' \
+              --arg framework '${{ needs.restore.outputs.framework_source_ref }}' \
+              --arg platform "$(jq -er .platform "$native_manifest")" \
+              --arg architecture "$(jq -er .architecture "$native_manifest")" \
+              '
+                .schema == "opl_app_native_webui_upload_actions.v1"
+                and .tag == $tag
+                and .release_bundle_digest == $bundle
+                and .platform == $platform
+                and .architecture == $architecture
+                and .cohort == {app_sha:$app, shell_sha:$shell, framework_sha:$framework}
+                and (.upload_actions | length == 5)
+              ' "native-upload-actions-$target.json" >/dev/null
+          done
+          cmp native-release/linux-x86_64/install-web.sh native-release/darwin-arm64/install-web.sh
+          cmp native-release/linux-x86_64/install-web.sh.sha256 native-release/darwin-arm64/install-web.sh.sha256
           controls=()
           while IFS= read -r control; do controls+=("$control"); done < <(
             find immutable-carrier-input -type f -name stable-operation-control.json -print | LC_ALL=C sort
@@ -943,6 +964,7 @@ jobs:
           case '${{ needs.restore.outputs.channel }}' in
             stable)
               [[ '${{ inputs.qualified_native_artifact_name }}' =~ ^native-webui-qualified-[A-Za-z0-9._-]+$ ]]
+              [[ '${{ inputs.qualified_native_macos_artifact_name }}' =~ ^native-webui-qualified-[A-Za-z0-9._-]+$ ]]
               [[ '${{ inputs.qualified_native_source_run_id }}' =~ ^[1-9][0-9]*$ ]]
               controls=()
               while IFS= read -r control; do controls+=("$control"); done < <(
@@ -954,6 +976,7 @@ jobs:
               ;;
             preview)
               test -z '${{ inputs.qualified_native_artifact_name }}'
+              test -z '${{ inputs.qualified_native_macos_artifact_name }}'
               test -z '${{ inputs.qualified_native_source_run_id }}'
               ;;
             *) echo "::error::Unsupported Standard publication channel."; exit 1 ;;
@@ -990,46 +1013,51 @@ jobs:
             "${operation_args[@]}" \
             --store "$store" --json > publish-plan.json
           if [ '${{ needs.restore.outputs.channel }}' = stable ]; then
-            test "$(jq -er .status native-release/prepare-status.json)" = qualified
-            test -s native-release/publication-manifest.json
+            test "$(jq -er .status native-release/linux-x86_64/prepare-status.json)" = qualified
+            test "$(jq -er .status native-release/darwin-arm64/prepare-status.json)" = qualified
             identity_receipts=()
             while IFS= read -r receipt; do identity_receipts+=("$receipt"); done < <(
               find imported-checkpoint -type f -name standard-identity-receipt.json -print | LC_ALL=C sort
             )
             test "${#identity_receipts[@]}" -eq 1
+            for target in linux-x86_64 darwin-arm64; do
+              test -s "native-release/$target/publication-manifest.json"
+              jq -e \
+                --arg tag '${{ needs.restore.outputs.tag }}' \
+                --arg version '${{ needs.restore.outputs.version }}' \
+                --arg bundle "$BUNDLE_DIGEST" \
+                --arg run '${{ inputs.qualified_native_source_run_id }}' \
+                --arg app '${{ needs.restore.outputs.app_ref }}' \
+                --arg shell '${{ needs.restore.outputs.shell_ref }}' \
+                --arg framework '${{ needs.restore.outputs.framework_source_ref }}' \
+                '
+                  .schema == "opl_app_native_webui_publication_manifest.v1"
+                  and .repository == "gaofeng21cn/one-person-lab-app"
+                  and .tag == $tag
+                  and .version == $version
+                  and .release_bundle_digest == $bundle
+                  and (.stable_authority_run_id | tostring) == $run
+                  and .cohort == {
+                    app_sha: $app,
+                    shell_sha: $shell,
+                    framework_sha: $framework
+                  }
+                ' "native-release/$target/publication-manifest.json" >/dev/null
+            done
             cp "${identity_receipts[0]}" native-release/standard-identity-receipt.json
             cmp "${identity_receipts[0]}" native-release/standard-identity-receipt.json
-            jq -e \
-              --arg tag '${{ needs.restore.outputs.tag }}' \
-              --arg version '${{ needs.restore.outputs.version }}' \
-              --arg bundle "$BUNDLE_DIGEST" \
-              --arg run '${{ inputs.qualified_native_source_run_id }}' \
-              --arg app '${{ needs.restore.outputs.app_ref }}' \
-              --arg shell '${{ needs.restore.outputs.shell_ref }}' \
-              --arg framework '${{ needs.restore.outputs.framework_source_ref }}' \
-              '
-                .schema == "opl_app_native_webui_publication_manifest.v1"
-                and .repository == "gaofeng21cn/one-person-lab-app"
-                and .tag == $tag
-                and .version == $version
-                and .release_bundle_digest == $bundle
-                and (.stable_authority_run_id | tostring) == $run
-                and .cohort == {
-                  app_sha: $app,
-                  shell_sha: $shell,
-                  framework_sha: $framework
-                }
-              ' native-release/publication-manifest.json >/dev/null
-            node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
-              --manifest native-release/publication-manifest.json \
-              --output native-upload-actions.json >/dev/null
-            jq --slurpfile native native-upload-actions.json '
-              (.release_bundle_publish.receipt.details.upload_actions // []) as $desktop
-              | ($native[0].upload_actions // []) as $native_actions
-              | if ([($desktop + $native_actions)[].name] | group_by(.) | map(select(length > 1)) | length) != 0
-                then error("Desktop and Native Release assets contain duplicate names")
-                else .release_bundle_publish.receipt.details.upload_actions = ($desktop + $native_actions)
-                end
+            jq --slurpfile linux native-upload-actions-linux-x86_64.json \
+              --slurpfile macos native-upload-actions-darwin-arm64.json '
+              . as $plan
+              | ($plan.release_bundle_publish.receipt.details.upload_actions // []) as $desktop
+              | (($linux[0].upload_actions // []) + ($macos[0].upload_actions // [])) as $native
+              | reduce ($desktop + $native)[] as $asset
+                  ({}; if has($asset.name)
+                    then if .[$asset.name].sha256 == $asset.sha256 then . else error("same-name assets differ") end
+                    else . + {($asset.name): $asset}
+                    end) as $by_name
+              | $plan
+              | .release_bundle_publish.receipt.details.upload_actions = ([$by_name[]] | sort_by(.name))
             ' publish-plan.json > publish-plan-with-native.json
             mv publish-plan-with-native.json publish-plan.json
           fi
@@ -1167,18 +1195,22 @@ jobs:
             --store "$store" --json > standard-published.json
           test "$(jq -r .release_bundle_publish.status standard-published.json)" = complete
           if [ '${{ needs.restore.outputs.channel }}' = stable ]; then
-            GH_TOKEN="$GH_TOKEN" node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts readback \
-              --manifest native-release/publication-manifest.json \
-              --output native-release/publication-receipt.json \
-              > native-release/publication-receipt.stdout.json
-            test "$(jq -r .status native-release/publication-receipt.json)" = complete
-            test "$(jq -r .latest_modified native-release/publication-receipt.json)" = false
-            test "$(jq -r .container_registry_modified native-release/publication-receipt.json)" = false
-            test "$(jq -r .homebrew_modified native-release/publication-receipt.json)" = false
             framework-executor/bin/opl release checkpoint export \
               --bundle "$BUNDLE_DIGEST" --output native-release/native-publication-checkpoint \
               --store "$store" --json > native-release/native-checkpoint-export.json
             test "$(find native-release/native-publication-checkpoint -type f -name checkpoint.json | wc -l | tr -d ' ')" -eq 1
+            for target in linux-x86_64 darwin-arm64; do
+              GH_TOKEN="$GH_TOKEN" node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts readback \
+                --manifest "native-release/$target/publication-manifest.json" \
+                --output "native-release/$target/publication-receipt.json" \
+                > "native-release/$target/publication-receipt.stdout.json"
+              test "$(jq -r .status "native-release/$target/publication-receipt.json")" = complete
+              test "$(jq -r .latest_modified "native-release/$target/publication-receipt.json")" = false
+              test "$(jq -r .container_registry_modified "native-release/$target/publication-receipt.json")" = false
+              test "$(jq -r .homebrew_modified "native-release/$target/publication-receipt.json")" = false
+              cp -a native-release/native-publication-checkpoint "native-release/$target/"
+              cp native-release/standard-identity-receipt.json "native-release/$target/"
+            done
           fi
 
       - name: Persist typed Standard publication failure
@@ -1234,18 +1266,29 @@ jobs:
             reconcile-result.json
             release-failure-evidence
             native-release
+            native-upload-actions-linux-x86_64.json
+            native-upload-actions-darwin-arm64.json
             native-qualified
-            native-upload-actions.json
             stable-operation-control
           if-no-files-found: warn
           retention-days: 30
 
       - name: Upload Native follower carrier after unified Stable publication
-        if: ${{ always() && inputs.qualified_native_artifact_name != '' && hashFiles('native-release/publication-manifest.json') != '' }}
+        if: ${{ always() && inputs.qualified_native_artifact_name != '' && inputs.qualified_native_macos_artifact_name != '' && hashFiles('native-release/linux-x86_64/publication-manifest.json', 'native-release/darwin-arm64/publication-manifest.json') != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: native-webui-publication-${{ needs.restore.outputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: native-release
+          name: native-webui-publication-${{ needs.restore.outputs.version }}-linux-x86_64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: native-release/linux-x86_64
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload macOS Native follower carrier after unified Stable publication
+        if: ${{ always() && inputs.qualified_native_artifact_name != '' && inputs.qualified_native_macos_artifact_name != '' && hashFiles('native-release/linux-x86_64/publication-manifest.json', 'native-release/darwin-arm64/publication-manifest.json') != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: native-webui-publication-${{ needs.restore.outputs.version }}-darwin-arm64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: native-release/darwin-arm64
           if-no-files-found: error
           compression-level: 0
           retention-days: 30

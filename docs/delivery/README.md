@@ -16,6 +16,7 @@ surfaces live under `docs/site/latest/`.
 | Path | Role |
 | --- | --- |
 | [`distribution-and-install-ssot.md`](distribution-and-install-ssot.md) | Canonical release/install terminology, current and target carrier matrix, platform defaults, and consistency rules. |
+| [`install/README.md`](install/README.md) | User-first Desktop/WebUI/Headless choice, unified installer, platform matrix, verification, update, and rollback source. |
 | [`release/README.md`](release/README.md) | App release, updater, Full first-install, Homebrew, and release-owner operator map. |
 | [`release/records/`](release/records/) | Release owner receipt records and verdict records. |
 | [`release-evidence/screenshots.md`](release-evidence/screenshots.md) | Screenshot and visual tutorial evidence routing. |

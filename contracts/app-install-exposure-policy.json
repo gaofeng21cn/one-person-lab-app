@@ -13,12 +13,13 @@
       "ordinary_install_entrypoint_families": [
         "direct_github_release_asset",
         "homebrew_cask",
-        "app_universal_install_sh",
+        "release_universal_opl_install_sh",
         "container_webui_helper_or_compose"
       ],
-      "current_supported_app_runtime_forms": 2,
+      "current_supported_app_runtime_forms": 3,
       "supported_app_runtime_forms": [
         "desktop",
+        "native_webui",
         "container_webui"
       ],
       "approved_target_app_runtime_forms": 3,
@@ -48,17 +49,24 @@
     "runtime_forms": {
       "desktop": {
         "current_status": "supported_macos_carrier",
-        "platform_preview_status": {
-          "windows_x64": "authorized_rc_preview_pending_first_publication_readback"
+      "platform_preview_status": {
+        "linux_x86_64": "build_capable_release_and_clean_host_qualification_pending",
+        "windows_x64": "authorized_rc_preview_pending_first_publication_readback"
         },
         "electron_required": true,
         "browser_only": false
       },
       "native_webui": {
-        "source_runtime_status": "active_development_capability",
-        "implementation_status": "production_publisher_implemented_pending_first_publication_readback",
-        "public_install_status": "not_published",
-        "opl_support_status": "approved_target_not_supported",
+      "source_runtime_status": "active_production_capability",
+      "implementation_status": "live_linux_x86_64_macos_arm64_implemented_pending_first_publication",
+      "public_install_status": "published_digest_bound",
+      "opl_support_status": "supported_linux_x86_64",
+      "supported_targets": [
+        "linux_x86_64"
+      ],
+      "implemented_targets_pending_publication": [
+        "macos_arm64"
+      ],
         "electron_required": false,
         "docker_required": false,
         "upstream_aionui_tarballs_are_opl_release_evidence": false,
@@ -75,12 +83,14 @@
       "macos_personal": {
         "current_recommended_terminal_path": "homebrew_standard_cask",
         "current_direct_gui_path": "github_release_dmg",
-        "approved_default_runtime_form": "desktop"
+        "approved_default_runtime_form": "desktop",
+        "browser_webui_target": "native_webui_with_container_fallback_starting_first_qualified_publication"
       },
       "linux_personal": {
-        "current_default_runtime_form": "container_webui",
-        "approved_default_runtime_form": "native_webui",
-        "target_status": "pending_native_distribution"
+      "current_default_runtime_form": "native_webui",
+      "fallback_runtime_form": "container_webui",
+      "approved_default_runtime_form": "native_webui",
+      "target_status": "live_public_linux_x86_64"
       },
       "server_or_isolated": {
         "current_and_target_runtime_form": "container_webui"
@@ -110,8 +120,24 @@
         ],
         "official_profile_converged_by_installer": true
       },
-      "approved_universal_target": {
-        "entrypoint": "install.sh",
+    "approved_universal_target": {
+      "entrypoint": "opl-install.sh",
+      "release_asset_status": "generated_per_exact_release_starting_next_publication",
+      "source_checkout_compatibility_entrypoint": "install.sh",
+      "frozen_identity": {
+        "app_source_ref": "OPL_APP_SOURCE_REF",
+        "shell_source_ref": "OPL_SHELL_SOURCE_REF",
+        "framework_source_ref": "OPL_FRAMEWORK_SOURCE_REF",
+        "release_version": "OPL_RELEASE_VERSION",
+        "release_repository": "OPL_RELEASE_REPO",
+        "release_tag": "OPL_FROZEN_RELEASE_TAG"
+      },
+      "container_webui": {
+        "image_repository": "ghcr.io/gaofeng21cn/one-person-lab-webui",
+        "tag": "same_display_version",
+        "mutable_latest_fallback_allowed": false,
+        "missing_exact_tag": "typed_blocker"
+      },
         "macos_default": "desktop",
         "linux_personal_default": "native_webui",
         "server_or_isolated_explicit": "container_webui",
@@ -131,7 +157,8 @@
           "quality_admission_authority": "exact_digest_bound_native_qualification_receipt_not_latest_pointer",
           "exact_tag_download_url_required": true,
           "probe_before_selection_required": true,
-          "pre_publication_fallback": "container_webui"
+          "pre_publication_fallback": "container_webui",
+          "target_selection": "host_platform_and_architecture"
         }
       },
       "stable_macos_helper": {
@@ -174,7 +201,7 @@
         "publication_workflow": ".github/workflows/release-nightly-homebrew-follower.yml",
         "stable_cask_mutation_allowed": false
       },
-      "full": {
+    "full": {
         "cask": "one-person-lab-full",
         "dmg_profile": "full_stable",
         "publication_status": "legacy_public_cask_unmanaged_and_stale",
@@ -187,8 +214,18 @@
         "target_framework_carrier": "full_dmg_embedded_opl_base",
         "target_digest_cas_required": true,
         "approved_target": "managed_full_cask_activates_embedded_base_and_official_profile",
-        "target_requires_active_framework_count": 1
-      },
+      "target_requires_active_framework_count": 1
+    },
+    "native_webui": {
+      "target_formula": "one-person-lab-webui",
+      "platforms": [
+        "macos",
+        "linux"
+      ],
+      "technical_feasibility": "feasible_same_command_cross_platform",
+      "current_status": "not_implemented",
+      "role": "optional Homebrew carrier for the browser workbench; it must consume the same frozen Native WebUI release payload and qualification contract"
+    },
       "quarantine": {
         "homebrew_cask_automatically_clears_quarantine_current": false,
         "current_clean_vm_harness_clears_quarantine_outside_homebrew": true,

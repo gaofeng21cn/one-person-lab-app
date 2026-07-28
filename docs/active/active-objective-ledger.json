@@ -6,13 +6,13 @@
   "mutation_authority": false,
   "runtime_truth_authority": false,
   "instruction_revision": "user-2026-07-27-parallel-work-serialized-integration-v2",
-  "generated_at": "2026-07-28T03:34:26Z",
+  "generated_at": "2026-07-28T15:33:35Z",
   "canonical_base": {
     "repository": "gaofeng21cn/one-person-lab-app",
     "ref": "origin/main",
-    "commit": "524b4e0d209c2ef2b067d389c955e1d087631afa",
-    "tree": "a6d11f850c2157624520079a89524cc338529a1f",
-    "observation": "origin/main is fresh at 524b4e0d; local main is 5 commits behind and dirty, so no canonical absorption is admitted from this root until the Integrator replays against the fresh wire"
+    "commit": "c90e6103db5d097bd76095a4ee88b88c92b6ad44",
+    "tree": "aec6ae2cbfd50a160194bb07dafa7674ad60fa86",
+    "observation": "origin/main wire and GitHub API agree at c90e6103/tree aec6ae2c; the App root checkout remains untouched under its separate integrator ownership, and this ledger lane replays from the fresh remote base"
   },
   "human_ssot": "docs/active/parallel-delivery-and-clean-development-ssot.md",
   "freshness_policy": {
@@ -86,30 +86,33 @@
       "status": "ACTIVE",
       "controller_thread": "019f9cda-e8d2-71e3-abb6-077964145375",
       "execution_owner_threads": [
-        "019f9def-0a13-7061-8320-dca8b058c014",
-        "019fa248-2540-7da2-8bcd-5828c01a7eb4"
+        "019fa4b7-ad0e-7772-9879-47df59ce9d09",
+        "019f9cda-e8d2-71e3-abb6-077964145375"
       ],
-      "integration_owner_thread": "019fa145-ff1b-7ea1-beaf-25a713b4fde9",
       "scope": "Produce one fresh admitted Desktop Stable operation and publish immutable Standard and required Native assets with Latest/public readback.",
       "current_evidence": [
-        "main contains absent-release prestate repair 5dc7bc35",
-        "main contains hosted Stable floor and optional certification alignment 951bcb3b",
-        "fresh lifecycle readback shows the exact4 worktree absent after main reached 77d043e9; a fresh root-only source gate still precedes production authority"
+        "Stable run 30325431854 attempt 1 completed success and published Latest v26.7.28-r3 with 13 digest-bound public assets; DMG sha256:2cdef0d8ccf23e1ada98fac8dbfecc791d43b7daa98aaa86b61905ebf1c4a5f8 and component manifest sha256:6a96eb0b5eb2252baf924ab53d5420e87a1d764cb54f20c1153cca03dcea07bc remain readable.",
+        "PR #43 merged as 95e7cce8 and landed this thread's manual local version identity slice; later v2/v3 correction work is independently owned and is not a remaining obligation of this objective.",
+        "PR #45 merged as 1142a2f9 and separates the credential executor SHA from the frozen App/Shell/Framework cohort, so unrelated main movement does not invalidate a run-bound operation.",
+        "PR #48 merged as efae838f and closed the trusted current-head Codex review gate replay; PR #53 merged as 9ebe6c1b and exposes operation_id in the runtime dispatcher contract.",
+        "GitHub immutable releases are enabled for the repository. Historical r3 remains immutable=false because the setting cannot retroactively lock an existing release; no replacement release was issued.",
+        "PR #42 merged as c90e6103 with canonical tree aec6ae2c after current-head quality, merge-gate and Codex advisory success. All 14 replay paths passed Git object, GitHub API blob and raw SHA-256 parity; its worktree, gitdir, registration, local/tracking/wire refs and lifecycle entry are absent.",
+        "The remaining source gap is exclusively owned by Release Control thread 019fa4b7-ad0e-7772-9879-47df59ce9d09 through open PR #58; source ownerless=0, and this ledger/authority controller will not cross-write that lane or publish before its canonical owner-close.",
+        "The immutable-release terminal is not closed: the public r3 release reports immutable=false, while the canonical Stable contract requires immutable=true. Repository immutable releases are enabled only for subsequent releases."
       ],
-      "next_action": "Run fresh root-only source gate/guard, issue one new single-use authority, then execute one new operation and repair its first real breakpoint until public terminal.",
+      "next_action": "Let sole Release Control owner 019fa4b7-ad0e-7772-9879-47df59ce9d09 replay PR #58 onto fresh main, protected-merge it and owner-close its source lane. Only then may this controller fresh-evaluate one distinct immutable terminal Stable operation; issue no authority, dispatch or publication before that close.",
       "integration_order": 1,
       "parallel_group": "desktop-stable",
       "estimated_remaining": {
-        "wall_clock": "2.5-4h",
+        "wall_clock": "PR #58 canonical owner-close, then one fresh immutable terminal evaluation and operation if admitted",
         "steps": [
-          {"name": "source absorption, aggregate replay, owner close", "duration": "25-50m", "necessary": "remove source ambiguity before production authority"},
-          {"name": "fresh source gate, guard, nonce and dispatch", "duration": "15-30m", "necessary": "bind one exact App/Shell/Framework cohort"},
-          {"name": "hosted build, sign, notarize and package", "duration": "60-100m", "necessary": "create immutable production artifacts"},
-          {"name": "publish, Latest, Native and public readback", "duration": "35-70m", "necessary": "prove the user-visible terminal rather than a CI checkpoint"},
-          {"name": "optional certification follower", "duration": "non-blocking", "necessary": "record passed/failed/not_run/unavailable without blocking publication"}
+          {"name": "PR #58 source canonical and owner-close", "duration": "Release Control owner-authoritative", "necessary": "land the remaining immutable-publication source semantics without a duplicate writer"},
+          {"name": "fresh immutable Stable terminal", "duration": "only after distinct admission", "necessary": "satisfy immutable=true without rewriting or republishing historical r3 in place"}
         ]
       },
-      "terminal_gaps": ["fresh root-only gate", "new admitted operation", "immutable public assets", "Latest and anonymous readback"]
+      "terminal_gaps": ["PR #58 source canonical and owner-close", "public Stable immutable=true", "fresh user terminal acceptance"],
+      "archive_performed": false,
+      "user_approval_required": true
     },
     {
       "id": "distribution-install-unification",

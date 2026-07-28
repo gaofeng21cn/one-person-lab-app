@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -26,6 +27,7 @@ test('App owner manifest records only immutable standard App artifacts', () => {
     asset('One-Person-Lab-26.7.13-mac-arm64.dmg', '2'),
     asset('One-Person-Lab-26.7.13-mac-arm64.zip', '3'),
     asset('One-Person-Lab-26.7.13-mac-arm64.zip.blockmap', '4'),
+    asset('opl-install.sh', '8'),
     asset('opl-app-installer.sh', '5'),
     asset('standard-gatekeeper-launch-policy.json', '6'),
     asset('standard-apple-notarization-receipt.json', '7'),
@@ -77,8 +79,18 @@ test('App owner manifest records only immutable standard App artifacts', () => {
     non_stable_notice: false,
   });
   assert.equal(component.primary_artifact.name, 'One-Person-Lab-26.7.13-mac-arm64.dmg');
-  assert.equal(component.artifacts.length, 7);
+  assert.equal(component.artifacts.length, 8);
   assert.equal(component.artifacts.some((entry: { name: string }) => entry.name.includes('Full')), false);
+  assert.deepEqual(
+    component.artifacts.find((entry: { name: string }) => entry.name === 'opl-install.sh'),
+    {
+      name: 'opl-install.sh',
+      ref: 'https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v26.7.13/opl-install.sh',
+      digest: `sha256:${'8'.repeat(64)}`,
+      size: 100,
+      content_type: 'application/octet-stream',
+    },
+  );
   assert.deepEqual(
     component.artifacts.find((entry: { name: string }) => entry.name === 'opl-app-installer.sh'),
     {
@@ -90,6 +102,11 @@ test('App owner manifest records only immutable standard App artifacts', () => {
     },
   );
   assert.match(component.component_manifest_digest, /^sha256:[0-9a-f]{64}$/);
+  const { component_manifest_digest: _digest, ...core } = component;
+  assert.equal(
+    component.component_manifest_digest,
+    `sha256:${crypto.createHash('sha256').update(JSON.stringify(core)).digest('hex')}`,
+  );
 });
 
 test('App owner manifest keeps quality, build trigger, and Latest pointer policy orthogonal', () => {
@@ -123,6 +140,7 @@ test('App owner manifest keeps quality, build trigger, and Latest pointer policy
           asset(`One-Person-Lab-${fixture.version}-mac-arm64.dmg`, '2'),
           asset(`One-Person-Lab-${fixture.version}-mac-arm64.zip`, '3'),
           asset(`One-Person-Lab-${fixture.version}-mac-arm64.zip.blockmap`, '4'),
+          asset('opl-install.sh', '8'),
           asset('opl-app-installer.sh', '5'),
           asset('standard-gatekeeper-launch-policy.json', '6'),
           asset('standard-apple-notarization-receipt.json', '7'),
@@ -175,7 +193,7 @@ test('App owner manifest keeps quality, build trigger, and Latest pointer policy
               non_stable_notice: true,
             },
       );
-      assert.equal(component.artifacts.length, fixture.buildTrigger === 'automated' ? 5 : 7);
+      assert.equal(component.artifacts.length, fixture.buildTrigger === 'automated' ? 6 : 8);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
@@ -234,6 +252,8 @@ test('Bundle topology binds the component manifest before remote digest verifica
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /write-opl-app-component-manifest\.ts/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /--updater-version '\$\{\{ needs\.freeze\.outputs\.updater_version \}\}'/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /app-source\/install\.sh/);
+  assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /generate-frozen-universal-installer\.ts/);
+  assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /standard-assets\/opl-install\.sh/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /opl-app-installer\.sh/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /cmp "\$source_installer" "\$release_installer"/);
   assert.match(bundleWorkflow.slice(publishReusable), /uses: \.\/\.github\/workflows\/_release-standard-publish\.yml/);

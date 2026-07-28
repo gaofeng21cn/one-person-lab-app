@@ -19,9 +19,10 @@
         "homebrew_tap",
         "webui_ghcr"
       ],
-      "current_production_publication_paths": 4,
+      "current_production_publication_paths": 5,
       "production_publication_paths": [
         "desktop_stable_github_release",
+        "native_webui_github_release_assets",
         "homebrew_standard_cask",
         "homebrew_full_cask_post_publication_follower",
         "container_webui_latest_with_stable_compatibility_alias"
@@ -33,7 +34,6 @@
         "container_webui_manual_independent_preview",
         "desktop_nightly_automated_standard_prerelease",
         "homebrew_nightly_post_publication_follower",
-        "native_webui_implemented_unpublished_target",
         "canary_validation_only"
       ]
     },
@@ -207,7 +207,7 @@
       "windows_x64_rc_preview": "implementation_in_progress_publication_blocked",
       "full": "live_additive_first_install_asset_not_channel",
       "container_webui": "live_separate_development_and_production_carrier_with_independent_preview_publication",
-      "native_webui": "approved_target_not_published",
+      "native_webui": "live_public_linux_x86_64_with_digest_bound_lifecycle_qualification",
       "homebrew_standard": "live_managed",
       "homebrew_nightly": "implemented_pending_first_follower_readback",
       "homebrew_full": "implemented_pending_first_protected_follower_readback"
@@ -317,8 +317,9 @@
       },
       "native_webui": {
         "target": "opl_owned_immutable_native_webui_distribution",
-        "status": "production_publisher_implemented_pending_first_publication_readback",
+        "status": "live_public_linux_x86_64_plus_macos_arm64_implemented_pending_first_publication_readback",
         "initial_platform": "linux_amd64",
+        "initial_macos_platform": "macos_arm64",
         "publication_carrier": "app_github_release_assets",
         "production_topology": "standard_operation_nonblocking_prepare_then_post_latest_protected_additive_publish_with_follower_readback",
         "stable_operation_set_must_remain": [
@@ -331,7 +332,7 @@
           "stable"
         ],
         "promotion_requires": [
-          "carrier_neutral_frozen_linux_amd64_payload",
+          "carrier_neutral_frozen_platform_payload",
           "container_overlay_reuses_the_same_frozen_payload",
           "versioned_runtime_directories_and_atomic_current_pointer",
           "app_owned_versioned_artifacts",
@@ -1012,6 +1013,7 @@
           "One-Person-Lab-<version>-mac-arm64.zip.blockmap",
           "latest-arm64-mac.yml",
           "opl-app-component-manifest.json",
+          "opl-install.sh",
           "standard-gatekeeper-launch-policy.json",
           "standard-apple-notarization-receipt.json",
           "github_hosted_source_contract_build_preflight",
@@ -1432,6 +1434,7 @@
         "One-Person-Lab-<version>-mac-arm64.zip.blockmap",
         "latest-arm64-mac.yml",
         "opl-app-component-manifest.json",
+        "opl-install.sh",
         "standard-gatekeeper-launch-policy.json",
         "standard-apple-notarization-receipt.json",
         "prepared_ai_release_notes"

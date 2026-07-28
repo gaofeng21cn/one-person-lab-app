@@ -116,6 +116,7 @@ function requiredAssetNames(version, includeFullPackage, releaseView) {
     `One-Person-Lab-${version}-mac-arm64.zip`,
     `One-Person-Lab-${version}-mac-arm64.zip.blockmap`,
     "latest-arm64-mac.yml",
+    "opl-install.sh",
     "opl-app-installer.sh",
     "standard-gatekeeper-launch-policy.json",
     "standard-apple-notarization-receipt.json",

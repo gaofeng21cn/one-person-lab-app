@@ -135,6 +135,7 @@ export function bindStandardReleaseTrack(input: {
     zipName,
     `${zipName}.blockmap`,
     'latest-arm64-mac.yml',
+    'opl-install.sh',
     'opl-app-installer.sh',
     'standard-gatekeeper-launch-policy.json',
     'standard-apple-notarization-receipt.json',
@@ -218,6 +219,10 @@ export function bindStandardReleaseTrack(input: {
     installer_bootstrap: {
       name: 'opl-app-installer.sh',
       sha256: sha256(requiredFile(assetsDir, 'opl-app-installer.sh')),
+    },
+    universal_installer: {
+      name: 'opl-install.sh',
+      sha256: sha256(requiredFile(assetsDir, 'opl-install.sh')),
     },
     apple_distribution_trust: {
       gatekeeper_policy: { name: 'standard-gatekeeper-launch-policy.json', sha256: sha256(gatekeeperPath) },

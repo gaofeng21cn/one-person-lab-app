@@ -159,11 +159,15 @@ export function createAppComponentManifest(input: AppComponentManifestInput) {
   const hasInstallerBootstrap = input.assets.some(
     (asset) => asset.name?.trim() === 'opl-app-installer.sh',
   );
+  const hasUniversalInstaller = input.assets.some(
+    (asset) => asset.name?.trim() === 'opl-install.sh',
+  );
   const standardAssetNames = new Set([
     'latest-arm64-mac.yml',
     `One-Person-Lab-${input.version}-mac-arm64.dmg`,
     `One-Person-Lab-${input.version}-mac-arm64.zip`,
     `One-Person-Lab-${input.version}-mac-arm64.zip.blockmap`,
+    ...(hasUniversalInstaller ? ['opl-install.sh'] : []),
     ...(hasInstallerBootstrap ? ['opl-app-installer.sh'] : []),
     ...(identity.versionChannel === 'nightly'
       ? []

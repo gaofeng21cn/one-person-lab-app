@@ -319,6 +319,7 @@ jobs:
       source_run_id: ${{ steps.admission.outputs.source_run_id }}
       source_artifact: ${{ steps.admission.outputs.source_artifact }}
       qualified_native_artifact_name: ${{ steps.resume-native-carrier.outputs.qualified_native_artifact_name }}
+      qualified_native_macos_artifact_name: ${{ steps.resume-native-carrier.outputs.qualified_native_macos_artifact_name }}
       qualified_native_source_run_id: ${{ steps.resume-native-carrier.outputs.qualified_native_source_run_id }}
       operation_started_at: ${{ steps.admission.outputs.operation_started_at }}
       operation_deadline_at: ${{ steps.admission.outputs.operation_deadline_at }}
@@ -439,24 +440,32 @@ jobs:
           while IFS= read -r item; do controls+=("$item"); done < <(
             find resume-standard-carrier -type f -name stable-operation-control.json -print | LC_ALL=C sort
           )
-          test "${#prepare_statuses[@]}" -eq 1
-          test "${#manifests[@]}" -eq 1
+          test "${#prepare_statuses[@]}" -eq 2
+          test "${#manifests[@]}" -eq 2
           test "${#controls[@]}" -eq 1
-          artifact_name="$(jq -er '
-            select(.schema == "opl_app_native_webui_prepare_status.v1" and .status == "qualified")
-            | .qualified_artifact_name
-            | strings
-            | select(test("^native-webui-qualified-[A-Za-z0-9._-]+$"))
-          ' "${prepare_statuses[0]}")"
           native_origin_run_id="$(jq -er '
             .run_id | strings | select(test("^[1-9][0-9]*$"))
           ' "${controls[0]}")"
-          manifest_origin_run_id="$(jq -er '
-            .stable_authority_run_id | tostring | select(test("^[1-9][0-9]*$"))
-          ' "${manifests[0]}")"
-          test "$manifest_origin_run_id" = "$native_origin_run_id"
+          for target in linux-x86_64 darwin-arm64; do
+            manifest="$(find resume-standard-carrier -type f -path "*/native-qualified/$target/publication-manifest.json" -print | LC_ALL=C sort)"
+            status="$(find resume-standard-carrier -type f -path "*/native-qualified/$target/prepare-status.json" -print | LC_ALL=C sort)"
+            test -s "$manifest" && test -s "$status"
+            manifest_origin_run_id="$(jq -er '
+              .stable_authority_run_id | tostring | select(test("^[1-9][0-9]*$"))
+            ' "$manifest")"
+            test "$manifest_origin_run_id" = "$native_origin_run_id"
+            artifact_name="$(jq -er '
+              select(.schema == "opl_app_native_webui_prepare_status.v1" and .status == "qualified")
+              | .qualified_artifact_name
+              | strings
+              | select(test("^native-webui-qualified-[A-Za-z0-9._-]+$"))
+            ' "$status")"
+            case "$target" in
+              linux-x86_64) echo "qualified_native_artifact_name=$artifact_name" ;;
+              darwin-arm64) echo "qualified_native_macos_artifact_name=$artifact_name" ;;
+            esac
+          done >> "$GITHUB_OUTPUT"
           {
-            echo "qualified_native_artifact_name=$artifact_name"
             echo "qualified_native_source_run_id=$native_origin_run_id"
           } >> "$GITHUB_OUTPUT"
 
@@ -635,6 +644,7 @@ jobs:
       source_artifact: ${{ needs.admission.outputs.source_artifact }}
       framework_executor_ref: ${{ needs.admission.outputs.framework_executor_ref }}
       qualified_native_artifact_name: ${{ needs.admission.outputs.qualified_native_artifact_name }}
+      qualified_native_macos_artifact_name: ${{ needs.admission.outputs.qualified_native_macos_artifact_name }}
       qualified_native_source_run_id: ${{ needs.admission.outputs.qualified_native_source_run_id }}
     secrets: inherit
 

@@ -28,11 +28,12 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
     ['app_github_releases', 'homebrew_tap', 'webui_ghcr'],
     'Publication carrier families',
   );
-  requireEqual(releaseTopology?.current_production_publication_paths, 4, 'Production publication path count');
+  requireEqual(releaseTopology?.current_production_publication_paths, 5, 'Production publication path count');
   assertDeepEqualJson(
     releaseTopology?.production_publication_paths,
     [
       'desktop_stable_github_release',
+      'native_webui_github_release_assets',
       'homebrew_standard_cask',
       'homebrew_full_cask_post_publication_follower',
       'container_webui_latest_with_stable_compatibility_alias',
@@ -47,15 +48,15 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
     [
       'direct_github_release_asset',
       'homebrew_cask',
-      'app_universal_install_sh',
+      'release_universal_opl_install_sh',
       'container_webui_helper_or_compose',
     ],
     'Install entrypoint families',
   );
-  requireEqual(installTopology?.current_supported_app_runtime_forms, 2, 'Supported runtime form count');
+  requireEqual(installTopology?.current_supported_app_runtime_forms, 3, 'Supported runtime form count');
   assertDeepEqualJson(
     installTopology?.supported_app_runtime_forms,
-    ['desktop', 'container_webui'],
+    ['desktop', 'native_webui', 'container_webui'],
     'Supported runtime forms',
   );
   requireEqual(installTopology?.approved_target_app_runtime_forms, 3, 'Target runtime form count');
@@ -375,14 +376,28 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
 
   const nativeWebui = install.runtime_forms?.native_webui;
-  requireEqual(nativeWebui?.source_runtime_status, 'active_development_capability', 'Native WebUI source status');
+  requireEqual(nativeWebui?.source_runtime_status, 'active_production_capability', 'Native WebUI source status');
   requireEqual(
     nativeWebui?.implementation_status,
-    'production_publisher_implemented_pending_first_publication_readback',
+    'live_linux_x86_64_macos_arm64_implemented_pending_first_publication',
     'Native WebUI implementation status',
   );
-  requireEqual(nativeWebui?.public_install_status, 'not_published', 'Native WebUI public status');
-  requireEqual(nativeWebui?.opl_support_status, 'approved_target_not_supported', 'Native WebUI support status');
+  requireEqual(nativeWebui?.public_install_status, 'published_digest_bound', 'Native WebUI public status');
+  requireEqual(
+    nativeWebui?.opl_support_status,
+    'supported_linux_x86_64',
+    'Native WebUI support status',
+  );
+  assertDeepEqualJson(
+    nativeWebui?.supported_targets,
+    ['linux_x86_64'],
+    'Native WebUI supported targets',
+  );
+  assertDeepEqualJson(
+    nativeWebui?.implemented_targets_pending_publication,
+    ['macos_arm64'],
+    'Native WebUI implemented targets pending publication',
+  );
   requireEqual(nativeWebui?.electron_required, false, 'Native WebUI Electron requirement');
   requireEqual(nativeWebui?.docker_required, false, 'Native WebUI Docker requirement');
   requireEqual(
@@ -397,10 +412,15 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   requireEqual(
     release.approved_targets?.native_webui?.status,
-    'production_publisher_implemented_pending_first_publication_readback',
+    'live_public_linux_x86_64_plus_macos_arm64_implemented_pending_first_publication_readback',
     'Native WebUI release target status',
   );
   requireEqual(release.approved_targets?.native_webui?.initial_platform, 'linux_amd64', 'Native WebUI initial platform');
+  requireEqual(
+    release.approved_targets?.native_webui?.initial_macos_platform,
+    'macos_arm64',
+    'Native WebUI initial macOS platform',
+  );
   requireEqual(
     release.approved_targets?.native_webui?.publication_carrier,
     'app_github_release_assets',
@@ -424,7 +444,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   assertDeepEqualJson(
     release.approved_targets?.native_webui?.promotion_requires,
     [
-      'carrier_neutral_frozen_linux_amd64_payload',
+      'carrier_neutral_frozen_platform_payload',
       'container_overlay_reuses_the_same_frozen_payload',
       'versioned_runtime_directories_and_atomic_current_pointer',
       'app_owned_versioned_artifacts',
@@ -462,6 +482,28 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   requireEqual(installer?.approved_universal_target?.headless_explicit, 'opl_base_only', 'Universal headless target');
   requireEqual(installer?.approved_universal_target?.result, 'official_profile_converged', 'Universal result');
   assertDeepEqualJson(
+    installer?.approved_universal_target?.frozen_identity,
+    {
+      app_source_ref: 'OPL_APP_SOURCE_REF',
+      shell_source_ref: 'OPL_SHELL_SOURCE_REF',
+      framework_source_ref: 'OPL_FRAMEWORK_SOURCE_REF',
+      release_version: 'OPL_RELEASE_VERSION',
+      release_repository: 'OPL_RELEASE_REPO',
+      release_tag: 'OPL_FROZEN_RELEASE_TAG',
+    },
+    'Universal frozen identity',
+  );
+  assertDeepEqualJson(
+    installer?.approved_universal_target?.container_webui,
+    {
+      image_repository: 'ghcr.io/gaofeng21cn/one-person-lab-webui',
+      tag: 'same_display_version',
+      mutable_latest_fallback_allowed: false,
+      missing_exact_tag: 'typed_blocker',
+    },
+    'Universal Container WebUI version binding',
+  );
+  assertDeepEqualJson(
     installer?.approved_universal_target?.native_webui_public_discovery,
     {
       repository: 'gaofeng21cn/one-person-lab-app',
@@ -478,6 +520,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
       exact_tag_download_url_required: true,
       probe_before_selection_required: true,
       pre_publication_fallback: 'container_webui',
+      target_selection: 'host_platform_and_architecture',
     },
     'Native WebUI public discovery policy',
   );

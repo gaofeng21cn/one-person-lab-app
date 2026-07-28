@@ -36,7 +36,12 @@ AI 已经很擅长回答问题和生成内容，但当工作变成一篇论文�
 
 它不是把研究、基金、汇报压成一排按钮，而是把“开始、继续、查看进度、打开文件、处理阻塞”放到同一个产品里。用户不用关心背后是哪一个专业 Agent 在工作，只需要看到当前任务做到哪一步、生成了什么、还缺什么、下一步怎么继续。
 
-OPL App 也不是只能装在一台 Mac 上的本地工具。当前必要产品面包括 macOS 桌面 App，以及 Linux、Windows、服务器或云主机上的 Docker/WebUI。Hosted OPL Workspace 是 X0-03 条件 route，只有真实账号、存储、隔离、backend 和 owner policy 就绪后才出现，不是当前普通产品承诺。
+OPL App 也不是只能装在一台 Mac 上的本地工具。当前产品面包括 macOS 桌面
+App、Linux x86_64 Native WebUI，以及 Linux、Windows、服务器或云主机上的
+Container WebUI。macOS arm64 Native WebUI 已实现，但只有首次精确公开发布和
+readback 完成后才会成为普通浏览器路径。Hosted OPL Workspace 是 X0-03 条件
+route，只有真实账号、存储、隔离、backend 和 owner policy 就绪后才出现，不是
+当前普通产品承诺。
 
 ## 核心亮点
 
@@ -44,7 +49,8 @@ OPL App 也不是只能装在一台 Mac 上的本地工具。当前必要产品�
 从桌面应用进入通用工作、科研、基金、演示和写书，不需要在多个命令、仓库和工具之间切换。
 
 **桌面与浏览器共享一套工作台**<br/>
-本机 App 与 Docker/WebUI 共享任务、产物、进度和回执语义。Hosted Workspace 只有满足 X0 owner/backend gate 后才复用这套表面。
+本机 App、Native WebUI 与 Container WebUI 共享任务、产物、进度和回执语义。
+Hosted Workspace 只有满足 X0 owner/backend gate 后才复用这套表面。
 
 **看得见长任务进度**<br/>
 应用展示任务进展、文件、运行状态和可继续的上下文。用户回来时可以直接看到做到了哪一步、有哪些结果、是否需要人工处理。
@@ -66,6 +72,11 @@ App 负责把入口、进度、文件和交付体验做好；医学研究、基�
 想了解 OPL App 为什么从工作目的开始、如何让成果带着来路，以及为什么把内部诊断留在需要时才展开，请阅读 [OPL App 白皮书（HTML）](https://gaofeng21cn.github.io/one-person-lab-app/latest/whitepapers/opl-app-whitepaper.html) 或 [PDF 版本](https://gaofeng21cn.github.io/one-person-lab-app/latest/whitepapers/opl-app-whitepaper.pdf)。
 
 ## 下载与安装
+
+用户先选择 Desktop、WebUI 或 Headless，不需要先理解 GitHub、Homebrew 或
+GHCR。统一入口、平台矩阵、校验、更新和回滚见
+[One Person Lab 安装指南](docs/delivery/install/README.md)；维护侧术语与状态见
+[分发与安装 SSOT](docs/delivery/distribution-and-install-ssot.md)。
 
 ### Homebrew
 
@@ -103,12 +114,39 @@ Homebrew 是 App cask 分发路径。安装后打开 `One Person Lab.app`；首�
 opl system initialize --json
 ```
 
+Homebrew 本身也支持 Linux。当前 `opl` Formula 在 macOS/Linux 安装 OPL
+Base/CLI；Desktop Cask 仍只适用于 macOS。跨平台
+`one-person-lab-webui` Formula 技术上可行，目标是让 macOS/Linux 使用同一条
+Browser WebUI 命令，但当前尚未实现。
+
 希望通过 Homebrew 一次拿到完整首次安装包时，使用
 `one-person-lab-full`。release channel、updater、Full package 和 macOS trust
 细节由
 [App release guide](docs/delivery/release/README.md) 与 App contracts 维护。
 
 ### 可信安装入口
+
+从包含 `opl-install.sh` 的 Release 起，macOS 与 Linux 使用同一个按版本冻结的
+公共入口。下载同 tag 的脚本和 component manifest，校验脚本 digest 后再执行：
+
+```bash
+VERSION=<release-version>
+BASE="https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v${VERSION}"
+curl -fLO "${BASE}/opl-install.sh"
+curl -fLO "${BASE}/opl-app-component-manifest.json"
+EXPECTED="$(jq -r '.artifacts[] | select(.name == "opl-install.sh") | .digest | sub("^sha256:"; "")' opl-app-component-manifest.json)"
+if command -v shasum >/dev/null 2>&1; then
+  ACTUAL="$(shasum -a 256 opl-install.sh | awk '{print $1}')"
+else
+  ACTUAL="$(sha256sum opl-install.sh | awk '{print $1}')"
+fi
+test "$ACTUAL" = "$EXPECTED"
+chmod 0755 opl-install.sh
+./opl-install.sh
+```
+
+需要显式选择时使用 `--desktop`、`--webui`、`--native-webui`、
+`--container-webui` 或 `--headless`。
 
 已安装 Homebrew 的 macOS 用户使用摘要绑定的 Standard Cask：
 
@@ -137,7 +175,9 @@ chmod 0755 opl-app-installer.sh
 `One-Person-Lab-Full-<version>-mac-arm64.dmg`。同一完整首次安装包也可以通过
 `one-person-lab-full` Homebrew cask 安装。
 
-macOS 可以通过 DMG、Homebrew 或 Docker/WebUI 安装。首次启动图文教程以
+macOS 可以通过 DMG、Homebrew 或 Container WebUI 使用；Linux x86_64 已支持
+公开 Native WebUI，Container 仍可用于隔离和服务器。Linux Desktop 已有构建能力，
+但尚未完成公开发行与 clean-host 资格。macOS Desktop 首次启动图文教程以
 [macOS App install user guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html)
 为主入口；同一份 guide 也提供
 [可转发 PDF](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pdf)、
@@ -160,8 +200,9 @@ Full 首装包是给干净机器准备的预置载荷，不是长期更新通道
 
 User Data / Artifacts 属于独立的存储、保留与清理边界，不是可安装软件，也不会成为第四个 updater 对象。
 
-Linux、Windows、服务器或云主机用户默认使用 Docker/WebUI，请从
-[Docker/WebUI install guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html) 开始；同一份
+Windows、macOS browser、服务器或云主机用户使用 Container WebUI 时，请从
+[Docker/WebUI install guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html) 开始；Linux x86_64
+个人电脑默认可用 Native WebUI。同一份 Container guide
 guide 也提供
 [detailed PDF](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf)。
 

@@ -78,6 +78,9 @@ function standardAssets(root: string): string {
   fs.writeFileSync(path.join(root, 'latest-mac.yml'), `version: ${updaterVersion}\npath: ${zipName}\n`);
   fs.writeFileSync(path.join(root, `One-Person-Lab-${version}-mac-arm64.dmg`), 'dmg\n');
   fs.writeFileSync(path.join(root, `${zipName}.blockmap`), 'blockmap\n');
+  fs.writeFileSync(path.join(root, 'opl-install.sh'), '#!/usr/bin/env bash\nexit 0\n', {
+    mode: 0o755,
+  });
   fs.writeFileSync(path.join(root, 'opl-app-installer.sh'), '#!/usr/bin/env bash\nexit 0\n', {
     mode: 0o755,
   });
@@ -136,6 +139,10 @@ test('Standard identity v2 binds the exact Bundle cohort and first source run', 
   assert.deepEqual(identity.installer_bootstrap, {
     name: 'opl-app-installer.sh',
     sha256: digest(fs.readFileSync(path.join(root, 'opl-app-installer.sh'))),
+  });
+  assert.deepEqual(identity.universal_installer, {
+    name: 'opl-install.sh',
+    sha256: digest(fs.readFileSync(path.join(root, 'opl-install.sh'))),
   });
   assert.match(identity.component_manifest.sha256, /^sha256:[0-9a-f]{64}$/);
 

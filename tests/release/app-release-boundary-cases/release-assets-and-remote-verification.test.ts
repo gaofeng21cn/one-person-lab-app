@@ -343,6 +343,7 @@ test('publish dry run accepts prebuilt standard release assets from GitHub Actio
   writeFile(path.join(releaseAssetsDir, dmgName));
   writeFile(path.join(releaseAssetsDir, zipName));
   writeFile(path.join(releaseAssetsDir, `${zipName}.blockmap`));
+  writeExecutable(path.join(releaseAssetsDir, 'opl-install.sh'), '#!/usr/bin/env bash\nexit 0\n');
   writeFile(path.join(releaseAssetsDir, 'latest-arm64-mac.yml'), metadata);
   writeStandardDistributionTrust(releaseAssetsDir, version);
 

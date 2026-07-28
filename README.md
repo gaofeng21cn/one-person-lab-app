@@ -36,7 +36,13 @@ AI is already strong at answering questions and generating content. The harder p
 
 It does not reduce research, grants, presentations, and books to a row of buttons. It brings start, resume, progress, files, and blockers into one product experience. Users do not need to know which professional agent is working behind the scenes; they need to see where the task stands, what was produced, what is missing, and how to continue.
 
-OPL App is not limited to a single local Mac. The current workbench runs as the macOS desktop App or Docker/WebUI on Linux, Windows, a server, or a cloud VM. Hosted OPL Workspace is a conditional X0-03 route that appears only after account, storage, isolation, backend, and owner policy are available; it is not a current ordinary product promise.
+OPL App is not limited to a single local Mac. The current workbench runs as the
+macOS desktop App, Linux x86_64 Native WebUI, or Container WebUI on Linux,
+Windows, a server, or a cloud VM. macOS arm64 Native WebUI is implemented and
+will become an ordinary browser route only after its first exact public
+publication and readback. Hosted OPL Workspace is a conditional X0-03 route
+that appears only after account, storage, isolation, backend, and owner policy
+are available; it is not a current ordinary product promise.
 
 ## Core Highlights
 
@@ -44,7 +50,9 @@ OPL App is not limited to a single local Mac. The current workbench runs as the 
 Enter general work, medical research, grant writing, presentation preparation, and book writing from the desktop app instead of jumping across commands, repositories, and tools.
 
 **Desktop and browser share one workbench**<br/>
-Use the same OPL task, artifact, progress, and receipt language in the local App or Docker/WebUI. A hosted Workspace may reuse this surface only after its X0 owner/backend gates are met.
+Use the same OPL task, artifact, progress, and receipt language in the local
+App, Native WebUI, or Container WebUI. A hosted Workspace may reuse this
+surface only after its X0 owner/backend gates are met.
 
 **Visible progress for long tasks**<br/>
 The app shows task progress, files, runtime status, and recoverable work context. When you come back, you can see what happened, what was produced, and whether anything needs human attention.
@@ -69,6 +77,9 @@ Read the [OPL App whitepaper (HTML)](https://gaofeng21cn.github.io/one-person-la
 
 The maintained distribution and installation matrix is in the
 [OPL App distribution and install SSOT](docs/delivery/distribution-and-install-ssot.md).
+The user-first source guide is
+[One Person Lab installation](docs/delivery/install/README.md): choose Desktop,
+WebUI, or Headless first, then let the installer select the carrier.
 The short list below contains only current ordinary-user paths; historical,
 transitional, and planned paths are not presented as supported.
 
@@ -99,6 +110,12 @@ available when needed:
 opl system initialize --json
 ```
 
+Homebrew itself also runs on Linux. The current `opl` Formula installs
+OPL Base/CLI on macOS or Linux; the Desktop Cask remains macOS-only. A
+cross-platform `one-person-lab-webui` Formula is technically feasible and is
+the approved target for a shared macOS/Linux Browser WebUI command, but it is
+not implemented yet.
+
 The public Full Homebrew Cask remains an old, unmanaged path: it installs the
 whole Full DMG and also declares the `opl` Formula, so it currently introduces
 two Base carriers. The corrected Full Cask generator is implemented but has not
@@ -114,6 +131,29 @@ follower readbacks are still required before the channel can be called
 production-verified.
 
 ### Verified Install Paths
+
+Releases that contain `opl-install.sh` provide one version-frozen entry for
+macOS and Linux. Download the script and component manifest from the same exact
+tag, verify the script digest from the manifest, then run it:
+
+```bash
+VERSION=<release-version>
+BASE="https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v${VERSION}"
+curl -fLO "${BASE}/opl-install.sh"
+curl -fLO "${BASE}/opl-app-component-manifest.json"
+EXPECTED="$(jq -r '.artifacts[] | select(.name == "opl-install.sh") | .digest | sub("^sha256:"; "")' opl-app-component-manifest.json)"
+if command -v shasum >/dev/null 2>&1; then
+  ACTUAL="$(shasum -a 256 opl-install.sh | awk '{print $1}')"
+else
+  ACTUAL="$(sha256sum opl-install.sh | awk '{print $1}')"
+fi
+test "$ACTUAL" = "$EXPECTED"
+chmod 0755 opl-install.sh
+./opl-install.sh
+```
+
+Use `--desktop`, `--webui`, `--native-webui`, `--container-webui`, or
+`--headless` to override automatic routing.
 
 Homebrew users can install the current Standard App through the digest-bound
 cask:
@@ -146,11 +186,10 @@ For a first-time macOS arm64 install without Homebrew, choose
 `One-Person-Lab-Full-<version>-mac-arm64.dmg`. It is the authoritative complete
 first-install asset while Full Homebrew publication remains unmanaged.
 
-For macOS, the current ordinary paths are DMG and Homebrew. Linux personal
-hosts currently fall back to Container WebUI unless
-an exact verified Native candidate is supplied; server and isolated installs
-remain Container WebUI. Native Linux WebUI packaging and routing exist, but no
-public qualified OPL Native asset is available yet. For a screenshot-based
+For macOS, the current ordinary paths are DMG and Homebrew. Linux x86_64
+personal hosts can use the public Native WebUI assets; Container WebUI remains
+available for isolation and servers. Linux Desktop is build-capable but is not
+yet a supported public carrier. For a screenshot-based
 first-run walkthrough, start
 from the [macOS App install user guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html).
 The same guide is also available as generated latest
@@ -189,7 +228,7 @@ retain rollback evidence.
 User Data / Artifacts is a separate storage, retention, and cleanup boundary. It
 is not installable software and never becomes a fourth updater object.
 
-For Docker or server deployment, Linux, Windows, server, and cloud-VM users should start
+For Docker or server deployment, Windows, macOS, server, and cloud-VM users should start
 from the Docker/WebUI one-click installer path in the
 [Docker/WebUI install guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html). The
 same guide is also available as a

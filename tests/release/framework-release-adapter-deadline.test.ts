@@ -151,6 +151,7 @@ function previewFixture() {
     `${previewZip.name}.blockmap`,
     'latest-arm64-mac.yml',
     'opl-app-component-manifest.json',
+    'opl-install.sh',
     'opl-app-installer.sh',
     'standard-gatekeeper-launch-policy.json',
     'standard-apple-notarization-receipt.json',
@@ -225,6 +226,7 @@ function nightlyLatestFixture() {
     `${nightlyZip.name}.blockmap`,
     'latest-arm64-mac.yml',
     'opl-app-component-manifest.json',
+    'opl-install.sh',
     'opl-app-installer.sh',
   ];
   admission.homebrew = null;
@@ -372,6 +374,7 @@ function fixture(
         `${latestZip.name}.blockmap`,
         'latest-arm64-mac.yml',
         'opl-app-component-manifest.json',
+        'opl-install.sh',
         'opl-app-installer.sh',
         'standard-gatekeeper-launch-policy.json',
         'standard-apple-notarization-receipt.json',

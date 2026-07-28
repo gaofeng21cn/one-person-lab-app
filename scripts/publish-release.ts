@@ -183,6 +183,7 @@ function standardArtifactNames(releaseDir: string, version: string, macArch: str
   return fs.readdirSync(releaseDir).filter((name) => (
     artifact.test(name)
     || metadata.test(name)
+    || name === 'opl-install.sh'
     || name === 'standard-gatekeeper-launch-policy.json'
     || name === 'standard-apple-notarization-receipt.json'
   ));

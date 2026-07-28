@@ -25,6 +25,11 @@ export type NativeWebuiRemoteAsset = {
   browser_download_url?: string;
 };
 
+export type NativeWebuiTarget = {
+  platform: 'linux' | 'darwin';
+  architecture: 'x86_64' | 'arm64';
+};
+
 export type NativeWebuiPublicationAction = NativeWebuiLocalAsset & {
   action: 'upload' | 'reuse';
 };
@@ -42,6 +47,8 @@ export type NativeWebuiPublicationManifest = {
   repository: string;
   tag: string;
   version: string;
+  platform: NativeWebuiTarget['platform'];
+  architecture: NativeWebuiTarget['architecture'];
   release_bundle_digest: string;
   stable_authority_run_id: string;
   cohort: {
@@ -132,8 +139,21 @@ function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function expectedAssetNames(version: string): Record<(typeof requiredAssetRoles)[number], string> {
-  const base = `one-person-lab-webui-${version}-linux-x86_64`;
+function assertTarget(target: NativeWebuiTarget): void {
+  const supported =
+    target.platform === 'linux' && target.architecture === 'x86_64'
+    || target.platform === 'darwin' && target.architecture === 'arm64';
+  if (!supported) {
+    fail(`Unsupported Native WebUI target ${target.platform}-${target.architecture}`);
+  }
+}
+
+function expectedAssetNames(
+  version: string,
+  target: NativeWebuiTarget,
+): Record<(typeof requiredAssetRoles)[number], string> {
+  assertTarget(target);
+  const base = `one-person-lab-webui-${version}-${target.platform}-${target.architecture}`;
   return {
     runtime_tarball: `${base}.tar.gz`,
     runtime_metadata: `${base}.tar.gz.sha256`,
@@ -149,6 +169,7 @@ function validateQualificationReceipt(
     version: string;
     bundleDigest: string;
     stableAuthorityRunId: string;
+    target: NativeWebuiTarget;
     appSha: string;
     shellSha: string;
     frameworkSha: string;
@@ -162,8 +183,8 @@ function validateQualificationReceipt(
     || receipt.version !== expected.version
     || receipt.release_bundle_digest !== expected.bundleDigest
     || String(receipt.stable_authority_run_id) !== expected.stableAuthorityRunId
-    || receipt.platform !== 'linux'
-    || receipt.architecture !== 'x86_64'
+    || receipt.platform !== expected.target.platform
+    || receipt.architecture !== expected.target.architecture
     || receipt.non_root !== true
     || cohort.app_sha !== expected.appSha
     || cohort.shell_sha !== expected.shellSha
@@ -209,6 +230,8 @@ export function sealNativeWebuiPublicationManifest(input: {
   version: string;
   releaseBundleDigest: string;
   stableAuthorityRunId: string;
+  platform: NativeWebuiTarget['platform'];
+  architecture: NativeWebuiTarget['architecture'];
   appSha: string;
   shellSha: string;
   frameworkSha: string;
@@ -217,6 +240,8 @@ export function sealNativeWebuiPublicationManifest(input: {
 }): NativeWebuiPublicationManifest {
   if (input.repository !== 'gaofeng21cn/one-person-lab-app') fail('Native WebUI publication repository is not authorized');
   if (!versionPattern.test(input.version)) fail('Native WebUI version must be a canonical Stable display version');
+  const target = { platform: input.platform, architecture: input.architecture };
+  assertTarget(target);
   if (!digestPattern.test(input.releaseBundleDigest)) fail('release_bundle_digest must be a SHA-256 digest reference');
   if (!stableRunPattern.test(input.stableAuthorityRunId)) fail('stable_authority_run_id must be a positive Actions run id');
   for (const [label, value] of Object.entries({
@@ -233,12 +258,13 @@ export function sealNativeWebuiPublicationManifest(input: {
     version: input.version,
     bundleDigest: input.releaseBundleDigest,
     stableAuthorityRunId: input.stableAuthorityRunId,
+    target,
     appSha: input.appSha,
     shellSha: input.shellSha,
     frameworkSha: input.frameworkSha,
   });
 
-  const names = expectedAssetNames(input.version);
+  const names = expectedAssetNames(input.version, target);
   const assets = requiredAssetRoles.map((role) => {
     const assetPath = portableFileRef(input.assetPaths[role], `Native WebUI ${role}`);
     const stat = regularFile(assetPath.absolute, `Native WebUI ${role}`);
@@ -264,6 +290,8 @@ export function sealNativeWebuiPublicationManifest(input: {
     repository: input.repository,
     tag: `v${input.version}`,
     version: input.version,
+    platform: target.platform,
+    architecture: target.architecture,
     release_bundle_digest: input.releaseBundleDigest,
     stable_authority_run_id: input.stableAuthorityRunId,
     cohort: {
@@ -286,6 +314,8 @@ function validateManifest(value: unknown): NativeWebuiPublicationManifest {
     version: manifest.version,
     releaseBundleDigest: manifest.release_bundle_digest,
     stableAuthorityRunId: String(manifest.stable_authority_run_id),
+    platform: manifest.platform,
+    architecture: manifest.architecture,
     appSha: manifest.cohort?.app_sha,
     shellSha: manifest.cohort?.shell_sha,
     frameworkSha: manifest.cohort?.framework_sha,
@@ -526,6 +556,8 @@ function main(): void {
       version: { type: 'string' },
       'release-bundle-digest': { type: 'string' },
       'stable-authority-run-id': { type: 'string' },
+      platform: { type: 'string' },
+      architecture: { type: 'string' },
       'app-sha': { type: 'string' },
       'shell-sha': { type: 'string' },
       'framework-sha': { type: 'string' },
@@ -547,6 +579,8 @@ function main(): void {
       version: option(parsed.values, 'version'),
       releaseBundleDigest: option(parsed.values, 'release-bundle-digest'),
       stableAuthorityRunId: option(parsed.values, 'stable-authority-run-id'),
+      platform: option(parsed.values, 'platform') as NativeWebuiTarget['platform'],
+      architecture: option(parsed.values, 'architecture') as NativeWebuiTarget['architecture'],
       appSha: option(parsed.values, 'app-sha'),
       shellSha: option(parsed.values, 'shell-sha'),
       frameworkSha: option(parsed.values, 'framework-sha'),

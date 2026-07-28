@@ -27,6 +27,14 @@ on:
         description: Stable display version shared with Desktop.
         type: string
         required: true
+      target_platform:
+        description: Native WebUI target platform, currently linux or darwin.
+        type: string
+        required: true
+      target_architecture:
+        description: Native WebUI target architecture, currently x86_64 or arm64.
+        type: string
+        required: true
       release_bundle_digest:
         description: Exact immutable Framework Release Bundle digest.
         type: string
@@ -82,7 +90,7 @@ jobs:
 
   build-and-qualify:
     if: ${{ inputs.mode == 'prepare' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.target_platform == 'darwin' && 'macos-14' || 'ubuntu-latest' }}
     timeout-minutes: 65
     continue-on-error: true
     permissions:
@@ -182,12 +190,12 @@ jobs:
           bunx vitest run tests/unit/web-cli/nativeDistribution.test.ts tests/unit/web-cli/packWebCli.test.ts
           bash -n scripts/install-web.sh
 
-      - name: Build Linux x86_64 Native WebUI artifact
+      - name: Build Native WebUI artifact
         working-directory: shell-source
         env:
           OPL_VERSION: ${{ inputs.opl_version }}
-          PACK_PLATFORM: linux
-          PACK_ARCH: x64
+          PACK_PLATFORM: ${{ inputs.target_platform }}
+          PACK_ARCH: ${{ inputs.target_architecture == 'x86_64' && 'x64' || 'arm64' }}
           OPL_WEBUI_IMAGE_PROFILE: webui-full
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -204,8 +212,10 @@ jobs:
           bunx electron-vite build --config packages/desktop/electron.vite.config.ts
           node scripts/pack-web-cli.js
           mkdir -p ../native-release/v${{ inputs.opl_version }}
-          cp dist-web-cli/one-person-lab-webui-${{ inputs.opl_version }}-linux-x86_64.tar.gz* \
+          cp dist-web-cli/one-person-lab-webui-${{ inputs.opl_version }}-${{ inputs.target_platform }}-${{ inputs.target_architecture }}.tar.gz* \
             ../native-release/v${{ inputs.opl_version }}/
+          # GitHub expands the version expression before Bash runs sed.
+          # shellcheck disable=SC2016
           sed 's|^VERSION="\${VERSION:-__VERSION__}"$|VERSION="${VERSION:-${{ inputs.opl_version }}}"|' scripts/install-web.sh \
             > ../native-release/install-web.sh
           chmod +x ../native-release/install-web.sh
@@ -215,10 +225,12 @@ jobs:
         env:
           TARGET_VERSION: ${{ inputs.opl_version }}
           PREDECESSOR_VERSION: 0.0.1
+          TARGET_PLATFORM: ${{ inputs.target_platform }}
+          TARGET_ARCHITECTURE: ${{ inputs.target_architecture }}
         shell: bash
         run: |
           set -euo pipefail
-          target="native-release/v${TARGET_VERSION}/one-person-lab-webui-${TARGET_VERSION}-linux-x86_64.tar.gz"
+          target="native-release/v${TARGET_VERSION}/one-person-lab-webui-${TARGET_VERSION}-${TARGET_PLATFORM}-${TARGET_ARCHITECTURE}.tar.gz"
           predecessor_dir="native-release/v${PREDECESSOR_VERSION}"
           mkdir -p "$predecessor_dir" "$RUNNER_TEMP/native-predecessor"
           tar -xzf "$target" -C "$RUNNER_TEMP/native-predecessor"
@@ -229,7 +241,7 @@ jobs:
           pkg.version = process.env.PREDECESSOR_VERSION;
           fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
-          predecessor="${predecessor_dir}/one-person-lab-webui-${PREDECESSOR_VERSION}-linux-x86_64.tar.gz"
+          predecessor="${predecessor_dir}/one-person-lab-webui-${PREDECESSOR_VERSION}-${TARGET_PLATFORM}-${TARGET_ARCHITECTURE}.tar.gz"
           tar -czf "$predecessor" -C "$RUNNER_TEMP/native-predecessor" aionui-web
           PREDECESSOR="$predecessor" node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
@@ -246,8 +258,8 @@ jobs:
             'artifact_role=opl_native_webui_runtime',
             'runtime_form=native_webui',
             `version=${process.env.PREDECESSOR_VERSION}`,
-            'platform=linux',
-            'architecture=x86_64',
+            `platform=${process.env.TARGET_PLATFORM}`,
+            `architecture=${process.env.TARGET_ARCHITECTURE}`,
             'entrypoint=aionui-web',
             'bootstrap_entrypoint=opl-install.sh',
             'official_profile_entrypoint=opl-official-profile-apply',
@@ -262,6 +274,8 @@ jobs:
         env:
           TARGET_VERSION: ${{ inputs.opl_version }}
           PREDECESSOR_VERSION: 0.0.1
+          TARGET_PLATFORM: ${{ inputs.target_platform }}
+          TARGET_ARCHITECTURE: ${{ inputs.target_architecture }}
         shell: bash
         run: |
           set -euo pipefail
@@ -325,23 +339,27 @@ jobs:
           APP_SHA: ${{ inputs.app_ref }}
           SHELL_SHA: ${{ inputs.shell_ref }}
           FRAMEWORK_SHA: ${{ inputs.framework_ref }}
+          TARGET_PLATFORM: ${{ inputs.target_platform }}
+          TARGET_ARCHITECTURE: ${{ inputs.target_architecture }}
         shell: bash
         run: |
           set -euo pipefail
-          base="one-person-lab-webui-${OPL_VERSION}-linux-x86_64"
+          base="one-person-lab-webui-${OPL_VERSION}-${TARGET_PLATFORM}-${TARGET_ARCHITECTURE}"
           receipt="native-release/v${OPL_VERSION}/${base}.qualification.json"
           jq -n \
             --arg version "$OPL_VERSION" \
             --arg bundle "$BUNDLE_DIGEST" \
             --arg run "$STABLE_AUTHORITY_RUN_ID" \
             --arg app "$APP_SHA" --arg shell "$SHELL_SHA" --arg framework "$FRAMEWORK_SHA" \
-            '{schema:"opl_app_native_webui_qualification_receipt.v1",status:"passed",version:$version,release_bundle_digest:$bundle,stable_authority_run_id:$run,platform:"linux",architecture:"x86_64",non_root:true,cohort:{app_sha:$app,shell_sha:$shell,framework_sha:$framework},lifecycle:{first_install:"passed",same_version_idempotence:"passed",cross_version_update:"passed",rollback:"passed",data_preservation:"passed",http_health:"passed",official_profile_first_install:"passed"},synthetic_predecessor:{version:"0.0.1",published:false,purpose:"exercise target installer activation and rollback without claiming a prior public Native release"}}' \
+            --arg platform "$TARGET_PLATFORM" --arg architecture "$TARGET_ARCHITECTURE" \
+            '{schema:"opl_app_native_webui_qualification_receipt.v1",status:"passed",version:$version,release_bundle_digest:$bundle,stable_authority_run_id:$run,platform:$platform,architecture:$architecture,non_root:true,cohort:{app_sha:$app,shell_sha:$shell,framework_sha:$framework},lifecycle:{first_install:"passed",same_version_idempotence:"passed",cross_version_update:"passed",rollback:"passed",data_preservation:"passed",http_health:"passed",official_profile_first_install:"passed"},synthetic_predecessor:{version:"0.0.1",published:false,purpose:"exercise target installer activation and rollback without claiming a prior public Native release"}}' \
             > "$receipt"
           node --experimental-strip-types executor-source/scripts/release-native-webui-carrier.ts seal \
             --repository "$GITHUB_REPOSITORY" \
             --version "$OPL_VERSION" \
             --release-bundle-digest "$BUNDLE_DIGEST" \
             --stable-authority-run-id "$STABLE_AUTHORITY_RUN_ID" \
+            --platform "$TARGET_PLATFORM" --architecture "$TARGET_ARCHITECTURE" \
             --app-sha "$APP_SHA" --shell-sha "$SHELL_SHA" --framework-sha "$FRAMEWORK_SHA" \
             --runtime-tarball "native-release/v${OPL_VERSION}/${base}.tar.gz" \
             --runtime-metadata "native-release/v${OPL_VERSION}/${base}.tar.gz.sha256" \
@@ -351,7 +369,7 @@ jobs:
             --output native-release/publication-manifest.json \
             > native-release/publication-manifest.stdout.json
           jq -n \
-            --arg artifact "native-webui-qualified-${{ inputs.opl_version }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --arg artifact "native-webui-qualified-${{ inputs.opl_version }}-${{ inputs.target_platform }}-${{ inputs.target_architecture }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             '{schema:"opl_app_native_webui_prepare_status.v1",status:"qualified",qualified_artifact_name:$artifact}' \
             > native-release/prepare-status.json
 
@@ -361,7 +379,7 @@ jobs:
         run: |
           mkdir -p native-release
           jq -n \
-            --arg artifact "native-webui-qualified-${{ inputs.opl_version }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --arg artifact "native-webui-qualified-${{ inputs.opl_version }}-${{ inputs.target_platform }}-${{ inputs.target_architecture }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             '{schema:"opl_app_native_webui_prepare_status.v1",status:"qualification_failed",qualified_artifact_name:$artifact,retry_disposition:"fix_source_or_freeze_a_new_standard_bundle"}' \
             > native-release/prepare-status.json
 
@@ -370,7 +388,7 @@ jobs:
         id: identity
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: native-webui-qualified-${{ inputs.opl_version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-webui-qualified-${{ inputs.opl_version }}-${{ inputs.target_platform }}-${{ inputs.target_architecture }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: native-release
           if-no-files-found: error
           compression-level: 0
@@ -389,7 +407,7 @@ jobs:
           esac
           {
             echo "prepare_status=$status"
-            echo "qualified_artifact_name=native-webui-qualified-${{ inputs.opl_version }}-${{ github.run_id }}-${{ github.run_attempt }}"
+            echo "qualified_artifact_name=native-webui-qualified-${{ inputs.opl_version }}-${{ inputs.target_platform }}-${{ inputs.target_architecture }}-${{ github.run_id }}-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
 
   readback-native-assets:
@@ -499,7 +517,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: native-webui-public-readback-${{ inputs.opl_version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-webui-public-readback-${{ inputs.opl_version }}-${{ inputs.target_platform }}-${{ inputs.target_architecture }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             native-public-readback.json
             native-public-readback.stdout.json

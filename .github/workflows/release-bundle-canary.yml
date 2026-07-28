@@ -160,6 +160,8 @@ jobs:
       contents: read
       actions: read
     with:
+      target_platform: linux
+      target_architecture: x86_64
       mode: canary
       stable_authority_run_id: '424242'
       app_ref: canary
