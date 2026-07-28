@@ -18,6 +18,30 @@ historical provenance:
 | [`../delivery/`](../delivery/) | Release, artifact/package/export, user-guide generation source, screenshots, and verification | Release truth stays in assets, updater metadata, evidence manifests, workflows, validators, CI/logs, and release-boundary tests |
 | [`../history/`](../history/) | Retired routes, candidate replay provenance, and process history | Historical only |
 
+## Pull Request Flow
+
+Use the shortest feedback loop that still leaves a reproducible remote record:
+
+```text
+fresh origin/main
+  -> local preflight and focused tests
+  -> PR / merge gate (GitHub-hosted, required)
+  -> optional Codex advisory review
+  -> administrator merges the PR
+  -> fetch origin/main and read back the canonical commit
+  -> run release workflows separately
+```
+
+`PR / merge gate` is the single required branch-protection context for this
+single-maintainer repository. It runs read-only quality checks on GitHub-hosted
+Ubuntu and does not dispatch releases, mutate publication state, or require a
+self-hosted runner. Codex review remains useful for finding issues, but its
+pending or unavailable state does not block a merge.
+
+Tart, clean VM, Hyper-V, and WSL2 checks are optional post-publication
+certification lanes. They report `passed`, `failed`, `not_run`, or `unavailable`
+against the published bytes and must not be added to this PR merge gate.
+
 ## Active Shell Checks
 
 ```bash
@@ -247,8 +271,7 @@ route receipts, leave the artifact classified as `missing`, `typed_blocker`, or
 prove App release readiness, Stable/latest promotion, Full clean-machine
 installability, domain readiness, or family production readiness.
 
-Deterministic VM automation is the blocking installed-App release proof once a
-Stable cohort enters the release workflow. Codex App, Computer Use, and Codex
-CLI AI self-checks are diagnostic or exploratory until their findings are
-converted into contract, workflow, VM, Playwright, shell, or release-boundary
-tests.
+Deterministic VM automation is an optional post-publication installed-App
+certification lane. Codex App, Computer Use, and Codex CLI AI self-checks are
+diagnostic or exploratory until their findings are converted into contract,
+workflow, VM, Playwright, shell, or release-boundary tests.

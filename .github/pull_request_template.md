@@ -1,7 +1,10 @@
-## Codex review gate
+## Pull request preflight
 
-- [ ] Codex has completed a review of this PR's current head (review comments or a terminal 👍 acknowledgement).
-- [ ] Every current Codex review thread is resolved by a source change or an explicit maintainer disposition.
-- [ ] `Codex review gate` is green for the current head; after resolving a thread, rerun the workflow from **Actions** before merging.
+- [ ] Local preflight has been run against a fresh `origin/main`.
+- [ ] `PR / merge gate` is green for the current head.
+- [ ] This PR does not dispatch a release, mutate publication state, or require a self-hosted runner or VM.
 
-For a new commit, wait for automatic review or request a fresh pass with `@codex review`; do not merge while the gate is pending or failed.
+Codex review is advisory. Request `@codex review` when useful, resolve or explicitly
+disposition current threads, and record any remaining risk here. A pending Codex
+review is not a merge blocker; the stable merge decision is the `PR / merge gate`
+plus maintainer judgment.

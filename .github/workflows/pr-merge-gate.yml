@@ -1,0 +1,98 @@
+name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-merge-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  OPL_FLOW_WORKFLOW_POLICY: ${{ github.workspace }}/opl-flow/contracts/workflow-policy.json
+  OPL_FULL_OPL_FLOW_ROOT: ${{ github.workspace }}/opl-flow
+
+jobs:
+  quality:
+    name: PR / quality checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout App repo
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - name: Checkout OPL Flow policy source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          repository: gaofeng21cn/opl-flow
+          ref: 2c7fad262938fb4295d2bb866f6b955c0aa2361a
+          path: opl-flow
+
+      - name: Setup active shell dependencies
+        uses: ./.github/actions/setup-active-shell-deps
+        with:
+          shell-ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install App root dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Setup Go for actionlint
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.26.4'
+          cache: false
+
+      - name: Install actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actionlint-bin"
+          GOBIN="$RUNNER_TEMP/actionlint-bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          echo "$RUNNER_TEMP/actionlint-bin" >> "$GITHUB_PATH"
+
+      - name: Lint GitHub Actions workflows
+        run: actionlint -color -shellcheck= -pyflakes=
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Validate the active shell
+        run: npm run validate:active-shell -- --quick
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run release-boundary tests
+        run: npm run test:release-boundary
+
+  merge-gate:
+    name: PR / merge gate
+    if: always()
+    needs: [quality]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require quality checks for non-draft pull requests
+        env:
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+        run: |
+          set -euo pipefail
+          if [[ "$PR_DRAFT" == "true" ]]; then
+            echo "Draft pull request: merge gate is not applicable."
+            exit 0
+          fi
+          if [[ "$QUALITY_RESULT" != "success" ]]; then
+            echo "PR quality checks finished with: $QUALITY_RESULT"
+            exit 1
+          fi
+          echo "PR quality checks passed for the current head."
