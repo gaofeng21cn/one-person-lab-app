@@ -136,24 +136,6 @@ function isHeadBoundCodexReviewRequest(comment: GitHubIssueComment, headSha: str
     codexReviewHeadFromComment(comment.body) === headSha;
 }
 
-async function ensureHeadBoundCodexReviewRequest(
-  owner: string,
-  repo: string,
-  pullNumber: number,
-  headSha: string,
-): Promise<void> {
-  const comments = await paginatedGitHubRequest<GitHubIssueComment>(
-    `/repos/${owner}/${repo}/issues/${pullNumber}/comments`,
-  );
-  if (comments.some((comment) => isHeadBoundCodexReviewRequest(comment, headSha))) return;
-  await githubRequest(`/repos/${owner}/${repo}/issues/${pullNumber}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({
-      body: `@codex review\n\n<!-- codex-review-head:${headSha} -->`,
-    }),
-  });
-}
-
 async function fetchCurrentRequestCommentReactions(
   owner: string,
   repo: string,
@@ -245,64 +227,6 @@ async function sleep(milliseconds: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-type GitHubCheckRun = {
-  id?: number | null;
-};
-
-const gateCheckName = 'Codex review gate';
-
-function checkDetailsUrl(): string | undefined {
-  const serverUrl = process.env.GITHUB_SERVER_URL?.trim();
-  const repository = process.env.GITHUB_REPOSITORY?.trim();
-  const runId = process.env.GITHUB_RUN_ID?.trim();
-  if (!serverUrl || !repository || !runId) return undefined;
-  return `${serverUrl}/${repository}/actions/runs/${runId}`;
-}
-
-async function createHeadCheckRun(
-  owner: string,
-  repo: string,
-  pullNumber: number,
-  headSha: string,
-): Promise<number> {
-  const check = await githubRequest<GitHubCheckRun>(`/repos/${owner}/${repo}/check-runs`, {
-    method: 'POST',
-    body: JSON.stringify({
-      name: gateCheckName,
-      head_sha: headSha,
-      status: 'in_progress',
-      external_id: `codex-review-gate:${pullNumber}:${headSha}`,
-      details_url: checkDetailsUrl(),
-      output: {
-        title: gateCheckName,
-        summary: `Waiting for Codex review evidence for ${headSha.slice(0, 12)}.`,
-      },
-    }),
-  });
-  if (!Number.isInteger(check.id)) throw new Error('GitHub did not return a check run id');
-  return check.id;
-}
-
-async function completeHeadCheckRun(
-  owner: string,
-  repo: string,
-  checkRunId: number,
-  result: CodexReviewGateResult,
-): Promise<void> {
-  await githubRequest(`/repos/${owner}/${repo}/check-runs/${checkRunId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      status: 'completed',
-      conclusion: result.status === 'passed' ? 'success' : 'failure',
-      details_url: checkDetailsUrl(),
-      output: {
-        title: gateCheckName,
-        summary: result.summary,
-      },
-    }),
-  });
-}
-
 async function main(): Promise<void> {
   const [owner, repo] = requiredEnvironment('GITHUB_REPOSITORY').split('/');
   if (!owner || !repo) throw new Error('GITHUB_REPOSITORY must be owner/repository');
@@ -314,47 +238,36 @@ async function main(): Promise<void> {
 
   const pull = await githubRequest<{ head: { sha: string } }>(`/repos/${owner}/${repo}/pulls/${pullNumber}`);
   const headSha = pull.head.sha.toLowerCase();
-  if (String(process.env.CODEX_REVIEW_REQUEST_HEAD ?? '').trim().toLowerCase() === headSha) {
-    await ensureHeadBoundCodexReviewRequest(owner, repo, pullNumber, headSha);
-  }
-  const checkRunId = await createHeadCheckRun(owner, repo, pullNumber, headSha);
   const deadlineMs = Date.now() + waitSeconds * 1_000;
 
-  try {
-    for (;;) {
-      const [reviews, requestCommentReactions, reviewThreads] = await Promise.all([
-        paginatedGitHubRequest<GitHubReview>(`/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`),
-        fetchCurrentRequestCommentReactions(owner, repo, pullNumber, headSha),
-        fetchReviewThreads(githubRequest, owner, repo, pullNumber),
-      ]);
-      const result = evaluateCodexReviewGate({
-        headSha,
-        reviews,
-        reactions: requestCommentReactions,
-        reviewThreads,
-      });
+  for (;;) {
+    const [reviews, requestCommentReactions, reviewThreads] = await Promise.all([
+      paginatedGitHubRequest<GitHubReview>(`/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`),
+      fetchCurrentRequestCommentReactions(owner, repo, pullNumber, headSha),
+      fetchReviewThreads(githubRequest, owner, repo, pullNumber),
+    ]);
+    const result = evaluateCodexReviewGate({
+      headSha,
+      reviews,
+      reactions: requestCommentReactions,
+      reviewThreads,
+    });
 
-      if (result.status === 'waiting' && Date.now() < deadlineMs) {
-        console.log(`${result.summary} Polling for up to ${waitSeconds} seconds.`);
-        await sleep(pollSeconds * 1_000);
-        continue;
-      }
-
-      const terminal = result.status === 'waiting'
-        ? {
-            status: 'failed' as const,
-            summary: `${result.summary} Timed out after ${waitSeconds} seconds; request or rerun Codex review for this head.`,
-          }
-        : result;
-      await completeHeadCheckRun(owner, repo, checkRunId, terminal);
-      console.log(terminal.summary);
-      if (terminal.status !== 'passed') throw new Error(terminal.summary);
-      return;
+    if (result.status === 'waiting' && Date.now() < deadlineMs) {
+      console.log(`${result.summary} Polling for up to ${waitSeconds} seconds.`);
+      await sleep(pollSeconds * 1_000);
+      continue;
     }
-  } catch (error) {
-    const summary = error instanceof Error ? error.message : 'Codex review gate failed unexpectedly.';
-    await completeHeadCheckRun(owner, repo, checkRunId, { status: 'failed', summary }).catch(() => undefined);
-    throw error;
+
+    const terminal = result.status === 'waiting'
+      ? {
+          status: 'failed' as const,
+          summary: `${result.summary} Timed out after ${waitSeconds} seconds; request or rerun Codex review for this head.`,
+        }
+      : result;
+    console.log(terminal.summary);
+    if (terminal.status !== 'passed') throw new Error(terminal.summary);
+    return;
   }
 }
 

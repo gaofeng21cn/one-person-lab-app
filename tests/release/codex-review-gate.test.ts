@@ -76,25 +76,25 @@ test('Codex review gate rejects unbound request-comment reactions', () => {
   assert.equal(currentRequest.status, 'waiting');
 });
 
-test('Codex review gate workflow keeps the check pending until a terminal result and updates the PR head directly', () => {
+test('Codex review advisory is read-only and never becomes a required-check writer', () => {
   const source = fs.readFileSync(path.join(process.cwd(), '.github', 'workflows', 'codex-review-gate.yml'), 'utf8');
   const workflow = parseYaml(source) as Record<string, any>;
   assert.ok(workflow.on.pull_request_target);
   assert.ok(workflow.on.pull_request_review);
   assert.ok(workflow.on.workflow_dispatch.inputs.pull_number.required);
-  assert.equal(workflow.permissions.checks, 'write');
-  assert.equal(workflow.permissions.issues, 'write');
+  assert.equal(workflow.permissions.checks, undefined);
+  assert.equal(workflow.permissions.issues, 'read');
   assert.match(workflow.jobs.gate.if, /pull_request\.draft/);
-  assert.equal(workflow.jobs.gate.name, 'Evaluate Codex review gate');
+  assert.equal(workflow.jobs.gate.name, 'Codex review advisory');
   assert.equal(workflow.jobs.gate.steps[0].with.ref, '${{ github.event.repository.default_branch }}');
   assert.match(source, /CODEX_REVIEW_WAIT_SECONDS/);
-  assert.match(source, /CODEX_REVIEW_REQUEST_HEAD/);
+  assert.doesNotMatch(source, /CODEX_REVIEW_REQUEST_HEAD/);
   assert.match(source, /github\.event_name == 'workflow_dispatch' && '0' \|\| '900'/);
   assert.match(source, /scripts\/codex-review-gate\.ts/);
   const gateSource = fs.readFileSync(path.join(process.cwd(), 'scripts', 'codex-review-gate.ts'), 'utf8');
   assert.match(gateSource, /issues\/comments\/\$\{comment\.id\}\/reactions/);
-  assert.match(gateSource, /check-runs/);
+  assert.doesNotMatch(gateSource, /check-runs/);
   assert.match(gateSource, /codex-review-head/);
-  assert.match(gateSource, /ensureHeadBoundCodexReviewRequest/);
+  assert.doesNotMatch(gateSource, /ensureHeadBoundCodexReviewRequest/);
   assert.match(source, /pull_request_target/);
 });
