@@ -17,7 +17,7 @@ type ReviewThread = {
 
 export type CodexReviewGateInput = {
   headSha: string;
-  headCommittedAt: string;
+  headUpdatedAt: string;
   reviews: GitHubReview[];
   reactions: GitHubReaction[];
   reviewThreads: ReviewThread[];
@@ -44,12 +44,12 @@ function hasCurrentCodexReview(reviews: GitHubReview[], headSha: string): boolea
   );
 }
 
-function hasTerminalCodexReaction(reactions: GitHubReaction[], headCommittedAt: string): boolean {
-  const committedAtMs = Date.parse(headCommittedAt);
+function hasTerminalCodexReaction(reactions: GitHubReaction[], headUpdatedAt: string): boolean {
+  const headUpdatedAtMs = Date.parse(headUpdatedAt);
   return reactions.some((reaction) => {
     if (!isCodexBot(reaction.user?.login) || reaction.content !== '+1') return false;
     const reactedAtMs = Date.parse(String(reaction.created_at ?? ''));
-    return Number.isFinite(reactedAtMs) && (!Number.isFinite(committedAtMs) || reactedAtMs >= committedAtMs);
+    return Number.isFinite(reactedAtMs) && (!Number.isFinite(headUpdatedAtMs) || reactedAtMs >= headUpdatedAtMs);
   });
 }
 
@@ -64,7 +64,7 @@ function unresolvedCurrentCodexThreads(reviewThreads: ReviewThread[]): ReviewThr
 
 export function evaluateCodexReviewGate(input: CodexReviewGateInput): CodexReviewGateResult {
   const currentReview = hasCurrentCodexReview(input.reviews, input.headSha);
-  const terminalReaction = hasTerminalCodexReaction(input.reactions, input.headCommittedAt);
+  const terminalReaction = hasTerminalCodexReaction(input.reactions, input.headUpdatedAt);
   if (!currentReview && !terminalReaction) {
     return {
       status: 'waiting',
@@ -195,10 +195,6 @@ async function main(): Promise<void> {
   if (pollSeconds === 0) throw new Error('CODEX_REVIEW_POLL_SECONDS must be positive');
 
   const pull = await githubRequest<{ head: { sha: string }; updated_at: string }>(`/repos/${owner}/${repo}/pulls/${pullNumber}`);
-  const head = await githubRequest<{ commit?: { committer?: { date?: string } } }>(
-    `/repos/${owner}/${repo}/commits/${pull.head.sha}`,
-  );
-  const headCommittedAt = head.commit?.committer?.date ?? pull.updated_at;
   const deadlineMs = Date.now() + waitSeconds * 1_000;
 
   for (;;) {
@@ -207,7 +203,13 @@ async function main(): Promise<void> {
       paginatedGitHubRequest<GitHubReaction>(`/repos/${owner}/${repo}/issues/${pullNumber}/reactions`),
       fetchReviewThreads(githubRequest, owner, repo, pullNumber),
     ]);
-    const result = evaluateCodexReviewGate({ headSha: pull.head.sha.toLowerCase(), headCommittedAt, reviews, reactions, reviewThreads });
+    const result = evaluateCodexReviewGate({
+      headSha: pull.head.sha.toLowerCase(),
+      headUpdatedAt: pull.updated_at,
+      reviews,
+      reactions,
+      reviewThreads,
+    });
 
     if (result.status === 'waiting' && Date.now() < deadlineMs) {
       console.log(`${result.summary} Polling for up to ${waitSeconds} seconds.`);

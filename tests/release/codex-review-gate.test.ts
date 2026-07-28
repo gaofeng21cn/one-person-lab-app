@@ -12,7 +12,7 @@ const bot = 'chatgpt-codex-connector[bot]';
 test('Codex review gate waits until the current head has terminal review evidence', () => {
   const result = evaluateCodexReviewGate({
     headSha,
-    headCommittedAt: '2026-07-28T00:00:00Z',
+    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [{ user: { login: bot }, commit_id: 'b'.repeat(40) }],
     reactions: [],
     reviewThreads: [],
@@ -23,7 +23,7 @@ test('Codex review gate waits until the current head has terminal review evidenc
 test('Codex review gate fails only for unresolved current bot threads', () => {
   const result = evaluateCodexReviewGate({
     headSha,
-    headCommittedAt: '2026-07-28T00:00:00Z',
+    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [{ user: { login: bot }, commit_id: headSha }],
     reactions: [],
     reviewThreads: [
@@ -39,7 +39,7 @@ test('Codex review gate fails only for unresolved current bot threads', () => {
 test('Codex review gate accepts a current review or post-head positive acknowledgement without open threads', () => {
   const reviewed = evaluateCodexReviewGate({
     headSha,
-    headCommittedAt: '2026-07-28T00:00:00Z',
+    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [{ user: { login: bot }, commit_id: headSha }],
     reactions: [],
     reviewThreads: [{ isResolved: true, isOutdated: false, comments: [{ author: { login: bot } }] }],
@@ -48,12 +48,23 @@ test('Codex review gate accepts a current review or post-head positive acknowled
 
   const acknowledged = evaluateCodexReviewGate({
     headSha,
-    headCommittedAt: '2026-07-28T00:00:00Z',
+    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [],
     reactions: [{ user: { login: bot }, content: '+1', created_at: '2026-07-28T00:00:01Z' }],
     reviewThreads: [],
   });
   assert.equal(acknowledged.status, 'passed');
+});
+
+test('Codex review gate ignores a reaction from before the server-side head boundary', () => {
+  const result = evaluateCodexReviewGate({
+    headSha,
+    headUpdatedAt: '2026-07-28T00:00:00Z',
+    reviews: [],
+    reactions: [{ user: { login: bot }, content: '+1', created_at: '2026-07-27T23:59:59Z' }],
+    reviewThreads: [],
+  });
+  assert.equal(result.status, 'waiting');
 });
 
 test('Codex review gate workflow keeps the check pending until a terminal result and updates the PR head directly', () => {
