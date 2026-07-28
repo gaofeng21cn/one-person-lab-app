@@ -28,6 +28,7 @@ env:
 
 jobs:
   gate:
+    if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
     name: Codex review gate
     runs-on: ubuntu-latest
     steps:
