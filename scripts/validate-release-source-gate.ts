@@ -974,14 +974,24 @@ export function writeReleaseSourceGateReport(options: ReleaseSourceGateOptions, 
   fs.writeFileSync(options.output, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 }
 
-export function prepareReleaseSourceShell(options: ReleaseSourceGateOptions): void {
+export function prepareReleaseSourceShell(
+  options: ReleaseSourceGateOptions,
+  sourceEnvironment: NodeJS.ProcessEnv = process.env,
+): void {
+  // Reject ambient Git selectors before even probing an existing checkout.
+  if (releaseEnvironmentProblems(sourceEnvironment, options).length > 0) return;
   // Preserve an existing non-Git projection so the source-gate report can reject it with typed evidence.
   if (fs.existsSync(options.shellRoot) && !isGitCheckout(options.shellRoot)) return;
+  const commandEnvironment = buildCommandEnvironment(sourceEnvironment, options);
   ensureActiveShellCheckout({
     shellRoot: options.shellRoot,
-    repo: process.env.OPL_APP_SHELL_REPO || 'git@github.com:gaofeng21cn/opl-aion-shell.git',
+    repo: sourceEnvironment.OPL_APP_SHELL_REPO || 'git@github.com:gaofeng21cn/opl-aion-shell.git',
     ref: options.shellRef,
     alignRef: true,
+    runner: (command, args, commandOptions = {}) => run(command, args, {
+      cwd: commandOptions.cwd || defaultRepoRoot,
+      env: commandEnvironment,
+    }),
   });
 }
 

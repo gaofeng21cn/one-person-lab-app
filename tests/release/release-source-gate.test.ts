@@ -7,6 +7,7 @@ import {
   buildReleaseSourceGateReport,
   parseReleaseSourceGateArgs,
   prepareReleaseSourceShell,
+  writeReleaseSourceGateReport,
   type CommandRunner,
   type ReleaseSourceGateOptions,
 } from '../../scripts/validate-release-source-gate.ts';
@@ -357,6 +358,64 @@ test('release source gate rejects environment injection before boundary executio
   assert.equal(report.typed_blocker?.next_action, 'repair_pre_admission');
   assert.equal(calls.some((call) => call.startsWith('npm ') || call.startsWith('bun ')), false);
   assert.equal(calls.some((call) => call.includes('run-active-shell-tests.ts')), false);
+});
+
+test('release source preparation refuses Git environment injection before checkout mutation', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-source-gate-env-'));
+  try {
+    const shellPath = path.join(root, 'shells', 'aionui');
+    const injectedGitDir = path.join(root, 'injected-git');
+
+    prepareReleaseSourceShell(
+      options({ shellRoot: shellPath }),
+      {
+        GIT_DIR: injectedGitDir,
+        PATH: process.env.PATH,
+      },
+    );
+
+    assert.equal(fs.existsSync(shellPath), false);
+    assert.equal(fs.existsSync(injectedGitDir), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('release source CLI path still writes a typed JSON failure after preparation is skipped', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-source-gate-json-'));
+  try {
+    const shellPath = path.join(root, 'shells', 'aionui');
+    const output = path.join(root, 'source-gate.json');
+    const injectedGitDir = path.join(root, 'injected-git');
+    const gateOptions = options({ shellRoot: shellPath, output });
+    const injectedEnvironment = { GIT_DIR: injectedGitDir, PATH: process.env.PATH };
+
+    prepareReleaseSourceShell(gateOptions, injectedEnvironment);
+    const report = buildReleaseSourceGateReport(
+      gateOptions,
+      (command, args, commandOptions) => runner()(
+        command,
+        args,
+        commandOptions,
+      ),
+      '2026-06-30T00:00:00.000Z',
+      {
+        variables: injectedEnvironment,
+        pathExists: (candidatePath) => candidatePath === shellPath || candidatePath === frameworkRoot,
+        readJson: (candidatePath) => readSourceJson(candidatePath),
+      },
+    );
+    writeReleaseSourceGateReport(gateOptions, report);
+
+    const written = JSON.parse(fs.readFileSync(output, 'utf8'));
+    assert.equal(written.status, 'failed');
+    assert.equal(written.typed_blocker.schema, 'opl_app_release_source_gate_blocker.v1');
+    assert.equal(written.typed_blocker.failed_check_ids.includes('release_environment_whitelist'), true);
+    assert.equal(fs.existsSync(shellPath), false);
+    assert.equal(fs.existsSync(injectedGitDir), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('release source gate strips ambient controller SHA from required gate commands', () => {
