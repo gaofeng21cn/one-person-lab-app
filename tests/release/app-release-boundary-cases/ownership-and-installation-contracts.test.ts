@@ -782,6 +782,9 @@ test('release contract keeps Standard independent behind Framework checkpoint au
   const release = JSON.parse(
     fs.readFileSync(path.join(process.cwd(), 'contracts', 'app-release-channel.json'), 'utf8'),
   );
+  const gui = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), 'contracts', 'app-gui-product-contract.json'), 'utf8'),
+  );
   const control = release.release_bundle_control_plane;
   const legacy = control.legacy_compatibility;
 
@@ -808,6 +811,35 @@ test('release contract keeps Standard independent behind Framework checkpoint au
   assert.equal(legacy.historical_receipts_remain_readable, true);
   assert.equal(legacy.new_legacy_dispatch_publish_or_rebuild_allowed, false);
   assert.equal(release.release_acceleration.new_session_or_dispatch_allowed, false);
+  assert.deepEqual(
+    gui.release_channel_policy.stable.diagnostic_lanes,
+    release.release_validation_profiles.stable.diagnostic_lanes,
+  );
+  assert.deepEqual(
+    gui.release_channel_policy.stable.post_publication_optional_certification_surfaces,
+    release.release_validation_profiles.stable.post_publication_optional_certification_surfaces,
+  );
+  assert.equal(gui.release_channel_policy.stable.must_gate.includes('full_dmg_clean_vm_smoke'), false);
+  assert.equal(gui.release_channel_policy.stable.addon_gate_blocking_standard_terminal, false);
+  assert.equal(gui.release_channel_policy.stable.diagnostic_lanes_block_publication_or_latest, false);
+  assert.equal(gui.release_channel_policy.stable.optional_certification_blocks_publication_or_latest, false);
+  assert.deepEqual(
+    release.full_first_install.size_policy.optimization_artifacts.required_evidence,
+    [
+      'full-package-manifest.json#runtime_assertions.offline_required_payloads',
+      'full-runtime-native-trust.json',
+    ],
+  );
+  assert.deepEqual(
+    release.full_first_install.size_policy.optimization_artifacts.optional_certification_evidence,
+    [
+      {
+        id: 'full_dmg_clean_vm_smoke',
+        policy: 'post_publication_optional_non_blocking',
+        allowed_statuses: ['passed', 'failed', 'not_run', 'unavailable'],
+      },
+    ],
+  );
 
   const competingAuthority = structuredClone(release);
   competingAuthority.release_bundle_control_plane.live_authority

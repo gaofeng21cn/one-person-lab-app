@@ -106,6 +106,24 @@ React, Electron, HTML, JavaScript, component, filesystem path, URL, or other
 executable UI code. Native UI evolution therefore remains an App/Shell release,
 while Package integration remains data-driven.
 
+Contribution reads use the Framework-owned `opl app contribution read` broker.
+Its successful JSON must contain the `opl_app_contribution` envelope with
+`surface_kind=opl_app_package_contribution.v1`, the current Package/ref/operation
+identity, and a Package response with
+`schema_version=opl-package-app-contribution-response.v1`, `ok=true`, matching
+ref/operation, and `result`. The descriptor's current `view_type`, never the
+broker response, selects one of the six App-owned renderers; malformed identity,
+schema, success, or renderer payload fails closed.
+
+Contribution writes never give the Shell a second mutation authority. The
+Package-owned execute broker is an internal Framework delegated surface only;
+the Shell may write only through `opl app action execute --action
+package_contribution_execute --payload <json> --json`. Until the current App
+state/action catalog exposes that exact action, contribution commands remain
+hidden or disabled while valid read-only views continue to render. The canonical
+action response must wrap the same validated broker envelope at
+`app_action_execution.result.opl_app_contribution`.
+
 This is presence-based composition, not version-based dependency resolution.
 Breaking interface changes are handled by publishing a new capability identity
 or adapting at the owning Package boundary, rather than by growing a central

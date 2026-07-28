@@ -33,22 +33,31 @@ parallel_work_serialized_integration
   或旧 patch 文本机械获胜。
 - 依赖只约束消费和终态证明，不制造跨仓总锁。producer 与 consumer 可以并行实现
   兼容桥、fixture 和测试，最终按 fresh producer contract 重放 consumer。
+- 并行规模按 fresh execution graph 动态决定，不设全局 `ACTIVE` 数量上限；只有写集、
+  宿主容量、受保护权限、安全边界或外部配额不足时才收缩并发。`ACTIVE` 对话数量、
+  execution owner 数量和同时进入 canonical `main` 的 Integrator 数量不是同一个指标。
 
 ## Objective 与 owner 规则
 
 每个未完成 objective 必须在
-[`active-objective-ledger.json`](active-objective-ledger.json) 中有且只有一个 controller，
-并至少有一个可以立即执行 next action 的 execution owner。一个 controller 可以管理
-多个互不冲突的 execution lane；多个 owner 不得同时声称同一 canonical mutation 权限。
-Ledger 可以canonical保存为某时点的审计快照，但不得把其中的owner heartbeat、ETA或
-current evidence当作长期产品SSOT；snapshot过时后由controller重生成，而不是由consumer
-猜测延长有效期。
+[`active-objective-ledger.json`](active-objective-ledger.json) 中有且只有一个 controller。
+没有真实外部 blocker 时，`execution_owner_threads` 必须至少包含一个可立即执行 next action
+的 execution owner。只有所需外部权限或输入确实不可获得时，`ACTIVE` objective 才可以暂时
+没有可运行的 execution owner：controller 必须记录缺失的精确权限或输入、外部 authority、
+fresh evidence 和恢复条件；不得虚构 mutation、checkpoint、owner 或可执行 next action。
+controller 仍负责在恢复条件满足后重新准入唯一 execution owner；它不能用 `blocked` 或
+`waiting` 把 objective 伪装成终态。一个 controller 可以管理多个互不冲突的 execution lane；
+多个 owner 不得同时声称同一 canonical mutation 权限。Ledger 可以canonical保存为某时点的
+审计快照，但不得把其中的owner heartbeat、ETA或 current evidence当作长期产品SSOT；snapshot
+过时后由controller重生成，而不是由consumer猜测延长有效期。
 
 任务状态只使用：
 
-- `ACTIVE`：仍有缺口，owner 必须继续推进、修复首个真实断点或完成终态 readback。
+- `ACTIVE`：仍有缺口；存在可运行 execution owner 时必须继续推进、修复首个真实断点或完成
+  终态 readback。仅在已记录的外部权限或输入 blocker 存在时，允许 controller 暂无可运行
+  execution owner，直至恢复条件满足。
 - `SAFE_TO_ARCHIVE`：用户终态、canonical/wire/installed/public proof 和 owner-native
-  cleanup 均已完成，`remaining=[]`。
+  cleanup 均已完成，且该 objective 的 `terminal_gaps=[]`。
 
 `blocked`、`waiting`、failed run、候选 checkpoint、测试通过和 source canonical 都不是
 objective 终态。外部权限或不可获得输入是唯一可暂停执行的 blocker；普通冲突、失败
@@ -56,8 +65,8 @@ objective 终态。外部权限或不可获得输入是唯一可暂停执行的 
 
 ## 并行组与吸收优先级
 
-默认保持四至八条有实际执行动作的 lane；没有可执行切片的只读 watcher 不占 writer
-名额。当前并行组如下：
+保持所有具备实际执行动作的 lane；没有可执行切片的只读 watcher 不应伪装成 `ACTIVE`，
+而应转为 `SAFE_TO_ARCHIVE` 或被重新分配到独立缺口。当前并行组如下：
 
 1. **Public pointers**：WebUI GHCR `stable/latest` 与 Desktop Stable/Latest 独立推进；
    两者不互相等待。
@@ -102,6 +111,13 @@ fresh base and exact write set
 终态完成。
 
 ## 开发清洁终态
+
+`worktree` 只是隔离施工面，不是任务终态，也不是成果 SSOT。每个 Git 写任务都必须由
+owner 将已验证成果吸收到 canonical `main`，完成 local/tracking/wire/API/tree/blob
+fresh readback，再清理自有 worktree、local/remote branch、临时产物、process 和
+lifecycle receipt；只有这一整套闭环完成后，对应任务才可标记 `SAFE_TO_ARCHIVE`。
+根目录存在其他 owner 的 dirty write set 时，Integrator 不得覆盖、reset 或代替其吸收，
+而应在独立集成窗口按 fresh main 逐项重放。
 
 清洁目标不是活跃开发期间强求 non-root worktree 数量为零，而是：
 

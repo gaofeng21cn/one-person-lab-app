@@ -210,9 +210,15 @@ function buildFullPackageOptimizationSection(args: {
     offline_first_install_completeness_preserved: completenessPreserved,
     size_review_release_blocking_by_size_alone: false,
     required_evidence: [
-      'full_dmg_clean_vm_smoke',
       'full-package-manifest.json#runtime_assertions.offline_required_payloads',
       'full-runtime-native-trust.json',
+    ],
+    optional_certification_evidence: [
+      {
+        id: 'full_dmg_clean_vm_smoke',
+        policy: 'post_publication_optional_non_blocking',
+        allowed_statuses: ['passed', 'failed', 'not_run', 'unavailable'],
+      },
     ],
     app_bundle_trim: {
       schema: args.trimReport.schema,

@@ -892,7 +892,7 @@
     {
       "id": "package_contribution",
       "expected_source": "current Framework-projected Package contribution directory entry and descriptor-neutral contribution broker",
-      "machine_source": "app_state.agent_packages.directory.entries[].app_contributions + opl app contribution read|execute --package-id <package_id> --ref <dynamic> --input <json> [--confirm]",
+      "machine_source": "app_state.agent_packages.directory.entries[].app_contributions + opl app contribution read --package-id <package_id> --ref <data_ref> --input <json> + opl app action execute --action package_contribution_execute --payload <json> --json when the exact action is projected",
       "page_contract": "dynamic_package_contribution_standard_view",
       "package_contribution_view_model": {
         "navigation_identity": [
@@ -902,7 +902,19 @@
         "navigation_source_ref": "app_state.agent_packages.directory.entries[].app_contributions.navigation[]",
         "route_resolution_policy": "resolve_navigation_to_its_local_view_and_refs_from_the_same_current_directory_entry_then_delegate_to_the_broker",
         "data_read_command": "opl app contribution read --package-id <package_id> --ref <data_ref> [--input <json>|--input-stdin]",
-        "action_execute_command": "opl app contribution execute --package-id <package_id> --ref <action_ref> [--input <json>|--input-stdin] [--confirm]",
+        "action_execute_command": "opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json",
+        "action_execute_payload_fields": [
+          "package_id",
+          "ref",
+          "input",
+          "confirmed"
+        ],
+        "action_execute_dry_run_policy": "consume_only_app_action_execution.result.opl_app_contribution_preflight_as_a_read_only_preflight_never_as_action_success",
+        "direct_execute_broker_command_allowed": false,
+        "action_availability_source": "app_state action catalog exact package_contribution_execute entry",
+        "action_unavailable_policy": "render_read_only_view_and_hide_or_disable_commands_with_the_projected_disabled_reason",
+        "broker_response_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.broker_response_contract",
+        "broker_response_validation_policy": "validate_the_Framework_envelope_response_identity_success_and_App_owned_standard_renderer_payload_before_rendering_or_accepting_action_success",
         "supported_view_types_source_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.supported_view_types",
         "rendering_policy": "standard_structured_views_only",
         "package_role_filter_allowed": false,

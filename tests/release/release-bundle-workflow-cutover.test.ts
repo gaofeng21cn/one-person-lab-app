@@ -267,6 +267,7 @@ test('active shell ancestry checks receive full history without broadening routi
   assert.equal(shellCheckout.with['fetch-depth'], '${{ inputs.fetch-depth }}');
 
   const workflow = parseWorkflow('_build-reusable.yml');
+  const resolvedShellRef = '${{ needs.resolve-active-shell-ref.outputs.shell_sha }}';
   for (const [jobId, job] of Object.entries(workflow.jobs) as Array<[string, Record<string, any>]>) {
     const setup = job.steps?.find(
       (step: Record<string, any>) => step.uses === './.github/actions/setup-active-shell-deps',
@@ -277,6 +278,7 @@ test('active shell ancestry checks receive full history without broadening routi
     } else {
       assert.equal(setup.with['fetch-depth'], undefined, `${jobId} must retain the shallow default`);
     }
+    assert.equal(setup.with['shell-ref'], resolvedShellRef, `${jobId} must use the resolved immutable Shell SHA`);
   }
 });
 

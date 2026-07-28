@@ -867,7 +867,6 @@ jobs:
             require_unique_evidence imported-full-vm-evidence published-artifact-identity.json artifact_identity
             require_unique_evidence imported-full-vm-evidence post-publication-job-start.json job_start
             require_unique_evidence imported-full-vm-evidence post-publication-capability-admission.json capability_admission
-            require_unique_evidence imported-full-vm-evidence tart-smoke-summary.json tart_summary
             jq -e --arg tag "$RELEASE_TAG" --arg name "$ARTIFACT_NAME" --arg digest "$ARTIFACT_DIGEST" \
               --arg app_sha "$APP_SHA" --arg shell_sha "$SHELL_SHA" --arg framework_sha "$FRAMEWORK_SHA" '
               type == "object"
@@ -885,14 +884,17 @@ jobs:
             ' "$artifact_identity" >/dev/null
             jq -e 'type == "object" and (keys == ["schema","started"]) and .schema == "opl_app_optional_certification_job_start.v1" and .started == true' "$job_start" >/dev/null
             source_vm="$(jq -er 'select(type == "object" and (keys == ["reason_code","schema","source_vm","status"]) and .schema == "opl_app_optional_certification_vm_admission.v1") | .source_vm | select(type == "string" and length > 0)' "$capability_admission")"
-            jq -e --arg source_vm "$source_vm" '
-              type == "object"
-              and .surface_id == "opl_tart_gui_first_run_smoke"
-              and .source_vm == $source_vm
-              and .smoke_profile == "no-clt-clean-vm"
-              and .runtime_profile == "full"
-              and .framework_source_archive == null
-            ' "$tart_summary" >/dev/null
+            require_tart_summary() {
+              require_unique_evidence imported-full-vm-evidence tart-smoke-summary.json tart_summary
+              jq -e --arg source_vm "$source_vm" '
+                type == "object"
+                and .surface_id == "opl_tart_gui_first_run_smoke"
+                and .source_vm == $source_vm
+                and .smoke_profile == "no-clt-clean-vm"
+                and .runtime_profile == "full"
+                and .framework_source_archive == null
+              ' "$tart_summary" >/dev/null
+            }
             case "$VM_STATUS" in
               passed)
                 test "$VM_REASON_CODE" = '' && test "$VM_JOB_RESULT" = success && test "$VM_EXECUTION_STARTED" = true || {
@@ -900,6 +902,7 @@ jobs:
                   exit 1
                 }
                 jq -e --arg source_vm "$source_vm" '.status == "passed" and .reason_code == null and .source_vm == $source_vm' "$capability_admission" >/dev/null
+                require_tart_summary
                 jq -e '.status == "passed"' "$tart_summary" >/dev/null
                 require_unique_evidence imported-full-vm-evidence post-publication-execution-start.json execution_start
                 require_unique_evidence imported-full-vm-evidence settings-smoke-summary.json settings_summary
@@ -926,6 +929,7 @@ jobs:
                   exit 1
                 }
                 jq -e --arg source_vm "$source_vm" '.status == "passed" and .reason_code == null and .source_vm == $source_vm' "$capability_admission" >/dev/null
+                require_tart_summary
                 jq -e '.status == "passed" or .status == "failed"' "$tart_summary" >/dev/null
                 require_unique_evidence imported-full-vm-evidence post-publication-execution-start.json execution_start
                 jq -e 'type == "object" and (keys == ["schema","started"]) and .schema == "opl_app_optional_certification_execution_start.v1" and .started == true' "$execution_start" >/dev/null
@@ -956,6 +960,7 @@ jobs:
                     ;;
                   vm_admission_failed)
                     test "$VM_EXECUTION_STARTED" = true || { echo "::error::VM admission failure requires a started executor."; exit 1; }
+                    require_tart_summary
                     jq -e '.status == "failed" and (.failure_stage | IN("clone_vm","configure_display","start_vm","wait_for_ip","wait_for_ssh"))' "$tart_summary" >/dev/null
                     admission_evidence="$tart_summary"
                     ;;
@@ -1007,7 +1012,9 @@ jobs:
             --output full-dmg-clean-machine.json
           mkdir -p full-receipt-evidence
           cp "$admission_evidence" full-receipt-evidence/
-          for evidence_file in "${evidence_files[@]}"; do cp "$evidence_file" full-receipt-evidence/; done
+          if [ "${#evidence_files[@]}" -gt 0 ]; then
+            for evidence_file in "${evidence_files[@]}"; do cp "$evidence_file" full-receipt-evidence/; done
+          fi
 
       - name: Upload non-blocking Full certification receipt
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

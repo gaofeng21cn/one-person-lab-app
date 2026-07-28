@@ -255,6 +255,55 @@
       ],
       "read_command": "opl app contribution read --package-id <package_id> --ref <data_ref> [--input <json>|--input-stdin]",
       "execute_command": "opl app contribution execute --package-id <package_id> --ref <action_ref> [--input <json>|--input-stdin] [--confirm]",
+      "execute_command_role": "framework_internal_delegated_surface_only_never_shell_invoked",
+      "shell_direct_execute_command_allowed": false,
+      "shell_write_action_bridge": {
+        "action_id": "package_contribution_execute",
+        "command": "opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json",
+        "required_payload_fields": [
+          "package_id",
+          "ref",
+          "input",
+          "confirmed"
+        ],
+        "availability_source": "app_state action catalog exact package_contribution_execute entry",
+        "unavailable_policy": "hide_or_disable_commands_and_preserve_read_only_contribution_views_until_the_current_action_catalog_exposes_the_exact_action"
+      },
+      "broker_response_contract": {
+        "framework_source_ref": "one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution",
+        "cli_envelope_path": "opl_app_contribution",
+        "cli_surface_kind": "opl_app_package_contribution.v1",
+        "package_response_schema": "opl-package-app-contribution-response.v1",
+        "required_envelope_fields": [
+          "surface_kind",
+          "package_id",
+          "ref",
+          "operation",
+          "confirmation_required",
+          "carrier_readback",
+          "readiness",
+          "response"
+        ],
+        "required_response_fields": [
+          "schema_version",
+          "ok",
+          "ref",
+          "operation",
+          "result"
+        ],
+        "allowed_operations": [
+          "read",
+          "execute"
+        ],
+        "identity_validation": "surface_kind_package_id_ref_operation_and_response_schema_ref_operation_must_match_the_current_request_and_descriptor",
+        "success_validation": "response_ok_must_equal_true_before_render_or_action_success",
+        "renderer_selection_source": "current_descriptor_view_type_never_broker_response",
+        "renderer_result_path": "opl_app_contribution.response.result",
+        "canonical_action_response_path": "app_action_execution.result.opl_app_contribution",
+        "canonical_action_surface_kind": "opl_app_action_execution.v1",
+        "canonical_action_dry_run_response_path": "app_action_execution.result.opl_app_contribution_preflight",
+        "canonical_action_dry_run_policy": "revalidate_the_current_descriptor_carrier_readiness_ref_and_confirmation_without_invoking_the_package_command_or_accepting_an_action_success"
+      },
       "route_resolution_policy": "resolve_only_from_the_current_directory_entry_then_delegate_descriptor_and_ref_revalidation_to_the_broker",
       "response_policy": "render_only_a_valid_broker_response_for_the_requested_package_ref_and_operation",
       "confirmation_policy": "broker_and_descriptor_owned_shell_cannot_infer_or_bypass_confirmation",

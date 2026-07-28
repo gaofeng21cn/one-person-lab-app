@@ -188,6 +188,47 @@ test('any Package role may project one closed standard App contribution block', 
     'artifact_view',
     'activity_log',
   ];
+  const shellWriteActionBridge = {
+    action_id: 'package_contribution_execute',
+    command: 'opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json',
+    required_payload_fields: ['package_id', 'ref', 'input', 'confirmed'],
+    availability_source: 'app_state action catalog exact package_contribution_execute entry',
+    unavailable_policy: 'hide_or_disable_commands_and_preserve_read_only_contribution_views_until_the_current_action_catalog_exposes_the_exact_action',
+  };
+  const guiWriteActionBridge = {
+    ...shellWriteActionBridge,
+    delegation_policy: 'Framework_action_bridge_may_delegate_to_the_descriptor_neutral_contribution_execute_broker_after_fresh_descriptor_carrier_readiness_ref_and_confirmation_revalidation',
+  };
+  const shellBrokerResponseContract = {
+    framework_source_ref: 'one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution',
+    cli_envelope_path: 'opl_app_contribution',
+    cli_surface_kind: 'opl_app_package_contribution.v1',
+    package_response_schema: 'opl-package-app-contribution-response.v1',
+    required_envelope_fields: [
+      'surface_kind',
+      'package_id',
+      'ref',
+      'operation',
+      'confirmation_required',
+      'carrier_readback',
+      'readiness',
+      'response',
+    ],
+    required_response_fields: ['schema_version', 'ok', 'ref', 'operation', 'result'],
+    allowed_operations: ['read', 'execute'],
+    identity_validation: 'surface_kind_package_id_ref_operation_and_response_schema_ref_operation_must_match_the_current_request_and_descriptor',
+    success_validation: 'response_ok_must_equal_true_before_render_or_action_success',
+    renderer_selection_source: 'current_descriptor_view_type_never_broker_response',
+    renderer_result_path: 'opl_app_contribution.response.result',
+    canonical_action_response_path: 'app_action_execution.result.opl_app_contribution',
+    canonical_action_surface_kind: 'opl_app_action_execution.v1',
+    canonical_action_dry_run_response_path: 'app_action_execution.result.opl_app_contribution_preflight',
+    canonical_action_dry_run_policy: 'revalidate_the_current_descriptor_carrier_readiness_ref_and_confirmation_without_invoking_the_package_command_or_accepting_an_action_success',
+  };
+  const guiBrokerResponseContract = {
+    ...shellBrokerResponseContract,
+    renderer_payload_policy: 'validate_result_against_the_App_owned_standard_renderer_selected_by_the_current_descriptor_view_type_before_rendering',
+  };
 
   assert.doesNotThrow(() => validatePackageAppContributionsProductContract(contributionContract));
   assert.equal(schema.additionalProperties, false);
@@ -218,6 +259,14 @@ test('any Package role may project one closed standard App contribution block', 
     'resolve_action_ref_through_the_descriptor_neutral_app_contribution_execute_broker',
   );
   assert.equal(
+    contributionContract.action_execution_policy_scope,
+    'framework_internal_delegation_only_not_a_shell_mutation_surface',
+  );
+  assert.equal(
+    contributionContract.shell_action_execution_policy,
+    'all_contribution_writes_enter_the_canonical_app_action_bridge_or_fail_closed',
+  );
+  assert.equal(
     contributionContract.invalid_block_policy,
     'reject_entire_package_app_contributions_block_and_preserve_other_packages',
   );
@@ -227,6 +276,10 @@ test('any Package role may project one closed standard App contribution block', 
     view_command_ids: 'must_reference_local_commands_command_id',
   });
   assert.equal(contributionContract.arbitrary_plugin_ui_code_allowed, false);
+  assert.equal(contributionContract.execute_broker_command_role, 'framework_internal_delegated_surface_only_never_shell_invoked');
+  assert.equal(contributionContract.shell_direct_execute_broker_allowed, false);
+  assert.deepEqual(contributionContract.shell_write_action_bridge, guiWriteActionBridge);
+  assert.deepEqual(contributionContract.broker_response_contract, guiBrokerResponseContract);
 
   assert.ok(shellAdapter.gui_authority.product_contracts.includes('contracts/opl-app-contributions.schema.json'));
   assert.ok(shellAdapter.shell_contract.capabilities.includes('app_owned_package_contribution_contract'));
@@ -238,6 +291,10 @@ test('any Package role may project one closed standard App contribution block', 
     navigation_identity: ['package_id', 'navigation_id'],
     read_command: 'opl app contribution read --package-id <package_id> --ref <data_ref> [--input <json>|--input-stdin]',
     execute_command: 'opl app contribution execute --package-id <package_id> --ref <action_ref> [--input <json>|--input-stdin] [--confirm]',
+    execute_command_role: 'framework_internal_delegated_surface_only_never_shell_invoked',
+    shell_direct_execute_command_allowed: false,
+    shell_write_action_bridge: shellWriteActionBridge,
+    broker_response_contract: shellBrokerResponseContract,
     route_resolution_policy: 'resolve_only_from_the_current_directory_entry_then_delegate_descriptor_and_ref_revalidation_to_the_broker',
     response_policy: 'render_only_a_valid_broker_response_for_the_requested_package_ref_and_operation',
     confirmation_policy: 'broker_and_descriptor_owned_shell_cannot_infer_or_bypass_confirmation',
@@ -280,6 +337,24 @@ test('unknown descriptor-neutral Package contributions route through the broker 
     contributionContract.execute_broker_command,
     'opl app contribution execute --package-id <package_id> --ref <action_ref> [--input <json>|--input-stdin] [--confirm]',
   );
+  assert.equal(contributionContract.execute_broker_command_role, 'framework_internal_delegated_surface_only_never_shell_invoked');
+  assert.equal(contributionContract.shell_direct_execute_broker_allowed, false);
+  assert.equal(
+    contributionContract.shell_write_action_bridge.command,
+    'opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json',
+  );
+  assert.equal(
+    contributionContract.broker_response_contract.package_response_schema,
+    'opl-package-app-contribution-response.v1',
+  );
+  assert.equal(
+    contributionContract.broker_response_contract.canonical_action_response_path,
+    'app_action_execution.result.opl_app_contribution',
+  );
+  assert.equal(
+    contributionContract.broker_response_contract.canonical_action_dry_run_response_path,
+    'app_action_execution.result.opl_app_contribution_preflight',
+  );
   assert.equal(contributionContract.broker_revalidation_policy.includes('current_installed_descriptor'), true);
   assert.equal(contributionContract.confirmation_policy.includes('never_inferred_or_bypassed_by_the_shell'), true);
   assert.equal(contributionContract.invalid_or_stale_projection_policy.startsWith('fail_closed'), true);
@@ -306,6 +381,23 @@ test('unknown descriptor-neutral Package contributions route through the broker 
   assert.equal(contributionPage.package_contribution_view_model.confirmation_authority, 'descriptor_and_broker_only');
   assert.equal(contributionPage.package_contribution_view_model.invalid_or_stale_policy, 'fail_closed_do_not_render_or_fabricate_state');
   assert.equal(contributionPage.package_contribution_view_model.legacy_manager_fallback_allowed, false);
+  assert.equal(
+    contributionPage.package_contribution_view_model.action_execute_command,
+    'opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json',
+  );
+  assert.deepEqual(
+    contributionPage.package_contribution_view_model.action_execute_payload_fields,
+    ['package_id', 'ref', 'input', 'confirmed'],
+  );
+  assert.equal(
+    contributionPage.package_contribution_view_model.action_execute_dry_run_policy,
+    'consume_only_app_action_execution.result.opl_app_contribution_preflight_as_a_read_only_preflight_never_as_action_success',
+  );
+  assert.equal(contributionPage.package_contribution_view_model.direct_execute_broker_command_allowed, false);
+  assert.equal(
+    contributionPage.package_contribution_view_model.broker_response_contract_ref,
+    'contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.broker_response_contract',
+  );
   assert.deepEqual(contributionPage.package_contribution_view_model.forbidden_ui_inputs, [
     'plugin_html',
     'plugin_javascript',

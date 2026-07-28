@@ -175,6 +175,15 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 - UI 明确显示 what changes、what does not change、receipt/recovery ref 和 refresh 行为。
 - Result receipt 是动作事实，不代表 runtime、domain、artifact 或 release readiness。
 - 网络、CLI、schema 和 permission failure 保留 typed reason，不转换成模糊 `unknown`。
+- Package contribution 数据读取可调用 Framework-owned `opl app contribution read`，但必须验证
+  `opl_app_contribution` 包络、`opl_app_package_contribution.v1` surface、当前
+  Package/ref/operation identity、`opl-package-app-contribution-response.v1`、`ok=true` 和
+  App-owned standard renderer payload；renderer 只由当前 descriptor `view_type` 选择。
+- Package contribution 写入不得由 Shell 直接调用 `opl app contribution execute`。Shell 仅能调用
+  `opl app action execute --action package_contribution_execute --payload <json> --json`；Framework
+  可在 canonical action boundary 内部委派 execute broker 并重新校验 descriptor、carrier readiness、
+  ref 与 confirmation。若 fast App state/action catalog 没有 exact action，页面保留 read-only view，
+  command 隐藏或 disabled，并显示 projected disabled reason。
 - Package launch 复用 owner-projected launch adapter / JIT prepare，并按
   `ready / degraded / package_unavailable` 三态消费。普通 launch 只检查 package identity、
   presence/callability、entrypoint、safe managed target 和 permission/authorization；这些真实性或

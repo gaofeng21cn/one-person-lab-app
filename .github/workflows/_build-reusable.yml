@@ -85,6 +85,31 @@ jobs:
           test '${{ inputs.operation }}' = standard
           test '${{ inputs.framework_ref }}' = ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc
 
+  resolve-active-shell-ref:
+    name: Resolve immutable active Shell ref
+    if: ${{ inputs.mode != 'canary' }}
+    runs-on: ubuntu-latest
+    outputs:
+      shell_sha: ${{ steps.resolve.outputs.shell_sha }}
+    steps:
+      - name: Checkout requested active shell ref
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          repository: gaofeng21cn/opl-aion-shell
+          ref: ${{ inputs.shell_ref || 'main' }}
+          path: shells/aionui
+          fetch-depth: 1
+
+      - name: Export immutable active Shell SHA
+        id: resolve
+        shell: bash
+        working-directory: shells/aionui
+        run: |
+          set -euo pipefail
+          shell_sha="$(git rev-parse HEAD)"
+          [[ "$shell_sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "shell_sha=$shell_sha" >> "$GITHUB_OUTPUT"
+
   workflow-lint:
     name: GitHub Actions workflow lint
     runs-on: ubuntu-latest
@@ -116,6 +141,7 @@ jobs:
   lint-format:
     name: Lint and format
     runs-on: ubuntu-latest
+    needs: [resolve-active-shell-ref]
     if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
     defaults:
       run:
@@ -130,7 +156,7 @@ jobs:
       - name: Setup active shell dependencies
         uses: ./.github/actions/setup-active-shell-deps
         with:
-          shell-ref: ${{ inputs.shell_ref }}
+          shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
 
       - name: Run ESLint
         run: bun run lint
@@ -141,6 +167,7 @@ jobs:
   typecheck:
     name: TypeScript type check
     runs-on: ubuntu-latest
+    needs: [resolve-active-shell-ref]
     if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
     defaults:
       run:
@@ -167,7 +194,7 @@ jobs:
       - name: Setup active shell dependencies
         uses: ./.github/actions/setup-active-shell-deps
         with:
-          shell-ref: ${{ inputs.shell_ref }}
+          shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
 
       - name: TypeScript type check (AionUI shell)
         working-directory: shells/aionui
@@ -176,6 +203,7 @@ jobs:
   release-boundary:
     name: App release-boundary tests
     runs-on: ubuntu-latest
+    needs: [resolve-active-shell-ref]
     if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
 
     steps:
@@ -187,7 +215,7 @@ jobs:
       - name: Setup active shell
         uses: ./.github/actions/setup-active-shell-deps
         with:
-          shell-ref: ${{ inputs.shell_ref }}
+          shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           install-dependencies: 'false'
 
       - name: Install App root validation dependencies
@@ -202,6 +230,7 @@ jobs:
   active-shell-tests:
     name: Active shell tests (${{ matrix.project }})
     runs-on: ubuntu-latest
+    needs: [resolve-active-shell-ref]
     if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
 
     strategy:
@@ -220,7 +249,7 @@ jobs:
       - name: Setup active shell dependencies
         uses: ./.github/actions/setup-active-shell-deps
         with:
-          shell-ref: ${{ inputs.shell_ref }}
+          shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           fetch-depth: '0'
 
       - name: Run active shell test project
@@ -230,6 +259,7 @@ jobs:
   prepare-windows-linux-runtime:
     name: Prepare Windows Linux runtime
     runs-on: ubuntu-latest
+    needs: [resolve-active-shell-ref]
     if: ${{ inputs.mode != 'canary' && contains(inputs.matrix, 'windows') }}
 
     steps:
@@ -242,7 +272,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           repository: gaofeng21cn/opl-aion-shell
-          ref: ${{ inputs.shell_ref || 'main' }}
+          ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           path: shells/aionui
 
       - name: Setup Node.js
@@ -351,7 +381,8 @@ jobs:
       - active-shell-tests
       - prepare-windows-linux-runtime
       - macos-signing-preflight
-    if: ${{ always() && inputs.mode != 'canary' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') && (inputs.skip_code_quality || (needs['workflow-lint'].result == 'success' && needs['lint-format'].result == 'success' && needs.typecheck.result == 'success' && needs['release-boundary'].result == 'success' && needs['active-shell-tests'].result == 'success')) }}
+      - resolve-active-shell-ref
+    if: ${{ always() && inputs.mode != 'canary' && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') && (inputs.skip_code_quality || (needs['workflow-lint'].result == 'success' && needs['lint-format'].result == 'success' && needs.typecheck.result == 'success' && needs['release-boundary'].result == 'success' && needs['active-shell-tests'].result == 'success')) }}
     defaults:
       run:
         working-directory: shells/aionui
@@ -426,7 +457,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           repository: gaofeng21cn/opl-aion-shell
-          ref: ${{ inputs.shell_ref || 'main' }}
+          ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           path: shells/aionui
 
       - name: Download target-executed Linux runtime
@@ -678,11 +709,18 @@ jobs:
             "--arch=$arch",
             '--force'
           ) -NoNewWindow -Wait -PassThru
-          if ($prebuild.ExitCode -ne 0) {
+          $prebuildFailed = $prebuild.ExitCode -ne 0
+          if ($prebuildFailed) {
             Write-Warning "No matching better-sqlite3 prebuild was available; falling back to electron-rebuild."
           }
-          if (-not (Test-Path $sqliteNode)) {
+          $needsElectronRebuild = $prebuildFailed -or -not (Test-Path $sqliteNode)
+          if ($needsElectronRebuild) {
+            Remove-Item $sqliteNode -Force -ErrorAction SilentlyContinue
             bunx electron-rebuild -f -w better-sqlite3
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "electron-rebuild failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+            }
           }
           if (-not (Test-Path $sqliteNode)) {
             Write-Error "better-sqlite3 native module not found at: $sqliteNode"
@@ -1230,7 +1268,7 @@ jobs:
             --release-cohort-ref "${{ inputs.release_cohort_ref }}"
 
       - name: Write Windows RC build artifact cohort manifest
-        if: success() && startsWith(matrix.platform, 'windows')
+        if: success() && matrix.platform == 'windows-x64'
         shell: bash
         env:
           OPL_BUILD_VERSION: ${{ steps.opl-release-version.outputs.version }}

@@ -2839,6 +2839,22 @@
           "offline_first_install_completeness_preserved": true,
           "size_review_release_blocking_by_size_alone": false
         },
+        "required_evidence": [
+          "full-package-manifest.json#runtime_assertions.offline_required_payloads",
+          "full-runtime-native-trust.json"
+        ],
+        "optional_certification_evidence": [
+          {
+            "id": "full_dmg_clean_vm_smoke",
+            "policy": "post_publication_optional_non_blocking",
+            "allowed_statuses": [
+              "passed",
+              "failed",
+              "not_run",
+              "unavailable"
+            ]
+          }
+        ],
         "required_preserved_payloads": [
           "Contents/Resources/opl-full-runtime",
           "Contents/Resources/bundled-aioncore",
@@ -2853,7 +2869,7 @@
           "full-app-bundle-trim-report.json",
           "full-package-boundary-audit.json"
         ],
-        "rule": "Optimization evidence is part of the Full package manifest/readback surface and may only prove explicit non-runtime pruning plus boundary preservation; it cannot replace Full clean VM smoke or owner receipt evidence."
+        "rule": "Optimization evidence is part of the Full package manifest/readback surface and may only prove explicit non-runtime pruning plus boundary preservation. Full clean VM smoke is separately classified as post-publication optional certification and must never appear in package_optimization.required_evidence or block publication."
       },
       "package_profile_boundary": {
         "standard": {

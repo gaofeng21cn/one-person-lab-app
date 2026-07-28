@@ -6,13 +6,13 @@
   "mutation_authority": false,
   "runtime_truth_authority": false,
   "instruction_revision": "user-2026-07-27-parallel-work-serialized-integration-v2",
-  "generated_at": "2026-07-28T01:11:09Z",
+  "generated_at": "2026-07-28T03:34:26Z",
   "canonical_base": {
     "repository": "gaofeng21cn/one-person-lab-app",
     "ref": "origin/main",
-    "commit": "42028c0a1a69d2acd0d3361d209a454ff9333606",
-    "tree": "d47aaec81c4fe8dff09f3d015d3810af71f8f872",
-    "observation": "fresh local main and origin/main are aligned after Windows RC absorption; task-branch checkpoint, canonical absorption and effective runtime remain separate authorities"
+    "commit": "524b4e0d209c2ef2b067d389c955e1d087631afa",
+    "tree": "a6d11f850c2157624520079a89524cc338529a1f",
+    "observation": "origin/main is fresh at 524b4e0d; local main is 5 commits behind and dirty, so no canonical absorption is admitted from this root until the Integrator replays against the fresh wire"
   },
   "human_ssot": "docs/active/parallel-delivery-and-clean-development-ssot.md",
   "freshness_policy": {
@@ -32,8 +32,17 @@
   ],
   "parallel_policy": {
     "mode": "parallel_work_serialized_integration",
-    "default_active_writer_limit": 4,
-    "evidence_backed_max_active_writer_limit": 8,
+    "capacity_model": "dynamic_execution_graph",
+    "active_lane_limit": "dynamic",
+    "capacity_constraints": [
+      "unique_owner_and_exact_or_bounded_write_set",
+      "immediate_executable_next_action",
+      "recoverable_checkpoint_or_contained_local_state",
+      "host_capacity",
+      "protected_permission_and_external_quota",
+      "shared_mutation_only_at_final_integration"
+    ],
+    "canonical_main_integrators_per_repository": 1,
     "write_set_overlap_blocks_development": false,
     "write_set_overlap_serializes_final_integration": true,
     "conflict_resolution": "fresh_main_semantic_replay_against_latest_user_ssot",
@@ -271,16 +280,40 @@
       "parallel_group": "coordination",
       "estimated_remaining": {"wall_clock": "0.5-1h", "steps": [{"name": "snapshot validation, checkpoint, absorption and compatibility pointer", "duration": "30-60m", "necessary": "keep ownerless and duplicate-writer gaps at zero without trusting stale records"}]},
       "terminal_gaps": ["repo snapshot canonical", "global stale ledger superseded", "owner-close of this lane"]
+    },
+    {
+      "id": "dialog-archive-filter",
+      "status": "ACTIVE",
+      "controller_thread": "019fa6a2-c301-7b93-8a5b-1b85e875e279",
+      "execution_owner_threads": ["019fa6a2-c301-7b93-8a5b-1b85e875e279"],
+      "scope": "Fix the OPL App archived-conversation filter so slow canonical directory fallback cannot expose conversations that are not currently visible under the archive policy.",
+      "current_evidence": [
+        "Installed One Person Lab 26.7.2802 reproduces the symptom through canonical directory timeout/fallback rather than a renderer-only cache defect.",
+        "The source lane has not yet produced a verified fix, checkpoint, canonical absorption or installed readback."
+      ],
+      "next_action": "Reproduce the timeout/fallback path in an isolated task worktree, implement the smallest source fix with focused regression coverage, checkpoint it, replay on fresh origin/main, absorb through the sole Integrator, verify installed behavior, then close the task-owned worktree/ref and lifecycle entry.",
+      "integration_order": 8,
+      "parallel_group": "app-bug-repair",
+      "estimated_remaining": {
+        "wall_clock": "1-3h",
+        "steps": [
+          {"name": "source reproduction and focused regression", "duration": "20-45m", "necessary": "bind the fix to the actual timeout/fallback root cause"},
+          {"name": "isolated implementation and checkpoint", "duration": "20-45m", "necessary": "make the change recoverable without touching the dirty root"},
+          {"name": "fresh-main absorption and installed readback", "duration": "20-90m", "necessary": "prove the user-visible archive filter behavior and clean the task lane"}
+        ]
+      },
+      "terminal_gaps": ["source fix", "focused regression", "canonical parity", "installed behavior", "owner-native cleanup"]
     }
   ],
   "worktree_snapshot": {
     "repository": "one-person-lab-app",
-    "observed_non_root_count": 4,
-    "active_owned_count": 4,
+    "observed_non_root_count": 10,
+    "active_owned_count": 9,
     "cleanup_ready_count": 0,
-    "recovery_owner_required_count": 0,
+    "recovery_owner_required_count": 1,
     "holder_proof_required_count": 0,
+    "unregistered_lane": "/Users/gaofeng/workspace/one-person-lab-app/.worktrees/windows-installer-exitcode-20260728",
     "known_historical_detached_lane": "/Users/gaofeng/.codex/worktrees/1433/one-person-lab-app",
-    "cleanup_rule": "retain ACTIVE lanes; clean only after absorbed parity, holder proof and owner-native exact allowlist"
+    "cleanup_rule": "retain ACTIVE lanes; clean only after absorbed parity, holder proof and owner-native exact allowlist; route unregistered lanes to recovery before mutation"
   }
 }

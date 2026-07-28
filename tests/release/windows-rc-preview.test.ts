@@ -131,6 +131,7 @@ test('manual Windows builds reuse the multi-platform builder and emit a Windows-
     (step) => step.name === 'Rebuild native modules for Electron (Windows)',
   );
   const windowsRuntime = reusable.jobs['prepare-windows-linux-runtime'];
+  const shellResolver = reusable.jobs['resolve-active-shell-ref'];
   const windowsRuntimeDownload = steps.find(
     (step) => step.name === 'Download target-executed Linux runtime',
   );
@@ -149,7 +150,7 @@ test('manual Windows builds reuse the multi-platform builder and emit a Windows-
   const upload = steps.find((step) => step.name === 'Upload build artifacts');
 
   assert.match(String(macCohort?.if), /startsWith\(matrix\.platform, 'macos'\)/);
-  assert.match(String(windowsCohort?.if), /startsWith\(matrix\.platform, 'windows'\)/);
+  assert.equal(windowsCohort?.if, "success() && matrix.platform == 'windows-x64'");
   assert.match(String(windowsCohort?.run), /write-windows-rc-build-cohort\.ts/);
   assert.match(String(windowsCohort?.run), /out\/win-unpacked/);
   assert.match(String(windowsCohort?.run), /-name '\*\.exe'/);
@@ -175,11 +176,26 @@ test('manual Windows builds reuse the multi-platform builder and emit a Windows-
   assert.match(String(windowsNativeRebuild?.run), /Start-Process[\s\S]+prebuild-install/);
   assert.match(String(windowsNativeRebuild?.run), /\$prebuild\.ExitCode -ne 0/);
   assert.match(String(windowsNativeRebuild?.run), /falling back to electron-rebuild/);
-  assert.match(
-    String(windowsNativeRebuild?.run),
-    /if \(-not \(Test-Path \$sqliteNode\)\) \{[\s\S]+bunx electron-rebuild/,
-  );
+  assert.match(String(windowsNativeRebuild?.run), /\$needsElectronRebuild = \$prebuildFailed -or -not \(Test-Path \$sqliteNode\)/);
+  assert.match(String(windowsNativeRebuild?.run), /if \(\$needsElectronRebuild\) \{[\s\S]+Remove-Item \$sqliteNode[\s\S]+bunx electron-rebuild/);
+  assert.match(String(windowsNativeRebuild?.run), /electron-rebuild failed with exit code \$LASTEXITCODE/);
   assert.match(String(windowsRuntime?.if), /contains\(inputs\.matrix, 'windows'\)/);
+  assert.equal(shellResolver.outputs.shell_sha, '${{ steps.resolve.outputs.shell_sha }}');
+  const resolverCheckout = shellResolver.steps.find(
+    (step: { name?: string }) => step.name === 'Checkout requested active shell ref',
+  );
+  assert.equal(resolverCheckout?.with?.ref, "${{ inputs.shell_ref || 'main' }}");
+  assert.match(String(shellResolver.steps.find((step: { id?: string }) => step.id === 'resolve')?.run), /git rev-parse HEAD/);
+  assert.deepEqual(windowsRuntime.needs, ['resolve-active-shell-ref']);
+  assert.equal(
+    windowsRuntime.steps.find((step: { name?: string }) => step.name === 'Checkout active shell')?.with?.ref,
+    '${{ needs.resolve-active-shell-ref.outputs.shell_sha }}',
+  );
+  assert.ok((reusable.jobs.build.needs as string[]).includes('resolve-active-shell-ref'));
+  assert.equal(
+    steps.find((step) => step.name === 'Checkout active shell')?.with?.ref,
+    '${{ needs.resolve-active-shell-ref.outputs.shell_sha }}',
+  );
   assert.equal(preparedRuntimeBinder?.shell, 'bash');
   assert.match(String(preparedRuntimeBinder?.run), /bind-windows-rc-framework-manifest\.ts/);
   assert.match(String(preparedRuntimeBinder?.run), /--manifest shells\/aionui\/resources\/opl-linux\/product\.json/);

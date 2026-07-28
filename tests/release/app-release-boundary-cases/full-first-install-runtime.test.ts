@@ -1503,6 +1503,17 @@ test("Full App bundle staging trim removes non-runtime artifacts while preservin
   );
   assert.equal(manifest.package_optimization.offline_first_install_completeness_preserved, true);
   assert.equal(manifest.package_optimization.size_review_release_blocking_by_size_alone, false);
+  assert.deepEqual(manifest.package_optimization.required_evidence, [
+    'full-package-manifest.json#runtime_assertions.offline_required_payloads',
+    'full-runtime-native-trust.json',
+  ]);
+  assert.deepEqual(manifest.package_optimization.optional_certification_evidence, [
+    {
+      id: 'full_dmg_clean_vm_smoke',
+      policy: 'post_publication_optional_non_blocking',
+      allowed_statuses: ['passed', 'failed', 'not_run', 'unavailable'],
+    },
+  ]);
   assert.equal(
     manifest.package_optimization.app_bundle_trim.bytes_removed,
     trimReport.bytes_removed,

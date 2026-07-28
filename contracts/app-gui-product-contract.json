@@ -1265,6 +1265,8 @@
       },
       "data_resolution_policy": "resolve_data_ref_from_framework_projected_state_only",
       "action_execution_policy": "resolve_action_ref_through_the_descriptor_neutral_app_contribution_execute_broker",
+      "action_execution_policy_scope": "framework_internal_delegation_only_not_a_shell_mutation_surface",
+      "shell_action_execution_policy": "all_contribution_writes_enter_the_canonical_app_action_bridge_or_fail_closed",
       "navigation_identity": [
         "package_id",
         "navigation_id"
@@ -1273,6 +1275,57 @@
       "route_resolution_policy": "resolve_navigation_view_and_command_refs_from_the_same_current_directory_entry_then_require_broker_descriptor_revalidation",
       "read_broker_command": "opl app contribution read --package-id <package_id> --ref <data_ref> [--input <json>|--input-stdin]",
       "execute_broker_command": "opl app contribution execute --package-id <package_id> --ref <action_ref> [--input <json>|--input-stdin] [--confirm]",
+      "execute_broker_command_role": "framework_internal_delegated_surface_only_never_shell_invoked",
+      "shell_direct_execute_broker_allowed": false,
+      "shell_write_action_bridge": {
+        "action_id": "package_contribution_execute",
+        "command": "opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json",
+        "required_payload_fields": [
+          "package_id",
+          "ref",
+          "input",
+          "confirmed"
+        ],
+        "availability_source": "app_state action catalog exact package_contribution_execute entry",
+        "unavailable_policy": "hide_or_disable_commands_and_preserve_read_only_contribution_views_until_the_current_action_catalog_exposes_the_exact_action",
+        "delegation_policy": "Framework_action_bridge_may_delegate_to_the_descriptor_neutral_contribution_execute_broker_after_fresh_descriptor_carrier_readiness_ref_and_confirmation_revalidation"
+      },
+      "broker_response_contract": {
+        "framework_source_ref": "one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution",
+        "cli_envelope_path": "opl_app_contribution",
+        "cli_surface_kind": "opl_app_package_contribution.v1",
+        "package_response_schema": "opl-package-app-contribution-response.v1",
+        "required_envelope_fields": [
+          "surface_kind",
+          "package_id",
+          "ref",
+          "operation",
+          "confirmation_required",
+          "carrier_readback",
+          "readiness",
+          "response"
+        ],
+        "required_response_fields": [
+          "schema_version",
+          "ok",
+          "ref",
+          "operation",
+          "result"
+        ],
+        "allowed_operations": [
+          "read",
+          "execute"
+        ],
+        "identity_validation": "surface_kind_package_id_ref_operation_and_response_schema_ref_operation_must_match_the_current_request_and_descriptor",
+        "success_validation": "response_ok_must_equal_true_before_render_or_action_success",
+        "renderer_selection_source": "current_descriptor_view_type_never_broker_response",
+        "renderer_result_path": "opl_app_contribution.response.result",
+        "renderer_payload_policy": "validate_result_against_the_App_owned_standard_renderer_selected_by_the_current_descriptor_view_type_before_rendering",
+        "canonical_action_response_path": "app_action_execution.result.opl_app_contribution",
+        "canonical_action_surface_kind": "opl_app_action_execution.v1",
+        "canonical_action_dry_run_response_path": "app_action_execution.result.opl_app_contribution_preflight",
+        "canonical_action_dry_run_policy": "revalidate_the_current_descriptor_carrier_readiness_ref_and_confirmation_without_invoking_the_package_command_or_accepting_an_action_success"
+      },
       "broker_revalidation_policy": "broker_must_recheck_the_current_installed_descriptor_carrier_readiness_and_declared_ref_before_each_read_or_execute",
       "confirmation_policy": "descriptor_declared_confirmation_is_enforced_by_the_execute_broker_and_never_inferred_or_bypassed_by_the_shell",
       "invalid_or_stale_projection_policy": "fail_closed_do_not_render_or_fabricate_a_route_when_the_directory_entry_descriptor_or_broker_response_is_missing_stale_or_malformed",
@@ -5143,12 +5196,21 @@
         "remote_standard_release_verification"
       ],
       "addon_gate_blocking_standard_terminal": false,
-      "diagnostic_gate": [
+      "diagnostic_lanes": [
         "operator_evidence_bundle",
         "standard_dmg_clean_vm_smoke",
         "homebrew_standard_cask_clean_vm_smoke",
-        "one_shot_app_installer_fresh_install_smoke"
+        "one_shot_app_installer_fresh_install_smoke",
+        "full_dmg_clean_vm_smoke"
       ],
+      "post_publication_optional_certification_surfaces": [
+        "standard_dmg_clean_vm_smoke",
+        "homebrew_standard_cask_clean_vm_smoke",
+        "one_shot_app_installer_fresh_install_smoke",
+        "full_dmg_clean_vm_smoke"
+      ],
+      "diagnostic_lanes_block_publication_or_latest": false,
+      "optional_certification_blocks_publication_or_latest": false,
       "latest_policy": "stable_release_may_be_marked_latest_after_required_lanes_pass"
     },
     "nightly": {
