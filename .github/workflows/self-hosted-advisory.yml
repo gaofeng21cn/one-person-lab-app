@@ -1,0 +1,342 @@
+name: OPL Self-Hosted Advisory
+run-name: Self-hosted advisory for ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+on:
+  workflow_run:
+    workflows:
+      - OPL Non-Release Validation
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      mac_runner_labels_json:
+        description: JSON array of labels for the trusted Tart-capable macOS advisory pool.
+        required: false
+        default: '["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'
+        type: string
+      windows_runner_labels_json:
+        description: JSON array of labels for the trusted Windows/WSL2 advisory pool.
+        required: false
+        default: '["self-hosted","Windows","X64","opl-cert-windows-wsl"]'
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: opl-self-hosted-advisory-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admit:
+    name: Admit advisory runner pools
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      source_sha: ${{ steps.admission.outputs.source_sha }}
+      mac_status: ${{ steps.admission.outputs.mac_status }}
+      mac_reason_code: ${{ steps.admission.outputs.mac_reason_code }}
+      mac_labels_json: ${{ steps.admission.outputs.mac_labels_json }}
+      windows_status: ${{ steps.admission.outputs.windows_status }}
+      windows_reason_code: ${{ steps.admission.outputs.windows_reason_code }}
+      windows_labels_json: ${{ steps.admission.outputs.windows_labels_json }}
+    steps:
+      - name: Inspect runner inventory without creating a queue
+        id: admission
+        env:
+          GH_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN || github.token }}
+          RUNNER_INVENTORY_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          MAC_LABELS_INPUT: ${{ inputs.mac_runner_labels_json || vars.OPL_ADVISORY_MAC_RUNNER_LABELS }}
+          WINDOWS_LABELS_INPUT: ${{ inputs.windows_runner_labels_json || vars.OPL_ADVISORY_WINDOWS_RUNNER_LABELS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { spawnSync } = require('node:child_process');
+
+          const output = process.env.GITHUB_OUTPUT;
+          const sourceSha = process.env.EVENT_NAME === 'workflow_run'
+            ? process.env.WORKFLOW_RUN_SHA
+            : process.env.GITHUB_SHA;
+          const inventoryToken = (process.env.RUNNER_INVENTORY_TOKEN || process.env.GH_TOKEN || '').trim();
+          const targets = [
+            ['mac', process.env.MAC_LABELS_INPUT || '["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'],
+            ['windows', process.env.WINDOWS_LABELS_INPUT || '["self-hosted","Windows","X64","opl-cert-windows-wsl"]'],
+          ];
+          const allowedLabels = {
+            mac: [['self-hosted', 'macOS', 'ARM64', 'opl-cert-mac-tart']],
+            windows: [['self-hosted', 'Windows', 'X64', 'opl-cert-windows-wsl']],
+          };
+          const result = {
+            schema: 'opl_app_self_hosted_advisory_admission.v1',
+            source_run_id: process.env.WORKFLOW_RUN_ID || null,
+            source_sha: sourceSha,
+            inventory_source: 'github_actions_api',
+            targets: {},
+          };
+
+          if (process.env.EVENT_NAME === 'workflow_run') {
+            const sourceRunId = process.env.WORKFLOW_RUN_ID || '';
+            const sourceApi = spawnSync('gh', [
+              'api',
+              `repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${sourceRunId}`,
+            ], {
+              encoding: 'utf8',
+              env: { ...process.env, GH_TOKEN: inventoryToken },
+            });
+            let sourceValid = false;
+            try {
+              const sourceRun = JSON.parse(sourceApi.stdout || '{}');
+              sourceValid = sourceApi.status === 0
+                && sourceRun.repository?.full_name === 'gaofeng21cn/one-person-lab-app'
+                && sourceRun.head_repository?.full_name === 'gaofeng21cn/one-person-lab-app'
+                && sourceRun.path === '.github/workflows/non-release-validation.yml'
+                && sourceRun.event === 'push'
+                && sourceRun.head_branch === 'main'
+                && sourceRun.run_attempt === 1
+                && sourceRun.status === 'completed'
+                && sourceRun.conclusion === 'success'
+                && /^[0-9a-f]{40}$/.test(sourceRun.head_sha || '');
+            } catch {
+              sourceValid = false;
+            }
+            if (!sourceValid) {
+              result.source_sha = '';
+              for (const [target, rawLabels] of targets) {
+                let labels = [];
+                try {
+                  labels = parseLabels(rawLabels) || [];
+                } catch {
+                  labels = [];
+                }
+                unavailable(target, labels, 'operator_deferred', 'Hosted validation source was not one successful main push.');
+              }
+              fs.writeFileSync('self-hosted-advisory-admission.json', `${JSON.stringify(result, null, 2)}\n`);
+              const setOutput = (name, value) => {
+                fs.appendFileSync(output, `${name}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
+              };
+              setOutput('source_sha', '');
+              for (const [target] of targets) {
+                const admission = result.targets[target];
+                setOutput(`${target}_status`, admission.status);
+                setOutput(`${target}_reason_code`, admission.reason_code || '');
+                setOutput(`${target}_labels_json`, JSON.stringify(admission.required_labels));
+              }
+              process.exit(0);
+            }
+          }
+
+          function parseLabels(raw) {
+            if (!raw.trim()) return null;
+            const labels = JSON.parse(raw);
+            if (!Array.isArray(labels) || labels.length === 0 ||
+                labels.some((label) => typeof label !== 'string' || label.length === 0)) {
+              throw new Error('runner labels must be a non-empty JSON array of strings');
+            }
+            return labels;
+          }
+
+          function unavailable(target, labels, reasonCode, detail) {
+            result.targets[target] = {
+              status: 'not_run',
+              reason_code: reasonCode,
+              required_labels: labels || [],
+              eligible_runners: [],
+              detail: detail || null,
+            };
+          }
+
+          for (const [target, rawLabels] of targets) {
+            let labels;
+            try {
+              labels = parseLabels(rawLabels);
+            } catch (error) {
+              unavailable(target, [], 'operator_deferred', error instanceof Error ? error.message : String(error));
+              continue;
+            }
+            if (!labels) {
+              unavailable(target, [], 'not_authorized', 'No advisory runner label contract is configured.');
+              continue;
+            }
+            if (!allowedLabels[target].some((expected) =>
+              expected.length === labels.length && expected.every((label) => labels.includes(label)))) {
+              unavailable(target, labels, 'not_authorized', 'Requested labels are outside the declared advisory pool.');
+              continue;
+            }
+            if (!inventoryToken) {
+              unavailable(target, labels, 'not_authorized', 'No token can read repository runner inventory.');
+              continue;
+            }
+            const api = spawnSync('gh', [
+              'api',
+              '--paginate',
+              `repos/${process.env.GITHUB_REPOSITORY}/actions/runners?per_page=100`,
+            ], {
+              encoding: 'utf8',
+              env: { ...process.env, GH_TOKEN: inventoryToken },
+            });
+            if (api.status !== 0) {
+              unavailable(target, labels, 'not_authorized', (api.stderr || api.stdout || 'runner inventory read failed').trim());
+              continue;
+            }
+            let runners;
+            try {
+              runners = api.stdout
+                .split(/\n(?=\{)/)
+                .filter(Boolean)
+                .flatMap((page) => (JSON.parse(page).runners || []));
+            } catch (error) {
+              unavailable(target, labels, 'operator_deferred', error instanceof Error ? error.message : String(error));
+              continue;
+            }
+            const eligible = runners.filter((runner) => {
+              const runnerLabels = new Set((runner.labels || []).map((label) =>
+                typeof label === 'string' ? label : label.name,
+              ));
+              return runner.status === 'online' &&
+                runner.busy === false &&
+                labels.every((label) => runnerLabels.has(label));
+            }).map((runner) => ({
+              id: runner.id ?? null,
+              name: runner.name ?? '',
+              os: runner.os ?? '',
+              status: runner.status ?? '',
+              busy: Boolean(runner.busy),
+              labels: (runner.labels || []).map((label) =>
+                typeof label === 'string' ? label : label.name,
+              ).filter(Boolean),
+            }));
+            result.targets[target] = {
+              status: eligible.length > 0 ? 'ready' : 'not_run',
+              reason_code: eligible.length > 0 ? null : 'operator_deferred',
+              required_labels: labels,
+              eligible_runners: eligible,
+              detail: eligible.length > 0 ? null : 'No online idle runner matched the exact labels.',
+            };
+          }
+
+          fs.writeFileSync('self-hosted-advisory-admission.json', `${JSON.stringify(result, null, 2)}\n`);
+          const setOutput = (name, value) => {
+            process.stdout.write(`${name}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
+            fs.appendFileSync(output, `${name}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
+          };
+          setOutput('source_sha', sourceSha);
+          for (const [target, labels] of targets) {
+            const admission = result.targets[target];
+            setOutput(`${target}_status`, admission.status);
+            setOutput(`${target}_reason_code`, admission.reason_code || '');
+            setOutput(`${target}_labels_json`, JSON.stringify(admission.required_labels));
+          }
+          NODE
+
+      - name: Upload advisory admission receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opl-self-hosted-advisory-admission-${{ github.run_id }}
+          path: self-hosted-advisory-admission.json
+          if-no-files-found: error
+          retention-days: 30
+
+  mac-advisory:
+    name: macOS platform advisory
+    needs: admit
+    if: ${{ needs.admit.outputs.mac_status == 'ready' }}
+    runs-on: ${{ fromJSON(needs.admit.outputs.mac_labels_json) }}
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - name: Checkout admitted source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          ref: ${{ needs.admit.outputs.source_sha }}
+          fetch-depth: 1
+
+      - name: Probe macOS advisory capabilities
+        id: probe
+        shell: bash
+        run: |
+          set -u
+          status=passed
+          reason_code=''
+          uname -a
+          node --version || { status=failed; reason_code=node_unavailable; }
+          npm --version || { status=failed; reason_code=npm_unavailable; }
+          if command -v tart >/dev/null 2>&1; then
+            tart --version || { status=failed; reason_code=tart_unhealthy; }
+          else
+            status=failed
+            reason_code=tart_unavailable
+          fi
+          jq -n \
+            --arg source_sha '${{ needs.admit.outputs.source_sha }}' \
+            --arg status "$status" \
+            --arg reason "$reason_code" \
+            '{schema:"opl_app_self_hosted_advisory_receipt.v1",target:"macos",source_sha:$source_sha,status:$status,reason_code:(if $reason == "" then null else $reason end),release_blocking:false}' \
+            > macos-self-hosted-advisory.json
+          exit 0
+
+      - name: Upload macOS advisory receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opl-self-hosted-advisory-macos-${{ github.run_id }}
+          path: macos-self-hosted-advisory.json
+          if-no-files-found: error
+          retention-days: 30
+
+  windows-advisory:
+    name: Windows WSL2 platform advisory
+    needs: admit
+    if: ${{ needs.admit.outputs.windows_status == 'ready' }}
+    runs-on: ${{ fromJSON(needs.admit.outputs.windows_labels_json) }}
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - name: Checkout admitted source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          ref: ${{ needs.admit.outputs.source_sha }}
+          fetch-depth: 1
+
+      - name: Probe Windows/WSL2 advisory capabilities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $status = "passed"
+          $reasonCode = $null
+          try {
+            node --version
+            npm --version
+            wsl.exe --status
+            docker version
+          } catch {
+            $status = "failed"
+            $reasonCode = "windows_capability_probe_failed"
+          }
+          @{
+            schema = "opl_app_self_hosted_advisory_receipt.v1"
+            target = "windows-wsl2"
+            source_sha = "${{ needs.admit.outputs.source_sha }}"
+            status = $status
+            reason_code = $reasonCode
+            release_blocking = $false
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 windows-wsl2-self-hosted-advisory.json
+
+      - name: Upload Windows advisory receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opl-self-hosted-advisory-windows-${{ github.run_id }}
+          path: windows-wsl2-self-hosted-advisory.json
+          if-no-files-found: error
+          retention-days: 30

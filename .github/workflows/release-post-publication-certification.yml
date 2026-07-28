@@ -212,22 +212,30 @@ jobs:
         id: capability
         env:
           RUNNER_INVENTORY_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN }}
-          RUNNER_LABELS: ${{ vars.OPL_FIRST_RUN_RUNNER_LABELS }}
+          RUNNER_LABELS: '["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'
           TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
         shell: bash
         run: |
           set -euo pipefail
-          runner_labels="${RUNNER_LABELS:-[\"self-hosted\",\"macOS\",\"opl-gui-vm\"]}"
-          jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$runner_labels" >/dev/null
+          runner_labels="$RUNNER_LABELS"
+          if ! jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$runner_labels" >/dev/null 2>&1; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -z "$RUNNER_INVENTORY_TOKEN" ] || [ -z "$TART_SOURCE" ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          GH_TOKEN="$RUNNER_INVENTORY_TOKEN" gh api --paginate --slurp \
+          if ! GH_TOKEN="$RUNNER_INVENTORY_TOKEN" gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100" \
-            > runner-pages.json
-          runner_count="$(RUNNER_LABELS="$runner_labels" node <<'NODE'
+            > runner-pages.json; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! runner_count="$(RUNNER_LABELS="$runner_labels" node <<'NODE'
           const fs = require('node:fs');
           const pages = JSON.parse(fs.readFileSync('runner-pages.json', 'utf8'));
           const required = JSON.parse(process.env.RUNNER_LABELS);
@@ -238,7 +246,11 @@ jobs:
           });
           process.stdout.write(String(eligible.length));
           NODE
-          )"
+          )"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$runner_count" = 0 ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason_code=operator_deferred" >> "$GITHUB_OUTPUT"
@@ -755,22 +767,30 @@ jobs:
         id: capability
         env:
           RUNNER_INVENTORY_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN }}
-          RUNNER_LABELS: ${{ vars.OPL_FIRST_RUN_RUNNER_LABELS }}
+          RUNNER_LABELS: '["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'
           TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
         shell: bash
         run: |
           set -euo pipefail
-          runner_labels="${RUNNER_LABELS:-[\"self-hosted\",\"macOS\",\"opl-gui-vm\"]}"
-          jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$runner_labels" >/dev/null
+          runner_labels="$RUNNER_LABELS"
+          if ! jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$runner_labels" >/dev/null 2>&1; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -z "$RUNNER_INVENTORY_TOKEN" ] || [ -z "$TART_SOURCE" ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          GH_TOKEN="$RUNNER_INVENTORY_TOKEN" gh api --paginate --slurp \
+          if ! GH_TOKEN="$RUNNER_INVENTORY_TOKEN" gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100" \
-            > runner-pages.json
-          runner_count="$(RUNNER_LABELS="$runner_labels" node <<'NODE'
+            > runner-pages.json; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! runner_count="$(RUNNER_LABELS="$runner_labels" node <<'NODE'
           const fs = require('node:fs');
           const pages = JSON.parse(fs.readFileSync('runner-pages.json', 'utf8'));
           const required = JSON.parse(process.env.RUNNER_LABELS);
@@ -781,7 +801,11 @@ jobs:
           });
           process.stdout.write(String(eligible.length));
           NODE
-          )"
+          )"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason_code=not_authorized" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$runner_count" = 0 ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason_code=operator_deferred" >> "$GITHUB_OUTPUT"

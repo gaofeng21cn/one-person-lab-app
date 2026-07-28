@@ -52,13 +52,15 @@ or required human/owner authority is unavailable.
 
 Desktop source qualification is the pre-release cost-control gate. Run
 `.github/workflows/release-source-qualification.yml` on exact `main` before a
-new Standard operation. It performs one unsigned local Standard build and one
-clean Tart VM qualification on the self-hosted macOS runner, then emits an
-immutable `opl_app_source_qualification_receipt.v1` binding the App, Shell, and
-Framework cohort. The receipt is `development_validation`: it reserves no
-version, proves no final signed byte, grants no release authority, and performs
-no public mutation. Its purpose is to expose source, packaging, install, and VM
-smoke defects before the protected signing/notarization path pays for them.
+new Standard operation. It uses the GitHub-hosted source/contract preflight and
+one unsigned local Standard build, then emits an immutable
+`opl_app_source_qualification_receipt.v1` binding the App, Shell, and Framework
+cohort. The receipt is `development_validation`: it reserves no version,
+proves no final signed byte, grants no release authority, and performs no
+public mutation. Tart or another clean-machine check is a separate
+post-publication optional certification of the exact published bytes; it is
+never a prerequisite for this hosted source gate or for Stable/Latest
+publication.
 
 Before consuming a dispatch nonce, run the App source gate and
 `release:dispatch-guard preflight` against the exact App, Shell, and Framework
@@ -411,10 +413,11 @@ most three read-only remote reconciliations. If exact state remains unknown, the
 operation stops with typed failure evidence and a later bounded checkpoint
 operation must inspect again.
 
-Standard Homebrew publication and clean-VM readback are required before a
-qualified Stable takes or reclaims Latest by default.
-Full Homebrew publication is additive and cannot change the Standard cask or
-Latest.
+Standard Homebrew publication and hosted public digest readback are required
+before a qualified Stable takes or reclaims Latest by default. Clean-VM,
+Tart, Hyper-V, WSL2, GUI, and upgrade checks may run afterward as optional
+certification and cannot delay or block the Standard cask or Latest. Full
+Homebrew publication is additive and cannot change the Standard cask or Latest.
 
 ## Install And Update Taxonomy
 
@@ -468,7 +471,43 @@ progress, but neither is release state authority.
 
 VM, updater, Homebrew, and remote-readback receipts must bind the same Bundle and
 asset digests. Diagnostic reruns may inspect exact bytes but cannot rebuild,
-publish, promote, or upgrade a failed receipt to passed.
+publish, promote, or upgrade a failed receipt to passed. When a self-hosted
+runner is offline, busy, or lacks a proved capability, the optional result is
+typed `unavailable` or `not_run`; Stable/Latest continue on the hosted floor.
+
+## Runner Pools And Local-First Development
+
+Self-hosted runners are an opt-in platform validation and development
+acceleration layer. They are not a homogeneous fallback pool and do not become
+part of the Stable/Latest publication dependency graph. The machine policy is
+single-sourced at
+`contracts/app-release-channel.json#release_acceleration.runner_policy`.
+
+| Pool | Exact role labels | Typical work | Publication effect |
+| --- | --- | --- | --- |
+| `mac-gui` | `self-hosted, macOS, ARM64, opl-cert-mac-gui` | GUI, Gatekeeper, install/upgrade, signed-byte readback | Optional/advisory |
+| `mac-tart` | `self-hosted, macOS, ARM64, opl-cert-mac-tart` | Tart clean guest and no-CLT first-install certification | Optional/advisory |
+| `windows-wsl` | `self-hosted, Windows, X64, opl-cert-windows-wsl` | Windows installer, WSL2, Hyper-V, Docker Desktop | Optional/advisory |
+| `ci-accelerated` | `self-hosted, opl-ci-accelerated` | Long integration, performance, cache warmup | Optional/advisory |
+
+Labels are exact capability selectors; a runner's online/idle state does not
+prove guest qualification. Fleet owns machine capability, reservation,
+preemption, service enablement, and rollback. GitHub owns runner registration,
+groups, labels, scheduling, permissions, and secrets. Fleet membership never
+implicitly registers a GitHub runner, and a GitHub runner inventory entry never
+proves a Fleet lease or capability. Role labels require fresh readback from
+both authorities before use. The existing `opl-gui-vm` label remains a
+compatibility binding for the protected Manual Full preview only until a
+dedicated role mapping and workflow/settings readback are complete; it is not a
+Stable/Latest label.
+
+Before pushing a remote release change, run the same frozen cohort locally
+through the applicable source, type, package, install, and artifact checks.
+Push only after local output is clean and exact bytes/digests are captured.
+Remote GitHub-hosted publication is the routine reproducibility path; a local
+or self-hosted lane may accelerate diagnostics or produce evidence but cannot
+silently become a second release authority. Use the exact published artifact
+for optional certification and never rebuild or resign it.
 
 ## Historical Receipt Compatibility
 

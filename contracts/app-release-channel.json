@@ -3548,6 +3548,179 @@
     "new_session_or_dispatch_allowed": false,
     "state_authority_ref": "release_bundle_control_plane.framework_authority",
     "rule": "Acceleration may change latency or diagnostic coverage only. It cannot create release state, authorize mutation, skip a Framework checkpoint stage, or change artifact identity.",
+    "runner_policy": {
+      "schema": "opl_app_runner_policy.v1",
+      "publication_floor": {
+        "stable_and_latest_executor": "github_hosted",
+        "required_floor": [
+          "github_hosted_source_contract_build_preflight",
+          "github_hosted_signed_notarized_standard_build",
+          "remote_digest_readback",
+          "standard_homebrew_digest_bound_publication",
+          "standard_homebrew_publication_readback"
+        ],
+        "self_hosted_ancestor_count": 0,
+        "offline_or_unavailable_effect": "publication_continues_without_waiting_or_queueing",
+        "optional_certification_effect": "evidence_only_does_not_change_publication_or_latest"
+      },
+      "workload_classes": {
+        "post_publication_optional_certification": {
+          "artifact_binding": "exact_immutable_published_release_artifact",
+          "statuses": [
+            "passed",
+            "failed",
+            "not_run",
+            "unavailable"
+          ],
+          "publication_blocking": false
+        },
+        "pr_advisory_acceleration": {
+          "purpose": "platform_specific_long_running_or_gui_validation",
+          "publication_blocking": false,
+          "merge_blocking": false,
+          "untrusted_pull_request_secrets_allowed": false
+        },
+        "nightly_or_maintenance": {
+          "purpose": "scheduled_environment_drift_cache_warmup_and_sampled_regression",
+          "publication_blocking": false,
+          "merge_blocking": false
+        }
+      },
+      "pools": [
+        {
+          "id": "mac-gui",
+          "labels": [
+            "self-hosted",
+            "macOS",
+            "ARM64",
+            "opl-cert-mac-gui"
+          ],
+          "capabilities": [
+            "macos_gui",
+            "gatekeeper",
+            "desktop_install_upgrade"
+          ],
+          "workload_classes": [
+            "post_publication_optional_certification",
+            "pr_advisory_acceleration"
+          ],
+          "max_concurrency": 1
+        },
+        {
+          "id": "mac-tart",
+          "labels": [
+            "self-hosted",
+            "macOS",
+            "ARM64",
+            "opl-cert-mac-tart"
+          ],
+          "capabilities": [
+            "tart_host",
+            "clean_guest",
+            "no_clt_first_install"
+          ],
+          "workload_classes": [
+            "post_publication_optional_certification",
+            "nightly_or_maintenance"
+          ],
+          "max_concurrency": 1
+        },
+        {
+          "id": "windows-wsl",
+          "labels": [
+            "self-hosted",
+            "Windows",
+            "X64",
+            "opl-cert-windows-wsl"
+          ],
+          "capabilities": [
+            "windows_native",
+            "wsl2",
+            "hyper_v",
+            "docker_desktop"
+          ],
+          "workload_classes": [
+            "post_publication_optional_certification",
+            "pr_advisory_acceleration",
+            "nightly_or_maintenance"
+          ],
+          "max_concurrency": 1
+        },
+        {
+          "id": "ci-accelerated",
+          "labels": [
+            "self-hosted",
+            "opl-ci-accelerated"
+          ],
+          "capabilities": [
+            "long_running_integration",
+            "performance",
+            "cache_warmup"
+          ],
+          "workload_classes": [
+            "pr_advisory_acceleration",
+            "nightly_or_maintenance"
+          ],
+          "max_concurrency": 1
+        }
+      ],
+      "pool_rules": {
+        "label_selection": "exact_capability_labels_only",
+        "homogeneous_shared_label_pool": false,
+        "offline_or_busy_status": "unavailable_or_deferred",
+        "missing_capability_status": "unavailable",
+        "fallback": "hosted_equivalent_or_not_run",
+        "release_priority": [
+          "github_hosted_publication_floor",
+          "post_publication_optional_certification",
+          "pr_advisory_acceleration",
+          "nightly_or_maintenance"
+        ],
+        "preemption": {
+          "stable_latest_publication": "never_preempted_by_self_hosted_work",
+          "p0_release_or_foreground": "never_preempted",
+          "background_or_experiment": "preemptible_only_with_explicit_fleet_lease",
+          "same_pool_concurrency": "one_active_job_per_machine_unless_fleet_capability_allows_more"
+        }
+      },
+      "authority_boundary": {
+        "github_actions_authority": [
+          "runner_registration",
+          "runner_groups",
+          "runner_labels",
+          "workflow_scheduling",
+          "workflow_permissions_and_secrets"
+        ],
+        "fleet_authority": [
+          "machine_capability_inventory",
+          "reservation_and_lease",
+          "preemption_and_release",
+          "service_enablement_and_rollback"
+        ],
+        "app_authority": [
+          "publication_floor",
+          "optional_certification_status_projection",
+          "artifact_digest_binding"
+        ],
+        "no_cross_plane_inference": true,
+        "runner_registration_policy": "opt_in_explicit_role_binding_not_fleet_membership"
+      },
+      "binding_status": "role_labels_require_fresh_github_and_fleet_readback_before_use",
+      "legacy_bindings": [
+        {
+          "workflow": ".github/workflows/release-manual-full-preview.yml",
+          "labels": [
+            "self-hosted",
+            "macOS",
+            "ARM64",
+            "opl-gui-vm"
+          ],
+          "scope": "explicit_non_stable_manual_full_preview_only",
+          "migration": "retain_until_dedicated_role_mapping_and_workflow_settings_readback"
+        }
+      ],
+      "rule": "Self-hosted runners add platform evidence and development throughput but are never a Stable or Latest availability dependency. Fleet leases coordinate physical machines; GitHub Actions owns runner registration and scheduling; neither control plane may be inferred from the other's inventory alone."
+    },
     "github_actions": {
       "scope": "cache_and_validation_only",
       "live_release_mutation_authority": false,
@@ -3685,7 +3858,7 @@
             "authority_boundary": "diagnostic_only_not_release_ready_owner_receipt_or_runtime_truth"
           },
           "release_gate": {
-            "purpose": "full deterministic VM release gate used by stable release workflows",
+            "purpose": "full deterministic VM qualification used only when an explicit diagnostic or optional certification workflow requests it",
             "keeps": [
               "same-run or supplied DMG resolution",
               "packaged main bootstrap marker verification",
@@ -3714,8 +3887,8 @@
               "tart-smoke-summary.json"
             ],
             "critical_failure_artifact_policy": "write vm-gate-failure-summary.json/md before uploading large VM artifacts; classify missing large artifacts separately as diagnostic_artifact_missing and recommend rerun_diagnostic_same_artifact",
-            "wrapper_diagnostic_policy": "host_wrapper_preflight_and_smoke_logs_are_supporting_evidence; full release gate failure still comes from the deterministic VM readiness/settings/route/codex checks",
-            "authority_boundary": "release_gate_evidence_only_when_same_cohort_workflow_requires_it"
+            "wrapper_diagnostic_policy": "host_wrapper_preflight_and_smoke_logs are supporting evidence; deterministic VM readiness/settings/route/codex failures classify the optional certification result only",
+            "authority_boundary": "optional_certification_evidence_only_never_stable_latest_publication_authority"
           }
         },
         "writes": [
@@ -3768,12 +3941,12 @@
         "same_artifact_diagnostic_next_action": "rerun_diagnostic_same_artifact",
         "diagnostic_missing_status": "diagnostic_artifact_missing",
         "forbidden_replacements": [
-          "stable release same-run VM gates",
+          "stable publication or Latest authority",
           "published release remote verification",
           "owner receipt",
           "release publish"
         ],
-        "rule": "Branch-lane or post-release evidence runs may explicitly download a DMG-only artifact from a completed source Actions run without publishing assets; this handoff is VM evidence only and must not replace stable same-run VM gates or published asset verification."
+        "rule": "Branch-lane or post-release evidence runs may explicitly download a DMG-only artifact from a completed source Actions run without publishing assets; this handoff is optional VM evidence only and must not replace hosted publication-floor checks or published asset verification."
       }
     },
     "tart_base_prebake": {

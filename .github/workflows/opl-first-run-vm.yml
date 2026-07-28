@@ -675,7 +675,7 @@ jobs:
     name: Clean VM first launch
     needs: validate-vm-inputs
     if: ${{ needs.validate-vm-inputs.outputs.skip_vm != 'true' }}
-    runs-on: ${{ fromJson(vars.OPL_FIRST_RUN_RUNNER_LABELS || '["self-hosted","macOS","opl-gui-vm"]') }}
+    runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
     timeout-minutes: ${{ inputs.operation == 'append_full' && 50 || 75 }}
     outputs:
       post_publication_status: ${{ steps.post_publication_outcome.outputs.status }}
@@ -689,7 +689,7 @@ jobs:
       contents: read
     env:
       GH_TOKEN: ${{ github.token }}
-      OPL_FIRST_RUN_RUNNER_LABELS: ${{ vars.OPL_FIRST_RUN_RUNNER_LABELS }}
+      OPL_FIRST_RUN_RUNNER_LABELS: '["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'
       OPL_FIRST_RUN_TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
       OPL_FIRST_RUN_HOMEBREW_TART_SOURCE: ${{ vars.OPL_FIRST_RUN_HOMEBREW_TART_SOURCE }}
       OPL_FIRST_RUN_GUEST_USER: ${{ vars.OPL_FIRST_RUN_GUEST_USER }}
@@ -1415,10 +1415,7 @@ jobs:
             SSH_KEY="${OPL_FIRST_RUN_GUEST_SSH_KEY:-}"
           fi
 
-          RUNNER_LABELS="${OPL_FIRST_RUN_RUNNER_LABELS:-}"
-          if [ -z "$RUNNER_LABELS" ]; then
-            RUNNER_LABELS='["self-hosted","macOS","opl-gui-vm"]'
-          fi
+          RUNNER_LABELS='["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'
 
           RELEASE_SOURCE="latest GitHub Release"
           if [ -n "${{ inputs.release_artifact_name }}" ]; then
@@ -1488,7 +1485,7 @@ jobs:
           SOURCE_VM: ${{ steps.tart_source.outputs.source_vm }}
           GUEST_USER: ${{ inputs.guest_user || vars.OPL_FIRST_RUN_GUEST_USER || 'runner' }}
           SSH_KEY_CONFIGURED: ${{ (inputs.guest_ssh_key_path != '' || vars.OPL_FIRST_RUN_GUEST_SSH_KEY != '') && 'true' || 'false' }}
-          RUNNER_LABELS: ${{ vars.OPL_FIRST_RUN_RUNNER_LABELS || '["self-hosted","macOS","opl-gui-vm"]' }}
+          RUNNER_LABELS: '["self-hosted","macOS","ARM64","opl-cert-mac-tart"]'
           NO_GRAPHICS: ${{ inputs.no_graphics && 'true' || 'false' }}
           KEEP_VM: ${{ inputs.keep_vm && 'true' || 'false' }}
           GUIDE_SCREENSHOTS: ${{ inputs.guide_screenshots && 'true' || 'false' }}

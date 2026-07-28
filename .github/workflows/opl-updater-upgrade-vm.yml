@@ -99,7 +99,7 @@ jobs:
 
   upgrade:
     name: Upgrade installed predecessor with exact candidate ZIP
-    runs-on: ${{ fromJson(vars.OPL_FIRST_RUN_RUNNER_LABELS || '["self-hosted","macOS","opl-gui-vm"]') }}
+    runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
     if: ${{ inputs.mode != 'canary' }}
     timeout-minutes: 30
     env:

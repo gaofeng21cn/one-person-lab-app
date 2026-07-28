@@ -307,6 +307,17 @@ certification of those published bytes. Their status is explicit
 `passed|failed|not_run|unavailable`; they never block or queue Standard
 publication or Latest. Full and Docker/WebUI remain separately tracked
 same-cohort add-ons rather than prerequisites for Standard Latest.
+The protected `release-manual-full-preview.yml` ingress remains an explicit
+non-Stable manual exception with its own protected handoff and self-hosted
+label; it does not make self-hosted a Stable/Latest dependency. Self-hosted
+machines are selected through exact capability pools for optional certification,
+PR/platform advisory acceleration, or nightly/maintenance work. Fleet owns
+capability and lease/reservation state; GitHub owns runner registration and
+Actions scheduling. An offline, busy, or unproved runner yields typed
+`unavailable`/`not_run` evidence while the hosted publication floor continues.
+For remote delivery work, run the same frozen cohort locally through the
+applicable checks first, capture exact bytes/digests, and use GitHub-hosted
+publication as the routine reproducibility path.
 
 The standard updater now treats downloaded and applied as separate states.
 `update_downloaded` only proves that the package is cached. Installation success
