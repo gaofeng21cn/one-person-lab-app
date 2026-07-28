@@ -629,6 +629,7 @@ jobs:
       - name: Read back public Native bytes and reconcile an exact unknown marker
         env:
           BUNDLE_DIGEST: ${{ steps.checkpoint.outputs.bundle_digest }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail

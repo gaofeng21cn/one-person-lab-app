@@ -80,6 +80,7 @@ test('Native reusable separates non-blocking preparation, protected additive pub
     'release-native-webui-carrier.ts publish',
     'release-native-webui-carrier.ts readback',
     'restore-release-checkpoint',
+    'GH_TOKEN: ${{ github.token }}',
     'publication-scope external_target',
     'prior_mutation_attempt_id',
     'find native-release/native-publication-checkpoint -type f -name checkpoint.json',
@@ -89,7 +90,12 @@ test('Native reusable separates non-blocking preparation, protected additive pub
     'latest_modified',
     'container_registry_modified',
     'homebrew_modified',
+    'multiple unknown markers',
   ]) assert.match(source, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(
+    source,
+    /- name: Read back public Native bytes[\s\S]*?env:\n\s+BUNDLE_DIGEST:.*\n\s+GH_TOKEN: \$\{\{ github\.token \}\}/,
+  );
   assert.doesNotMatch(source, /ghcr\.io|docker build|docker push|packages: write|make_latest|github-activate-latest/);
   assert.doesNotMatch(source, /release-stable\.yml|_release-full-addon\.yml/);
 });
