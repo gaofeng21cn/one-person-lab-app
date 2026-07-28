@@ -135,6 +135,40 @@
       "default_automatic_writer": "newest_qualified_stable",
       "default_behavior": "each_carrier_advances_its_own_latest_pointer_when_that_carrier_publishes_a_new_qualified_stable",
       "automatic_preview_or_nightly_writer_may_move_latest": false,
+      "durable_publication_record_selector": {
+        "selector": "carrier_owned_durable_publication_record",
+        "candidate_target": "retained_immutable_verified_published_version",
+        "candidate_record_must_bind": [
+          "carrier_namespace",
+          "exact_version_or_tag",
+          "immutable_artifact_or_image_digest",
+          "quality_status_and_preview_kind",
+          "qualification_disclosure",
+          "public_readback"
+        ],
+        "actions_artifact": {
+          "selection_authority": false,
+          "expiry_or_retention_may_change_selection_eligibility": false,
+          "allowed_role": "transient_prepublication_transport_or_diagnostic_evidence_only"
+        },
+        "retention": {
+          "selection_eligible_state": "retained_not_retired_or_revoked",
+          "record_must_remain_readable_until_retired": true,
+          "retired_or_revoked_record_selectable": false
+        },
+        "evidence_requirements": {
+          "stable": [
+            "stable_qualification",
+            "exact_immutable_digest",
+            "carrier_public_readback"
+          ],
+          "preview": [
+            "exact_immutable_digest",
+            "carrier_public_readback",
+            "non_stable_and_skipped_or_failed_gate_disclosure"
+          ]
+        }
+      },
       "explicit_user_override": {
         "target": "any_exact_published_version",
         "quality_statuses": [
@@ -173,6 +207,20 @@
         "run_attempt": "first_only",
         "mutation": "single_expected_current_cas",
         "unknown_outcome": "read_only_reconcile_no_retry"
+      },
+      "docker_manual_override": {
+        "target": "retained_immutable_verified_published_version",
+        "requires_explicit_user_confirmation": true,
+        "selector": "carrier_owned_durable_publication_record",
+        "mutation_scope": [
+          "container_webui.latest"
+        ],
+        "must_not_mutate": [
+          "container_webui.stable",
+          "desktop.latest"
+        ],
+        "compare_and_swap": "exact_expected_current",
+        "fresh_public_readback_required": true
       },
       "next_qualified_stable_reclaims_pointer": true,
       "latest_pointer_does_not_define_highest_published_stable": true,

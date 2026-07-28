@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.dev/contracts/opl-app-webui-publication-record.schema.json",
+  "title": "OPL WebUI Durable Publication Record",
+  "type": "object",
+  "required": [
+    "schema",
+    "status",
+    "carrier",
+    "publication_id",
+    "classification",
+    "release",
+    "cohort",
+    "image",
+    "authority",
+    "evidence",
+    "publication_record_digest"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opl_app_webui_publication_record.v1"
+    },
+    "status": {
+      "const": "published"
+    },
+    "carrier": {
+      "const": "container_webui"
+    },
+    "publication_id": {
+      "type": "string",
+      "pattern": "^docker-webui:[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(?:-r[1-9][0-9]*|-preview\\.r[1-9][0-9]*|-nightly(?:\\.r[1-9][0-9]*)?)?@sha256:[0-9a-f]{64}$"
+    },
+    "classification": {
+      "type": "object",
+      "required": ["quality_status", "build_trigger", "preview_kind", "quality_unchanged"],
+      "properties": {
+        "quality_status": {
+          "enum": ["stable", "preview"]
+        },
+        "build_trigger": {
+          "enum": ["manual", "automated"]
+        },
+        "preview_kind": {
+          "enum": ["dev", null]
+        },
+        "quality_unchanged": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "release": {
+      "type": "object",
+      "required": ["version", "bundle_digest", "cohort_ref"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(?:-r[1-9][0-9]*|-preview\\.r[1-9][0-9]*|-nightly(?:\\.r[1-9][0-9]*)?)?$"
+        },
+        "bundle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "cohort_ref": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cohort": {
+      "type": "object",
+      "required": ["app_sha", "shell_sha", "framework_sha"],
+      "properties": {
+        "app_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "shell_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "framework_sha": {
+          "$ref": "#/$defs/sha"
+        }
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "required": [
+        "repository",
+        "version_ref",
+        "receipt_ref",
+        "immutable_ref",
+        "version_digest",
+        "child_digest",
+        "size_bytes",
+        "content_fingerprint"
+      ],
+      "properties": {
+        "repository": {
+          "const": "ghcr.io/gaofeng21cn/one-person-lab-webui"
+        },
+        "version_ref": {
+          "type": "string",
+          "pattern": "^ghcr\\.io/gaofeng21cn/one-person-lab-webui:[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(?:-r[1-9][0-9]*|-preview\\.r[1-9][0-9]*|-nightly(?:\\.r[1-9][0-9]*)?)?$"
+        },
+        "receipt_ref": {
+          "type": "string",
+          "pattern": "^ghcr\\.io/gaofeng21cn/one-person-lab-webui:receipt-[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(?:-r[1-9][0-9]*|-preview\\.r[1-9][0-9]*|-nightly(?:\\.r[1-9][0-9]*)?)?$"
+        },
+        "immutable_ref": {
+          "type": "string",
+          "pattern": "^ghcr\\.io/gaofeng21cn/one-person-lab-webui@sha256:[0-9a-f]{64}$"
+        },
+        "version_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "child_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content_fingerprint": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "mode",
+        "publication_workflow",
+        "publication_run_id",
+        "publication_run_attempt",
+        "publication_executor_sha",
+        "stable_authority_run_id",
+        "source_authority"
+      ],
+      "properties": {
+        "mode": {
+          "enum": ["production_follower", "development_validation", "independent_preview"]
+        },
+        "publication_workflow": {
+          "enum": [
+            ".github/workflows/release-webui-follower.yml",
+            ".github/workflows/release-webui-development.yml"
+          ]
+        },
+        "publication_run_id": {
+          "$ref": "#/$defs/run_id"
+        },
+        "publication_run_attempt": {
+          "const": 1
+        },
+        "publication_executor_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "stable_authority_run_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/run_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_authority": {
+          "oneOf": [
+            {
+              "$ref": "opl-app-webui-source-authority.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "carrier_receipt_sha256",
+        "version_readback_sha256",
+        "source_authority_sha256"
+      ],
+      "properties": {
+        "carrier_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "version_readback_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_authority_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "publication_record_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$"
+    }
+  },
+  "additionalProperties": false
+}

@@ -86,12 +86,23 @@ function versionTags(version: GhcrVersion) {
   return version.metadata?.container?.tags ?? [];
 }
 
+const immutableVersionPattern = /^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$/;
+
+function immutableVersionTag(tag: string) {
+  return immutableVersionPattern.test(tag) && !tag.includes('nightly') ? tag : null;
+}
+
+function durableTagVersion(tag: string, prefix: 'receipt-' | 'rollback-') {
+  if (!tag.startsWith(prefix)) return null;
+  return immutableVersionTag(tag.slice(prefix.length));
+}
+
 function isNightly(tags: string[]) {
   return tags.some((tag) => tag.endsWith('-nightly'));
 }
 
 function isStable(tags: string[]) {
-  return tags.some((tag) => /^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$/.test(tag) && !tag.includes('nightly'));
+  return tags.some((tag) => immutableVersionTag(tag) !== null);
 }
 
 function sortRecentFirst(versions: GhcrVersion[]) {
@@ -102,6 +113,50 @@ function sortRecentFirst(versions: GhcrVersion[]) {
 
 function selectedIds(versions: GhcrVersion[]) {
   return new Set(versions.map((version) => version.id).filter((id): id is number => Number.isFinite(id)));
+}
+
+function addVersionId(versionIds: Map<string, Set<number>>, releaseVersion: string, id: number) {
+  const ids = versionIds.get(releaseVersion) ?? new Set<number>();
+  ids.add(id);
+  versionIds.set(releaseVersion, ids);
+}
+
+function durablePublicationVersionIds(versions: GhcrVersion[]) {
+  const imageVersionIds = new Map<string, Set<number>>();
+  const receiptVersionIds = new Map<string, Set<number>>();
+  const rollbackVersionIds = new Map<string, Set<number>>();
+
+  for (const version of versions) {
+    if (!Number.isFinite(version.id)) continue;
+    for (const tag of versionTags(version)) {
+      const releaseVersion = immutableVersionTag(tag);
+      if (releaseVersion) {
+        addVersionId(imageVersionIds, releaseVersion, version.id as number);
+        continue;
+      }
+
+      const receiptVersion = durableTagVersion(tag, 'receipt-');
+      if (receiptVersion) {
+        addVersionId(receiptVersionIds, receiptVersion, version.id as number);
+        continue;
+      }
+
+      const rollbackVersion = durableTagVersion(tag, 'rollback-');
+      if (rollbackVersion) {
+        addVersionId(rollbackVersionIds, rollbackVersion, version.id as number);
+      }
+    }
+  }
+
+  const retainedIds = new Set<number>();
+  for (const [releaseVersion, receiptIds] of receiptVersionIds) {
+    const imageIds = imageVersionIds.get(releaseVersion);
+    if (!imageIds) continue;
+    for (const id of imageIds) retainedIds.add(id);
+    for (const id of receiptIds) retainedIds.add(id);
+    for (const id of rollbackVersionIds.get(releaseVersion) ?? []) retainedIds.add(id);
+  }
+  return retainedIds;
 }
 
 function summarizeVersion(version: GhcrVersion) {
@@ -136,12 +191,14 @@ function cleanup(options: Options) {
     ))
       .slice(0, policy.retain_nightly_versions),
   );
+  const durablePublicationIds = durablePublicationVersionIds(versions);
 
   const candidates = versions
     .filter((version) => Number.isFinite(version.id))
     .filter((version) => !protectedIds.has(version.id as number))
     .filter((version) => !retainedStableIds.has(version.id as number))
     .filter((version) => !retainedNightlyIds.has(version.id as number))
+    .filter((version) => !durablePublicationIds.has(version.id as number))
     .map(summarizeVersion);
 
   const deletedVersionIds: number[] = [];
@@ -172,6 +229,7 @@ function cleanup(options: Options) {
     protected_version_ids: [...protectedIds].sort((left, right) => left - right),
     retained_stable_version_ids: [...retainedStableIds].sort((left, right) => left - right),
     retained_nightly_version_ids: [...retainedNightlyIds].sort((left, right) => left - right),
+    durable_publication_version_ids: [...durablePublicationIds].sort((left, right) => left - right),
     candidate_count: candidates.length,
     candidates,
     deleted_version_ids: deletedVersionIds,

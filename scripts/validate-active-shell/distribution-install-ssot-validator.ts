@@ -109,6 +109,71 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
     false,
     'Automatic Preview Latest mutation',
   );
+  const durableSelector = latestPolicy?.durable_publication_record_selector;
+  requireEqual(
+    durableSelector?.selector,
+    'carrier_owned_durable_publication_record',
+    'Durable publication record selector',
+  );
+  requireEqual(
+    durableSelector?.candidate_target,
+    'retained_immutable_verified_published_version',
+    'Durable publication record candidate',
+  );
+  assertDeepEqualJson(
+    durableSelector?.candidate_record_must_bind,
+    [
+      'carrier_namespace',
+      'exact_version_or_tag',
+      'immutable_artifact_or_image_digest',
+      'quality_status_and_preview_kind',
+      'qualification_disclosure',
+      'public_readback',
+    ],
+    'Durable publication record bindings',
+  );
+  requireEqual(
+    durableSelector?.actions_artifact?.selection_authority,
+    false,
+    'Actions artifact selector authority',
+  );
+  requireEqual(
+    durableSelector?.actions_artifact?.expiry_or_retention_may_change_selection_eligibility,
+    false,
+    'Actions artifact retention dependency',
+  );
+  requireEqual(
+    durableSelector?.actions_artifact?.allowed_role,
+    'transient_prepublication_transport_or_diagnostic_evidence_only',
+    'Actions artifact role',
+  );
+  requireEqual(
+    durableSelector?.retention?.selection_eligible_state,
+    'retained_not_retired_or_revoked',
+    'Durable record selection retention state',
+  );
+  requireEqual(
+    durableSelector?.retention?.record_must_remain_readable_until_retired,
+    true,
+    'Durable record retention readback',
+  );
+  requireEqual(
+    durableSelector?.retention?.retired_or_revoked_record_selectable,
+    false,
+    'Retired record selection',
+  );
+  assertDeepEqualJson(
+    durableSelector?.evidence_requirements,
+    {
+      stable: ['stable_qualification', 'exact_immutable_digest', 'carrier_public_readback'],
+      preview: [
+        'exact_immutable_digest',
+        'carrier_public_readback',
+        'non_stable_and_skipped_or_failed_gate_disclosure',
+      ],
+    },
+    'Durable publication record evidence requirements',
+  );
   requireEqual(
     latestPolicy?.explicit_user_override?.target,
     'any_exact_published_version',
@@ -216,6 +281,42 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   requireEqual(latest?.next_qualified_stable_reclaims_pointer, true, 'Next Stable Latest behavior');
   requireEqual(latest?.failure_preserves_current_latest_lkg, true, 'Latest LKG failure behavior');
+  const dockerOverride = latest?.docker_manual_override;
+  requireEqual(
+    dockerOverride?.target,
+    'retained_immutable_verified_published_version',
+    'Docker manual override target',
+  );
+  requireEqual(
+    dockerOverride?.requires_explicit_user_confirmation,
+    true,
+    'Docker manual override confirmation',
+  );
+  requireEqual(
+    dockerOverride?.selector,
+    'carrier_owned_durable_publication_record',
+    'Docker manual override selector',
+  );
+  assertDeepEqualJson(
+    dockerOverride?.mutation_scope,
+    ['container_webui.latest'],
+    'Docker manual override mutation scope',
+  );
+  assertDeepEqualJson(
+    dockerOverride?.must_not_mutate,
+    ['container_webui.stable', 'desktop.latest'],
+    'Docker manual override protected pointers',
+  );
+  requireEqual(
+    dockerOverride?.compare_and_swap,
+    'exact_expected_current',
+    'Docker manual override CAS',
+  );
+  requireEqual(
+    dockerOverride?.fresh_public_readback_required,
+    true,
+    'Docker manual override readback',
+  );
 
   const currentCohort = release.cohort_policy?.current_development_state;
   const targetCohort = release.cohort_policy?.approved_production_target;

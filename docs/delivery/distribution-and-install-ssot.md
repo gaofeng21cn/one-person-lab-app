@@ -58,7 +58,11 @@ Machine owners:
 - Desktop GitHub `Latest` 与 WebUI GHCR `:latest` 是两个载体各自的指针；生产
   默认由各自新发布的合格 Stable 接管。用户明确确认后，任一载体也可以把自己的
   `latest` 指向一个已经发布、身份和 digest 均可核验的 exact Stable 或 Preview
-  版本；这不会改变该版本的质量，也不会改动其他载体的指针。
+ 版本；选择必须消费该载体保留的
+  `carrier_owned_durable_publication_record`，而不是短期 Actions artifact。该记录
+  绑定载体命名空间、exact version/tag、不可变 artifact/image digest、质量与
+  Preview kind、qualification disclosure 及 public readback；这不会改变该版本的
+  质量，也不会改动其他载体的指针。
 - `one-person-lab-nightly` 的产品语义保留：它是 Standard 密度的自动预发布，
   不是 Full。当前实现每天自动复用与 Stable 相同的物理 Standard build，
   发布不可变 GitHub prerelease，再由独立 digest-bound follower 更新 Nightly Cask；
@@ -121,8 +125,11 @@ Machine owners:
 | Docker/WebUI 紧急修复 | 不等待 Desktop Stable 或 Desktop Latest | 用 exact App/Shell/Framework refs 发布 immutable Preview，再显式只改 Docker `latest`；Docker `stable`、Desktop Latest 均保持不变 |
 
 “自由”指选择目标版本的业务权限，不是放弃身份校验：目标必须是已经公开、不可变、
-已验证并且可由 carrier receipt/source authority 反向绑定的版本。工作流不接受裸
-tag、裸 digest 或 `force` 作为绕过该证据链的输入。
+已验证并且可由 carrier receipt/source authority 反向绑定的版本。选择资格只在该
+`carrier_owned_durable_publication_record` 仍为 retained、未 retired、未 revoked 时
+存在；Actions artifact 只能作为发布前传输或诊断证据，artifact 过期或保留期变化
+不得决定已发布版本是否可选。工作流不接受裸 tag、裸 digest 或 `force` 作为绕过该
+证据链的输入。
 
 ## 当前发布侧
 
@@ -131,7 +138,7 @@ tag、裸 digest 或 `force` 作为绕过该证据链的输入。
 | Desktop Stable GitHub Release | Active | Standard DMG/ZIP、updater metadata、prepared notes、Latest | 唯一入口是 `release-stable.yml`；qualified Stable 默认接管 Latest；`standard` / `resume_standard` / `append_full` |
 | Full additive publish | Active，属于 Desktop Stable | Full DMG + manifest | 与 Standard 同 frozen Bundle/Official Profile；只增加离线 seed，不改 Latest/updater |
 | Standard Homebrew Cask | Active managed | `one-person-lab` 指向 Standard DMG | Formula `opl` 承载 Base；Cask 承载 App |
-| Container WebUI GHCR | Active separate carrier | immutable OCI version、`:latest`，`:stable` 为兼容 alias | Production follower 默认把合格 Stable 同时推进 `stable`/`latest`；手工 independent Preview 可独立发布，只有用户显式 promotion 才改 Docker `latest`，且不得改 `stable` 或 Desktop 指针 |
+| Container WebUI GHCR | Active separate carrier | immutable OCI version、`:latest`，`:stable` 为兼容 alias | Production follower 默认把合格 Stable 同时推进 `stable`/`latest`；手工 independent Preview 可独立发布，只有用户显式 promotion 才从 durable publication record 选择并改 Docker `latest`，且不得改 `stable` 或 Desktop 指针 |
 | Manual Full Preview | Active temporary non-Stable lane | 非 `v` prerelease tag、Full preview DMG | 发布默认 `make_latest=false`；独立 protected pointer operation 可选择 exact Preview，但不能暗升 Stable 或改写 Homebrew |
 | Windows x64 RC Preview | 实现中，公开发布被 WSL2-only 验收阻断 | 目标为非 `v` prerelease tag、Windows x64 NSIS EXE、SHA256SUMS、Windows RC cohort | 复用 AionUI Windows/NSIS 打包，但禁止 native Windows AionCore/Codex；专属 `OPL-Linux` 自动配置、三路统一 Linux Codex、无 fallback 和 exact-byte 验收通过前不可公开 |
 | Nightly | Implemented，首个公开 readback 待完成 | 自动 Standard DMG/ZIP/updater prerelease + Nightly Cask follower | 每日 schedule 默认不改 Latest；独立 protected pointer operation 可临时选择 exact Nightly；不含 Full/WebUI、不复用 Stable mutex；抽样 VM 非阻塞 |

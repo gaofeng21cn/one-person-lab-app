@@ -540,6 +540,9 @@ jobs:
         with:
           ref: ${{ inputs.app_ref }}
 
+      - name: Setup ORAS for durable carrier receipt sidecar
+        uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+
       - name: Download exact qualified image evidence
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
@@ -725,6 +728,37 @@ jobs:
           };
           fs.writeFileSync('webui-carrier/registry-readback.json', `${JSON.stringify(payload)}\n`);
           NODE
+          OPL_IMAGE_DIGEST="$digest" OPL_VERSION_TAG="$version_tag" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const digestPattern = /^sha256:[0-9a-f]{64}$/;
+          const authority = JSON.parse(fs.readFileSync('webui-carrier/version-tag-authority.json', 'utf8'));
+          if (
+            authority?.schema !== 'opl_app_webui_version_tag_authority.v1'
+            || authority?.status !== 'passed'
+            || authority?.version_tag !== process.env.OPL_VERSION_TAG
+            || authority?.child?.digest !== process.env.OPL_IMAGE_DIGEST
+            || authority?.child?.platform?.os !== 'linux'
+            || authority?.child?.platform?.architecture !== 'amd64'
+            || authority?.top_level?.manifest_count !== 1
+            || !digestPattern.test(authority?.top_level?.digest ?? '')
+            || ![
+              'application/vnd.oci.image.index.v1+json',
+              'application/vnd.docker.distribution.manifest.list.v2+json',
+            ].includes(authority?.top_level?.media_type)
+          ) {
+            throw new Error('exact immutable version tag authority is required before durable sidecar publication');
+          }
+          fs.writeFileSync('webui-carrier/version-descriptor-readback.json', `${JSON.stringify({
+            schema: 'opl_app_webui_descriptor_readback.v1',
+            status: 'present',
+            ref: process.env.OPL_VERSION_TAG,
+            digest: authority.top_level.digest,
+            child_digest: authority.child.digest,
+            manifest_count: authority.top_level.manifest_count,
+            media_type: authority.top_level.media_type,
+          })}\n`);
+          NODE
           printf 'image_ref=%s\n' "$image_ref" >> "$GITHUB_OUTPUT"
 
       - name: Write and verify exact carrier receipt
@@ -770,6 +804,142 @@ jobs:
           carrier_artifact_name="webui-carrier-${{ inputs.opl_version }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           printf 'carrier_artifact_name=%s\n' "$carrier_artifact_name" >> "$GITHUB_OUTPUT"
 
+      - name: Publish immutable durable carrier receipt sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          readonly artifact_media_type='application/vnd.onepersonlab.webui.publication-record.v1+json'
+          readonly receipt_ref='${{ inputs.image_repository }}:receipt-${{ inputs.opl_version }}'
+          readonly sidecar_root="$RUNNER_TEMP/webui-publication-record-sidecar"
+          readonly record_path="$sidecar_root/webui-publication-record.json"
+          readonly pull_root="$sidecar_root/pulled"
+          rm -rf "$sidecar_root"
+          mkdir -p "$pull_root"
+
+          create_args=(
+            --authority-mode '${{ inputs.authority_mode }}'
+            --carrier-receipt webui-carrier/carrier-receipt.json
+            --version-readback webui-carrier/version-descriptor-readback.json
+            --publication-run-id "$GITHUB_RUN_ID"
+            --publication-executor-sha "$GITHUB_SHA"
+          )
+          case '${{ inputs.authority_mode }}' in
+            production_follower)
+              stable_authority_run_id='${{ github.event.workflow_run.id }}'
+              ;;
+            development_validation)
+              stable_authority_run_id='${{ inputs.source_artifact_run_id }}'
+              ;;
+            independent_preview)
+              source_authority_path='webui-carrier/source-authority.json'
+              test -f "$source_authority_path" && test ! -L "$source_authority_path"
+              create_args+=(--source-authority "$source_authority_path")
+              ;;
+            *)
+              echo '::error::WebUI publication authority mode is invalid.'
+              exit 1
+              ;;
+          esac
+          if [ '${{ inputs.authority_mode }}' != independent_preview ]; then
+            [[ "$stable_authority_run_id" =~ ^[1-9][0-9]*$ ]] || {
+              echo '::error::Stable-derived durable publication requires one exact Stable authority run id.'
+              exit 1
+            }
+            create_args+=(--stable-authority-run-id "$stable_authority_run_id")
+          fi
+
+          node --experimental-strip-types scripts/webui-publication-record.ts \
+            create \
+            "${create_args[@]}" \
+            --output "$record_path" \
+            > "$sidecar_root/webui-publication-record-create.json"
+          node --experimental-strip-types scripts/webui-publication-record.ts \
+            validate \
+            --input "$record_path" \
+            > "$sidecar_root/webui-publication-record-verification.json"
+
+          lookup_stderr="$sidecar_root/receipt-sidecar-lookup.stderr"
+          descriptor_path="$sidecar_root/receipt-sidecar-descriptor.json"
+          if oras manifest fetch --descriptor "$receipt_ref" > "$descriptor_path" 2> "$lookup_stderr"; then
+            publication_outcome=preexisting_idempotent
+          elif grep -Eqi 'not found|manifest unknown|name unknown|no such manifest|404' "$lookup_stderr"; then
+            publication_outcome=created
+            oras push \
+              --artifact-type "$artifact_media_type" \
+              "$receipt_ref" \
+              "$record_path:$artifact_media_type" \
+              > "$sidecar_root/receipt-sidecar-push.txt"
+          else
+            cat "$lookup_stderr" >&2
+            echo '::error::Could not safely distinguish an absent receipt sidecar from a registry read failure.'
+            exit 1
+          fi
+
+          oras manifest fetch --descriptor "$receipt_ref" > "$descriptor_path"
+          oras manifest fetch "$receipt_ref" > "$sidecar_root/receipt-sidecar-manifest.json"
+          oras pull --output "$pull_root" "$receipt_ref" > "$sidecar_root/receipt-sidecar-pull.txt"
+          pulled_records=()
+          while IFS= read -r pulled_record; do pulled_records+=("$pulled_record"); done < <(
+            find "$pull_root" -type f -name webui-publication-record.json -print | LC_ALL=C sort
+          )
+          test "${#pulled_records[@]}" -eq 1 || {
+            echo '::error::Receipt sidecar pull must contain exactly one webui-publication-record.json.'
+            exit 1
+          }
+          pulled_record="${pulled_records[0]}"
+          test -f "$pulled_record" && test ! -L "$pulled_record"
+          cmp -s "$record_path" "$pulled_record" || {
+            echo '::error::Receipt sidecar bytes differ from the generated canonical publication record.'
+            exit 1
+          }
+          cp "$pulled_record" "$sidecar_root/receipt-sidecar-pulled-record.json"
+          cmp -s "$record_path" "$sidecar_root/receipt-sidecar-pulled-record.json"
+          node --experimental-strip-types scripts/webui-publication-record.ts \
+            validate \
+            --input "$sidecar_root/receipt-sidecar-pulled-record.json" \
+            > "$sidecar_root/receipt-sidecar-pull-verification.json"
+
+          node --input-type=module - \
+            "$descriptor_path" \
+            "$sidecar_root/receipt-sidecar-manifest.json" \
+            "$record_path" \
+            "$sidecar_root/receipt-sidecar-pulled-record.json" \
+            "$artifact_media_type" \
+            "$publication_outcome" <<'WEBUI_PUBLICATION_RECORD_SIDECAR_NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+
+          const [descriptorPath, manifestPath, recordPath, pulledPath, artifactType, outcome] = process.argv.slice(2);
+          const digest = (bytes) => `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+          const expected = fs.readFileSync(recordPath);
+          const pulled = fs.readFileSync(pulledPath);
+          if (!expected.equals(pulled)) throw new Error('receipt sidecar pull bytes differ from the generated record');
+          const manifestBytes = fs.readFileSync(manifestPath);
+          const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
+          const manifest = JSON.parse(manifestBytes.toString('utf8'));
+          if (
+            descriptor?.mediaType !== 'application/vnd.oci.image.manifest.v1+json'
+            || descriptor?.digest !== digest(manifestBytes)
+            || descriptor?.size !== manifestBytes.byteLength
+            || manifest?.schemaVersion !== 2
+            || manifest?.mediaType !== descriptor.mediaType
+            || manifest?.artifactType !== artifactType
+            || !Array.isArray(manifest?.layers)
+            || manifest.layers.length !== 1
+          ) {
+            throw new Error('receipt sidecar descriptor or manifest is not the exact expected OCI artifact');
+          }
+          const [layer] = manifest.layers;
+          if (
+            layer?.mediaType !== artifactType
+            || layer?.digest !== digest(expected)
+            || layer?.size !== expected.byteLength
+            || !['created', 'preexisting_idempotent'].includes(outcome)
+          ) {
+            throw new Error('receipt sidecar manifest does not bind the exact canonical publication record');
+          }
+          WEBUI_PUBLICATION_RECORD_SIDECAR_NODE
+
       - name: Stage exact carrier receipt evidence
         shell: bash
         run: |
@@ -789,10 +959,23 @@ jobs:
             registry-readback.json \
             runtime-summary.json \
             version-tag-authority.json \
+            version-descriptor-readback.json \
             version-tag-manifest.json \
             version-tag-readback.txt; do
             test -f "webui-carrier/$file"
             cp "webui-carrier/$file" "carrier-artifact/$file"
+          done
+          sidecar_root="$RUNNER_TEMP/webui-publication-record-sidecar"
+          for file in \
+            webui-publication-record.json \
+            webui-publication-record-create.json \
+            webui-publication-record-verification.json \
+            receipt-sidecar-descriptor.json \
+            receipt-sidecar-manifest.json \
+            receipt-sidecar-pulled-record.json \
+            receipt-sidecar-pull-verification.json; do
+            test -f "$sidecar_root/$file"
+            cp "$sidecar_root/$file" "carrier-artifact/$file"
           done
           if [ '${{ inputs.authority_mode }}' = independent_preview ]; then
             for file in source-authority.json source-authority-verification.json source-authority-final-verification.json; do

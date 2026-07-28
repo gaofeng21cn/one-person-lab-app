@@ -50,11 +50,16 @@ qualification. Promoting an exact Preview digest to Stable requires the same
 qualification as a direct Stable and does not move Latest. A qualified Stable
 takes or reclaims Latest by default; a separately protected single-use pointer
 operation may instead select any exact published Stable or Preview while
-preserving its quality. A Preview selection discloses non-Stable and skipped or
-failed gates; a Stable selection proves stable qualification and has no
-non-Stable disclosure. A cohort can be invalidated only by a frozen byte, tree,
-or digest mismatch; an artifact build or integrity failure; or an explicit
-security revocation bound to a frozen ref or digest.
+preserving its quality. The selection must resolve a retained
+`carrier_owned_durable_publication_record` that binds the carrier namespace,
+exact version/tag, immutable artifact/image digest, quality classification,
+qualification disclosure, and public readback. An Actions artifact is
+prepublication transport or diagnostic evidence only and cannot make a version
+selectable after it expires. A Preview selection discloses non-Stable and
+skipped or failed gates; a Stable selection proves stable qualification and has
+no non-Stable disclosure. A cohort can be invalidated only by a frozen byte,
+tree, or digest mismatch; an artifact build or integrity failure; or an
+explicit security revocation bound to a frozen ref or digest.
 
 ## Commands
 

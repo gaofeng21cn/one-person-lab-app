@@ -222,6 +222,8 @@ export function validateReleaseChannelContract(releaseChannel, shellPaths = null
 
 function validateDistributionSemantics(semantics) {
   const latest = semantics?.latest_policy;
+  const selector = latest?.durable_publication_record_selector;
+  const dockerOverride = latest?.docker_manual_override;
   if (
     latest?.default_automatic_writer !== 'newest_qualified_stable'
     || latest?.default_behavior !==
@@ -243,9 +245,56 @@ function validateDistributionSemantics(semantics) {
     || latest?.next_qualified_stable_reclaims_pointer !== true
     || latest?.latest_pointer_does_not_define_highest_published_stable !== true
     || latest?.failure_preserves_current_latest_lkg !== true
+    || selector?.selector !== 'carrier_owned_durable_publication_record'
+    || selector?.candidate_target !== 'retained_immutable_verified_published_version'
+    || selector?.actions_artifact?.selection_authority !== false
+    || selector?.actions_artifact?.expiry_or_retention_may_change_selection_eligibility !== false
+    || selector?.actions_artifact?.allowed_role !== 'transient_prepublication_transport_or_diagnostic_evidence_only'
+    || selector?.retention?.selection_eligible_state !== 'retained_not_retired_or_revoked'
+    || selector?.retention?.record_must_remain_readable_until_retired !== true
+    || selector?.retention?.retired_or_revoked_record_selectable !== false
+    || dockerOverride?.target !== 'retained_immutable_verified_published_version'
+    || dockerOverride?.requires_explicit_user_confirmation !== true
+    || dockerOverride?.selector !== 'carrier_owned_durable_publication_record'
+    || dockerOverride?.compare_and_swap !== 'exact_expected_current'
+    || dockerOverride?.fresh_public_readback_required !== true
   ) {
     throw new Error('Distribution Latest semantics must keep carrier pointers independent from Stable quality while requiring exact explicit overrides');
   }
+  assertDeepEqualJson(
+    selector.candidate_record_must_bind,
+    [
+      'carrier_namespace',
+      'exact_version_or_tag',
+      'immutable_artifact_or_image_digest',
+      'quality_status_and_preview_kind',
+      'qualification_disclosure',
+      'public_readback',
+    ],
+    'Durable publication record selector bindings',
+  );
+  assertDeepEqualJson(
+    selector.evidence_requirements,
+    {
+      stable: ['stable_qualification', 'exact_immutable_digest', 'carrier_public_readback'],
+      preview: [
+        'exact_immutable_digest',
+        'carrier_public_readback',
+        'non_stable_and_skipped_or_failed_gate_disclosure',
+      ],
+    },
+    'Durable publication record evidence requirements',
+  );
+  assertDeepEqualJson(
+    dockerOverride.mutation_scope,
+    ['container_webui.latest'],
+    'Docker manual override mutation scope',
+  );
+  assertDeepEqualJson(
+    dockerOverride.must_not_mutate,
+    ['container_webui.stable', 'desktop.latest'],
+    'Docker manual override protected pointers',
+  );
   assertDeepEqualJson(
     latest.explicit_user_override.quality_statuses,
     ['stable', 'preview'],
