@@ -50,6 +50,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PULL_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pull_number || github.event.pull_request.number }}
-          CODEX_REVIEW_WAIT_SECONDS: ${{ github.event_name == 'pull_request_target' && '900' || '0' }}
+          CODEX_REVIEW_WAIT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && '0' || '900' }}
           CODEX_REVIEW_POLL_SECONDS: '30'
         run: node --experimental-strip-types scripts/codex-review-gate.ts

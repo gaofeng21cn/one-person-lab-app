@@ -88,6 +88,7 @@ test('Codex review gate workflow keeps the check pending until a terminal result
   assert.match(workflow.jobs.gate.if, /pull_request\.draft/);
   assert.equal(workflow.jobs.gate.steps[0].with.ref, '${{ github.event.repository.default_branch }}');
   assert.match(source, /CODEX_REVIEW_WAIT_SECONDS/);
+  assert.match(source, /github\.event_name == 'workflow_dispatch' && '0' \|\| '900'/);
   assert.match(source, /scripts\/codex-review-gate\.ts/);
   assert.match(source, /pull_request_target/);
 });
