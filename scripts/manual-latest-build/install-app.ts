@@ -24,6 +24,9 @@ export type ManualAppVersionIdentity = {
   public_updater_version: string;
   bundle_version: string;
   build_kind: string | null;
+  local_build_id: string | null;
+  updater_policy: string | null;
+  auto_update_disabled: boolean;
   source_provenance_sha256: string | null;
   source_lock_sha256: string | null;
   cf_bundle_short_version: string;
@@ -128,6 +131,21 @@ function waitForInstalledApp(appPath: string) {
   throw new Error(`Installed App did not start within 30 seconds: ${appPath}`);
 }
 
+export function manualAppLaunchArgs(
+  appPath: string,
+  environment: NodeJS.ProcessEnv = process.env,
+) {
+  const cdpPort = environment.AIONUI_CDP_PORT?.trim();
+  if (!cdpPort) return [appPath];
+  if (
+    !/^[1-9]\d{0,4}$/.test(cdpPort)
+    || Number(cdpPort) > 65_535
+  ) {
+    throw new Error(`Invalid AIONUI_CDP_PORT for installed App launch: ${cdpPort}`);
+  }
+  return ['--env', `AIONUI_CDP_PORT=${cdpPort}`, appPath];
+}
+
 function stopInstalledApp(appPath: string, bundleId: string) {
   const initial = appProcessIds(appPath);
   if (initial.length === 0) return { was_running: false, stopped_pids: [] as number[] };
@@ -201,6 +219,10 @@ export function readAppVersionIdentity(appPath: string): ManualAppVersionIdentit
     public_updater_version: publicUpdaterVersion,
     bundle_version: shortVersion,
     build_kind: optionalPlistValue(appPath, 'OPLBuildKind'),
+    local_build_id: optionalPlistValue(appPath, 'OPLLocalBuildID'),
+    updater_policy: optionalPlistValue(appPath, 'OPLUpdaterPolicy'),
+    auto_update_disabled:
+      optionalPlistValue(appPath, 'LSEnvironment.AIONUI_DISABLE_AUTO_UPDATE') === '1',
     source_provenance_sha256: optionalPlistValue(appPath, 'OPLSourceProvenanceSHA256'),
     source_lock_sha256: optionalPlistValue(appPath, 'OPLSourceLockSHA256'),
     cf_bundle_short_version: shortVersion,
@@ -235,22 +257,29 @@ export function assertManualAppVersionIdentity(
     || actual.display_version !== expected.display_version
     || actual.updater_version !== expected.public_updater_version
     || actual.public_updater_version !== expected.public_updater_version
-    || actual.bundle_version !== expected.bundle_version
+    || actual.bundle_version !== expected.machine_version
     || actual.build_kind !== expected.build_kind
+    || actual.local_build_id !== expected.local_build_id
+    || actual.updater_policy !== expected.updater_policy
+    || !actual.auto_update_disabled
     || actual.source_provenance_sha256 !== expected.source_provenance_sha256
     || actual.source_lock_sha256 !== expected.source_lock_sha256
-    || actual.cf_bundle_short_version !== expected.bundle_version
-    || actual.cf_bundle_version !== expected.bundle_version) {
+    || actual.cf_bundle_short_version !== expected.machine_version
+    || actual.cf_bundle_version !== expected.machine_version) {
     throw new Error(
       'Built App version identity mismatch: '
       + `bundle_id=${actual.bundle_id} display=${actual.display_version ?? '<missing>'} `
-      + `updater=${actual.updater_version} local_bundle=${actual.bundle_version} `
+      + `updater=${actual.updater_version} machine=${actual.bundle_version} `
       + `build_kind=${actual.build_kind ?? '<missing>'} `
+      + `local_build_id=${actual.local_build_id ?? '<missing>'} `
+      + `updater_policy=${actual.updater_policy ?? '<missing>'} `
+      + `auto_update_disabled=${actual.auto_update_disabled} `
       + `source_provenance=${actual.source_provenance_sha256 ?? '<missing>'} `
       + `source_lock=${actual.source_lock_sha256 ?? '<missing>'} `
       + `short=${actual.cf_bundle_short_version} bundle=${actual.cf_bundle_version}; `
       + `expected display=${expected.display_version} updater=${expected.public_updater_version} `
-      + `local_bundle=${expected.bundle_version} source_lock=${expected.source_lock_sha256}`,
+      + `machine=${expected.machine_version} local_build_id=${expected.local_build_id} `
+      + `source_lock=${expected.source_lock_sha256}`,
     );
   }
 }
@@ -268,6 +297,7 @@ export function installLocalApp(input: {
   if (!installPath.endsWith('.app') || installPath === '/' || installPath === path.parse(installPath).root) {
     throw new Error(`Unsafe App install path: ${installPath}`);
   }
+  const launchArgs = input.launch ? manualAppLaunchArgs(installPath) : null;
   const built = verifyApp(input.builtApp);
   assertManualAppVersionIdentity(built, input.expectedVersionIdentity);
 
@@ -315,7 +345,7 @@ export function installLocalApp(input: {
     assertManualAppVersionIdentity(installed, input.expectedVersionIdentity);
     if (input.launch) {
       phase = 'launch_installed';
-      commandResult('open', [installPath], { timeoutMs: 30_000 });
+      commandResult('open', launchArgs!, { timeoutMs: 30_000 });
       launchProcessIds = waitForInstalledApp(installPath);
       phase = 'verify_launched';
       installed = verifyApp(installPath);

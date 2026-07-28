@@ -10,12 +10,14 @@ import { findBuiltApp } from './build-full-first-install-package/archive-output.
 import {
   assertReleaseVersionNotFuture,
   assertUpdaterVersionMatchesDisplay,
+  resolveReleaseVersionIdentity,
 } from './release-version.ts';
 import {
   assertDevelopmentRepoSnapshotsUnchanged,
   commandResult,
   deriveManualLocalAppIdentity,
   fileSha256,
+  githubApi,
   manualVersions,
   manualSourceProvenanceSha256,
   readJson,
@@ -527,7 +529,7 @@ function persistInstallationFailure(
     mode: 'local-app',
     display_version: options.version,
     updater_version: options.updaterVersion,
-    bundle_version: buildIdentity.bundle_version,
+    bundle_version: buildIdentity.machine_version,
     build_identity: buildIdentity,
     source_lock_sha256: fileSha256(sourceLockPath),
     source_lock: sourceLock,
@@ -587,9 +589,24 @@ function parseOptions(argv: string[]) {
   if (mode === 'full-dmg' && values['install-path']) {
     throw new Error('--install-path is supported only for local-app');
   }
-  const defaults = manualVersions();
-  const version = values.version?.trim() || defaults.displayVersion;
-  const updaterVersion = values['updater-version']?.trim() || defaults.updaterVersion;
+  let version = values.version?.trim() || '';
+  if (!version) {
+    const latestStable = githubApi<{
+      tag_name?: unknown;
+      draft?: unknown;
+      prerelease?: unknown;
+    }>('repos/gaofeng21cn/one-person-lab-app/releases/latest');
+    if (
+      typeof latestStable.tag_name !== 'string'
+      || latestStable.draft === true
+      || latestStable.prerelease === true
+    ) {
+      throw new Error('Latest public Stable release identity is incomplete');
+    }
+    version = manualVersions(new Date(), latestStable.tag_name).displayVersion;
+  }
+  const updaterVersion = values['updater-version']?.trim()
+    || resolveReleaseVersionIdentity('stable', version).updaterVersion;
   assertReleaseVersionNotFuture('stable', version);
   assertUpdaterVersionMatchesDisplay('stable', version, updaterVersion);
   const workspaceRoot = path.resolve(values['workspace-root'] || path.dirname(appRoot));
@@ -629,12 +646,12 @@ function printHelp() {
   bun run manual:full-dmg -- [options]
 
 Shared policy:
-  - self-developed App, Shell, Framework, and first-party packages come from clean development-directory main HEADs
+  - self-developed App, Shell, Framework, and first-party packages come from clean fresh remote origin/main HEADs
   - external companions come from the latest official stable GitHub Release and must match its sha256 digest
 
 Options:
-  --version <YY.M.D>              Display version (default: current Asia/Shanghai date)
-  --updater-version <YY.M.D00>    Machine updater version (default: current date + 00)
+  --version <YY.M.D[-rN]>         Display version (default: latest same-day Stable, else today's r0)
+  --updater-version <YY.M.DNN>    Machine version derived from the selected display revision
   --workspace-root <path>         Development repositories root
   --out-dir <path>                Evidence/DMG output directory
   --install-path <path>           local-app target (default: /Applications/One Person Lab.app)
@@ -746,8 +763,8 @@ function runBuild(
     cwd: appRoot,
     env: {
       ...buildEnvironment(snapshots),
-      OPL_MANUAL_LOCAL_BUNDLE_VERSION: options.mode === 'local-app'
-        ? buildIdentity.bundle_version
+      OPL_MANUAL_LOCAL_BUILD_ID: options.mode === 'local-app'
+        ? buildIdentity.local_build_id
         : '',
       OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256: options.mode === 'local-app'
         ? buildIdentity.source_provenance_sha256
@@ -819,7 +836,7 @@ function main() {
       display_version: options.version,
       updater_version: options.updaterVersion,
       source_policy: {
-        self_developed: 'clean_development_directory_main_head',
+        self_developed: 'clean_fresh_remote_canonical_origin_main_head',
         external_companions: 'latest_official_stable_github_release_digest_verified',
         package_selection: 'actual_selected_source_commits_recorded_in_full_package_manifest',
       },
@@ -921,8 +938,11 @@ function main() {
       display_version: options.version,
       updater_version: options.updaterVersion,
       bundle_version: options.mode === 'local-app'
-        ? stampedLocalAppIdentity.bundle_version
+        ? stampedLocalAppIdentity.machine_version
         : options.updaterVersion,
+      local_build_id: options.mode === 'local-app'
+        ? stampedLocalAppIdentity.local_build_id
+        : null,
       build_identity: options.mode === 'local-app' ? stampedLocalAppIdentity : null,
       source_lock: sourceLockPath,
       source_lock_sha256: sourceLockSha256,

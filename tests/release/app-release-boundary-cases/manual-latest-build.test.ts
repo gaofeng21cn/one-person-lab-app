@@ -16,6 +16,7 @@ import {
 import {
   assertManualAppVersionIdentity,
   installLocalApp,
+  manualAppLaunchArgs,
   ManualAppInstallationError,
   readAppVersionIdentity,
 } from '../../../scripts/manual-latest-build/install-app.ts';
@@ -192,6 +193,7 @@ function createTestApp(
     marker?: string;
     buildIdentity?: {
       publicUpdaterVersion: string;
+      localBuildId: string;
       sourceProvenanceSha256: string;
       sourceLockSha256: string;
     };
@@ -203,12 +205,21 @@ function createTestApp(
     ? `
   <key>OPLBuildKind</key>
   <string>local-development</string>
+  <key>OPLLocalBuildID</key>
+  <string>${input.buildIdentity.localBuildId}</string>
   <key>OPLPublicUpdaterVersion</key>
   <string>${input.buildIdentity.publicUpdaterVersion}</string>
+  <key>OPLUpdaterPolicy</key>
+  <string>disabled-local-development</string>
   <key>OPLSourceProvenanceSHA256</key>
   <string>${input.buildIdentity.sourceProvenanceSha256}</string>
   <key>OPLSourceLockSHA256</key>
   <string>${input.buildIdentity.sourceLockSha256}</string>`
+    : '';
+  const updaterGuard = input.buildIdentity
+    ? `
+    <key>AIONUI_DISABLE_AUTO_UPDATE</key>
+    <string>1</string>`
     : '';
   fs.mkdirSync(manifestRoot, { recursive: true });
   fs.writeFileSync(path.join(contents, 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
@@ -221,6 +232,11 @@ function createTestApp(
   <string>${input.updaterVersion}</string>
   <key>CFBundleVersion</key>
   <string>${input.updaterVersion}</string>${buildIdentity}
+  <key>LSEnvironment</key>
+  <dict>
+    <key>MallocNanoZone</key>
+    <string>0</string>${updaterGuard}
+  </dict>
 </dict>
 </plist>
 `, 'utf8');
@@ -276,9 +292,43 @@ test('manual latest versions use the Asia/Shanghai date and monotonic updater en
     displayVersion: '26.7.21',
     updaterVersion: '26.7.2100',
   });
+  assert.deepEqual(
+    manualVersions(
+      new Date('2026-07-28T12:00:00Z'),
+      'v26.7.28-r3',
+    ),
+    {
+      displayVersion: '26.7.28-r3',
+      updaterVersion: '26.7.2803',
+    },
+  );
+  assert.deepEqual(
+    manualVersions(
+      new Date('2026-07-28T12:00:00Z'),
+      'v26.7.27-r2',
+    ),
+    {
+      displayVersion: '26.7.28',
+      updaterVersion: '26.7.2800',
+    },
+  );
+  assert.throws(
+    () => manualVersions(
+      new Date('2026-07-28T12:00:00Z'),
+      'v26.7.29',
+    ),
+    /newer than the current Asia\/Shanghai date/,
+  );
+  assert.throws(
+    () => manualVersions(
+      new Date('2026-07-28T12:00:00Z'),
+      'latest',
+    ),
+    /not canonical/,
+  );
 });
 
-test('manual local App identity is deterministic and cannot equal its public Stable updater version', () => {
+test('manual local App identity is deterministic without corrupting the updater machine version', () => {
   const sourceProvenanceSha256 = manualSourceProvenanceSha256({
     schema: 'opl_manual_latest_build_source_lock.v1',
     display_version: '26.7.28-r3',
@@ -293,11 +343,13 @@ test('manual local App identity is deterministic and cannot equal its public Sta
   assert.deepEqual(identity, {
     build_kind: 'local-development',
     public_updater_version: '26.7.2803',
-    bundle_version: `26.7.2803-local.src${sourceProvenanceSha256.slice(0, 12)}`,
+    machine_version: '26.7.2803',
+    local_build_id: `local.src${sourceProvenanceSha256.slice(0, 12)}`,
+    updater_policy: 'disabled-local-development',
     source_provenance_sha256: sourceProvenanceSha256,
   });
-  assert.notEqual(identity.bundle_version, identity.public_updater_version);
-  assert.match(identity.bundle_version, /^\d+\.\d+\.\d+-local\.src[0-9a-f]{12}$/);
+  assert.equal(identity.machine_version, identity.public_updater_version);
+  assert.match(identity.local_build_id, /^local\.src[0-9a-f]{12}$/);
   assert.throws(
     () => deriveManualLocalAppIdentity('26.7.2803', 'not-a-digest'),
     /source provenance SHA-256/,
@@ -317,7 +369,7 @@ test('manual local App plist stamping exposes public updater and source-lock pro
   };
   createTestApp(appPath, {
     displayVersion: expected.display_version,
-    updaterVersion: expected.bundle_version,
+    updaterVersion: expected.machine_version,
   });
 
   stampManualLocalAppIdentity(appPath, expected);
@@ -325,8 +377,18 @@ test('manual local App plist stamping exposes public updater and source-lock pro
   const actual = readAppVersionIdentity(appPath);
   assert.doesNotThrow(() => assertManualAppVersionIdentity(actual, expected));
   assert.equal(actual.public_updater_version, '26.7.2803');
-  assert.equal(actual.bundle_version, '26.7.2803-local.srcaaaaaaaaaaaa');
+  assert.equal(actual.bundle_version, '26.7.2803');
+  assert.equal(actual.local_build_id, 'local.srcaaaaaaaaaaaa');
+  assert.equal(actual.updater_policy, 'disabled-local-development');
+  assert.equal(actual.auto_update_disabled, true);
   assert.equal(actual.source_lock_sha256, 'b'.repeat(64));
+  assert.equal(
+    execFileSync('plutil', [
+      '-extract', 'LSEnvironment.MallocNanoZone', 'raw', '-o', '-',
+      path.join(appPath, 'Contents', 'Info.plist'),
+    ], { encoding: 'utf8' }).trim(),
+    '0',
+  );
 });
 
 test('full package app-only build fails closed without manual local identity', () => {
@@ -341,7 +403,7 @@ test('full package app-only build fails closed without manual local identity', (
     encoding: 'utf8',
     env: {
       ...process.env,
-      OPL_MANUAL_LOCAL_BUNDLE_VERSION: '',
+      OPL_MANUAL_LOCAL_BUILD_ID: '',
       OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256: '',
       OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256: '',
     },
@@ -349,7 +411,7 @@ test('full package app-only build fails closed without manual local identity', (
   assert.notEqual(result.status, 0);
   assert.match(
     result.stderr,
-    /Manual local App build requires bundle version, source provenance, and source-lock identity/,
+    /Manual local App build requires local build ID, source provenance, and source-lock identity/,
   );
 });
 
@@ -480,7 +542,7 @@ test('manual AionCore Codex binding rejects incomplete, ambiguous, escaped, or d
   });
 });
 
-test('manual App identity separates public updater identity from local CFBundle identity and provenance', () => {
+test('manual App identity preserves machine SemVer and binds local provenance plus updater policy', () => {
   const expected = {
     display_version: '26.7.21',
     ...deriveManualLocalAppIdentity('26.7.2100', 'a'.repeat(64)),
@@ -491,12 +553,15 @@ test('manual App identity separates public updater identity from local CFBundle 
     display_version: '26.7.21',
     updater_version: '26.7.2100',
     public_updater_version: '26.7.2100',
-    bundle_version: expected.bundle_version,
+    bundle_version: expected.machine_version,
     build_kind: 'local-development',
+    local_build_id: expected.local_build_id,
+    updater_policy: expected.updater_policy,
+    auto_update_disabled: true,
     source_provenance_sha256: 'a'.repeat(64),
     source_lock_sha256: 'b'.repeat(64),
-    cf_bundle_short_version: expected.bundle_version,
-    cf_bundle_version: expected.bundle_version,
+    cf_bundle_short_version: expected.machine_version,
+    cf_bundle_version: expected.machine_version,
     full_manifest: '/tmp/full-package-manifest.json',
   };
   assert.doesNotThrow(() => assertManualAppVersionIdentity(identity, expected));
@@ -504,9 +569,7 @@ test('manual App identity separates public updater identity from local CFBundle 
     () => assertManualAppVersionIdentity(
       {
         ...identity,
-        bundle_version: '26.7.2100',
-        cf_bundle_short_version: '26.7.2100',
-        cf_bundle_version: '26.7.2100',
+        local_build_id: 'local.src000000000000',
       },
       expected,
     ),
@@ -525,6 +588,19 @@ test('manual App identity separates public updater identity from local CFBundle 
       expected,
     ),
     /source_lock=<missing>/,
+  );
+});
+
+test('manual App launch forwards an explicit valid CDP port without changing the default', () => {
+  const appPath = '/Applications/One Person Lab.app';
+  assert.deepEqual(manualAppLaunchArgs(appPath, {}), [appPath]);
+  assert.deepEqual(
+    manualAppLaunchArgs(appPath, { AIONUI_CDP_PORT: '9230' }),
+    ['--env', 'AIONUI_CDP_PORT=9230', appPath],
+  );
+  assert.throws(
+    () => manualAppLaunchArgs(appPath, { AIONUI_CDP_PORT: '65536' }),
+    /Invalid AIONUI_CDP_PORT/,
   );
 });
 
@@ -555,9 +631,10 @@ test('manual installer replaces a runtime-mutated baseline and types a failed re
     });
     createTestApp(successBuilt, {
       displayVersion: '26.7.21',
-      updaterVersion: expectedVersionIdentity.bundle_version,
+      updaterVersion: expectedVersionIdentity.machine_version,
       buildIdentity: {
         publicUpdaterVersion: expectedVersionIdentity.public_updater_version,
+        localBuildId: expectedVersionIdentity.local_build_id,
         sourceProvenanceSha256: expectedVersionIdentity.source_provenance_sha256,
         sourceLockSha256: expectedVersionIdentity.source_lock_sha256,
       },
@@ -583,7 +660,7 @@ test('manual installer replaces a runtime-mutated baseline and types a failed re
     );
     assert.equal(
       completed.installed_version.bundle_version,
-      expectedVersionIdentity.bundle_version,
+      expectedVersionIdentity.machine_version,
     );
     assert.equal(
       completed.installed_version.source_lock_sha256,
@@ -602,9 +679,10 @@ test('manual installer replaces a runtime-mutated baseline and types a failed re
     });
     createTestApp(failureBuilt, {
       displayVersion: '26.7.21',
-      updaterVersion: expectedVersionIdentity.bundle_version,
+      updaterVersion: expectedVersionIdentity.machine_version,
       buildIdentity: {
         publicUpdaterVersion: expectedVersionIdentity.public_updater_version,
+        localBuildId: expectedVersionIdentity.local_build_id,
         sourceProvenanceSha256: expectedVersionIdentity.source_provenance_sha256,
         sourceLockSha256: expectedVersionIdentity.source_lock_sha256,
       },
@@ -663,6 +741,19 @@ test('manual source snapshot gate rejects tracked source dirtiness after freeze'
   );
 });
 
+test('manual source snapshot gate rejects untracked source dirtiness after freeze', (context) => {
+  const root = createDevelopmentRepo();
+  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const frozen = snapshotDevelopmentRepo('fixture', root);
+
+  fs.writeFileSync(path.join(root, 'injected-source.ts'), 'export const injected = true;\n');
+
+  assert.throws(
+    () => assertDevelopmentRepoSnapshotUnchanged(frozen),
+    /fixture source snapshot became invalid during manual latest build:.*not clean/s,
+  );
+});
+
 test('manual source snapshot gate rejects main advancement after freeze', (context) => {
   const root = createDevelopmentRepo();
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -678,7 +769,26 @@ test('manual source snapshot gate rejects main advancement after freeze', (conte
   );
 });
 
-test('manual source snapshot gate ignores remote-tracking advancement after freeze', (context) => {
+test('manual source snapshot accepts a clean detached canonical origin/main HEAD', (context) => {
+  const root = createDevelopmentRepo();
+  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+  }).trim();
+  execFileSync('git', ['update-ref', 'refs/remotes/origin/main', head], {
+    cwd: root,
+  });
+  execFileSync('git', ['checkout', '--detach', head], { cwd: root });
+
+  const snapshot = snapshotDevelopmentRepo('fixture', root);
+
+  assert.equal(snapshot.branch, '');
+  assert.equal(snapshot.head, head);
+  assert.equal(snapshot.origin_main, head);
+});
+
+test('manual source snapshot rejects a clean local main behind fetched origin/main', (context) => {
   const root = createDevelopmentRepo();
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const initialHead = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -688,7 +798,6 @@ test('manual source snapshot gate ignores remote-tracking advancement after free
   execFileSync('git', ['update-ref', 'refs/remotes/origin/main', initialHead], {
     cwd: root,
   });
-  const frozen = snapshotDevelopmentRepo('fixture', root);
   const tree = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], {
     cwd: root,
     encoding: 'utf8',
@@ -705,10 +814,62 @@ test('manual source snapshot gate ignores remote-tracking advancement after free
     { cwd: root },
   );
 
-  assert.notEqual(
-    snapshotDevelopmentRepo('fixture', root).origin_main,
-    frozen.origin_main,
+  assert.throws(
+    () => snapshotDevelopmentRepo('fixture', root),
+    /fixture must use the fetched canonical origin\/main HEAD/,
   );
+});
+
+test('manual source snapshot rejects a stale tracking ref after remote main advances', (context) => {
+  const root = createDevelopmentRepo();
+  const remoteRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-manual-source-remote-'));
+  context.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  });
+  const bare = path.join(remoteRoot, 'origin.git');
+  const publisher = path.join(remoteRoot, 'publisher');
+  execFileSync('git', ['init', '--bare', '--initial-branch=main', bare]);
+  execFileSync('git', ['remote', 'add', 'origin', bare], { cwd: root });
+  execFileSync('git', ['push', '-u', 'origin', 'main'], { cwd: root });
+  assert.doesNotThrow(() => snapshotDevelopmentRepo('fixture', root));
+
+  execFileSync('git', ['clone', bare, publisher]);
+  execFileSync('git', ['config', 'user.name', 'OPL Publisher'], { cwd: publisher });
+  execFileSync('git', ['config', 'user.email', 'publisher@example.invalid'], { cwd: publisher });
+  fs.writeFileSync(path.join(publisher, 'source.txt'), 'remote advanced\n');
+  execFileSync('git', ['add', 'source.txt'], { cwd: publisher });
+  execFileSync('git', ['commit', '-m', 'remote advance'], { cwd: publisher });
+  execFileSync('git', ['push', 'origin', 'main'], { cwd: publisher });
+
+  assert.throws(
+    () => snapshotDevelopmentRepo('fixture', root),
+    /fixture fetched origin\/main is stale/,
+  );
+});
+
+test('manual source snapshot remains valid when remote main advances after freeze', (context) => {
+  const root = createDevelopmentRepo();
+  const remoteRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-manual-source-remote-'));
+  context.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  });
+  const bare = path.join(remoteRoot, 'origin.git');
+  const publisher = path.join(remoteRoot, 'publisher');
+  execFileSync('git', ['init', '--bare', '--initial-branch=main', bare]);
+  execFileSync('git', ['remote', 'add', 'origin', bare], { cwd: root });
+  execFileSync('git', ['push', '-u', 'origin', 'main'], { cwd: root });
+  const frozen = snapshotDevelopmentRepo('fixture', root);
+
+  execFileSync('git', ['clone', bare, publisher]);
+  execFileSync('git', ['config', 'user.name', 'OPL Publisher'], { cwd: publisher });
+  execFileSync('git', ['config', 'user.email', 'publisher@example.invalid'], { cwd: publisher });
+  fs.writeFileSync(path.join(publisher, 'source.txt'), 'remote advanced\n');
+  execFileSync('git', ['add', 'source.txt'], { cwd: publisher });
+  execFileSync('git', ['commit', '-m', 'remote advance'], { cwd: publisher });
+  execFileSync('git', ['push', 'origin', 'main'], { cwd: publisher });
+
   assert.doesNotThrow(() => assertDevelopmentRepoSnapshotUnchanged(frozen));
 });
 

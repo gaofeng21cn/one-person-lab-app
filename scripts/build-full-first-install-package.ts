@@ -45,7 +45,7 @@ import {
   assertUpdaterVersionMatchesDisplay,
 } from './release-version.ts';
 
-const MANUAL_LOCAL_BUNDLE_VERSION_ENV = 'OPL_MANUAL_LOCAL_BUNDLE_VERSION';
+const MANUAL_LOCAL_BUILD_ID_ENV = 'OPL_MANUAL_LOCAL_BUILD_ID';
 const MANUAL_LOCAL_SOURCE_PROVENANCE_ENV = 'OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256';
 const MANUAL_LOCAL_SOURCE_LOCK_ENV = 'OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256';
 
@@ -95,26 +95,26 @@ function buildFullPublicReleaseManifest(input) {
 }
 
 function resolveManualLocalAppIdentity(options) {
-  const bundleVersion = process.env[MANUAL_LOCAL_BUNDLE_VERSION_ENV]?.trim() || '';
+  const localBuildId = process.env[MANUAL_LOCAL_BUILD_ID_ENV]?.trim() || '';
   const sourceProvenanceSha256 = process.env[MANUAL_LOCAL_SOURCE_PROVENANCE_ENV]?.trim() || '';
   const sourceLockSha256 = process.env[MANUAL_LOCAL_SOURCE_LOCK_ENV]?.trim() || '';
-  const supplied = [bundleVersion, sourceProvenanceSha256, sourceLockSha256].some(Boolean);
+  const supplied = [localBuildId, sourceProvenanceSha256, sourceLockSha256].some(Boolean);
   if (!options.appOnly) {
     if (supplied) {
       throw new Error('Manual local App identity is allowed only with --app-only');
     }
     return null;
   }
-  if (!bundleVersion || !sourceProvenanceSha256 || !sourceLockSha256) {
+  if (!localBuildId || !sourceProvenanceSha256 || !sourceLockSha256) {
     throw new Error(
-      'Manual local App build requires bundle version, source provenance, and source-lock identity',
+      'Manual local App build requires local build ID, source provenance, and source-lock identity',
     );
   }
   const expected = deriveManualLocalAppIdentity(
     options.updaterVersion,
     sourceProvenanceSha256,
   );
-  if (bundleVersion !== expected.bundle_version || !/^[0-9a-f]{64}$/.test(sourceLockSha256)) {
+  if (localBuildId !== expected.local_build_id || !/^[0-9a-f]{64}$/.test(sourceLockSha256)) {
     throw new Error('Manual local App build identity does not match its public updater and source lock');
   }
   return {
@@ -207,7 +207,7 @@ function main() {
       env: {
         ...process.env,
         OPL_RELEASE_VERSION: options.version,
-        OPL_UPDATER_VERSION: manualLocalAppIdentity?.bundle_version ?? options.updaterVersion,
+        OPL_UPDATER_VERSION: options.updaterVersion,
         OPL_REQUIRE_FULL_RUNTIME: '1',
       },
     });
@@ -240,7 +240,8 @@ function main() {
       status: 'full_local_app_built',
       version: options.version,
       updater_version: options.updaterVersion,
-      bundle_version: manualLocalAppIdentity.bundle_version,
+      bundle_version: manualLocalAppIdentity.machine_version,
+      local_build_id: manualLocalAppIdentity.local_build_id,
       build_identity: manualLocalAppIdentity,
       app_bundle: builtApp,
       runtime_cache_events: runtimeCacheEventsPath,
