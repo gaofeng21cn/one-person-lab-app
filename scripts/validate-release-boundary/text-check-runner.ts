@@ -2081,7 +2081,7 @@ export function validateWebuiPublicationLatestPromotionTopology(appRoot: string)
   if (
     JSON.stringify(Object.keys(workflow.on ?? {})) !== JSON.stringify(['workflow_dispatch'])
     || JSON.stringify(Object.keys(workflow.on?.workflow_dispatch?.inputs ?? {}).sort()) !==
-      JSON.stringify(['publication_version'])
+      JSON.stringify(['operator_confirmation', 'publication_version'])
     || !exactObject(workflow.permissions, exactReadPermissions)
     || !exactObject(workflow.concurrency, {
       group: 'opl-webui-stable-promotion-global',
@@ -2113,6 +2113,9 @@ export function validateWebuiPublicationLatestPromotionTopology(appRoot: string)
   for (const required of [
     'webui-publication-record.ts',
     'webui-publication-promotion.ts admit',
+    'operator_confirmation',
+    'move-docker-latest:$PUBLICATION_VERSION',
+    'operator_evidence',
     'oras pull "$receipt_ref"',
     'oras tag "$target_ref" latest',
     'stable_unchanged:true',
@@ -2123,7 +2126,7 @@ export function validateWebuiPublicationLatestPromotionTopology(appRoot: string)
     }
   }
   if (
-    /release-webui-development\.yml|release-webui-stable\.yml|gh workflow run|gh run (?:rerun|cancel)|--force/.test(text)
+    /release-webui-development\.yml|release-webui-stable\.yml|gh workflow run|gh run (?:rerun|cancel)|--force|randomBytes|openssl rand|--nonce/.test(text)
     || /\boras tag\b[^\n]*\bstable\b/.test(text)
   ) {
     failures += reportFailure(

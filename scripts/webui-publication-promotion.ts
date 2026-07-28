@@ -11,6 +11,8 @@ import {
 
 const webuiRepository = 'ghcr.io/gaofeng21cn/one-person-lab-webui';
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
+const runIdPattern = /^[1-9][0-9]*$/;
+const githubActorPattern = /^[A-Za-z0-9-]+$/;
 
 type DescriptorStatus = 'present' | 'absent' | 'unknown';
 type PromotionDecision =
@@ -56,6 +58,35 @@ function digest(value: unknown, label: string): string {
   const normalized = text(value, label);
   if (!digestPattern.test(normalized)) throw new Error(`${label} must be an exact sha256 digest.`);
   return normalized;
+}
+
+function runId(value: unknown, label: string): string {
+  const normalized = text(value, label);
+  if (!runIdPattern.test(normalized)) throw new Error(`${label} must be a positive GitHub run id.`);
+  return normalized;
+}
+
+function runAttempt(value: unknown, label: string): number {
+  if (!Number.isSafeInteger(value) || value !== 1) {
+    throw new Error(`${label} must equal the first workflow attempt (1).`);
+  }
+  return 1;
+}
+
+function githubActor(value: unknown, label: string): string {
+  const normalized = text(value, label);
+  if (!githubActorPattern.test(normalized)) throw new Error(`${label} must be one GitHub login.`);
+  return normalized;
+}
+
+function textDigest(value: string): string {
+  return `sha256:${crypto.createHash('sha256').update(value, 'utf8').digest('hex')}`;
+}
+
+function operatorConfirmation(value: unknown, version: string, label: string): string {
+  const confirmed = text(value, label);
+  exact(confirmed, `move-docker-latest:${version}`, label);
+  return confirmed;
 }
 
 function descriptor(value: unknown, expectedRef: string, label: string): JsonRecord {
@@ -119,6 +150,135 @@ function writeJson(filePath: string, value: unknown): void {
   const resolved = path.resolve(filePath);
   fs.mkdirSync(path.dirname(resolved), { recursive: true });
   fs.writeFileSync(resolved, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function writeExclusiveJson(filePath: string, value: unknown): void {
+  const resolved = path.resolve(filePath);
+  fs.mkdirSync(path.dirname(resolved), { recursive: true });
+  const descriptor = fs.openSync(resolved, 'wx');
+  try {
+    fs.writeFileSync(descriptor, `${JSON.stringify(value, null, 2)}\n`);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+type LatestPromotionOperatorEvidence = {
+  schema: 'opl_app_webui_publication_latest_operator_evidence.v1';
+  status: 'confirmed';
+  operation: 'move_latest_pointer';
+  issuance: {
+    source: 'operator_confirmed_github_dispatch_input';
+    cryptographic_signature: false;
+  };
+  actor: string;
+  operator_confirmation: string;
+  operator_confirmation_digest: string;
+  run_id: string;
+  run_attempt: 1;
+  mutation_limit: 1;
+  admission_input_digest: string;
+  operator_evidence_digest: string;
+};
+
+function latestPromotionOperatorEvidence(
+  value: unknown,
+  version: string,
+  label = 'Latest operator evidence',
+): LatestPromotionOperatorEvidence {
+  const evidence = record(value, label) as Partial<LatestPromotionOperatorEvidence>;
+  exact(evidence.schema, 'opl_app_webui_publication_latest_operator_evidence.v1', `${label}.schema`);
+  exact(evidence.status, 'confirmed', `${label}.status`);
+  exact(evidence.operation, 'move_latest_pointer', `${label}.operation`);
+  const issuance = record(evidence.issuance, `${label}.issuance`);
+  exact(issuance.source, 'operator_confirmed_github_dispatch_input', `${label}.issuance.source`);
+  exact(issuance.cryptographic_signature, false, `${label}.issuance.cryptographic_signature`);
+  const confirmation = operatorConfirmation(
+    evidence.operator_confirmation,
+    version,
+    `${label}.operator_confirmation`,
+  );
+  const evidenceActor = githubActor(evidence.actor, `${label}.actor`);
+  const evidenceRunId = runId(evidence.run_id, `${label}.run_id`);
+  const evidenceRunAttempt = runAttempt(evidence.run_attempt, `${label}.run_attempt`);
+  exact(
+    evidence.operator_confirmation_digest,
+    textDigest(confirmation),
+    `${label}.operator_confirmation_digest`,
+  );
+  exact(evidence.mutation_limit, 1, `${label}.mutation_limit`);
+  const admissionInputDigest = digest(evidence.admission_input_digest, `${label}.admission_input_digest`);
+  const { operator_evidence_digest: declaredDigest, ...core } = evidence as JsonRecord;
+  exact(declaredDigest, objectDigest(core), `${label}.operator_evidence_digest`);
+  return {
+    schema: 'opl_app_webui_publication_latest_operator_evidence.v1',
+    status: 'confirmed',
+    operation: 'move_latest_pointer',
+    issuance: {
+      source: 'operator_confirmed_github_dispatch_input',
+      cryptographic_signature: false,
+    },
+    actor: evidenceActor,
+    operator_confirmation: confirmation,
+    operator_confirmation_digest: textDigest(confirmation),
+    run_id: evidenceRunId,
+    run_attempt: evidenceRunAttempt,
+    mutation_limit: 1,
+    admission_input_digest: admissionInputDigest,
+    operator_evidence_digest: String(declaredDigest),
+  };
+}
+
+function assertAdmissionOperatorEvidence(
+  admission: JsonRecord,
+  expectedRunId?: string,
+  expectedRunAttempt?: number,
+): LatestPromotionOperatorEvidence {
+  const version = text(record(admission.selector, 'admission.selector').publication_version, 'admission.selector.publication_version');
+  const evidence = latestPromotionOperatorEvidence(
+    admission.operator_evidence,
+    version,
+    'Latest admission.operator_evidence',
+  );
+  exact(evidence.admission_input_digest, admission.input_digest, 'Latest operator evidence.admission_input_digest');
+  if (expectedRunId !== undefined) exact(evidence.run_id, expectedRunId, 'Latest operator evidence.run_id');
+  if (expectedRunAttempt !== undefined) exact(evidence.run_attempt, expectedRunAttempt, 'Latest operator evidence.run_attempt');
+  return evidence;
+}
+
+function assertAdmissionIntegrity(admission: JsonRecord): LatestPromotionOperatorEvidence {
+  const state = {
+    selector: admission.selector,
+    target: admission.target,
+    expected_prestate: admission.expected_prestate,
+  };
+  exact(admission.input_digest, objectDigest(state), 'Latest admission.input_digest');
+  return assertAdmissionOperatorEvidence(admission);
+}
+
+function latestPromotionConsumption(
+  value: unknown,
+  admission: JsonRecord,
+  decision: JsonRecord,
+): JsonRecord {
+  const consumption = record(value, 'Latest consumption');
+  exact(consumption.schema, 'opl_app_webui_publication_latest_consumption.v1', 'Latest consumption.schema');
+  exact(consumption.status, 'consumed', 'Latest consumption.status');
+  exact(consumption.operation, 'move_latest_pointer', 'Latest consumption.operation');
+  const operatorEvidence = assertAdmissionIntegrity(admission);
+  exact(consumption.run_id, operatorEvidence.run_id, 'Latest consumption.run_id');
+  exact(consumption.run_attempt, operatorEvidence.run_attempt, 'Latest consumption.run_attempt');
+  exact(
+    consumption.operator_evidence_digest,
+    operatorEvidence.operator_evidence_digest,
+    'Latest consumption.operator_evidence_digest',
+  );
+  exact(consumption.admission_input_digest, admission.input_digest, 'Latest consumption.admission_input_digest');
+  exact(consumption.decision_input_digest, decision.input_digest, 'Latest consumption.decision_input_digest');
+  exact(consumption.authorized_tag_attempts, 1, 'Latest consumption.authorized_tag_attempts');
+  const { consumption_digest: declaredDigest, ...core } = consumption;
+  exact(declaredDigest, objectDigest(core), 'Latest consumption.consumption_digest');
+  return consumption;
 }
 
 function admissionTarget(admission: JsonRecord): {
@@ -185,6 +345,10 @@ export type WebuiPublicationLatestAdmissionInput = {
   versionReadback: JsonRecord;
   stablePrestate: JsonRecord;
   latestPrestate: JsonRecord;
+  actor: string;
+  operatorConfirmation: string;
+  runId: string;
+  runAttempt: number;
 };
 
 export function admitWebuiPublicationLatestPromotion(
@@ -207,6 +371,14 @@ export function admitWebuiPublicationLatestPromotion(
   const latest = expectedPrestate(input.latestPrestate, latestRef, 'Latest prestate');
   const classification = record(publication.classification, 'publication.classification');
   const authority = record(publication.authority, 'publication.authority');
+  const confirmation = operatorConfirmation(
+    input.operatorConfirmation,
+    selectorVersion,
+    'Latest admission operator confirmation',
+  );
+  const actor = githubActor(input.actor, 'Latest admission actor');
+  const controlRunId = runId(input.runId, 'Latest admission run id');
+  const controlRunAttempt = runAttempt(input.runAttempt, 'Latest admission run attempt');
   const selector = {
     source: 'durable_webui_publication_record',
     publication_id: text(publication.publication_id, 'publication.publication_id'),
@@ -233,12 +405,34 @@ export function admitWebuiPublicationLatestPromotion(
     target,
     expected_prestate: { stable, latest },
   };
+  const inputDigest = objectDigest(state);
+  const operatorEvidenceCore = {
+    schema: 'opl_app_webui_publication_latest_operator_evidence.v1',
+    status: 'confirmed',
+    operation: 'move_latest_pointer',
+    issuance: {
+      source: 'operator_confirmed_github_dispatch_input',
+      cryptographic_signature: false,
+    },
+    actor,
+    operator_confirmation: confirmation,
+    operator_confirmation_digest: textDigest(confirmation),
+    run_id: controlRunId,
+    run_attempt: controlRunAttempt,
+    mutation_limit: 1,
+    admission_input_digest: inputDigest,
+  };
+  const operatorEvidence = {
+    ...operatorEvidenceCore,
+    operator_evidence_digest: objectDigest(operatorEvidenceCore),
+  };
   return {
     schema: 'opl_app_webui_publication_latest_admission.v1',
     status: 'passed',
     mutation_admitted: true,
-    input_digest: objectDigest(state),
+    input_digest: inputDigest,
     ...state,
+    operator_evidence: operatorEvidence,
   };
 }
 
@@ -251,6 +445,7 @@ export function decideWebuiPublicationLatestPromotion(
   exact(admission.schema, 'opl_app_webui_publication_latest_admission.v1', 'Latest admission.schema');
   exact(admission.status, 'passed', 'Latest admission.status');
   exact(admission.mutation_admitted, true, 'Latest admission.mutation_admitted');
+  assertAdmissionIntegrity(admission);
   const target = admissionTarget(admission);
   const expected = admissionPrestate(admission, target);
   const currentStable = descriptor(currentStableInput, target.stableRef, 'current Stable readback');
@@ -294,6 +489,45 @@ export function decideWebuiPublicationLatestPromotion(
   };
 }
 
+export function consumeWebuiPublicationLatestPromotion(input: {
+  admission: JsonRecord;
+  decision: JsonRecord;
+  runId: string;
+  runAttempt: number;
+}): JsonRecord {
+  const admission = record(input.admission, 'Latest admission');
+  exact(admission.schema, 'opl_app_webui_publication_latest_admission.v1', 'Latest admission.schema');
+  exact(admission.status, 'passed', 'Latest admission.status');
+  const operatorEvidence = assertAdmissionIntegrity(admission);
+  exact(operatorEvidence.run_id, runId(input.runId, 'Latest consumption run id'), 'Latest operator evidence.run_id');
+  exact(
+    operatorEvidence.run_attempt,
+    runAttempt(input.runAttempt, 'Latest consumption run attempt'),
+    'Latest operator evidence.run_attempt',
+  );
+  const decision = record(input.decision, 'Latest decision');
+  exact(decision.schema, 'opl_app_webui_publication_latest_decision.v1', 'Latest decision.schema');
+  exact(decision.status, 'admitted', 'Latest decision.status');
+  exact(decision.decision, 'write_once', 'Latest consumption requires one write_once decision');
+  exact(decision.admission_input_digest, admission.input_digest, 'Latest decision.admission_input_digest');
+  exact(decision.authorized_tag_attempts, 1, 'Latest decision.authorized_tag_attempts');
+  const core = {
+    schema: 'opl_app_webui_publication_latest_consumption.v1',
+    status: 'consumed',
+    operation: 'move_latest_pointer',
+    run_id: operatorEvidence.run_id,
+    run_attempt: operatorEvidence.run_attempt,
+    operator_evidence_digest: operatorEvidence.operator_evidence_digest,
+    admission_input_digest: admission.input_digest,
+    decision_input_digest: decision.input_digest,
+    authorized_tag_attempts: 1,
+  };
+  return {
+    ...core,
+    consumption_digest: objectDigest(core),
+  };
+}
+
 function boundedReadbacks(value: unknown, ref: string, label: string): JsonRecord[] {
   const readbacks = record(value, label);
   exact(readbacks.schema, 'opl_app_webui_publication_latest_reconcile_readbacks.v1', `${label}.schema`);
@@ -325,6 +559,7 @@ export function writeWebuiPublicationLatestPromotionReceipt(input: {
   admission: JsonRecord;
   decision: JsonRecord;
   mutation: JsonRecord;
+  consumption?: JsonRecord;
   stableReadbacks: JsonRecord;
   latestReadbacks: JsonRecord;
   anonymousStableReadback: JsonRecord;
@@ -332,6 +567,7 @@ export function writeWebuiPublicationLatestPromotionReceipt(input: {
 }): JsonRecord {
   const admission = record(input.admission, 'Latest admission');
   exact(admission.schema, 'opl_app_webui_publication_latest_admission.v1', 'Latest admission.schema');
+  const operatorEvidence = assertAdmissionIntegrity(admission);
   const decision = record(input.decision, 'Latest decision');
   exact(decision.schema, 'opl_app_webui_publication_latest_decision.v1', 'Latest decision.schema');
   const target = admissionTarget(admission);
@@ -352,6 +588,9 @@ export function writeWebuiPublicationLatestPromotionReceipt(input: {
     throw new Error('Latest decision.decision is invalid.');
   }
   const mutation = mutationAttempt(input.mutation);
+  const consumption = input.consumption
+    ? latestPromotionConsumption(input.consumption, admission, decision)
+    : null;
   const stableReadbacks = boundedReadbacks(
     input.stableReadbacks,
     target.stableRef,
@@ -384,8 +623,18 @@ export function writeWebuiPublicationLatestPromotionReceipt(input: {
     if (mutation.attemptCount !== 0) {
       throw new Error('idempotent decision cannot perform a tag mutation.');
     }
+    if (consumption) throw new Error('idempotent Latest decision must not consume the operator evidence.');
     status = stableFinalObserved && latestFinalObserved ? 'idempotent' : 'failed';
   } else if (decisionName === 'write_once') {
+    if (!consumption) throw new Error('write_once Latest decision requires one consumed operator evidence record.');
+    exact(input.mutation.run_id, operatorEvidence.run_id, 'Latest mutation.run_id');
+    exact(input.mutation.run_attempt, operatorEvidence.run_attempt, 'Latest mutation.run_attempt');
+    exact(
+      input.mutation.operator_evidence_digest,
+      operatorEvidence.operator_evidence_digest,
+      'Latest mutation.operator_evidence_digest',
+    );
+    exact(input.mutation.consumption_digest, consumption.consumption_digest, 'Latest mutation.consumption_digest');
     if (mutation.attemptCount !== 1) {
       status = 'failed';
     } else if (
@@ -411,12 +660,14 @@ export function writeWebuiPublicationLatestPromotionReceipt(input: {
     if (mutation.attemptCount !== 0) {
       throw new Error('rejected Latest decision cannot perform a tag mutation.');
     }
+    if (consumption) throw new Error('Rejected Latest decision must not consume the operator evidence.');
     status = 'failed';
   }
   const evidence = {
     selector: admission.selector,
     target: admission.target,
     expected_prestate: admission.expected_prestate,
+    operator_evidence: admission.operator_evidence,
     decision: {
       input_digest: decision.input_digest,
       decision: decisionName,
@@ -424,6 +675,7 @@ export function writeWebuiPublicationLatestPromotionReceipt(input: {
       authorized_tag_attempts: decision.authorized_tag_attempts,
     },
     mutation: input.mutation,
+    consumption,
     reconcile: {
       maximum_readbacks: 3,
       stable_expected_state_observed: stableBoundedObserved,
@@ -471,11 +723,16 @@ function main(argv: string[]): void {
       'version-readback': { type: 'string' },
       'stable-prestate': { type: 'string' },
       'latest-prestate': { type: 'string' },
+      'run-id': { type: 'string' },
+      'run-attempt': { type: 'string' },
+      actor: { type: 'string' },
+      'operator-confirmation': { type: 'string' },
       admission: { type: 'string' },
       'current-stable': { type: 'string' },
       'current-latest': { type: 'string' },
       decision: { type: 'string' },
       mutation: { type: 'string' },
+      consumption: { type: 'string' },
       'stable-readbacks': { type: 'string' },
       'latest-readbacks': { type: 'string' },
       'anonymous-stable-readback': { type: 'string' },
@@ -490,6 +747,10 @@ function main(argv: string[]): void {
       versionReadback: readJson(required(values['version-readback'], 'version-readback'), 'version readback'),
       stablePrestate: readJson(required(values['stable-prestate'], 'stable-prestate'), 'Stable prestate'),
       latestPrestate: readJson(required(values['latest-prestate'], 'latest-prestate'), 'Latest prestate'),
+      actor: required(values.actor, 'actor'),
+      operatorConfirmation: required(values['operator-confirmation'], 'operator-confirmation'),
+      runId: required(values['run-id'], 'run-id'),
+      runAttempt: Number(required(values['run-attempt'], 'run-attempt')),
     });
     writeJson(required(values.output, 'output'), admission);
     process.stdout.write(`${JSON.stringify({
@@ -514,11 +775,30 @@ function main(argv: string[]): void {
     })}\n`);
     return;
   }
+  if (command === 'consume') {
+    const consumption = consumeWebuiPublicationLatestPromotion({
+      admission: readJson(required(values.admission, 'admission'), 'Latest admission'),
+      decision: readJson(required(values.decision, 'decision'), 'Latest decision'),
+      runId: required(values['run-id'], 'run-id'),
+      runAttempt: Number(required(values['run-attempt'], 'run-attempt')),
+    });
+    writeExclusiveJson(required(values.output, 'output'), consumption);
+    process.stdout.write(`${JSON.stringify({
+      status: consumption.status,
+      run_id: consumption.run_id,
+      operator_evidence_digest: consumption.operator_evidence_digest,
+      consumption_digest: consumption.consumption_digest,
+    })}\n`);
+    return;
+  }
   if (command === 'receipt') {
     const receipt = writeWebuiPublicationLatestPromotionReceipt({
       admission: readJson(required(values.admission, 'admission'), 'Latest admission'),
       decision: readJson(required(values.decision, 'decision'), 'Latest decision'),
       mutation: readJson(required(values.mutation, 'mutation'), 'mutation'),
+      consumption: values.consumption
+        ? readJson(values.consumption, 'Latest consumption')
+        : undefined,
       stableReadbacks: readJson(required(values['stable-readbacks'], 'stable-readbacks'), 'Stable readbacks'),
       latestReadbacks: readJson(required(values['latest-readbacks'], 'latest-readbacks'), 'Latest readbacks'),
       anonymousStableReadback: readJson(
@@ -538,7 +818,7 @@ function main(argv: string[]): void {
     })}\n`);
     return;
   }
-  throw new Error('Usage: webui-publication-promotion.ts <admit|decide|receipt> ...');
+  throw new Error('Usage: webui-publication-promotion.ts <admit|decide|consume|receipt> ...');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

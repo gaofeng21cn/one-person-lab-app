@@ -7,6 +7,10 @@ on:
         description: Exact retained WebUI Stable or Preview publication version.
         required: true
         type: string
+      operator_confirmation:
+        description: "Exact operator confirmation: move-docker-latest:<publication_version>."
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -35,21 +39,27 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Reject partial or noncanonical selector dispatch
+        env:
+          PUBLICATION_VERSION: ${{ inputs.publication_version }}
+          OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
           test "$GITHUB_REF" = refs/heads/main
-          [[ '${{ inputs.publication_version }}' =~ ^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[1-9][0-9]*|-preview\.r[1-9][0-9]*)?$ ]]
+          [[ "$PUBLICATION_VERSION" =~ ^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[1-9][0-9]*|-preview\.r[1-9][0-9]*)?$ ]]
+          test "$OPERATOR_CONFIRMATION" = "move-docker-latest:$PUBLICATION_VERSION"
 
       - name: Setup ORAS for durable record intake
         uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
 
       - name: Materialize exactly one durable publication record
+        env:
+          PUBLICATION_VERSION: ${{ inputs.publication_version }}
         shell: bash
         run: |
           set -euo pipefail
-          version='${{ inputs.publication_version }}'
+          version="$PUBLICATION_VERSION"
           receipt_ref="ghcr.io/gaofeng21cn/one-person-lab-webui:receipt-${version}"
           mkdir -p intake evidence
           oras pull "$receipt_ref" --output intake
@@ -125,17 +135,26 @@ jobs:
 
       - name: Seal one durable-record Latest-only admission
         id: admission
+        env:
+          PUBLICATION_VERSION: ${{ inputs.publication_version }}
+          OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation }}
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
           node --experimental-strip-types scripts/webui-publication-promotion.ts admit \
-            --publication-version '${{ inputs.publication_version }}' \
+            --publication-version "$PUBLICATION_VERSION" \
             --publication-record evidence/webui-publication-record.json \
             --version-readback evidence/version-readback.json \
             --stable-prestate evidence/stable-prestate.json \
             --latest-prestate evidence/latest-prestate.json \
+            --actor "$GITHUB_ACTOR" \
+            --operator-confirmation "$OPERATOR_CONFIRMATION" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --output evidence/admission.json \
             > evidence/admission-summary.json
+          jq -e '.operator_evidence' evidence/admission.json > evidence/operator-evidence.json
           echo "admission_artifact=opl-webui-publication-latest-admission-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Upload durable selector admission
@@ -176,6 +195,31 @@ jobs:
 
       - name: Setup ORAS for one bounded Latest pointer mutation
         uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+
+      - name: Verify run-bound operator confirmation and one-time control record
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          admission="$(find evidence -type f -name admission.json -print)"
+          test "$(printf '%s\n' "$admission" | wc -l | tr -d ' ')" = 1
+          jq -e \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg actor "$GITHUB_ACTOR" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            '(
+              .operator_evidence.schema == "opl_app_webui_publication_latest_operator_evidence.v1"
+              and .operator_evidence.status == "confirmed"
+              and .operator_evidence.operation == "move_latest_pointer"
+              and .operator_evidence.issuance == {source:"operator_confirmed_github_dispatch_input",cryptographic_signature:false}
+              and .operator_evidence.actor == $actor
+              and .operator_evidence.run_id == $run_id
+              and .operator_evidence.run_attempt == $run_attempt
+              and .operator_evidence.mutation_limit == 1
+            )' "$admission" >/dev/null
+          jq -e --arg run_id "$GITHUB_RUN_ID" \
+            '(.run_id == $run_id and .operation == "move_latest_pointer" and .mutation_limit == 1)' \
+            evidence/operator-evidence.json >/dev/null
 
       - name: Re-read Stable and Latest prestate and derive selector decision
         id: decision
@@ -229,14 +273,36 @@ jobs:
           expected_stable_digest="$(jq -r .expected_prestate.stable.digest "$admission")"
           target_ref="${repository}@${target_digest}"
           mkdir -p terminal/readbacks/stable terminal/readbacks/latest
-          jq -n '{
+          consumption_digest=''
+          operator_evidence_digest=''
+          if [ "$CAS_DECISION" = write_once ]; then
+            node --experimental-strip-types scripts/webui-publication-promotion.ts consume \
+              --admission "$admission" \
+              --decision decision.json \
+              --run-id "$GITHUB_RUN_ID" \
+              --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --output terminal/consumption.json \
+              > terminal/consumption-summary.json
+            consumption_digest="$(jq -er .consumption_digest terminal/consumption.json)"
+            operator_evidence_digest="$(jq -er .operator_evidence.operator_evidence_digest "$admission")"
+          fi
+          jq -n \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg operator_evidence_digest "$operator_evidence_digest" \
+            --arg consumption_digest "$consumption_digest" \
+            '{
             schema:"opl_app_webui_publication_latest_mutation_attempt.v1",
             status:"not_attempted",
             attempt_count:0,
             attempt_id:null,
             exit_code:null,
             stdout_sha256:null,
-            stderr_sha256:null
+            stderr_sha256:null,
+            run_id:$run_id,
+            run_attempt:$run_attempt,
+            operator_evidence_digest:$operator_evidence_digest,
+            consumption_digest:$consumption_digest
           }' > terminal/mutation.json
           login_performed=false
           logout_before_readback=true
@@ -254,6 +320,10 @@ jobs:
                 --argjson exit_code "$tag_status" \
                 --arg stdout_sha256 "sha256:$(shasum -a 256 terminal/tag.stdout | awk '{print $1}')" \
                 --arg stderr_sha256 "sha256:$(shasum -a 256 terminal/tag.stderr | awk '{print $1}')" \
+                --arg run_id "$GITHUB_RUN_ID" \
+                --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+                --arg operator_evidence_digest "$operator_evidence_digest" \
+                --arg consumption_digest "$consumption_digest" \
                 '{
                   schema:"opl_app_webui_publication_latest_mutation_attempt.v1",
                   status:$status,
@@ -261,10 +331,19 @@ jobs:
                   attempt_id:$attempt_id,
                   exit_code:$exit_code,
                   stdout_sha256:$stdout_sha256,
-                  stderr_sha256:$stderr_sha256
+                  stderr_sha256:$stderr_sha256,
+                  run_id:$run_id,
+                  run_attempt:$run_attempt,
+                  operator_evidence_digest:$operator_evidence_digest,
+                  consumption_digest:$consumption_digest
                 }' > terminal/mutation.json
             else
-              jq -n '{
+              jq -n \
+                --arg run_id "$GITHUB_RUN_ID" \
+                --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+                --arg operator_evidence_digest "$operator_evidence_digest" \
+                --arg consumption_digest "$consumption_digest" \
+                '{
                 schema:"opl_app_webui_publication_latest_mutation_attempt.v1",
                 status:"not_attempted",
                 attempt_count:0,
@@ -272,6 +351,10 @@ jobs:
                 exit_code:null,
                 stdout_sha256:null,
                 stderr_sha256:null,
+                run_id:$run_id,
+                run_attempt:$run_attempt,
+                operator_evidence_digest:$operator_evidence_digest,
+                consumption_digest:$consumption_digest,
                 failure:"registry_login_failed"
               }' > terminal/mutation.json
             fi
@@ -394,15 +477,21 @@ jobs:
         run: |
           set -euo pipefail
           admission="$(find evidence -type f -name admission.json -print)"
-          node --experimental-strip-types scripts/webui-publication-promotion.ts receipt \
-            --admission "$admission" \
-            --decision decision.json \
-            --mutation terminal/mutation.json \
-            --stable-readbacks terminal/stable-readbacks.json \
-            --latest-readbacks terminal/latest-readbacks.json \
-            --anonymous-stable-readback terminal/anonymous-stable-readback.json \
-            --anonymous-latest-readback terminal/anonymous-latest-readback.json \
-            --output terminal/receipt.json \
+          receipt_args=(
+            receipt
+            --admission "$admission"
+            --decision decision.json
+            --mutation terminal/mutation.json
+            --stable-readbacks terminal/stable-readbacks.json
+            --latest-readbacks terminal/latest-readbacks.json
+            --anonymous-stable-readback terminal/anonymous-stable-readback.json
+            --anonymous-latest-readback terminal/anonymous-latest-readback.json
+            --output terminal/receipt.json
+          )
+          if [ -f terminal/consumption.json ]; then
+            receipt_args+=(--consumption terminal/consumption.json)
+          fi
+          node --experimental-strip-types scripts/webui-publication-promotion.ts "${receipt_args[@]}" \
             > terminal/receipt-summary.json
 
       - name: Upload terminal selector evidence
