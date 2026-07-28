@@ -650,12 +650,67 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  publish-standard-nonlatest:
+  pre-publication-admission:
     if: ${{ needs.restore.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [restore]
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout canonical App validator
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with: { ref: '${{ github.sha }}', path: app-source }
+
+      - name: Restore Standard checkpoint
+        id: checkpoint
+        uses: ./app-source/.github/actions/restore-release-checkpoint
+        with:
+          framework-executor-ref: ${{ needs.restore.outputs.framework_source_ref }}
+          source-run-id: ${{ needs.restore.outputs.source_run_id }}
+          source-artifact: ${{ needs.restore.outputs.source_artifact }}
+          github-token: ${{ github.token }}
+
+      - name: Validate deterministic Standard publication input before GitHub mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          checkpoint_dir='${{ steps.checkpoint.outputs.checkpoint_dir }}'
+          standard_assets="$checkpoint_dir/tracks/standard/assets.json"
+          component_manifest="$checkpoint_dir/tracks/standard/assets/opl-app-component-manifest.json"
+          assets_dir="$checkpoint_dir/tracks/standard/assets"
+          test -f "$standard_assets" && test ! -L "$standard_assets"
+          test -f "$component_manifest" && test ! -L "$component_manifest"
+          node --experimental-strip-types app-source/scripts/validate-standard-publication-input.ts \
+            --bundle '${{ needs.restore.outputs.bundle_digest }}' \
+            --publication-channel '${{ needs.restore.outputs.channel }}' \
+            --candidate-display-version '${{ needs.restore.outputs.version }}' \
+            --candidate-updater-version '${{ needs.restore.outputs.updater_version }}' \
+            --app-sha '${{ needs.restore.outputs.app_ref }}' \
+            --shell-sha '${{ needs.restore.outputs.shell_ref }}' \
+            --framework-sha '${{ needs.restore.outputs.framework_source_ref }}' \
+            --standard-assets "$standard_assets" \
+            --component-manifest "$component_manifest" \
+            --assets-dir "$assets_dir" \
+            --output standard-pre-publication-admission.json
+          test "$(jq -r .status standard-pre-publication-admission.json)" = passed
+
+      - name: Upload immutable pre-publication admission receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opl-release-standard-pre-publication-admission-${{ github.run_id }}
+          path: standard-pre-publication-admission.json
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-standard-nonlatest:
+    if: ${{ needs.restore.result == 'success' && needs.pre-publication-admission.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: ${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}
-    needs: [restore]
+    needs: [restore, pre-publication-admission]
     steps:
       - name: Reject partial rerun before Standard GitHub mutation
         shell: bash

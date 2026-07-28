@@ -1552,6 +1552,7 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "standard-build:",
       "seal-standard-identity:",
       "checkpoint-standard:",
+      "prepare-native-webui:",
       "publish-standard:",
       "opl release freeze",
       "opl release build",
@@ -1596,6 +1597,7 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "workflow_call:",
       "description: standard or resume_standard",
       "startup-canary:",
+      "pre-publication-admission:",
       "publish-standard-nonlatest:",
       "remote-digest-verify:",
       "publish-homebrew-standard:",
@@ -1607,6 +1609,7 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "opl release publish",
       "opl release reconcile",
       "opl release status",
+      "validate-standard-publication-input.ts",
       "Activate Latest after exact remote parity",
     ],
     forbidden: [

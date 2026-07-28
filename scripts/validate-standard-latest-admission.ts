@@ -6,15 +6,19 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
-  assertReleaseSemanticsAxes,
-  assertUpdaterVersionMatchesDisplay,
-  type ReleaseBuildTrigger,
-  type ReleasePreviewKind,
-  type ReleaseQualityStatus,
-} from './release-version.ts';
-
-type JsonRecord = Record<string, any>;
-type StandardPublicationChannel = 'stable' | 'preview' | 'nightly';
+  expectedClassification,
+  hostedStandardAssetNames,
+  readJson,
+  requireDigest,
+  requireEqual,
+  requirePositiveInteger,
+  sha256File,
+  sha256JsonWithoutDigest,
+  validateStandardPublicationInput,
+  type JsonRecord,
+  type StandardPublicationChannel,
+} from './validate-standard-publication-input.ts';
+import { assertUpdaterVersionMatchesDisplay } from './release-version.ts';
 
 export type StandardLatestAdmissionInput = {
   publicationChannel: StandardPublicationChannel;
@@ -43,59 +47,10 @@ export type StandardLatestAdmissionAuthority = {
   standardAssets: JsonRecord[];
 };
 
-const digestPattern = /^sha256:[0-9a-f]{64}$/;
 const shaPattern = /^[0-9a-f]{40}$/;
-const hostedStandardAssetNames = (
-  version: string,
-  channel: StandardPublicationChannel,
-): string[] => [
-  `One-Person-Lab-${version}-mac-arm64.dmg`,
-  `One-Person-Lab-${version}-mac-arm64.zip`,
-  `One-Person-Lab-${version}-mac-arm64.zip.blockmap`,
-  'latest-arm64-mac.yml',
-  'opl-app-component-manifest.json',
-  'opl-app-installer.sh',
-  ...(channel === 'nightly'
-    ? []
-    : ['standard-gatekeeper-launch-policy.json', 'standard-apple-notarization-receipt.json']),
-];
 const standardTapRepository = 'gaofeng21cn/homebrew-one-person-lab';
 const standardCaskPath = 'Casks/one-person-lab.rb';
 
-function readJson(filePath: string): JsonRecord {
-  const resolved = path.resolve(filePath);
-  const stat = fs.lstatSync(resolved);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size <= 0) {
-    throw new Error(`Expected a non-empty regular JSON file: ${resolved}`);
-  }
-  const value = JSON.parse(fs.readFileSync(resolved, 'utf8')) as unknown;
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`Expected one JSON object: ${resolved}`);
-  }
-  return value as JsonRecord;
-}
-
-function sha256File(filePath: string): string {
-  return `sha256:${crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')}`;
-}
-
-function requireDigest(value: unknown, label: string): string {
-  if (typeof value !== 'string' || !digestPattern.test(value)) {
-    throw new Error(`${label} must be an exact sha256 digest.`);
-  }
-  return value;
-}
-
-function requirePositiveInteger(value: unknown, label: string): number {
-  if (!Number.isSafeInteger(value) || Number(value) <= 0) {
-    throw new Error(`${label} must be a positive integer.`);
-  }
-  return Number(value);
-}
-
-function requireEqual(actual: unknown, expected: unknown, label: string): void {
-  if (actual !== expected) throw new Error(`${label} does not match the frozen Standard candidate.`);
-}
 
 function requireLatestReleaseTag(value: unknown, label: string): string {
   if (
@@ -127,77 +82,6 @@ function requireCandidateReleaseTag(
     throw new Error(`${label} must be an exact ${channel === 'preview' ? 'Dev' : 'Nightly'} Preview release tag.`);
   }
   return value;
-}
-
-function sha256JsonWithoutDigest(value: JsonRecord, digestKey: string): string {
-  const core = Object.fromEntries(Object.entries(value).filter(([key]) => key !== digestKey));
-  return `sha256:${crypto.createHash('sha256').update(JSON.stringify(core)).digest('hex')}`;
-}
-
-function expectedClassification(channel: StandardPublicationChannel): {
-  qualityStatus: ReleaseQualityStatus;
-  buildTrigger: ReleaseBuildTrigger;
-  previewKind: ReleasePreviewKind;
-} {
-  if (channel === 'stable') {
-    return { qualityStatus: 'stable', buildTrigger: 'manual', previewKind: null };
-  }
-  if (channel === 'nightly') {
-    return { qualityStatus: 'preview', buildTrigger: 'automated', previewKind: 'nightly' };
-  }
-  return { qualityStatus: 'preview', buildTrigger: 'manual', previewKind: 'dev' };
-}
-
-function validateComponentManifest(
-  manifestPath: string,
-  input: StandardLatestAdmissionInput,
-): JsonRecord {
-  const manifest = readJson(manifestPath);
-  requireEqual(manifest.surface_kind, 'opl_app_component_manifest.v1', 'Component manifest surface_kind');
-  requireEqual(manifest.component_id, 'opl-app', 'Component manifest component_id');
-  requireEqual(manifest.version, input.candidateDisplayVersion, 'Component manifest version');
-  requireEqual(manifest.release_version, input.candidateDisplayVersion, 'Component manifest release version');
-  requireEqual(manifest.updater_version, input.candidateUpdaterVersion, 'Component manifest updater version');
-  requireEqual(manifest.release_tag, `v${input.candidateDisplayVersion}`, 'Component manifest release tag');
-  requireEqual(manifest.source_commit, input.appSha, 'Component manifest source commit');
-  requireEqual(manifest.source_cohort?.app_sha, input.appSha, 'Component manifest cohort app_sha');
-  requireEqual(manifest.source_cohort?.shell_sha, input.shellSha, 'Component manifest cohort shell_sha');
-  requireEqual(manifest.source_cohort?.framework_sha, input.frameworkSha, 'Component manifest cohort framework_sha');
-  const classification = expectedClassification(input.publicationChannel);
-  requireEqual(manifest.quality_status, classification.qualityStatus, 'Component manifest quality_status');
-  requireEqual(manifest.build_trigger, classification.buildTrigger, 'Component manifest build_trigger');
-  requireEqual(manifest.preview_kind, classification.previewKind, 'Component manifest preview_kind');
-  assertReleaseSemanticsAxes({
-    qualityStatus: manifest.quality_status,
-    buildTrigger: manifest.build_trigger,
-    previewKind: manifest.preview_kind,
-  });
-  requireEqual(
-    manifest.component_manifest_digest,
-    sha256JsonWithoutDigest(manifest, 'component_manifest_digest'),
-    'Component manifest self digest',
-  );
-  requireDigest(manifest.primary_artifact?.digest, 'Component manifest primary artifact digest');
-  requirePositiveInteger(manifest.primary_artifact?.size, 'Component manifest primary artifact size');
-  const expectedNames = hostedStandardAssetNames(input.candidateDisplayVersion, input.publicationChannel);
-  if (
-    !Array.isArray(manifest.artifacts)
-    || JSON.stringify(manifest.artifacts.map((asset: JsonRecord) => asset?.name).sort())
-      !== JSON.stringify([...expectedNames].filter((name) => name !== 'opl-app-component-manifest.json').sort())
-  ) {
-    throw new Error('Component manifest must bind the exact GitHub-hosted Standard asset set.');
-  }
-  if (classification.qualityStatus === 'preview') {
-    requireEqual(manifest.qualification_disclosure?.stable_qualified, false, 'Preview stable_qualified disclosure');
-    requireEqual(manifest.qualification_disclosure?.non_stable_notice, true, 'Preview non-Stable disclosure');
-    if (
-      !Array.isArray(manifest.qualification_disclosure?.skipped_gates)
-      || manifest.qualification_disclosure.skipped_gates.length === 0
-    ) {
-      throw new Error('Preview component manifest must disclose skipped Stable gates.');
-    }
-  }
-  return manifest;
 }
 
 function validateLatestOverrideAuthority(
@@ -463,7 +347,11 @@ export function validateStandardLatestAdmission(input: StandardLatestAdmissionIn
     throw new Error('Expected current Latest tag must differ from the candidate tag.');
   }
   const componentManifestPath = path.resolve(input.componentManifestPath);
-  const componentManifest = validateComponentManifest(componentManifestPath, input);
+  const publicationInput = validateStandardPublicationInput({
+    ...input,
+    assetsDir: undefined,
+  });
+  const componentManifest = publicationInput.componentManifest;
   let pointerAuthority: JsonRecord;
   if (input.publicationChannel === 'stable') {
     if (input.latestOverrideAuthorityPath !== undefined) {
@@ -497,10 +385,7 @@ export function validateStandardLatestAdmission(input: StandardLatestAdmissionIn
   }
 
   const standardAssetsPath = path.resolve(input.standardAssetsPath);
-  const standardAssets = readJson(standardAssetsPath);
-  requireEqual(standardAssets.surface_kind, 'opl_release_bundle_staged_assets.v1', 'Standard assets surface_kind');
-  requireEqual(standardAssets.bundle_digest, bundleDigest, 'Standard assets bundle_digest');
-  requireEqual(standardAssets.track, 'standard', 'Standard assets track');
+  const standardAssets = publicationInput.standardAssets;
   const zipName = `One-Person-Lab-${input.candidateDisplayVersion}-mac-arm64.zip`;
   const zipEntries = Array.isArray(standardAssets.assets)
     ? standardAssets.assets.filter((entry: JsonRecord) => entry?.name === zipName)
@@ -521,12 +406,9 @@ export function validateStandardLatestAdmission(input: StandardLatestAdmissionIn
     sha256: requireDigest(dmgEntries[0].sha256, 'Standard candidate DMG sha256'),
     size_bytes: requirePositiveInteger(dmgEntries[0].size_bytes, 'Standard candidate DMG size'),
   };
-  const componentManifestEntries = Array.isArray(standardAssets.assets)
-    ? standardAssets.assets.filter((entry: JsonRecord) => entry?.name === 'opl-app-component-manifest.json')
-    : [];
-  if (componentManifestEntries.length !== 1) {
-    throw new Error('Standard assets must contain exactly one opl-app-component-manifest.json.');
-  }
+  const componentManifestEntries = standardAssets.assets.filter(
+    (entry: JsonRecord) => entry?.name === 'opl-app-component-manifest.json',
+  );
   requireEqual(
     requireDigest(componentManifestEntries[0].sha256, 'Staged component manifest sha256'),
     sha256File(componentManifestPath),

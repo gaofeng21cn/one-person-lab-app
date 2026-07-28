@@ -77,18 +77,18 @@ function configureCandidate(
   writeJson(root, 'component-manifest.json', manifest);
 
   const staged = JSON.parse(fs.readFileSync(input.standardAssetsPath, 'utf8'));
-  staged.assets.find((asset: any) => asset.name.endsWith('-mac-arm64.zip')).name =
-    `One-Person-Lab-${version}-mac-arm64.zip`;
-  staged.assets.find((asset: any) => asset.name.endsWith('-mac-arm64.dmg')).name =
-    `One-Person-Lab-${version}-mac-arm64.dmg`;
-  const manifestAsset = staged.assets.find((asset: any) => asset.name === 'opl-app-component-manifest.json');
-  const manifestSha = sha256(input.componentManifestPath);
-  if (manifestAsset) manifestAsset.sha256 = manifestSha;
-  else staged.assets.push({
+  staged.assets = [
+    ...manifest.artifacts.map((asset: any) => ({
+      name: asset.name,
+      sha256: asset.digest,
+      size_bytes: asset.size,
+    })),
+    {
     name: 'opl-app-component-manifest.json',
-    sha256: manifestSha,
+    sha256: sha256(input.componentManifestPath),
     size_bytes: fs.statSync(input.componentManifestPath).size,
-  });
+    },
+  ];
   fs.writeFileSync(input.standardAssetsPath, `${JSON.stringify(staged, null, 2)}\n`);
 
   if (publicationChannel === 'stable') {
@@ -211,8 +211,8 @@ test('Latest admission binds the hosted publication floor, exact Standard bytes,
         'One-Person-Lab-26.7.21-r1-mac-arm64.dmg',
         'One-Person-Lab-26.7.21-r1-mac-arm64.zip',
         'One-Person-Lab-26.7.21-r1-mac-arm64.zip.blockmap',
-        'latest-arm64-mac.yml',
-        'opl-app-component-manifest.json',
+      'latest-arm64-mac.yml',
+      'opl-app-component-manifest.json',
         'opl-app-installer.sh',
         'standard-gatekeeper-launch-policy.json',
         'standard-apple-notarization-receipt.json',

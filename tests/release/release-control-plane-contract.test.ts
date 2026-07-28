@@ -226,6 +226,21 @@ test('Standard Latest admission consumes hosted publication and Homebrew readbac
   const admission = stable.latest_admission;
 
   assert.equal(admission.validator, 'scripts/validate-standard-latest-admission.ts');
+  assert.equal(
+    stable.pre_publication_admission.validator,
+    'scripts/validate-standard-publication-input.ts',
+  );
+  assert.equal(
+    stable.pre_publication_admission.receipt_schema,
+    'opl_standard_pre_publication_admission_receipt.v1',
+  );
+  assert.equal(stable.pre_publication_admission.required_status, 'passed');
+  assert.equal(stable.pre_publication_admission.runs_before, 'publish-standard-nonlatest');
+  assert.equal(stable.pre_publication_admission.public_mutation_allowed, false);
+  assert.equal(
+    stable.pre_publication_admission.failure_mode,
+    'fail_closed_before_public_release_creation',
+  );
   assert.equal(admission.receipt_schema, 'opl_standard_latest_admission_receipt.v1');
   assert.equal(admission.required_status, 'passed');
   assert.equal(admission.latest_activation_admitted_required, true);

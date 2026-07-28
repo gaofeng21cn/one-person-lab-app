@@ -220,12 +220,17 @@ test('Bundle topology binds the component manifest before remote digest verifica
   const sealIdentity = bundleWorkflow.indexOf('  seal-standard-identity:');
   const checkpoint = bundleWorkflow.indexOf('  checkpoint-standard:');
   const publishReusable = bundleWorkflow.indexOf('  publish-standard:');
+  const prePublication = publishWorkflow.indexOf('  pre-publication-admission:');
   const publish = publishWorkflow.indexOf('  publish-standard-nonlatest:');
   const remoteVerify = publishWorkflow.indexOf('  remote-digest-verify:');
   const latest = publishWorkflow.indexOf('  activate-latest:');
 
   assert.ok(sealIdentity >= 0 && sealIdentity < checkpoint && checkpoint < publishReusable);
-  assert.ok(publish >= 0 && publish < remoteVerify && remoteVerify < latest);
+  assert.ok(prePublication >= 0 && publish >= 0 && prePublication < publish && publish < remoteVerify && remoteVerify < latest);
+  const admission = publishWorkflow.slice(prePublication, publish);
+  assert.match(admission, /validate-standard-publication-input\.ts/);
+  assert.doesNotMatch(admission, /gh release (?:create|upload|edit)|opl release publish/);
+  assert.match(publishWorkflow.slice(publish, remoteVerify), /needs: \[restore, pre-publication-admission\]/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /write-opl-app-component-manifest\.ts/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /--updater-version '\$\{\{ needs\.freeze\.outputs\.updater_version \}\}'/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /app-source\/install\.sh/);

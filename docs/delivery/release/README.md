@@ -203,8 +203,11 @@ argument.
 ## Stable Operations
 
 `standard` freezes one new Bundle, builds and qualifies Standard, exports a
-portable checkpoint, qualifies the actual updater ZIP before any public Release
-mutation, and then publishes, reads back, updates Homebrew, and activates Latest.
+portable checkpoint, runs deterministic manifest and staged-asset admission
+against that checkpoint before any public Release mutation, qualifies the actual
+updater ZIP, and then publishes, reads back, updates Homebrew, and activates
+Latest. This admission is local candidate evidence only; it does not replace
+remote digest readback, Homebrew readback, or Latest CAS admission.
 Its absolute operation budget is 90 minutes. The manual dispatch accepts only
 the exact successful source-qualification run id and receipt digest. The same
 Stable run enters `release-stable`, verifies Apple credentials without

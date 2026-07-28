@@ -1005,7 +1005,7 @@ test('mandatory publication ancestors contain no self-hosted, VM, or Tart job', 
       );
     }
   }
-  assert.deepEqual(publish.needs, ['restore']);
+  assert.deepEqual(publish.needs, ['restore', 'pre-publication-admission']);
   assert.ok(homebrew.needs.includes('remote-digest-verify'));
   assert.equal(
     latest.if,
