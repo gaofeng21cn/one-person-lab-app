@@ -67,6 +67,36 @@ test('Codex review gate ignores a reaction from before the server-side head boun
   assert.equal(result.status, 'waiting');
 });
 
+test('Codex review gate binds request-comment reactions to a post-head request', () => {
+  const currentRequest = evaluateCodexReviewGate({
+    headSha,
+    headUpdatedAt: '2026-07-28T00:00:00Z',
+    reviews: [],
+    reactions: [{
+      user: { login: bot },
+      content: '+1',
+      created_at: '2026-07-28T00:00:02Z',
+      source_created_at: '2026-07-28T00:00:01Z',
+    }],
+    reviewThreads: [],
+  });
+  assert.equal(currentRequest.status, 'passed');
+
+  const staleRequest = evaluateCodexReviewGate({
+    headSha,
+    headUpdatedAt: '2026-07-28T00:00:00Z',
+    reviews: [],
+    reactions: [{
+      user: { login: bot },
+      content: '+1',
+      created_at: '2026-07-28T00:00:02Z',
+      source_created_at: '2026-07-27T23:59:59Z',
+    }],
+    reviewThreads: [],
+  });
+  assert.equal(staleRequest.status, 'waiting');
+});
+
 test('Codex review gate fails closed when the server-side head boundary is invalid', () => {
   const result = evaluateCodexReviewGate({
     headSha,
@@ -90,5 +120,6 @@ test('Codex review gate workflow keeps the check pending until a terminal result
   assert.match(source, /CODEX_REVIEW_WAIT_SECONDS/);
   assert.match(source, /github\.event_name == 'workflow_dispatch' && '0' \|\| '900'/);
   assert.match(source, /scripts\/codex-review-gate\.ts/);
+  assert.match(fs.readFileSync(path.join(process.cwd(), 'scripts', 'codex-review-gate.ts'), 'utf8'), /issues\/comments\/\$\{comment\.id\}\/reactions/);
   assert.match(source, /pull_request_target/);
 });

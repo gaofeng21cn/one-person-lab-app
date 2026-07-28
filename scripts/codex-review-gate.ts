@@ -7,6 +7,13 @@ type GitHubReaction = {
   user?: { login?: string | null } | null;
   content?: string | null;
   created_at?: string | null;
+  source_created_at?: string | null;
+};
+
+type GitHubIssueComment = {
+  id?: number | null;
+  body?: string | null;
+  created_at?: string | null;
 };
 
 type ReviewThread = {
@@ -50,7 +57,10 @@ function hasTerminalCodexReaction(reactions: GitHubReaction[], headUpdatedAt: st
   return reactions.some((reaction) => {
     if (!isCodexBot(reaction.user?.login) || reaction.content !== '+1') return false;
     const reactedAtMs = Date.parse(String(reaction.created_at ?? ''));
-    return Number.isFinite(reactedAtMs) && reactedAtMs >= headUpdatedAtMs;
+    if (!Number.isFinite(reactedAtMs) || reactedAtMs < headUpdatedAtMs) return false;
+    if (reaction.source_created_at === undefined) return true;
+    const sourceCreatedAtMs = Date.parse(String(reaction.source_created_at ?? ''));
+    return Number.isFinite(sourceCreatedAtMs) && sourceCreatedAtMs >= headUpdatedAtMs;
   });
 }
 
@@ -120,6 +130,38 @@ async function paginatedGitHubRequest<T>(path: string): Promise<T[]> {
     results.push(...batch);
     if (batch.length < 100) return results;
   }
+}
+
+async function fetchCurrentRequestCommentReactions(
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  headUpdatedAt: string,
+): Promise<GitHubReaction[]> {
+  const headUpdatedAtMs = Date.parse(headUpdatedAt);
+  if (!Number.isFinite(headUpdatedAtMs)) return [];
+  const comments = await paginatedGitHubRequest<GitHubIssueComment>(
+    `/repos/${owner}/${repo}/issues/${pullNumber}/comments`,
+  );
+  const currentRequests = comments.filter((comment) => {
+    const createdAtMs = Date.parse(String(comment.created_at ?? ''));
+    return Number.isInteger(comment.id) &&
+      /@codex\s+review\b/i.test(String(comment.body ?? '')) &&
+      Number.isFinite(createdAtMs) &&
+      createdAtMs >= headUpdatedAtMs;
+  });
+  const reactions = await Promise.all(
+    currentRequests.map(async (comment) => {
+      const commentReactions = await paginatedGitHubRequest<GitHubReaction>(
+        `/repos/${owner}/${repo}/issues/comments/${comment.id}/reactions`,
+      );
+      return commentReactions.map((reaction) => ({
+        ...reaction,
+        source_created_at: comment.created_at,
+      }));
+    }),
+  );
+  return reactions.flat();
 }
 
 async function fetchReviewThreads(request: GitHubRequest, owner: string, repo: string, pullNumber: number): Promise<ReviewThread[]> {
@@ -199,16 +241,17 @@ async function main(): Promise<void> {
   const deadlineMs = Date.now() + waitSeconds * 1_000;
 
   for (;;) {
-    const [reviews, reactions, reviewThreads] = await Promise.all([
+    const [reviews, issueReactions, requestCommentReactions, reviewThreads] = await Promise.all([
       paginatedGitHubRequest<GitHubReview>(`/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`),
       paginatedGitHubRequest<GitHubReaction>(`/repos/${owner}/${repo}/issues/${pullNumber}/reactions`),
+      fetchCurrentRequestCommentReactions(owner, repo, pullNumber, pull.updated_at),
       fetchReviewThreads(githubRequest, owner, repo, pullNumber),
     ]);
     const result = evaluateCodexReviewGate({
       headSha: pull.head.sha.toLowerCase(),
       headUpdatedAt: pull.updated_at,
       reviews,
-      reactions,
+      reactions: [...issueReactions, ...requestCommentReactions],
       reviewThreads,
     });
 
