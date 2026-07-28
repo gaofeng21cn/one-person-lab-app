@@ -12,7 +12,6 @@ const bot = 'chatgpt-codex-connector[bot]';
 test('Codex review gate waits until the current head has terminal review evidence', () => {
   const result = evaluateCodexReviewGate({
     headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [{ user: { login: bot }, commit_id: 'b'.repeat(40) }],
     reactions: [],
     reviewThreads: [],
@@ -23,7 +22,6 @@ test('Codex review gate waits until the current head has terminal review evidenc
 test('Codex review gate fails only for unresolved current bot threads', () => {
   const result = evaluateCodexReviewGate({
     headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [{ user: { login: bot }, commit_id: headSha }],
     reactions: [],
     reviewThreads: [
@@ -36,10 +34,9 @@ test('Codex review gate fails only for unresolved current bot threads', () => {
   assert.match(result.summary, /1 unresolved current review thread/);
 });
 
-test('Codex review gate accepts a current review or post-head positive acknowledgement without open threads', () => {
+test('Codex review gate accepts a current review or head-bound positive acknowledgement without open threads', () => {
   const reviewed = evaluateCodexReviewGate({
     headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [{ user: { login: bot }, commit_id: headSha }],
     reactions: [],
     reviewThreads: [{ isResolved: true, isOutdated: false, comments: [{ author: { login: bot } }] }],
@@ -48,64 +45,35 @@ test('Codex review gate accepts a current review or post-head positive acknowled
 
   const acknowledged = evaluateCodexReviewGate({
     headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [],
-    reactions: [{ user: { login: bot }, content: '+1', created_at: '2026-07-28T00:00:01Z' }],
+    reactions: [{ user: { login: bot }, content: '+1', source_head_sha: headSha }],
     reviewThreads: [],
   });
   assert.equal(acknowledged.status, 'passed');
 });
 
-test('Codex review gate ignores a reaction from before the server-side head boundary', () => {
+test('Codex review gate ignores a reaction not bound to the exact head', () => {
   const result = evaluateCodexReviewGate({
     headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [],
-    reactions: [{ user: { login: bot }, content: '+1', created_at: '2026-07-27T23:59:59Z' }],
+    reactions: [{ user: { login: bot }, content: '+1', source_head_sha: 'b'.repeat(40) }],
     reviewThreads: [],
   });
   assert.equal(result.status, 'waiting');
 });
 
-test('Codex review gate binds request-comment reactions to a post-head request', () => {
+test('Codex review gate rejects unbound request-comment reactions', () => {
   const currentRequest = evaluateCodexReviewGate({
     headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
     reviews: [],
     reactions: [{
       user: { login: bot },
       content: '+1',
-      created_at: '2026-07-28T00:00:02Z',
-      source_created_at: '2026-07-28T00:00:01Z',
+      source_head_sha: null,
     }],
     reviewThreads: [],
   });
-  assert.equal(currentRequest.status, 'passed');
-
-  const staleRequest = evaluateCodexReviewGate({
-    headSha,
-    headUpdatedAt: '2026-07-28T00:00:00Z',
-    reviews: [],
-    reactions: [{
-      user: { login: bot },
-      content: '+1',
-      created_at: '2026-07-28T00:00:02Z',
-      source_created_at: '2026-07-27T23:59:59Z',
-    }],
-    reviewThreads: [],
-  });
-  assert.equal(staleRequest.status, 'waiting');
-});
-
-test('Codex review gate fails closed when the server-side head boundary is invalid', () => {
-  const result = evaluateCodexReviewGate({
-    headSha,
-    headUpdatedAt: 'invalid',
-    reviews: [],
-    reactions: [{ user: { login: bot }, content: '+1', created_at: '2026-07-28T00:00:01Z' }],
-    reviewThreads: [],
-  });
-  assert.equal(result.status, 'waiting');
+  assert.equal(currentRequest.status, 'waiting');
 });
 
 test('Codex review gate workflow keeps the check pending until a terminal result and updates the PR head directly', () => {
@@ -114,12 +82,19 @@ test('Codex review gate workflow keeps the check pending until a terminal result
   assert.ok(workflow.on.pull_request_target);
   assert.ok(workflow.on.pull_request_review);
   assert.ok(workflow.on.workflow_dispatch.inputs.pull_number.required);
-  assert.equal(workflow.permissions.checks, undefined);
+  assert.equal(workflow.permissions.checks, 'write');
+  assert.equal(workflow.permissions.issues, 'write');
   assert.match(workflow.jobs.gate.if, /pull_request\.draft/);
+  assert.equal(workflow.jobs.gate.name, 'Evaluate Codex review gate');
   assert.equal(workflow.jobs.gate.steps[0].with.ref, '${{ github.event.repository.default_branch }}');
   assert.match(source, /CODEX_REVIEW_WAIT_SECONDS/);
+  assert.match(source, /CODEX_REVIEW_REQUEST_HEAD/);
   assert.match(source, /github\.event_name == 'workflow_dispatch' && '0' \|\| '900'/);
   assert.match(source, /scripts\/codex-review-gate\.ts/);
-  assert.match(fs.readFileSync(path.join(process.cwd(), 'scripts', 'codex-review-gate.ts'), 'utf8'), /issues\/comments\/\$\{comment\.id\}\/reactions/);
+  const gateSource = fs.readFileSync(path.join(process.cwd(), 'scripts', 'codex-review-gate.ts'), 'utf8');
+  assert.match(gateSource, /issues\/comments\/\$\{comment\.id\}\/reactions/);
+  assert.match(gateSource, /check-runs/);
+  assert.match(gateSource, /codex-review-head/);
+  assert.match(gateSource, /ensureHeadBoundCodexReviewRequest/);
   assert.match(source, /pull_request_target/);
 });

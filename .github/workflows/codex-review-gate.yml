@@ -15,9 +15,10 @@ on:
         type: string
 
 permissions:
+  checks: write
   contents: read
   pull-requests: read
-  issues: read
+  issues: write
 
 concurrency:
   group: codex-review-gate-${{ github.event.pull_request.number || inputs.pull_number }}
@@ -29,7 +30,7 @@ env:
 jobs:
   gate:
     if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
-    name: Codex review gate
+    name: Evaluate Codex review gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout trusted gate implementation
@@ -50,6 +51,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PULL_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pull_number || github.event.pull_request.number }}
+          CODEX_REVIEW_REQUEST_HEAD: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || '' }}
           CODEX_REVIEW_WAIT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && '0' || '900' }}
           CODEX_REVIEW_POLL_SECONDS: '30'
         run: node --experimental-strip-types scripts/codex-review-gate.ts
