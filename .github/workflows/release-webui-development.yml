@@ -1,14 +1,23 @@
-name: OPL WebUI Development Publication
+name: OPL WebUI Independent Preview Publication
+run-name: WebUI Preview ${{ inputs.version }}
 
 on:
   workflow_dispatch:
     inputs:
-      source_run_id:
-        description: Exact first-attempt Stable run carrying the frozen Bundle.
+      version:
+        description: Exact immutable Preview version, for example 26.7.28-preview.r1.
         required: true
         type: string
-      expected_version:
-        description: Exact frozen Bundle display version, for example 26.7.24-r3.
+      app_ref:
+        description: Exact App commit to build.
+        required: true
+        type: string
+      shell_ref:
+        description: Exact active Shell commit to build.
+        required: true
+        type: string
+      framework_ref:
+        description: Exact Framework commit to build.
         required: true
         type: string
 
@@ -20,95 +29,86 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: opl-webui-development-publication-global
+  group: opl-webui-independent-preview-publication-global
   cancel-in-progress: false
 
 jobs:
-  resolve-frozen-bundle:
+  source-authority:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       actions: read
     outputs:
-      source_run_id: ${{ steps.bundle.outputs.source_run_id }}
-      bundle_artifact_name: ${{ steps.bundle.outputs.bundle_artifact_name }}
-      version: ${{ steps.bundle.outputs.version }}
-      bundle_digest: ${{ steps.bundle.outputs.bundle_digest }}
-      app_ref: ${{ steps.bundle.outputs.app_ref }}
-      shell_ref: ${{ steps.bundle.outputs.shell_ref }}
-      framework_ref: ${{ steps.bundle.outputs.framework_ref }}
+      source_run_id: ${{ steps.authority.outputs.source_run_id }}
+      source_authority_artifact_name: ${{ steps.authority.outputs.source_authority_artifact_name }}
+      source_authority_digest: ${{ steps.authority.outputs.source_authority_digest }}
+      version: ${{ steps.authority.outputs.version }}
+      app_ref: ${{ steps.authority.outputs.app_ref }}
+      shell_ref: ${{ steps.authority.outputs.shell_ref }}
+      framework_ref: ${{ steps.authority.outputs.framework_ref }}
     steps:
-      - name: Checkout canonical development authority
+      - name: Checkout canonical App executor
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           ref: ${{ github.sha }}
 
-      - name: Admit exact frozen Bundle from one terminal Stable attempt
-        id: bundle
+      - name: Admit exact user-selected source refs
+        id: authority
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-          EXPECTED_VERSION: ${{ inputs.expected_version }}
+          VERSION: ${{ inputs.version }}
+          APP_REF: ${{ inputs.app_ref }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
           test "$GITHUB_REF" = refs/heads/main
-          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-          [[ "$EXPECTED_VERSION" =~ ^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[1-9][0-9]*)?$ ]]
+          [[ "$VERSION" =~ ^[0-9]{2}\.(1|2|3|4|5|6|7|8|9|10|11|12)\.(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31)-preview\.r[1-9][0-9]*$ ]]
+          [[ "$APP_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SHELL_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
           canonical_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
           test "$canonical_sha" = "$GITHUB_SHA"
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
-          jq -e --arg run "$SOURCE_RUN_ID" '
-            (.id | tostring) == $run
-            and .repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .path == ".github/workflows/release-stable.yml"
-            and .event == "workflow_dispatch"
-            and .head_branch == "main"
-            and .run_attempt == 1
-            and .status == "completed"
-            and (.conclusion == "success" or .conclusion == "failure")
-            and (.head_sha | test("^[0-9a-f]{40}$"))
-          ' source-run.json >/dev/null
-          artifact_name="opl-release-bundle-${SOURCE_RUN_ID}"
-          gh run download "$SOURCE_RUN_ID" --name "$artifact_name" --dir frozen-bundle
-          bundle_files=()
-          while IFS= read -r file; do bundle_files+=("$file"); done < <(
-            find frozen-bundle -type f -name release-bundle.json -print | LC_ALL=C sort
-          )
-          test "${#bundle_files[@]}" -eq 1
-          bundle="${bundle_files[0]}"
-          test -f "$bundle" && test ! -L "$bundle"
-          jq -e \
-            --arg source_app_sha "$(jq -er .head_sha source-run.json)" \
-            --arg expected_version "$EXPECTED_VERSION" '
-            .surface_kind == "opl_release_bundle.v1"
-            and .release.channel == "stable"
-            and .release.prerelease == false
-            and .release.version == $expected_version
-            and .release.tag == ("v" + $expected_version)
-            and .sources.app.repo == "gaofeng21cn/one-person-lab-app"
-            and .sources.app.source_commit == $source_app_sha
-            and .sources.shell.repo == "gaofeng21cn/opl-aion-shell"
-            and .sources.framework.repo == "gaofeng21cn/one-person-lab"
-            and (.bundle_digest | test("^sha256:[0-9a-f]{64}$"))
-            and (.sources.shell.source_commit | test("^[0-9a-f]{40}$"))
-            and (.sources.framework.source_commit | test("^[0-9a-f]{40}$"))
-          ' "$bundle" >/dev/null
+          node --experimental-strip-types scripts/webui-source-authority.ts \
+            create \
+            --version "$VERSION" \
+            --app-sha "$APP_REF" \
+            --shell-sha "$SHELL_REF" \
+            --framework-sha "$FRAMEWORK_REF" \
+            --run-id "$GITHUB_RUN_ID" \
+            --executor-sha "$GITHUB_SHA" \
+            --output source-authority.json \
+            > source-authority-create.json
+          node --experimental-strip-types scripts/webui-source-authority.ts \
+            validate --input source-authority.json \
+            > source-authority-verification.json
+          source_authority_artifact_name="opl-webui-source-authority-${GITHUB_RUN_ID}"
           {
-            echo "source_run_id=$SOURCE_RUN_ID"
-            echo "bundle_artifact_name=$artifact_name"
-            echo "version=$(jq -er .release.version "$bundle")"
-            echo "bundle_digest=$(jq -er .bundle_digest "$bundle")"
-            echo "app_ref=$(jq -er .sources.app.source_commit "$bundle")"
-            echo "shell_ref=$(jq -er .sources.shell.source_commit "$bundle")"
-            echo "framework_ref=$(jq -er .sources.framework.source_commit "$bundle")"
+            echo "source_run_id=$GITHUB_RUN_ID"
+            echo "source_authority_artifact_name=$source_authority_artifact_name"
+            echo "source_authority_digest=$(jq -er .source_authority_digest source-authority.json)"
+            echo "version=$VERSION"
+            echo "app_ref=$APP_REF"
+            echo "shell_ref=$SHELL_REF"
+            echo "framework_ref=$FRAMEWORK_REF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Upload independent source authority
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ steps.authority.outputs.source_authority_artifact_name }}
+          path: |
+            source-authority.json
+            source-authority-create.json
+            source-authority-verification.json
+          if-no-files-found: error
+          retention-days: 90
+
   webui-carrier:
-    needs: resolve-frozen-bundle
+    needs: source-authority
     permissions:
       contents: read
       actions: read
@@ -116,26 +116,12 @@ jobs:
     uses: ./.github/workflows/_release-webui-carrier.yml
     with:
       mode: execute
-      authority_mode: development_validation
-      app_ref: ${{ needs.resolve-frozen-bundle.outputs.app_ref }}
-      shell_ref: ${{ needs.resolve-frozen-bundle.outputs.shell_ref }}
-      framework_ref: ${{ needs.resolve-frozen-bundle.outputs.framework_ref }}
-      opl_version: ${{ needs.resolve-frozen-bundle.outputs.version }}
-      release_bundle_digest: ${{ needs.resolve-frozen-bundle.outputs.bundle_digest }}
-      release_cohort_ref: ${{ needs.resolve-frozen-bundle.outputs.bundle_digest }}
-      source_artifact_run_id: ${{ needs.resolve-frozen-bundle.outputs.source_run_id }}
-      standard_checkpoint_artifact_name: ${{ needs.resolve-frozen-bundle.outputs.bundle_artifact_name }}
-      standard_identity_sha256: ${{ needs.resolve-frozen-bundle.outputs.bundle_digest }}
-
-  promote-webui-stable:
-    needs: [resolve-frozen-bundle, webui-carrier]
-    permissions:
-      contents: read
-      actions: read
-      packages: write
-    uses: ./.github/workflows/release-webui-stable.yml
-    with:
-      mode: execute
-      authority_mode: development_validation
-      stable_authority_run_id: ${{ needs.resolve-frozen-bundle.outputs.source_run_id }}
-      carrier_artifact_name: ${{ needs.webui-carrier.outputs.carrier_artifact_name }}
+      authority_mode: independent_preview
+      app_ref: ${{ needs.source-authority.outputs.app_ref }}
+      shell_ref: ${{ needs.source-authority.outputs.shell_ref }}
+      framework_ref: ${{ needs.source-authority.outputs.framework_ref }}
+      opl_version: ${{ needs.source-authority.outputs.version }}
+      release_bundle_digest: ${{ needs.source-authority.outputs.source_authority_digest }}
+      release_cohort_ref: ${{ needs.source-authority.outputs.source_authority_digest }}
+      source_artifact_run_id: ${{ needs.source-authority.outputs.source_run_id }}
+      source_authority_artifact_name: ${{ needs.source-authority.outputs.source_authority_artifact_name }}

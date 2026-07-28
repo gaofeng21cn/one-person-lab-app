@@ -1,22 +1,19 @@
-name: OPL WebUI Development Promotion
+name: OPL WebUI Independent Preview Latest Promotion
+run-name: Promote WebUI Preview carrier run ${{ inputs.carrier_follower_run_id }} to latest
 
 on:
   workflow_dispatch:
     inputs:
-      stable_authority_run_id:
-        description: Exact terminal Stable run that owns the frozen development Bundle.
-        required: true
-        type: string
       carrier_follower_run_id:
-        description: Exact first-attempt development run that published the immutable carrier.
+        description: Exact successful first-attempt Preview publication run.
         required: true
         type: string
       carrier_executor_ref:
-        description: Exact App SHA that executed the immutable carrier publication.
+        description: Exact App SHA that executed the Preview publication.
         required: true
         type: string
       carrier_artifact_name:
-        description: Exact unexpired carrier receipt artifact from the carrier run.
+        description: Exact unexpired carrier receipt artifact from that run.
         required: true
         type: string
 
@@ -28,11 +25,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: opl-webui-development-promotion-only-global
+  group: opl-webui-independent-preview-latest-global
   cancel-in-progress: false
 
 jobs:
-  promote-webui-stable:
+  promote-webui-latest:
     permissions:
       contents: read
       actions: read
@@ -40,8 +37,7 @@ jobs:
     uses: ./.github/workflows/release-webui-stable.yml
     with:
       mode: execute
-      authority_mode: development_validation
-      stable_authority_run_id: ${{ inputs.stable_authority_run_id }}
+      authority_mode: independent_preview
       carrier_follower_run_id: ${{ inputs.carrier_follower_run_id }}
       carrier_executor_ref: ${{ inputs.carrier_executor_ref }}
       carrier_artifact_name: ${{ inputs.carrier_artifact_name }}

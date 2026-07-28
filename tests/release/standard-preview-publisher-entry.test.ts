@@ -260,9 +260,11 @@ test('legacy manifest bridge accepts only canonical non-prerelease Stable identi
   );
 });
 
-test('Manual Preview workflow is a protected source entry with read-only admission and no carrier side effects', () => {
+test('Manual Preview workflow and explicit Latest override keep quality separate from pointer selection', () => {
   const workflow = parseWorkflow('release-manual-preview.yml');
   const source = readWorkflow('release-manual-preview.yml');
+  const pointerWorkflow = parseWorkflow('_release-preview-latest-pointer.yml');
+  const pointerSource = readWorkflow('_release-preview-latest-pointer.yml');
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
   assert.deepEqual(
     workflow.on.workflow_dispatch.inputs.operation.options,
@@ -283,6 +285,13 @@ test('Manual Preview workflow is a protected source entry with read-only admissi
     './.github/workflows/_release-preview-latest-pointer.yml',
   );
   assert.equal(workflow.jobs['move-latest-pointer'].with.target_tag, '${{ needs.admission.outputs.target_tag }}');
+  assert.equal(
+    pointerWorkflow.on.workflow_call.inputs.target_tag.description,
+    'Exact already-published Stable or Preview tag.',
+  );
+  assert.match(pointerSource, /test "\$quality_status" = preview \|\| test "\$quality_status" = stable/);
+  assert.match(pointerSource, /qualification_disclosure\.stable_qualified/);
+  assert.match(pointerSource, /non_stable_disclosure_preserved:\(\$quality_status == "preview"\)/);
   assert.match(source, /scripts\/resolve-preview-release-request\.ts/);
   assert.match(source, /scripts\/validate-latest-pointer-operation\.ts/);
   assert.doesNotMatch(source, /release create|release upload|-X PATCH|OPL_HOMEBREW_TAP_TOKEN|ghcr\.io/);

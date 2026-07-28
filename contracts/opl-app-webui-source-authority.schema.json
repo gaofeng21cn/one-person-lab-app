@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.dev/contracts/opl-app-webui-source-authority.schema.json",
+  "title": "OPL WebUI Independent Source Authority",
+  "type": "object",
+  "required": [
+    "schema",
+    "status",
+    "carrier",
+    "quality_status",
+    "build_trigger",
+    "preview_kind",
+    "release",
+    "sources",
+    "authorization",
+    "source_authority_digest"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opl_app_webui_source_authority.v1"
+    },
+    "status": {
+      "const": "admitted"
+    },
+    "carrier": {
+      "const": "container_webui"
+    },
+    "quality_status": {
+      "const": "preview"
+    },
+    "build_trigger": {
+      "const": "manual"
+    },
+    "preview_kind": {
+      "const": "dev"
+    },
+    "release": {
+      "type": "object",
+      "required": ["version", "tag"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]{2}\\.(?:[1-9]|1[0-2])\\.(?:[1-9]|[12][0-9]|3[01])-preview\\.r[1-9][0-9]*$"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^[0-9]{2}\\.(?:[1-9]|1[0-2])\\.(?:[1-9]|[12][0-9]|3[01])-preview\\.r[1-9][0-9]*$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "object",
+      "required": ["app", "shell", "framework"],
+      "properties": {
+        "app": { "$ref": "#/$defs/source" },
+        "shell": { "$ref": "#/$defs/source" },
+        "framework": { "$ref": "#/$defs/source" }
+      },
+      "additionalProperties": false
+    },
+    "authorization": {
+      "type": "object",
+      "required": ["source", "workflow", "run_id", "run_attempt", "executor_sha"],
+      "properties": {
+        "source": { "const": "user_explicit_workflow_dispatch" },
+        "workflow": { "const": ".github/workflows/release-webui-development.yml" },
+        "run_id": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "run_attempt": { "const": 1 },
+        "executor_sha": { "$ref": "#/$defs/sha" }
+      },
+      "additionalProperties": false
+    },
+    "source_authority_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "required": ["repo", "source_commit"],
+      "properties": {
+        "repo": { "type": "string", "minLength": 1 },
+        "source_commit": { "$ref": "#/$defs/sha" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

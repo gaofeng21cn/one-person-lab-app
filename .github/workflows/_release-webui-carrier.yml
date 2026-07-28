@@ -8,7 +8,7 @@ on:
         type: string
         default: execute
       authority_mode:
-        description: production_follower or development_validation.
+        description: production_follower, development_validation, or independent_preview.
         type: string
         default: production_follower
       app_ref:
@@ -28,25 +28,35 @@ on:
         type: string
         required: true
       release_bundle_digest:
-        description: Exact frozen Framework Release Bundle digest.
+        description: Exact Stable Bundle or independent source-authority digest.
         type: string
-        required: true
+        required: false
+        default: ''
       release_cohort_ref:
-        description: Exact frozen release cohort digest.
+        description: Exact frozen release cohort or source-authority digest.
         type: string
-        required: true
+        required: false
+        default: ''
       source_artifact_run_id:
-        description: Exact Stable source run containing the admitted frozen identity artifact.
+        description: Exact source run containing the admitted source artifact.
         type: string
-        required: true
+        required: false
+        default: ''
       standard_checkpoint_artifact_name:
         description: Exact portable Standard checkpoint or development frozen Bundle artifact.
         type: string
-        required: true
+        required: false
+        default: ''
       standard_identity_sha256:
         description: Exact Standard identity digest; development mode binds the Bundle digest here.
         type: string
-        required: true
+        required: false
+        default: ''
+      source_authority_artifact_name:
+        description: Exact independent WebUI source-authority artifact.
+        type: string
+        required: false
+        default: ''
       image_repository:
         description: GHCR repository without a tag or digest.
         type: string
@@ -80,9 +90,14 @@ jobs:
           test '${{ inputs.app_ref }}' != ''
           test '${{ inputs.shell_ref }}' != ''
           test '${{ inputs.framework_ref }}' != ''
-          test '${{ inputs.source_artifact_run_id }}' != ''
-          test '${{ inputs.standard_checkpoint_artifact_name }}' != ''
-          test '${{ inputs.standard_identity_sha256 }}' != ''
+          if [ '${{ inputs.authority_mode }}' = independent_preview ]; then
+            test '${{ inputs.source_artifact_run_id }}' != ''
+            test '${{ inputs.source_authority_artifact_name }}' != ''
+          else
+            test '${{ inputs.source_artifact_run_id }}' != ''
+            test '${{ inputs.standard_checkpoint_artifact_name }}' != ''
+            test '${{ inputs.standard_identity_sha256 }}' != ''
+          fi
 
   build-and-qualify:
     if: ${{ inputs.mode == 'execute' }}
@@ -102,13 +117,13 @@ jobs:
           ref: ${{ inputs.app_ref }}
 
       - name: Checkout canonical development executor
-        if: ${{ inputs.authority_mode == 'development_validation' }}
+        if: ${{ inputs.authority_mode == 'development_validation' || inputs.authority_mode == 'independent_preview' }}
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           ref: ${{ github.sha }}
 
       - name: Checkout exact frozen App build input
-        if: ${{ inputs.authority_mode == 'development_validation' }}
+        if: ${{ inputs.authority_mode == 'development_validation' || inputs.authority_mode == 'independent_preview' }}
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           ref: ${{ inputs.app_ref }}
@@ -140,6 +155,7 @@ jobs:
         uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
 
       - name: Download exact portable Standard checkpoint
+        if: ${{ inputs.authority_mode == 'production_follower' || inputs.authority_mode == 'development_validation' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: ${{ inputs.standard_checkpoint_artifact_name }}
@@ -147,12 +163,22 @@ jobs:
           github-token: ${{ github.token }}
           path: webui-carrier/standard-checkpoint
 
+      - name: Download exact independent WebUI source authority
+        if: ${{ inputs.authority_mode == 'independent_preview' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ inputs.source_authority_artifact_name }}
+          run-id: ${{ inputs.source_artifact_run_id }}
+          github-token: ${{ github.token }}
+          path: webui-carrier/source-authority
+
       - name: Verify frozen source identities
         shell: bash
         run: |
           set -euo pipefail
           test '${{ inputs.authority_mode }}' = production_follower \
-            || test '${{ inputs.authority_mode }}' = development_validation
+            || test '${{ inputs.authority_mode }}' = development_validation \
+            || test '${{ inputs.authority_mode }}' = independent_preview
           if [ '${{ inputs.authority_mode }}' = production_follower ]; then
             test "$(git rev-parse HEAD)" = '${{ inputs.app_ref }}'
           else
@@ -242,6 +268,53 @@ jobs:
           source_cutoff_observed_at="$(node -e 'process.stdout.write(new Date().toISOString())')"
           node --experimental-strip-types scripts/framework-release-adapter.ts webui-build-input \
             --bundle "$bundle" \
+            --app-root frozen-app-source \
+            --shell-root shells/aionui \
+            --framework-root framework-source \
+            --source-cutoff-observed-at "$source_cutoff_observed_at" \
+            --base-image-index webui-carrier/base-image-index.json \
+            --frozen-codex-tarball webui-carrier/frozen-codex/codex-cli.tgz \
+            --output webui-carrier/build-input-draft.json
+
+      - name: Derive WebUI build input from independent exact source authority
+        if: ${{ inputs.authority_mode == 'independent_preview' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          one_regular_file() {
+            local root="$1" name="$2"
+            local matches=()
+            local match
+            while IFS= read -r match; do matches+=("$match"); done < <(
+              find "$root" -type f -name "$name" -print | LC_ALL=C sort
+            )
+            test "${#matches[@]}" -eq 1 || {
+              echo "::error::$root must contain exactly one $name; found ${#matches[@]}."
+              exit 1
+            }
+            test -f "${matches[0]}" && test ! -L "${matches[0]}"
+            printf '%s\n' "${matches[0]}"
+          }
+          source_authority="$(one_regular_file webui-carrier/source-authority source-authority.json)"
+          node --experimental-strip-types scripts/webui-source-authority.ts \
+            validate --input "$source_authority" \
+            > webui-carrier/source-authority-verification.json
+          cp "$source_authority" webui-carrier/source-authority.json
+          test "$(jq -er .source_authority_digest webui-carrier/source-authority.json)" = '${{ inputs.release_bundle_digest }}'
+          test "$(jq -er .release.version webui-carrier/source-authority.json)" = '${{ inputs.opl_version }}'
+          mkdir -p webui-carrier/frozen-codex
+          oras manifest fetch \
+            --output webui-carrier/base-image-index.json \
+            docker.io/library/node:22-bookworm-slim
+          codex_version="$(jq -er '.managed_runtime.codex_cli.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"))' \
+            shells/aionui/contracts/aionui-upstream-intake.json)"
+          codex_tarball_url="$(npm view --json "@openai/codex@${codex_version}" dist.tarball \
+            | jq -er 'select(type == "string" and startswith("https://"))')"
+          curl -L --fail --silent --show-error "$codex_tarball_url" \
+            --output webui-carrier/frozen-codex/codex-cli.tgz
+          source_cutoff_observed_at="$(node -e 'process.stdout.write(new Date().toISOString())')"
+          node --experimental-strip-types scripts/framework-release-adapter.ts webui-build-input \
+            --source-authority "webui-carrier/source-authority.json" \
             --app-root frozen-app-source \
             --shell-root shells/aionui \
             --framework-root framework-source \
@@ -454,7 +527,7 @@ jobs:
     needs: build-and-qualify
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: release-stable
+    environment: ${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}
     permissions:
       contents: read
       packages: write
@@ -684,27 +757,55 @@ jobs:
             --expected-framework-sha '${{ inputs.framework_ref }}' \
             --expected-architecture amd64 \
             > webui-carrier/carrier-receipt-verification.json
+          if [ '${{ inputs.authority_mode }}' = independent_preview ]; then
+            test -f webui-carrier/source-authority.json
+            node --experimental-strip-types scripts/webui-source-authority.ts \
+              validate --input webui-carrier/source-authority.json \
+              > webui-carrier/source-authority-final-verification.json
+            test "$(jq -er .source_authority_digest webui-carrier/source-authority.json)" = \
+              "$(jq -er .release.bundle_digest webui-carrier/carrier-receipt.json)"
+            test "$(jq -er .source_authority_digest webui-carrier/source-authority.json)" = \
+              "$(jq -er .release.cohort_ref webui-carrier/carrier-receipt.json)"
+          fi
           carrier_artifact_name="webui-carrier-${{ inputs.opl_version }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           printf 'carrier_artifact_name=%s\n' "$carrier_artifact_name" >> "$GITHUB_OUTPUT"
+
+      - name: Stage exact carrier receipt evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf carrier-artifact
+          mkdir -p carrier-artifact
+          for file in \
+            build-input.json \
+            build-input-verification.json \
+            codex-artifact-verification.json \
+            docker-context-policy-verification.json \
+            carrier-receipt.json \
+            carrier-receipt-verification.json \
+            candidate-tag-readback.txt \
+            image-inspect.json \
+            immutable-readback.txt \
+            registry-readback.json \
+            runtime-summary.json \
+            version-tag-authority.json \
+            version-tag-manifest.json \
+            version-tag-readback.txt; do
+            test -f "webui-carrier/$file"
+            cp "webui-carrier/$file" "carrier-artifact/$file"
+          done
+          if [ '${{ inputs.authority_mode }}' = independent_preview ]; then
+            for file in source-authority.json source-authority-verification.json source-authority-final-verification.json; do
+              test -f "webui-carrier/$file"
+              cp "webui-carrier/$file" "carrier-artifact/$file"
+            done
+          fi
 
       - name: Upload immutable carrier receipt
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.receipt.outputs.carrier_artifact_name }}
           path: |
-            webui-carrier/build-input.json
-            webui-carrier/build-input-verification.json
-            webui-carrier/codex-artifact-verification.json
-            webui-carrier/docker-context-policy-verification.json
-            webui-carrier/carrier-receipt.json
-            webui-carrier/carrier-receipt-verification.json
-            webui-carrier/candidate-tag-readback.txt
-            webui-carrier/image-inspect.json
-            webui-carrier/immutable-readback.txt
-            webui-carrier/registry-readback.json
-            webui-carrier/runtime-summary.json
-            webui-carrier/version-tag-authority.json
-            webui-carrier/version-tag-manifest.json
-            webui-carrier/version-tag-readback.txt
+            carrier-artifact
           if-no-files-found: error
           retention-days: 90

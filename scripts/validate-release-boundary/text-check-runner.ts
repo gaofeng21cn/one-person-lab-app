@@ -20,6 +20,10 @@ const manualFullPreviewWorkflowPath = '.github/workflows/release-manual-full-pre
 const manualFullPreviewMutationJob = 'mutate';
 const webuiStablePromotionWorkflowPath = '.github/workflows/release-webui-stable.yml';
 const webuiStablePromotionMutationJob = 'promote-webui-stable';
+const webuiCarrierPublishEnvironment =
+  "${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}";
+const webuiPromotionPublishEnvironment =
+  "${{ needs.admission.outputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}";
 const webuiDevelopmentWorkflowPath = '.github/workflows/release-webui-development.yml';
 const webuiDevelopmentPromotionWorkflowPath =
   '.github/workflows/release-webui-development-promote.yml';
@@ -110,7 +114,7 @@ export function isAuthorizedWebuiStablePromotionWriteJob(
   return workflowPath === webuiStablePromotionWorkflowPath
     && jobId === webuiStablePromotionMutationJob
     && needsExactly(job, ['admission'])
-    && job.environment === 'release-stable'
+    && job.environment === webuiPromotionPublishEnvironment
     && exactObject(job.permissions, exactWebuiStablePromotionPermissions);
 }
 
@@ -1612,7 +1616,7 @@ function validateWebUiCarrierCallee(
   }
   if (!publish || publish.if !== "${{ inputs.mode == 'execute' }}" ||
       publish.needs !== 'build-and-qualify' ||
-      publish.environment !== 'release-stable' ||
+      publish.environment !== webuiCarrierPublishEnvironment ||
       !exactObject(publish.permissions, exactWebUiPublishPermissions)) {
     failures += reportFailure(id, 'WebUI immutable publish must be execute-only, protected, and request only contents:read/packages:write');
   }
@@ -1935,6 +1939,7 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
     validateReleaseBundleCanaryTopology(appRoot) +
     validateNightlyReleaseTopology(appRoot) +
     validatePreviewLatestPointerTopology(appRoot) +
+    validateIndependentWebuiPreviewTopology(appRoot) +
     validateManualFullPreviewControlPlane(appRoot) +
     validateNativeWebuiPublicationTopology(appRoot) +
     validateHomebrewFullPromotionTopology(appRoot);
@@ -1983,37 +1988,24 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
       }
       if (
         workflowPath === webuiDevelopmentWorkflowPath
-        && (
-          (
-            jobId === 'webui-carrier'
-            && job.uses === './.github/workflows/_release-webui-carrier.yml'
-            && needsExactly(job, ['resolve-frozen-bundle'])
-            && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
-            && job.with?.mode === 'execute'
-            && job.with?.authority_mode === 'development_validation'
-          )
-          || (
-            jobId === 'promote-webui-stable'
-            && job.uses === './.github/workflows/release-webui-stable.yml'
-            && needsExactly(job, ['resolve-frozen-bundle', 'webui-carrier'])
-            && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
-            && job.with?.mode === 'execute'
-            && job.with?.authority_mode === 'development_validation'
-          )
-        )
+        && jobId === 'webui-carrier'
+        && job.uses === './.github/workflows/_release-webui-carrier.yml'
+        && needsExactly(job, ['source-authority'])
+        && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
+        && job.with?.mode === 'execute'
+        && job.with?.authority_mode === 'independent_preview'
         && steps.length === 0
       ) {
         continue;
       }
       if (
         workflowPath === webuiDevelopmentPromotionWorkflowPath
-        && jobId === 'promote-webui-stable'
+        && jobId === 'promote-webui-latest'
         && job.uses === './.github/workflows/release-webui-stable.yml'
         && !Object.prototype.hasOwnProperty.call(job, 'needs')
         && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
         && job.with?.mode === 'execute'
-        && job.with?.authority_mode === 'development_validation'
-        && job.with?.stable_authority_run_id === '${{ inputs.stable_authority_run_id }}'
+        && job.with?.authority_mode === 'independent_preview'
         && job.with?.carrier_follower_run_id === '${{ inputs.carrier_follower_run_id }}'
         && job.with?.carrier_executor_ref === '${{ inputs.carrier_executor_ref }}'
         && job.with?.carrier_artifact_name === '${{ inputs.carrier_artifact_name }}'
@@ -2050,6 +2042,111 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
       failures += 1;
       failures += validateExactActionPins(workflowPath, jobId, steps);
     }
+  }
+  return failures;
+}
+
+export function validateIndependentWebuiPreviewTopology(appRoot: string): number {
+  const id = 'independent_webui_preview_topology';
+  const publication = parseWorkflow(appRoot, webuiDevelopmentWorkflowPath, id);
+  const promotion = parseWorkflow(appRoot, webuiDevelopmentPromotionWorkflowPath, id);
+  if (!publication || !promotion) return 1;
+  let failures = 0;
+  const publicationWorkflow = publication.workflow;
+  const publicationJobs = workflowJobs(publicationWorkflow);
+  const expectedPublicationInputs = ['version', 'app_ref', 'shell_ref', 'framework_ref'].sort();
+  const expectedCarrierWith = {
+    mode: 'execute',
+    authority_mode: 'independent_preview',
+    app_ref: '${{ needs.source-authority.outputs.app_ref }}',
+    shell_ref: '${{ needs.source-authority.outputs.shell_ref }}',
+    framework_ref: '${{ needs.source-authority.outputs.framework_ref }}',
+    opl_version: '${{ needs.source-authority.outputs.version }}',
+    release_bundle_digest: '${{ needs.source-authority.outputs.source_authority_digest }}',
+    release_cohort_ref: '${{ needs.source-authority.outputs.source_authority_digest }}',
+    source_artifact_run_id: '${{ needs.source-authority.outputs.source_run_id }}',
+    source_authority_artifact_name: '${{ needs.source-authority.outputs.source_authority_artifact_name }}',
+  };
+  if (
+    JSON.stringify(Object.keys(publicationWorkflow.on?.workflow_dispatch?.inputs ?? {}).sort()) !==
+      JSON.stringify(expectedPublicationInputs)
+    || !exactObject(publicationWorkflow.permissions, exactReadPermissions)
+    || !exactObject(publicationWorkflow.concurrency, {
+      group: 'opl-webui-independent-preview-publication-global',
+      'cancel-in-progress': false,
+    })
+    || JSON.stringify(Object.keys(publicationJobs).sort()) !==
+      JSON.stringify(['source-authority', 'webui-carrier'])
+  ) {
+    failures += reportFailure(
+      id,
+      'independent Preview publication must admit exact four refs and contain only source authority plus immutable carrier publication',
+    );
+  }
+  const sourceAuthority = publicationJobs['source-authority'];
+  const carrier = publicationJobs['webui-carrier'];
+  if (
+    !sourceAuthority
+    || Object.prototype.hasOwnProperty.call(sourceAuthority, 'needs')
+    || !exactObject(sourceAuthority.permissions, exactReadPermissions)
+    || !carrier
+    || !needsExactly(carrier, ['source-authority'])
+    || carrier.uses !== './.github/workflows/_release-webui-carrier.yml'
+    || !exactObject(carrier.permissions, exactWebUiCompileCeilingPermissions)
+    || !exactObject(carrier.with, expectedCarrierWith)
+  ) {
+    failures += reportFailure(
+      id,
+      'independent Preview publication must bind source authority directly into the immutable carrier without a pointer writer',
+    );
+  }
+  if (
+    !publication.text.includes('webui-source-authority.ts')
+    || !publication.text.includes('test "$GITHUB_RUN_ATTEMPT" = 1')
+    || !publication.text.includes('test "$GITHUB_REF" = refs/heads/main')
+    || /promote-webui|release-webui-stable\.yml|\boras tag\b/.test(publication.text)
+  ) {
+    failures += reportFailure(
+      id,
+      'independent Preview publication must create and verify source authority but cannot promote stable/latest itself',
+    );
+  }
+
+  const promotionWorkflow = promotion.workflow;
+  const promotionJobs = workflowJobs(promotionWorkflow);
+  const expectedPromotionInputs = [
+    'carrier_follower_run_id',
+    'carrier_executor_ref',
+    'carrier_artifact_name',
+  ].sort();
+  const expectedPromotionWith = {
+    mode: 'execute',
+    authority_mode: 'independent_preview',
+    carrier_follower_run_id: '${{ inputs.carrier_follower_run_id }}',
+    carrier_executor_ref: '${{ inputs.carrier_executor_ref }}',
+    carrier_artifact_name: '${{ inputs.carrier_artifact_name }}',
+  };
+  const latestWriter = promotionJobs['promote-webui-latest'];
+  if (
+    JSON.stringify(Object.keys(promotionWorkflow.on?.workflow_dispatch?.inputs ?? {}).sort()) !==
+      JSON.stringify(expectedPromotionInputs)
+    || !exactObject(promotionWorkflow.permissions, exactReadPermissions)
+    || !exactObject(promotionWorkflow.concurrency, {
+      group: 'opl-webui-independent-preview-latest-global',
+      'cancel-in-progress': false,
+    })
+    || JSON.stringify(Object.keys(promotionJobs).sort()) !== JSON.stringify(['promote-webui-latest'])
+    || !latestWriter
+    || Object.prototype.hasOwnProperty.call(latestWriter, 'needs')
+    || latestWriter.uses !== './.github/workflows/release-webui-stable.yml'
+    || !exactObject(latestWriter.permissions, exactWebUiCompileCeilingPermissions)
+    || !exactObject(latestWriter.with, expectedPromotionWith)
+    || /stable_authority_run_id|_release-webui-carrier\.yml|build-and-qualify|publish-immutable-carrier/.test(promotion.text)
+  ) {
+    failures += reportFailure(
+      id,
+      'independent Preview Latest promotion must be a separate exact-carrier dispatch with no Desktop Stable authority or rebuild path',
+    );
   }
   return failures;
 }

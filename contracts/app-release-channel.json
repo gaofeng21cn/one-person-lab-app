@@ -30,6 +30,7 @@
         "desktop_full_additive_asset",
         "manual_full_preview",
         "windows_x64_wsl2_only_rc_preview",
+        "container_webui_manual_independent_preview",
         "desktop_nightly_automated_standard_prerelease",
         "homebrew_nightly_post_publication_follower",
         "native_webui_implemented_unpublished_target",
@@ -132,9 +133,14 @@
     },
     "latest_policy": {
       "default_automatic_writer": "newest_qualified_stable",
+      "default_behavior": "each_carrier_advances_its_own_latest_pointer_when_that_carrier_publishes_a_new_qualified_stable",
       "automatic_preview_or_nightly_writer_may_move_latest": false,
       "explicit_user_override": {
         "target": "any_exact_published_version",
+        "quality_statuses": [
+          "stable",
+          "preview"
+        ],
         "preview_kinds": [
           "dev",
           "nightly"
@@ -144,7 +150,8 @@
         "public_readback": "exact_tag_digest_quality_and_disclosure",
         "quality_unchanged": true,
         "persistent_override": false,
-        "non_stable_and_skipped_or_failed_gate_disclosure_required": true
+        "non_stable_and_skipped_or_failed_gate_disclosure_required_for_preview_only": true,
+        "stable_candidate_requires_stable_qualification_disclosure": true
       },
       "promote_quality": {
         "operation": "promote_quality",
@@ -158,7 +165,8 @@
         "operation": "move_latest_pointer",
         "target": "any_exact_published_version",
         "changes_quality": false,
-        "preview_requires_explicit_user_override": true,
+        "explicit_user_override_required": true,
+        "stable_or_preview_candidate_allowed": true,
         "entry_workflow": ".github/workflows/release-manual-preview.yml",
         "reusable_workflow": ".github/workflows/_release-preview-latest-pointer.yml",
         "protected_environment": "release-preview-latest",
@@ -198,7 +206,7 @@
       "manual_full_preview": "live_non_latest_temporary_lane",
       "windows_x64_rc_preview": "implementation_in_progress_publication_blocked",
       "full": "live_additive_first_install_asset_not_channel",
-      "container_webui": "live_separate_development_and_production_carrier",
+      "container_webui": "live_separate_development_and_production_carrier_with_independent_preview_publication",
       "native_webui": "approved_target_not_published",
       "homebrew_standard": "live_managed",
       "homebrew_nightly": "implemented_pending_first_follower_readback",
@@ -2104,7 +2112,8 @@
       "publish_gate": {
         "script": "scripts/validate-webui-runtime-image.ts",
         "moving_channel_expected_profile": "webui-full",
-        "latest_alias_requires_stable_quality_gate": true,
+        "default_latest_alias_requires_stable_quality_gate": true,
+        "explicit_preview_latest_requires_exact_qualified_carrier_and_protected_override": true,
         "must_read_back": [
           "docker_image_inspect",
           "image_manifest",
@@ -2174,18 +2183,22 @@
       "destructive_action_requires": "package_admin_with_delete_packages_scope",
       "rule": "WebUI GHCR cleanup must retain protected moving tags, recent stable/nightly versions, and declared rollback tags; deletion is never part of ordinary release publishing."
     },
-    "stable_promotion_requires": [
-      "successful_stable_authority_run_after_latest_activation",
-      "workflow_run_follower_bound_to_that_stable_authority",
-      "unique_successful_carrier_follower_job",
-      "qualified_webui_carrier_receipt",
-      "immutable_version_digest"
-    ],
+    "stable_promotion_requires": {
+      "applies_to": "production_follower_only",
+      "requires": [
+        "successful_stable_authority_run_after_latest_activation",
+        "workflow_run_follower_bound_to_that_stable_authority",
+        "unique_successful_carrier_follower_job",
+        "qualified_webui_carrier_receipt",
+        "immutable_version_digest"
+      ]
+    },
     "stable_promotion": {
-      "schema": "opl_app_webui_stable_promotion_contract.v4",
+      "schema": "opl_app_webui_stable_promotion_contract.v5",
       "writer": "release-webui-stable.yml#promote-webui-stable",
+      "writer_scope": "single_ghcr_alias_writer_for_stable_and_latest",
       "workflow": ".github/workflows/release-webui-stable.yml",
-      "trigger": "successful_release_stable_workflow_run_follower_after_latest_activation",
+      "trigger": "production_follower_after_successful_release_stable_latest_activation_or_explicit_preview_latest_dispatch",
       "follower_workflow": ".github/workflows/release-webui-follower.yml",
       "workflow_call_inputs": [
         "mode",
@@ -2201,6 +2214,8 @@
           "entry_workflow": ".github/workflows/release-webui-follower.yml",
           "desktop_latest_required": true,
           "development_receipt_accepted_as_handoff": false,
+          "immutable_publication_then_default_pointer_promotion": true,
+          "protected_environment": "release-stable",
           "promotion_tags": [
             "stable",
             "latest"
@@ -2214,8 +2229,10 @@
         },
         "development_validation": {
           "authority_mode": "development_validation",
-          "entry_workflow": ".github/workflows/release-webui-development.yml",
+          "state": "legacy_receipt_compatibility_only_no_current_dispatcher",
+          "entry_workflow": null,
           "source": "exact_first_attempt_terminal_stable_run_frozen_bundle",
+          "new_publication_allowed": false,
           "desktop_latest_required": false,
           "protected_public_mutation_required": true,
           "promotion_tags": [
@@ -2244,18 +2261,90 @@
             "protected_reusable": ".github/workflows/release-webui-stable.yml",
             "receipt_satisfies_production_latest_or_follower_handoff": false
           }
+        },
+        "independent_preview": {
+          "authority_mode": "independent_preview",
+          "entry_workflow": ".github/workflows/release-webui-development.yml",
+          "source": "exact_user_selected_app_shell_framework_refs_bound_by_opl_app_webui_source_authority.v1",
+          "desktop_stable_required": false,
+          "desktop_latest_required": false,
+          "immutable_publication_required": true,
+          "protected_publication_environment": "release-preview-publication",
+          "publication_entry_inputs": [
+            "version",
+            "app_ref",
+            "shell_ref",
+            "framework_ref"
+          ],
+          "publication_does_not_move_stable_or_latest": true,
+          "promotion_entry_workflow": ".github/workflows/release-webui-development-promote.yml",
+          "promotion_requires_explicit_user_dispatch": true,
+          "promotion_tags": [
+            "latest"
+          ],
+          "stable_alias_mutation_allowed": false,
+          "stable_prestate_must_remain_unchanged": true,
+          "classification": {
+            "quality_status": "preview",
+            "build_trigger": "manual",
+            "preview_kind": "dev",
+            "non_stable_notice": true
+          },
+          "source_authority_schema": "opl_app_webui_source_authority.v1",
+          "source_authority_digest_must_equal_carrier_release_bundle_and_cohort_ref": true,
+          "immutable_version_pattern": "YY.M.D-preview.rN",
+          "required_source_refs": [
+            "app_sha",
+            "shell_sha",
+            "framework_sha"
+          ],
+          "stable_run_dependency": false,
+          "desktop_latest_dependency": false,
+          "carrier_publication_run_requirements": [
+            "release-webui-development.yml",
+            "workflow_dispatch_event",
+            "main",
+            "attempt_1",
+            "completed_success",
+            "exact_executor_sha",
+            "exact_source_authority_artifact"
+          ],
+          "promotion_entry_inputs": [
+            "carrier_follower_run_id",
+            "carrier_executor_ref",
+            "carrier_artifact_name"
+          ],
+          "promotion_protected_environment": "release-preview-publication",
+          "receipt_satisfies_production_latest_or_follower_handoff": false
         }
       },
-      "stable_authority_binding": "stable_authority_run_id_must_equal_github_event_workflow_run_id",
-      "carrier_follower_binding": "github_run_id_of_release_webui_follower",
-      "operator_supplied_run_handle_allowed": false,
+      "stable_authority_binding_by_mode": {
+        "production_follower": "stable_authority_run_id_must_equal_github_event_workflow_run_id",
+        "development_validation": "legacy_stable_run_receipt_binding",
+        "independent_preview": "none"
+      },
+      "carrier_publication_binding_by_mode": {
+        "production_follower": "github_run_id_of_release_webui_follower",
+        "development_validation": "legacy_exact_development_publication_run",
+        "independent_preview": "user_supplied_exact_successful_preview_publication_run_revalidated_by_workflow"
+      },
+      "operator_evidence_handle_policy_by_mode": {
+        "production_follower": "no_operator_supplied_handles",
+        "development_validation": "legacy_only",
+        "independent_preview": "carrier_run_executor_sha_and_artifact_name_allowed_but_revalidated_and_not_target_identity"
+      },
       "opaque_run_handles_are_release_identity": false,
-      "protected_environment": "release-stable",
+      "protected_environment_by_mode": {
+        "production_follower": "release-stable",
+        "development_validation": "release-stable",
+        "independent_preview": "release-preview-publication"
+      },
       "default_pointer_ref": "ghcr.io/gaofeng21cn/one-person-lab-webui:latest",
       "automatic_update_ref": "ghcr.io/gaofeng21cn/one-person-lab-webui:latest",
       "target_ref": "ghcr.io/gaofeng21cn/one-person-lab-webui:latest",
       "compatibility_alias_ref": "ghcr.io/gaofeng21cn/one-person-lab-webui:stable",
       "manual_version_promotion_policy": "manual_development_validation_may_advance_latest_after_exact_immutable_carrier_qualification_while_preserving_stable",
+      "independent_preview_policy": "manual_user_selected_exact_refs_publish_an_immutable_preview_version_then_an_explicit_single_use_promotion_may_advance_latest_without_changing_stable",
       "stable_authority_requirements": [
         "release-stable.yml",
         "main",
@@ -2263,23 +2352,44 @@
         "completed_success",
         "latest_activation_handoff_present"
       ],
-      "carrier_follower_requirements": [
-        "release-webui-follower.yml",
-        "workflow_run_event",
-        "main",
-        "attempt_1",
-        "in_progress_or_completed",
-        "exact_current_app_main_sha",
-        "exact_triggering_stable_authority_run_id"
-      ],
-      "promotion_executor_requirements": [
-        "release-webui-stable.yml",
-        "inside_release-webui-follower.yml",
-        "main",
-        "attempt_1",
-        "exact_current_app_main_sha",
-        "release-stable_protected_environment"
-      ],
+      "carrier_follower_requirements_by_mode": {
+        "production_follower": [
+          "release-webui-follower.yml",
+          "workflow_run_event",
+          "main",
+          "attempt_1",
+          "in_progress_or_completed",
+          "exact_current_app_main_sha",
+          "exact_triggering_stable_authority_run_id"
+        ],
+        "independent_preview": [
+          "release-webui-development.yml",
+          "workflow_dispatch_event",
+          "main",
+          "attempt_1",
+          "completed_success",
+          "exact_carrier_executor_sha",
+          "source_authority_digest_matches_carrier_receipt"
+        ]
+      },
+      "promotion_executor_requirements_by_mode": {
+        "production_follower": [
+          "release-webui-stable.yml",
+          "inside_release-webui-follower.yml",
+          "main",
+          "attempt_1",
+          "exact_current_app_main_sha",
+          "release-stable_protected_environment"
+        ],
+        "independent_preview": [
+          "release-webui-development-promote.yml",
+          "workflow_dispatch_event",
+          "main",
+          "attempt_1",
+          "exact_current_app_main_sha",
+          "release-preview-publication_protected_environment"
+        ]
+      },
       "carrier_follower_intake": {
         "cross_run_scanning_allowed": false,
         "latest_artifact_selection_allowed": false,
@@ -2287,14 +2397,22 @@
         "current_follower_run_must_contain_exactly_one_successful_publish_immutable_carrier_job": true,
         "job_and_receipt_must_reverse_bind_follower_run_and_app_sha": true
       },
-      "evidence_order": [
-        "successful_stable_authority_and_workflow_run_event_binding",
-        "exact_carrier_follower_run_and_unique_successful_carrier_job_readback",
-        "qualified_immutable_webui_carrier_and_version_tag_readback",
-        "webui_stable_compare_and_swap",
-        "logout_then_anonymous_exact_digest_readback"
-      ],
-      "operator_inputs_forbidden": [
+      "evidence_order_by_mode": {
+        "production_follower": [
+          "successful_stable_authority_and_workflow_run_event_binding",
+          "exact_carrier_follower_run_and_unique_successful_carrier_job_readback",
+          "qualified_immutable_webui_carrier_and_version_tag_readback",
+          "stable_and_latest_compare_and_swap",
+          "logout_then_anonymous_exact_digest_readback"
+        ],
+        "independent_preview": [
+          "exact_source_authority_and_three_source_refs",
+          "qualified_immutable_preview_carrier_and_version_tag_readback",
+          "explicit_user_dispatch_for_latest_only_compare_and_swap",
+          "stable_alias_unchanged_and_latest_anonymous_exact_digest_readback"
+        ]
+      },
+      "operator_inputs_forbidden_to_pointer_promotion": [
         "target_ref",
         "target_digest",
         "version",
@@ -2318,13 +2436,18 @@
           ],
           "development_validation": [
             "latest"
+          ],
+          "independent_preview": [
+            "latest"
           ]
         },
         "mutation_command_by_authority_mode": {
           "production_follower": "oras tag <repository>@<target_digest> stable latest",
-          "development_validation": "oras tag <repository>@<target_digest> latest"
+          "development_validation": "oras tag <repository>@<target_digest> latest",
+          "independent_preview": "oras tag <repository>@<target_digest> latest"
         },
         "development_validation_requires_stable_prestate_unchanged": true,
+        "independent_preview_requires_stable_prestate_unchanged": true,
         "maximum_tag_attempts": 1,
         "single_command_updates_all_admitted_moving_tags": true,
         "force_allowed": false
@@ -2342,14 +2465,17 @@
         "github_latest_before_webui_stable": true,
         "github_latest_before_webui_stable_applies_to": "production_release",
         "development_validation_may_precede_desktop_latest": true,
+        "independent_preview_may_publish_and_move_webui_latest_without_desktop_stable_or_desktop_latest": true,
+        "independent_preview_immutable_publication_precedes_explicit_latest_only_promotion": true,
+        "independent_preview_never_moves_webui_stable": true,
         "desktop_latest_does_not_wait_for_webui": true,
         "webui_stable_independent_of_framework_package_promotion": true,
         "webui_stable_is_non_blocking_follower": true,
         "webui_failure_may_rollback_or_reactivate_desktop_latest": false
       },
-      "admission_schema": "opl_app_webui_stable_promotion_admission.v4",
+      "admission_schema": "opl_app_webui_stable_promotion_admission.v5",
       "decision_schema": "opl_app_webui_stable_promotion_decision.v2",
-      "receipt_schema": "opl_app_webui_stable_promotion_receipt.v4"
+      "receipt_schema": "opl_app_webui_stable_promotion_receipt.v5"
     },
     "stable_tags": [
       "<app_or_opl_version>",

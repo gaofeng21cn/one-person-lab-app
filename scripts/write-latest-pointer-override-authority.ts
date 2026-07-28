@@ -60,15 +60,17 @@ export function createLatestPointerOverrideAuthority(
   ) {
     throw new Error('Latest override authority requires one canonical App component manifest.');
   }
-  if (manifest.quality_status !== 'preview') {
-    throw new Error('Latest override authority is only required for an exact Preview build.');
+  if (manifest.quality_status !== 'preview' && manifest.quality_status !== 'stable') {
+    throw new Error('Latest override authority requires one exact Stable or Preview build.');
   }
   assertReleaseSemanticsAxes({
     qualityStatus: manifest.quality_status,
     buildTrigger: manifest.build_trigger,
     previewKind: manifest.preview_kind,
   });
-  const publicationChannel = manifest.preview_kind === 'nightly' ? 'nightly' : 'preview';
+  const publicationChannel = manifest.quality_status === 'stable'
+    ? 'stable'
+    : manifest.preview_kind === 'nightly' ? 'nightly' : 'preview';
   assertUpdaterVersionMatchesDisplay(
     publicationChannel,
     String(manifest.release_version ?? ''),
@@ -86,16 +88,24 @@ export function createLatestPointerOverrideAuthority(
   ) {
     throw new Error('Component manifest digest does not match its immutable bytes.');
   }
+  const isPreview = manifest.quality_status === 'preview';
   const skippedGates = manifest.qualification_disclosure?.skipped_gates;
   if (
-    manifest.qualification_disclosure?.stable_qualified !== false
-    || manifest.qualification_disclosure?.non_stable_notice !== true
-    || !Array.isArray(skippedGates)
-    || skippedGates.length === 0
+    !Array.isArray(skippedGates)
     || skippedGates.some((gate: unknown) => typeof gate !== 'string' || !gate.trim())
     || new Set(skippedGates).size !== skippedGates.length
+    || (isPreview && (
+      manifest.qualification_disclosure?.stable_qualified !== false
+      || manifest.qualification_disclosure?.non_stable_notice !== true
+      || skippedGates.length === 0
+    ))
+    || (!isPreview && (
+      manifest.preview_kind !== null
+      || manifest.qualification_disclosure?.stable_qualified !== true
+      || manifest.qualification_disclosure?.non_stable_notice !== false
+    ))
   ) {
-    throw new Error('Preview Latest override requires exact non-Stable and skipped-gate disclosure.');
+    throw new Error('Latest override requires exact quality and qualification disclosure.');
   }
 
   const core = {
@@ -119,7 +129,7 @@ export function createLatestPointerOverrideAuthority(
       build_trigger: manifest.build_trigger,
       preview_kind: manifest.preview_kind,
       quality_unchanged: true,
-      non_stable_notice: true,
+      non_stable_notice: isPreview,
       skipped_gates: skippedGates,
     },
     compare_and_swap: {

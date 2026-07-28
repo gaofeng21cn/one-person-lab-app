@@ -161,12 +161,12 @@ export function validateLatestPointerOperation(input: LatestPointerOperationInpu
   const inspection = readJson(input.releaseInspectionPath);
   const identity = readAppComponentManifestIdentity(
     manifest,
-    requireTag(String(manifest.release_tag ?? ''), 'Preview candidate tag'),
+    requireTag(String(manifest.release_tag ?? ''), 'Exact candidate tag'),
     inspection.release?.prerelease === true,
     String(inspection.release?.target_commitish ?? ''),
   );
-  if (identity.quality_status !== 'preview') {
-    throw new Error('Explicit Latest pointer override requires one exact Preview build.');
+  if (identity.quality_status !== 'preview' && identity.quality_status !== 'stable') {
+    throw new Error('Explicit Latest pointer override requires one exact Stable or Preview build.');
   }
   const authority = readJson(input.authorityPath);
   requireEqual(
@@ -208,11 +208,12 @@ export function validateLatestPointerOperation(input: LatestPointerOperationInpu
       candidate_tag: manifest.release_tag,
       exact_expected_current: true,
     },
-    required_readback: {
+      required_readback: {
       latest_tag: manifest.release_tag,
       release_assets: 'exact',
       manifest_quality_unchanged: true,
-      non_stable_disclosure_preserved: true,
+      quality_disclosure_preserved: true,
+      non_stable_disclosure_preserved: identity.quality_status === 'preview',
     },
   };
   return {

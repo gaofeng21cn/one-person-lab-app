@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       target_tag:
-        description: Exact already-published Dev or Nightly Preview tag.
+        description: Exact already-published Stable or Preview tag.
         required: true
         type: string
       expected_current_latest_tag:
@@ -101,13 +101,18 @@ jobs:
               ;;
             *) exit 1 ;;
           esac
-          test "$(jq -er .quality_status pointer-result/latest-pointer-result.json)" = preview
+          quality_status="$(jq -er .quality_status pointer-result/latest-pointer-result.json)"
+          test "$quality_status" = preview || test "$quality_status" = stable
           test "$(jq -er .quality_unchanged pointer-result/latest-pointer-result.json)" = true
-          test "$(jq -er .non_stable_notice pointer-result/latest-pointer-result.json)" = true
+          if [ "$quality_status" = preview ]; then
+            test "$(jq -er .non_stable_notice pointer-result/latest-pointer-result.json)" = true
+          else
+            test "$(jq -er .non_stable_notice pointer-result/latest-pointer-result.json)" = false
+          fi
           test "$(jq -er .persistent_override pointer-result/latest-pointer-result.json)" = false
           test "$(jq -er .stable_reclaim pointer-result/latest-pointer-result.json)" = next_qualified_stable
 
-      - name: Read back public Latest and immutable Preview disclosure
+      - name: Read back public Latest and immutable quality disclosure
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -135,30 +140,47 @@ jobs:
             jq -er .component_manifest_digest \
               pointer-result/public-opl-app-component-manifest.json
           )" = "$expected_manifest_digest"
-          test "$(
+          quality_status="$(
             jq -er .quality_status pointer-result/public-opl-app-component-manifest.json
-          )" = preview
-          test "$(
-            jq -er .qualification_disclosure.non_stable_notice \
-              pointer-result/public-opl-app-component-manifest.json
-          )" = true
-          test "$(
-            jq -er '.qualification_disclosure.skipped_gates | length' \
-              pointer-result/public-opl-app-component-manifest.json
-          )" -gt 0
+          )"
+          test "$quality_status" = preview || test "$quality_status" = stable
+          if [ "$quality_status" = preview ]; then
+            test "$(
+              jq -er .qualification_disclosure.non_stable_notice \
+                pointer-result/public-opl-app-component-manifest.json
+            )" = true
+            test "$(
+              jq -er '.qualification_disclosure.skipped_gates | length' \
+                pointer-result/public-opl-app-component-manifest.json
+            )" -gt 0
+          else
+            test "$(
+              jq -er .qualification_disclosure.stable_qualified \
+                pointer-result/public-opl-app-component-manifest.json
+            )" = true
+            test "$(
+              jq -er .qualification_disclosure.non_stable_notice \
+                pointer-result/public-opl-app-component-manifest.json
+            )" = false
+            test "$(
+              jq -er '.qualification_disclosure.skipped_gates | length' \
+                pointer-result/public-opl-app-component-manifest.json
+            )" -eq 0
+          fi
           jq -n \
             --arg tag "$target_tag" \
             --arg manifest_digest "$expected_manifest_digest" \
             --arg result_sha256 "sha256:$(shasum -a 256 pointer-result/latest-pointer-result.json | awk '{print $1}')" \
+            --arg quality_status "$quality_status" \
             '{
               schema:"opl_app_latest_pointer_public_readback.v1",
               status:"passed",
               latest_tag:$tag,
               component_manifest_digest:$manifest_digest,
               mutation_result_sha256:$result_sha256,
-              quality_status:"preview",
+              quality_status:$quality_status,
               quality_unchanged:true,
-              non_stable_disclosure_preserved:true,
+              non_stable_disclosure_preserved:($quality_status == "preview"),
               persistent_override:false,
               stable_reclaim:"next_qualified_stable"
             }' > pointer-result/latest-pointer-public-readback.json

@@ -5,17 +5,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
+import { validateWebuiSourceAuthority } from './webui-source-authority.ts';
 
 type JsonRecord = Record<string, any>;
 type DescriptorStatus = 'present' | 'absent' | 'unknown';
 type PromotionDecision = 'idempotent' | 'write_once' | 'conflict' | 'prestate_unknown';
-type AuthorityMode = 'production_follower' | 'development_validation';
+type AuthorityMode = 'production_follower' | 'development_validation' | 'independent_preview';
 type MovingTag = 'stable' | 'latest';
 
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
 const shaPattern = /^[0-9a-f]{40}$/;
 const runPattern = /^[1-9][0-9]*$/;
-const versionPattern = /^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(?:-r[1-9][0-9]*)?$/;
+const versionPattern = /^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(?:-r[1-9][0-9]*|-preview\.r[1-9][0-9]*|-nightly(?:\.r[1-9][0-9]*)?)?$/;
 const appRepository = 'gaofeng21cn/one-person-lab-app';
 const webuiRepository = 'ghcr.io/gaofeng21cn/one-person-lab-webui';
 
@@ -82,7 +83,7 @@ function descriptor(value: unknown, expectedRef: string, label: string): JsonRec
 
 function authorityMode(value: unknown): AuthorityMode {
   const mode = text(value, 'authority mode') as AuthorityMode;
-  if (!['production_follower', 'development_validation'].includes(mode)) {
+  if (!['production_follower', 'development_validation', 'independent_preview'].includes(mode)) {
     throw new Error('WebUI promotion authority mode is invalid.');
   }
   return mode;
@@ -146,7 +147,11 @@ function validateCarrierFollowerRun(
     'carrier follower run.event',
   );
   exact(run.head_branch, 'main', 'carrier follower run.head_branch');
-  if (!['in_progress', 'completed'].includes(text(run.status, 'carrier follower run.status'))) {
+  const status = text(run.status, 'carrier follower run.status');
+  if (authorityMode === 'independent_preview') {
+    exact(status, 'completed', 'independent Preview carrier run.status');
+    exact(run.conclusion, 'success', 'independent Preview carrier run.conclusion');
+  } else if (!['in_progress', 'completed'].includes(status)) {
     throw new Error('carrier follower run.status must be in_progress or completed.');
   }
   exact(run.run_attempt, 1, 'carrier follower run.run_attempt');
@@ -189,9 +194,11 @@ function validatePromotionExecutorRun(
 ): string {
   const callerWorkflow = authorityMode === 'production_follower'
     ? '.github/workflows/release-webui-follower.yml'
-    : runId === carrierFollowerRunId
-      ? '.github/workflows/release-webui-development.yml'
-      : '.github/workflows/release-webui-development-promote.yml';
+    : authorityMode === 'independent_preview'
+      ? '.github/workflows/release-webui-development-promote.yml'
+      : runId === carrierFollowerRunId
+        ? '.github/workflows/release-webui-development.yml'
+        : '.github/workflows/release-webui-development-promote.yml';
   exact(String(run.id), runId, 'promotion executor run.id');
   exact(run.repository?.full_name, appRepository, 'promotion executor run.repository');
   exact(run.head_repository?.full_name, appRepository, 'promotion executor run.head_repository');
@@ -209,6 +216,10 @@ function validatePromotionExecutorRun(
   exact(sha(run.head_sha, 'promotion executor run.head_sha'), promotionAppSha, 'promotion executor run.head_sha');
   if (authorityMode === 'production_follower') {
     exact(runId, carrierFollowerRunId, 'production promotion executor run id');
+  } else if (authorityMode === 'independent_preview' && runId === carrierFollowerRunId) {
+    throw new Error(
+      'Independent Preview immutable publication cannot also execute a Latest promotion.',
+    );
   }
   return callerWorkflow;
 }
@@ -249,12 +260,41 @@ function appWebuiCarrier(receipt: JsonRecord): {
   return { release, cohort, carrier };
 }
 
+function validateIndependentSourceAuthority(
+  authorityInput: JsonRecord,
+  authorityPath: string,
+  release: JsonRecord,
+  cohort: JsonRecord,
+  carrierFollowerRunId: string,
+  carrierExecutorAppSha: string,
+): JsonRecord {
+  const authority = validateWebuiSourceAuthority(authorityInput);
+  exact(authority.authorization.run_id, carrierFollowerRunId, 'source authority authorization.run_id');
+  exact(authority.authorization.executor_sha, carrierExecutorAppSha, 'source authority authorization.executor_sha');
+  exact(authority.release.version, release.version, 'source authority release.version');
+  exact(
+    authority.source_authority_digest,
+    release.bundle_digest,
+    'source authority digest and carrier release.bundle_digest',
+  );
+  exact(
+    release.cohort_ref,
+    authority.source_authority_digest,
+    'carrier release.cohort_ref and source authority digest',
+  );
+  exact(authority.sources.app.source_commit, cohort.app_sha, 'source authority App SHA');
+  exact(authority.sources.shell.source_commit, cohort.shell_sha, 'source authority Shell SHA');
+  exact(authority.sources.framework.source_commit, cohort.framework_sha, 'source authority Framework SHA');
+  if (!authorityPath.trim()) throw new Error('source authority readback path is empty.');
+  return authority;
+}
+
 export type WebuiStableAdmissionInput = {
   authorityMode?: AuthorityMode;
-  stableAuthorityRun: JsonRecord;
-  stableAuthorityRunPath: string;
-  stableAuthorityRunId: string;
-  triggeredByStableRunId: string;
+  stableAuthorityRun?: JsonRecord;
+  stableAuthorityRunPath?: string;
+  stableAuthorityRunId?: string;
+  triggeredByStableRunId?: string;
   carrierFollowerRun: JsonRecord;
   carrierFollowerRunPath: string;
   carrierFollowerRunId: string;
@@ -275,34 +315,57 @@ export type WebuiStableAdmissionInput = {
   stablePrestatePath: string;
   latestPrestate: JsonRecord;
   latestPrestatePath: string;
+  sourceAuthority?: JsonRecord;
+  sourceAuthorityPath?: string;
 };
 
 export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): JsonRecord {
   const mode = authorityMode(input.authorityMode ?? 'production_follower');
-  if (!runPattern.test(input.stableAuthorityRunId)) throw new Error('Stable authority run id is invalid.');
-  if (!runPattern.test(input.triggeredByStableRunId)) {
-    throw new Error('triggering Stable authority run id is invalid.');
-  }
   if (!runPattern.test(input.carrierFollowerRunId)) {
     throw new Error('carrier follower run id is invalid.');
   }
   if (!runPattern.test(input.promotionExecutorRunId)) {
     throw new Error('promotion executor run id is invalid.');
   }
-  exact(
-    input.triggeredByStableRunId,
-    input.stableAuthorityRunId,
-    'triggering Stable authority run id',
-  );
+  if (mode !== 'independent_preview') {
+    if (!input.stableAuthorityRunId || !runPattern.test(input.stableAuthorityRunId)) {
+      throw new Error('Stable authority run id is invalid.');
+    }
+    if (!input.triggeredByStableRunId || !runPattern.test(input.triggeredByStableRunId)) {
+      throw new Error('triggering Stable authority run id is invalid.');
+    }
+    exact(
+      input.triggeredByStableRunId,
+      input.stableAuthorityRunId,
+      'triggering Stable authority run id',
+    );
+    if (!input.stableAuthorityRun || !input.stableAuthorityRunPath) {
+      throw new Error('Stable authority run readback is required for this promotion mode.');
+    }
+  } else if (!input.sourceAuthority || !input.sourceAuthorityPath) {
+    throw new Error('Independent Preview promotion requires one exact source authority readback.');
+  }
   const carrierExecutorAppSha = sha(input.carrierExecutorAppSha, 'carrier executor App SHA');
   const promotionAppSha = sha(input.promotionAppSha, 'promotion App SHA');
   const { release, cohort, carrier } = appWebuiCarrier(input.carrierReceipt);
-  validateStableAuthorityRun(
-    input.stableAuthorityRun,
-    input.stableAuthorityRunId,
-    mode,
-    cohort.app_sha,
-  );
+  if (mode !== 'independent_preview') {
+    validateStableAuthorityRun(
+      input.stableAuthorityRun!,
+      input.stableAuthorityRunId!,
+      mode,
+      cohort.app_sha,
+    );
+  }
+  const sourceAuthority = mode === 'independent_preview'
+    ? validateIndependentSourceAuthority(
+        input.sourceAuthority!,
+        input.sourceAuthorityPath!,
+        release,
+        cohort,
+        input.carrierFollowerRunId,
+        carrierExecutorAppSha,
+      )
+    : null;
   validateCarrierFollowerRun(
     input.carrierFollowerRun,
     input.carrierFollowerRunId,
@@ -349,7 +412,9 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
     && (stablePrestate.status !== 'present' || stablePrestate.digest === latestPrestate.digest);
 
   const evidence = {
-    stable_authority_run_readback_sha256: fileDigest(input.stableAuthorityRunPath),
+    stable_authority_run_readback_sha256: input.stableAuthorityRunPath
+      ? fileDigest(input.stableAuthorityRunPath)
+      : null,
     carrier_follower_run_readback_sha256: fileDigest(input.carrierFollowerRunPath),
     carrier_follower_job_readback_sha256: fileDigest(input.carrierFollowerJobPath),
     promotion_executor_run_readback_sha256: fileDigest(input.promotionExecutorRunPath),
@@ -358,10 +423,13 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
     version_readback_sha256: fileDigest(input.versionReadbackPath),
     stable_prestate_sha256: fileDigest(input.stablePrestatePath),
     latest_prestate_sha256: fileDigest(input.latestPrestatePath),
+    source_authority_sha256: input.sourceAuthorityPath
+      ? fileDigest(input.sourceAuthorityPath)
+      : null,
   };
   const authority = {
     authority_mode: mode,
-    classification: mode === 'development_validation'
+    classification: mode === 'development_validation' || mode === 'independent_preview'
       ? {
           quality_status: 'preview',
           build_trigger: 'manual',
@@ -376,14 +444,15 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
           quality_unchanged: true,
           non_stable_notice: false,
         },
-    stable_authority: {
+    stable_authority: mode === 'independent_preview' ? null : {
       app_repository: appRepository,
       run_id: input.stableAuthorityRunId,
       run_attempt: 1,
-      app_head_sha: input.stableAuthorityRun.head_sha,
+      app_head_sha: input.stableAuthorityRun!.head_sha,
       workflow: '.github/workflows/release-stable.yml',
-      conclusion: input.stableAuthorityRun.conclusion,
+      conclusion: input.stableAuthorityRun!.conclusion,
     },
+    source_authority: sourceAuthority,
     carrier_follower: {
       app_repository: appRepository,
       run_id: input.carrierFollowerRunId,
@@ -394,7 +463,9 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
       workflow: mode === 'production_follower'
         ? '.github/workflows/release-webui-follower.yml'
         : '.github/workflows/release-webui-development.yml',
-      triggering_stable_authority_run_id: input.stableAuthorityRunId,
+      triggering_stable_authority_run_id: mode === 'independent_preview'
+        ? null
+        : input.stableAuthorityRunId,
     },
     promotion_executor: {
       app_repository: appRepository,
@@ -439,7 +510,7 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
     evidence,
   };
   return {
-    schema: 'opl_app_webui_stable_promotion_admission.v4',
+    schema: 'opl_app_webui_stable_promotion_admission.v5',
     status: 'passed',
     mutation_admitted: true,
     input_digest: objectDigest(authority),
@@ -452,7 +523,7 @@ export function decideWebuiStablePromotion(
   currentStableInput: JsonRecord,
   currentLatestInput: JsonRecord,
 ): JsonRecord {
-  exact(admission.schema, 'opl_app_webui_stable_promotion_admission.v4', 'admission schema');
+  exact(admission.schema, 'opl_app_webui_stable_promotion_admission.v5', 'admission schema');
   exact(admission.status, 'passed', 'admission status');
   exact(admission.mutation_admitted, true, 'admission mutation authorization');
   const mode = authorityMode(admission.authority_mode);
@@ -487,7 +558,7 @@ export function decideWebuiStablePromotion(
       (mode === 'production_follower'
         && currentStable.status === 'present'
         && currentStable.digest === target.digest)
-      || (mode === 'development_validation' && stableMatchesExpected)
+      || ((mode === 'development_validation' || mode === 'independent_preview') && stableMatchesExpected)
     )
   ) {
     decision = 'idempotent';
@@ -531,7 +602,7 @@ export function writeWebuiStablePromotionReceipt(input: {
   anonymousReadback: JsonRecord;
   latestAnonymousReadback: JsonRecord;
 }): JsonRecord {
-  exact(input.admission.schema, 'opl_app_webui_stable_promotion_admission.v4', 'admission schema');
+  exact(input.admission.schema, 'opl_app_webui_stable_promotion_admission.v5', 'admission schema');
   exact(input.decision.schema, 'opl_app_webui_stable_promotion_decision.v2', 'decision schema');
   const mode = authorityMode(input.admission.authority_mode);
   const target = record(input.admission.target, 'admission.target');
@@ -635,7 +706,9 @@ export function writeWebuiStablePromotionReceipt(input: {
         digest: latestAnonymous.digest,
       },
       logout_before_readback: input.anonymousReadback.logout_before_readback === true,
-      stable_unchanged: mode === 'development_validation' ? stableFinalObserved : null,
+      stable_unchanged: mode === 'development_validation' || mode === 'independent_preview'
+        ? stableFinalObserved
+        : null,
     },
   };
   if (status !== 'failed' && status !== 'outcome_unknown') {
@@ -648,7 +721,7 @@ export function writeWebuiStablePromotionReceipt(input: {
     }
   }
   return {
-    schema: 'opl_app_webui_stable_promotion_receipt.v4',
+    schema: 'opl_app_webui_stable_promotion_receipt.v5',
     status,
     mutation_performed: attemptCount === 1,
     retry_allowed: false,
@@ -691,6 +764,7 @@ function main(argv: string[]): void {
       'version-readback': { type: 'string' },
       'stable-prestate': { type: 'string' },
       'latest-prestate': { type: 'string' },
+      'source-authority': { type: 'string' },
       admission: { type: 'string' },
       decision: { type: 'string' },
       'current-stable': { type: 'string' },
@@ -705,7 +779,10 @@ function main(argv: string[]): void {
   });
   let result: JsonRecord;
   if (command === 'admit') {
-    const stableAuthorityRunPath = required(values['stable-authority-run'], 'stable-authority-run');
+    const authorityMode = required(values['authority-mode'], 'authority-mode') as AuthorityMode;
+    const stableAuthorityRunPath = values['stable-authority-run']
+      ? required(values['stable-authority-run'], 'stable-authority-run')
+      : undefined;
     const carrierFollowerRunPath = required(
       values['carrier-follower-run'],
       'carrier-follower-run',
@@ -723,15 +800,21 @@ function main(argv: string[]): void {
     const versionReadbackPath = required(values['version-readback'], 'version-readback');
     const stablePrestatePath = required(values['stable-prestate'], 'stable-prestate');
     const latestPrestatePath = required(values['latest-prestate'], 'latest-prestate');
+    const sourceAuthorityPath = values['source-authority']
+      ? required(values['source-authority'], 'source-authority')
+      : undefined;
     result = admitWebuiStablePromotion({
-      authorityMode: required(values['authority-mode'], 'authority-mode') as AuthorityMode,
-      stableAuthorityRun: readJson(stableAuthorityRunPath, 'Stable authority run'),
+      authorityMode,
+      stableAuthorityRun: stableAuthorityRunPath
+        ? readJson(stableAuthorityRunPath, 'Stable authority run')
+        : undefined,
       stableAuthorityRunPath,
-      stableAuthorityRunId: required(values['stable-authority-run-id'], 'stable-authority-run-id'),
-      triggeredByStableRunId: required(
-        values['triggered-by-stable-run-id'],
-        'triggered-by-stable-run-id',
-      ),
+      stableAuthorityRunId: values['stable-authority-run-id']
+        ? required(values['stable-authority-run-id'], 'stable-authority-run-id')
+        : undefined,
+      triggeredByStableRunId: values['triggered-by-stable-run-id']
+        ? required(values['triggered-by-stable-run-id'], 'triggered-by-stable-run-id')
+        : undefined,
       carrierFollowerRun: readJson(carrierFollowerRunPath, 'carrier follower run'),
       carrierFollowerRunPath,
       carrierFollowerRunId: required(
@@ -761,6 +844,10 @@ function main(argv: string[]): void {
       stablePrestatePath,
       latestPrestate: readJson(latestPrestatePath, 'Latest prestate'),
       latestPrestatePath,
+      sourceAuthority: sourceAuthorityPath
+        ? readJson(sourceAuthorityPath, 'WebUI source authority')
+        : undefined,
+      sourceAuthorityPath,
     });
   } else if (command === 'decide') {
     result = decideWebuiStablePromotion(

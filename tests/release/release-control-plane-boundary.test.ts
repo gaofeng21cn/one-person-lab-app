@@ -9,6 +9,7 @@ import {
   validateReleaseBundleCanaryTopology,
   validateReleaseBundleTopology,
   validateHomebrewFullPromotionTopology,
+  validateIndependentWebuiPreviewTopology,
   validateNightlyReleaseTopology,
   validateNativeWebuiPublicationTopology,
   validateStableReleaseControlPlane,
@@ -69,6 +70,7 @@ test('release boundary admits the three-operation control plane and real no-secr
   assert.equal(validateReleaseBundleTopology(process.cwd()), 0);
   assert.equal(validateReleaseBundleCanaryTopology(process.cwd()), 0);
   assert.equal(validateNightlyReleaseTopology(process.cwd()), 0);
+  assert.equal(validateIndependentWebuiPreviewTopology(process.cwd()), 0);
   assert.equal(validateWorkflowDispatchWriteAuthority(process.cwd()), 0);
 });
 
@@ -246,6 +248,25 @@ test('Canary compile ceilings keep reachable jobs read-only and mutation unreach
   });
 
   assert.ok(withoutExpectedDiagnostics(() => validateReleaseBundleCanaryTopology(root)) >= 10);
+});
+
+test('independent WebUI Preview publication cannot absorb Latest promotion or Desktop authority', (t) => {
+  const root = fixture(t);
+  assert.equal(withoutExpectedDiagnostics(() => validateIndependentWebuiPreviewTopology(root)), 0);
+
+  updateWorkflow(root, 'release-webui-development.yml', (workflow) => {
+    workflow.jobs['webui-carrier'].with.authority_mode = 'production_follower';
+  });
+  updateWorkflow(root, 'release-webui-development-promote.yml', (workflow) => {
+    workflow.on.workflow_dispatch.inputs.stable_authority_run_id = {
+      description: 'Unexpected Desktop Stable authority.',
+      required: true,
+      type: 'string',
+    };
+  });
+
+  assert.ok(withoutExpectedDiagnostics(() => validateIndependentWebuiPreviewTopology(root)) >= 2);
+  assert.ok(withoutExpectedDiagnostics(() => validateWorkflowDispatchWriteAuthority(root)) > 0);
 });
 
 test('no other workflow_dispatch job may gain write authority', (t) => {

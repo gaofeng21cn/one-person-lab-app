@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Publish/resume a Preview or move Latest to one exact published Preview
+        description: Publish/resume a Preview or move Latest to one exact published Stable or Preview
         required: true
         default: preview
         type: choice
@@ -34,7 +34,7 @@ on:
         default: false
         type: boolean
       target_tag:
-        description: Exact published Dev or Nightly Preview tag for move_latest_pointer
+        description: Exact published Stable or Preview tag for move_latest_pointer
         required: false
         default: ''
         type: string
@@ -146,7 +146,7 @@ jobs:
 
           if [ "$PREVIEW_OPERATION" = move_latest_pointer ]; then
             test -z "$BASE_VERSION$SHELL_REF$FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT"
-            [[ "$TARGET_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(preview\.r[1-9][0-9]*|nightly(\.r[1-9][0-9]*)?)$ ]]
+            [[ "$TARGET_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-r[1-9][0-9]*|-preview\.r[1-9][0-9]*|-nightly(\.r[1-9][0-9]*)?)?$ ]]
             [[ "$EXPECTED_CURRENT_LATEST_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-r[1-9][0-9]*|-preview\.r[1-9][0-9]*|-nightly(\.r[1-9][0-9]*)?)?$ ]]
             actual_latest_tag="$(
               timeout --foreground --signal=TERM --kill-after=5s 30s \

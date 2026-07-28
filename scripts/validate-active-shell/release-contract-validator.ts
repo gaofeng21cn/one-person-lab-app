@@ -190,6 +190,7 @@ export function validateReleaseChannelContract(releaseChannel, shellPaths = null
   validateProviderConfigurationBoundary(releaseChannel.provider_configuration_boundary);
   const managedUpdatePlane = releaseChannel.managed_update_plane;
   validateStandardUpdater(releaseChannel.standard_updater);
+  validateDistributionSemantics(releaseChannel.distribution_semantics);
   validateLocalDataLifecycle(releaseChannel.local_data_lifecycle, shellPaths);
   validateWebuiGhcrImage(releaseChannel.webui_ghcr_image);
   validateManagedUpdatePlane(managedUpdatePlane);
@@ -197,6 +198,44 @@ export function validateReleaseChannelContract(releaseChannel, shellPaths = null
   validateOptionalCertificationPolicy(releaseChannel);
   validateReleaseHomebrewDistribution(releaseChannel);
   validateReleaseFullFirstInstallPayloads(releaseChannel);
+}
+
+function validateDistributionSemantics(semantics) {
+  const latest = semantics?.latest_policy;
+  if (
+    latest?.default_automatic_writer !== 'newest_qualified_stable'
+    || latest?.default_behavior !==
+      'each_carrier_advances_its_own_latest_pointer_when_that_carrier_publishes_a_new_qualified_stable'
+    || latest?.automatic_preview_or_nightly_writer_may_move_latest !== false
+    || latest?.explicit_user_override?.target !== 'any_exact_published_version'
+    || latest?.explicit_user_override?.authority !== 'protected_single_use'
+    || latest?.explicit_user_override?.compare_and_swap !== 'exact_expected_current'
+    || latest?.explicit_user_override?.public_readback !== 'exact_tag_digest_quality_and_disclosure'
+    || latest?.explicit_user_override?.quality_unchanged !== true
+    || latest?.explicit_user_override?.persistent_override !== false
+    || latest?.explicit_user_override
+      ?.non_stable_and_skipped_or_failed_gate_disclosure_required_for_preview_only !== true
+    || latest?.explicit_user_override?.stable_candidate_requires_stable_qualification_disclosure !== true
+    || latest?.move_latest_pointer?.target !== 'any_exact_published_version'
+    || latest?.move_latest_pointer?.changes_quality !== false
+    || latest?.move_latest_pointer?.explicit_user_override_required !== true
+    || latest?.move_latest_pointer?.stable_or_preview_candidate_allowed !== true
+    || latest?.next_qualified_stable_reclaims_pointer !== true
+    || latest?.latest_pointer_does_not_define_highest_published_stable !== true
+    || latest?.failure_preserves_current_latest_lkg !== true
+  ) {
+    throw new Error('Distribution Latest semantics must keep carrier pointers independent from Stable quality while requiring exact explicit overrides');
+  }
+  assertDeepEqualJson(
+    latest.explicit_user_override.quality_statuses,
+    ['stable', 'preview'],
+    'Latest explicit override quality statuses',
+  );
+  assertDeepEqualJson(
+    latest.explicit_user_override.preview_kinds,
+    ['dev', 'nightly'],
+    'Latest explicit override Preview kinds',
+  );
 }
 
 function validateOptionalCertificationPolicy(releaseChannel) {
@@ -1012,7 +1051,9 @@ function validateWebuiGhcrImage(webuiImage) {
     contract.seed_metadata?.canonical_path !== '/opt/opl/seed/metadata.json' ||
     contract.publish_gate?.script !== 'scripts/validate-webui-runtime-image.ts' ||
     contract.publish_gate?.moving_channel_expected_profile !== 'webui-full' ||
-    contract.publish_gate?.latest_alias_requires_stable_quality_gate !== true ||
+    contract.publish_gate?.default_latest_alias_requires_stable_quality_gate !== true ||
+    contract.publish_gate
+      ?.explicit_preview_latest_requires_exact_qualified_carrier_and_protected_override !== true ||
     contract.publish_gate?.forbidden_success_state !== 'metadata_only_seed_promoted_to_latest_or_stable' ||
     webuiImage.stable_promotion?.default_pointer_ref !==
       'ghcr.io/gaofeng21cn/one-person-lab-webui:latest' ||
@@ -1024,23 +1065,43 @@ function validateWebuiGhcrImage(webuiImage) {
       'ghcr.io/gaofeng21cn/one-person-lab-webui:stable' ||
     webuiImage.stable_promotion?.manual_version_promotion_policy !==
       'manual_development_validation_may_advance_latest_after_exact_immutable_carrier_qualification_while_preserving_stable' ||
-    webuiImage.stable_promotion?.schema !== 'opl_app_webui_stable_promotion_contract.v4' ||
+    webuiImage.stable_promotion?.schema !== 'opl_app_webui_stable_promotion_contract.v5' ||
     webuiImage.stable_promotion?.admission_schema !==
-      'opl_app_webui_stable_promotion_admission.v4' ||
+      'opl_app_webui_stable_promotion_admission.v5' ||
     webuiImage.stable_promotion?.decision_schema !==
       'opl_app_webui_stable_promotion_decision.v2' ||
     webuiImage.stable_promotion?.receipt_schema !==
-      'opl_app_webui_stable_promotion_receipt.v4' ||
+      'opl_app_webui_stable_promotion_receipt.v5' ||
     webuiImage.stable_promotion?.compare_and_swap
       ?.divergent_aliases_may_only_reconcile_to_same_qualified_target !== true ||
     webuiImage.stable_promotion?.compare_and_swap
       ?.development_validation_requires_stable_prestate_unchanged !== true ||
+    webuiImage.stable_promotion?.compare_and_swap
+      ?.independent_preview_requires_stable_prestate_unchanged !== true ||
     webuiImage.stable_promotion?.task_modes?.development_validation
       ?.stable_alias_mutation_allowed !== false ||
     webuiImage.stable_promotion?.task_modes?.development_validation
       ?.stable_prestate_must_remain_unchanged !== true
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.desktop_stable_required !== false
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.desktop_latest_required !== false
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.immutable_publication_required !== true
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.publication_does_not_move_stable_or_latest !== true
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.promotion_requires_explicit_user_dispatch !== true
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.source_authority_schema !== 'opl_app_webui_source_authority.v1'
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.source_authority_digest_must_equal_carrier_release_bundle_and_cohort_ref !== true
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.stable_alias_mutation_allowed !== false
+    || webuiImage.stable_promotion?.task_modes?.independent_preview
+      ?.stable_prestate_must_remain_unchanged !== true
   ) {
-    throw new Error('Docker/WebUI GHCR publishing must validate canonical manifest, seed metadata, and full profile before Latest/Stable tags');
+    throw new Error('Docker/WebUI GHCR publishing must validate canonical manifest, seed metadata, full profile, and explicit Preview Latest boundaries');
   }
   assertDeepEqualJson(
     webuiImage.stable_promotion.task_modes.production_release.promotion_tags,
@@ -1063,10 +1124,31 @@ function validateWebuiGhcrImage(webuiImage) {
     'Docker/WebUI development preview classification',
   );
   assertDeepEqualJson(
+    webuiImage.stable_promotion.task_modes.independent_preview.classification,
+    {
+      quality_status: 'preview',
+      build_trigger: 'manual',
+      preview_kind: 'dev',
+      non_stable_notice: true,
+    },
+    'Docker/WebUI independent preview classification',
+  );
+  assertDeepEqualJson(
+    webuiImage.stable_promotion.task_modes.independent_preview.publication_entry_inputs,
+    ['version', 'app_ref', 'shell_ref', 'framework_ref'],
+    'Docker/WebUI independent Preview publication inputs',
+  );
+  assertDeepEqualJson(
+    webuiImage.stable_promotion.task_modes.independent_preview.promotion_entry_inputs,
+    ['carrier_follower_run_id', 'carrier_executor_ref', 'carrier_artifact_name'],
+    'Docker/WebUI independent Preview Latest inputs',
+  );
+  assertDeepEqualJson(
     webuiImage.stable_promotion.compare_and_swap.promotion_tags_by_authority_mode,
     {
       production_follower: ['stable', 'latest'],
       development_validation: ['latest'],
+      independent_preview: ['latest'],
     },
     'Docker/WebUI promotion tags by authority mode',
   );

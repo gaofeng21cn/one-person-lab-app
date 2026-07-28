@@ -98,6 +98,62 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   requireEqual(release.terms?.latest?.default_target, 'newest_qualified_stable', 'Latest default target');
   requireEqual(release.terms?.latest?.pointer_move_changes_quality, false, 'Latest quality independence');
+  const latestPolicy = release.latest_policy;
+  requireEqual(
+    latestPolicy?.default_behavior,
+    'each_carrier_advances_its_own_latest_pointer_when_that_carrier_publishes_a_new_qualified_stable',
+    'Carrier-local Latest default behavior',
+  );
+  requireEqual(
+    latestPolicy?.automatic_preview_or_nightly_writer_may_move_latest,
+    false,
+    'Automatic Preview Latest mutation',
+  );
+  requireEqual(
+    latestPolicy?.explicit_user_override?.target,
+    'any_exact_published_version',
+    'Explicit Latest override target',
+  );
+  assertDeepEqualJson(
+    latestPolicy?.explicit_user_override?.quality_statuses,
+    ['stable', 'preview'],
+    'Explicit Latest override quality statuses',
+  );
+  assertDeepEqualJson(
+    latestPolicy?.explicit_user_override?.preview_kinds,
+    ['dev', 'nightly'],
+    'Explicit Latest override Preview kinds',
+  );
+  requireEqual(
+    latestPolicy?.explicit_user_override?.authority,
+    'protected_single_use',
+    'Explicit Latest override authority',
+  );
+  requireEqual(
+    latestPolicy?.explicit_user_override?.compare_and_swap,
+    'exact_expected_current',
+    'Explicit Latest override CAS',
+  );
+  requireEqual(
+    latestPolicy?.explicit_user_override?.quality_unchanged,
+    true,
+    'Explicit Latest override quality preservation',
+  );
+  requireEqual(
+    latestPolicy?.explicit_user_override?.persistent_override,
+    false,
+    'Explicit Latest override persistence',
+  );
+  requireEqual(
+    latestPolicy?.move_latest_pointer?.stable_or_preview_candidate_allowed,
+    true,
+    'Latest pointer candidate freedom',
+  );
+  requireEqual(
+    latestPolicy?.next_qualified_stable_reclaims_pointer,
+    true,
+    'Latest Stable reclaim default',
+  );
   requireEqual(release.terms?.nightly?.product_channel_semantics, 'retained', 'Nightly product semantics');
   requireEqual(
     release.terms?.nightly?.current_publication_implementation,
@@ -131,15 +187,21 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   const override = latest?.explicit_user_override;
   requireEqual(override?.target, 'any_exact_published_version', 'Latest override target');
+  assertDeepEqualJson(override?.quality_statuses, ['stable', 'preview'], 'Latest override quality statuses');
   assertDeepEqualJson(override?.preview_kinds, ['dev', 'nightly'], 'Latest override Preview kinds');
   requireEqual(override?.authority, 'protected_single_use', 'Latest override authority');
   requireEqual(override?.compare_and_swap, 'exact_expected_current', 'Latest override CAS');
   requireEqual(override?.quality_unchanged, true, 'Latest override quality');
   requireEqual(override?.persistent_override, false, 'Latest override persistence');
   requireEqual(
-    override?.non_stable_and_skipped_or_failed_gate_disclosure_required,
+    override?.non_stable_and_skipped_or_failed_gate_disclosure_required_for_preview_only,
     true,
-    'Latest override disclosure',
+    'Preview Latest override disclosure',
+  );
+  requireEqual(
+    override?.stable_candidate_requires_stable_qualification_disclosure,
+    true,
+    'Stable Latest override qualification disclosure',
   );
   requireEqual(latest?.promote_quality?.transition, 'preview_to_stable', 'Quality promotion transition');
   requireEqual(latest?.promote_quality?.same_exact_artifact_digest_required, true, 'Quality promotion digest');
@@ -147,6 +209,11 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   requireEqual(latest?.promote_quality?.immutable_build_manifest_rewrite_allowed, false, 'Quality manifest immutability');
   requireEqual(latest?.promote_quality?.moves_latest_pointer, false, 'Quality promotion pointer behavior');
   requireEqual(latest?.move_latest_pointer?.changes_quality, false, 'Latest pointer quality behavior');
+  requireEqual(
+    latest?.move_latest_pointer?.stable_or_preview_candidate_allowed,
+    true,
+    'Latest pointer Stable or Preview target',
+  );
   requireEqual(latest?.next_qualified_stable_reclaims_pointer, true, 'Next Stable Latest behavior');
   requireEqual(latest?.failure_preserves_current_latest_lkg, true, 'Latest LKG failure behavior');
 

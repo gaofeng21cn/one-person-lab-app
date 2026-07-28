@@ -20,7 +20,7 @@ type ExpectedIdentity = {
 
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
 const gitShaPattern = /^[0-9a-f]{40}$/;
-const versionPattern = /^[0-9]{2}\.(?:[1-9]|1[0-2])\.(?:[1-9]|[12][0-9]|3[01])(?:-r[1-9])?$/;
+const versionPattern = /^[0-9]{2}\.(?:[1-9]|1[0-2])\.(?:[1-9]|[12][0-9]|3[01])(?:-r[1-9][0-9]*|-preview\.r[1-9][0-9]*|-nightly(?:\.r[1-9][0-9]*)?)?$/;
 const immutableImagePattern = /^[a-z0-9.-]+(?::[0-9]+)?\/[a-z0-9._/-]+@(sha256:[0-9a-f]{64})$/;
 const requiredInputIds = [
   'app_source',

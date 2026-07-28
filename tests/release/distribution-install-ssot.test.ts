@@ -73,6 +73,18 @@ test('distribution/install SSOT validates the current and approved state split',
     release.distribution_semantics.approved_targets.native_webui.production_topology,
     'standard_operation_nonblocking_prepare_then_post_latest_protected_additive_publish_with_follower_readback',
   );
+  assert.equal(
+    release.distribution_semantics.latest_policy.default_behavior,
+    'each_carrier_advances_its_own_latest_pointer_when_that_carrier_publishes_a_new_qualified_stable',
+  );
+  assert.deepEqual(
+    release.distribution_semantics.latest_policy.explicit_user_override.quality_statuses,
+    ['stable', 'preview'],
+  );
+  assert.equal(
+    release.distribution_semantics.latest_policy.move_latest_pointer.stable_or_preview_candidate_allowed,
+    true,
+  );
   assert.deepEqual(
     install.software_lifecycle.carrier_adapters.homebrew_cask.payload_profiles.full,
     ['opl_app', 'opl_base_offline_seed', 'opl_package_offline_seeds'],
@@ -208,6 +220,18 @@ test('cross-contract drift fails closed for channel, carrier, and convergence mu
       'Latest override becoming persistent',
       (release) => {
         release.distribution_semantics.latest_policy.explicit_user_override.persistent_override = true;
+      },
+    ],
+    [
+      'Latest override losing Stable target freedom',
+      (release) => {
+        release.distribution_semantics.latest_policy.explicit_user_override.quality_statuses = ['preview'];
+      },
+    ],
+    [
+      'Latest pointer rejecting exact Stable candidates',
+      (release) => {
+        release.distribution_semantics.latest_policy.move_latest_pointer.stable_or_preview_candidate_allowed = false;
       },
     ],
     [

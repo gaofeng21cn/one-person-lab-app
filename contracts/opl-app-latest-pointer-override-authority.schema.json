@@ -72,7 +72,10 @@
           "$ref": "#/$defs/digest"
         },
         "quality_status": {
-          "const": "preview"
+          "enum": [
+            "stable",
+            "preview"
+          ]
         },
         "build_trigger": {
           "enum": [
@@ -84,17 +87,21 @@
           "enum": [
             "dev",
             "nightly"
+          ],
+          "type": [
+            "string",
+            "null"
           ]
         },
         "quality_unchanged": {
           "const": true
         },
         "non_stable_notice": {
-          "const": true
+          "type": "boolean"
         },
         "skipped_gates": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "uniqueItems": true,
           "items": {
             "type": "string",

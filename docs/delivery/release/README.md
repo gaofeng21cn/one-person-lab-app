@@ -273,12 +273,13 @@ an immutable artifact, promoting the same exact digest from Preview to Stable,
 and moving Latest are separate operations. `promote_quality` requires the same
 qualification as a direct Stable and does not move Latest. `move_latest_pointer`
 requires protected single-use authority, an expected-current CAS, exact
-tag/digest binding, and public readback; selecting a Preview preserves its
-quality and discloses non-Stable plus skipped or failed gates. The next qualified
-Stable reclaims Latest by default, and any failed operation preserves the
-existing Latest/LKG. Stable Bundle mutation owns its repository-wide mutation
-mutex; the scheduled Canary cannot write Release, Latest, updater, or Homebrew
-state.
+tag/digest binding, and public readback. The target may be an exact Stable or
+Preview: Stable must prove stable qualification with no non-Stable disclosure;
+Preview preserves its quality and discloses non-Stable plus skipped or failed
+gates. The next qualified Stable reclaims Latest by default, and any failed
+operation preserves the existing Latest/LKG. Stable Bundle mutation owns its
+repository-wide mutation mutex; the scheduled Canary cannot write Release,
+Latest, updater, or Homebrew state.
 
 The failed Bundle below is permanently ineligible for checkpoint import,
 publication, promotion, or reuse:
@@ -366,6 +367,37 @@ This preview remains a transitional compatibility lane. Once formal
 preview cleanup receipt is read back, the preview workflow is a deletion
 candidate. Documentation of the candidate does not authorize its removal.
 
+## Container WebUI Release
+
+Container WebUI has its own carrier-local `stable` and `latest` pointers. They
+are not aliases for GitHub Release Latest, and Desktop publication neither
+waits for nor authorizes an unrelated Docker mutation.
+
+The default production path is a non-blocking follower after a successful
+Desktop Stable Latest activation. It publishes an immutable OCI version and
+then moves the WebUI `stable` and `latest` aliases together to that qualified
+digest. The public readback must prove the version, immutable digest, both
+aliases, image size, and carrier qualification receipt agree.
+
+The independent emergency path is deliberately different:
+
+1. Dispatch `release-webui-development.yml` with one immutable
+   `YY.M.D-preview.rN` version and exact App, Shell, and Framework SHAs.
+2. The workflow seals `opl_app_webui_source_authority.v1`, publishes and
+   qualifies the immutable OCI version, and does not move `stable` or `latest`.
+3. After explicit user confirmation, dispatch
+   `release-webui-development-promote.yml` for that exact carrier receipt.
+   The protected writer changes only WebUI `latest` through a one-write CAS.
+4. Read back the exact `latest` digest anonymously and prove WebUI `stable`
+   remains at its frozen predecessor.
+
+This path requires no Desktop Stable or Desktop Latest, so a Docker-only
+urgent fix can ship immediately once its immutable carrier qualification is
+complete. It does not promote Preview quality, mutate the Docker `stable`
+alias, or change Desktop release state. The receipt/run identifiers are
+evidence handles for the selected exact version; they are not an extra
+quality gate or a requirement to publish Desktop first.
+
 ## Homebrew Distribution Boundary
 
 Homebrew has one writer per track inside the protected Bundle executor. A push is
@@ -390,10 +422,10 @@ become Package lifecycle or currentness authority.
 
 The normal user-facing path is therefore one App updater pointer plus independent
 owner Package channels. Latest normally selects the newest qualified Stable, but
-may temporarily select an exact published Dev or Nightly Preview through the
-protected one-use CAS without changing quality; the next qualified Stable
-reclaims it. Docker/WebUI and Homebrew carry exact owner bytes; Full seeds an
-offline composition. Nightly is the implemented Automated Standard Preview:
+an explicit protected one-use CAS may select an exact published Stable or Dev/
+Nightly Preview without changing quality; the next qualified Stable reclaims
+it. Docker/WebUI and Homebrew carry exact owner bytes; Full seeds an offline
+composition. Nightly is the implemented Automated Standard Preview:
 its schedule defaults to `make_latest=false`, followed by isolated Homebrew and
 sampled-VM workflows. Daily is a scheduled reconciliation cadence. Canary is an
 independent validation workflow, not a release channel. A Package update must

@@ -56,7 +56,9 @@ Machine owners:
 - `Latest` 是某个载体命名空间内供自动更新器消费的可变指针，不是质量、频道或
   “最新构建”的同义词。
 - Desktop GitHub `Latest` 与 WebUI GHCR `:latest` 是两个载体各自的指针；生产
-  默认由各自最新合格 Stable 接管，开发期仍允许双轨验证。
+  默认由各自新发布的合格 Stable 接管。用户明确确认后，任一载体也可以把自己的
+  `latest` 指向一个已经发布、身份和 digest 均可核验的 exact Stable 或 Preview
+  版本；这不会改变该版本的质量，也不会改动其他载体的指针。
 - `one-person-lab-nightly` 的产品语义保留：它是 Standard 密度的自动预发布，
   不是 Full。当前实现每天自动复用与 Stable 相同的物理 Standard build，
   发布不可变 GitHub prerelease，再由独立 digest-bound follower 更新 Nightly Cask；
@@ -108,6 +110,20 @@ Machine owners:
 8. Canary 和单纯的开发环境覆盖没有 exact published artifact，不能成为 Latest。
 9. Full 不拥有独立版本频道、更新器或 Package currentness。
 
+### 默认与自由
+
+下面的两层行为同时成立，不能互相替代：
+
+| 目标 | 默认行为 | 用户明确确认后的自由行为 |
+| --- | --- | --- |
+| 新合格 Stable | 该载体推进自己的 `latest`；Container WebUI 同时推进 `stable` 兼容 alias | 可以不改 `latest`，或随后按 exact CAS 指到另一个已验证版本 |
+| 手工 Dev/Nightly Preview | 只发布 immutable version，不自动改 `latest` 或 `stable` | 单独 dispatch 一次 protected pointer operation，把该载体 `latest` 指向该 exact Preview |
+| Docker/WebUI 紧急修复 | 不等待 Desktop Stable 或 Desktop Latest | 用 exact App/Shell/Framework refs 发布 immutable Preview，再显式只改 Docker `latest`；Docker `stable`、Desktop Latest 均保持不变 |
+
+“自由”指选择目标版本的业务权限，不是放弃身份校验：目标必须是已经公开、不可变、
+已验证并且可由 carrier receipt/source authority 反向绑定的版本。工作流不接受裸
+tag、裸 digest 或 `force` 作为绕过该证据链的输入。
+
 ## 当前发布侧
 
 | 发布路径 | 当前状态 | 产物或指针 | 维护规则 |
@@ -115,7 +131,7 @@ Machine owners:
 | Desktop Stable GitHub Release | Active | Standard DMG/ZIP、updater metadata、prepared notes、Latest | 唯一入口是 `release-stable.yml`；qualified Stable 默认接管 Latest；`standard` / `resume_standard` / `append_full` |
 | Full additive publish | Active，属于 Desktop Stable | Full DMG + manifest | 与 Standard 同 frozen Bundle/Official Profile；只增加离线 seed，不改 Latest/updater |
 | Standard Homebrew Cask | Active managed | `one-person-lab` 指向 Standard DMG | Formula `opl` 承载 Base；Cask 承载 App |
-| Container WebUI GHCR | Active separate carrier | OCI digest、`:latest`，`:stable` 为同 digest 兼容 alias | 开发可双轨验证；生产通过 Desktop handoff follower，失败不改写 Desktop 终态 |
+| Container WebUI GHCR | Active separate carrier | immutable OCI version、`:latest`，`:stable` 为兼容 alias | Production follower 默认把合格 Stable 同时推进 `stable`/`latest`；手工 independent Preview 可独立发布，只有用户显式 promotion 才改 Docker `latest`，且不得改 `stable` 或 Desktop 指针 |
 | Manual Full Preview | Active temporary non-Stable lane | 非 `v` prerelease tag、Full preview DMG | 发布默认 `make_latest=false`；独立 protected pointer operation 可选择 exact Preview，但不能暗升 Stable 或改写 Homebrew |
 | Windows x64 RC Preview | 实现中，公开发布被 WSL2-only 验收阻断 | 目标为非 `v` prerelease tag、Windows x64 NSIS EXE、SHA256SUMS、Windows RC cohort | 复用 AionUI Windows/NSIS 打包，但禁止 native Windows AionCore/Codex；专属 `OPL-Linux` 自动配置、三路统一 Linux Codex、无 fallback 和 exact-byte 验收通过前不可公开 |
 | Nightly | Implemented，首个公开 readback 待完成 | 自动 Standard DMG/ZIP/updater prerelease + Nightly Cask follower | 每日 schedule 默认不改 Latest；独立 protected pointer operation 可临时选择 exact Nightly；不含 Full/WebUI、不复用 Stable mutex；抽样 VM 非阻塞 |
@@ -125,6 +141,28 @@ Machine owners:
 
 远端“现在具体是哪一个版本”必须从对应 owner 的 fresh receipt/readback 获取，
 不能从本文、README、测试通过或本地 Cask 文件推导。
+
+### Container WebUI 紧急路径
+
+Docker 紧急修复使用两次明确且可独立验收的操作：
+
+```text
+exact App/Shell/Framework refs
+  -> source authority
+  -> immutable <YY.M.D-preview.rN> OCI publication and qualification
+  -> explicit user-confirmed Latest-only promotion
+  -> public Stable-unchanged + Latest-exact-digest readback
+```
+
+第一步由 `release-webui-development.yml` 执行，输入是版本和三条 exact SHA；它只
+发布不可变 version tag，不能写 `:latest` 或 `:stable`。第二步由
+`release-webui-development-promote.yml` 执行，输入是同一 immutable carrier 的
+receipt/run identity；它只能写 `:latest`，并以预先冻结的 `:stable` prestate 做
+读回证明。两步均不依赖 Desktop Stable 或 Desktop Latest。
+
+因此，紧急 Docker 修复能在 Desktop Stable 尚未发布、正在排队或失败时独立交付；
+同时不会把 Preview 伪装成 Stable，也不会用 Docker 的成功或失败重写 Desktop 发布
+终态。
 
 ## 当前安装侧
 

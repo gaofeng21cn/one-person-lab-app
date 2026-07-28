@@ -19,6 +19,7 @@ import {
 } from './release-operation-deadline.ts';
 import { assertLatestPointerOperationAdmissionReceipt } from './validate-latest-pointer-operation.ts';
 import { assertStandardLatestAdmissionReceipt } from './validate-standard-latest-admission.ts';
+import { validateWebuiSourceAuthority } from './webui-source-authority.ts';
 
 type JsonRecord = Record<string, any>;
 type Track = 'standard' | 'full';
@@ -223,6 +224,7 @@ function parseCommon(argv: string[]) {
       'base-image-index': { type: 'string' },
       'frozen-codex-tarball': { type: 'string' },
       'standard-identity': { type: 'string' },
+      'source-authority': { type: 'string' },
       output: { type: 'string' },
       operation: { type: 'string' },
       'release-operation': { type: 'string' },
@@ -455,6 +457,12 @@ function buildFreezeRequest(values: AdapterOptionValues): JsonRecord {
 }
 
 function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
+  if (values['source-authority'] !== undefined) {
+    if (values['standard-identity'] !== undefined || values.bundle !== undefined) {
+      throw new Error('Independent WebUI source authority cannot be combined with a Stable Bundle input.');
+    }
+    return buildWebuiBuildInputFromSourceAuthority(values);
+  }
   if (values['standard-identity'] === undefined) {
     return buildWebuiBuildInputFromFrozenBundle(values);
   }
@@ -579,6 +587,61 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
       shell_sha: cohort.shell_sha,
       framework_sha: cohort.framework_sha,
     },
+    platform: { os: 'linux', architecture: 'amd64' },
+    inputs: frozenBuildInputs({
+      values,
+      appRoot,
+      appRef: cohort.app_sha,
+      shellRoot,
+      shellRef: cohort.shell_sha,
+      frameworkRoot,
+      frameworkRef: cohort.framework_sha,
+    }),
+  };
+}
+
+function buildWebuiBuildInputFromSourceAuthority(values: AdapterOptionValues): JsonRecord {
+  const authority = validateWebuiSourceAuthority(
+    readJson(path.resolve(requireOption(values, 'source-authority'))),
+  );
+  const appRoot = path.resolve(requireOption(values, 'app-root'));
+  const shellRoot = path.resolve(requireOption(values, 'shell-root'));
+  const frameworkRoot = path.resolve(requireOption(values, 'framework-root'));
+  const cohort = {
+    app_sha: authority.sources.app.source_commit,
+    shell_sha: authority.sources.shell.source_commit,
+    framework_sha: authority.sources.framework.source_commit,
+  };
+  if (
+    gitSha(appRoot) !== cohort.app_sha
+    || gitSha(shellRoot) !== cohort.shell_sha
+    || gitSha(frameworkRoot) !== cohort.framework_sha
+  ) {
+    throw new Error('Independent WebUI source checkouts do not match the source authority.');
+  }
+  const observedAt = requireOption(values, 'source-cutoff-observed-at');
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(observedAt)
+    || Number.isNaN(Date.parse(observedAt))
+  ) {
+    throw new Error('WebUI source cutoff observed_at must be a canonical UTC timestamp with milliseconds.');
+  }
+  const sourceAuthorityDigest = authority.source_authority_digest;
+  return {
+    schema: 'opl_app_webui_build_input.v1',
+    release: {
+      version: authority.release.version,
+      bundle_digest: sourceAuthorityDigest,
+      cohort_ref: sourceAuthorityDigest,
+    },
+    source_cutoff: {
+      observed_at: observedAt,
+      policy: 'single_read_at_freeze_admission',
+      frozen_base_release_set: null,
+      post_freeze_remote_refresh_allowed: false,
+      later_authority_advancement_invalidates_bundle: false,
+    },
+    cohort,
     platform: { os: 'linux', architecture: 'amd64' },
     inputs: frozenBuildInputs({
       values,
@@ -1918,7 +1981,7 @@ export function activatePublishedLatestPointer(
   exactJson(
     freshInspection,
     readJson(releaseInspectionPath),
-    'Published Preview release inspection',
+    'Published exact release inspection',
   );
   if (
     tag !== receipt.candidate?.tag
@@ -1950,7 +2013,7 @@ export function activatePublishedLatestPointer(
     build_trigger: receipt.candidate.build_trigger,
     preview_kind: receipt.candidate.preview_kind,
     quality_unchanged: true,
-    non_stable_notice: true,
+    non_stable_notice: receipt.candidate.quality_status === 'preview',
     skipped_gates: receipt.candidate.qualification_disclosure.skipped_gates,
     persistent_override: false,
     stable_reclaim: 'next_qualified_stable',
