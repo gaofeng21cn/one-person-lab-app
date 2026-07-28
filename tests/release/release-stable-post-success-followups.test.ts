@@ -185,6 +185,7 @@ test("Stable success has one independent Full append successor trigger", () => {
 test("admission binds Standard run, exact checkpoint, cohort, and stable publication", () => {
   assert.match(source, /\.path == "\.github\/workflows\/release-stable\.yml"/);
   assert.match(source, /\.display_title \| test\("\^OPL Stable standard/);
+  assert.match(source, /operation:\[A-Za-z0-9\._:-\]\{1,128\} authority:/);
   assert.match(source, /\.run_attempt == 1/);
   assert.match(
     source,

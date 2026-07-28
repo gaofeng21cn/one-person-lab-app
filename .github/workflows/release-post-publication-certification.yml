@@ -61,7 +61,7 @@ jobs:
             and .path == ".github/workflows/release-stable.yml"
             and .event == "workflow_dispatch"
             and .head_branch == "main"
-            and (.display_title | test("^OPL Stable standard [1-9][0-9]*$"))
+            and (.display_title | test("^OPL Stable standard (?:[1-9][0-9]*|operation:[A-Za-z0-9._:-]{1,128} authority:[A-Za-z0-9._:-]{1,128} run:[1-9][0-9]*)$"))
             and .run_attempt == 1
             and .status == "completed"
             and .conclusion == "success"

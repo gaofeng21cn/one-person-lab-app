@@ -290,6 +290,7 @@ test('optional certification is an automatic read-only post-publication executor
   assert.match(source, /\.path == "\.github\/workflows\/release-stable\.yml"/);
   assert.match(source, /\.head_branch == "main"/);
   assert.match(source, /\^OPL Stable standard/);
+  assert.match(source, /operation:\[A-Za-z0-9\._:-\]\{1,128\} authority:/);
   assert.match(source, /\.head_branch \| test\("\^v/);
   assert.match(source, /\^OPL Stable append_full/);
   assert.match(source, /test "\$tag" = "\$head_branch"/);

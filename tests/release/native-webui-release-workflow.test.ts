@@ -197,7 +197,8 @@ test('Stable Standard publish consumes Native before the one Release publish', (
   assert.match(standard.source, /Bind qualified Native and consumed operation control into one immutable carrier/);
   assert.match(standard.source, /find immutable-carrier-input -type f -name publication-manifest\.json/);
   assert.match(standard.source, /test ! -e native-release/);
-  assert.match(standard.source, /cp -a "\$native_source_dir"\/\. native-release\//);
+  assert.match(standard.source, /cp -a "\$native_source_dir" native-qualified/);
+  assert.match(standard.source, /cp -al native-qualified\/\. native-release\//);
   assert.match(standard.source, /--manifest native-release\/publication-manifest\.json/);
   assert.doesNotMatch(standard.source, /cd immutable-carrier-input/);
   assert.doesNotMatch(standard.source, /Download exact qualified Native artifact for the unified draft carrier/);

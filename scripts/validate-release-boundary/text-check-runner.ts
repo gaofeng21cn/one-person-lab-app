@@ -404,11 +404,12 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     }
   }
   if (
-    !String(workflow['run-name'] ?? '').includes('operation:${{ inputs.operation_id }}')
-    || !String(workflow['run-name'] ?? '').includes('authority:${{ inputs.authority_id }}')
+    !String(workflow['run-name'] ?? '').includes("inputs.operation == 'standard'")
+    || !String(workflow['run-name'] ?? '').includes("format('OPL Stable standard operation:{0} authority:{1} run:{2}'")
+    || !String(workflow['run-name'] ?? '').includes("format('OPL Stable {0} {1}', inputs.operation, github.run_id)")
     || authorityInputs.version?.required !== false
   ) {
-    failures += reportFailure(id, 'Stable run identity must expose its pre-issued authority rather than a self-issued run nonce');
+    failures += reportFailure(id, 'Stable run identity must retain Standard authority binding while recovery operations remain follower-compatible');
   }
 
   const expectedJobs = [

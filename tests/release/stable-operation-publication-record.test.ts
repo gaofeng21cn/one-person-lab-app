@@ -37,11 +37,15 @@ const criticalBlobPaths = [
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
   'scripts/stable-operation-control.ts',
+  'scripts/stable-operation-publication-record.ts',
   'scripts/stable-release-admission-manifest.ts',
   'scripts/validate-release-source-gate.ts',
 ];
 const criticalBlobs = Object.fromEntries(
-  criticalBlobPaths.map((file, index) => [file, `sha256:${(index + 3).toString(16).repeat(64)}`]),
+  criticalBlobPaths.map((file, index) => [
+    file,
+    `sha256:${'0123456789abcdef'[(index + 3) % 16]!.repeat(64)}`,
+  ]),
 );
 
 function sha256(bytes: Buffer | string): string {
@@ -198,12 +202,12 @@ function inspection(record: ReturnType<typeof publicationRecord>, options: {
   const assets = options.assets ?? [...expectedAssets(record).assets].reverse();
   return {
     repository,
+    tag,
+    assets,
     release: {
       id: 360_830_750,
-      tag_name: tag,
       draft: false,
       immutable: options.immutable ?? true,
-      assets,
     },
   };
 }

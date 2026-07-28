@@ -35,11 +35,15 @@ const criticalBlobPaths = [
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
   'scripts/stable-operation-control.ts',
+  'scripts/stable-operation-publication-record.ts',
   'scripts/stable-release-admission-manifest.ts',
   'scripts/validate-release-source-gate.ts',
 ];
 const criticalBlobs = Object.fromEntries(
-  criticalBlobPaths.map((file, index) => [file, `sha256:${(index + 6).toString(16).repeat(64)}`]),
+  criticalBlobPaths.map((file, index) => [
+    file,
+    `sha256:${'0123456789abcdef'[(index + 6) % 16]!.repeat(64)}`,
+  ]),
 );
 const operationId = stableOperationIdForFrozenCohort({
   objectiveFingerprint,
@@ -374,6 +378,15 @@ test('Stable operation control rejects a drifted critical blob and a mismatched 
       nonce: 'c'.repeat(32),
     }),
     /nonce does not match/,
+  );
+});
+
+test('Stable operation authority requires the terminal publication verifier in its frozen critical blobs', () => {
+  const omittedVerifier = { ...criticalBlobs };
+  delete omittedVerifier['scripts/stable-operation-publication-record.ts'];
+  assert.throws(
+    () => issuedAuthority({ criticalBlobs: omittedVerifier }),
+    /critical_blobs must bind exactly the Stable control paths/,
   );
 });
 

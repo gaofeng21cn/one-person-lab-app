@@ -863,9 +863,11 @@ jobs:
             | .qualified_artifact_name
             | strings
           ' "${native_prepare_statuses[0]}")" = '${{ inputs.qualified_native_artifact_name }}'
+          test ! -e native-qualified
+          cp -a "$native_source_dir" native-qualified
           test ! -e native-release
           mkdir native-release
-          cp -a "$native_source_dir"/. native-release/
+          cp -al native-qualified/. native-release/
           node --experimental-strip-types app-source/scripts/release-native-webui-carrier.ts upload-actions \
             --manifest native-release/publication-manifest.json \
             --output native-upload-actions.json
@@ -896,9 +898,29 @@ jobs:
           consumption="${consumptions[0]}"
           control_run_id="$(jq -er '.run_id | strings | select(test("^[1-9][0-9]*$"))' "$control")"
           test "$control_run_id" = '${{ inputs.qualified_native_source_run_id }}'
-          source_gate="$(dirname "$control")/source-gate.json"
-          pre_nonce_guard="$(dirname "$control")/pre-issued-pre-nonce-guard.json"
-          run_authority_reconcile="$(dirname "$control")/run-authority-reconcile.json"
+          control_source_dir="$(dirname "$control")"
+          test -d "$control_source_dir" && test ! -L "$control_source_dir"
+          control_symlinks=()
+          while IFS= read -r link; do control_symlinks+=("$link"); done < <(
+            find "$control_source_dir" -type l -print | LC_ALL=C sort
+          )
+          test "${#control_symlinks[@]}" -eq 0
+          test ! -e stable-operation-control
+          cp -a "$control_source_dir" stable-operation-control
+          for required in \
+            stable-operation-control.json \
+            stable-operation-consumption.json \
+            stable-operation-authority.json \
+            source-gate.json \
+            pre-issued-pre-nonce-guard.json \
+            run-authority-reconcile.json; do
+            test -s "$control_source_dir/$required" && test ! -L "$control_source_dir/$required"
+            test -s "stable-operation-control/$required" && test ! -L "stable-operation-control/$required"
+            cmp "$control_source_dir/$required" "stable-operation-control/$required"
+          done
+          source_gate="$control_source_dir/source-gate.json"
+          pre_nonce_guard="$control_source_dir/pre-issued-pre-nonce-guard.json"
+          run_authority_reconcile="$control_source_dir/run-authority-reconcile.json"
           node --experimental-strip-types app-source/scripts/stable-operation-control.ts verify \
             --control "$control" --input "$consumption" --app-root app-source \
             --source-gate "$source_gate" --pre-nonce-guard "$pre_nonce_guard" \
@@ -1212,7 +1234,9 @@ jobs:
             reconcile-result.json
             release-failure-evidence
             native-release
+            native-qualified
             native-upload-actions.json
+            stable-operation-control
           if-no-files-found: warn
           retention-days: 30
 

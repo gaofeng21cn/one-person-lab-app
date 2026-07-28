@@ -49,11 +49,15 @@ const operationControlPaths = [
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
   'scripts/stable-operation-control.ts',
+  'scripts/stable-operation-publication-record.ts',
   'scripts/stable-release-admission-manifest.ts',
   'scripts/validate-release-source-gate.ts',
 ];
 const operationControlBlobs = Object.fromEntries(
-  operationControlPaths.map((file, index) => [file, `sha256:${(index + 1).toString(16).repeat(64)}`]),
+  operationControlPaths.map((file, index) => [
+    file,
+    `sha256:${'0123456789abcdef'[(index + 1) % 16]!.repeat(64)}`,
+  ]),
 );
 const requiredSecretNames = [
   'BUILD_CERTIFICATE_BASE64',

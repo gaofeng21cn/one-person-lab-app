@@ -381,8 +381,12 @@ test('new Standard consumes frozen protected evidence before sealing its run-bou
     assert.equal(stable.on.workflow_dispatch.inputs[input].required, false);
     assert.equal(stable.on.workflow_dispatch.inputs[input].default, '');
   }
-  assert.match(stable['run-name'], /operation:\$\{\{ inputs\.operation_id \}\}/);
-  assert.match(stable['run-name'], /authority:\$\{\{ inputs\.authority_id \}\}/);
+  assert.match(stable['run-name'], /inputs\.operation == 'standard'/);
+  assert.match(
+    stable['run-name'],
+    /format\('OPL Stable standard operation:\{0\} authority:\{1\} run:\{2\}', inputs\.operation_id, inputs\.authority_id, github\.run_id\)/,
+  );
+  assert.match(stable['run-name'], /format\('OPL Stable \{0\} \{1\}', inputs\.operation, github\.run_id\)/);
   assert.equal(stable.jobs['source-qualification'], undefined);
   assert.doesNotMatch(
     readWorkflow('release-stable.yml'),
@@ -2242,7 +2246,8 @@ test('Stable Standard publication includes qualified Native bytes before one Rel
     "${{ (inputs.publication_channel || inputs.channel) == 'stable' && needs.prepare-native-webui.outputs.qualified_artifact_name || '' }}",
   );
   assert.match(standardSource, /Bind qualified Native and consumed operation control into one immutable carrier/);
-  assert.match(standardSource, /cp -a "\$native_source_dir"\/\. native-release\//);
+  assert.match(standardSource, /cp -a "\$native_source_dir" native-qualified/);
+  assert.match(standardSource, /cp -al native-qualified\/\. native-release\//);
   assert.match(standardSource, /--manifest native-release\/publication-manifest\.json/);
   assert.doesNotMatch(standardSource, /cd immutable-carrier-input/);
   assert.doesNotMatch(standardSource, /Download exact qualified Native artifact for the unified draft carrier/);
@@ -2297,6 +2302,21 @@ test('Stable Standard publication includes qualified Native bytes before one Rel
   assert.match(nativeCheckpoint.run, /native-upload-actions-checkpoint\.json/);
   assert.match(bundleSource, /find native-qualified -type f -name publication-manifest\.json/);
   assert.doesNotMatch(bundleSource, /cd native-qualified/);
+  const carrierBinding = workflowStep(
+    '_release-standard-publish.yml',
+    'publish-standard-nonlatest',
+    'Bind qualified Native and consumed operation control into one immutable carrier',
+  );
+  assert.match(String(carrierBinding.run), /cp -a "\$native_source_dir" native-qualified/);
+  assert.match(String(carrierBinding.run), /cp -al native-qualified\/\. native-release\//);
+  assert.match(String(carrierBinding.run), /cp -a "\$control_source_dir" stable-operation-control/);
+  const standardPublicationReceipt = workflowStep(
+    '_release-standard-publish.yml',
+    'publish-standard-nonlatest',
+    'Upload Standard publication receipt',
+  );
+  assert.match(String(standardPublicationReceipt.with.path), /(?:^|\n)\s*stable-operation-control(?:\n|$)/);
+  assert.match(String(standardPublicationReceipt.with.path), /(?:^|\n)\s*native-qualified(?:\n|$)/);
   assert.equal(workflow.jobs['webui-carrier'], undefined);
   assert.equal(workflow.jobs['promote-webui-stable'], undefined);
   assert.deepEqual(Object.keys(follower.on), ['workflow_run']);

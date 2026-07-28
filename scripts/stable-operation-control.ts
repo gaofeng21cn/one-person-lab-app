@@ -23,6 +23,7 @@ const requiredCriticalBlobPaths = [
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
   'scripts/stable-operation-control.ts',
+  'scripts/stable-operation-publication-record.ts',
   'scripts/stable-release-admission-manifest.ts',
   'scripts/validate-release-source-gate.ts',
 ] as const;

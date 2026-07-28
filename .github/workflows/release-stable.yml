@@ -1,5 +1,5 @@
 name: OPL Stable Release Bundle
-run-name: OPL Stable ${{ inputs.operation }} operation:${{ inputs.operation_id }} authority:${{ inputs.authority_id }} run:${{ github.run_id }}
+run-name: "${{ inputs.operation == 'standard' && format('OPL Stable standard operation:{0} authority:{1} run:{2}', inputs.operation_id, inputs.authority_id, github.run_id) || format('OPL Stable {0} {1}', inputs.operation, github.run_id) }}"
 
 on:
   workflow_dispatch:
@@ -250,6 +250,7 @@ jobs:
             'scripts/framework-release-adapter.ts',
             'scripts/release-dispatch-guard.ts',
             'scripts/stable-operation-control.ts',
+            'scripts/stable-operation-publication-record.ts',
             'scripts/stable-release-admission-manifest.ts',
             'scripts/validate-release-source-gate.ts',
           ];

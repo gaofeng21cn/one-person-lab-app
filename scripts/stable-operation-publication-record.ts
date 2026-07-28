@@ -546,11 +546,11 @@ function inspectPublishedCarrier(value: unknown): {
   if (release.draft !== false) throw new Error('Published carrier draft must be exactly false.');
   return {
     repository: repository(inspection.repository ?? release.repository),
-    tag: tag(release.tag_name ?? release.tag),
+    tag: tag(inspection.tag ?? inspection.tag_name ?? release.tag_name ?? release.tag),
     releaseId: positiveInteger(release.id ?? release.release_id, 'GitHub release inspection release id'),
     immutable,
     draft: false,
-    assets: normalizeAssets(release.assets, 'GitHub release inspection.assets'),
+    assets: normalizeAssets(inspection.assets ?? release.assets, 'GitHub release inspection.assets'),
   };
 }
 
