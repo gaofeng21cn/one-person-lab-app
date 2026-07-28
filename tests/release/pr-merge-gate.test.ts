@@ -19,6 +19,10 @@ test('PR merge gate is a read-only GitHub-hosted aggregate check', () => {
   assert.equal(workflow.jobs['merge-gate'].name, 'PR / merge gate');
   assert.equal(workflow.jobs['merge-gate'].if, 'always()');
   assert.deepEqual(workflow.jobs['merge-gate'].needs, ['quality']);
+  const shellSetup = workflow.jobs.quality.steps.find(
+    (step: Record<string, unknown>) => step.uses === './.github/actions/setup-active-shell-deps',
+  );
+  assert.equal(shellSetup.with['fetch-depth'], '0');
   assert.match(source, /runs-on: ubuntu-latest/);
   assert.match(source, /OPL_FLOW_WORKFLOW_POLICY/);
   assert.match(source, /OPL_FULL_OPL_FLOW_ROOT/);
