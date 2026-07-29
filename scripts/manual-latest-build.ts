@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -48,22 +49,12 @@ const OWNER_REPOS = {
 type Mode = 'local-app' | 'full-dmg';
 
 const MANUAL_RUNTIME_KEY = 'darwin-arm64';
-const MANAGED_CODEX_ACP_PACKAGE = '@agentclientprotocol/codex-acp';
-const MANAGED_CODEX_PACKAGE = '@openai/codex';
 
 function requiredString(value: unknown, label: string) {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`AionCore managed Codex binding is missing ${label}`);
   }
   return value.trim();
-}
-
-function requiredSha512Integrity(value: unknown, label: string) {
-  const integrity = requiredString(value, label);
-  if (!integrity.startsWith('sha512-')) {
-    throw new Error(`AionCore managed Codex binding has invalid ${label}`);
-  }
-  return integrity;
 }
 
 function requiredObject(value: unknown, label: string): Record<string, any> {
@@ -73,13 +64,78 @@ function requiredObject(value: unknown, label: string): Record<string, any> {
   return value as Record<string, any>;
 }
 
+function requiredRelativePath(value: unknown, label: string) {
+  const relativePath = requiredString(value, label);
+  const segments = relativePath.split('/');
+  if (
+    relativePath.includes('\\')
+    || path.posix.isAbsolute(relativePath)
+    || segments.some((segment) => !segment || segment === '.' || segment === '..')
+    || path.posix.normalize(relativePath) !== relativePath
+  ) {
+    throw new Error(
+      `AionCore managed Codex binding has invalid ${label}: ${relativePath}`,
+    );
+  }
+  return relativePath;
+}
+
+function comparePathNames(left: string, right: string) {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
+function directoryTreeSha256(directory: string, label: string) {
+  const entries: string[] = [];
+  const collect = (current: string, relativeRoot: string) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })
+      .sort((left, right) => comparePathNames(left.name, right.name))) {
+      const relativePath = relativeRoot
+        ? `${relativeRoot}/${entry.name}`
+        : entry.name;
+      const entryPath = path.join(current, entry.name);
+      const stat = fs.lstatSync(entryPath);
+      const mode = (stat.mode & 0o777).toString(8).padStart(3, '0');
+      if (stat.isSymbolicLink()) {
+        throw new Error(
+          `AionCore managed Codex ${label} contains an unsupported symlink: ${entryPath}`,
+        );
+      }
+      if (stat.isDirectory()) {
+        entries.push(`D\t${relativePath}\t${mode}`);
+        collect(entryPath, relativePath);
+        continue;
+      }
+      if (!stat.isFile()) {
+        throw new Error(
+          `AionCore managed Codex ${label} contains an unsupported filesystem entry: ${entryPath}`,
+        );
+      }
+      entries.push(
+        `F\t${relativePath}\t${mode}\t${stat.size}\t${fileSha256(entryPath)}`,
+      );
+    }
+  };
+  collect(directory, '');
+  return crypto.createHash('sha256').update(`${entries.join('\n')}\n`).digest('hex');
+}
+
 function requireStrictDescendant(
   root: string,
   candidate: string,
   label: string,
 ) {
   const rootRealpath = fs.realpathSync(root);
-  const candidateRealpath = fs.realpathSync(candidate);
+  let candidateRealpath: string;
+  try {
+    candidateRealpath = fs.realpathSync(candidate);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      throw new Error(`AionCore managed Codex ${label} is missing: ${candidate}`);
+    }
+    throw error;
+  }
   const relative = path.relative(rootRealpath, candidateRealpath);
   if (
     !relative ||
@@ -130,208 +186,170 @@ export function resolveAioncoreManagedCodexBinding(shellRoot: string) {
       `AionCore root manifest target mismatch: expected ${MANUAL_RUNTIME_KEY}`,
     );
   }
+  if (managedManifest.schemaVersion !== 2) {
+    throw new Error(
+      'AionCore managed-resources manifest must use producer schemaVersion 2',
+    );
+  }
+  if (Object.hasOwn(managedManifest, 'acpTools')) {
+    throw new Error(
+      'AionCore managed-resources manifest must not retain retired acpTools truth',
+    );
+  }
+  if (fs.lstatSync(path.join(managedRoot, 'acp'), { throwIfNoEntry: false })) {
+    throw new Error(
+      'AionCore managed-resources must not contain the retired managed-resources/acp directory',
+    );
+  }
   if (managedManifest.runtimeKey !== MANUAL_RUNTIME_KEY) {
     throw new Error(
       `AionCore managed-resources runtimeKey mismatch: expected ${MANUAL_RUNTIME_KEY}`,
     );
   }
-
-  const tools = Array.isArray(managedManifest.acpTools)
-    ? managedManifest.acpTools
-    : [];
-  const matches = tools.filter((tool) => tool?.slug === 'codex-acp');
-  if (matches.length !== 1) {
-    throw new Error(
-      'AionCore managed-resources manifest must contain exactly one codex-acp tool',
-    );
-  }
-  const tool = requiredObject(matches[0], 'codex-acp tool');
-  const acpVersion = requiredString(tool.version, 'codex-acp version');
-  const toolRootRelative = requiredString(tool.root, 'codex-acp root');
-  const expectedToolRoot = `acp/codex-acp/${acpVersion}/${MANUAL_RUNTIME_KEY}`;
-  if (
-    tool.packageName !== MANAGED_CODEX_ACP_PACKAGE ||
-    toolRootRelative !== expectedToolRoot
-  ) {
-    throw new Error(
-      'AionCore managed codex-acp package identity is inconsistent',
-    );
-  }
-  const toolRoot = requireStrictDescendant(
+  const node = requiredObject(managedManifest.node, 'managed Node runtime');
+  const nodeVersion = requiredString(node.version, 'managed Node version');
+  const nodeRootRelative = requiredRelativePath(node.root, 'managed Node root');
+  const nodeRoot = requireStrictDescendant(
     managedRoot,
-    path.resolve(managedRoot, toolRootRelative),
-    'tool root',
+    path.join(managedRoot, ...nodeRootRelative.split('/')),
+    'Node runtime root',
   );
+  if (!fs.statSync(nodeRoot).isDirectory()) {
+    throw new Error(`AionCore managed Codex Node runtime root is missing: ${nodeRoot}`);
+  }
+  const nodeExecutableRelative = requiredRelativePath(
+    node.executable,
+    'managed Node executable',
+  );
+  const nodeExecutable = requireStrictDescendant(
+    nodeRoot,
+    path.join(nodeRoot, ...nodeExecutableRelative.split('/')),
+    'Node executable',
+  );
+  requireFile(nodeExecutable, 'AionCore managed Node executable');
+
+  const clis = Array.isArray(managedManifest.clis) ? managedManifest.clis : [];
+  const cliNames = clis
+    .map((entry) => entry?.name)
+    .sort((left, right) => comparePathNames(String(left), String(right)));
   if (
-    !Array.isArray(tool.requiredFiles) ||
-    !Array.isArray(tool.requiredDirectories)
+    clis.length !== 2
+    || JSON.stringify(cliNames) !== JSON.stringify(['claude', 'codex'])
   ) {
-    throw new Error('AionCore managed codex-acp required paths are invalid');
-  }
-  for (const requiredFile of [
-    ...tool.requiredFiles,
-    requiredString(tool.manifest, 'tool manifest'),
-  ]) {
-    requireFile(
-      path.join(toolRoot, requiredString(requiredFile, 'required file')),
-      'AionCore managed Codex required',
+    throw new Error(
+      'AionCore managed-resources manifest must contain exactly Claude and Codex direct CLIs',
     );
   }
-  for (const requiredDirectory of tool.requiredDirectories) {
-    const directory = path.join(
-      toolRoot,
-      requiredString(requiredDirectory, 'required directory'),
+  const resolveCli = (name: 'claude' | 'codex') => {
+    const entry = requiredObject(
+      clis.find((candidate) => candidate?.name === name),
+      `managed ${name} CLI`,
     );
-    if (!fs.statSync(directory, { throwIfNoEntry: false })?.isDirectory()) {
+    const version = requiredString(
+      entry.version,
+      `managed ${name} CLI version`,
+    );
+    const expectedRoot = `cli/${name}/${version}/${MANUAL_RUNTIME_KEY}`;
+    const rootRelative = requiredRelativePath(
+      entry.root,
+      `managed ${name} CLI root`,
+    );
+    if (rootRelative !== expectedRoot) {
       throw new Error(
-        `AionCore managed Codex directory is missing: ${directory}`,
+        `AionCore managed ${name} CLI root must match its exact version and platform`,
       );
     }
-  }
-  requireFile(
-    path.join(
-      toolRoot,
-      requiredString(tool.entrypoint, 'codex-acp entrypoint'),
-    ),
-    'AionCore managed codex-acp entrypoint',
-  );
-
-  const packageJsonPath = requireFile(
-    path.join(toolRoot, 'package.json'),
-    'codex-acp package.json',
-  );
-  const packageLockPath = requireFile(
-    path.join(toolRoot, 'package-lock.json'),
-    'codex-acp package-lock.json',
-  );
-  const packageJson = requiredObject(
-    readJson(packageJsonPath),
-    'codex-acp package.json',
-  );
-  const packageLock = requiredObject(
-    readJson(packageLockPath),
-    'codex-acp package-lock.json',
-  );
-  const lockPackages = requiredObject(
-    packageLock.packages,
-    'package-lock packages',
-  );
-  const lockRoot = requiredObject(lockPackages[''], 'package-lock root');
-  const acpLock = requiredObject(
-    lockPackages[`node_modules/${MANAGED_CODEX_ACP_PACKAGE}`],
-    'codex-acp lock entry',
-  );
-  if (
-    !Number.isInteger(packageLock.lockfileVersion) ||
-    packageLock.lockfileVersion < 2 ||
-    packageJson.dependencies?.[MANAGED_CODEX_ACP_PACKAGE] !== acpVersion ||
-    lockRoot.dependencies?.[MANAGED_CODEX_ACP_PACKAGE] !== acpVersion ||
-    acpLock.version !== acpVersion
-  ) {
-    throw new Error(
-      'AionCore managed codex-acp package lock version is inconsistent',
+    if (entry.platformDirectory !== MANUAL_RUNTIME_KEY) {
+      throw new Error(
+        `AionCore managed ${name} CLI platform must be ${MANUAL_RUNTIME_KEY}`,
+      );
+    }
+    if (
+      !Array.isArray(entry.requiredFiles) ||
+      !Array.isArray(entry.requiredDirectories)
+    ) {
+      throw new Error(
+        `AionCore managed ${name} CLI required paths are invalid`,
+      );
+    }
+    const root = requireStrictDescendant(
+      managedRoot,
+      path.join(managedRoot, ...rootRelative.split('/')),
+      `${name} CLI root`,
     );
-  }
-  const acpIntegrity = requiredSha512Integrity(
-    acpLock.integrity,
-    'codex-acp lock integrity',
-  );
-
-  const codexRoot = requireStrictDescendant(
-    toolRoot,
-    path.join(toolRoot, 'node_modules', '@openai', 'codex'),
-    'Codex package root',
-  );
-  const codexPackageJsonPath = requireFile(
-    path.join(codexRoot, 'package.json'),
-    'managed Codex package.json',
-  );
-  const codexPackageJson = requiredObject(
-    readJson(codexPackageJsonPath),
-    'managed Codex package.json',
-  );
-  const codexLock = requiredObject(
-    lockPackages['node_modules/@openai/codex'],
-    'managed Codex lock entry',
-  );
-  const codexVersion = requiredString(
-    codexLock.version,
-    'managed Codex version',
-  );
-  const codexIntegrity = requiredSha512Integrity(
-    codexLock.integrity,
-    'managed Codex lock integrity',
-  );
-  if (
-    codexPackageJson.name !== MANAGED_CODEX_PACKAGE ||
-    codexPackageJson.version !== codexVersion
-  ) {
-    throw new Error(
-      'AionCore managed Codex package and lock versions are inconsistent',
+    if (!fs.statSync(root).isDirectory()) {
+      throw new Error(`AionCore managed ${name} CLI root is missing: ${root}`);
+    }
+    const executableRelative = requiredRelativePath(
+      entry.executable,
+      `managed ${name} CLI executable`,
     );
-  }
-
-  const platformPackageName = `@openai/codex-${MANUAL_RUNTIME_KEY}`;
-  const platformLock = requiredObject(
-    lockPackages[`node_modules/${platformPackageName}`],
-    'managed Codex platform lock entry',
-  );
-  const platformVersion = `${codexVersion}-${MANUAL_RUNTIME_KEY}`;
-  const platformIntegrity = requiredSha512Integrity(
-    platformLock.integrity,
-    'managed Codex platform lock integrity',
-  );
-  if (
-    codexPackageJson.optionalDependencies?.[platformPackageName] !==
-      `npm:${MANAGED_CODEX_PACKAGE}@${platformVersion}` ||
-    platformLock.name !== MANAGED_CODEX_PACKAGE ||
-    platformLock.version !== platformVersion
-  ) {
-    throw new Error(
-      'AionCore managed Codex platform package and lock versions are inconsistent',
+    const executable = requireStrictDescendant(
+      root,
+      path.join(root, ...executableRelative.split('/')),
+      `${name} CLI executable`,
     );
-  }
-  const platformPackageJsonPath = requireFile(
-    path.join(
-      toolRoot,
-      'node_modules',
-      '@openai',
-      `codex-${MANUAL_RUNTIME_KEY}`,
-      'package.json',
-    ),
-    'managed Codex platform package.json',
-  );
-  const platformPackageJson = requiredObject(
-    readJson(platformPackageJsonPath),
-    'managed Codex platform package.json',
-  );
-  if (
-    platformPackageJson.name !== MANAGED_CODEX_PACKAGE ||
-    platformPackageJson.version !== platformVersion
-  ) {
-    throw new Error(
-      'AionCore managed Codex installed platform package version is inconsistent',
-    );
-  }
-  const platformExecutable = requireStrictDescendant(
-    toolRoot,
-    path.join(
-      toolRoot,
-      requiredString(
-        tool.platformExecutable,
-        'managed Codex platform executable',
-      ),
-    ),
-    'platform executable',
-  );
-  requireFile(platformExecutable, 'managed Codex platform executable');
+    requireFile(executable, `managed ${name} CLI executable`);
+    const requiredFiles = entry.requiredFiles.map((value, index) => {
+      const relativePath = requiredRelativePath(
+        value,
+        `managed ${name} required file ${index}`,
+      );
+      const file = requireStrictDescendant(
+        root,
+        path.join(root, ...relativePath.split('/')),
+        `${name} CLI required file`,
+      );
+      requireFile(file, `managed ${name} CLI required file`);
+      return {
+        relative_path: relativePath,
+        path: file,
+        sha256: fileSha256(file),
+      };
+    });
+    const requiredDirectories = entry.requiredDirectories.map((value, index) => {
+      const relativePath = requiredRelativePath(
+        value,
+        `managed ${name} required directory ${index}`,
+      );
+      const directory = requireStrictDescendant(
+        root,
+        path.join(root, ...relativePath.split('/')),
+        `${name} CLI required directory`,
+      );
+      if (!fs.statSync(directory).isDirectory()) {
+        throw new Error(
+          `AionCore managed ${name} CLI required directory is missing: ${directory}`,
+        );
+      }
+      return {
+        relative_path: relativePath,
+        path: directory,
+        tree_sha256: directoryTreeSha256(directory, `${name} required directory`),
+      };
+    });
+    return {
+      name,
+      version,
+      platform_directory: MANUAL_RUNTIME_KEY,
+      root_relative: rootRelative,
+      root,
+      executable_relative: executableRelative,
+      executable,
+      executable_sha256: fileSha256(executable),
+      required_files: requiredFiles,
+      required_directories: requiredDirectories,
+    };
+  };
+  const claudeCli = resolveCli('claude');
+  const codexCli = resolveCli('codex');
   const aioncoreBinary = requireFile(
     path.join(runtimeRoot, 'aioncore'),
     'AionCore binary',
   );
 
   return {
-    schema: 'opl_manual_aioncore_managed_codex_binding.v1',
+    schema: 'opl_manual_aioncore_managed_direct_clis_binding.v2',
     runtime_key: MANUAL_RUNTIME_KEY,
     aioncore: {
       version: aioncoreVersion,
@@ -347,51 +365,21 @@ export function resolveAioncoreManagedCodexBinding(shellRoot: string) {
       binary_sha256: fileSha256(aioncoreBinary),
     },
     managed_resources: {
+      schema_version: 2,
       root: managedRoot,
       manifest: managedManifestPath,
       manifest_sha256: fileSha256(managedManifestPath),
     },
-    codex_acp: {
-      package: MANAGED_CODEX_ACP_PACKAGE,
-      version: acpVersion,
-      root: toolRoot,
-      manifest: path.join(
-        toolRoot,
-        requiredString(tool.manifest, 'tool manifest'),
-      ),
-      package_json: packageJsonPath,
-      package_json_sha256: fileSha256(packageJsonPath),
-      package_lock: packageLockPath,
-      package_lock_sha256: fileSha256(packageLockPath),
-      lock_integrity: acpIntegrity,
-      entrypoint: path.join(
-        toolRoot,
-        requiredString(tool.entrypoint, 'codex-acp entrypoint'),
-      ),
+    node_runtime: {
+      version: nodeVersion,
+      root_relative: nodeRootRelative,
+      root: nodeRoot,
+      executable_relative: nodeExecutableRelative,
+      executable: nodeExecutable,
+      executable_sha256: fileSha256(nodeExecutable),
     },
-    codex_cli: {
-      package: MANAGED_CODEX_PACKAGE,
-      version: codexVersion,
-      root: codexRoot,
-      package_json: codexPackageJsonPath,
-      package_json_sha256: fileSha256(codexPackageJsonPath),
-      lock_resolved: requiredString(
-        codexLock.resolved,
-        'managed Codex lock resolved URL',
-      ),
-      lock_integrity: codexIntegrity,
-      platform_package: platformPackageName,
-      platform_version: platformVersion,
-      platform_package_json: platformPackageJsonPath,
-      platform_package_json_sha256: fileSha256(platformPackageJsonPath),
-      platform_lock_resolved: requiredString(
-        platformLock.resolved,
-        'managed Codex platform lock resolved URL',
-      ),
-      platform_lock_integrity: platformIntegrity,
-      platform_executable: platformExecutable,
-      platform_executable_sha256: fileSha256(platformExecutable),
-    },
+    claude_cli: claudeCli,
+    codex_cli: codexCli,
   };
 }
 
