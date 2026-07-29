@@ -34,6 +34,13 @@ export function assertTextIncludesAll(text, expectedValues, label) {
   }
 }
 
+export function assertTextIncludesOneOf(text, alternatives, label) {
+  if (!alternatives.some((alternative) => alternative.every((expected) => text.includes(expected)))) {
+    const expected = alternatives.map((alternative) => `[${alternative.join(', ')}]`).join(' or ');
+    throw new Error(`${label} must include one of ${expected}`);
+  }
+}
+
 export function assertTextExcludesAll(text, forbiddenValues, label) {
   for (const forbidden of forbiddenValues) {
     if (text.includes(forbidden)) {

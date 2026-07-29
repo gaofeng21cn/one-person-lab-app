@@ -3840,6 +3840,26 @@
         "no_cross_plane_inference": true,
         "runner_registration_policy": "opt_in_explicit_role_binding_not_fleet_membership"
       },
+      "fleet_lease_binding": {
+        "owner_surface": "codex_fleet_lease_verify_machine_readable",
+        "owner_surface_status": "available",
+        "github_job_binding_status": "pending_authenticated_controller_readback_transport",
+        "current_github_preguard": [
+          "exact_runner_role_labels",
+          "runner_online",
+          "runner_idle"
+        ],
+        "current_github_preguard_proves_controller_lease": false,
+        "required_before_controller_authoritative_job_binding": [
+          "authenticated_minimum_disclosure_controller_transport",
+          "exact_runner_role_to_node_binding",
+          "github_run_id_bound_lease_owner",
+          "fresh_lease_ttl_doctor_admission_and_control_commit",
+          "exact_workload_phase_and_preemptible_policy"
+        ],
+        "app_defined_secret_or_variable_names": false,
+        "enforcement_before_authenticated_transport_allowed": false
+      },
       "binding_status": "role_labels_require_fresh_github_and_fleet_readback_before_use",
       "legacy_bindings": [
         {

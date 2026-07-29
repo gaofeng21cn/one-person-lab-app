@@ -7,8 +7,16 @@ on:
       - OPL Non-Release Validation
     types:
       - completed
+  schedule:
+    # Hosted re-admission only: it never starts offline capacity or publishes.
+    - cron: '17 */2 * * *'
   workflow_dispatch:
     inputs:
+      source_run_id:
+        description: Optional successful main OPL Non-Release Validation run ID to re-admit.
+        required: false
+        default: ''
+        type: string
       mac_runner_labels_json:
         description: JSON array of labels for the trusted Tart-capable macOS advisory pool.
         required: false
@@ -28,16 +36,22 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: opl-self-hosted-advisory-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  group: opl-self-hosted-advisory-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.ref }}
   cancel-in-progress: true
 
 jobs:
   admit:
     name: Admit advisory runner pools
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      ${{
+        github.event_name == 'schedule' ||
+        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
+      source_run_id: ${{ steps.admission.outputs.source_run_id }}
       source_sha: ${{ steps.admission.outputs.source_sha }}
       mac_status: ${{ steps.admission.outputs.mac_status }}
       mac_reason_code: ${{ steps.admission.outputs.mac_reason_code }}
@@ -54,6 +68,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_ID_INPUT: ${{ inputs.source_run_id }}
           MAC_LABELS_INPUT: ${{ inputs.mac_runner_labels_json || vars.OPL_ADVISORY_MAC_RUNNER_LABELS }}
           WINDOWS_LABELS_INPUT: ${{ inputs.windows_runner_labels_json || vars.OPL_ADVISORY_WINDOWS_RUNNER_LABELS }}
         shell: bash
@@ -64,7 +79,7 @@ jobs:
           const { spawnSync } = require('node:child_process');
 
           const output = process.env.GITHUB_OUTPUT;
-          const sourceSha = process.env.EVENT_NAME === 'workflow_run'
+          let sourceSha = process.env.EVENT_NAME === 'workflow_run'
             ? process.env.WORKFLOW_RUN_SHA
             : process.env.GITHUB_SHA;
           const inventoryToken = (process.env.RUNNER_INVENTORY_TOKEN || process.env.GH_TOKEN || '').trim();
@@ -77,10 +92,15 @@ jobs:
             windows: [['self-hosted', 'Windows', 'X64', 'opl-cert-windows-wsl']],
           };
           const result = {
-            schema: 'opl_app_self_hosted_advisory_admission.v1',
+            schema: 'opl_app_self_hosted_advisory_admission.v2',
             source_run_id: process.env.WORKFLOW_RUN_ID || null,
             source_sha: sourceSha,
             inventory_source: 'github_actions_api',
+            retry_policy: {
+              mode: process.env.EVENT_NAME === 'schedule' ? 'scheduled_re_admission' : 'event_or_manual_admission',
+              dedupe_key: 'source_sha+target',
+              retry_eligible_when: 'prior_target_job_absent_or_skipped',
+            },
             targets: {},
           };
 
@@ -125,6 +145,7 @@ jobs:
                 fs.appendFileSync(output, `${name}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
               };
               setOutput('source_sha', '');
+              setOutput('source_run_id', '');
               for (const [target] of targets) {
                 const admission = result.targets[target];
                 setOutput(`${target}_status`, admission.status);
@@ -133,6 +154,66 @@ jobs:
               }
               process.exit(0);
             }
+            result.source_run_id = sourceRunId;
+          }
+
+          if (process.env.EVENT_NAME !== 'workflow_run') {
+            const sourceRunsApi = spawnSync('gh', [
+              'api',
+              '--paginate',
+              '--slurp',
+              'repos/' + process.env.GITHUB_REPOSITORY + '/actions/workflows/non-release-validation.yml/runs?branch=main&event=push&status=success&per_page=100',
+            ], {
+              encoding: 'utf8',
+              env: { ...process.env, GH_TOKEN: inventoryToken },
+            });
+            let sourceRun = null;
+            try {
+              const pages = JSON.parse(sourceRunsApi.stdout || '[]');
+              const runs = Array.isArray(pages)
+                ? pages.flatMap((page) => Array.isArray(page?.workflow_runs) ? page.workflow_runs : [])
+                : [];
+              const requestedId = (process.env.SOURCE_RUN_ID_INPUT || '').trim();
+              if (requestedId) {
+                sourceRun = runs.find((run) => String(run.id) === requestedId) || null;
+              } else if (process.env.EVENT_NAME === 'workflow_dispatch') {
+                sourceRun = runs.find((run) => run.head_sha === process.env.GITHUB_SHA) || null;
+              } else {
+                // Keep the scheduled run name and its selected immutable source SHA identical.
+                sourceRun = runs.find((run) => run.head_sha === process.env.GITHUB_SHA) || null;
+              }
+            } catch {
+              sourceRun = null;
+            }
+            const sourceValid = sourceRunsApi.status === 0
+              && sourceRun?.repository?.full_name === 'gaofeng21cn/one-person-lab-app'
+              && sourceRun.head_repository?.full_name === 'gaofeng21cn/one-person-lab-app'
+              && sourceRun.path === '.github/workflows/non-release-validation.yml'
+              && sourceRun.event === 'push'
+              && sourceRun.head_branch === 'main'
+              && sourceRun.run_attempt === 1
+              && sourceRun.status === 'completed'
+              && sourceRun.conclusion === 'success'
+              && /^[0-9a-f]{40}$/.test(sourceRun.head_sha || '');
+            if (!sourceValid) {
+              result.source_run_id = null;
+              result.source_sha = '';
+              sourceSha = '';
+              for (const [target, rawLabels] of targets) {
+                let labels = [];
+                try {
+                  labels = parseLabels(rawLabels) || [];
+                } catch {
+                  labels = [];
+                }
+                unavailable(target, labels, 'operator_deferred', 'No successful trusted main OPL Non-Release Validation source was available for re-admission.');
+              }
+              finishNotRun();
+              process.exit(0);
+            }
+            result.source_run_id = String(sourceRun.id);
+            result.source_sha = sourceRun.head_sha;
+            sourceSha = sourceRun.head_sha;
           }
 
           function parseLabels(raw) {
@@ -155,6 +236,71 @@ jobs:
             };
           }
 
+          function finishNotRun() {
+            fs.writeFileSync('self-hosted-advisory-admission.json', JSON.stringify(result, null, 2) + '\n');
+            fs.appendFileSync(output, 'source_run_id=' + (result.source_run_id || '') + '\n');
+            fs.appendFileSync(output, 'source_sha=' + (result.source_sha || '') + '\n');
+            for (const [target] of targets) {
+              const admission = result.targets[target];
+              fs.appendFileSync(output, target + '_status=' + admission.status + '\n');
+              fs.appendFileSync(output, target + '_reason_code=' + (admission.reason_code || '') + '\n');
+              fs.appendFileSync(output, target + '_labels_json=' + JSON.stringify(admission.required_labels) + '\n');
+            }
+          }
+
+          const priorTargetStates = new Map();
+          let dedupeError = '';
+          if (process.env.EVENT_NAME === 'schedule') {
+            const historyApi = spawnSync('gh', [
+              'api',
+              '--paginate',
+              '--slurp',
+              'repos/' + process.env.GITHUB_REPOSITORY + '/actions/workflows/self-hosted-advisory.yml/runs?per_page=100',
+            ], {
+              encoding: 'utf8',
+              env: { ...process.env, GH_TOKEN: inventoryToken },
+            });
+            try {
+              if (historyApi.status !== 0) throw new Error((historyApi.stderr || historyApi.stdout || 'advisory history is unreadable').trim());
+              const pages = JSON.parse(historyApi.stdout || '[]');
+              if (!Array.isArray(pages)) throw new Error('advisory history returned malformed JSON');
+              const priorRuns = pages
+                .flatMap((page) => Array.isArray(page?.workflow_runs) ? page.workflow_runs : [])
+                .filter((run) => run.display_title === 'Self-hosted advisory for ' + sourceSha)
+                .filter((run) => String(run.id) !== String(process.env.GITHUB_RUN_ID || ''))
+                .sort((left, right) => Number(right.id) - Number(left.id));
+              const jobNames = {
+                mac: 'macOS platform advisory',
+                windows: 'Windows WSL2 platform advisory',
+              };
+              for (const priorRun of priorRuns) {
+                const jobsApi = spawnSync('gh', [
+                  'api',
+                  'repos/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + priorRun.id + '/jobs?per_page=100',
+                ], {
+                  encoding: 'utf8',
+                  env: { ...process.env, GH_TOKEN: inventoryToken },
+                });
+                if (jobsApi.status !== 0) throw new Error((jobsApi.stderr || jobsApi.stdout || 'advisory job history is unreadable').trim());
+                const jobs = JSON.parse(jobsApi.stdout || '{}').jobs;
+                if (!Array.isArray(jobs)) throw new Error('advisory job history returned malformed JSON');
+                for (const [target, jobName] of Object.entries(jobNames)) {
+                  if (priorTargetStates.has(target)) continue;
+                  const job = jobs.find((entry) => entry?.name === jobName);
+                  if (!job || job.conclusion === 'skipped') continue;
+                  priorTargetStates.set(target, {
+                    reason_code: job.status === 'completed' ? 'already_recorded' : 'already_in_progress',
+                    detail: job.status === 'completed'
+                      ? 'An earlier advisory run already finished this source target with ' + job.conclusion + '.'
+                      : 'An earlier advisory run is still ' + job.status + '.',
+                  });
+                }
+              }
+            } catch (error) {
+              dedupeError = error instanceof Error ? error.message : String(error);
+            }
+          }
+
           for (const [target, rawLabels] of targets) {
             let labels;
             try {
@@ -165,6 +311,15 @@ jobs:
             }
             if (!labels) {
               unavailable(target, [], 'not_authorized', 'No advisory runner label contract is configured.');
+              continue;
+            }
+            if (dedupeError) {
+              unavailable(target, labels, 'operator_deferred', 'Cannot prove scheduled retry de-duplication: ' + dedupeError);
+              continue;
+            }
+            const priorTarget = priorTargetStates.get(target);
+            if (priorTarget) {
+              unavailable(target, labels, priorTarget.reason_code, priorTarget.detail);
               continue;
             }
             if (!allowedLabels[target].some((expected) =>
@@ -229,6 +384,7 @@ jobs:
             process.stdout.write(`${name}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
             fs.appendFileSync(output, `${name}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
           };
+          setOutput('source_run_id', result.source_run_id || '');
           setOutput('source_sha', sourceSha);
           for (const [target, labels] of targets) {
             const admission = result.targets[target];
@@ -261,36 +417,94 @@ jobs:
           ref: ${{ needs.admit.outputs.source_sha }}
           fetch-depth: 1
 
-      - name: Probe macOS advisory capabilities
-        id: probe
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Setup active shell implementation
+        uses: ./.github/actions/setup-active-shell-deps
+        with:
+          shell-ref: main
+          install-dependencies: 'false'
+
+      - name: Install App root validation dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run admitted source and clean Tart guest smoke
+        id: platform-smoke
         shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.admit.outputs.source_sha }}
+          TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE || 'opl-first-run-no-clt-clean-base-26-5-18' }}
         run: |
-          set -u
-          status=passed
-          reason_code=''
-          uname -a
-          node --version || { status=failed; reason_code=node_unavailable; }
-          npm --version || { status=failed; reason_code=npm_unavailable; }
-          if command -v tart >/dev/null 2>&1; then
-            tart --version || { status=failed; reason_code=tart_unhealthy; }
-          else
-            status=failed
-            reason_code=tart_unavailable
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          npm run test:smoke 2>&1 | tee macos-source-smoke.log
+          vm_name="opl-advisory-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          tart_pid=''
+          cleanup() {
+            if [ -n "$tart_pid" ] && kill -0 "$tart_pid" 2>/dev/null; then
+              kill "$tart_pid" 2>/dev/null || true
+              wait "$tart_pid" 2>/dev/null || true
+            fi
+            tart stop "$vm_name" >/dev/null 2>&1 || true
+            tart delete "$vm_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          tart --version | tee macos-tart-version.log
+          tart clone "$TART_SOURCE" "$vm_name" 2>&1 | tee macos-tart-clone.log
+          tart run --no-graphics "$vm_name" > macos-tart-run.log 2>&1 &
+          tart_pid=$!
+          guest_ip=''
+          for _ in $(seq 1 60); do
+            guest_ip="$(tart ip "$vm_name" 2>/dev/null | awk 'NF { print $1; exit }' || true)"
+            if [ -n "$guest_ip" ]; then
+              break
+            fi
+            sleep 2
+          done
+          test -n "$guest_ip"
+          printf '%s\n' "$guest_ip" > macos-tart-guest-ip.txt
+
+      - name: Write macOS advisory receipt
+        if: ${{ always() }}
+        shell: bash
+        env:
+          SOURCE_RUN_ID: ${{ needs.admit.outputs.source_run_id }}
+          SOURCE_SHA: ${{ needs.admit.outputs.source_sha }}
+          SMOKE_OUTCOME: ${{ steps.platform-smoke.outcome }}
+          TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE || 'opl-first-run-no-clt-clean-base-26-5-18' }}
+        run: |
+          set -euo pipefail
+          status=failed
+          reason_code=macos_tart_platform_smoke_failed
+          if [ "$SMOKE_OUTCOME" = success ]; then
+            status=passed
+            reason_code=''
           fi
           jq -n \
-            --arg source_sha '${{ needs.admit.outputs.source_sha }}' \
+            --arg source_run_id "$SOURCE_RUN_ID" \
+            --arg source_sha "$SOURCE_SHA" \
             --arg status "$status" \
             --arg reason "$reason_code" \
-            '{schema:"opl_app_self_hosted_advisory_receipt.v1",target:"macos",source_sha:$source_sha,status:$status,reason_code:(if $reason == "" then null else $reason end),release_blocking:false}' \
+            --arg tart_source "$TART_SOURCE" \
+            '{schema:"opl_app_self_hosted_advisory_receipt.v2",target:"macos-tart",source_run_id:$source_run_id,source_sha:$source_sha,status:$status,reason_code:(if $reason == "" then null else $reason end),checks:["admitted_source_smoke","clean_tart_guest_boot"],tart_source:$tart_source,release_blocking:false}' \
             > macos-self-hosted-advisory.json
-          exit 0
 
       - name: Upload macOS advisory receipt
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: opl-self-hosted-advisory-macos-${{ github.run_id }}
-          path: macos-self-hosted-advisory.json
+          path: |
+            macos-self-hosted-advisory.json
+            macos-source-smoke.log
+            macos-tart-version.log
+            macos-tart-clone.log
+            macos-tart-run.log
+            macos-tart-guest-ip.txt
           if-no-files-found: error
           retention-days: 30
 
@@ -308,27 +522,55 @@ jobs:
           ref: ${{ needs.admit.outputs.source_sha }}
           fetch-depth: 1
 
-      - name: Probe Windows/WSL2 advisory capabilities
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install App root validation dependencies
         shell: pwsh
+        run: npm ci --ignore-scripts
+
+      - name: Run admitted Windows installer and WSL2 Docker smoke
+        id: platform-smoke
+        shell: pwsh
+        env:
+          SOURCE_SHA: ${{ needs.admit.outputs.source_sha }}
+          PWSH: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
         run: |
           $ErrorActionPreference = "Stop"
-          $status = "passed"
-          $reasonCode = $null
-          try {
-            node --version
-            npm --version
-            wsl.exe --status
-            docker version
-          } catch {
-            $status = "failed"
-            $reasonCode = "windows_capability_probe_failed"
+          if ((git rev-parse HEAD).Trim() -ne $env:SOURCE_SHA) {
+            throw "checked out source does not match admitted source SHA"
+          }
+          node --experimental-strip-types --test --test-timeout=120000 tests/release/docker-webui-windows-installer.test.ts *>&1 |
+            Tee-Object -FilePath windows-installer-behavior.log
+          wsl.exe --status *>&1 | Tee-Object -FilePath windows-wsl-status.log
+          docker version --format '{{json .}}' *>&1 | Tee-Object -FilePath windows-docker-version.log
+
+      - name: Write Windows advisory receipt
+        if: ${{ always() }}
+        shell: pwsh
+        env:
+          SOURCE_RUN_ID: ${{ needs.admit.outputs.source_run_id }}
+          SOURCE_SHA: ${{ needs.admit.outputs.source_sha }}
+          SMOKE_OUTCOME: ${{ steps.platform-smoke.outcome }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $status = "failed"
+          $reasonCode = "windows_platform_smoke_failed"
+          if ($env:SMOKE_OUTCOME -eq "success") {
+            $status = "passed"
+            $reasonCode = $null
           }
           @{
-            schema = "opl_app_self_hosted_advisory_receipt.v1"
+            schema = "opl_app_self_hosted_advisory_receipt.v2"
             target = "windows-wsl2"
-            source_sha = "${{ needs.admit.outputs.source_sha }}"
+            source_run_id = $env:SOURCE_RUN_ID
+            source_sha = $env:SOURCE_SHA
             status = $status
             reason_code = $reasonCode
+            checks = @("windows_installer_behavior", "wsl2_status", "docker_engine_handshake")
             release_blocking = $false
           } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 windows-wsl2-self-hosted-advisory.json
 
@@ -337,6 +579,10 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: opl-self-hosted-advisory-windows-${{ github.run_id }}
-          path: windows-wsl2-self-hosted-advisory.json
+          path: |
+            windows-wsl2-self-hosted-advisory.json
+            windows-installer-behavior.log
+            windows-wsl-status.log
+            windows-docker-version.log
           if-no-files-found: error
           retention-days: 30
