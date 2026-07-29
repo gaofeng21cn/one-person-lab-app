@@ -6,13 +6,13 @@
   "mutation_authority": false,
   "runtime_truth_authority": false,
   "instruction_revision": "user-2026-07-27-parallel-work-serialized-integration-v2",
-  "generated_at": "2026-07-29T01:26:15Z",
+  "generated_at": "2026-07-29T11:45:00+08:00",
   "canonical_base": {
     "repository": "gaofeng21cn/one-person-lab-app",
     "ref": "origin/main",
-    "commit": "7714d1c9cafdf4215fdaac731c4a8d4b68406af6",
-    "tree": "8fe03582fcf25d91a5eaeb557132bff07e3a7c82",
-    "observation": "origin/main and the GitHub main ref agree at 7714d1c9/tree 8fe03582 after fresh remote readback; objective owner evidence and terminal gaps remain owner-authoritative"
+    "commit": "764a808bb4867670805d07759e56880992ec8ffb",
+    "tree": "16f3575bdf72c813bbbcfd1578f4b922928d41c3",
+    "observation": "fresh local and origin/main readback agree at 764a808b/tree 16f3575b; this is the App coordination baseline only, not proof of any installed or public terminal"
   },
   "human_ssot": "docs/active/parallel-delivery-and-clean-development-ssot.md",
   "freshness_policy": {
@@ -55,7 +55,7 @@
       "git_locks": 0
     }
   },
-  "objectives": [
+  "legacy_objectives": [
     {
       "id": "docker-webui-latest",
       "status": "ACTIVE",
@@ -335,16 +335,153 @@
       "terminal_gaps": ["App exact6 parity", "focused and active-shell gates", "clean remote checkpoint", "canonical parity", "owner-native cleanup"]
     }
   ],
+  "scope_exclusions": {
+    "status": "OUT_OF_LEDGER_SCOPE",
+    "items": [
+      {"id": "digital-twin", "reason": "独立开发任务，不属于 OPL App 用户交付总账"},
+      {"id": "photo-center", "reason": "独立开发任务，不属于 OPL App 用户交付总账"},
+      {"id": "ambient-ops", "reason": "独立开发任务，不属于 OPL App 用户交付总账"}
+    ],
+    "rule": "这些任务不计入 6 条线、29 项任务，也不共享本 ledger 的 owner、吸收顺序或归档判定"
+  },
+  "delivery_lines": [
+    {
+      "id": "desktop-experience",
+      "name": "桌面体验",
+      "lead_thread": "019fa75e-7283-7ae2-95dc-292068cb2119",
+      "lead_role": "Local App 产品/安装协调；GUI 证据线程只消费，不取得源码写权限",
+      "status": "ACTIVE",
+      "task_ids": ["desktop-projectless-contract", "desktop-archive-clone", "desktop-skill-composer-companion", "desktop-gui-cohort"],
+      "integration_order": 3,
+      "first_unresolved_action": "先完成 App/Shell/Framework 当前 cohort 的 source-lock 与安装证据，再处理 GUI 16-scene；源码冲突在 canonical absorption 窗口解决"
+    },
+    {
+      "id": "windows-webui",
+      "name": "Windows 与 WebUI",
+      "lead_thread": "019f9d37-99f9-7d03-981b-acdc4c8f34ca",
+      "lead_role": "Windows native execution owner；WebUI recovery 只消费既有 owner-close 证据",
+      "status": "ACTIVE",
+      "task_ids": ["windows-download-node", "windows-rc-mainline", "windows-wsl-repair", "docker-default-stable", "packaged-webui-runtime", "ghcr-public-readback"],
+      "integration_order": 2,
+      "first_unresolved_action": "把 Windows 新 successor/Node 自愈与 Docker/WebUI public digest readback 分开排队；不重开已关闭 PR，不创建第二 Windows writer"
+    },
+    {
+      "id": "stable-distribution",
+      "name": "Stable 与分发",
+      "lead_thread": "019f9cda-e8d2-71e3-abb6-077964145375",
+      "lead_role": "Stable admission/immutable terminal controller",
+      "status": "ACTIVE",
+      "task_ids": ["stable-immutable-terminal", "distribution-install-unification", "single-desktop-carrier", "preview-native-recovery", "full-homebrew-parity"],
+      "integration_order": 1,
+      "first_unresolved_action": "先完成 PR #58/current source owner-close，再以 distinct authority 评估 immutable Stable；任何历史 r3、旧 carrier 或旧安装证明均不得复用"
+    },
+    {
+      "id": "package-framework",
+      "name": "Package / Framework",
+      "lead_thread": "019fa09f-a54e-7d40-aea1-bd728afdb153",
+      "lead_role": "Package retirement 与 Framework carrier-native consumer 协调",
+      "status": "ACTIVE",
+      "task_ids": ["package-retirement", "carrier-native-discovery", "framework-ci-repair", "component-neutral-update"],
+      "integration_order": 4,
+      "first_unresolved_action": "先收敛 PR #8/#9/#10 的真实 owner 和 current-head gates，再做 App/Shell consumer-zero 与 installed proof；不把 source checkpoint 当终态"
+    },
+    {
+      "id": "runner-ci",
+      "name": "Runner / CI",
+      "lead_thread": "019fa145-fd2d-7a80-ac29-39d36138197f",
+      "lead_role": "Runner policy source owner；Root Integrator 只负责 fresh-main canonical absorption",
+      "status": "ACTIVE",
+      "task_ids": ["runner-policy-atomics", "self-hosted-advisory", "upstream-intake-validation"],
+      "integration_order": 5,
+      "first_unresolved_action": "在 Shell #9 等短临界区之后按顺序吸收 Runner exact3；旧 self-hosted lanes 只保留 provenance，不重复 replay"
+    },
+    {
+      "id": "ledger-convergence",
+      "name": "总账与收口",
+      "lead_thread": "019f8f6a-718b-78f1-801f-48d5eae617e7",
+      "lead_role": "唯一 Ledger / coordination owner",
+      "status": "ACTIVE",
+      "task_ids": ["custody-812b", "ledger-snapshot", "canonical-absorption", "hygiene-reconcile", "synthetic-route-reconcile", "schema-v2-duplicate-close", "webui-recovery-closeout"],
+      "integration_order": 6,
+      "first_unresolved_action": "先把每个物理 lane 映射到唯一 owner 和 fresh next action，再按 repo 串行吸收、parity、holder/lock readback、owner-native close；禁止批量删除或 reset dirty root"
+    }
+  ],
+  "task_catalog": {
+    "declared_user_facing_count": 29,
+    "declared_active_count": 27,
+    "declared_safe_to_archive_count": 2,
+    "count_basis": "按用户可感知交付终态去重；同一源 lane、PR、worktree、安装或证据不重复计数",
+    "freshness": "本快照中的 task status 以当前 owner callback 和物理 readback 为准；侧边整理中的旧 SHA/PR/receipt 数字仅作为 derived source packet",
+    "current_action": "先完成 canonical baseline 与 owner map，再重组并发；不在任务表内直接执行发布、安装或 cleanup"
+  },
+  "objectives": [
+    {"id":"desktop-projectless-contract","line":"desktop-experience","status":"ACTIVE","lead_thread":"019fa75e-7283-7ae2-95dc-292068cb2119","execution_owner_threads":["019fa6a2-c301-7b93-8a5b-1b85e875e279"],"write_set":["contracts/app-shell-adapter.json","contracts/app-product-profile.json","docs/product/gui/README.md","tests/release/codex-default-profile.test.ts"],"current_state":"App projectless worktree dirty; branch codex/projectless-codex-root-contract-20260728 at 2eedd623; origin/main 764a808b; no canonical absorption","first_unresolved_action":"完成当前 Shell compatibility bridge 与 contract gates，fresh-main replay 后以 PR/owner-close 吸收；不得与本 ledger 文件并行改写同一 object","integration_order":3},
+    {"id":"desktop-archive-clone","line":"desktop-experience","status":"ACTIVE","lead_thread":"019fa910-29b5-7fd0-ab7c-330a6948a38f","execution_owner_threads":["019fa910-29b5-7fd0-ab7c-330a6948a38f"],"write_set":["App archive/canonical-clone source and focused tests (exact paths owner-authoritative)"],"current_state":"source/worktree/PR currentness requires fresh readback; historical archive-filter receipt cannot serve as completion proof","first_unresolved_action":"复现 canonical clone/materialization 真实断点，建立可回滚 checkpoint，并在 fresh App main 上吸收后清理自有 lane","integration_order":3},
+    {"id":"desktop-skill-composer-companion","line":"desktop-experience","status":"ACTIVE","lead_thread":"019fa75e-7283-7ae2-95dc-292068cb2119","execution_owner_threads":["019faba0"],"write_set":["Shell Composer builtin-auto exact write set","Framework Global Companion scope exact write set","focused cross-repo tests"],"current_state":"Composer/Companion are separate cross-repo lanes; no shared root write authority; current source/ref requires owner callback","first_unresolved_action":"分别完成 Shell Composer 与 Framework Companion 的 source checkpoint，再由对应 integrator 逐仓吸收，不把两条 lane 合成一个 writer","integration_order":3},
+    {"id":"desktop-gui-cohort","line":"desktop-experience","status":"ACTIVE","lead_thread":"019fa0ef-9514-7293-ba5b-15cb8a509522","execution_owner_threads":["019fa75e-7283-7ae2-95dc-292068cb2119"],"write_set":["read-only GUI matrix/evidence; no source write set"],"current_state":"GUI owner is read-only consumer; installed App/Shell/Framework cohort evidence exists but public immutable cohort/terminal acceptance is separate","first_unresolved_action":"只消费同一 cohort 的 source-lock/build/install receipt，再执行 Browser-first 16-scene；不得复用旧 asar、r3 截图或 Stable 指针","integration_order":4},
+    {"id":"windows-download-node","line":"windows-webui","status":"ACTIVE","lead_thread":"019f9d37-99f9-7d03-981b-acdc4c8f34ca","execution_owner_threads":["019fab5b"],"write_set":["Shell hosted Node self-heal branch d368b452 and focused Windows download/runtime tests"],"current_state":"App-side PR #77 is canonical; Shell Node self-heal remains branch-only and is not in Shell main 805c051b","first_unresolved_action":"由现有 Shell/Windows owner fresh-main replay Node self-heal exact write set并回 current-head gates；不把 App #77 的吸收当作 Shell 完成","integration_order":2},
+    {"id":"windows-rc-mainline","line":"windows-webui","status":"ACTIVE","lead_thread":"019f9d37-99f9-7d03-981b-acdc4c8f34ca","execution_owner_threads":["019f9d37-99f9-7d03-981b-acdc4c8f34ca"],"write_set":["Windows successor PR/runtime evidence under sole owner; preserve PR #3/#6/7064/88a evidence"],"current_state":"PR #7 product/runtime/reboot/final-zero terminal is absorbed; remaining line obligation is current successor/legacy evidence classification, not replay of old 7064","first_unresolved_action":"先 fresh audit 是否仍有独立 successor 或仅需 owner-native close；不得重开旧 PR、删除 88a 或创建第二 Windows writer","integration_order":2},
+    {"id":"windows-wsl-repair","line":"windows-webui","status":"ACTIVE","lead_thread":"019fa606-35d5-73e1-99bf-5401abc670ec","execution_owner_threads":["019fa606-35d5-73e1-99bf-5401abc670ec"],"write_set":["Windows/WSL recovery evidence and exact host-control receipts"],"current_state":"Known Windows host/readback and WSL paths are evidence-bound; no Stable/publication mutation","first_unresolved_action":"freshly classify host/WSL residue and owner release; only exact owner-authorized guarded close may remove resources","integration_order":2},
+    {"id":"docker-default-stable","line":"windows-webui","status":"ACTIVE","lead_thread":"019fa719-11cf-7b70-bf2d-ec101f100de4","execution_owner_threads":["019fa719-11cf-7b70-bf2d-ec101f100de4"],"write_set":["App Docker default channel contract/tests (PR #78 absorbed); public runtime readback remains separate"],"current_state":"PR #78 is in App main 764a808b; synthetic owner receipt is invalid and must be reconciled by existing owner","first_unresolved_action":"reconcile exact6 Docker default semantics against canonical main, then owner-close only with fresh holder/lock/readback proof","integration_order":2},
+    {"id":"packaged-webui-runtime","line":"windows-webui","status":"ACTIVE","lead_thread":"019fa719-11cf-7b70-bf2d-ec101f100de4","execution_owner_threads":["019fa70a-d63b-7150-b654-178a45f12789"],"write_set":["WebUI packaged runtime/readback; no new publisher"],"current_state":"Formal WebUI runtime remains healthy; recovery containers/temp roots were owner-closed and GHCR pointers were not mutated","first_unresolved_action":"retain formal service, consume current GHCR/runtime readback, and close only remaining exact owner obligations","integration_order":2},
+    {"id":"ghcr-public-readback","line":"windows-webui","status":"ACTIVE","lead_thread":"019f8f6a-718b-78f1-801f-48d5eae617e7","execution_owner_threads":[],"external_blocker":"当前没有可验证的 live GHCR publisher owner；不能把已 SAFE 的 WebUI recovery 对话重新当 publisher","write_set":["GHCR stable/latest pointer mutation and anonymous pull/run readback; no source write"],"current_state":"GHCR latest/stable digests are preserved/read-only; promotion/readback is not a completed user terminal","first_unresolved_action":"由 Ledger 路由一个现有、明确接管的 publisher/operation owner，再做一次受保护 admission；在接管前不执行 publication mutation","integration_order":2},
+    {"id":"stable-immutable-terminal","line":"stable-distribution","status":"ACTIVE","lead_thread":"019f9cda-e8d2-71e3-abb6-077964145375","execution_owner_threads":["019f9cda-e8d2-71e3-abb6-077964145375","019f9def-0a13-7061-8320-dca8b058c014"],"write_set":["Stable admission/publication operation authority; no source overlap"],"current_state":"Distinct Stable operation admitted exactly once; historical r3 remains immutable=false and cannot be retrofitted","first_unresolved_action":"finish PR #58 source owner-close, then fresh immutable Stable terminal and same-artifact public/install readback","integration_order":1},
+    {"id":"distribution-install-unification","line":"stable-distribution","status":"ACTIVE","lead_thread":"019f91f0-5ce9-78f2-84cd-aad34c16246d","execution_owner_threads":["019f91f0-5ce9-78f2-84cd-aad34c16246d"],"write_set":["App/Shell installer-routing contracts/tests; exact consumer write set owner-authoritative"],"current_state":"App route fix is canonical; Shell consumer aggregate still has installer-routing gap","first_unresolved_action":"fresh-main replay Shell consumer/tests and then validate public carriers plus managed install","integration_order":3},
+    {"id":"single-desktop-carrier","line":"stable-distribution","status":"ACTIVE","lead_thread":"019fa719-11cf-7b70-bf2d-ec101f100de4","execution_owner_threads":["019fa719-11cf-7b70-bf2d-ec101f100de4"],"write_set":["single Desktop carrier v4/v5 exact write set; preserve 812b/root custody"],"current_state":"v4 has divergent/dirty recovery evidence; v5/default lane is not a proof of v4 absorption","first_unresolved_action":"provenance classify v4/v5 and perform semantic replay only for unique bytes before canonical close","integration_order":1},
+    {"id":"preview-native-recovery","line":"stable-distribution","status":"ACTIVE","lead_thread":"019fa71a-110a-7410-a052-2493bf1dd6fa","execution_owner_threads":["019fa71a-110a-7410-a052-2493bf1dd6fa"],"write_set":["Manual Preview/Native recovery source and evidence; no Stable/publication mutation"],"current_state":"PR #71 synthetic reopen is superseded; exact4 successor remains owner-authoritative and unabsorbed","first_unresolved_action":"route to Release Control/Single Desktop owner, compare Native 8192 vs deleted 4096 carrier semantics, then fresh-main absorb or close","integration_order":1},
+    {"id":"full-homebrew-parity","line":"stable-distribution","status":"ACTIVE","lead_thread":"019fa73e-d7cc-73c3-a607-258f85b218eb","execution_owner_threads":["019fa73e-d7cc-73c3-a607-258f85b218eb"],"write_set":["Full/Homebrew/package install validation exact write set"],"current_state":"PR #57/root preservation is canonical and clean; Full/Homebrew terminal remains a separate user acceptance obligation","first_unresolved_action":"fresh clean-host carrier install/upgrade/rollback/data-retention readback after current main, then owner-close","integration_order":3},
+    {"id":"package-retirement","line":"package-framework","status":"ACTIVE","lead_thread":"019fa09f-a54e-7d40-aea1-bd728afdb153","execution_owner_threads":["019fa09f-a54e-7d40-aea1-bd728afdb153"],"write_set":["src/modules/connect/agent-package-registry.ts","tests/src/cli/cases/packages-cases/configured-codex-plugin-carrier.test.ts"],"current_state":"exact2 checkpoint 85f498b4/tree d5f21eff remote-parity clean; canonical absorption pending","first_unresolved_action":"fresh Framework main semantic replay, rerun gates, ordinary push and canonical absorption; then consumer-zero/installed proof","integration_order":4},
+    {"id":"carrier-native-discovery","line":"package-framework","status":"ACTIVE","lead_thread":"019fa09f-a54e-7d40-aea1-bd728afdb153","execution_owner_threads":["019fa09f-a54e-7d40-aea1-bd728afdb153"],"write_set":["Framework W3 dynamic directory/status/action projection exact write set"],"current_state":"Framework W3 source is canonical/tree-equivalent but stale lifecycle receipt and holder proof remain","first_unresolved_action":"refresh current receipt, prove holder0/locks0 and owner-native close; retain only release-set currentness semantics gap","integration_order":4},
+    {"id":"framework-ci-repair","line":"package-framework","status":"ACTIVE","lead_thread":"019f9def-0a13-7061-8320-dca8b058c014","execution_owner_threads":["019f9def-0a13-7061-8320-dca8b058c014"],"write_set":["Framework CI workflow/check contracts exact owner write set"],"current_state":"Framework PR #8/#9/#10 remain OPEN in fresh audit; current-head gates/owner mapping not unified","first_unresolved_action":"assign each PR to its real Framework owner, run current-head gates, absorb in dependency order, close refs/receipts","integration_order":4},
+    {"id":"component-neutral-update","line":"package-framework","status":"ACTIVE","lead_thread":"019fa925-b620-7932-8a0f-35bbf5b7312e","execution_owner_threads":["019fa925-b620-7932-8a0f-35bbf5b7312e"],"write_set":["managed-update component-neutral route and App/Shell consumer bridge"],"current_state":"Root Integrator is sole canonical integrator; no second main writer permitted","first_unresolved_action":"replay only after producer contract is fresh, validate consumer-zero, then absorb and close","integration_order":4},
+    {"id":"runner-policy-atomics","line":"runner-ci","status":"ACTIVE","lead_thread":"019fa145-fd2d-7a80-ac29-39d36138197f","execution_owner_threads":["019fa145-fd2d-7a80-ac29-39d36138197f"],"write_set":["runner_policy exact3 source checkpoint cc19b43c; fec226 token-scope excluded"],"current_state":"source checkpoint clean/remote parity; canonical App replay pending; self-hosted advisory/ssot/tests are superseded evidence","first_unresolved_action":"after Shell #9 critical section, fresh-main replay exact3, gates, canonical absorption and owner-close","integration_order":5},
+    {"id":"self-hosted-advisory","line":"runner-ci","status":"ACTIVE","lead_thread":"019fa145-fd2d-7a80-ac29-39d36138197f","execution_owner_threads":["019fa145-fd2d-7a80-ac29-39d36138197f"],"write_set":["self-hosted advisory/test evidence only; no independent source replay"],"current_state":"SUPERSEDED_BY_CC19; retain provenance until canonical absorption then close","first_unresolved_action":"do not create writer; close evidence lane only after cc19 canonical absorption and fresh parity","integration_order":5},
+    {"id":"upstream-intake-validation","line":"runner-ci","status":"ACTIVE","lead_thread":"019fa925-b620-7932-8a0f-35bbf5b7312e","execution_owner_threads":["019fa925-b620-7932-8a0f-35bbf5b7312e"],"write_set":["App upstream-intake policy exact current-head source/test paths"],"current_state":"PR #80 was a current-head review/CI lane in the source packet; current main 764a808b must be re-read before any claim","first_unresolved_action":"fresh audit PR/ref/blob status, then absorb or classify superseded; do not wait idle in a duplicate lane","integration_order":5},
+    {"id":"custody-812b","line":"ledger-convergence","status":"ACTIVE","lead_thread":"019f8f6a-718b-78f1-801f-48d5eae617e7","execution_owner_threads":["019fa719-11cf-7b70-bf2d-ec101f100de4"],"write_set":["external custody only: 47 dirty paths in 812b; no root reset/stash apply/pop/drop/clean"],"current_state":"branch codex/activedistributionpr-29-ownerclose-holdernetwork-guard at f1d6e762; external/user custody; cleanup_ready=0","first_unresolved_action":"record exact custody/recovery artifact and obtain owner release before semantic replay or close","integration_order":6},
+    {"id":"ledger-snapshot","line":"ledger-convergence","status":"ACTIVE","lead_thread":"019f8f6a-718b-78f1-801f-48d5eae617e7","execution_owner_threads":["019f8f6a-718b-78f1-801f-48d5eae617e7"],"write_set":["docs/active/active-objective-ledger.json"],"current_state":"docs-only worktree codex/ledger-delivery-lines-20260729 at App 764a808b; no commit/push yet","first_unresolved_action":"validate this snapshot, ordinary push, fresh remote blob/tree readback, then canonical App absorption and owner-native close","integration_order":6},
+    {"id":"canonical-absorption","line":"ledger-convergence","status":"ACTIVE","lead_thread":"019fa925-b620-7932-8a0f-35bbf5b7312e","execution_owner_threads":["019fa925-b620-7932-8a0f-35bbf5b7312e"],"write_set":["canonical main integration only; no source-lane cross-write"],"current_state":"App main integration is exclusive to Root Integrator; root checkout currently clean/aligned at 764a808b","first_unresolved_action":"serially absorb fresh source checkpoints by repository, verify wire/tree/blob parity, then close each owner lane","integration_order":6},
+    {"id":"hygiene-reconcile","line":"ledger-convergence","status":"ACTIVE","lead_thread":"019fa25a-c8b6-7de3-b436-cb6d13415ce4","execution_owner_threads":["019fa25a-c8b6-7de3-b436-cb6d13415ce4"],"write_set":["owner-native lifecycle/recovery receipts and exact cleanup allowlists only"],"current_state":"Hygiene has no independent source mutation; stale receipts and detached lanes remain routed to owners","first_unresolved_action":"fresh classify owner/holder/lock/ref state, then close only exact_merged lanes with explicit owner release","integration_order":6},
+    {"id":"synthetic-route-reconcile","line":"ledger-convergence","status":"ACTIVE","lead_thread":"019fa71a-110a-7410-a052-2493bf1dd6fa","execution_owner_threads":["019fa71a-110a-7410-a052-2493bf1dd6fa"],"write_set":["no source write; supersession/owner routing evidence for PR #71/#73/#74/#76"],"current_state":"PR #71 synthetic reopen is superseded; exact4 successor remains with Single Desktop/Release Control owner","first_unresolved_action":"keep one owner per managed-resources object, stop old recovery writers, and complete canonical absorption/close audit","integration_order":6},
+    {"id":"schema-v2-duplicate-close","line":"ledger-convergence","status":"SAFE_TO_ARCHIVE","lead_thread":"019fa853-f12d-7cb1-975f-03e137512f43","execution_owner_threads":["019fa853-f12d-7cb1-975f-03e137512f43"],"write_set":["schema-v2 duplicate-entry cleanup evidence only"],"current_state":"remaining=[]; duplicate route stopped and evidence retained; no mutation pending","first_unresolved_action":"改为 SAFE_TO_ARCHIVE 标题并等待用户批准归档；不重新唤醒","integration_order":6,"archive_performed":false,"user_approval_required":true},
+    {"id":"webui-recovery-closeout","line":"ledger-convergence","status":"SAFE_TO_ARCHIVE","lead_thread":"019fa70a-d63b-7150-b654-178a45f12789","execution_owner_threads":["019fa70a-d63b-7150-b654-178a45f12789"],"write_set":["WebUI historical recovery exact allowlist; no publication mutation"],"current_state":"terminal close readback complete; worktrees/refs/containers/temp roots absent; GHCR/Stable unchanged","first_unresolved_action":"改为 SAFE_TO_ARCHIVE 标题并等待用户批准归档；不新建 publisher","integration_order":6,"archive_performed":false,"user_approval_required":true}
+  ],
+  "archive_candidates": [
+    {"thread":"019fa70a-d63b-7150-b654-178a45f12789","suggested_title":"SAFE_TO_ARCHIVE｜Windows 与 WebUI｜WebUI recovery 已完成 owner-close","archive_performed":false,"user_approval_required":true},
+    {"thread":"019fa853-f12d-7cb1-975f-03e137512f43","suggested_title":"SAFE_TO_ARCHIVE｜总账收口｜Schema-v2 重复入口已收口","archive_performed":false,"user_approval_required":true}
+  ],
+  "title_policy": {
+    "active_prefixes": ["ACTIVE｜桌面体验｜", "ACTIVE｜Windows 与 WebUI｜", "ACTIVE｜Stable 与分发｜", "ACTIVE｜Package / Framework｜", "ACTIVE｜Runner / CI｜", "ACTIVE｜总账与收口｜"],
+    "safe_prefix": "SAFE_TO_ARCHIVE｜",
+    "rule": "标题只表达当前 scope/状态，不把已合入、旧 checkpoint、PR open 或历史证据写成终态；实际归档仍需用户批准"
+  },
+  "reconciliation": {
+    "side_packet_assessment": "6 条线/29 项的用户感知去重模型成立；其 SHA、PR、owner、receipt 数字属于 stale/derived，不能直接写回",
+    "fresh_baseline_replacement": "App origin/main 764a808b/tree 16f3575b；Framework 48492081；Shell 805c051e；OPL Flow 03a861c0",
+    "fresh_status_policy": "本快照保留 27 ACTIVE/2 SAFE_TO_ARCHIVE 的用户交付分类，但 source lane 的 terminal close 仍须以 owner-native evidence、canonical parity、holder0/locks0 再确认",
+    "ownerless": 1,
+    "duplicate_writer": 0,
+    "invalid_synthetic_routes": 4,
+    "unregistered_physical_worktrees": 2,
+    "first_unresolved_action": "完成本 docs snapshot 的 checkpoint/吸收，再按 repository 串行执行 source replay -> gates -> canonical absorption -> owner-close"
+  },
+  "related_repo_baselines": {
+    "one-person-lab-app": {"ref":"origin/main","commit":"764a808bb4867670805d07759e56880992ec8ffb","tree":"16f3575bdf72c813bbbcfd1578f4b922928d41c3","status":"clean_aligned"},
+    "opl-aion-framework": {"ref":"origin/main","commit":"48492081bd287fb901ddf5349e00615cb25c57ef","status":"clean_aligned"},
+    "opl-aion-shell": {"ref":"origin/main","commit":"805c051be517cc71eea2d8201fe165fe49e3818d","status":"clean_aligned"},
+    "opl-flow": {"ref":"origin/main","commit":"03a861c0bdb0ee4c387087a0594cbe8efef943ca","status":"clean_aligned"}
+  },
   "worktree_snapshot": {
     "repository": "one-person-lab-app",
-    "observed_non_root_count": 1,
-    "active_owned_count": 1,
+    "observed_non_root_count": 10,
+    "active_owned_count": 8,
     "cleanup_ready_count": 0,
-    "recovery_owner_required_count": 0,
-    "holder_proof_required_count": 0,
-    "unregistered_lane": null,
-    "known_historical_detached_lane": null,
-    "observation_scope": "current host /home/gaofeng/workspace/one-person-lab-app; root and registered non-root worktrees",
+    "recovery_owner_required_count": 2,
+    "holder_proof_required_count": 2,
+    "unregistered_lane": "two physical lanes require fresh lifecycle/owner readback; do not infer cleanup from path absence",
+    "known_historical_detached_lane": "812b external custody at f1d6e762; root preservation stash/branch retained",
+    "observation_scope": "fresh local worktree list for /Users/gaofeng/workspace/one-person-lab-app; cross-repo counts are recorded in related_repo_baselines and owner callbacks",
+    "dirty_worktree_notes": ["812b has 47 dirty paths and is external/user custody", "projectless lane has source changes", "single-desktop v4 has dirty recovery evidence"],
+    "count_quality": "physical listing plus current owner packets; lifecycle totals require fresh owner-native readback before cleanup",
     "cleanup_rule": "retain ACTIVE lanes; clean only after absorbed parity, holder proof and owner-native exact allowlist; route unregistered lanes to recovery before mutation"
   }
 }
