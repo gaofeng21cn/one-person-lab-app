@@ -82,13 +82,13 @@ function stableCurrentnessReceipt() {
     upstream_repository: 'https://github.com/iOfficeAI/AionUi.git',
     channel: 'stable_tags_only',
     reviewed_release: {
-      tag: 'v2.1.39',
-      commit: '1b215f2fcb9d220bc66bf3b4961835ded07d5797',
-      published_at: '2026-07-21T16:18:52Z',
+      tag: 'v2.1.42',
+      commit: '7ee90c13e96393491586abe9b12f7d5c7da9ee59',
+      published_at: '2026-07-28T12:52:28Z',
       draft: false,
       prerelease: false,
-      url: 'https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.39',
-      disposition: 'selectively_absorbed',
+      url: 'https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.42',
+      disposition: 'reviewed_deferred',
     },
     absorbed_release: {
       tag: 'v2.1.39',
@@ -193,7 +193,7 @@ test('AionUI intake consumes the Shell stable receipt while preserving historica
   assert.equal(Object.hasOwn(intake.source_refs, 'latest_reviewed_upstream'), false);
   assert.equal(intake.stable_currentness_receipt.schema, receipt.schema);
   assert.equal(intake.stable_currentness_receipt.channel, receipt.channel);
-  assert.equal(receipt.reviewed_release.tag, 'v2.1.39');
+  assert.equal(receipt.reviewed_release.tag, 'v2.1.42');
   assert.deepEqual(receipt.managed_runtime, stableCurrentnessReceipt().managed_runtime);
   assert.deepEqual([
     capability(contract, 'database_recovery').classification,
@@ -312,6 +312,12 @@ test('AionUI stable receipt validator fails closed on schema, policy, digest, an
       readShellReceipt: () => receipt,
     }), error);
   }
+
+  const missingDirectCli = stableCurrentnessReceipt();
+  delete missingDirectCli.managed_runtime.claude_cli;
+  assert.throws(() => validateContract(readContract(), {
+    readShellReceipt: () => missingDirectCli,
+  }), /managed Claude CLI/);
 
   const receipt = stableCurrentnessReceipt();
   const missingRef = receipt.shell_projection.implementation_refs[0];

@@ -59,6 +59,7 @@ export function assertCanonicalThreadAffinityConvergenceSources({
     assertTextExcludesAll(
       source,
       [
+        'cached?.extra.custom_workspace === false ? false : hasCanonicalProjectWorkspace',
         'cached?.extra.custom_workspace === false ? false : hasCanonicalRecordedCwd',
         'cached?.extra.custom_workspace === true',
         'workspace: projectAffinityWorkspace',

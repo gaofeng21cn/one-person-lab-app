@@ -820,6 +820,7 @@ test('active-shell source gate keeps canonical cwd transport separate from sideb
   }
 
   for (const cachedOverride of [
+    'cached?.extra.custom_workspace === false ? false : hasCanonicalProjectWorkspace',
     'cached?.extra.custom_workspace === false ? false : hasCanonicalRecordedCwd',
     'cached?.extra.custom_workspace === true',
     'workspace: projectAffinityWorkspace',
