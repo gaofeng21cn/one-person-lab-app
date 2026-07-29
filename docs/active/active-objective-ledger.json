@@ -6,13 +6,13 @@
   "mutation_authority": false,
   "runtime_truth_authority": false,
   "instruction_revision": "user-2026-07-27-parallel-work-serialized-integration-v2",
-  "generated_at": "2026-07-28T15:33:35Z",
+  "generated_at": "2026-07-29T01:11:35Z",
   "canonical_base": {
     "repository": "gaofeng21cn/one-person-lab-app",
     "ref": "origin/main",
-    "commit": "c90e6103db5d097bd76095a4ee88b88c92b6ad44",
-    "tree": "aec6ae2cbfd50a160194bb07dafa7674ad60fa86",
-    "observation": "origin/main wire and GitHub API agree at c90e6103/tree aec6ae2c; the App root checkout remains untouched under its separate integrator ownership, and this ledger lane replays from the fresh remote base"
+    "commit": "4ded32ef6a1b972d87777caf244ffa3de11f0688",
+    "tree": "75cd8fe75591a4528d74c12a77b2e0ded3c81e95",
+    "observation": "origin/main and the GitHub main ref agree at 4ded32ef/tree 75cd8fe7 after fresh remote readback; objective owner evidence and terminal gaps remain owner-authoritative"
   },
   "human_ssot": "docs/active/parallel-delivery-and-clean-development-ssot.md",
   "freshness_policy": {
@@ -337,13 +337,14 @@
   ],
   "worktree_snapshot": {
     "repository": "one-person-lab-app",
-    "observed_non_root_count": 10,
-    "active_owned_count": 9,
+    "observed_non_root_count": 0,
+    "active_owned_count": 0,
     "cleanup_ready_count": 0,
-    "recovery_owner_required_count": 1,
+    "recovery_owner_required_count": 0,
     "holder_proof_required_count": 0,
-    "unregistered_lane": "/Users/gaofeng/workspace/one-person-lab-app/.worktrees/windows-installer-exitcode-20260728",
-    "known_historical_detached_lane": "/Users/gaofeng/.codex/worktrees/1433/one-person-lab-app",
+    "unregistered_lane": null,
+    "known_historical_detached_lane": null,
+    "observation_scope": "current host /home/gaofeng/workspace/one-person-lab-app; root checkout only",
     "cleanup_rule": "retain ACTIVE lanes; clean only after absorbed parity, holder proof and owner-native exact allowlist; route unregistered lanes to recovery before mutation"
   }
 }
