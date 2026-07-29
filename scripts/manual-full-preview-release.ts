@@ -253,6 +253,7 @@ function requiredFormalStableAssetNames(version: string): string[] {
     expectedDmgName(version),
     'latest-arm64-mac.yml',
     'opl-app-component-manifest.json',
+    'opl-install.sh',
     'opl-release-manifest.json',
     'standard-gatekeeper-launch-policy.json',
     'standard-apple-notarization-receipt.json',
@@ -521,7 +522,7 @@ function validateCleanupManifest(root: string, manifest: JsonRecord, manifestSha
     || new Set(stableNames).size !== stableNames.length
     || JSON.stringify(stableNames) !== JSON.stringify([...stableNames].sort())
   ) {
-    throw new Error('Cleanup stable_assets must be the exact six Standard assets plus the Full DMG and release manifest.');
+    throw new Error('Cleanup stable_assets must be the exact required formal Stable asset set.');
   }
   validateCleanupReceipts(root, version, sourceLockSha256, previewTag, stableTag, evidence, stableAssets);
   return {
