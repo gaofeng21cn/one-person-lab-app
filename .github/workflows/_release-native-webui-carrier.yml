@@ -193,7 +193,6 @@ jobs:
       - name: Build Native WebUI artifact
         working-directory: shell-source
         env:
-          NODE_OPTIONS: --max-old-space-size=4096
           OPL_VERSION: ${{ inputs.opl_version }}
           PACK_PLATFORM: ${{ inputs.target_platform }}
           PACK_ARCH: ${{ inputs.target_architecture == 'x86_64' && 'x64' || 'arm64' }}
