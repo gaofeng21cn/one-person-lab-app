@@ -154,7 +154,7 @@ test('Windows Docker/WebUI installer resolves a moving tag once and pins compose
   const composeWriter = windowsInstaller.match(/function Write-ComposeFile \{([\s\S]*?)\n\}/)?.[1] ?? '';
   const execution = windowsInstaller.slice(windowsInstaller.indexOf('$tagWasProvided ='));
 
-  assert.match(resolver, /Invoke-DockerPullWithPublicGhcrIsolation/);
+  assert.match(resolver, /Invoke-DockerPullWithRetry/);
   assert.match(resolver, /Write-Host \$pull\.Output/);
   assert.doesNotMatch(
     resolver,
