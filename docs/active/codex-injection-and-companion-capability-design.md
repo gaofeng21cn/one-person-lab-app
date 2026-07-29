@@ -44,6 +44,25 @@ Flow's Package identity or App readiness truth.
 
 Existing user instructions are preserved outside managed marker blocks. Reusable algorithms stay in their owning skill instead of being repeated in `AGENTS.md`.
 
+## Skill Scope Model
+
+OPL exposes exactly two Skill scopes:
+
+- `global_user`: user-level skills owned by `$CODEX_HOME/skills` or the
+  Framework's companion projection. They are available to the user's Codex
+  environment and are never materialized into an arbitrary project workspace.
+- `domain_project`: project or quest Skills explicitly projected by MAS, MAG,
+  RCA, or another domain owner. The owner controls the `.agents/skills`
+  projection and its lifecycle; the App only renders the owner projection.
+
+AionUI's `builtin-skills/auto-inject` directory is an internal cache/source,
+not a third scope. The active OPL shell runs AionCore with workspace Skill
+materialization disabled, including for resumed conversations. `aionui-config`
+and `skill-creator` remain hidden internal/global helpers only when an owner
+explicitly materializes them; `cron` routes to Scheduled Tasks and is not a
+Skill payload. A blanket `.codex/` ignore is not a fix because explicit domain
+projections remain legitimate and owner-managed.
+
 ## OPL Flow Dependency Projection
 
 - OPL App does not own a companion skill list. Flow declares composable

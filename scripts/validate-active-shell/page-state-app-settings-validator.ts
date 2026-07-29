@@ -352,6 +352,22 @@ function validateCapabilitiesPage(matrix, guiContract) {
     guiCapabilitiesPage?.auto_injected_skills_policy,
     'Capabilities page auto-injected Skill policy',
   );
+  const skillScopeModel = capabilitiesPage.builtin_skill_catalog_policy?.scope_model;
+  if (
+    skillScopeModel?.global_user?.materialization !== '$CODEX_HOME/skills' ||
+    skillScopeModel?.global_user?.workspace_injection !== 'forbidden' ||
+    skillScopeModel?.domain_project?.workspace_injection !== 'explicit_owner_action_only' ||
+    skillScopeModel?.aionui_builtin_cache?.workspace_injection !== 'forbidden' ||
+    skillScopeModel?.aionui_builtin_cache?.ordinary_user_scope !== 'hidden'
+  ) {
+    throw new Error('Skill scope model must keep global user and explicit domain/project ownership separate from the AionUI cache');
+  }
+  if (
+    capabilitiesPage.auto_injected_skills_policy?.workspace_materialization !== 'forbidden' ||
+    capabilitiesPage.auto_injected_skills_policy?.ordinary_ui !== 'hidden'
+  ) {
+    throw new Error('AionUI auto-injected Skills must remain hidden diagnostics and cannot materialize into workspaces');
+  }
   assertDeepEqualJson(
     capabilitiesPage.capability_detail_presentation_policy,
     expectedCapabilityDetailPresentationPolicy(),

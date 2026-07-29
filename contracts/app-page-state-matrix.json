@@ -3715,12 +3715,33 @@
       "builtin_skill_catalog_policy": {
         "source": "AionUI shell builtin skill catalog classified through the App product profile and capability owner projection",
         "display_role": "local_or_third_party_capability_inventory_never_implicit_OPL_Flow_membership",
-        "raw_provider_id_as_primary_label_allowed": false
+        "raw_provider_id_as_primary_label_allowed": false,
+        "scope_model": {
+          "global_user": {
+            "owner": "user_codex_home_or_framework_companion_projection",
+            "materialization": "$CODEX_HOME/skills",
+            "workspace_injection": "forbidden"
+          },
+          "domain_project": {
+            "owner": "MAS_MAG_RCA_or_other_domain_owner",
+            "materialization": ".agents/skills_or_explicit_project_projection",
+            "workspace_injection": "explicit_owner_action_only"
+          },
+          "aionui_builtin_cache": {
+            "owner": "AionUI_internal_runtime",
+            "materialization": "private_cache_only",
+            "workspace_injection": "forbidden",
+            "ordinary_user_scope": "hidden"
+          }
+        }
       },
       "auto_injected_skills_policy": {
         "source": "active shell builtin-auto list classified through the App product profile",
-        "display_role": "local_or_third_party_support_detail_only",
-        "raw_provider_id_as_primary_label_allowed": false
+        "display_role": "internal_compatibility_diagnostic_only",
+        "raw_provider_id_as_primary_label_allowed": false,
+        "workspace_materialization": "forbidden",
+        "ordinary_ui": "hidden",
+        "retirement_route": "cron_to_scheduled_tasks; other_helpers_to_global_user_or_internal_runtime"
       },
       "capability_detail_presentation_policy": {
         "default_surface": "desktop_right_side_panel_mobile_drawer",
