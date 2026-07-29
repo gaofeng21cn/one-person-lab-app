@@ -74,6 +74,10 @@ test('Native reusable separates non-blocking preparation from post-publish readb
   assert.equal(parsed.on.workflow_call.outputs.prepare_status.value, '${{ jobs.build-and-qualify.outputs.prepare_status }}');
   assert.equal(parsed.jobs['build-and-qualify'].outputs.prepare_status, '${{ steps.qualified.outputs.prepare_status }}');
   assert.equal(parsed.jobs['build-and-qualify']['runs-on'], "${{ inputs.target_platform == 'darwin' && 'macos-14' || 'ubuntu-latest' }}");
+  const nativeBuild = parsed.jobs['build-and-qualify'].steps.find(
+    (step: Record<string, any>) => step.name === 'Build Native WebUI artifact',
+  );
+  assert.equal(nativeBuild.env.NODE_OPTIONS, '--max-old-space-size=4096');
   assert.deepEqual(parsed.jobs['readback-native-assets'].permissions, { contents: 'read', actions: 'read' });
   for (const required of [
     'test "$GITHUB_RUN_ATTEMPT" = 1',

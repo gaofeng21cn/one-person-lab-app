@@ -1205,6 +1205,7 @@
             "One-Person-Lab-Full-<version>-mac-arm64.dmg",
             "latest-arm64-mac.yml",
             "opl-app-component-manifest.json",
+            "opl-install.sh",
             "opl-release-manifest.json",
             "standard-gatekeeper-launch-policy.json",
             "standard-apple-notarization-receipt.json"

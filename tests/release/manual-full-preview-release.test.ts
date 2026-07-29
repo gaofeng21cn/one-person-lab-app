@@ -154,6 +154,7 @@ function createCleanupHandoff(
     { name: `One-Person-Lab-${publish.version}-mac-arm64.zip.blockmap`, size_bytes: 23, sha256: '3'.repeat(64) },
     { name: 'latest-arm64-mac.yml', size_bytes: 27, sha256: 'b'.repeat(64) },
     { name: 'opl-app-component-manifest.json', size_bytes: 24, sha256: '4'.repeat(64) },
+    { name: 'opl-install.sh', size_bytes: 28, sha256: '7'.repeat(64) },
     publish.releaseManifest,
     { name: 'standard-gatekeeper-launch-policy.json', size_bytes: 25, sha256: '5'.repeat(64) },
     { name: 'standard-apple-notarization-receipt.json', size_bytes: 26, sha256: '6'.repeat(64) },
@@ -595,6 +596,21 @@ test('cleanup requires M2 and Stable readback, then removes Release before tag a
   assert.equal(remote.releases.get(cleanup.stableTag)?.id, 900);
 });
 
+test('cleanup rejects a formal Stable readback that omits the universal installer', (t) => {
+  const publish = createPublishHandoff(t);
+  const cleanup = createCleanupHandoff(t, publish);
+  const manifestPath = path.join(cleanup.root, 'manual-full-preview-manifest.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  manifest.stable_assets = manifest.stable_assets.filter(
+    (asset: AssetIdentity) => asset.name !== 'opl-install.sh',
+  );
+  writeJson(manifestPath, manifest);
+  assert.throws(
+    () => validateHandoffDirectory(cleanup.root, 'cleanup', fileSha256(manifestPath)),
+    /exact required formal Stable asset set/,
+  );
+});
+
 test('cleanup fails before mutation when formal Stable is not Latest', (t) => {
   const publish = createPublishHandoff(t);
   const cleanup = createCleanupHandoff(t, publish);
@@ -652,7 +668,8 @@ test('workflow and release contract expose only the protected preview exception'
   assert.equal(preview.publication.make_latest, false);
   assert.equal(preview.unknown_outcome.read_only_inspection_maximum, 3);
   assert.equal(preview.cleanup.same_bundle_digest_required, true);
-  assert.equal(preview.cleanup.required_formal_stable_assets.length, 9);
+  assert.equal(preview.cleanup.required_formal_stable_assets.length, 10);
+  assert.equal(preview.cleanup.required_formal_stable_assets.includes('opl-install.sh'), true);
   assert.equal(preview.cleanup.release_and_tag_double_absence_readback_required, true);
   assert.equal(validateManualFullPreviewControlPlane(process.cwd()), 0);
   assert.equal(validateWorkflowDispatchWriteAuthority(process.cwd()), 0);

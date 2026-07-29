@@ -1773,7 +1773,7 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "artifactDigestRef = `sha256:${input.artifactDigest}`",
       "outcome is unknown after three read-only inspections; mutation was not retried",
       "M2 and Stable append/readback receipts do not bind the same Bundle",
-      "exact six Standard assets plus the Full DMG and release manifest",
+      "exact required formal Stable asset set",
       "deleteRelease",
       "deleteTag",
       "Preview publication changed GitHub Latest",
