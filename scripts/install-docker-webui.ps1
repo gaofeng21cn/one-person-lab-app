@@ -13,6 +13,10 @@ param(
   [string]$ProjectsDir,
   [ValidateRange(30, 7200)]
   [int]$DockerPullTimeoutSeconds = 1800,
+  [ValidateRange(30, 900)]
+  [int]$DockerPullStallTimeoutSeconds = 180,
+  [ValidateRange(0, 3)]
+  [int]$DockerPullRetryCount = 2,
   [ValidateRange(1, 86400)]
   [int]$HealthTimeoutSeconds = 600,
   [string]$HealthUrl,
@@ -312,6 +316,7 @@ function Invoke-DockerCommandCaptureWithTimeout {
     [Parameter(Mandatory = $true)][string]$DockerCliPath,
     [Parameter(Mandatory = $true)][string[]]$Arguments,
     [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
+    [ValidateRange(0, 900)][int]$NoOutputTimeoutSeconds = 0,
     [switch]$StreamOutput
   )
 
@@ -380,7 +385,9 @@ function Invoke-DockerCommandCaptureWithTimeout {
     $startedAt = Get-Date
     $deadline = $startedAt.AddSeconds($TimeoutSeconds)
     $nextHeartbeatAt = $startedAt.AddSeconds(20)
+    $lastOutputAt = $startedAt
     $timedOut = $false
+    $stalled = $false
     $processExited = $false
 
     while (-not $processExited -or @($streamStates | Where-Object { -not $_.Completed }).Count -gt 0) {
@@ -393,6 +400,7 @@ function Invoke-DockerCommandCaptureWithTimeout {
         if ($StreamOutput) {
           $outputWasStreamed = $true
           $nextHeartbeatAt = (Get-Date).AddSeconds(20)
+          $lastOutputAt = Get-Date
         }
       } elseif ($StreamOutput -and (Get-Date) -ge $nextHeartbeatAt) {
         $elapsedSeconds = [math]::Floor(((Get-Date) - $startedAt).TotalSeconds)
@@ -403,9 +411,18 @@ function Invoke-DockerCommandCaptureWithTimeout {
         $timedOut = $true
         break
       }
+      if (
+        -not $processExited -and
+        $StreamOutput -and
+        $NoOutputTimeoutSeconds -gt 0 -and
+        (Get-Date) -ge $lastOutputAt.AddSeconds($NoOutputTimeoutSeconds)
+      ) {
+        $stalled = $true
+        break
+      }
     }
 
-    if ($timedOut) {
+    if ($timedOut -or $stalled) {
       if (-not $process.HasExited) {
         try {
           & "$env:SystemRoot\System32\taskkill.exe" /PID $process.Id /T /F 2>$null | Out-Null
@@ -434,11 +451,12 @@ function Invoke-DockerCommandCaptureWithTimeout {
     }
     $outputText = $output.ToString().Trim()
 
-    if ($timedOut) {
+    if ($timedOut -or $stalled) {
       return [pscustomobject]@{
         ExitCode = 124
         Output = $outputText
         TimedOut = $true
+        Stalled = $stalled
         OutputWasStreamed = $outputWasStreamed
       }
     }
@@ -446,6 +464,7 @@ function Invoke-DockerCommandCaptureWithTimeout {
       ExitCode = $process.ExitCode
       Output = $outputText
       TimedOut = $false
+      Stalled = $false
       OutputWasStreamed = $outputWasStreamed
     }
   } finally {
@@ -497,6 +516,44 @@ function Invoke-PublicGhcrAnonymousDockerCommandCapture {
   }
 }
 
+function Test-DockerPullNetworkFailure {
+  param([Parameter(Mandatory = $true)][pscustomobject]$Result)
+
+  if ($Result.Stalled) {
+    return $true
+  }
+  if ($Result.TimedOut) {
+    return $false
+  }
+  return $Result.Output -match '(?i)(connection\s+(?:reset|refused|closed)|timed?\s*out|timeout|no such host|could not resolve|temporary failure in name resolution|i/o timeout|context deadline exceeded|failed to (?:resolve|connect)|dial tcp|network is unreachable|proxy|tls handshake)'
+}
+
+function Invoke-DockerPullWithRetry {
+  param(
+    [Parameter(Mandatory = $true)][string]$DockerCliPath,
+    [Parameter(Mandatory = $true)][string[]]$Arguments,
+    [Parameter(Mandatory = $true)][string]$ImageReference
+  )
+
+  $attempts = [math]::Max(1, $DockerPullRetryCount + 1)
+  for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+    $pull = Invoke-DockerPullWithPublicGhcrIsolation `
+      -DockerCliPath $DockerCliPath `
+      -Arguments $Arguments `
+      -ImageReference $ImageReference
+    if ($pull.ExitCode -eq 0 -and -not $pull.TimedOut) {
+      return $pull
+    }
+    if ($attempt -ge $attempts -or -not (Test-DockerPullNetworkFailure -Result $pull)) {
+      return $pull
+    }
+    $delaySeconds = [int]([math]::Pow(2, $attempt))
+    Write-Step "Docker registry connection failed; retrying image pull in ${delaySeconds}s (${attempt}/$($attempts - 1))."
+    Start-Sleep -Seconds $delaySeconds
+  }
+  throw "Docker image pull retry loop ended unexpectedly."
+}
+
 function Invoke-DockerPullWithPublicGhcrIsolation {
   param(
     [Parameter(Mandatory = $true)][string]$DockerCliPath,
@@ -510,12 +567,14 @@ function Invoke-DockerPullWithPublicGhcrIsolation {
       -DockerCliPath $DockerCliPath `
       -Arguments $Arguments `
       -TimeoutSeconds $DockerPullTimeoutSeconds `
+      -NoOutputTimeoutSeconds $DockerPullStallTimeoutSeconds `
       -StreamOutput
   }
   return Invoke-DockerCommandCaptureWithTimeout `
     -DockerCliPath $DockerCliPath `
     -Arguments $Arguments `
     -TimeoutSeconds $DockerPullTimeoutSeconds `
+    -NoOutputTimeoutSeconds $DockerPullStallTimeoutSeconds `
     -StreamOutput
 }
 
@@ -616,12 +675,15 @@ function Resolve-PinnedImageReference {
   }
 
   Write-Step "Resolving WebUI image once at installer entry: $RequestedImageReference"
-  $pull = Invoke-DockerPullWithPublicGhcrIsolation `
+  $pull = Invoke-DockerPullWithRetry `
     -DockerCliPath $DockerCliPath `
     -Arguments @("pull", $RequestedImageReference) `
     -ImageReference $RequestedImageReference
   if (-not $pull.OutputWasStreamed -and -not [string]::IsNullOrWhiteSpace($pull.Output)) {
     Write-Host $pull.Output
+  }
+  if ($pull.Stalled) {
+    throw "Docker made no layer progress for ${DockerPullStallTimeoutSeconds}s while pulling the requested WebUI image. The stalled pull was stopped. Check GHCR access, proxy/VPN settings, and Docker Desktop networking, then rerun this installer."
   }
   if ($pull.TimedOut) {
     throw "Docker did not finish pulling the requested WebUI image within ${DockerPullTimeoutSeconds}s. The stalled pull was stopped. Check GHCR access, proxy/VPN settings, and Docker Desktop networking, then rerun this installer."
@@ -1438,12 +1500,15 @@ function Invoke-DockerComposeUp {
 
   if ($Update) {
     Write-Step "Running $displayPullCommand"
-    $pull = Invoke-DockerPullWithPublicGhcrIsolation `
+    $pull = Invoke-DockerPullWithRetry `
       -DockerCliPath $DockerCliPath `
       -Arguments $pullArgs `
       -ImageReference $ImageReference
     if (-not [string]::IsNullOrWhiteSpace($pull.Output)) {
       Write-Host $pull.Output
+    }
+    if ($pull.Stalled) {
+      throw "Docker made no layer progress for ${DockerPullStallTimeoutSeconds}s while pulling the WebUI image. The stalled pull was stopped. Check GHCR access, proxy/VPN settings, and Docker Desktop networking, then rerun this installer."
     }
     if ($pull.TimedOut) {
       throw "Docker Compose did not finish pulling the WebUI image within ${DockerPullTimeoutSeconds}s. The stalled pull was stopped. Check GHCR access, proxy/VPN settings, and Docker Desktop networking, then rerun this installer."

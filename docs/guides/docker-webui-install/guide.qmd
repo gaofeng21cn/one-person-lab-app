@@ -319,7 +319,9 @@ Linux:   $HOME/OnePersonLab/projects
 
 如果停在 `Pulling the public OPL GHCR image`，新版安装器会立即显示 `docker pull` 的 layer 输出。首次镜像约为 1 GB；只要 layer 文本仍在变化，下载正在继续，不需要中断或重新运行。
 
-如果连续 20 秒只看到安装器的等待提示，重点检查 Docker Desktop 的网络，而不仅是浏览器是否能翻墙：打开 **Docker Desktop -> Settings -> Resources -> Proxies**，选择正确的系统或手动代理设置并应用；Docker Engine 不一定继承 Windows 浏览器、PowerShell 或 VPN 的代理。然后重新打开 Docker Desktop，确认 `docker version` 能显示 Server 信息，再直接重跑同一条安装命令。公开 OPL 镜像不需要执行 `docker login ghcr.io`。
+如果连续 20 秒只看到安装器的等待提示，重点检查 Docker Desktop 的网络，而不仅是浏览器是否能翻墙：打开 **Docker Desktop -> Settings -> Resources -> Proxies**，选择正确的系统或手动代理设置并应用；Docker Engine 不一定继承 Windows 浏览器、PowerShell 或 VPN 的代理。安装器会对明确识别出的连接重置、DNS、代理和 TLS 握手失败做最多两次短退避重试；连续 3 分钟没有任何 layer 输出时会停止本次拉取并进入重试，避免无反馈地等待半小时；如果仍无法完成，安装器会在 30 分钟总上限内保存诊断。然后重新打开 Docker Desktop，确认 `docker version` 能显示 Server 信息，再直接重跑同一条安装命令。公开 OPL 镜像不需要执行 `docker login ghcr.io`。
+
+如果所在网络必须使用镜像加速，可以在 Docker Desktop 的 **Settings -> Docker Engine** 中由用户自己配置可信的 `registry-mirrors`，应用后再运行安装器。安装器不会静默修改 Docker Desktop 全局配置，也不会自动选择未经项目校验的第三方镜像；镜像源本身失效时，Docker 可能直接中断拉取，不要一次填入大量未经验证的地址。
 
 如果镜像拉取超过 30 分钟，说明这次 GHCR 连接没有完成。安装器已经停止对应的卡住进程；请确认浏览器能够访问 `https://ghcr.io`，临时关闭或修正拦截 GHCR 的代理/VPN，然后重跑同一条安装命令。不要连续打开多个安装窗口，也不需要执行 Docker prune。
 

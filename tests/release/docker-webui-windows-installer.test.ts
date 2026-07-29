@@ -312,7 +312,7 @@ test('Windows Docker/WebUI image resolution returns only the pinned image refere
     installer.indexOf('function Convert-ToComposeScalar'),
   );
 
-  assert.match(resolver, /Invoke-DockerPullWithPublicGhcrIsolation/);
+  assert.match(resolver, /Invoke-DockerPullWithRetry/);
   assert.match(resolver, /-Arguments @\("pull", \$RequestedImageReference\)/);
   assert.match(resolver, /-ImageReference \$RequestedImageReference/);
   assert.match(resolver, /-not \$pull\.OutputWasStreamed/);
@@ -331,6 +331,8 @@ test('Windows Docker/WebUI image pulls stream progress, identify Docker proxy co
   );
 
   assert.match(installer, /\[int\]\$DockerPullTimeoutSeconds = 1800/);
+  assert.match(installer, /\[int\]\$DockerPullStallTimeoutSeconds = 180/);
+  assert.match(installer, /\[int\]\$DockerPullRetryCount = 2/);
   assert.match(boundedCapture, /\.WaitForExit\(250\)/);
   assert.match(boundedCapture, /\[System\.Diagnostics\.ProcessStartInfo\]::new\(\)/);
   assert.match(boundedCapture, /\$startInfo\.RedirectStandardOutput = \$true/);
@@ -339,6 +341,8 @@ test('Windows Docker/WebUI image pulls stream progress, identify Docker proxy co
   assert.match(boundedCapture, /Write-Host \$chunk -NoNewline/);
   assert.match(boundedCapture, /Docker Desktop -> Settings -> Resources -> Proxies/);
   assert.match(boundedCapture, /\$nextHeartbeatAt = \$startedAt\.AddSeconds\(20\)/);
+  assert.match(boundedCapture, /\$NoOutputTimeoutSeconds/);
+  assert.match(boundedCapture, /\$stalled = \$true/);
   assert.match(boundedCapture, /if \(-not \$process\.HasExited\)/);
   assert.match(boundedCapture, /taskkill\.exe" \/PID \$process\.Id \/T \/F 2>\$null/);
   assert.match(boundedCapture, /catch \[System\.InvalidOperationException\]/);
@@ -348,7 +352,11 @@ test('Windows Docker/WebUI image pulls stream progress, identify Docker proxy co
   assert.match(boundedCapture, /TimedOut = \$true/);
   assert.match(resolver, /if \(\$pull\.TimedOut\)/);
   assert.match(resolver, /The stalled pull was stopped/);
+  assert.match(resolver, /made no layer progress/);
   assert.match(resolver, /Invoke-DockerCommandCapture[\s\S]*"image", "inspect"/);
+  assert.match(installer, /function Invoke-DockerPullWithRetry/);
+  assert.match(installer, /Test-DockerPullNetworkFailure/);
+  assert.match(installer, /retrying image pull in/);
 });
 
 test('Windows Docker/WebUI reports first-time setup progress while waiting for HTTP health', () => {
@@ -384,7 +392,7 @@ test('Windows Docker/WebUI compose commands use exit codes instead of native std
     installer.indexOf('function Test-WebUiHttpHealth'),
   );
 
-  assert.match(composeUp, /Invoke-DockerPullWithPublicGhcrIsolation/);
+  assert.match(composeUp, /Invoke-DockerPullWithRetry/);
   assert.match(composeUp, /-Arguments \$pullArgs/);
   assert.match(composeUp, /-ImageReference \$ImageReference/);
   assert.match(composeUp, /Invoke-DockerCommandCapture -DockerCliPath \$DockerCliPath -Arguments \$upArgs/);

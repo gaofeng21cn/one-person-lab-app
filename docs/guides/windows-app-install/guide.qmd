@@ -68,6 +68,10 @@ RC 不会安装、修改或接管 Docker。
 
 建议在“下载”目录新建 `OPL-RC` 文件夹，把两个文件放在一起。
 
+Windows 安装包包含首次配置所需的 Linux 运行时，RC.5 安装包约 382 MB。点击下载后，
+浏览器可能需要一段时间才完成文件落盘；下载列表没有进度或文件大小没有继续增长时，
+不要重复点击多个下载。先等下载完成，再按下一节校验 SHA-256。
+
 ## 2. 校验 SHA-256
 
 校验可以确认下载字节与 Release 公布的安装包一致。打开普通 PowerShell，不需要
@@ -125,6 +129,9 @@ Microsoft Defender，也不要修改全局 SmartScreen 策略。
 首次启动比后续启动慢，因为 App 要检查 WSL 2、创建或修复专用的
 `OPL-Linux`，并激活随包 Linux AionCore、managed Node、Codex ACP 和 OPL
 Framework。按界面中的配置进度等待；不要重复双击快捷方式。
+
+如果首次配置遇到网络、代理或 VPN 短暂中断，窗口会保留错误原因并提供“重试”，
+不会要求用户重新安装 App。只有 WSL 功能需要重启 Windows 时，才按窗口提示重启后继续。
 
 若系统缺少 WSL 必要功能，Windows 可能显示一次 UAC：
 
