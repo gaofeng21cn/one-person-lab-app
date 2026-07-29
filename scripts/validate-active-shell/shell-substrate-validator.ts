@@ -226,7 +226,7 @@ export function validateRuntimeSettings(shellPaths) {
 function validateTrayStartup(shellPaths) {
   const trayStartup = assertShellTextIncludesAll(
     shellPaths,
-    'packages/desktop/src/process/startup/trayStartup.ts',
+    'packages/desktop/src/process/startup/runtime/trayStartup.ts',
     trayStartupExpected,
     'Active shell desktop tray startup App-owned tray policy',
   );

@@ -19,7 +19,7 @@ function validSources() {
       current_version_lower_than_downloaded_after_quit_and_install
       semver.gte(normalizedCurrent, normalizedTarget)
     `,
-    mainEntry: 'autoUpdaterService.initialize(statusBroadcast);',
+    mainEntry: 'autoUpdater.initialize(statusBroadcast);',
     managedUpdateMaintenance: `
       if (!componentId || componentId !== input.componentId || componentId !== 'opl_base')
       trigger: 'app_carrier_changed' | 'app_startup_after_core_ready' | 'daily_background_maintenance'

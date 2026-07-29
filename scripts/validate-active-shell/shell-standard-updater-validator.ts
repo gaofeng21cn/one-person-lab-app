@@ -40,7 +40,7 @@ export function validateCarrierNeutralManagedUpdateSources(sources) {
   );
   assertTextIncludesAll(
     mainEntry,
-    ['autoUpdaterService.initialize(statusBroadcast);'],
+    ['autoUpdater.initialize(statusBroadcast);'],
     'Active shell App binary updater startup',
   );
 
@@ -95,7 +95,10 @@ export function validateStandardUpdaterImplementation(shellPaths) {
       shellPaths,
       'packages/desktop/src/process/services/autoUpdateDiagnostics.ts',
     ),
-    mainEntry: readShellText(shellPaths, 'packages/desktop/src/index.ts'),
+    mainEntry: readShellText(
+      shellPaths,
+      'packages/desktop/src/process/startup/runtime/autoUpdaterBootstrap.ts',
+    ),
     managedUpdateMaintenance: readShellText(
       shellPaths,
       'packages/desktop/src/renderer/services/managedUpdateMaintenance.ts',
