@@ -327,7 +327,7 @@
     "classification_policy": "classify_every_required_capability_and_dependency_before_app_release",
     "stable_currentness_receipt": {
       "path": "contracts/aionui-upstream-intake.json",
-      "schema": "opl_aionui_upstream_intake.v1",
+      "schema": "opl_aionui_upstream_intake.v2",
       "channel": "stable_tags_only",
       "read_policy": "active_shell_checkout_read_only_fail_closed",
       "implementation_ancestry_policy": "all_shell_projection_implementation_refs_must_be_ancestors_of_active_shell_head",
@@ -336,15 +336,17 @@
         "aioncore_version": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.version",
         "aioncore_source_commit": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.commit",
         "aioncore_archive_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.archive_sha256",
+        "managed_resources_schema": "contracts/aionui-upstream-intake.json#managed_runtime.managed_resources_schema",
         "managed_resources_manifest_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.managed_resources_manifest_sha256",
-        "codex_acp_package_version": "contracts/aionui-upstream-intake.json#managed_runtime.codex_acp",
-        "codex_acp_package_lock_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.codex_acp.package_lock_sha256",
+        "node_runtime_version": "contracts/aionui-upstream-intake.json#managed_runtime.node_runtime.version",
+        "node_runtime_binary_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.node_runtime.binary_sha256",
+        "claude_cli_package_version": "contracts/aionui-upstream-intake.json#managed_runtime.claude_cli",
+        "claude_cli_binary_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.claude_cli.binary_sha256",
         "codex_cli_package_version": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli",
         "codex_cli_binary_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.binary_sha256",
         "qualification_contract": "manual_qualification_contract",
         "source_lock_requirement_source": "manual_qualification_contract.exact_source_lock_required",
-        "packaged_manifest_authority": "manual_qualification_contract.runtime_dependencies.aioncore.resource_authority",
-        "package_lock_consistency_source": "manual_qualification_contract.runtime_dependencies.managed_codex_acp.version_binding.required_consistency"
+        "packaged_manifest_authority": "manual_qualification_contract.runtime_dependencies.aioncore.resource_authority"
       },
       "required_policy": {
         "broad_history_merge": "forbidden",

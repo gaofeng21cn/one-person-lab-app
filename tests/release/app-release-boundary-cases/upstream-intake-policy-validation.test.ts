@@ -78,17 +78,17 @@ const missingRemediationRef = 'f'.repeat(40);
 
 function stableCurrentnessReceipt() {
   return {
-    schema: 'opl_aionui_upstream_intake.v1',
+    schema: 'opl_aionui_upstream_intake.v2',
     upstream_repository: 'https://github.com/iOfficeAI/AionUi.git',
     channel: 'stable_tags_only',
     reviewed_release: {
-      tag: 'v2.1.39',
-      commit: '1b215f2fcb9d220bc66bf3b4961835ded07d5797',
-      published_at: '2026-07-21T16:18:52Z',
+      tag: 'v2.1.42',
+      commit: '7ee90c13e96393491586abe9b12f7d5c7da9ee59',
+      published_at: '2026-07-28T12:52:28Z',
       draft: false,
       prerelease: false,
-      url: 'https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.39',
-      disposition: 'selectively_absorbed',
+      url: 'https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.42',
+      disposition: 'reviewed_deferred',
     },
     absorbed_release: {
       tag: 'v2.1.39',
@@ -104,16 +104,21 @@ function stableCurrentnessReceipt() {
     },
     managed_runtime: {
       aioncore: {
-        version: 'v0.1.50',
-        commit: '4089fced543d7f439d59940b4ba129dcfad27c23',
-        archive_sha256: '9f37c9d9b5f6e74a69796053be9e52a88dd43a58eee0aa7e042ff334830f8dd5',
+        version: 'v0.1.53',
+        commit: '1644ef26c168e8002dcfa53ccd333054b40697d6',
+        archive_sha256: '57b92b3de046717c7980d2c345d335e2513af514621fcbfff8a3e7cf16f8b7f6',
       },
+      managed_resources_schema: 2,
       managed_resources_manifest_sha256:
-        'a3503fdabd95cc5fa2f84d47097048f5c1297888c0b0f330f8413214c9bafd73',
-      codex_acp: {
-        package: '@agentclientprotocol/codex-acp',
-        version: '1.1.2',
-        package_lock_sha256: 'fb3b47ee03180d9bcf65005cbe9f5cf9792d95de690b49b4b27b55d7c06a81cb',
+        '0a3e1496e0ba6ca1bf522bfe1945e388e7bd4d51ac64ada43ba85ec99e98cd44',
+      node_runtime: {
+        version: '24.11.0',
+        binary_sha256: '8d66cad090d087ed8fac66d8f7248c8a9a55454680232a6d109f609aa2decf89',
+      },
+      claude_cli: {
+        package: '@anthropic-ai/claude-code',
+        version: '2.1.215',
+        binary_sha256: '90608b5c5ab504e96e77365cea6203d046e291d59b2bb42cf28dcb2ccdf9dd58',
       },
       codex_cli: {
         package: '@openai/codex',
@@ -188,7 +193,7 @@ test('AionUI intake consumes the Shell stable receipt while preserving historica
   assert.equal(Object.hasOwn(intake.source_refs, 'latest_reviewed_upstream'), false);
   assert.equal(intake.stable_currentness_receipt.schema, receipt.schema);
   assert.equal(intake.stable_currentness_receipt.channel, receipt.channel);
-  assert.equal(receipt.reviewed_release.tag, 'v2.1.39');
+  assert.equal(receipt.reviewed_release.tag, 'v2.1.42');
   assert.deepEqual(receipt.managed_runtime, stableCurrentnessReceipt().managed_runtime);
   assert.deepEqual([
     capability(contract, 'database_recovery').classification,
@@ -247,7 +252,7 @@ const invalidCases = [
     dependency(c, 'aioncore_database_recovery').capability_gate.recovery_success_boundary = { ...recoveryBoundary, stage: 'database.open' };
   }, /AionCore database recovery boundary contract/),
   invalid('a lowered AionCore minimum version', (c) => { dependency(c, 'aioncore_database_recovery').version_gate.minimum_version = 'v0.1.28'; }, /version_gate\.minimum_version must be v0\.1\.44/),
-  invalid('a Shell package version outside the receipt', () => {}, /active shell package aioncoreVersion v0\.1\.49 must match receipt AionCore version v0\.1\.50/, () => ({ readJsonFile: () => ({ aioncoreVersion: 'v0.1.49' }) })),
+  invalid('a Shell package version outside the receipt', () => {}, /active shell package aioncoreVersion v0\.1\.49 must match receipt AionCore version v0\.1\.53/, () => ({ readJsonFile: () => ({ aioncoreVersion: 'v0.1.49' }) })),
   invalid('a selective absorption ref outside active shell history', () => {}, (c) => new RegExp('active shell HEAD must contain selective absorption ref ' + c.upstream_intake.source_refs.selective_absorption_head.ref), (c) => ({
     isGitAncestor: (ref) => ref !== c.upstream_intake.source_refs.selective_absorption_head.ref,
   })),
@@ -281,7 +286,7 @@ test('AionUI stable receipt validator fails closed on schema, policy, digest, an
   const mutations = [
     {
       error: /receipt schema/,
-      mutate: (receipt) => { receipt.schema = 'opl_aionui_upstream_intake.v2'; },
+      mutate: (receipt) => { receipt.schema = 'opl_aionui_upstream_intake.v1'; },
     },
     {
       error: /receipt policy/,
@@ -303,6 +308,12 @@ test('AionUI stable receipt validator fails closed on schema, policy, digest, an
       readShellReceipt: () => receipt,
     }), error);
   }
+
+  const missingDirectCli = stableCurrentnessReceipt();
+  delete missingDirectCli.managed_runtime.claude_cli;
+  assert.throws(() => validateContract(readContract(), {
+    readShellReceipt: () => missingDirectCli,
+  }), /managed Claude CLI/);
 
   const receipt = stableCurrentnessReceipt();
   const missingRef = receipt.shell_projection.implementation_refs[0];

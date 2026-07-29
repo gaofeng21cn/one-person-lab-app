@@ -83,7 +83,7 @@ const REQUIRED_SOURCE_REF_ROLES = {
 const REQUIRED_AIONCORE_VERSION = 'v0.1.44';
 const REQUIRED_STABLE_CURRENTNESS_RECEIPT = {
   path: 'contracts/aionui-upstream-intake.json',
-  schema: 'opl_aionui_upstream_intake.v1',
+  schema: 'opl_aionui_upstream_intake.v2',
   channel: 'stable_tags_only',
   read_policy: 'active_shell_checkout_read_only_fail_closed',
   implementation_ancestry_policy:
@@ -94,11 +94,16 @@ const REQUIRED_STABLE_CURRENTNESS_RECEIPT = {
     aioncore_source_commit: 'contracts/aionui-upstream-intake.json#managed_runtime.aioncore.commit',
     aioncore_archive_sha256:
       'contracts/aionui-upstream-intake.json#managed_runtime.aioncore.archive_sha256',
+    managed_resources_schema:
+      'contracts/aionui-upstream-intake.json#managed_runtime.managed_resources_schema',
     managed_resources_manifest_sha256:
       'contracts/aionui-upstream-intake.json#managed_runtime.managed_resources_manifest_sha256',
-    codex_acp_package_version: 'contracts/aionui-upstream-intake.json#managed_runtime.codex_acp',
-    codex_acp_package_lock_sha256:
-      'contracts/aionui-upstream-intake.json#managed_runtime.codex_acp.package_lock_sha256',
+    node_runtime_version: 'contracts/aionui-upstream-intake.json#managed_runtime.node_runtime.version',
+    node_runtime_binary_sha256:
+      'contracts/aionui-upstream-intake.json#managed_runtime.node_runtime.binary_sha256',
+    claude_cli_package_version: 'contracts/aionui-upstream-intake.json#managed_runtime.claude_cli',
+    claude_cli_binary_sha256:
+      'contracts/aionui-upstream-intake.json#managed_runtime.claude_cli.binary_sha256',
     codex_cli_package_version: 'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli',
     codex_cli_binary_sha256:
       'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.binary_sha256',
@@ -106,8 +111,6 @@ const REQUIRED_STABLE_CURRENTNESS_RECEIPT = {
     source_lock_requirement_source: 'manual_qualification_contract.exact_source_lock_required',
     packaged_manifest_authority:
       'manual_qualification_contract.runtime_dependencies.aioncore.resource_authority',
-    package_lock_consistency_source:
-      'manual_qualification_contract.runtime_dependencies.managed_codex_acp.version_binding.required_consistency',
   },
   required_policy: {
     broad_history_merge: 'forbidden',
@@ -672,12 +675,21 @@ function validateStableCurrentnessReceipt(contract, shellPaths, options, isGitAn
   assertGitSha(aionCore.commit, 'AionUI receipt AionCore source commit');
   assertSha256(aionCore.archive_sha256, 'AionUI receipt AionCore archive');
   assertSha256(runtime.managed_resources_manifest_sha256, 'AionUI receipt managed resources manifest');
-  const codexAcp = assertObject(runtime.codex_acp, 'AionUI receipt managed Codex ACP');
-  if (codexAcp.package !== '@agentclientprotocol/codex-acp') {
-    throw new Error('AionUI receipt managed Codex ACP package is not authoritative');
+  if (runtime.managed_resources_schema !== 2) {
+    throw new Error('AionUI receipt managed_resources_schema must be 2');
   }
-  assertExactPackageVersion(codexAcp.version, 'AionUI receipt managed Codex ACP version');
-  assertSha256(codexAcp.package_lock_sha256, 'AionUI receipt managed Codex ACP package lock');
+  if (runtime.codex_acp !== undefined) {
+    throw new Error('AionUI receipt managed_runtime.codex_acp is forbidden for schema v2 direct-CLI resources');
+  }
+  const nodeRuntime = assertObject(runtime.node_runtime, 'AionUI receipt managed Node runtime');
+  assertExactPackageVersion(nodeRuntime.version, 'AionUI receipt managed Node runtime version');
+  assertSha256(nodeRuntime.binary_sha256, 'AionUI receipt managed Node runtime binary');
+  const claudeCli = assertObject(runtime.claude_cli, 'AionUI receipt managed Claude CLI');
+  if (claudeCli.package !== '@anthropic-ai/claude-code') {
+    throw new Error('AionUI receipt managed Claude CLI package is not authoritative');
+  }
+  assertExactPackageVersion(claudeCli.version, 'AionUI receipt managed Claude CLI version');
+  assertSha256(claudeCli.binary_sha256, 'AionUI receipt managed Claude CLI binary');
   const codexCli = assertObject(runtime.codex_cli, 'AionUI receipt managed Codex CLI');
   if (codexCli.package !== '@openai/codex') {
     throw new Error('AionUI receipt managed Codex CLI package is not authoritative');

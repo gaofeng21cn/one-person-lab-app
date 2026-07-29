@@ -770,9 +770,9 @@ test('active-shell source gate preserves explicit local file inputs independentl
 
 test('active-shell source gate keeps canonical cwd transport separate from sidebar affinity', () => {
   const canonicalProjectionMarkers = [
-    'const hasCanonicalRecordedCwd = Boolean(thread.workspace.trim())',
+    'const hasCanonicalProjectWorkspace = Boolean(thread.projectId.trim() && thread.workspace.trim())',
     'workspace: thread.workspace',
-    'custom_workspace: hasCanonicalRecordedCwd',
+    'custom_workspace: hasCanonicalProjectWorkspace',
   ];
   const focusedTestNames = [
     'keeps canonical adoption successful when the rebuildable local projection update fails',
@@ -820,7 +820,7 @@ test('active-shell source gate keeps canonical cwd transport separate from sideb
   }
 
   for (const cachedOverride of [
-    'cached?.extra.custom_workspace === false ? false : hasCanonicalRecordedCwd',
+    'cached?.extra.custom_workspace === false ? false : hasCanonicalProjectWorkspace',
     'cached?.extra.custom_workspace === true',
     'workspace: projectAffinityWorkspace',
     'custom_workspace: customWorkspace',
