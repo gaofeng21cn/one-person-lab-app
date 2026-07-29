@@ -65,44 +65,68 @@ function createAioncoreManagedCodexFixture() {
     'darwin-arm64',
   );
   const managedRoot = path.join(runtimeRoot, 'managed-resources');
-  const toolRoot = path.join(
+  const nodeRoot = path.join(
     managedRoot,
-    'acp',
-    'codex-acp',
-    '1.1.2',
+    'node',
+    'node-v24.11.0-darwin-arm64',
+  );
+  const nodeExecutable = path.join(nodeRoot, 'bin', 'node');
+  const claudeRoot = path.join(
+    managedRoot,
+    'cli',
+    'claude',
+    '2.1.215',
     'darwin-arm64',
   );
-  const codexRoot = path.join(toolRoot, 'node_modules', '@openai', 'codex');
-  const platformRoot = path.join(
-    toolRoot,
-    'node_modules',
-    '@openai',
-    'codex-darwin-arm64',
+  const claudeExecutable = path.join(claudeRoot, 'claude');
+  const codexRoot = path.join(
+    managedRoot,
+    'cli',
+    'codex',
+    '0.144.6',
+    'darwin-arm64',
   );
-  const platformExecutable = path.join(
-    platformRoot,
+  const codexExecutable = path.join(
+    codexRoot,
     'vendor',
     'aarch64-apple-darwin',
     'bin',
     'codex',
   );
-  const acpEntrypoint = path.join(
-    toolRoot,
-    'node_modules',
-    '@agentclientprotocol',
-    'codex-acp',
-    'dist',
-    'index.js',
+  const codexRequiredFile = path.join(
+    codexRoot,
+    'vendor',
+    'aarch64-apple-darwin',
+    'codex-path',
+    'rg',
   );
-  fs.mkdirSync(path.dirname(platformExecutable), { recursive: true });
-  fs.mkdirSync(path.dirname(acpEntrypoint), { recursive: true });
+  const codexRequiredDirectory = path.join(
+    codexRoot,
+    'vendor',
+    'aarch64-apple-darwin',
+    'codex-resources',
+  );
+  const codexRequiredDirectoryFile = path.join(
+    codexRequiredDirectory,
+    'zsh',
+    'bin',
+    'zsh',
+  );
+  fs.mkdirSync(path.dirname(nodeExecutable), { recursive: true });
+  fs.mkdirSync(path.dirname(claudeExecutable), { recursive: true });
+  fs.mkdirSync(path.dirname(codexExecutable), { recursive: true });
+  fs.mkdirSync(path.dirname(codexRequiredFile), { recursive: true });
+  fs.mkdirSync(path.dirname(codexRequiredDirectoryFile), { recursive: true });
   fs.writeFileSync(
     path.join(runtimeRoot, 'aioncore'),
     'aioncore fixture\n',
     'utf8',
   );
-  fs.writeFileSync(platformExecutable, 'codex fixture\n', 'utf8');
-  fs.writeFileSync(acpEntrypoint, 'export {};\n', 'utf8');
+  fs.writeFileSync(nodeExecutable, 'node fixture\n', 'utf8');
+  fs.writeFileSync(claudeExecutable, 'claude fixture\n', 'utf8');
+  fs.writeFileSync(codexExecutable, 'codex fixture\n', 'utf8');
+  fs.writeFileSync(codexRequiredFile, 'rg fixture\n', 'utf8');
+  fs.writeFileSync(codexRequiredDirectoryFile, 'zsh fixture\n', 'utf8');
   writeJson(path.join(runtimeRoot, 'manifest.json'), {
     platform: 'darwin',
     arch: 'arm64',
@@ -113,75 +137,48 @@ function createAioncoreManagedCodexFixture() {
     },
   });
   writeJson(path.join(managedRoot, 'manifest.json'), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     runtimeKey: 'darwin-arm64',
-    acpTools: [
+    node: {
+      version: '24.11.0',
+      root: 'node/node-v24.11.0-darwin-arm64',
+      executable: 'bin/node',
+    },
+    clis: [
       {
-        slug: 'codex-acp',
-        version: '1.1.2',
-        packageName: '@agentclientprotocol/codex-acp',
-        root: 'acp/codex-acp/1.1.2/darwin-arm64',
+        name: 'claude',
+        version: '2.1.215',
+        root: 'cli/claude/2.1.215/darwin-arm64',
         platformDirectory: 'darwin-arm64',
-        manifest: 'manifest.json',
-        entrypoint: 'node_modules/@agentclientprotocol/codex-acp/dist/index.js',
-        requiredFiles: ['package.json', 'package-lock.json'],
-        requiredDirectories: ['node_modules'],
-        platformExecutable:
-          'node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex',
+        executable: 'claude',
+        requiredFiles: [],
+        requiredDirectories: [],
+      },
+      {
+        name: 'codex',
+        version: '0.144.6',
+        root: 'cli/codex/0.144.6/darwin-arm64',
+        platformDirectory: 'darwin-arm64',
+        executable: 'vendor/aarch64-apple-darwin/bin/codex',
+        requiredFiles: ['vendor/aarch64-apple-darwin/codex-path/rg'],
+        requiredDirectories: ['vendor/aarch64-apple-darwin/codex-resources'],
       },
     ],
-  });
-  writeJson(path.join(toolRoot, 'manifest.json'), {
-    entrypoint: 'node_modules/@agentclientprotocol/codex-acp/dist/index.js',
-  });
-  writeJson(path.join(toolRoot, 'package.json'), {
-    name: 'aionui-managed-acp-dev',
-    dependencies: { '@agentclientprotocol/codex-acp': '1.1.2' },
-  });
-  writeJson(path.join(toolRoot, 'package-lock.json'), {
-    lockfileVersion: 3,
-    packages: {
-      '': {
-        dependencies: { '@agentclientprotocol/codex-acp': '1.1.2' },
-      },
-      'node_modules/@agentclientprotocol/codex-acp': {
-        version: '1.1.2',
-        integrity: 'sha512-acp-fixture',
-      },
-      'node_modules/@openai/codex': {
-        version: '0.144.6',
-        resolved:
-          'https://registry.npmjs.org/@openai/codex/-/codex-0.144.6.tgz',
-        integrity: 'sha512-codex-fixture',
-      },
-      'node_modules/@openai/codex-darwin-arm64': {
-        name: '@openai/codex',
-        version: '0.144.6-darwin-arm64',
-        resolved:
-          'https://registry.npmjs.org/@openai/codex/-/codex-0.144.6-darwin-arm64.tgz',
-        integrity: 'sha512-platform-fixture',
-      },
-    },
-  });
-  writeJson(path.join(codexRoot, 'package.json'), {
-    name: '@openai/codex',
-    version: '0.144.6',
-    optionalDependencies: {
-      '@openai/codex-darwin-arm64': 'npm:@openai/codex@0.144.6-darwin-arm64',
-    },
-  });
-  writeJson(path.join(platformRoot, 'package.json'), {
-    name: '@openai/codex',
-    version: '0.144.6-darwin-arm64',
   });
   return {
     root,
     shellRoot,
     runtimeRoot,
     managedManifest: path.join(managedRoot, 'manifest.json'),
-    toolRoot,
+    nodeRoot,
+    nodeExecutable,
+    claudeRoot,
+    claudeExecutable,
     codexRoot,
-    packageLock: path.join(toolRoot, 'package-lock.json'),
+    codexExecutable,
+    codexRequiredFile,
+    codexRequiredDirectory,
+    codexRequiredDirectoryFile,
   };
 }
 
@@ -434,18 +431,23 @@ test('manual source-lock and build arguments bind Codex to the selected AionCore
   const binding = resolveAioncoreManagedCodexBinding(fixture.shellRoot);
   const dependencyLock = buildManualRuntimeDependencyLock(binding);
 
+  assert.equal(binding.schema, 'opl_manual_aioncore_managed_direct_clis_binding.v2');
   assert.equal(binding.aioncore.version, 'v0.1.49');
-  assert.equal(binding.codex_acp.version, '1.1.2');
+  assert.equal(binding.managed_resources.schema_version, 2);
+  assert.equal(binding.node_runtime.version, '24.11.0');
+  assert.equal(binding.node_runtime.root, fs.realpathSync(fixture.nodeRoot));
+  assert.equal(binding.claude_cli.version, '2.1.215');
+  assert.equal(binding.claude_cli.root, fs.realpathSync(fixture.claudeRoot));
   assert.equal(binding.codex_cli.version, '0.144.6');
   assert.equal(binding.codex_cli.root, fs.realpathSync(fixture.codexRoot));
   assert.match(binding.aioncore.root_manifest_sha256, /^[a-f0-9]{64}$/);
   assert.match(binding.managed_resources.manifest_sha256, /^[a-f0-9]{64}$/);
-  assert.match(binding.codex_acp.package_lock_sha256, /^[a-f0-9]{64}$/);
-  assert.match(binding.codex_cli.platform_executable_sha256, /^[a-f0-9]{64}$/);
-  assert.equal(
-    dependencyLock.aioncore_managed_codex.codex_cli.lock_integrity,
-    'sha512-codex-fixture',
-  );
+  assert.match(binding.node_runtime.executable_sha256, /^[a-f0-9]{64}$/);
+  assert.match(binding.claude_cli.executable_sha256, /^[a-f0-9]{64}$/);
+  assert.match(binding.codex_cli.executable_sha256, /^[a-f0-9]{64}$/);
+  assert.match(binding.codex_cli.required_files[0].sha256, /^[a-f0-9]{64}$/);
+  assert.match(binding.codex_cli.required_directories[0].tree_sha256, /^[a-f0-9]{64}$/);
+  assert.deepEqual(dependencyLock.aioncore_managed_codex, binding);
   assert.deepEqual(buildAioncoreManagedCodexArgs(binding), [
     '--codex-root',
     fs.realpathSync(fixture.codexRoot),
@@ -481,60 +483,99 @@ test('manual source-lock and build arguments bind Codex to the selected AionCore
 });
 
 test('manual AionCore Codex binding rejects incomplete, ambiguous, escaped, or drifted inputs', async (context) => {
-  await context.test('missing package lock', () => {
+  await context.test('missing managed Node executable', () => {
     const fixture = createAioncoreManagedCodexFixture();
     try {
-      fs.rmSync(fixture.packageLock);
+      fs.rmSync(fixture.nodeExecutable);
       assert.throws(
         () => resolveAioncoreManagedCodexBinding(fixture.shellRoot),
-        /AionCore managed Codex required file is missing/,
+        /Node executable is missing/,
       );
     } finally {
       fs.rmSync(fixture.root, { recursive: true, force: true });
     }
   });
 
-  await context.test('duplicate codex-acp tools', () => {
+  await context.test('retired ACP truth', () => {
     const fixture = createAioncoreManagedCodexFixture();
     try {
       const manifest = JSON.parse(
         fs.readFileSync(fixture.managedManifest, 'utf8'),
       );
-      manifest.acpTools.push(structuredClone(manifest.acpTools[0]));
+      manifest.acpTools = [];
       writeJson(fixture.managedManifest, manifest);
       assert.throws(
         () => resolveAioncoreManagedCodexBinding(fixture.shellRoot),
-        /exactly one codex-acp tool/,
+        /must not retain retired acpTools truth/,
       );
     } finally {
       fs.rmSync(fixture.root, { recursive: true, force: true });
     }
   });
 
-  await context.test('tool root symlink escape', () => {
+  await context.test('unexpected direct CLI', () => {
     const fixture = createAioncoreManagedCodexFixture();
     try {
-      const escapedRoot = path.join(fixture.root, 'escaped-tool-root');
-      fs.renameSync(fixture.toolRoot, escapedRoot);
-      fs.symlinkSync(escapedRoot, fixture.toolRoot, 'dir');
+      const manifest = JSON.parse(
+        fs.readFileSync(fixture.managedManifest, 'utf8'),
+      );
+      manifest.clis.push({ ...manifest.clis[0], name: 'other' });
+      writeJson(fixture.managedManifest, manifest);
       assert.throws(
         () => resolveAioncoreManagedCodexBinding(fixture.shellRoot),
-        /tool root escapes/,
+        /must contain exactly Claude and Codex direct CLIs/,
       );
     } finally {
       fs.rmSync(fixture.root, { recursive: true, force: true });
     }
   });
 
-  await context.test('Codex package and lock version drift', () => {
+  await context.test('Codex root symlink escape', () => {
     const fixture = createAioncoreManagedCodexFixture();
     try {
-      const lock = JSON.parse(fs.readFileSync(fixture.packageLock, 'utf8'));
-      lock.packages['node_modules/@openai/codex'].version = '0.143.0';
-      writeJson(fixture.packageLock, lock);
+      const escapedRoot = path.join(fixture.root, 'escaped-codex-root');
+      fs.renameSync(fixture.codexRoot, escapedRoot);
+      fs.symlinkSync(escapedRoot, fixture.codexRoot, 'dir');
       assert.throws(
         () => resolveAioncoreManagedCodexBinding(fixture.shellRoot),
-        /package and lock versions are inconsistent/,
+        /codex CLI root escapes/,
+      );
+    } finally {
+      fs.rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  await context.test('Codex version and root drift', () => {
+    const fixture = createAioncoreManagedCodexFixture();
+    try {
+      const manifest = JSON.parse(
+        fs.readFileSync(fixture.managedManifest, 'utf8'),
+      );
+      manifest.clis.find((entry) => entry.name === 'codex').version = '0.143.0';
+      writeJson(fixture.managedManifest, manifest);
+      assert.throws(
+        () => resolveAioncoreManagedCodexBinding(fixture.shellRoot),
+        /root must match its exact version and platform/,
+      );
+    } finally {
+      fs.rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  await context.test('required file and directory content drift change the source-lock binding', () => {
+    const fixture = createAioncoreManagedCodexFixture();
+    try {
+      const before = resolveAioncoreManagedCodexBinding(fixture.shellRoot);
+      fs.writeFileSync(fixture.codexRequiredFile, 'rg changed\n', 'utf8');
+      fs.writeFileSync(fixture.codexRequiredDirectoryFile, 'zsh changed\n', 'utf8');
+      const after = resolveAioncoreManagedCodexBinding(fixture.shellRoot);
+      assert.notEqual(
+        after.codex_cli.required_files[0].sha256,
+        before.codex_cli.required_files[0].sha256,
+      );
+      assert.notEqual(
+        after.codex_cli.required_directories[0].tree_sha256,
+        before.codex_cli.required_directories[0].tree_sha256,
       );
     } finally {
       fs.rmSync(fixture.root, { recursive: true, force: true });

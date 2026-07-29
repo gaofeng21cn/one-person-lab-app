@@ -197,6 +197,42 @@ function assertContainedFile(root: string, candidate: string, label: string): st
   return candidateRealpath;
 }
 
+function shellRelativePath(shellRoot: string, candidate: string, label: string): string {
+  const root = fs.realpathSync(shellRoot);
+  const resolved = fs.realpathSync(candidate);
+  const relative = path.relative(root, resolved);
+  if (
+    !relative
+    || relative === '..'
+    || relative.startsWith(`..${path.sep}`)
+    || path.isAbsolute(relative)
+  ) {
+    throw new Error(`${label} escapes the selected Shell checkout: ${candidate}`);
+  }
+  return relative.split(path.sep).join('/');
+}
+
+function directCliAuthority(
+  shellRoot: string,
+  cli: ReturnType<typeof resolveAioncoreManagedCodexBinding>['codex_cli'],
+) {
+  return {
+    name: cli.name,
+    version: cli.version,
+    root_ref: shellRelativePath(shellRoot, cli.root, `${cli.name} CLI root`),
+    executable_ref: shellRelativePath(shellRoot, cli.executable, `${cli.name} CLI executable`),
+    executable_sha256: `sha256:${cli.executable_sha256}`,
+    required_files: cli.required_files.map((file) => ({
+      ref: shellRelativePath(shellRoot, file.path, `${cli.name} CLI required file`),
+      sha256: `sha256:${file.sha256}`,
+    })),
+    required_directories: cli.required_directories.map((directory) => ({
+      ref: shellRelativePath(shellRoot, directory.path, `${cli.name} CLI required directory`),
+      tree_sha256: `sha256:${directory.tree_sha256}`,
+    })),
+  };
+}
+
 export type ReleaseNotesFullPayloadAuthorityInput = {
   appRoot: string;
   appRef: string;
@@ -268,28 +304,30 @@ export function buildReleaseNotesFullPayloadAuthority(
     throw new Error('AionCore root manifest must exactly match the Shell pin and official darwin-arm64 release.');
   }
   const codexVersion = requiredString(aioncoreBinding.codex_cli.version, 'AionCore managed Codex CLI version');
-  const expectedCodexUrl = `https://registry.npmjs.org/@openai/codex/-/codex-${codexVersion}.tgz`;
-  const expectedPlatformUrl = `https://registry.npmjs.org/@openai/codex/-/codex-${aioncoreBinding.codex_cli.platform_version}.tgz`;
   if (
-    aioncoreBinding.codex_cli.lock_resolved !== expectedCodexUrl
-    || aioncoreBinding.codex_cli.platform_lock_resolved !== expectedPlatformUrl
+    aioncoreBinding.schema !== 'opl_manual_aioncore_managed_direct_clis_binding.v2'
+    || aioncoreBinding.managed_resources.schema_version !== 2
   ) {
-    throw new Error('AionCore managed Codex lock must use the exact official npm tarballs.');
+    throw new Error('AionCore managed resources must resolve to the direct-CLI schema v2 binding.');
   }
+  const nodeRuntime = {
+    version: aioncoreBinding.node_runtime.version,
+    root_ref: shellRelativePath(shellRoot, aioncoreBinding.node_runtime.root, 'managed Node root'),
+    executable_ref: shellRelativePath(shellRoot, aioncoreBinding.node_runtime.executable, 'managed Node executable'),
+    executable_sha256: `sha256:${aioncoreBinding.node_runtime.executable_sha256}`,
+  };
+  const claudeCli = directCliAuthority(shellRoot, aioncoreBinding.claude_cli);
+  const codexCli = directCliAuthority(shellRoot, aioncoreBinding.codex_cli);
   components.codex = { version: `codex-cli ${codexVersion}` };
   resolvedRefs.codex_cli = {
     label: 'Codex CLI',
-    repository: 'npm:@openai/codex',
+    repository: 'iOfficeAI/AionCore',
+    authority: 'aioncore_managed_resources_v2_direct_cli',
     resolved_version: codexVersion,
-    npm_integrity: aioncoreBinding.codex_cli.lock_integrity,
-    tarball_url: aioncoreBinding.codex_cli.lock_resolved,
-    platform_version: aioncoreBinding.codex_cli.platform_version,
-    platform_npm_integrity: aioncoreBinding.codex_cli.platform_lock_integrity,
-    platform_tarball_url: aioncoreBinding.codex_cli.platform_lock_resolved,
     aioncore_version: aioncoreBinding.aioncore.version,
-    codex_acp_version: aioncoreBinding.codex_acp.version,
+    node_runtime: nodeRuntime,
+    direct_cli: codexCli,
     managed_resources_manifest_sha256: `sha256:${aioncoreBinding.managed_resources.manifest_sha256}`,
-    package_lock_sha256: `sha256:${aioncoreBinding.codex_acp.package_lock_sha256}`,
   };
   const officeRef = requiredString(officeSource.ref, 'OfficeCLI source ref');
   const mineruRef = requiredString(mineruSource.ref, 'MinerU source ref');
@@ -329,7 +367,7 @@ export function buildReleaseNotesFullPayloadAuthority(
     },
     runtime_authority: {
       codex_cli: {
-        source: 'shell_aioncore_managed_manifest_and_lock',
+        source: 'shell_aioncore_managed_resources_v2_direct_clis',
         shell_source_commit: shellRef,
         runtime_key: aioncoreBinding.runtime_key,
         aioncore_version: aioncoreBinding.aioncore.version,
@@ -338,21 +376,12 @@ export function buildReleaseNotesFullPayloadAuthority(
         aioncore_root_manifest_sha256: `sha256:${aioncoreBinding.aioncore.root_manifest_sha256}`,
         managed_resources_manifest_ref: path.relative(shellRoot, aioncoreBinding.managed_resources.manifest).split(path.sep).join('/'),
         managed_resources_manifest_sha256: `sha256:${aioncoreBinding.managed_resources.manifest_sha256}`,
-        codex_acp_package: aioncoreBinding.codex_acp.package,
-        codex_acp_version: aioncoreBinding.codex_acp.version,
-        codex_acp_package_lock_ref: path.relative(shellRoot, aioncoreBinding.codex_acp.package_lock).split(path.sep).join('/'),
-        codex_acp_package_lock_sha256: `sha256:${aioncoreBinding.codex_acp.package_lock_sha256}`,
-        package: aioncoreBinding.codex_cli.package,
+        managed_resources_schema_version: 2,
+        node_runtime: nodeRuntime,
+        claude_cli: claudeCli,
+        direct_cli: codexCli,
         version: codexVersion,
-        npm_integrity: aioncoreBinding.codex_cli.lock_integrity,
-        tarball_url: aioncoreBinding.codex_cli.lock_resolved,
-        platform: {
-          package: aioncoreBinding.codex_cli.platform_package,
-          version: aioncoreBinding.codex_cli.platform_version,
-          npm_integrity: aioncoreBinding.codex_cli.platform_lock_integrity,
-          tarball_url: aioncoreBinding.codex_cli.platform_lock_resolved,
-        },
-        postbuild_manifest_version_and_bytes_required: true,
+        postbuild_managed_resources_v2_content_bytes_required: true,
       },
       officecli: { source_commit: officeRef, version: officeVersion },
       mineru: { source_commit: mineruRef },
