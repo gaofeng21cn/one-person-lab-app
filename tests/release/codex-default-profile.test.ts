@@ -770,9 +770,9 @@ test('active-shell source gate preserves explicit local file inputs independentl
 
 test('active-shell source gate keeps canonical cwd transport separate from sidebar affinity', () => {
   const canonicalProjectionMarkers = [
-    'const hasCanonicalRecordedCwd = Boolean(thread.workspace.trim())',
+    'const hasCanonicalProjectWorkspace = Boolean(thread.projectId.trim() && thread.workspace.trim())',
     'workspace: thread.workspace',
-    'custom_workspace: hasCanonicalRecordedCwd',
+    'custom_workspace: hasCanonicalProjectWorkspace',
   ];
   const focusedTestNames = [
     'keeps canonical adoption successful when the rebuildable local projection update fails',
@@ -922,6 +922,30 @@ test('active-shell source gate keeps canonical thread directory queries state-db
     assertCanonicalThreadDirectoryTimeoutBoundarySources({
       focusedTests,
       threadAdapter,
+    }),
+  );
+  const constObjectThreadAdapter = threadAdapter
+    .replace("await this.rpc.request('thread/list', {", 'const threadListParams = {')
+    .replace('});', "};\nawait this.rpc.request('thread/list', threadListParams);");
+  assert.doesNotThrow(() =>
+    assertCanonicalThreadDirectoryTimeoutBoundarySources({
+      focusedTests,
+      threadAdapter: constObjectThreadAdapter,
+    }),
+  );
+  assert.throws(() =>
+    assertCanonicalThreadDirectoryTimeoutBoundarySources({
+      focusedTests,
+      threadAdapter: constObjectThreadAdapter.replace('const threadListParams', 'let threadListParams'),
+    }),
+  );
+  assert.throws(() =>
+    assertCanonicalThreadDirectoryTimeoutBoundarySources({
+      focusedTests,
+      threadAdapter: constObjectThreadAdapter.replace(
+        '};\nawait this.rpc.request',
+        '};\nconst unrelated = true;\nawait this.rpc.request',
+      ),
     }),
   );
 

@@ -658,6 +658,26 @@ test('local data lifecycle separates runtime inventory from managed prune and ca
   } finally {
     fs.rmSync(missingShellRoot, { recursive: true, force: true });
   }
+  const missingHostRuntimeRoots = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-local-data-shell-'));
+  try {
+    const bridgePath = path.join(
+      'packages',
+      'desktop',
+      'src',
+      'process',
+      'bridge',
+      'localDataLifecycleBridge.ts',
+    );
+    const bridgeTarget = path.join(missingHostRuntimeRoots, bridgePath);
+    fs.mkdirSync(path.dirname(bridgeTarget), { recursive: true });
+    fs.copyFileSync(path.join(appRoot, 'shells', 'aionui', bridgePath), bridgeTarget);
+    assert.throws(
+      () => validateReleaseChannelContract(release, { shellRoot: missingHostRuntimeRoots }),
+      /Missing active shell implementation file .*hostRuntimeRoots/,
+    );
+  } finally {
+    fs.rmSync(missingHostRuntimeRoots, { recursive: true, force: true });
+  }
   assert.deepEqual(
     runtime.inventory_roots.map((root) => root.id),
     ['shell_toolchain_runtime', 'managed_opl_runtime'],
