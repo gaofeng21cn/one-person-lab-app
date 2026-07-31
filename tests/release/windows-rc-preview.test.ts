@@ -564,6 +564,17 @@ test('Windows RC Preview records exact WSL2-only public release-byte acceptance'
   assert.equal(execution.release_boundary.mainline_source_absorption_allowed, true);
   assert.equal(execution.release_boundary.existing_stable_latest_dependency_allowed, false);
   assert.equal(execution.release_boundary.existing_stable_latest_gate_allowed, false);
+  assert.equal(execution.provisioning.guest_network_recovery.ubuntu_software_source_dns_preflight_required, true);
+  assert.equal(execution.provisioning.guest_network_recovery.transient_apt_retry_required, true);
+  assert.deepEqual(execution.provisioning.guest_network_recovery.persistent_failure_classification_required, [
+    'guest_dns_unavailable',
+    'guest_network_unavailable',
+    'guest_proxy_unavailable',
+    'non_network_guest_bootstrap_failure',
+  ]);
+  assert.equal(execution.provisioning.guest_network_recovery.third_party_mirror_automatic_selection_allowed, false);
+  assert.equal(execution.provisioning.guest_network_recovery.windows_global_proxy_mutation_allowed, false);
+  assert.equal(execution.provisioning.guest_network_recovery.user_reinstall_required_after_network_failure, false);
 
   for (const workflowName of ['release-stable.yml', '_release-bundle.yml', '_release-standard-publish.yml']) {
     const workflow = fs.readFileSync(path.join(appRoot, '.github', 'workflows', workflowName), 'utf8');
@@ -588,6 +599,14 @@ test('Windows install guide binds the exact RC assets and preserves credential a
     '40a356d70f488e1687c4786e8c41346f6fbb41333a8265c91eedaf975cbeaead',
   );
   assert.equal(manifest.download.installer_size_bytes, '329575845');
+  assert.match(guide, /首次配置显示 \*\*65%\*\*/);
+  assert.match(guide, /guest_dns_unavailable/);
+  assert.match(guide, /guest_network_unavailable/);
+  assert.match(guide, /guest_proxy_unavailable/);
+  assert.match(guide, /archive\.ubuntu\.com/);
+  assert.match(guide, /security\.ubuntu\.com/);
+  assert.match(guide, /不会自动改 Windows 全局代理/);
+  assert.match(guide, /不会静默切换到未经项目验证的第三方镜像/);
   assert.equal(manifest.download.installer_size_label, '约 330 MB');
   assert.equal(manifest.download.release_tag, 'windows-rc-26.7.30-rc.4');
   assert.equal(manifest.download.download_helper_asset, 'download-windows-preview.ps1');

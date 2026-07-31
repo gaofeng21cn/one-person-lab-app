@@ -179,6 +179,17 @@ Framework。按界面中的配置进度等待；不要重复双击快捷方式�
 如果首次配置遇到网络、代理或 VPN 短暂中断，窗口会保留错误原因并提供“重试”，
 不会要求用户重新安装 App。只有 WSL 功能需要重启 Windows 时，才按窗口提示重启后继续。
 
+首次配置显示 **65%** 时，正在 `OPL-Linux` 内检查并安装 Ubuntu 基础软件包，不是
+Windows 安装器仍在复制文件。App 会先检查 Ubuntu 软件源 DNS，并对临时下载失败执行
+有限次数重试；如果网络持续不可用，会分别提示 WSL DNS 或软件源连接错误。恢复网络后
+点击“重试”即可继续同一个 `OPL-Linux`，不需要卸载或重新下载安装包。
+
+如果错误提到代理地址使用 `localhost` 或 `127.0.0.1`，该地址在 WSL NAT 环境中通常
+指向 Linux guest 自己，而不是 Windows 上的代理程序。请在代理软件中开启“允许局域网
+连接”，并把 Windows 代理改成 WSL 可以访问的主机地址后再点击“重试”；不要修改
+`/etc/resolv.conf`、注销 `OPL-Linux`、关闭 Defender 或执行 Docker Factory Reset。
+One Person Lab 不会自动改 Windows 全局代理，也不会静默切换到未经项目验证的第三方镜像。
+
 若系统缺少 WSL 必要功能，Windows 可能显示一次 UAC：
 
 1. 确认请求来自 One Person Lab 后允许系统启用功能。
@@ -387,6 +398,27 @@ RC4 每次启动都会检查 `OPL-Linux` 的 managed Node、运行入口和 Fram
 正式打包路径会物化 `linux-x64` AionCore、managed Node、managed Codex ACP 和
 `OPL-Linux` bootstrap；安装包中不应出现 `win32-x64` executor。开发目录缺少这些
 字节不等于安装包也缺失。
+
+### 首次配置停在 65% 或提示无法解析 Ubuntu 软件源
+
+65% 表示 App 已进入 `OPL-Linux` 初始化，常见原因是 WSL 内无法解析或连接
+`archive.ubuntu.com`、`security.ubuntu.com`，不是 EXE 下载损坏。先确认 Windows 浏览器
+可以正常联网；如果使用 VPN 或代理，确认 WSL 能访问该代理，尤其不要只配置
+`localhost`/`127.0.0.1`。错误码为 `guest_proxy_unavailable` 时，优先修正代理地址；
+其他网络错误恢复后点击“重试”，App 会继续现有配置并重新执行有限重试，不需要重新安装。
+
+持续失败时，在普通 PowerShell 只读检查：
+
+```powershell
+wsl.exe --status
+wsl.exe --list --verbose
+wsl.exe --distribution OPL-Linux --user root --exec getent ahosts archive.ubuntu.com
+wsl.exe --distribution OPL-Linux --user root --exec getent ahosts security.ubuntu.com
+```
+
+把错误码 `guest_dns_unavailable`、`guest_network_unavailable` 或 `guest_proxy_unavailable`、发生时间和最小日志片段
+附到问题报告。不要执行 `wsl.exe --unregister OPL-Linux`，也不要手工替换 Ubuntu
+软件源；这些操作可能删除数据或引入未经产品验证的运行差异。
 
 ### Docker 已安装但 PowerShell 找不到 docker
 

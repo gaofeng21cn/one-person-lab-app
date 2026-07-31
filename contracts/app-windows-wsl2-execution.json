@@ -83,6 +83,21 @@
     "same_name_foreign_identity": "fail_closed",
     "partial_result": "reconcile_before_retry",
     "automatic_repair_required": true,
+    "guest_network_recovery": {
+      "ubuntu_software_source_dns_preflight_required": true,
+      "transient_apt_retry_required": true,
+      "retry_policy": "bounded_backoff_with_per_request_timeouts",
+      "persistent_failure_classification_required": [
+        "guest_dns_unavailable",
+        "guest_network_unavailable",
+        "guest_proxy_unavailable",
+        "non_network_guest_bootstrap_failure"
+      ],
+      "localhost_proxy_guidance_required": true,
+      "third_party_mirror_automatic_selection_allowed": false,
+      "windows_global_proxy_mutation_allowed": false,
+      "user_reinstall_required_after_network_failure": false
+    },
     "unknown_user_data_deletion_allowed": false,
     "global_wsl_shutdown_allowed": false,
     "unregister_without_explicit_user_removal_allowed": false
