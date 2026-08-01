@@ -4262,26 +4262,89 @@ blockquote {
 <li><code>download-windows-preview.ps1</code></li>
 </ul>
 <p>不要把 Source code ZIP/TAR 当成安装包。文件名中的 <code>win-x64</code> 表示 Windows x64， <code>windows-rc-26.7.31-rc.3</code> 表示当前公开候选预览，不是稳定更新频道。</p>
-<p>建议在“下载”目录新建 <code>OPL-RC</code> 文件夹，把三个文件放在一起。</p>
+<p>每个 RC 必须使用独立目录。本版目录是 <code>$HOME\Downloads\OPL-RC\windows-rc-26.7.31-rc.3</code>；不要把上一个 RC 的同名 <code>download-windows-preview.ps1</code> 或 <code>SHA256SUMS.txt</code> 复制进来。</p>
 <p>Windows 安装包包含首次配置所需的 Linux 运行时，当前安装包 约 274 MB。网络稳定时可以直接点击 EXE；浏览器可能先把页面导航 替换为后台下载，即使页面看起来没有变化，也先打开浏览器下载列表，确认是否出现 <code>.crdownload</code> 或正在下载的任务，不要重复点击多个下载。</p>
-<p>弱网或经常断线时，优先只下载较小的 <code>download-windows-preview.ps1</code> 和 <code>SHA256SUMS.txt</code>。这个下载助手的文件名是 <code>download-windows-preview.ps1</code>；先在普通 PowerShell 验证助手本身：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">\Downloads\OPL-RC"</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>Get-FileHash <span class="op">-</span>Algorithm SHA256 <span class="st">".\download-windows-preview.ps1"</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Select-String</span> <span class="op">-</span>Path <span class="st">".\SHA256SUMS.txt"</span> `</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Pattern <span class="st">"download-windows-preview.ps1"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
-<p>两处都应显示 <code>e68d07b3e2b0a79299c17bf50ca076f13065cf7a19829abcbe9bafdfed20a3da</code>。完全一致后运行：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>powershell <span class="op">-</span>ExecutionPolicy Bypass <span class="op">-</span>File <span class="st">".\download-windows-preview.ps1"</span> `</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ReleaseTag <span class="st">"windows-rc-26.7.31-rc.3"</span> `</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>AssetName <span class="st">"One-Person-Lab-26.7.31-rc.3-win-x64.exe"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<p>最不容易拿错版本的方式，是打开普通 PowerShell，把下面整段一次性粘贴并运行。它会把 当前 RC 的下载助手放进版本独立目录，自动核对助手 SHA-256，再通过 Windows BITS 断点续传 EXE；最后自动核对 EXE 的文件大小和 SHA-256，通过后才启动安装器：</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">$ErrorActionPreference</span> <span class="op">=</span> <span class="st">"Stop"</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">$releaseTag</span> <span class="op">=</span> <span class="st">"windows-rc-26.7.31-rc.3"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">$githubBase</span> <span class="op">=</span> <span class="st">"https://github.com"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="va">$repository</span> <span class="op">=</span> <span class="st">"gaofeng21cn/one-person-lab-app"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="va">$releaseUrl</span> <span class="op">=</span> <span class="st">"</span><span class="va">$githubBase</span><span class="st">/</span><span class="va">$repository</span><span class="st">/releases/tag/</span><span class="va">$releaseTag</span><span class="st">"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="va">$releaseAssetBase</span> <span class="op">=</span> <span class="st">"</span><span class="va">$githubBase</span><span class="st">/</span><span class="va">$repository</span><span class="st">/releases/download/</span><span class="va">$releaseTag</span><span class="st">"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="va">$targetDirectory</span> <span class="op">=</span> <span class="fu">Join-Path</span> `</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Path <span class="va">$HOME</span> `</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ChildPath <span class="st">"Downloads\OPL-RC\</span><span class="va">$releaseTag</span><span class="st">"</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="va">$helperPath</span> <span class="op">=</span> <span class="fu">Join-Path</span> `</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Path <span class="va">$targetDirectory</span> `</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ChildPath <span class="st">"download-windows-preview.ps1"</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="va">$helperDownloadPath</span> <span class="op">=</span> <span class="st">"</span><span class="va">$helperPath</span><span class="st">.download"</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="va">$installerPath</span> <span class="op">=</span> <span class="fu">Join-Path</span> `</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Path <span class="va">$targetDirectory</span> `</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ChildPath <span class="st">"One-Person-Lab-26.7.31-rc.3-win-x64.exe"</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="va">$expectedHelperSha256</span> <span class="op">=</span> <span class="st">"e68d07b3e2b0a79299c17bf50ca076f13065cf7a19829abcbe9bafdfed20a3da"</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="va">$expectedInstallerSha256</span> <span class="op">=</span> <span class="st">"65f5c7a9bf7b0d12f2dbde981524d81a1d59de1eed28ab3fa3937c05d9b42db7"</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="va">$expectedInstallerSize</span> <span class="op">=</span> <span class="op">[</span>int64<span class="op">]</span><span class="dv">274243485</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="dt">New</span><span class="op">-</span>Item <span class="op">-</span>ItemType Directory <span class="op">-</span>Force <span class="op">-</span>Path <span class="va">$targetDirectory</span> <span class="op">|</span> <span class="fu">Out-Null</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">Invoke-WebRequest</span> <span class="op">-</span>UseBasicParsing `</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Uri <span class="st">"</span><span class="va">$releaseAssetBase</span><span class="st">/download-windows-preview.ps1"</span> `</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>OutFile <span class="va">$helperDownloadPath</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="va">$actualHelperSha256</span> <span class="op">=</span> <span class="op">(</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  Get-FileHash `</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">-</span>LiteralPath <span class="va">$helperDownloadPath</span> `</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">-</span>Algorithm SHA256</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="op">).</span><span class="fu">Hash</span><span class="op">.</span><span class="fu">ToLowerInvariant</span><span class="op">()</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="va">$actualHelperSha256</span> <span class="op">-cne</span> <span class="va">$expectedHelperSha256</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="st">"下载助手校验失败。不要运行该文件；请只从 </span><span class="va">$releaseUrl</span><span class="st"> 重新下载。"</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="fu">Move-Item</span> `</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>LiteralPath <span class="va">$helperDownloadPath</span> `</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Destination <span class="va">$helperPath</span> `</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Force</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> powershell<span class="op">.</span><span class="fu">exe</span> `</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>NoProfile `</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ExecutionPolicy Bypass `</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>File <span class="va">$helperPath</span> `</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ReleaseTag <span class="va">$releaseTag</span> `</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>AssetName <span class="st">"One-Person-Lab-26.7.31-rc.3-win-x64.exe"</span> `</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>OutputDirectory <span class="va">$targetDirectory</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="va">$LASTEXITCODE</span> <span class="op">-ne</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="st">"下载助手执行失败，退出码为 </span><span class="va">$LASTEXITCODE</span><span class="st">。请保留完整红色错误信息。"</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(-not</span> <span class="op">(</span><span class="fu">Test-Path</span> <span class="op">-</span>LiteralPath <span class="va">$installerPath</span> <span class="op">-</span>PathType Leaf<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="st">"没有得到安装器：</span><span class="va">$installerPath</span><span class="st">"</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="va">$actualInstallerSize</span> <span class="op">=</span> <span class="op">(</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Get-Item</span> <span class="op">-</span>LiteralPath <span class="va">$installerPath</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a><span class="op">).</span><span class="fu">Length</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="va">$actualInstallerSize</span> <span class="op">-ne</span> <span class="va">$expectedInstallerSize</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="op">(</span><span class="st">"安装器大小不匹配：实际 {0} 字节，预期 {1} 字节。不要运行。"</span> <span class="op">-</span>f `</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>    <span class="va">$actualInstallerSize</span><span class="op">,</span> <span class="va">$expectedInstallerSize</span><span class="op">)</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a><span class="va">$actualInstallerSha256</span> <span class="op">=</span> <span class="op">(</span></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>  Get-FileHash `</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>    <span class="op">-</span>LiteralPath <span class="va">$installerPath</span> `</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>    <span class="op">-</span>Algorithm SHA256</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a><span class="op">).</span><span class="fu">Hash</span><span class="op">.</span><span class="fu">ToLowerInvariant</span><span class="op">()</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="va">$actualInstallerSha256</span> <span class="op">-cne</span> <span class="va">$expectedInstallerSha256</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="st">"安装器 SHA-256 不匹配。不要运行；请从 </span><span class="va">$releaseUrl</span><span class="st"> 重新下载。"</span></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="fu">Write-Host</span> `</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>  <span class="st">"校验通过，正在启动：</span><span class="va">$installerPath</span><span class="st">"</span> `</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>ForegroundColor Green</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="fu">Start-Process</span> <span class="op">-</span>FilePath <span class="va">$installerPath</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<p>如果红色错误包含 <code>belongs to windows-rc-26.7.30-rc.4</code> 或 <code>bound to windows-rc-26.7.30-rc.4</code>，说明当前文件夹里是旧 RC.4 的 helper，并不是 RC.3 安装器报错。不要改名、不要修改参数继续运行；重新执行上面的完整代码块，它会在 <code>$HOME\Downloads\OPL-RC\windows-rc-26.7.31-rc.3</code> 中下载并校验正确 helper。</p>
 <p>助手使用 Windows BITS 持久任务，显示已下载字节、总字节、百分比和任务状态。网络短暂 断开或关闭 PowerShell 后，再运行同一条命令会重新附着到同一个精确 Release、URL 和目标 路径，不会从零开始；helper 已在构建时绑定该 RC 的 tag、EXE 文件名、size 和 SHA-256， 不需要调用未认证 GitHub API。完成后会交叉核对内嵌摘要、<code>SHA256SUMS.txt</code> 和本地 SHA-256，完全一致才把临时文件原子改为最终 EXE 文件名。</p>
 <p>浏览器直接下载会一直保留作为备用入口。项目不会自动切换到聊天群、网盘或任意第三方 镜像；以后只有项目 owner 公布、使用 HTTPS 且由同一不可变 Release 绑定相同 SHA-256 的 候选源，才有资格进入自动回退列表。</p>
 </section>
 <section id="校验-sha-256" class="level2">
 <h2 class="anchored" data-anchor-id="校验-sha-256">2. 校验 SHA-256</h2>
-<p>校验可以确认下载字节与 Release 公布的安装包一致。打开普通 PowerShell，不需要 管理员权限：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">\Downloads\OPL-RC"</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Get-FileHash <span class="op">-</span>Algorithm SHA256 <span class="st">".\One-Person-Lab-26.7.31-rc.3-win-x64.exe"</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Content</span> <span class="st">".\SHA256SUMS.txt"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<p>上面的完整代码块已经在启动前自动校验。需要再次手工查看时，打开普通 PowerShell， 不需要管理员权限：</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">\Downloads\OPL-RC\windows-rc-26.7.31-rc.3"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>Get-FileHash <span class="op">-</span>Algorithm SHA256 <span class="st">".\One-Person-Lab-26.7.31-rc.3-win-x64.exe"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Content</span> <span class="st">".\SHA256SUMS.txt"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>比较 <code>Get-FileHash</code> 输出和 <code>SHA256SUMS.txt</code> 中同名 EXE 的 64 位十六进制值：</p>
 <ul>
 <li>当前 RC EXE 的精确 SHA-256：<code>65f5c7a9bf7b0d12f2dbde981524d81a1d59de1eed28ab3fa3937c05d9b42db7</code>。</li>
@@ -4290,9 +4353,9 @@ blockquote {
 <li>文件名不同：不要猜测或改名，回到 Release 重新选择。</li>
 </ul>
 <p>如果使用下载助手，也可以在下载完成后再次检查同一 <code>SHA256SUMS.txt</code> 中 <code>download-windows-preview.ps1</code> 的条目：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Get-FileHash <span class="op">-</span>Algorithm SHA256 <span class="st">".\download-windows-preview.ps1"</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Select-String</span> <span class="op">-</span>Path <span class="st">".\SHA256SUMS.txt"</span> `</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Pattern <span class="st">"download-windows-preview.ps1"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Get-FileHash <span class="op">-</span>Algorithm SHA256 <span class="st">".\download-windows-preview.ps1"</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Select-String</span> <span class="op">-</span>Path <span class="st">".\SHA256SUMS.txt"</span> `</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">-</span>Pattern <span class="st">"download-windows-preview.ps1"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>不要从聊天群、网盘、邮件附件或第三方镜像获取同名 EXE。哈希一致只证明字节 一致，不等于这个 RC 已完成正式代码签名。</p>
 </section>
 <section id="处理-windows-smartscreen" class="level2">
@@ -4375,9 +4438,9 @@ blockquote {
 <section id="检查-wsl-2-状态" class="level2">
 <h2 class="anchored" data-anchor-id="检查-wsl-2-状态">7. 检查 WSL 2 状态</h2>
 <p>App 应自动维护专用的 <code>OPL-Linux</code>，且不修改你的其他发行版、默认发行版或 Docker Desktop 发行版。需要诊断时，可以在普通 PowerShell 查看只读状态：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>version</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>status</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>list <span class="op">--</span>verbose</span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>version</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>status</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>list <span class="op">--</span>verbose</span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>列表中应出现 <code>OPL-Linux</code>，VERSION 应为 <code>2</code>。不要手工进入发行版修改 <code>/opt/opl</code>、<code>/home/opl/.codex</code> 或 <code>/home/opl/.opl</code>；修复应由 App 完成。 不要运行 <code>wsl.exe --unregister OPL-Linux</code> 作为普通故障排除步骤，因为该命令会 不可恢复地删除发行版内的数据。</p>
 </section>
 <section id="可选安装-docker-webui" class="level2">
@@ -4392,9 +4455,9 @@ blockquote {
 <li>Docker Engine 和 Compose 已 ready。</li>
 </ul>
 <p>在普通 PowerShell 检查：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>docker<span class="op">.</span><span class="fu">exe</span> version</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>docker<span class="op">.</span><span class="fu">exe</span> compose version</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>docker<span class="op">.</span><span class="fu">exe</span> context show</span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>docker<span class="op">.</span><span class="fu">exe</span> version</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>docker<span class="op">.</span><span class="fu">exe</span> compose version</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>docker<span class="op">.</span><span class="fu">exe</span> context show</span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>完成 WebUI 安装后访问：</p>
 <p><a href="http://localhost:3000/" class="uri">http://localhost:3000/</a></p>
 <p>首次登录仍只在浏览器界面输入 Gateway 账户。桌面 App 和 Docker WebUI 是两个 载体；不要假设它们自动共享所有本机数据目录。</p>
@@ -4481,17 +4544,17 @@ blockquote {
 <h3 class="anchored" data-anchor-id="首次配置停在-65-或提示无法解析-ubuntu-软件源">首次配置停在 65% 或提示无法解析 Ubuntu 软件源</h3>
 <p>65% 表示 App 已进入 <code>OPL-Linux</code> 初始化，常见原因是 WSL 内无法解析或连接 <code>archive.ubuntu.com</code>、<code>security.ubuntu.com</code>，不是 EXE 下载损坏。这个百分比表示阶段位置， 不是精确的字节完成比例；窗口会每 15 秒刷新当前动作和已用时。只要已用时继续变化， 就让同一操作继续，不要重复打开 App。先确认 Windows 浏览器可以正常联网；如果使用 VPN 或代理，确认 WSL 能访问该代理，尤其不要只配置 <code>localhost</code>/<code>127.0.0.1</code>。错误码为 <code>guest_proxy_unavailable</code> 时，优先修正代理地址；其他网络错误恢复后点击“重试”，App 会 继续现有配置并重新执行有限重试，不需要重新安装。</p>
 <p>持续失败时，在普通 PowerShell 只读检查：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>status</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>list <span class="op">--</span>verbose</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>distribution OPL-Linux <span class="op">--</span>user root <span class="op">--</span>exec getent ahosts archive<span class="op">.</span><span class="fu">ubuntu</span><span class="op">.</span><span class="fu">com</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>distribution OPL-Linux <span class="op">--</span>user root <span class="op">--</span>exec getent ahosts security<span class="op">.</span><span class="fu">ubuntu</span><span class="op">.</span><span class="fu">com</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>status</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>list <span class="op">--</span>verbose</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>distribution OPL-Linux <span class="op">--</span>user root <span class="op">--</span>exec getent ahosts archive<span class="op">.</span><span class="fu">ubuntu</span><span class="op">.</span><span class="fu">com</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>wsl<span class="op">.</span><span class="fu">exe</span> <span class="op">--</span>distribution OPL-Linux <span class="op">--</span>user root <span class="op">--</span>exec getent ahosts security<span class="op">.</span><span class="fu">ubuntu</span><span class="op">.</span><span class="fu">com</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>把错误码 <code>guest_dns_unavailable</code>、<code>guest_network_unavailable</code> 或 <code>guest_proxy_unavailable</code>、发生时间和最小日志片段 附到问题报告。不要执行 <code>wsl.exe --unregister OPL-Linux</code>，也不要手工替换 Ubuntu 软件源；这些操作可能删除数据或引入未经产品验证的运行差异。</p>
 </section>
 <section id="docker-已安装但-powershell-找不到-docker" class="level3">
 <h3 class="anchored" data-anchor-id="docker-已安装但-powershell-找不到-docker">Docker 已安装但 PowerShell 找不到 docker</h3>
 <p>关闭当前 PowerShell，从开始菜单重新打开一个普通 PowerShell，再运行：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Command</span> docker<span class="op">.</span><span class="fu">exe</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Test-Path</span> <span class="st">"</span><span class="va">$env</span><span class="op">:</span><span class="va">ProgramFiles</span><span class="st">\Docker\Docker\resources\bin\docker.exe"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Command</span> docker<span class="op">.</span><span class="fu">exe</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Test-Path</span> <span class="st">"</span><span class="va">$env</span><span class="op">:</span><span class="va">ProgramFiles</span><span class="st">\Docker\Docker\resources\bin\docker.exe"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>本 RC 对应的 helper 已修复同进程 PATH/PATHEXT 状态转换。不要再次运行 Docker Desktop 安装器，先确认 canonical <code>docker.exe</code> 和 Docker Desktop daemon。</p>
 </section>
 <section id="登录成功但模型不可用" class="level3">
