@@ -68,7 +68,7 @@
     "homebrew:tap:plan": "node --experimental-strip-types scripts/update-homebrew-tap.ts",
     "validate:homebrew-tap": "node --experimental-strip-types scripts/update-homebrew-tap.ts --self-check",
     "test:release-boundary": "npm run codex:model-policy:check && npm run validate:release-boundary && node --experimental-strip-types --test --test-concurrency=4 --test-timeout=120000 --test-force-exit tests/release/*.test.ts tests/release/app-release-boundary-cases/*.test.ts",
-    "test:runtime-route": "npm run validate:runtime-route && node --experimental-strip-types --test tests/optional/runtime-cockpit-contract.test.ts",
+    "test:runtime-route": "npm run validate:runtime-route && node --experimental-strip-types --test tests/runtime/runtime-cockpit-contract.test.ts",
     "test:candidate:native": "npm run validate:candidate:native && node --experimental-strip-types --test tests/optional/native-candidate-cross-thread-authority.test.ts",
     "hygiene:fallow": "npx --yes fallow@latest --root . --no-cache --production",
     "docs:publishing-templates": "node --experimental-strip-types scripts/validate-publishing-templates.ts",

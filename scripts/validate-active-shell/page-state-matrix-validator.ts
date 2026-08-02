@@ -159,7 +159,7 @@ function validateRuntimeVisibilityPageStateMatrix(stateMatrix, label) {
   }
 }
 
-export function validatePageStateMatrix(matrix, contract, guiProductContract, options = {}) {
+export function validatePageStateMatrix(matrix, contract, guiProductContract) {
   if (isDefaultReleaseAdapter(contract) && (matrix.active_shell !== contract.active_shell || matrix.shell_root !== contract.shell_root)) {
     throw new Error('Page-state matrix must target the active shell contract');
   }
@@ -182,6 +182,7 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract, op
     'settings_local_services',
     'settings_personalization',
     'first_launch_readiness',
+    'runtime',
   ]);
   for (const page of matrix.pages ?? []) {
     requiredPages.delete(page.id);
@@ -193,16 +194,14 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract, op
     throw new Error(`Page-state matrix is missing required page(s): ${[...requiredPages].join(', ')}`);
   }
   const runtimePage = (matrix.pages ?? []).find((page) => page.id === 'runtime');
-  if (runtimePage) {
-    for (const [field, expected] of Object.entries({
-      route_classification: 'core_dynamic_agent_runtime',
-      default_product_required: true,
-      adopted_shell_required: true,
-      explicit_validation_command: 'npm run validate:runtime-route',
-    })) {
-      if (runtimePage[field] !== expected) {
-        throw new Error(`Core Runtime page ${field} must be ${expected}`);
-      }
+  for (const [field, expected] of Object.entries({
+    route_classification: 'core_dynamic_agent_runtime',
+    default_product_required: true,
+    adopted_shell_required: true,
+    explicit_validation_command: 'npm run validate:runtime-route',
+  })) {
+    if (runtimePage[field] !== expected) {
+      throw new Error(`Core Runtime page ${field} must be ${expected}`);
     }
   }
   if ((matrix.pages ?? []).some((page) => page.id === 'docker_webui')) {
@@ -388,10 +387,6 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract, op
     'First-launch readiness page',
   );
 
-  if (options.validateOptionalRuntimeRoute === true) {
-    if (!runtimePage) {
-      throw new Error('Explicit Runtime route validation requires the runtime page');
-    }
   if (runtimePage.machine_source !== 'opl app state --profile fast --json') {
     throw new Error(`Runtime page machine_source must be fast App state, got: ${runtimePage.machine_source}`);
   }
@@ -662,7 +657,6 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract, op
       throw new Error(`Runtime page must not own ${owner}`);
     }
   }
-  }
   if (matrix.canonical_state_surface?.default_command !== 'opl app state --profile fast --json') {
     throw new Error('Page-state matrix canonical default state command must be fast App state');
   }
@@ -685,10 +679,4 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract, op
     ['/settings/environment?section=diagnostics', 'release_evidence_tooling'],
     'Page-state matrix advanced detail consumer surfaces',
   );
-}
-
-export function validateOptionalRuntimePageStateMatrix(matrix, contract, guiProductContract) {
-  validatePageStateMatrix(matrix, contract, guiProductContract, {
-    validateOptionalRuntimeRoute: true,
-  });
 }

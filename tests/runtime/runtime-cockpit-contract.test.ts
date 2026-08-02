@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { validateRuntimeProgressPageDisplayPolicy } from '../../scripts/validate-active-shell/runtime-bridge-validator.ts';
-import { validateOptionalRuntimeRoute } from '../../scripts/validate-active-shell/runtime-route-validator.ts';
+import { validateCoreRuntimeRoute } from '../../scripts/validate-active-shell/runtime-route-validator.ts';
 import {
   validateAgentAvailabilityProjectionContract,
   validateUserTaskStatusProjectionContract,
@@ -15,7 +15,7 @@ const readJson = (relativePath: string) => JSON.parse(fs.readFileSync(relativePa
 const validateRoute = ({
   guiContract = readJson('contracts/app-gui-product-contract.json'),
   matrix = readJson('contracts/app-page-state-matrix.json'),
-} = {}) => validateOptionalRuntimeRoute({
+} = {}) => validateCoreRuntimeRoute({
   guiProductContract: guiContract,
   pageStateMatrix: matrix,
   shellAdapter: readJson('contracts/app-shell-adapter.json'),
@@ -156,7 +156,7 @@ test('typed owner views use a generic transport envelope without an App domain s
   });
 });
 
-test('explicit Runtime route gate rejects an absent optional route', () => {
+test('core Runtime route gate rejects an absent route', () => {
   const guiContract = runtimeContract();
   delete guiContract.pages.runtime_status;
   assert.throws(() => validateGuiContract(guiContract));

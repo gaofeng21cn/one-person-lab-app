@@ -3,7 +3,7 @@
 import { assertAppRootBoundary } from './app-root-boundary.ts';
 import { readAppShellAdapterContract } from './app-shell-adapter.ts';
 import { readJson } from './validate-active-shell/assertions.ts';
-import { validateOptionalRuntimeRoute } from './validate-active-shell/runtime-route-validator.ts';
+import { validateCoreRuntimeRoute } from './validate-active-shell/runtime-route-validator.ts';
 import {
   guiProductContractPath,
   installExposurePolicyPath,
@@ -12,9 +12,9 @@ import {
   runtimeBridgePath,
 } from './validate-active-shell/validation-config.ts';
 
-assertAppRootBoundary({ phase: 'optional Runtime route validation' });
+assertAppRootBoundary({ phase: 'core Runtime route validation' });
 
-validateOptionalRuntimeRoute({
+validateCoreRuntimeRoute({
   guiProductContract: readJson(guiProductContractPath),
   pageStateMatrix: readJson(pageStateMatrixPath),
   shellAdapter: readAppShellAdapterContract(),
@@ -23,4 +23,4 @@ validateOptionalRuntimeRoute({
   installExposurePolicy: readJson(installExposurePolicyPath),
 });
 
-console.log('Optional Runtime route contract is valid.');
+console.log('Core Runtime route contract is valid.');
