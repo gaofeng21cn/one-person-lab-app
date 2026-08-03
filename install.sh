@@ -771,8 +771,9 @@ release_record_value() {
   local record_path="$1"
   local key_path="$2"
   if command -v plutil >/dev/null 2>&1; then
-    plutil -extract "$key_path" raw -o - "$record_path"
-    return
+    if plutil -extract "$key_path" raw -o - "$record_path"; then
+      return 0
+    fi
   fi
   python3 - "$record_path" "$key_path" <<'PY'
 import json

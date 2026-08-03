@@ -411,6 +411,8 @@ for (const part of args[1].split(".")) {
   if (value == null || !(part in value)) process.exit(1);
   value = value[part];
 }
+// macOS plutil raw exits nonzero for JSON null instead of printing "null".
+if (args[2] === "raw" && value === null) process.exit(1);
 process.stdout.write(args[2] === "json" ? JSON.stringify(value) : String(value));
 `,
   );
