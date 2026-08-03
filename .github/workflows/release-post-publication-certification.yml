@@ -1,7 +1,7 @@
 name: OPL Post-Publication Optional Certification
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
-    && format('Optional certification recovery for Stable run {0} failed follower {1}', inputs.source_run_id, inputs.failed_follower_run_id)
+    && format('Optional certification recovery v2 for Stable run {0} failed follower {1} failed recovery {2}', inputs.source_run_id, inputs.failed_follower_run_id, inputs.failed_recovery_run_id)
     || format('Optional certification for Stable run {0}', github.event.workflow_run.id) }}
 
 on:
@@ -20,12 +20,16 @@ on:
         description: Exact failed first-attempt Optional Certification follower run with all executors skipped
         required: true
         type: string
+      failed_recovery_run_id:
+        description: Exact consumed recovery v1 run that failed before certification execution
+        required: true
+        type: string
       recovery_confirmation:
-        description: Confirm one-shot recovery of the exact failed Optional Certification follower
+        description: Confirm one-shot recovery v2 of the exact failed follower and consumed recovery
         required: true
         type: choice
         options:
-          - recover_exact_failed_optional_certification
+          - recover_exact_failed_optional_certification_v2
 
 permissions:
   contents: read
@@ -1026,7 +1030,7 @@ jobs:
         && github.event.workflow_run.conclusion == 'success'
         && startsWith(github.event.workflow_run.display_title, 'OPL Stable append_full '))
         || (github.event_name == 'workflow_dispatch'
-        && inputs.recovery_confirmation == 'recover_exact_failed_optional_certification') }}
+        && inputs.recovery_confirmation == 'recover_exact_failed_optional_certification_v2') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1054,6 +1058,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
           FAILED_FOLLOWER_RUN_ID: ${{ inputs.failed_follower_run_id || '' }}
+          FAILED_RECOVERY_RUN_ID: ${{ inputs.failed_recovery_run_id || '' }}
           RECOVERY_CONFIRMATION: ${{ inputs.recovery_confirmation || '' }}
           TRIGGER_EVENT: ${{ github.event_name }}
         shell: bash
@@ -1062,10 +1067,12 @@ jobs:
           test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           if [ "$TRIGGER_EVENT" = workflow_dispatch ]; then
-            test "$RECOVERY_CONFIRMATION" = recover_exact_failed_optional_certification
+            test "$RECOVERY_CONFIRMATION" = recover_exact_failed_optional_certification_v2
             test "$GITHUB_REF" = refs/heads/main
             [[ "$FAILED_FOLLOWER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-            recovery_title="Optional certification recovery for Stable run ${SOURCE_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID}"
+            [[ "$FAILED_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$FAILED_RECOVERY_RUN_ID" != "$FAILED_FOLLOWER_RUN_ID"
+            recovery_title="Optional certification recovery v2 for Stable run ${SOURCE_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery ${FAILED_RECOVERY_RUN_ID}"
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > recovery-run.json
             jq -e --arg run "$GITHUB_RUN_ID" --arg title "$recovery_title" --arg sha "$GITHUB_SHA" '
               (.id | tostring) == $run
@@ -1100,6 +1107,30 @@ jobs:
               and ([.jobs[].steps[]? | select(.name == "Bind exact public Full identity" and .conclusion == "failure")] | length == 1)
               and ([.jobs[] | select(.name != "resolve-full" and .conclusion != "skipped")] | length == 0)
             ' failed-follower-jobs.json >/dev/null
+
+            failed_recovery_title="Optional certification recovery for Stable run ${SOURCE_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID}"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_RUN_ID" > failed-recovery-run.json
+            jq -e --arg run "$FAILED_RECOVERY_RUN_ID" --arg title "$failed_recovery_title" '
+              (.id | tostring) == $run
+              and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+              and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+              and .path == ".github/workflows/release-post-publication-certification.yml"
+              and .event == "workflow_dispatch"
+              and .head_branch == "main"
+              and .display_title == $title
+              and .run_attempt == 1
+              and .status == "completed"
+              and .conclusion == "failure"
+            ' failed-recovery-run.json >/dev/null
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_RUN_ID/jobs?per_page=100" > failed-recovery-jobs.json
+            jq -e '
+              .total_count == 9
+              and ([.jobs[] | select(.name == "resolve-full" and .conclusion == "failure")] | length == 1)
+              and ([.jobs[].steps[]? | select(.name == "Resolve optional exact Full publication" and .conclusion == "success")] | length == 1)
+              and ([.jobs[].steps[]? | select(.name == "Download exact Full publication evidence" and .conclusion == "success")] | length == 1)
+              and ([.jobs[].steps[]? | select(.name == "Bind exact public Full identity" and .conclusion == "failure")] | length == 1)
+              and ([.jobs[] | select(.name != "resolve-full" and .conclusion != "skipped")] | length == 0)
+            ' failed-recovery-jobs.json >/dev/null
             gh api --paginate --slurp \
               "repos/$GITHUB_REPOSITORY/actions/workflows/release-post-publication-certification.yml/runs?event=workflow_dispatch&per_page=100" \
               > recovery-runs.json
@@ -1111,7 +1142,7 @@ jobs:
             ' recovery-runs.json >/dev/null
           else
             test "$TRIGGER_EVENT" = workflow_run
-            test -z "$FAILED_FOLLOWER_RUN_ID$RECOVERY_CONFIRMATION"
+            test -z "$FAILED_FOLLOWER_RUN_ID$FAILED_RECOVERY_RUN_ID$RECOVERY_CONFIRMATION"
           fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > stable-authority-run.json
           jq -e --arg run "$SOURCE_RUN_ID" '
@@ -1192,6 +1223,7 @@ jobs:
             }
             and (.release.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-r[1-9][0-9]*)?$"))
             and (.release.adjunct_tag | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-r[1-9][0-9]*)?-full-[0-9a-f]{12}$"))
+            and (.release.target_standard.release_id | type == "number")
             and (.release.target_standard.tag | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-r[1-9][0-9]*)?$"))
             and (.release.target_standard.target_commitish | test("^[0-9a-f]{40}$"))
             and .release.target_standard.mutation_allowed == false
@@ -1199,6 +1231,7 @@ jobs:
             and (.build_provenance.app_sha | test("^[0-9a-f]{40}$"))
             and (.build_provenance.shell_sha | test("^[0-9a-f]{40}$"))
             and (.build_provenance.framework_sha | test("^[0-9a-f]{40}$"))
+            and .release.target_standard.target_commitish == .build_provenance.app_sha
             and (.artifact.sha256 | test("^sha256:[0-9a-f]{64}$"))
             and (.manifest.sha256 | test("^sha256:[0-9a-f]{64}$"))
             and .github_full_publication.status == "complete"
@@ -1206,6 +1239,8 @@ jobs:
             and .latest_modified == false
           ' "$handoff" >/dev/null
           base_tag="$(jq -er .release.target_standard.tag "$handoff")"
+          base_release_id="$(jq -er .release.target_standard.release_id "$handoff")"
+          base_target_commitish="$(jq -er .release.target_standard.target_commitish "$handoff")"
           tag="$(jq -er .release.adjunct_tag "$handoff")"
           artifact_name="$(jq -er .artifact.name "$handoff")"
           artifact_digest="$(jq -er .artifact.sha256 "$handoff")"
@@ -1227,9 +1262,9 @@ jobs:
               ;;
           esac
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > public-release.json
-          release_base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}"
-          test "$(jq -er .artifact.url "$handoff")" = "$release_base/$artifact_name"
-          test "$(jq -er .manifest.url "$handoff")" = "$release_base/$manifest_name"
+          adjunct_release_base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}"
+          test "$(jq -er .artifact.url "$handoff")" = "$adjunct_release_base/$artifact_name"
+          test "$(jq -er .manifest.url "$handoff")" = "$adjunct_release_base/$manifest_name"
           jq -e --arg tag "$tag" --arg executor "$head_sha" \
             --arg name "$artifact_name" --arg digest "$artifact_digest" \
             --argjson size "$artifact_size" --arg url "$artifact_url" \
@@ -1253,7 +1288,7 @@ jobs:
             )] | length == 1)
           ' public-release.json >/dev/null
           curl --fail --location --retry 0 \
-            "$release_base/$manifest_name" \
+            "$adjunct_release_base/$manifest_name" \
             --output public-full-manifest.json
           test "sha256:$(sha256sum public-full-manifest.json | awk '{print $1}')" = "$manifest_digest"
           jq -e --arg name "$artifact_name" --arg sha "$artifact_digest" --argjson size "$artifact_size" '
@@ -1262,12 +1297,28 @@ jobs:
             and .primary_install_asset == $name
             and ([.assets[] | select(.name == $name and .sha256 == $sha and .size_bytes == $size)] | length == 1)
           ' public-full-manifest.json >/dev/null
+
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$base_tag" > public-standard-release.json
+          standard_release_base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${base_tag}"
+          standard_component_manifest_url="$standard_release_base/opl-app-component-manifest.json"
+          jq -e --argjson release_id "$base_release_id" --arg tag "$base_tag" \
+            --arg target "$base_target_commitish" --arg manifest_url "$standard_component_manifest_url" '
+            .id == $release_id
+            and .tag_name == $tag
+            and .draft == false
+            and .prerelease == false
+            and .target_commitish == $target
+            and ([.assets[] | select(
+              .name == "opl-app-component-manifest.json"
+              and .browser_download_url == $manifest_url
+            )] | length == 1)
+          ' public-standard-release.json >/dev/null
           curl --fail --location --retry 0 \
-            "$release_base/opl-app-component-manifest.json" \
+            "$standard_component_manifest_url" \
             --output public-component-manifest.json
           node --experimental-strip-types scripts/read-opl-app-component-manifest-identity.ts \
             --manifest public-component-manifest.json \
-            --expected-tag "$tag" \
+            --expected-tag "$base_tag" \
             --release-prerelease false \
             --expected-source-commit "$app_sha" \
             > public-component-identity.json

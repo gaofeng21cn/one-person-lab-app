@@ -1,7 +1,7 @@
 name: OPL Homebrew Full Follower
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
-    && format('Homebrew Full follower recovery for Stable run {0} failed follower {1}', inputs.source_run_id, inputs.failed_follower_run_id)
+    && format('Homebrew Full follower recovery v2 for Stable run {0} failed follower {1} failed recovery {2}', inputs.source_run_id, inputs.failed_follower_run_id, inputs.failed_recovery_run_id)
     || format('Homebrew Full follower for Stable run {0}', github.event.workflow_run.id) }}
 
 on:
@@ -20,12 +20,16 @@ on:
         description: Exact failed first-attempt Homebrew Full follower run with publish skipped
         required: true
         type: string
+      failed_recovery_run_id:
+        description: Exact consumed recovery v1 run that failed before Tap mutation
+        required: true
+        type: string
       recovery_confirmation:
-        description: Confirm one-shot recovery of the exact failed Homebrew Full follower
+        description: Confirm one-shot recovery v2 of the exact failed follower and consumed recovery
         required: true
         type: choice
         options:
-          - recover_exact_failed_homebrew_full_follower
+          - recover_exact_failed_homebrew_full_follower_v2
 
 permissions:
   contents: read
@@ -45,7 +49,7 @@ jobs:
         && github.event.workflow_run.conclusion == 'success'
         && startsWith(github.event.workflow_run.display_title, 'OPL Stable append_full '))
         || (github.event_name == 'workflow_dispatch'
-        && inputs.recovery_confirmation == 'recover_exact_failed_homebrew_full_follower') }}
+        && inputs.recovery_confirmation == 'recover_exact_failed_homebrew_full_follower_v2') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -63,6 +67,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           AUTHORITY_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
           FAILED_FOLLOWER_RUN_ID: ${{ inputs.failed_follower_run_id || '' }}
+          FAILED_RECOVERY_RUN_ID: ${{ inputs.failed_recovery_run_id || '' }}
           RECOVERY_CONFIRMATION: ${{ inputs.recovery_confirmation || '' }}
           TRIGGER_EVENT: ${{ github.event_name }}
         shell: bash
@@ -71,10 +76,12 @@ jobs:
           test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$AUTHORITY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           if [ "$TRIGGER_EVENT" = workflow_dispatch ]; then
-            test "$RECOVERY_CONFIRMATION" = recover_exact_failed_homebrew_full_follower
+            test "$RECOVERY_CONFIRMATION" = recover_exact_failed_homebrew_full_follower_v2
             test "$GITHUB_REF" = refs/heads/main
             [[ "$FAILED_FOLLOWER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-            recovery_title="Homebrew Full follower recovery for Stable run ${AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID}"
+            [[ "$FAILED_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$FAILED_RECOVERY_RUN_ID" != "$FAILED_FOLLOWER_RUN_ID"
+            recovery_title="Homebrew Full follower recovery v2 for Stable run ${AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery ${FAILED_RECOVERY_RUN_ID}"
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > recovery-run.json
             jq -e --arg run "$GITHUB_RUN_ID" --arg title "$recovery_title" --arg sha "$GITHUB_SHA" '
               (.id | tostring) == $run
@@ -110,6 +117,34 @@ jobs:
               and ([.jobs[].steps[]? | select(.name == "Bind immutable Homebrew Full handoff" and .conclusion == "failure")] | length == 1)
               and ([.jobs[].steps[]? | select(.name == "Publish one hosted-qualified Full Cask commit")] | length == 0)
             ' failed-follower-jobs.json >/dev/null
+
+            failed_recovery_title="Homebrew Full follower recovery for Stable run ${AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID}"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_RUN_ID" > failed-recovery-run.json
+            jq -e --arg run "$FAILED_RECOVERY_RUN_ID" --arg title "$failed_recovery_title" '
+              (.id | tostring) == $run
+              and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+              and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+              and .path == ".github/workflows/release-homebrew-full-follower.yml"
+              and .event == "workflow_dispatch"
+              and .head_branch == "main"
+              and .display_title == $title
+              and .run_attempt == 1
+              and .status == "completed"
+              and .conclusion == "failure"
+            ' failed-recovery-run.json >/dev/null
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_RUN_ID/jobs?per_page=100" > failed-recovery-jobs.json
+            jq -e '
+              .total_count == 5
+              and ([.jobs[] | select(.name == "resolve-handoff" and .conclusion == "success")] | length == 1)
+              and ([.jobs[] | select(.name == "publish-homebrew-full / prepare-candidate" and .conclusion == "failure")] | length == 1)
+              and ([.jobs[] | select(.name == "publish-homebrew-full / startup-canary" and .conclusion == "skipped")] | length == 1)
+              and ([.jobs[] | select(.name == "publish-homebrew-full / publish-cask" and .conclusion == "skipped")] | length == 1)
+              and ([.jobs[] | select(.name == "publish-homebrew-full / readback" and .conclusion == "skipped")] | length == 1)
+              and ([.jobs[].steps[]? | select(.name == "Decode and validate immutable handoff" and .conclusion == "success")] | length == 1)
+              and ([.jobs[].steps[]? | select(.name == "Restore exact qualified Full checkpoint" and .conclusion == "failure")] | length == 1)
+              and ([.jobs[].steps[]? | select(.name == "Publish one hosted-qualified Full Cask commit")] | length == 0)
+              and ([.jobs[].steps[]? | select(.name == "Publish one observer-bound Full Cask commit")] | length == 0)
+            ' failed-recovery-jobs.json >/dev/null
             gh api --paginate --slurp \
               "repos/$GITHUB_REPOSITORY/actions/workflows/release-homebrew-full-follower.yml/runs?event=workflow_dispatch&per_page=100" \
               > recovery-runs.json
@@ -121,7 +156,7 @@ jobs:
             ' recovery-runs.json >/dev/null
           else
             test "$TRIGGER_EVENT" = workflow_run
-            test -z "$FAILED_FOLLOWER_RUN_ID$RECOVERY_CONFIRMATION"
+            test -z "$FAILED_FOLLOWER_RUN_ID$FAILED_RECOVERY_RUN_ID$RECOVERY_CONFIRMATION"
           fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$AUTHORITY_RUN_ID" > authority-run.json
           jq -e --arg run "$AUTHORITY_RUN_ID" '
@@ -145,9 +180,11 @@ jobs:
             exit 0
           fi
           test "$count" = 1
-          echo "artifact_found=true" >> "$GITHUB_OUTPUT"
-          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
-          echo "authority_run_id=$AUTHORITY_RUN_ID" >> "$GITHUB_OUTPUT"
+          {
+            echo "artifact_found=true"
+            echo "artifact=$artifact"
+            echo "authority_run_id=$AUTHORITY_RUN_ID"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Download exact Full publication handoff
         if: ${{ steps.authority.outputs.artifact_found == 'true' }}

@@ -1239,6 +1239,10 @@ function validateOptionalCertificationPolicy(releaseContract: Record<string, any
     || policy?.required_for_latest !== false
     || policy?.artifact_source !== 'exact_immutable_published_release_artifact'
     || policy?.artifact_rebuild_allowed !== false
+    || policy?.full_artifact_release_source !== 'immutable_full_adjunct_release'
+    || policy?.full_component_manifest_release_source !== 'target_standard_release'
+    || policy?.full_identity_cross_binding !==
+      'target_standard_component_manifest_source_cohort_equals_full_build_provenance'
     || policy?.component_manifest_mutation_allowed !== false
     || policy?.component_manifest_resign_allowed !== false
     || !sameStringSet(policy?.statuses, ['passed', 'failed', 'not_run', 'unavailable'])
@@ -1261,15 +1265,20 @@ function validateOptionalCertificationPolicy(releaseContract: Record<string, any
     || policy?.producer?.stable_dag_dependency !== false
     || policy?.producer?.may_queue_without_proven_capability !== false
     || recovery?.trigger !== 'workflow_dispatch'
-    || recovery?.authority_binding !== 'same_successful_append_full_run_and_exact_failed_first_attempt_follower'
+    || recovery?.authority_binding !==
+      'same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1'
+    || recovery?.recovery_generation !== 2
+    || recovery?.consumed_recovery_generation !== 1
     || !sameStringSet(recovery?.required_inputs, [
-      'source_run_id', 'failed_follower_run_id', 'recovery_confirmation',
+      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
     ])
-    || recovery?.confirmation !== 'recover_exact_failed_optional_certification'
-    || recovery?.failed_boundary !== 'resolve_full_identity_bind_failed_and_all_certification_executors_skipped'
+    || recovery?.confirmation !== 'recover_exact_failed_optional_certification_v2'
+    || recovery?.failed_boundary !==
+      'first_attempt_current_handoff_bind_failed_and_recovery_v1_adjunct_component_manifest_lookup_failed_with_all_certification_executors_skipped'
     || recovery?.failed_follower_public_mutation_count_required !== 0
+    || recovery?.failed_recovery_public_mutation_count_required !== 0
     || recovery?.canonical_main_executor_required !== true
-    || recovery?.same_identity_recovery_run_count_required !== 1
+    || recovery?.same_identity_recovery_v2_run_count_required !== 1
     || recovery?.workflow_rerun_allowed !== false
     || recovery?.append_full_redispatch_allowed !== false
   ) {
@@ -1836,6 +1845,9 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.full?.homebrew_publish_allowed !== true ||
     homebrew?.tap_update_policy?.full?.mutation_allowed !== true ||
     homebrew?.tap_update_policy?.full?.source_completed_stage !== 'full_qualified' ||
+    homebrew?.tap_update_policy?.full?.authority_model !== 'immutable_public_artifact_observer' ||
+    homebrew?.tap_update_policy?.full?.framework_checkpoint_import_allowed !== false ||
+    homebrew?.tap_update_policy?.full?.current_follower_operation_control_required !== true ||
     homebrew?.tap_update_policy?.full?.homebrew_clean_vm_gate_required !== false ||
     homebrew?.tap_update_policy?.full?.framework_carrier !== 'full_dmg_embedded_opl_base' ||
     homebrew?.tap_update_policy?.full?.formula_dependency_required !== false ||
@@ -1843,17 +1855,20 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.full?.unknown_or_conflicting_result !== 'fail_closed_no_retry_rerun_or_redispatch' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.trigger !== 'workflow_dispatch' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.authority_binding !==
-      'same_successful_append_full_run_and_exact_failed_first_attempt_follower' ||
+      'same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1' ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.recovery_generation !== 2 ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.consumed_recovery_generation !== 1 ||
     !sameStringSet(homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.required_inputs, [
-      'source_run_id', 'failed_follower_run_id', 'recovery_confirmation',
+      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
     ]) ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.confirmation !==
-      'recover_exact_failed_homebrew_full_follower' ||
+      'recover_exact_failed_homebrew_full_follower_v2' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_boundary !==
-      'resolve_handoff_bind_failed_and_protected_publish_job_skipped' ||
+      'first_attempt_handoff_bind_failed_and_recovery_v1_framework_checkpoint_restore_failed_before_protected_publish' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_follower_public_mutation_count_required !== 0 ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_recovery_public_mutation_count_required !== 0 ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.canonical_main_executor_required !== true ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.same_identity_recovery_run_count_required !== 1 ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.same_identity_recovery_v2_run_count_required !== 1 ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.workflow_rerun_allowed !== false ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.append_full_redispatch_allowed !== false ||
     homebrew?.full_first_install_policy !== 'the independent immutable Full adjunct GitHub Release is the Full DMG and manifest self-identity authority; its durable receipt exposes the adjunct Release and asset URLs, and its compatibility admission uses capability, minimum-version, or SemVer-range requirements through the Framework-owner receipt. The protected Homebrew Full follower consumes that exact adjunct with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; the base Stable Release, Latest, and standard updater metadata remain unchanged' ||

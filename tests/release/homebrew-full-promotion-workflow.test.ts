@@ -91,14 +91,14 @@ test('Full Homebrew follower permits only automatic delivery or exact failed-run
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
-    'source_run_id', 'failed_follower_run_id', 'recovery_confirmation',
+    'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
   ]);
   assert.deepEqual(workflow.on.workflow_dispatch.inputs.recovery_confirmation.options, [
-    'recover_exact_failed_homebrew_full_follower',
+    'recover_exact_failed_homebrew_full_follower_v2',
   ]);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
   assert.deepEqual(Object.keys(workflow.jobs), ['resolve-handoff', 'publish-homebrew-full']);
-  assert.match(workflow.jobs['resolve-handoff'].if, /recover_exact_failed_homebrew_full_follower/);
+  assert.match(workflow.jobs['resolve-handoff'].if, /recover_exact_failed_homebrew_full_follower_v2/);
   assert.equal(workflow.jobs['publish-homebrew-full'].uses, './.github/workflows/_release-homebrew-full-publish.yml');
   assert.match(source, /homebrew-full-handoff\.json/);
   assert.match(source, /\.operation_control\.operation_id/);
@@ -108,6 +108,8 @@ test('Full Homebrew follower permits only automatic delivery or exact failed-run
   assert.match(source, /\.source\.transport_run_id/);
   assert.match(source, /def opl_fromdateiso8601/);
   assert.match(source, /failed-follower-run\.json/);
+  assert.match(source, /failed-recovery-run\.json/);
+  assert.match(source, /failed_recovery_run_id/);
   assert.match(source, /\.name == "Bind immutable Homebrew Full handoff" and \.conclusion == "failure"/);
   assert.match(source, /\.name == "publish-homebrew-full" and \.conclusion == "skipped"/);
   assert.match(source, /runs\?event=workflow_dispatch&per_page=100/);
@@ -136,45 +138,35 @@ test('Full Homebrew reusable publishes hosted-qualified bytes before optional ph
   assert.deepEqual(workflow.jobs['publish-cask'].needs, ['prepare-candidate']);
   assert.equal(workflow.jobs['publish-cask'].environment, 'release-stable');
   assert.match(source, /def opl_fromdateiso8601/);
-  assert.match(source, /bundle_digest="\$\(jq -er \.build_provenance\.bundle_digest handoff\.json\)"/);
   assert.match(source, /base_tag="\$\(jq -er \.release\.target_standard\.tag handoff\.json\)"/);
   assert.match(source, /app_sha="\$\(jq -er \.build_provenance\.app_sha handoff\.json\)"/);
   assert.doesNotMatch(source, /\.release\.(?:base_tag|bundle_digest|cohort|updater_version)/);
-  assert.match(source, /Restore exact qualified Full checkpoint/);
-  assert.match(source, /completed_stage \}\}' = full_qualified/);
-  assert.match(source, /Restore qualified Full publication checkpoint/);
-  assert.match(source, /append_full_operation_id/);
-  assert.match(source, /append_full_operation_deadline_at/);
-  assert.match(source, /publication-scope track_assets/);
-  assert.match(source, /homebrew:gaofeng21cn\/homebrew-one-person-lab\/Casks\/one-person-lab-full\.rb\/\$\{expected_cask_sha\}/);
-  assert.match(source, /publication-scope external_target/);
+  assert.doesNotMatch(source, /Restore (?:exact )?qualified Full|restore-release-checkpoint|framework-executor/);
+  assert.doesNotMatch(source, /opl release (?:operation|publish|reconcile|checkpoint)/);
+  assert.match(source, /opl_homebrew_full_observational_binding\.v2/);
+  assert.match(source, /authority_model:"immutable_public_artifact_observer"/);
+  assert.match(source, /release_mutation_authority_imported:false/);
+  assert.match(source, /framework_checkpoint_consumed:false/);
+  assert.match(source, /max_push_attempts:1/);
+  assert.match(source, /homebrew-full-follower-v2:\$\{GITHUB_RUN_ID\}/);
   assert.match(source, /release-operation-deadline\.ts check/);
-  assert.match(source, /release publish/);
-  assert.match(source, /write_framework_homebrew_receipt unknown/);
-  assert.match(source, /active_unknown_markers/);
-  assert.match(source, /test "\$\(jq -r \.operation_id <<<"\$marker"\)" = "\$operation_id"/);
-  assert.match(source, /prior_mutation_attempt_id/);
-  assert.match(source, /release reconcile/);
   assert.match(source, /no second push was attempted/);
-  assert.match(source, /homebrew-full-unknown-checkpoint/);
-  assert.match(source, /standard-build-receipt\.json/);
-  assert.match(source, /full-build-receipt\.json/);
+  assert.match(source, /opl_homebrew_full_unknown_outcome\.v2/);
+  assert.match(source, /required_action:"read_only_reconcile"/);
   assert.match(source, /a1561bdf1dfe6f316dad22f16152a537ddfb69d5/);
   assert.match(source, /merge-base --is-ancestor "\$embedded_base_floor" "\$shell_sha"/);
+  assert.match(source, /standard_manifest_url=.*opl-app-component-manifest\.json/);
+  assert.match(source, /\.source_cohort == \{app_sha:\$app,shell_sha:\$shell,framework_sha:\$framework\}/);
   assert.match(source, /git -C tap-source push --no-force origin "\$result_commit:refs\/heads\/main"/);
   assert.equal((source.match(/git -C tap-source push --no-force/g) ?? []).length, 1);
   assert.match(source, /git -C tap-source ls-remote origin refs\/heads\/main/);
   assert.match(source, /git -C tap-source fetch --no-tags --depth=1 origin "\$remote_commit"/);
-  assert.match(source, /git -C tap-source rev-parse FETCH_HEAD/);
   assert.match(source, /git -C tap-source show 'FETCH_HEAD:Casks\/one-person-lab-full\.rb'/);
   assert.doesNotMatch(source, /contents\/Casks\/one-person-lab-full\.rb\?ref=main/);
-  assert.match(source, /no second push was attempted/);
   assert.doesNotMatch(
     source,
     /qualify-candidate|opl-first-run-vm\.yml|tart-smoke-summary\.json|smoke_harness_sha|shell-harness|opl-first-run-tart-smoke|--homebrew-cask-file|clean_vm_receipt_sha256|formula_opl_installed_before|official_profile_first_install/,
   );
-  assert.match(source, /qualification_receipt_sha256:\$qualification_sha/);
-  assert.match(source, /cohort:\{app_sha:\$app_sha,shell_sha:\$shell_sha,framework_sha:\$framework_sha\}/);
   assert.match(source, /base_tag="\$\(jq -er \.release\.target_standard\.tag handoff\.json\)"/);
   assert.match(source, /adjunct_tag="\$\(jq -er \.release\.adjunct_tag handoff\.json\)"/);
   assert.match(source, /releases\/tags\/\$adjunct_tag/);
@@ -183,6 +175,7 @@ test('Full Homebrew reusable publishes hosted-qualified bytes before optional ph
   assert.match(source, /\.target_commitish == \$executor/);
   assert.match(source, /\.browser_download_url == \$dmg_url/);
   assert.match(source, /\.browser_download_url == \$manifest_url/);
+  assert.match(source, /\.target_commitish == \$target/);
   assert.match(source, /needs\.prepare-candidate\.outputs\.adjunct_tag/);
   assert.doesNotMatch(source, /jq -er \.release\.tag handoff\.json/);
   assert.doesNotMatch(source, /depends_on formula: "opl"|github-activate-latest|make_latest/);

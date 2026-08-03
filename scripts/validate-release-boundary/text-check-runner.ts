@@ -1001,16 +1001,18 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       JSON.stringify(['OPL Stable Release Bundle'])
     || JSON.stringify(certificationTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
     || JSON.stringify(Object.keys(certificationRecoveryInputs)) !== JSON.stringify([
-      'source_run_id', 'failed_follower_run_id', 'recovery_confirmation',
+      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
     ])
     || certificationRecoveryInputs.source_run_id?.required !== true
     || certificationRecoveryInputs.source_run_id?.type !== 'string'
     || certificationRecoveryInputs.failed_follower_run_id?.required !== true
     || certificationRecoveryInputs.failed_follower_run_id?.type !== 'string'
+    || certificationRecoveryInputs.failed_recovery_run_id?.required !== true
+    || certificationRecoveryInputs.failed_recovery_run_id?.type !== 'string'
     || certificationRecoveryInputs.recovery_confirmation?.required !== true
     || certificationRecoveryInputs.recovery_confirmation?.type !== 'choice'
     || JSON.stringify(certificationRecoveryInputs.recovery_confirmation?.options) !==
-      JSON.stringify(['recover_exact_failed_optional_certification'])
+      JSON.stringify(['recover_exact_failed_optional_certification_v2'])
     || !exactObject(optionalCertification.workflow.permissions, exactReadPermissions)
     || JSON.stringify(Object.keys(certificationJobs)) !== JSON.stringify(expectedCertificationJobs)
   ) {
@@ -1155,8 +1157,10 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'downloaded_from_published_release:$linux_artifact_downloaded',
     'downloaded_from_published_release:$installer_downloaded',
     'rebuilt:false',
-    'recover_exact_failed_optional_certification',
+    'recover_exact_failed_optional_certification_v2',
     'failed-follower-run.json',
+    'failed-recovery-run.json',
+    'failed_recovery_run_id',
     '.name == "Resolve optional exact Full publication" and .conclusion == "success"',
     '.name == "Download exact Full publication evidence" and .conclusion == "success"',
     '.name == "Bind exact public Full identity" and .conclusion == "failure"',
@@ -1164,6 +1168,9 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'runs?event=workflow_dispatch&per_page=100',
     '($matches | length) == 1',
     'test "$GITHUB_REF" = refs/heads/main',
+    'standard_component_manifest_url="$standard_release_base/opl-app-component-manifest.json"',
+    '--expected-tag "$base_tag"',
+    '.source_cohort.app_sha == $app_sha',
   ]) {
     if (!optionalCertification.text.includes(required)) {
       failures += reportFailure(id, `post-publication certification follower is missing ${required}`);
@@ -1450,16 +1457,18 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     || JSON.stringify(followerTriggers.workflow_run?.workflows) !== JSON.stringify(['OPL Stable Release Bundle'])
     || JSON.stringify(followerTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
     || JSON.stringify(Object.keys(followerRecoveryInputs)) !== JSON.stringify([
-      'source_run_id', 'failed_follower_run_id', 'recovery_confirmation',
+      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
     ])
     || followerRecoveryInputs.source_run_id?.required !== true
     || followerRecoveryInputs.source_run_id?.type !== 'string'
     || followerRecoveryInputs.failed_follower_run_id?.required !== true
     || followerRecoveryInputs.failed_follower_run_id?.type !== 'string'
+    || followerRecoveryInputs.failed_recovery_run_id?.required !== true
+    || followerRecoveryInputs.failed_recovery_run_id?.type !== 'string'
     || followerRecoveryInputs.recovery_confirmation?.required !== true
     || followerRecoveryInputs.recovery_confirmation?.type !== 'choice'
     || JSON.stringify(followerRecoveryInputs.recovery_confirmation?.options) !==
-      JSON.stringify(['recover_exact_failed_homebrew_full_follower'])
+      JSON.stringify(['recover_exact_failed_homebrew_full_follower_v2'])
     || !exactObject(follower.workflow.permissions, exactReadPermissions)
     || JSON.stringify(Object.keys(followerJobs)) !== JSON.stringify(['resolve-handoff', 'publish-homebrew-full'])
   ) {
@@ -1486,8 +1495,10 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     '.source.checkpoint_transport_executor == "github_actions"',
     '.source.transport_run_id',
     '.homebrew_modified == false',
-    'recover_exact_failed_homebrew_full_follower',
+    'recover_exact_failed_homebrew_full_follower_v2',
     'failed-follower-run.json',
+    'failed-recovery-run.json',
+    'failed_recovery_run_id',
     '.name == "Admit one successful append_full authority run" and .conclusion == "success"',
     '.name == "Download exact Full publication handoff" and .conclusion == "success"',
     '.name == "Bind immutable Homebrew Full handoff" and .conclusion == "failure"',
@@ -1539,38 +1550,37 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     'app_full_first_install',
     'inspect_only',
     'version_conflict',
-    'direct_commit',
+    '--remote-write-mode none',
     'full_dmg_embedded_opl_base',
     'active_framework_count_target',
     'opl-homebrew-full-candidate-${GITHUB_RUN_ID}',
+    'opl_homebrew_full_observational_binding.v2',
+    'immutable_public_artifact_observer',
+    'release_mutation_authority_imported:false',
+    'max_push_attempts:1',
+    'standard_manifest_url=',
+    'opl-app-component-manifest.json',
+    '.source_cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}',
     'a1561bdf1dfe6f316dad22f16152a537ddfb69d5',
     'merge-base --is-ancestor "$embedded_base_floor" "$shell_sha"',
     'predates the embedded-Base fail-closed carrier',
-    "test '${{ steps.checkpoint.outputs.completed_stage }}' = full_qualified",
     'qualification_receipt_sha256',
+    'release-operation-deadline.ts check',
   ]) {
     if (!prepareRuns.includes(required)) failures += reportFailure(id, `Full Homebrew candidate preparation is missing ${required}`);
   }
   for (const required of [
-    'append_full_operation_id',
-    'append_full_operation_deadline_at',
-    'publication-scope track_assets',
-    'homebrew:gaofeng21cn/homebrew-one-person-lab/Casks/one-person-lab-full.rb/${expected_cask_sha}',
-    'publication-scope external_target',
     'release-operation-deadline.ts check',
     'git -C tap-source push --no-force origin "$result_commit:refs/heads/main"',
-    'active_unknown_markers',
-    'test "$(jq -r .operation_id <<<"$marker")" = "$operation_id"',
-    'prior_mutation_attempt_id',
-    'opl release reconcile',
     'no second push was attempted',
-    'homebrew-full-unknown-checkpoint',
+    'opl_homebrew_full_unknown_outcome.v2',
+    'required_action:"read_only_reconcile"',
     'git -C tap-source ls-remote origin refs/heads/main',
     'git -C tap-source fetch --no-tags --depth=1 origin "$remote_commit"',
     "git -C tap-source show 'FETCH_HEAD:Casks/one-person-lab-full.rb'",
-    'opl_homebrew_full_publication_receipt.v1',
-    'qualification_receipt_sha256:$qualification_sha',
-    'cohort:{app_sha:$app_sha,shell_sha:$shell_sha,framework_sha:$framework_sha}',
+    'opl_homebrew_full_publication_receipt.v2',
+    'authority_model:"immutable_public_artifact_observer"',
+    'build_provenance:{app_sha:$app,shell_sha:$shell,framework_sha:$framework}',
   ]) {
     if (!publishRuns.includes(required)) failures += reportFailure(id, `Full Homebrew protected publish is missing ${required}`);
   }
@@ -1584,8 +1594,8 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
       failures += reportFailure(id, `Full Homebrew publication must not fabricate optional certification field ${forbidden}`);
     }
   }
-  if (!publisher.text.includes('Restore qualified Full publication checkpoint')) {
-    failures += reportFailure(id, 'Full Homebrew protected publish must restore the exact qualified Full checkpoint');
+  if (/restore-release-checkpoint|framework-executor|opl release (?:operation|publish|reconcile|checkpoint)/.test(publisher.text)) {
+    failures += reportFailure(id, 'Full Homebrew observer must not import Framework checkpoint or release mutation authority');
   }
   if ((publishRuns.match(/git -C tap-source push --no-force/g) ?? []).length !== 1) {
     failures += reportFailure(id, 'Full Homebrew publisher must contain exactly one non-force Tap push call');

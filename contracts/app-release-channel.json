@@ -3220,6 +3220,9 @@
         "homebrew_publish_allowed": true,
         "mutation_allowed": true,
         "source_completed_stage": "full_qualified",
+        "authority_model": "immutable_public_artifact_observer",
+        "framework_checkpoint_import_allowed": false,
+        "current_follower_operation_control_required": true,
         "homebrew_clean_vm_gate_required": false,
         "may_update_standard_cask": false,
         "may_update_nightly_cask": false,
@@ -3231,17 +3234,21 @@
         "unknown_or_conflicting_result": "fail_closed_no_retry_rerun_or_redispatch",
         "exact_failed_follower_recovery": {
           "trigger": "workflow_dispatch",
-          "authority_binding": "same_successful_append_full_run_and_exact_failed_first_attempt_follower",
+          "authority_binding": "same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1",
+          "recovery_generation": 2,
+          "consumed_recovery_generation": 1,
           "required_inputs": [
             "source_run_id",
             "failed_follower_run_id",
+            "failed_recovery_run_id",
             "recovery_confirmation"
           ],
-          "confirmation": "recover_exact_failed_homebrew_full_follower",
-          "failed_boundary": "resolve_handoff_bind_failed_and_protected_publish_job_skipped",
+          "confirmation": "recover_exact_failed_homebrew_full_follower_v2",
+          "failed_boundary": "first_attempt_handoff_bind_failed_and_recovery_v1_framework_checkpoint_restore_failed_before_protected_publish",
           "failed_follower_public_mutation_count_required": 0,
+          "failed_recovery_public_mutation_count_required": 0,
           "canonical_main_executor_required": true,
-          "same_identity_recovery_run_count_required": 1,
+          "same_identity_recovery_v2_run_count_required": 1,
           "workflow_rerun_allowed": false,
           "append_full_redispatch_allowed": false
         }
@@ -4207,6 +4214,9 @@
     "required_for_latest": false,
     "artifact_source": "exact_immutable_published_release_artifact",
     "artifact_rebuild_allowed": false,
+    "full_artifact_release_source": "immutable_full_adjunct_release",
+    "full_component_manifest_release_source": "target_standard_release",
+    "full_identity_cross_binding": "target_standard_component_manifest_source_cohort_equals_full_build_provenance",
     "component_manifest_mutation_allowed": false,
     "component_manifest_resign_allowed": false,
     "identity_bindings": [
@@ -4261,17 +4271,21 @@
       "may_queue_without_proven_capability": false,
       "exact_failed_follower_recovery": {
         "trigger": "workflow_dispatch",
-        "authority_binding": "same_successful_append_full_run_and_exact_failed_first_attempt_follower",
+        "authority_binding": "same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1",
+        "recovery_generation": 2,
+        "consumed_recovery_generation": 1,
         "required_inputs": [
           "source_run_id",
           "failed_follower_run_id",
+          "failed_recovery_run_id",
           "recovery_confirmation"
         ],
-        "confirmation": "recover_exact_failed_optional_certification",
-        "failed_boundary": "resolve_full_identity_bind_failed_and_all_certification_executors_skipped",
+        "confirmation": "recover_exact_failed_optional_certification_v2",
+        "failed_boundary": "first_attempt_current_handoff_bind_failed_and_recovery_v1_adjunct_component_manifest_lookup_failed_with_all_certification_executors_skipped",
         "failed_follower_public_mutation_count_required": 0,
+        "failed_recovery_public_mutation_count_required": 0,
         "canonical_main_executor_required": true,
-        "same_identity_recovery_run_count_required": 1,
+        "same_identity_recovery_v2_run_count_required": 1,
         "workflow_rerun_allowed": false,
         "append_full_redispatch_allowed": false
       }

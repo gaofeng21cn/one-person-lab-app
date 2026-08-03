@@ -225,10 +225,10 @@ test('optional certification is automatic or exact failed-run recovery and remai
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.deepEqual(workflow.on.workflow_run.types, ['completed']);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
-    'source_run_id', 'failed_follower_run_id', 'recovery_confirmation',
+    'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
   ]);
   assert.deepEqual(workflow.on.workflow_dispatch.inputs.recovery_confirmation.options, [
-    'recover_exact_failed_optional_certification',
+    'recover_exact_failed_optional_certification_v2',
   ]);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
   assert.deepEqual(Object.keys(workflow.jobs), [
@@ -292,12 +292,14 @@ test('optional certification is automatic or exact failed-run recovery and remai
     workflow.jobs['resolve-standard'].if,
     "${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && startsWith(github.event.workflow_run.display_title, 'OPL Stable standard ') }}",
   );
-  assert.match(workflow.jobs['resolve-full'].if, /recover_exact_failed_optional_certification/);
+  assert.match(workflow.jobs['resolve-full'].if, /recover_exact_failed_optional_certification_v2/);
   assert.match(
     String(workflow.concurrency.group),
     /inputs\.source_run_id \|\| github\.event\.workflow_run\.id/,
   );
   assert.match(source, /failed-follower-run\.json/);
+  assert.match(source, /failed-recovery-run\.json/);
+  assert.match(source, /failed_recovery_run_id/);
   assert.match(source, /\.name == "Bind exact public Full identity" and \.conclusion == "failure"/);
   assert.match(source, /\.name != "resolve-full" and \.conclusion != "skipped"/);
   assert.match(source, /runs\?event=workflow_dispatch&per_page=100/);
@@ -324,8 +326,13 @@ test('optional certification is automatic or exact failed-run recovery and remai
   assert.doesNotMatch(fullIdentity, /\.release\.(?:base_tag|bundle_digest|cohort)/);
   assert.doesNotMatch(fullIdentity, /test "\$app_sha" = "\$head_sha"/);
   assert.match(fullIdentity, /\.target_commitish == \$executor/);
-  assert.match(fullIdentity, /test "\$\(jq -er \.artifact\.url "\$handoff"\)" = "\$release_base\/\$artifact_name"/);
-  assert.match(fullIdentity, /test "\$\(jq -er \.manifest\.url "\$handoff"\)" = "\$release_base\/\$manifest_name"/);
+  assert.match(fullIdentity, /test "\$\(jq -er \.artifact\.url "\$handoff"\)" = "\$adjunct_release_base\/\$artifact_name"/);
+  assert.match(fullIdentity, /test "\$\(jq -er \.manifest\.url "\$handoff"\)" = "\$adjunct_release_base\/\$manifest_name"/);
+  assert.match(fullIdentity, /standard_release_base=.*releases\/download\/\$\{base_tag\}/);
+  assert.match(fullIdentity, /standard_component_manifest_url="\$standard_release_base\/opl-app-component-manifest\.json"/);
+  assert.match(fullIdentity, /--expected-tag "\$base_tag"/);
+  assert.match(fullIdentity, /\.source_cohort\.app_sha == \$app_sha/);
+  assert.doesNotMatch(fullIdentity, /adjunct_release_base\/opl-app-component-manifest\.json/);
   assert.match(fullIdentity, /--expected-source-commit "\$app_sha"/);
   assert.match(source, /opl-release-activation-\$\{SOURCE_RUN_ID\}/);
   assert.match(source, /opl-release-full-published-\$\{SOURCE_RUN_ID\}/);
