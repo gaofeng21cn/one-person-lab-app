@@ -1457,7 +1457,7 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     || JSON.stringify(followerTriggers.workflow_run?.workflows) !== JSON.stringify(['OPL Stable Release Bundle'])
     || JSON.stringify(followerTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
     || JSON.stringify(Object.keys(followerRecoveryInputs)) !== JSON.stringify([
-      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
+      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'failed_recovery_v2_run_id', 'recovery_confirmation',
     ])
     || followerRecoveryInputs.source_run_id?.required !== true
     || followerRecoveryInputs.source_run_id?.type !== 'string'
@@ -1465,10 +1465,12 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     || followerRecoveryInputs.failed_follower_run_id?.type !== 'string'
     || followerRecoveryInputs.failed_recovery_run_id?.required !== true
     || followerRecoveryInputs.failed_recovery_run_id?.type !== 'string'
+    || followerRecoveryInputs.failed_recovery_v2_run_id?.required !== true
+    || followerRecoveryInputs.failed_recovery_v2_run_id?.type !== 'string'
     || followerRecoveryInputs.recovery_confirmation?.required !== true
     || followerRecoveryInputs.recovery_confirmation?.type !== 'choice'
     || JSON.stringify(followerRecoveryInputs.recovery_confirmation?.options) !==
-      JSON.stringify(['recover_exact_failed_homebrew_full_follower_v2'])
+      JSON.stringify(['recover_exact_failed_homebrew_full_follower_v3'])
     || !exactObject(follower.workflow.permissions, exactReadPermissions)
     || JSON.stringify(Object.keys(followerJobs)) !== JSON.stringify(['resolve-handoff', 'publish-homebrew-full'])
   ) {
@@ -1495,10 +1497,14 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     '.source.checkpoint_transport_executor == "github_actions"',
     '.source.transport_run_id',
     '.homebrew_modified == false',
-    'recover_exact_failed_homebrew_full_follower_v2',
+    'recover_exact_failed_homebrew_full_follower_v3',
     'failed-follower-run.json',
     'failed-recovery-run.json',
     'failed_recovery_run_id',
+    'failed-recovery-v2-run.json',
+    'failed-recovery-v2-jobs.json',
+    'failed_recovery_v2_run_id',
+    'append_full deadline must be exactly 120 minutes after operation start.',
     '.name == "Admit one successful append_full authority run" and .conclusion == "success"',
     '.name == "Download exact Full publication handoff" and .conclusion == "success"',
     '.name == "Bind immutable Homebrew Full handoff" and .conclusion == "failure"',
@@ -1554,6 +1560,8 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     'full_dmg_embedded_opl_base',
     'active_framework_count_target',
     'opl-homebrew-full-candidate-${GITHUB_RUN_ID}',
+    'homebrew-full-follower-v3:${GITHUB_RUN_ID}',
+    't+120*60_000',
     'opl_homebrew_full_observational_binding.v2',
     'immutable_public_artifact_observer',
     'release_mutation_authority_imported:false',

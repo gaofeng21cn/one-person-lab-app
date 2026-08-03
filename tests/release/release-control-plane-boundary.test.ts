@@ -355,12 +355,18 @@ test('Full Homebrew follower publishes hosted-qualified bytes without a physical
   assert.ok(withoutExpectedDiagnostics(() => validateHomebrewFullPromotionTopology(root)) > 0);
 });
 
-test('Full follower recovery v2 fails closed on widened confirmation or missing consumed-recovery identity', (t) => {
+test('Full follower recovery v3 fails closed on widened confirmation or missing consumed-v2 identity', (t) => {
   const homebrewRoot = fixture(t);
   updateWorkflow(homebrewRoot, 'release-homebrew-full-follower.yml', (workflow) => {
     workflow.on.workflow_dispatch.inputs.recovery_confirmation.options = ['recover_any_full_follower'];
   });
   assert.ok(withoutExpectedDiagnostics(() => validateHomebrewFullPromotionTopology(homebrewRoot)) > 0);
+
+  const missingV2Root = fixture(t);
+  updateWorkflow(missingV2Root, 'release-homebrew-full-follower.yml', (workflow) => {
+    delete workflow.on.workflow_dispatch.inputs.failed_recovery_v2_run_id;
+  });
+  assert.ok(withoutExpectedDiagnostics(() => validateHomebrewFullPromotionTopology(missingV2Root)) > 0);
 
   const certificationRoot = fixture(t);
   updateWorkflow(certificationRoot, 'release-post-publication-certification.yml', (workflow) => {

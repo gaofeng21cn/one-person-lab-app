@@ -187,9 +187,9 @@ jobs:
           cp tap-source/Casks/one-person-lab-full.rb candidate/one-person-lab-full.rb
           test "sha256:$(shasum -a 256 candidate/one-person-lab-full.rb | awk '{print $1}')" = "$expected_cask_sha"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > follower-run.json
-          operation_id="homebrew-full-follower-v2:${GITHUB_RUN_ID}"
+          operation_id="homebrew-full-follower-v3:${GITHUB_RUN_ID}"
           operation_started_at="$(jq -er .created_at follower-run.json)"
-          operation_deadline_at="$(node -e 'const t=Date.parse(process.argv[1]);if(!Number.isFinite(t))process.exit(1);process.stdout.write(new Date(t+45*60_000).toISOString())' "$operation_started_at")"
+          operation_deadline_at="$(node -e 'const t=Date.parse(process.argv[1]);if(!Number.isFinite(t))process.exit(1);process.stdout.write(new Date(t+120*60_000).toISOString())' "$operation_started_at")"
           node --experimental-strip-types scripts/release-operation-deadline.ts check \
             --operation append_full --started-at "$operation_started_at" --deadline-at "$operation_deadline_at"
           binding_artifact="opl-homebrew-full-observational-binding-${GITHUB_RUN_ID}"

@@ -3234,21 +3234,26 @@
         "unknown_or_conflicting_result": "fail_closed_no_retry_rerun_or_redispatch",
         "exact_failed_follower_recovery": {
           "trigger": "workflow_dispatch",
-          "authority_binding": "same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1",
-          "recovery_generation": 2,
-          "consumed_recovery_generation": 1,
+          "authority_binding": "same_successful_append_full_run_exact_failed_first_attempt_consumed_recovery_v1_and_consumed_deadline_failed_recovery_v2",
+          "recovery_generation": 3,
+          "consumed_recovery_generations": [
+            1,
+            2
+          ],
           "required_inputs": [
             "source_run_id",
             "failed_follower_run_id",
             "failed_recovery_run_id",
+            "failed_recovery_v2_run_id",
             "recovery_confirmation"
           ],
-          "confirmation": "recover_exact_failed_homebrew_full_follower_v2",
-          "failed_boundary": "first_attempt_handoff_bind_failed_and_recovery_v1_framework_checkpoint_restore_failed_before_protected_publish",
+          "confirmation": "recover_exact_failed_homebrew_full_follower_v3",
+          "failed_boundary": "first_attempt_handoff_bind_failed_recovery_v1_framework_checkpoint_restore_failed_and_recovery_v2_noncanonical_45_minute_deadline_failed_before_protected_publish",
           "failed_follower_public_mutation_count_required": 0,
           "failed_recovery_public_mutation_count_required": 0,
+          "failed_recovery_v2_public_mutation_count_required": 0,
           "canonical_main_executor_required": true,
-          "same_identity_recovery_v2_run_count_required": 1,
+          "same_identity_recovery_v3_run_count_required": 1,
           "workflow_rerun_allowed": false,
           "append_full_redispatch_allowed": false
         }

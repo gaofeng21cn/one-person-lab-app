@@ -91,14 +91,14 @@ test('Full Homebrew follower permits only automatic delivery or exact failed-run
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
-    'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
+    'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'failed_recovery_v2_run_id', 'recovery_confirmation',
   ]);
   assert.deepEqual(workflow.on.workflow_dispatch.inputs.recovery_confirmation.options, [
-    'recover_exact_failed_homebrew_full_follower_v2',
+    'recover_exact_failed_homebrew_full_follower_v3',
   ]);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
   assert.deepEqual(Object.keys(workflow.jobs), ['resolve-handoff', 'publish-homebrew-full']);
-  assert.match(workflow.jobs['resolve-handoff'].if, /recover_exact_failed_homebrew_full_follower_v2/);
+  assert.match(workflow.jobs['resolve-handoff'].if, /recover_exact_failed_homebrew_full_follower_v3/);
   assert.equal(workflow.jobs['publish-homebrew-full'].uses, './.github/workflows/_release-homebrew-full-publish.yml');
   assert.match(source, /homebrew-full-handoff\.json/);
   assert.match(source, /\.operation_control\.operation_id/);
@@ -110,6 +110,10 @@ test('Full Homebrew follower permits only automatic delivery or exact failed-run
   assert.match(source, /failed-follower-run\.json/);
   assert.match(source, /failed-recovery-run\.json/);
   assert.match(source, /failed_recovery_run_id/);
+  assert.match(source, /failed-recovery-v2-run\.json/);
+  assert.match(source, /failed-recovery-v2-jobs\.json/);
+  assert.match(source, /failed_recovery_v2_run_id/);
+  assert.match(source, /append_full deadline must be exactly 120 minutes after operation start\./);
   assert.match(source, /\.name == "Bind immutable Homebrew Full handoff" and \.conclusion == "failure"/);
   assert.match(source, /\.name == "publish-homebrew-full" and \.conclusion == "skipped"/);
   assert.match(source, /runs\?event=workflow_dispatch&per_page=100/);
@@ -148,7 +152,9 @@ test('Full Homebrew reusable publishes hosted-qualified bytes before optional ph
   assert.match(source, /release_mutation_authority_imported:false/);
   assert.match(source, /framework_checkpoint_consumed:false/);
   assert.match(source, /max_push_attempts:1/);
-  assert.match(source, /homebrew-full-follower-v2:\$\{GITHUB_RUN_ID\}/);
+  assert.match(source, /homebrew-full-follower-v3:\$\{GITHUB_RUN_ID\}/);
+  assert.match(source, /t\+120\*60_000/);
+  assert.doesNotMatch(source, /t\+45\*60_000/);
   assert.match(source, /release-operation-deadline\.ts check/);
   assert.match(source, /no second push was attempted/);
   assert.match(source, /opl_homebrew_full_unknown_outcome\.v2/);

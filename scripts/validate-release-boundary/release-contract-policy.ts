@@ -1855,20 +1855,21 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.full?.unknown_or_conflicting_result !== 'fail_closed_no_retry_rerun_or_redispatch' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.trigger !== 'workflow_dispatch' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.authority_binding !==
-      'same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1' ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.recovery_generation !== 2 ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.consumed_recovery_generation !== 1 ||
+      'same_successful_append_full_run_exact_failed_first_attempt_consumed_recovery_v1_and_consumed_deadline_failed_recovery_v2' ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.recovery_generation !== 3 ||
+    !sameStringSet(homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.consumed_recovery_generations, [1, 2]) ||
     !sameStringSet(homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.required_inputs, [
-      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
+      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'failed_recovery_v2_run_id', 'recovery_confirmation',
     ]) ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.confirmation !==
-      'recover_exact_failed_homebrew_full_follower_v2' ||
+      'recover_exact_failed_homebrew_full_follower_v3' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_boundary !==
-      'first_attempt_handoff_bind_failed_and_recovery_v1_framework_checkpoint_restore_failed_before_protected_publish' ||
+      'first_attempt_handoff_bind_failed_recovery_v1_framework_checkpoint_restore_failed_and_recovery_v2_noncanonical_45_minute_deadline_failed_before_protected_publish' ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_follower_public_mutation_count_required !== 0 ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_recovery_public_mutation_count_required !== 0 ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_recovery_v2_public_mutation_count_required !== 0 ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.canonical_main_executor_required !== true ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.same_identity_recovery_v2_run_count_required !== 1 ||
+    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.same_identity_recovery_v3_run_count_required !== 1 ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.workflow_rerun_allowed !== false ||
     homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.append_full_redispatch_allowed !== false ||
     homebrew?.full_first_install_policy !== 'the independent immutable Full adjunct GitHub Release is the Full DMG and manifest self-identity authority; its durable receipt exposes the adjunct Release and asset URLs, and its compatibility admission uses capability, minimum-version, or SemVer-range requirements through the Framework-owner receipt. The protected Homebrew Full follower consumes that exact adjunct with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; the base Stable Release, Latest, and standard updater metadata remain unchanged' ||
