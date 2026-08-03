@@ -177,7 +177,7 @@ test('active release workflows fail closed on duplicate critical evidence instea
       /find[^\n]*\|[^\n]*head\s+-n?\s*1/,
       `${workflowName} still selects the first sorted release artifact match`,
     );
-    if (workflowName !== '_release-bundle.yml') {
+    if (!['_release-bundle.yml', '_release-homebrew-full-publish.yml'].includes(workflowName)) {
       assert.match(source, /LC_ALL=C sort/, `${workflowName} must deterministically order critical evidence matches`);
     }
   }
@@ -185,7 +185,17 @@ test('active release workflows fail closed on duplicate critical evidence instea
   assert.doesNotMatch(readWorkflow('_release-bundle.yml'), /artifact qualification receipt/);
   assert.match(readWorkflow('_release-full-addon.yml'), /must contain at most one Full build receipt/);
   assert.match(readWorkflow('_release-standard-publish.yml'), /requires exactly one publication receipt/);
-  assert.match(readWorkflow('_release-homebrew-full-publish.yml'), /requires exactly one Standard and one Full build receipt/);
+  const observationalHomebrew = readWorkflow('_release-homebrew-full-publish.yml');
+  assert.doesNotMatch(
+    observationalHomebrew,
+    /(?:standard|full)-build-receipt\.json|restore-release-checkpoint/,
+  );
+  assert.match(observationalHomebrew, /\[\.assets\[\] \| select\(\.digest == \$dmg\)\] \| length == 1/);
+  assert.match(observationalHomebrew, /\[\.assets\[\] \| select\(\.digest == \$manifest\)\] \| length == 1/);
+  assert.match(
+    observationalHomebrew,
+    /\[\.assets\[\] \| select\(\.name == "opl-app-component-manifest\.json"\)\] \| length == 1/,
+  );
   assert.match(readWorkflow('opl-first-run-vm.yml'), /must appear at most once/);
 });
 
