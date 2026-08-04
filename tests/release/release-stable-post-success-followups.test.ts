@@ -101,6 +101,7 @@ if (args.includes("--method") && args.includes("POST")) {
   fs.writeFileSync(statePath, "posted\n");
   process.exit(0);
 }
+
 if (args.some((arg) => arg.endsWith("/actions/runs/" + runId))) {
   process.stdout.write(JSON.stringify({
     id: Number(runId),
@@ -159,6 +160,115 @@ process.stdout.write(JSON.stringify({
       payload: fs.existsSync(payloadPath)
         ? JSON.parse(fs.readFileSync(payloadPath, "utf8")) as Record<string, any>
         : null,
+      output: fs.existsSync(outputPath) ? fs.readFileSync(outputPath, "utf8") : "",
+    };
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
+function runSourceBindingStep({
+  transportHead = "1".repeat(40),
+  frozenApp = "a".repeat(40),
+  mutateIdentity,
+  mutateHandoff,
+}: {
+  transportHead?: string;
+  frozenApp?: string;
+  mutateIdentity?: (identity: Record<string, any>) => void;
+  mutateHandoff?: (handoff: Record<string, any>) => void;
+} = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-successor-bind-"));
+  try {
+    const sourceRunId = "30870000001";
+    const sourceArtifact = `opl-release-standard-operation-checkpoint-${sourceRunId}`;
+    const shell = "b".repeat(40);
+    const framework = "c".repeat(40);
+    const bundleDigest = `sha256:${"d".repeat(64)}`;
+    const version = "26.8.4";
+    const updaterVersion = "26.8.490";
+    const tag = `v${version}`;
+    const checkpointRoot = path.join(root, "standard-checkpoint");
+    const activationRoot = path.join(root, "standard-activation");
+    const followerRoot = path.join(activationRoot, "webui-follower");
+    fs.mkdirSync(path.join(checkpointRoot, "stable-operation-control"), { recursive: true });
+    fs.mkdirSync(followerRoot, { recursive: true });
+    const bundle = {
+      bundle_digest: bundleDigest,
+      release: { channel: "stable", version, updater_version: updaterVersion, tag, prerelease: false },
+      sources: {
+        app: { source_commit: frozenApp },
+        shell: { source_commit: shell },
+        framework: { source_commit: framework },
+      },
+    };
+    fs.writeFileSync(path.join(checkpointRoot, "checkpoint.json"), `${JSON.stringify({ checkpoint_stage: "standard_built" })}\n`);
+    fs.writeFileSync(path.join(checkpointRoot, "bundle.json"), `${JSON.stringify(bundle)}\n`);
+    fs.writeFileSync(
+      path.join(checkpointRoot, "stable-operation-control", "stable-operation-control.json"),
+      `${JSON.stringify({ cohort: { app_sha: frozenApp, shell_sha: shell, framework_sha: framework }, optional_platforms: [] })}\n`,
+    );
+    const identity = {
+      schema: "opl_standard_release_identity_receipt.v2",
+      status: "passed",
+      source: { run_id: "30850184002", run_attempt: 1 },
+      release: { channel: "stable", version, updater_version: updaterVersion, tag, bundle_digest: bundleDigest },
+      cohort: { app_sha: frozenApp, shell_sha: shell, framework_sha: framework },
+    };
+    mutateIdentity?.(identity);
+    const identityPath = path.join(followerRoot, "standard-identity-receipt.json");
+    fs.writeFileSync(identityPath, `${JSON.stringify(identity)}\n`);
+    const identitySha256 = `sha256:${spawnSync("shasum", ["-a", "256", identityPath], { encoding: "utf8" }).stdout.split(/\s+/)[0]}`;
+    const handoff = {
+      schema: "opl_app_webui_follower_handoff.v1",
+      status: "ready",
+      stable_authority: { run_id: sourceRunId, run_attempt: 1, executor_head_sha: transportHead },
+      source: { artifact_run_id: sourceRunId, checkpoint_artifact: sourceArtifact, standard_identity_sha256: identitySha256 },
+      release: { version, bundle_digest: bundleDigest, cohort: { app_sha: frozenApp, shell_sha: shell, framework_sha: framework } },
+    };
+    mutateHandoff?.(handoff);
+    fs.writeFileSync(path.join(activationRoot, "webui-follower-handoff.json"), `${JSON.stringify(handoff)}\n`);
+    fs.writeFileSync(
+      path.join(activationRoot, "latest-component-manifest.json"),
+      `${JSON.stringify({
+        surface_kind: "opl_app_component_manifest.v1",
+        quality_status: "stable",
+        source_commit: frozenApp,
+        source_cohort: { app_sha: frozenApp, shell_sha: shell, framework_sha: framework },
+        version,
+        updater_version: updaterVersion,
+        release_tag: tag,
+        artifacts: Array.from({ length: 6 }, (_, index) => ({
+          name: `asset-${index}`,
+          digest: `sha256:${String(index).repeat(64)}`,
+          size: index + 1,
+        })),
+      })}\n`,
+    );
+    const bin = path.join(root, "bin");
+    fs.mkdirSync(bin);
+    fs.writeFileSync(path.join(bin, "gh"), "#!/bin/sh\nprintf '%s\\n' '{\"artifacts\":[]}'\n");
+    fs.chmodSync(path.join(bin, "gh"), 0o755);
+    const outputPath = path.join(root, "github-output.txt");
+    const bindStep = workflow.jobs.admit.steps.find(
+      (candidate: Record<string, any>) => candidate.name === "Bind source checkpoint, cohort, and idempotency",
+    );
+    assert.ok(bindStep);
+    const result = spawnSync("/bin/bash", ["-euo", "pipefail", "-c", String(bindStep.run)], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        GITHUB_OUTPUT: outputPath,
+        GITHUB_REPOSITORY: "gaofeng21cn/one-person-lab-app",
+        SOURCE_RUN_ID: sourceRunId,
+        SOURCE_HEAD_SHA: transportHead,
+        SOURCE_ARTIFACT: sourceArtifact,
+      },
+    });
+    return {
+      result,
       output: fs.existsSync(outputPath) ? fs.readFileSync(outputPath, "utf8") : "",
     };
   } finally {
@@ -334,8 +444,10 @@ test("admission binds the Standard source run and exact checkpoint without makin
   assert.match(source, /standard_built\|standard_qualified/);
   assert.doesNotMatch(source, /standard_checkpoint_not_qualified/);
   assert.doesNotMatch(source, /status:"deferred"/);
-  assert.match(source, /\.sources\.app\.source_commit == \$head/);
-  assert.match(source, /\.source_cohort == \{app_sha:\$head,shell_sha:\$shell,framework_sha:\$framework\}/);
+  assert.match(source, /\.stable_authority\.executor_head_sha == \$head/);
+  assert.match(source, /\.source_commit == \$app/);
+  assert.match(source, /\.source_cohort == \{app_sha:\$app,shell_sha:\$shell,framework_sha:\$framework\}/);
+  assert.doesNotMatch(source, /\.sources\.app\.source_commit == \$head/);
   assert.match(source, /\.version == \$version/);
   assert.match(source, /\.updater_version == \$updater/);
   assert.match(source, /updater_version="\$\(jq -er \.release\.updater_version/);
@@ -399,6 +511,28 @@ test("Full successor admits both initial and resumed Standard success titles, bu
     "OPL Stable resume_standard operation:stable-op run:30859273345",
   );
   assert.notEqual(forgedResume.result.status, 0);
+});
+
+test("resumed Full successor separates transport executor head from the frozen Standard cohort", () => {
+  const resumed = runSourceBindingStep();
+  assert.equal(resumed.result.status, 0, resumed.result.stderr || resumed.result.stdout);
+  assert.match(resumed.output, /eligible=true/);
+  assert.match(resumed.output, /app_ref=a{40}/);
+  assert.match(resumed.output, /framework_ref=c{40}/);
+
+  const hostileIdentity = runSourceBindingStep({
+    mutateIdentity(identity) {
+      identity.cohort.app_sha = "e".repeat(40);
+    },
+  });
+  assert.notEqual(hostileIdentity.result.status, 0);
+
+  const hostileTransport = runSourceBindingStep({
+    mutateHandoff(handoff) {
+      handoff.stable_authority.executor_head_sha = "f".repeat(40);
+    },
+  });
+  assert.notEqual(hostileTransport.result.status, 0);
 });
 
 test("append_full dispatch binds candidates and final readback to one exact Standard source run", () => {

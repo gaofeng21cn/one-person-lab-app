@@ -121,6 +121,14 @@ jobs:
           while IFS= read -r file; do manifests+=("$file"); done < <(
             find standard-activation -type f -name latest-component-manifest.json -print | LC_ALL=C sort
           )
+          handoffs=()
+          while IFS= read -r file; do handoffs+=("$file"); done < <(
+            find standard-activation -type f -name webui-follower-handoff.json -print | LC_ALL=C sort
+          )
+          identity_receipts=()
+          while IFS= read -r file; do identity_receipts+=("$file"); done < <(
+            find standard-activation -type f -name standard-identity-receipt.json -print | LC_ALL=C sort
+          )
           controls=()
           while IFS= read -r file; do controls+=("$file"); done < <(
             find standard-checkpoint -type f -name stable-operation-control.json -print | LC_ALL=C sort
@@ -128,10 +136,14 @@ jobs:
           test "${#checkpoints[@]}" = 1
           test "${#bundles[@]}" = 1
           test "${#manifests[@]}" = 1
+          test "${#handoffs[@]}" = 1
+          test "${#identity_receipts[@]}" = 1
           test "${#controls[@]}" = 1
           checkpoint="${checkpoints[0]}"
           bundle="${bundles[0]}"
           manifest="${manifests[0]}"
+          handoff="${handoffs[0]}"
+          identity_receipt="${identity_receipts[0]}"
           control="${controls[0]}"
 
           checkpoint_stage="$(jq -er .checkpoint_stage "$checkpoint")"
@@ -142,9 +154,9 @@ jobs:
               exit 1
               ;;
           esac
-          jq -e --arg head "$SOURCE_HEAD_SHA" '
+          jq -e '
             .release.channel == "stable"
-            and .sources.app.source_commit == $head
+            and (.sources.app.source_commit | test("^[0-9a-f]{40}$"))
             and (.sources.shell.source_commit | test("^[0-9a-f]{40}$"))
             and (.sources.framework.source_commit | test("^[0-9a-f]{40}$"))
             and (.release.version | test("^[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(?:-r[1-9][0-9]*)?$"))
@@ -152,17 +164,70 @@ jobs:
             and (.release.tag == ("v" + .release.version))
             and (.release.prerelease == false)
           ' "$bundle" >/dev/null
+
+          version="$(jq -er .release.version "$bundle")"
+          updater_version="$(jq -er .release.updater_version "$bundle")"
+          tag="$(jq -er .release.tag "$bundle")"
+          bundle_digest="$(jq -er .bundle_digest "$bundle")"
+          app_ref="$(jq -er .sources.app.source_commit "$bundle")"
+          shell_ref="$(jq -er .sources.shell.source_commit "$bundle")"
+          framework_ref="$(jq -er .sources.framework.source_commit "$bundle")"
+          identity_sha256="sha256:$(shasum -a 256 "$identity_receipt" | awk '{print $1}')"
+
           jq -e \
+            --arg version "$version" \
+            --arg updater "$updater_version" \
+            --arg tag "$tag" \
+            --arg bundle "$bundle_digest" \
+            --arg app "$app_ref" \
+            --arg shell "$shell_ref" \
+            --arg framework "$framework_ref" '
+            .schema == "opl_standard_release_identity_receipt.v2"
+            and .status == "passed"
+            and (.source.run_id | tostring | test("^[1-9][0-9]*$"))
+            and .source.run_attempt == 1
+            and .release.channel == "stable"
+            and .release.version == $version
+            and .release.updater_version == $updater
+            and .release.tag == $tag
+            and .release.bundle_digest == $bundle
+            and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
+          ' "$identity_receipt" >/dev/null
+
+          jq -e \
+            --arg run "$SOURCE_RUN_ID" \
             --arg head "$SOURCE_HEAD_SHA" \
-            --arg version "$(jq -er .release.version "$bundle")" \
-            --arg updater "$(jq -er .release.updater_version "$bundle")" \
-            --arg tag "$(jq -er .release.tag "$bundle")" \
-            --arg shell "$(jq -er .sources.shell.source_commit "$bundle")" \
-            --arg framework "$(jq -er .sources.framework.source_commit "$bundle")" '
+            --arg artifact "$SOURCE_ARTIFACT" \
+            --arg identity "$identity_sha256" \
+            --arg version "$version" \
+            --arg bundle "$bundle_digest" \
+            --arg app "$app_ref" \
+            --arg shell "$shell_ref" \
+            --arg framework "$framework_ref" '
+            .schema == "opl_app_webui_follower_handoff.v1"
+            and .status == "ready"
+            and (.stable_authority.run_id | tostring) == $run
+            and .stable_authority.run_attempt == 1
+            and .stable_authority.executor_head_sha == $head
+            and (.source.artifact_run_id | tostring) == $run
+            and .source.checkpoint_artifact == $artifact
+            and .source.standard_identity_sha256 == $identity
+            and .release.version == $version
+            and .release.bundle_digest == $bundle
+            and .release.cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
+          ' "$handoff" >/dev/null
+
+          jq -e \
+            --arg app "$app_ref" \
+            --arg version "$version" \
+            --arg updater "$updater_version" \
+            --arg tag "$tag" \
+            --arg shell "$shell_ref" \
+            --arg framework "$framework_ref" '
             .surface_kind == "opl_app_component_manifest.v1"
             and .quality_status == "stable"
-            and .source_commit == $head
-            and .source_cohort == {app_sha:$head,shell_sha:$shell,framework_sha:$framework}
+            and .source_commit == $app
+            and .source_cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
             and .version == $version
             and .updater_version == $updater
             and .release_tag == $tag
@@ -174,12 +239,6 @@ jobs:
               and (.size | type == "number" and . > 0))
           ' "$manifest" >/dev/null
 
-          version="$(jq -er .release.version "$bundle")"
-          updater_version="$(jq -er .release.updater_version "$bundle")"
-          framework_ref="$(jq -er .sources.framework.source_commit "$bundle")"
-          app_ref="$(jq -er .sources.app.source_commit "$bundle")"
-          shell_ref="$(jq -er .sources.shell.source_commit "$bundle")"
-          bundle_digest="$(jq -er .bundle_digest "$bundle")"
           optional_platforms="$(jq -cer .optional_platforms "$control")"
           test "$(jq -er .cohort.app_sha "$control")" = "$app_ref"
           test "$(jq -er .cohort.shell_sha "$control")" = "$shell_ref"
