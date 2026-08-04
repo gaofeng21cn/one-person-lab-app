@@ -92,6 +92,11 @@ on:
         type: string
         required: false
         default: ''
+      failed_recovery_v3_run_id:
+        description: Exact failed WebUI recovery v3 consumed by production recovery v4.
+        type: string
+        required: false
+        default: ''
       image_repository:
         description: GHCR repository without a tag or digest.
         type: string
@@ -230,6 +235,8 @@ jobs:
             [[ '${{ inputs.failed_follower_run_id }}' =~ ^[1-9][0-9]*$ ]]
             [[ '${{ inputs.failed_recovery_v1_run_id }}' =~ ^[1-9][0-9]*$ ]]
             [[ '${{ inputs.failed_recovery_v2_run_id }}' =~ ^[1-9][0-9]*$ ]]
+            test -z '${{ inputs.failed_recovery_v3_run_id }}' \
+              || [[ '${{ inputs.failed_recovery_v3_run_id }}' =~ ^[1-9][0-9]*$ ]]
             test '${{ inputs.stable_framework_ref }}' != '${{ inputs.framework_ref }}'
           elif [ '${{ inputs.authority_mode }}' = production_follower ]; then
             test "$(git rev-parse HEAD)" = '${{ inputs.app_ref }}'
@@ -295,6 +302,11 @@ jobs:
               --webui-recovery-failed-v2-run-id '${{ inputs.failed_recovery_v2_run_id }}'
               --webui-recovery-executor-app-sha "$GITHUB_SHA"
             )
+            if [ -n '${{ inputs.failed_recovery_v3_run_id }}' ]; then
+              recovery_args+=(
+                --webui-recovery-failed-v3-run-id '${{ inputs.failed_recovery_v3_run_id }}'
+              )
+            fi
           fi
           node --experimental-strip-types scripts/framework-release-adapter.ts webui-build-input \
             --standard-identity "$identity_receipt" \

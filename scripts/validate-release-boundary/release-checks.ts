@@ -184,6 +184,28 @@ const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
     ],
   },
   {
+    id: "webui_stable_follower_recovery",
+    file: ".github/workflows/release-webui-follower.yml",
+    required: [
+      "workflow_run:",
+      "OPL Stable Release Bundle",
+      "workflow_dispatch:",
+      "recover_exact_failed_webui_follower_v4",
+      "failed_recovery_v3_run_id",
+      "failed-recovery-v3-jobs.json",
+      "failed-recovery-v3-artifacts.json",
+      "const marker = /\"message\"\\s*:\\s*\"/g",
+      "contract_shape_invalid",
+      "configured_codex_plugin_carrier_target_currentness_mismatch",
+      "runs?event=workflow_dispatch&per_page=100",
+    ],
+    forbidden: [
+      "cancel-in-progress: true",
+      "gh run rerun",
+      "gh workflow run release-stable.yml",
+    ],
+  },
+  {
     id: "native_webui_additive_follower",
     file: ".github/workflows/release-native-webui-follower.yml",
     required: [

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -344,6 +345,14 @@ function clone<T>(value: T): T {
 
 test('WebUI follower preserves automatic delivery and admits only exact bounded recovery generations', () => {
   const source = fs.readFileSync(followerWorkflowPath, 'utf8');
+  const carrierSource = fs.readFileSync(
+    path.join(appRoot, '.github', 'workflows', '_release-webui-carrier.yml'),
+    'utf8',
+  );
+  const adapterSource = fs.readFileSync(
+    path.join(appRoot, 'scripts', 'framework-release-adapter.ts'),
+    'utf8',
+  );
   const workflow = YAML.parse(source);
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
@@ -353,28 +362,36 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'failed_follower_run_id',
     'failed_recovery_run_id',
     'failed_recovery_v2_run_id',
+    'failed_recovery_v3_run_id',
     'recovery_confirmation',
   ]);
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_run_id.required, false);
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_run_id.type, 'string');
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v2_run_id.required, false);
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v2_run_id.type, 'string');
+  assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v3_run_id.required, false);
+  assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v3_run_id.type, 'string');
   assert.deepEqual(workflow.on.workflow_dispatch.inputs.recovery_confirmation.options, [
     'recover_exact_failed_webui_follower_v1',
     'recover_exact_failed_webui_follower_v2',
     'recover_exact_failed_webui_follower_v3',
+    'recover_exact_failed_webui_follower_v4',
   ]);
   assert.match(
     source,
-    /recover_exact_failed_webui_follower_v1\)\s+test -z "\$FAILED_RECOVERY_RUN_ID\$FAILED_RECOVERY_V2_RUN_ID"/,
+    /recover_exact_failed_webui_follower_v1\)\s+test -z "\$FAILED_RECOVERY_RUN_ID\$FAILED_RECOVERY_V2_RUN_ID\$FAILED_RECOVERY_V3_RUN_ID"/,
   );
   assert.match(
     source,
-    /recover_exact_failed_webui_follower_v2\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+test -z "\$FAILED_RECOVERY_V2_RUN_ID"/,
+    /recover_exact_failed_webui_follower_v2\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+test -z "\$FAILED_RECOVERY_V2_RUN_ID\$FAILED_RECOVERY_V3_RUN_ID"/,
   );
   assert.match(
     source,
     /recover_exact_failed_webui_follower_v3\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V2_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]/,
+  );
+  assert.match(
+    source,
+    /recover_exact_failed_webui_follower_v4\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V2_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V3_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]/,
   );
   assert.equal(
     workflow.concurrency.group,
@@ -388,11 +405,63 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'OPL image seed contains broken symlinks:',
     'failed recovery v1 ${FAILED_RECOVERY_RUN_ID}',
     'failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID}',
+    'failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID}',
     'failed-recovery-jobs.json',
     '"failure_code": "opl_seed_payload_symlink_forbidden"',
     '"path": "/opt/opl/seed/payload/codex_cli/bin/codex"',
     '($matches | length) == 1',
+    'expected one exact nested OPL Flow currentness error',
+    '.total_count == 3',
+    'failed-recovery-v3-artifacts.json',
   ]) assert.match(source, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  for (const binding of [
+    'failed_recovery_v3_run_id',
+    '--webui-recovery-failed-v3-run-id',
+  ]) assert.match(carrierSource, new RegExp(binding));
+  for (const binding of [
+    "'webui-recovery-failed-v3-run-id': { type: 'string' }",
+    'failed_recovery_v3_run_id',
+  ]) assert.match(adapterSource, new RegExp(binding.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+
+  const parserMatch = source.match(
+    /node - "\$\{failed_recovery_v2_logs\[0\]\}" <<'NODE'\n([\s\S]*?)\n\s+NODE/,
+  );
+  assert.ok(parserMatch, 'the recovery workflow must embed the nested typed-error parser');
+  const parserRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-recovery-parser-'));
+  try {
+    const typedError = {
+      version: 'g2',
+      error: {
+        code: 'contract_shape_invalid',
+        message: 'OPL Flow native carrier did not reach the exact owner Package target.',
+        exit_code: 3,
+        details: {
+          package_id: 'opl-flow',
+          target_version: '0.1.35',
+          failure_code: 'configured_codex_plugin_carrier_target_currentness_mismatch',
+        },
+      },
+    };
+    const logPath = path.join(parserRoot, 'container.log');
+    fs.writeFileSync(logPath, `prefix\n${JSON.stringify({
+      error: { message: `${JSON.stringify(typedError, null, 2)}\n(node:1) warning` },
+    }, null, 2)}\nsuffix\n`);
+    const accepted = spawnSync(process.execPath, ['-', logPath], {
+      input: parserMatch[1],
+      encoding: 'utf8',
+    });
+    assert.equal(accepted.status, 0, accepted.stderr);
+
+    typedError.error.details.target_version = '0.1.34';
+    fs.writeFileSync(logPath, JSON.stringify({ error: { message: JSON.stringify(typedError) } }));
+    const rejected = spawnSync(process.execPath, ['-', logPath], {
+      input: parserMatch[1],
+      encoding: 'utf8',
+    });
+    assert.notEqual(rejected.status, 0);
+  } finally {
+    fs.rmSync(parserRoot, { recursive: true, force: true });
+  }
   for (const jobId of ['webui-carrier', 'promote-webui-stable']) {
     assert.equal(
       isAuthorizedFollowerRecoveryWriteJob(
@@ -453,7 +522,7 @@ test('contract separates Stable qualification from carrier Latest selection', ()
   assert.equal(contract.stable_promotion_requires.applies_to, 'production_follower_only');
   assert.deepEqual(contract.stable_promotion_requires.requires, [
     'successful_stable_authority_run_after_latest_activation',
-    'workflow_run_follower_or_exact_generation3_recovery_bound_to_that_stable_authority',
+    'workflow_run_follower_or_exact_generation4_recovery_bound_to_that_stable_authority',
     'unique_successful_carrier_follower_job',
     'qualified_webui_carrier_receipt',
     'immutable_version_digest',
@@ -467,17 +536,19 @@ test('contract separates Stable qualification from carrier Latest selection', ()
     'failed_follower_run_id',
     'failed_recovery_run_id',
     'failed_recovery_v2_run_id',
+    'failed_recovery_v3_run_id',
     'recovery_confirmation',
   ]);
-  assert.equal(recovery.recovery_generation, 3);
-  assert.deepEqual(recovery.consumed_recovery_generations, [1, 2]);
-  assert.equal(recovery.confirmation, 'recover_exact_failed_webui_follower_v3');
+  assert.equal(recovery.recovery_generation, 4);
+  assert.deepEqual(recovery.consumed_recovery_generations, [1, 2, 3]);
+  assert.equal(recovery.confirmation, 'recover_exact_failed_webui_follower_v4');
   assert.equal(recovery.legacy_confirmation, 'recover_exact_failed_webui_follower_v1');
   assert.equal(recovery.consumed_confirmation, 'recover_exact_failed_webui_follower_v2');
   assert.equal(recovery.failed_public_mutation_count_required, 0);
   assert.equal(recovery.failed_recovery_public_mutation_count_required, 0);
   assert.equal(recovery.failed_recovery_v2_public_mutation_count_required, 0);
-  assert.equal(recovery.same_identity_recovery_v3_run_count_required, 1);
+  assert.equal(recovery.failed_recovery_v3_public_mutation_count_required, 0);
+  assert.equal(recovery.same_identity_recovery_v4_run_count_required, 1);
   assert.equal(recovery.framework_recovery_authority_schema, 'opl_app_webui_framework_recovery_authority.v1');
   assert.equal(recovery.stable_bundle_identity_rewritten, false);
   assert.equal(recovery.recovery_framework_must_contain_fix, '95640c74e0b14ba2e88056de725c417fd1693cf1');

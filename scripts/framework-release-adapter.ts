@@ -521,6 +521,7 @@ function parseCommon(argv: string[]) {
       'webui-recovery-failed-follower-run-id': { type: 'string' },
       'webui-recovery-failed-v1-run-id': { type: 'string' },
       'webui-recovery-failed-v2-run-id': { type: 'string' },
+      'webui-recovery-failed-v3-run-id': { type: 'string' },
       'webui-recovery-executor-app-sha': { type: 'string' },
     },
     allowPositionals: true,
@@ -828,8 +829,12 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
     'webui-recovery-failed-v2-run-id',
     'webui-recovery-executor-app-sha',
   ] as const;
+  const recoveryV3RunId = values['webui-recovery-failed-v3-run-id'];
   const presentRecoveryKeys = recoveryKeys.filter((key) => values[key] !== undefined);
-  if (presentRecoveryKeys.length !== 0 && presentRecoveryKeys.length !== recoveryKeys.length) {
+  if (
+    (presentRecoveryKeys.length !== 0 && presentRecoveryKeys.length !== recoveryKeys.length)
+    || (recoveryV3RunId !== undefined && presentRecoveryKeys.length !== recoveryKeys.length)
+  ) {
     throw new Error('WebUI production recovery authority requires every exact recovery binding.');
   }
   const recoveryFrameworkRef = gitSha(frameworkRoot);
@@ -843,6 +848,9 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
       failed_follower_run_id: requireOption(values, 'webui-recovery-failed-follower-run-id'),
       failed_recovery_v1_run_id: requireOption(values, 'webui-recovery-failed-v1-run-id'),
       failed_recovery_v2_run_id: requireOption(values, 'webui-recovery-failed-v2-run-id'),
+      ...(recoveryV3RunId === undefined
+        ? {}
+        : { failed_recovery_v3_run_id: recoveryV3RunId }),
     };
     if (
       stableFrameworkRef !== cohort.framework_sha
@@ -860,6 +868,9 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
       failed_follower_run_id: recoveryRunIds.failed_follower_run_id,
       failed_recovery_v1_run_id: recoveryRunIds.failed_recovery_v1_run_id,
       failed_recovery_v2_run_id: recoveryRunIds.failed_recovery_v2_run_id,
+      ...(recoveryV3RunId === undefined
+        ? {}
+        : { failed_recovery_v3_run_id: recoveryV3RunId }),
       release: {
         version: release.version,
         bundle_digest: release.bundle_digest,
