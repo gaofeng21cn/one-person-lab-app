@@ -238,6 +238,7 @@ test('Stable Standard publication binds one Desktop carrier without a retired Na
     'failed_recovery_run_id',
     'failed_recovery_v2_run_id',
     'failed_recovery_v3_run_id',
+    'failed_recovery_v4_run_id',
     'recovery_confirmation',
   ]);
   assert.equal(follower.on.workflow_dispatch.inputs.failed_recovery_run_id.required, false);
@@ -246,21 +247,27 @@ test('Stable Standard publication binds one Desktop carrier without a retired Na
   assert.equal(follower.on.workflow_dispatch.inputs.failed_recovery_v2_run_id.type, 'string');
   assert.equal(follower.on.workflow_dispatch.inputs.failed_recovery_v3_run_id.required, false);
   assert.equal(follower.on.workflow_dispatch.inputs.failed_recovery_v3_run_id.type, 'string');
+  assert.equal(follower.on.workflow_dispatch.inputs.failed_recovery_v4_run_id.required, false);
+  assert.equal(follower.on.workflow_dispatch.inputs.failed_recovery_v4_run_id.type, 'string');
   assert.deepEqual(follower.on.workflow_dispatch.inputs.recovery_confirmation.options, [
     'recover_exact_failed_webui_follower_v1',
     'recover_exact_failed_webui_follower_v2',
     'recover_exact_failed_webui_follower_v3',
     'recover_exact_failed_webui_follower_v4',
+    'recover_exact_failed_webui_follower_v5',
   ]);
   assert.match(followerSource, /\.total_count == 5/);
   assert.match(followerSource, /promote-webui-stable" and \.conclusion == "skipped"/);
   assert.match(followerSource, /failed recovery v1 \$\{FAILED_RECOVERY_RUN_ID\}/);
   assert.match(followerSource, /failed recovery v2 \$\{FAILED_RECOVERY_V2_RUN_ID\}/);
   assert.match(followerSource, /failed recovery v3 \$\{FAILED_RECOVERY_V3_RUN_ID\}/);
+  assert.match(followerSource, /failed recovery v4 \$\{FAILED_RECOVERY_V4_RUN_ID\}/);
   assert.match(followerSource, /opl_seed_payload_symlink_forbidden/);
   assert.match(followerSource, /expected one exact nested OPL Flow currentness error/);
   assert.match(followerSource, /\.total_count == 3/);
   assert.match(followerSource, /failed-recovery-v3-artifacts\.json/);
+  assert.match(followerSource, /failed-recovery-v4-artifacts\.json/);
+  assert.match(followerSource, /fatal: Not a valid commit name 95640c74e0b14ba2e88056de725c417fd1693cf1/);
   assert.match(followerSource, /runs\?event=workflow_dispatch&per_page=100/);
   assert.equal(follower.jobs['webui-carrier'].needs[0], 'resolve-handoff');
   assert.deepEqual(

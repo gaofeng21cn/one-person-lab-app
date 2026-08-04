@@ -522,6 +522,7 @@ function parseCommon(argv: string[]) {
       'webui-recovery-failed-v1-run-id': { type: 'string' },
       'webui-recovery-failed-v2-run-id': { type: 'string' },
       'webui-recovery-failed-v3-run-id': { type: 'string' },
+      'webui-recovery-failed-v4-run-id': { type: 'string' },
       'webui-recovery-executor-app-sha': { type: 'string' },
     },
     allowPositionals: true,
@@ -830,10 +831,12 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
     'webui-recovery-executor-app-sha',
   ] as const;
   const recoveryV3RunId = values['webui-recovery-failed-v3-run-id'];
+  const recoveryV4RunId = values['webui-recovery-failed-v4-run-id'];
   const presentRecoveryKeys = recoveryKeys.filter((key) => values[key] !== undefined);
   if (
     (presentRecoveryKeys.length !== 0 && presentRecoveryKeys.length !== recoveryKeys.length)
     || (recoveryV3RunId !== undefined && presentRecoveryKeys.length !== recoveryKeys.length)
+    || (recoveryV4RunId !== undefined && recoveryV3RunId === undefined)
   ) {
     throw new Error('WebUI production recovery authority requires every exact recovery binding.');
   }
@@ -851,6 +854,9 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
       ...(recoveryV3RunId === undefined
         ? {}
         : { failed_recovery_v3_run_id: recoveryV3RunId }),
+      ...(recoveryV4RunId === undefined
+        ? {}
+        : { failed_recovery_v4_run_id: recoveryV4RunId }),
     };
     if (
       stableFrameworkRef !== cohort.framework_sha
@@ -871,6 +877,9 @@ function buildWebuiBuildInput(values: AdapterOptionValues): JsonRecord {
       ...(recoveryV3RunId === undefined
         ? {}
         : { failed_recovery_v3_run_id: recoveryV3RunId }),
+      ...(recoveryV4RunId === undefined
+        ? {}
+        : { failed_recovery_v4_run_id: recoveryV4RunId }),
       release: {
         version: release.version,
         bundle_digest: release.bundle_digest,
