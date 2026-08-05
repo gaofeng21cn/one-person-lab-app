@@ -617,15 +617,30 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
   assert.equal(inputs.standard_identity_sha256.required, false);
   assert.equal(inputs.source_authority_artifact_name.type, 'string');
   assert.equal(inputs.source_authority_artifact_name.required, false);
+  assert.equal(inputs.failed_recovery_v8_run_id.type, 'string');
+  assert.equal(inputs.failed_recovery_v8_run_id.required, false);
+  assert.equal(inputs.qualified_artifact_run_id.type, 'string');
+  assert.equal(inputs.qualified_artifact_run_id.required, false);
+  assert.equal(inputs.qualified_artifact_name.type, 'string');
+  assert.equal(inputs.qualified_artifact_name.required, false);
   assert.equal(inputs.frozen_codex_artifact_name, undefined);
   assert.equal(inputs.frozen_build_input_json, undefined);
   assert.equal(build.needs, undefined, 'WebUI build must not depend on Desktop');
+  assert.equal(build.if, "${{ inputs.mode == 'execute' && inputs.qualified_artifact_run_id == '' }}");
   assert.equal(publish.needs, 'build-and-qualify');
+  assert.equal(
+    publish.if,
+    "${{ always()\n"
+      + "  && inputs.mode == 'execute'\n"
+      + "  && ((inputs.qualified_artifact_run_id == '' && needs.build-and-qualify.result == 'success')\n"
+      + "  || (inputs.qualified_artifact_run_id != '' && needs.build-and-qualify.result == 'skipped')) }}",
+  );
   assert.equal(
     publish.environment,
     "${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}",
   );
   assert.equal(publish.permissions.packages, 'write');
+  assert.equal(publish.permissions.actions, 'read');
   assert.equal(build.permissions.actions, 'read');
   assert.equal(build.permissions.packages, 'read');
   const productionPublishCheckout = publish.steps.find(
@@ -644,6 +659,19 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
     "${{ inputs.authority_mode == 'development_validation' || inputs.authority_mode == 'independent_preview' || inputs.production_recovery }}",
   );
   assert.equal(previewPublishCheckout.with.ref, '${{ github.sha }}');
+  const recoveryAuthority = publish.steps.find(
+    (step: { name?: string }) => step.name === 'Validate exact qualified artifact recovery authority',
+  );
+  assert.equal(recoveryAuthority.if, "${{ inputs.qualified_artifact_run_id != '' }}");
+  assert.match(recoveryAuthority.run, /inputs\.qualified_artifact_run_id/);
+  assert.match(recoveryAuthority.run, /inputs\.failed_recovery_v8_run_id/);
+  assert.match(recoveryAuthority.run, /webui-qualified-\$\{\{ inputs\.opl_version \}\}-\$\{\{ inputs\.qualified_artifact_run_id \}\}-1/);
+  const qualifiedDownload = publish.steps.find(
+    (step: { name?: string }) => step.name === 'Download exact qualified image evidence',
+  );
+  assert.equal(qualifiedDownload.with.name, '${{ inputs.qualified_artifact_name || needs.build-and-qualify.outputs.image_artifact_name }}');
+  assert.equal(qualifiedDownload.with['run-id'], '${{ inputs.qualified_artifact_run_id || github.run_id }}');
+  assert.equal(qualifiedDownload.with['github-token'], '${{ github.token }}');
   assert.doesNotMatch(source, /one-person-lab-webui:stable/);
   assert.doesNotMatch(source, /latest-stable|homebrew|releases\/latest/i);
 
@@ -791,7 +819,7 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
     (step: { name?: string }) => step.name === 'Download exact independent WebUI source authority',
   );
 
-  assert.deepEqual(publish.permissions, { contents: 'read', packages: 'write' });
+  assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read', packages: 'write' });
   assert.equal(build.permissions.actions, 'read');
   assert.ok(receiptIndex >= 0 && receiptIndex < sidecarIndex);
   assert.equal(setupOras.uses, 'oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6');
@@ -825,7 +853,7 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
   assert.match(sidecar.run, /--source-authority "\$source_authority_path"/);
   assert.match(sidecar.run, /source_authority_path='webui-carrier\/source-authority\.json'/);
   assert.match(sidecar.run, /test -f "\$source_authority_path" && test ! -L "\$source_authority_path"/);
-  assert.deepEqual(publish.permissions, { contents: 'read', packages: 'write' });
+  assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read', packages: 'write' });
   const repositoryValidationIndex = publish.steps.findIndex(
     (step: { name?: string }) => step.name === 'Validate exact GHCR repository before registry mutation',
   );

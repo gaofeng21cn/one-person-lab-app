@@ -367,6 +367,7 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'failed_recovery_v5_run_id',
     'failed_recovery_v6_run_id',
     'failed_recovery_v7_run_id',
+    'failed_recovery_v8_run_id',
     'recovery_confirmation',
   ]);
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_run_id.required, false);
@@ -383,6 +384,8 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v6_run_id.type, 'string');
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v7_run_id.required, false);
   assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v7_run_id.type, 'string');
+  assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v8_run_id.required, false);
+  assert.equal(workflow.on.workflow_dispatch.inputs.failed_recovery_v8_run_id.type, 'string');
   assert.deepEqual(workflow.on.workflow_dispatch.inputs.recovery_confirmation.options, [
     'recover_exact_failed_webui_follower_v1',
     'recover_exact_failed_webui_follower_v2',
@@ -392,6 +395,7 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'recover_exact_failed_webui_follower_v6',
     'recover_exact_failed_webui_follower_v7',
     'recover_exact_failed_webui_follower_v8',
+    'recover_exact_failed_webui_follower_v9',
   ]);
   const bindHandoffStep = workflow.jobs['resolve-handoff'].steps.find(
     (step: Record<string, unknown>) => step.name === 'Bind exact follower handoff',
@@ -401,13 +405,14 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
   assert.equal(bindHandoffStep.env.FAILED_RECOVERY_V5_RUN_ID, "${{ inputs.failed_recovery_v5_run_id || '' }}");
   assert.equal(bindHandoffStep.env.FAILED_RECOVERY_V6_RUN_ID, "${{ inputs.failed_recovery_v6_run_id || '' }}");
   assert.equal(bindHandoffStep.env.FAILED_RECOVERY_V7_RUN_ID, "${{ inputs.failed_recovery_v7_run_id || '' }}");
+  assert.equal(bindHandoffStep.env.FAILED_RECOVERY_V8_RUN_ID, "${{ inputs.failed_recovery_v8_run_id || '' }}");
   assert.match(
     source,
-    /recover_exact_failed_webui_follower_v1\)\s+test -z "\$FAILED_RECOVERY_RUN_ID\$FAILED_RECOVERY_V2_RUN_ID\$FAILED_RECOVERY_V3_RUN_ID\$FAILED_RECOVERY_V4_RUN_ID\$FAILED_RECOVERY_V5_RUN_ID\$FAILED_RECOVERY_V6_RUN_ID\$FAILED_RECOVERY_V7_RUN_ID"/,
+    /recover_exact_failed_webui_follower_v1\)\s+test -z "\$FAILED_RECOVERY_RUN_ID\$FAILED_RECOVERY_V2_RUN_ID\$FAILED_RECOVERY_V3_RUN_ID\$FAILED_RECOVERY_V4_RUN_ID\$FAILED_RECOVERY_V5_RUN_ID\$FAILED_RECOVERY_V6_RUN_ID\$FAILED_RECOVERY_V7_RUN_ID\$FAILED_RECOVERY_V8_RUN_ID"/,
   );
   assert.match(
     source,
-    /recover_exact_failed_webui_follower_v2\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+test -z "\$FAILED_RECOVERY_V2_RUN_ID\$FAILED_RECOVERY_V3_RUN_ID\$FAILED_RECOVERY_V4_RUN_ID\$FAILED_RECOVERY_V5_RUN_ID\$FAILED_RECOVERY_V6_RUN_ID\$FAILED_RECOVERY_V7_RUN_ID"/,
+    /recover_exact_failed_webui_follower_v2\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+test -z "\$FAILED_RECOVERY_V2_RUN_ID\$FAILED_RECOVERY_V3_RUN_ID\$FAILED_RECOVERY_V4_RUN_ID\$FAILED_RECOVERY_V5_RUN_ID\$FAILED_RECOVERY_V6_RUN_ID\$FAILED_RECOVERY_V7_RUN_ID\$FAILED_RECOVERY_V8_RUN_ID"/,
   );
   assert.match(
     source,
@@ -433,9 +438,25 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     source,
     /recover_exact_failed_webui_follower_v8\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V2_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V3_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V4_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V5_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V6_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]\s+\[\[ "\$FAILED_RECOVERY_V7_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]/,
   );
+  assert.match(
+    source,
+    /recover_exact_failed_webui_follower_v9\)\s+\[\[ "\$FAILED_RECOVERY_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\][\s\S]*?\[\[ "\$FAILED_RECOVERY_V8_RUN_ID" =~ \^\[1-9\]\[0-9\]\*\$ \]\]/,
+  );
   assert.equal(
     workflow.concurrency.group,
     "opl-webui-stable-follower-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}",
+  );
+  assert.equal(
+    workflow.jobs['webui-carrier'].with.failed_recovery_v8_run_id,
+    "${{ inputs.failed_recovery_v8_run_id || '' }}",
+  );
+  assert.equal(
+    workflow.jobs['webui-carrier'].with.qualified_artifact_run_id,
+    '${{ needs.resolve-handoff.outputs.qualified_artifact_run_id }}',
+  );
+  assert.equal(
+    workflow.jobs['webui-carrier'].with.qualified_artifact_name,
+    '${{ needs.resolve-handoff.outputs.qualified_artifact_name }}',
   );
   for (const required of [
     '.total_count == 5',
@@ -450,6 +471,7 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID}',
     'failed recovery v6 ${FAILED_RECOVERY_V6_RUN_ID}',
     'failed recovery v7 ${FAILED_RECOVERY_V7_RUN_ID}',
+    'failed recovery v8 ${FAILED_RECOVERY_V8_RUN_ID}',
     'failed-recovery-jobs.json',
     '"failure_code": "opl_seed_payload_symlink_forbidden"',
     '"path": "/opt/opl/seed/payload/codex_cli/bin/codex"',
@@ -461,6 +483,10 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'failed-recovery-v5-artifacts.json',
     'failed-recovery-v6-artifacts.json',
     'failed-recovery-v7-artifacts.json',
+    'failed-recovery-v8-artifacts.json',
+    'webui-sidecar-reconcile-26.8.4-',
+    'Error: absolute file path detected.',
+    'sha256:44eb5268eeb16ca2362d46515da59c3db6ae5537fd9bd69ec42b6845618eed23',
     'fatal: Not a valid commit name 95640c74e0b14ba2e88056de725c417fd1693cf1',
     'FAILED_RECOVERY_V4_RUN_ID: unbound variable',
     'expected one exact nested OPL Flow carrier owner descriptor error',
@@ -480,6 +506,9 @@ test('WebUI follower preserves automatic delivery and admits only exact bounded 
     'failed_recovery_v7_run_id',
     '--webui-recovery-failed-v7-run-id',
   ]) assert.match(carrierSource, new RegExp(binding));
+  assert.match(carrierSource, /failed_recovery_v8_run_id/);
+  assert.match(carrierSource, /qualified_artifact_run_id/);
+  assert.match(carrierSource, /qualified_artifact_name/);
   assert.match(carrierSource, /repository: gaofeng21cn\/one-person-lab[\s\S]*?path: framework-source\s+fetch-depth: 0/);
   for (const binding of [
     "'webui-recovery-failed-v3-run-id': { type: 'string' }",
@@ -642,12 +671,12 @@ test('contract separates Stable qualification from carrier Latest selection', ()
   assert.equal(contract.stable_promotion_requires.applies_to, 'production_follower_only');
   assert.deepEqual(contract.stable_promotion_requires.requires, [
     'successful_stable_authority_run_after_latest_activation',
-    'workflow_run_follower_or_exact_generation8_recovery_bound_to_that_stable_authority',
+    'workflow_run_follower_or_exact_generation9_recovery_bound_to_that_stable_authority',
     'unique_successful_carrier_follower_job',
     'qualified_webui_carrier_receipt',
     'immutable_version_digest',
   ]);
-  assert.equal(promotion.schema, 'opl_app_webui_stable_promotion_contract.v5');
+  assert.equal(promotion.schema, 'opl_app_webui_stable_promotion_contract.v6');
   assert.equal(promotion.writer_scope, 'single_ghcr_alias_writer_for_stable_and_latest');
   assert.deepEqual(promotion.task_modes.production_release.promotion_tags, ['stable', 'latest']);
   assert.equal(promotion.task_modes.production_release.desktop_latest_required, true);
@@ -661,11 +690,12 @@ test('contract separates Stable qualification from carrier Latest selection', ()
     'failed_recovery_v5_run_id',
     'failed_recovery_v6_run_id',
     'failed_recovery_v7_run_id',
+    'failed_recovery_v8_run_id',
     'recovery_confirmation',
   ]);
-  assert.equal(recovery.recovery_generation, 8);
-  assert.deepEqual(recovery.consumed_recovery_generations, [1, 2, 3, 4, 5, 6, 7]);
-  assert.equal(recovery.confirmation, 'recover_exact_failed_webui_follower_v8');
+  assert.equal(recovery.recovery_generation, 9);
+  assert.deepEqual(recovery.consumed_recovery_generations, [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(recovery.confirmation, 'recover_exact_failed_webui_follower_v9');
   assert.equal(recovery.legacy_confirmation, 'recover_exact_failed_webui_follower_v1');
   assert.equal(recovery.consumed_confirmation, 'recover_exact_failed_webui_follower_v2');
   assert.equal(recovery.failed_public_mutation_count_required, 0);
@@ -676,7 +706,14 @@ test('contract separates Stable qualification from carrier Latest selection', ()
   assert.equal(recovery.failed_recovery_v5_public_mutation_count_required, 0);
   assert.equal(recovery.failed_recovery_v6_public_mutation_count_required, 0);
   assert.equal(recovery.failed_recovery_v7_public_mutation_count_required, 0);
-  assert.equal(recovery.same_identity_recovery_v8_run_count_required, 1);
+  assert.equal(recovery.failed_recovery_v8_moving_channel_mutation_count_required, 0);
+  assert.equal(recovery.failed_recovery_v8_durable_sidecar_count_required, 0);
+  assert.equal(recovery.failed_recovery_v8_immutable_version_digest, 'sha256:caff36778d8e39ca23682445d8734d6c335ed01e337e9e86dbba9e56657db501');
+  assert.equal(recovery.recovery_v9_qualified_artifact_run_id, '30957022809');
+  assert.equal(recovery.recovery_v9_qualified_artifact_id, '8911730316');
+  assert.equal(recovery.recovery_v9_qualified_artifact_digest, 'sha256:44eb5268eeb16ca2362d46515da59c3db6ae5537fd9bd69ec42b6845618eed23');
+  assert.equal(recovery.recovery_v9_artifact_rebuild_allowed, false);
+  assert.equal(recovery.same_identity_recovery_v9_run_count_required, 1);
   assert.equal(recovery.framework_recovery_authority_schema, 'opl_app_webui_framework_recovery_authority.v1');
   assert.equal(recovery.stable_bundle_identity_rewritten, false);
   assert.equal(recovery.recovery_framework_must_contain_fix, '95640c74e0b14ba2e88056de725c417fd1693cf1');

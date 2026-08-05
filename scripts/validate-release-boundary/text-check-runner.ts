@@ -19,7 +19,7 @@ const exactWebUiCompileCeilingPermissions = {
   packages: 'write',
 } as const;
 const exactStableStandardPermissions = { contents: 'write', actions: 'read' } as const;
-const exactWebUiPublishPermissions = { contents: 'read', packages: 'write' } as const;
+const exactWebUiPublishPermissions = { actions: 'read', contents: 'read', packages: 'write' } as const;
 const manualPreviewWorkflowPath = '.github/workflows/release-manual-preview.yml';
 const manualFullPreviewWorkflowPath = '.github/workflows/release-manual-full-preview.yml';
 const manualFullPreviewMutationJob = 'mutate';
@@ -33,6 +33,12 @@ const webuiStablePromotionMutationJob = 'promote-webui-stable';
 const webuiFollowerWorkflowPath = '.github/workflows/release-webui-follower.yml';
 const webuiCarrierPublishEnvironment =
   "${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}";
+const webuiCarrierBuildIf =
+  "${{ inputs.mode == 'execute' && inputs.qualified_artifact_run_id == '' }}";
+const webuiCarrierPublishIf = "${{ always()\n"
+  + "  && inputs.mode == 'execute'\n"
+  + "  && ((inputs.qualified_artifact_run_id == '' && needs.build-and-qualify.result == 'success')\n"
+  + "  || (inputs.qualified_artifact_run_id != '' && needs.build-and-qualify.result == 'skipped')) }}";
 const webuiPromotionPublishEnvironment =
   "${{ needs.admission.outputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}";
 const webuiDevelopmentWorkflowPath = '.github/workflows/release-webui-development.yml';
@@ -308,8 +314,9 @@ export function isAuthorizedFollowerRecoveryWriteJob(
         'recover_exact_failed_webui_follower_v6',
         'recover_exact_failed_webui_follower_v7',
         'recover_exact_failed_webui_follower_v8',
+        'recover_exact_failed_webui_follower_v9',
       ],
-      ['failed_recovery_v2_run_id', 'failed_recovery_v3_run_id', 'failed_recovery_v4_run_id', 'failed_recovery_v5_run_id', 'failed_recovery_v6_run_id', 'failed_recovery_v7_run_id'],
+      ['failed_recovery_v2_run_id', 'failed_recovery_v3_run_id', 'failed_recovery_v4_run_id', 'failed_recovery_v5_run_id', 'failed_recovery_v6_run_id', 'failed_recovery_v7_run_id', 'failed_recovery_v8_run_id'],
       "opl-webui-stable-follower-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}",
     )) return false;
     if (jobId === 'webui-carrier') {
@@ -1013,8 +1020,9 @@ export function validateReleaseBundleTopology(appRoot: string): number {
           'recover_exact_failed_webui_follower_v6',
           'recover_exact_failed_webui_follower_v7',
           'recover_exact_failed_webui_follower_v8',
+          'recover_exact_failed_webui_follower_v9',
         ],
-        ['failed_recovery_v2_run_id', 'failed_recovery_v3_run_id', 'failed_recovery_v4_run_id', 'failed_recovery_v5_run_id', 'failed_recovery_v6_run_id', 'failed_recovery_v7_run_id'],
+        ['failed_recovery_v2_run_id', 'failed_recovery_v3_run_id', 'failed_recovery_v4_run_id', 'failed_recovery_v5_run_id', 'failed_recovery_v6_run_id', 'failed_recovery_v7_run_id', 'failed_recovery_v8_run_id'],
         "opl-webui-stable-follower-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}",
       ) ||
       !exactObject(webuiFollower.workflow.permissions, exactReadPermissions) ||
@@ -2208,15 +2216,15 @@ function validateWebUiCarrierCallee(
       !Array.isArray(startup.steps) || startup.steps.length === 0) {
     failures += reportFailure(id, 'WebUI carrier startup must be the only Canary-reachable job');
   }
-  if (!build || build.if !== "${{ inputs.mode == 'execute' }}" ||
+  if (!build || build.if !== webuiCarrierBuildIf ||
       !exactObject(build.permissions, exactWebUiReadPermissions)) {
     failures += reportFailure(id, 'WebUI build/qualification must be execute-only with exact read permissions');
   }
-  if (!publish || publish.if !== "${{ inputs.mode == 'execute' }}" ||
+  if (!publish || publish.if !== webuiCarrierPublishIf ||
       publish.needs !== 'build-and-qualify' ||
       publish.environment !== webuiCarrierPublishEnvironment ||
       !exactObject(publish.permissions, exactWebUiPublishPermissions)) {
-    failures += reportFailure(id, 'WebUI immutable publish must be execute-only, protected, and request only contents:read/packages:write');
+    failures += reportFailure(id, 'WebUI immutable publish must be execute-only, protected, and request only actions:read/contents:read/packages:write');
   }
   if (publish &&
       intersectPermission(callerPermissions, publish.permissions, 'packages') !==

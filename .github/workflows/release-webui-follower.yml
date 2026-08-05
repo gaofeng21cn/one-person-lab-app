@@ -1,6 +1,9 @@
 name: OPL WebUI Stable Follower
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
+    && inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v9'
+    && format('WebUI follower recovery v9 for Stable run {0} failed follower {1} failed recovery v1 {2} failed recovery v2 {3} failed recovery v3 {4} failed recovery v4 {5} failed recovery v5 {6} failed recovery v6 {7} failed recovery v7 {8} failed recovery v8 {9}', inputs.source_run_id, inputs.failed_follower_run_id, inputs.failed_recovery_run_id, inputs.failed_recovery_v2_run_id, inputs.failed_recovery_v3_run_id, inputs.failed_recovery_v4_run_id, inputs.failed_recovery_v5_run_id, inputs.failed_recovery_v6_run_id, inputs.failed_recovery_v7_run_id, inputs.failed_recovery_v8_run_id)
+    || github.event_name == 'workflow_dispatch'
     && inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v8'
     && format('WebUI follower recovery v8 for Stable run {0} failed follower {1} failed recovery v1 {2} failed recovery v2 {3} failed recovery v3 {4} failed recovery v4 {5} failed recovery v5 {6} failed recovery v6 {7} failed recovery v7 {8}', inputs.source_run_id, inputs.failed_follower_run_id, inputs.failed_recovery_run_id, inputs.failed_recovery_v2_run_id, inputs.failed_recovery_v3_run_id, inputs.failed_recovery_v4_run_id, inputs.failed_recovery_v5_run_id, inputs.failed_recovery_v6_run_id, inputs.failed_recovery_v7_run_id)
     || github.event_name == 'workflow_dispatch'
@@ -69,6 +72,10 @@ on:
         description: Exact failed WebUI follower recovery v7 run; required only for recovery v8
         required: false
         type: string
+      failed_recovery_v8_run_id:
+        description: Exact failed WebUI follower recovery v8 run after immutable version publication; required only for recovery v9
+        required: false
+        type: string
       recovery_confirmation:
         description: Confirm the exact bounded WebUI follower recovery generation
         required: true
@@ -82,6 +89,7 @@ on:
           - recover_exact_failed_webui_follower_v6
           - recover_exact_failed_webui_follower_v7
           - recover_exact_failed_webui_follower_v8
+          - recover_exact_failed_webui_follower_v9
 
 permissions:
   contents: read
@@ -106,7 +114,8 @@ jobs:
         || inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v5'
         || inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v6'
         || inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v7'
-        || inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v8')) }}
+        || inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v8'
+        || inputs.recovery_confirmation == 'recover_exact_failed_webui_follower_v9')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -127,6 +136,8 @@ jobs:
       production_recovery: ${{ steps.handoff.outputs.production_recovery }}
       stable_framework_ref: ${{ steps.handoff.outputs.stable_framework_ref }}
       recovery_authority_digest: ${{ steps.handoff.outputs.recovery_authority_digest }}
+      qualified_artifact_run_id: ${{ steps.handoff.outputs.qualified_artifact_run_id }}
+      qualified_artifact_name: ${{ steps.handoff.outputs.qualified_artifact_name }}
     steps:
       - name: Admit one successful canonical Stable authority run
         id: authority
@@ -141,6 +152,7 @@ jobs:
           FAILED_RECOVERY_V5_RUN_ID: ${{ inputs.failed_recovery_v5_run_id || '' }}
           FAILED_RECOVERY_V6_RUN_ID: ${{ inputs.failed_recovery_v6_run_id || '' }}
           FAILED_RECOVERY_V7_RUN_ID: ${{ inputs.failed_recovery_v7_run_id || '' }}
+          FAILED_RECOVERY_V8_RUN_ID: ${{ inputs.failed_recovery_v8_run_id || '' }}
           RECOVERY_CONFIRMATION: ${{ inputs.recovery_confirmation || '' }}
           TRIGGER_EVENT: ${{ github.event_name }}
         shell: bash
@@ -153,25 +165,25 @@ jobs:
             [[ "$FAILED_FOLLOWER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             case "$RECOVERY_CONFIRMATION" in
               recover_exact_failed_webui_follower_v1)
-                test -z "$FAILED_RECOVERY_RUN_ID$FAILED_RECOVERY_V2_RUN_ID$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_RUN_ID$FAILED_RECOVERY_V2_RUN_ID$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v1 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v2)
                 [[ "$FAILED_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-                test -z "$FAILED_RECOVERY_V2_RUN_ID$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_V2_RUN_ID$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v2 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v3)
                 [[ "$FAILED_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-                test -z "$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v3 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v4)
                 [[ "$FAILED_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V3_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-                test -z "$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v4 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v5)
@@ -179,7 +191,7 @@ jobs:
                 [[ "$FAILED_RECOVERY_V2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V3_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V4_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-                test -z "$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v5 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v6)
@@ -188,7 +200,7 @@ jobs:
                 [[ "$FAILED_RECOVERY_V3_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V4_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V5_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-                test -z "$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v6 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v7)
@@ -198,7 +210,7 @@ jobs:
                 [[ "$FAILED_RECOVERY_V4_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V5_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V6_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-                test -z "$FAILED_RECOVERY_V7_RUN_ID"
+                test -z "$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v7 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID} failed recovery v6 ${FAILED_RECOVERY_V6_RUN_ID}"
                 ;;
               recover_exact_failed_webui_follower_v8)
@@ -209,7 +221,19 @@ jobs:
                 [[ "$FAILED_RECOVERY_V5_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V6_RUN_ID" =~ ^[1-9][0-9]*$ ]]
                 [[ "$FAILED_RECOVERY_V7_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                test -z "$FAILED_RECOVERY_V8_RUN_ID"
                 recovery_title="WebUI follower recovery v8 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID} failed recovery v6 ${FAILED_RECOVERY_V6_RUN_ID} failed recovery v7 ${FAILED_RECOVERY_V7_RUN_ID}"
+                ;;
+              recover_exact_failed_webui_follower_v9)
+                [[ "$FAILED_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V3_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V4_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V5_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V6_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V7_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                [[ "$FAILED_RECOVERY_V8_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+                recovery_title="WebUI follower recovery v9 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID} failed recovery v6 ${FAILED_RECOVERY_V6_RUN_ID} failed recovery v7 ${FAILED_RECOVERY_V7_RUN_ID} failed recovery v8 ${FAILED_RECOVERY_V8_RUN_ID}"
                 ;;
               *)
                 echo "::error::Unknown WebUI follower recovery confirmation."
@@ -270,7 +294,8 @@ jobs:
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v5 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v6 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_title="WebUI follower recovery v1 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_RUN_ID" > failed-recovery-run.json
               jq -e \
@@ -332,7 +357,8 @@ jobs:
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v5 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v6 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_v2_title="WebUI follower recovery v2 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V2_RUN_ID" \
                 > failed-recovery-v2-run.json
@@ -445,32 +471,35 @@ jobs:
           }
           NODE
 
-              gh api repos/gaofeng21cn/one-person-lab/commits/main > recovery-framework.json
-              recovery_framework_ref="$(jq -er '.sha | select(test("^[0-9a-f]{40}$"))' recovery-framework.json)"
-              gh api "repos/gaofeng21cn/one-person-lab/compare/95640c74e0b14ba2e88056de725c417fd1693cf1...${recovery_framework_ref}" \
-                > recovery-framework-fix-ancestry.json
-              jq -e '
-                (.status == "ahead" or .status == "identical")
-                and .behind_by == 0
-                and .merge_base_commit.sha == "95640c74e0b14ba2e88056de725c417fd1693cf1"
-              ' recovery-framework-fix-ancestry.json >/dev/null
-              if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-                || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
-                gh api "repos/gaofeng21cn/one-person-lab/compare/e9a5cc46766215e4e301d8a59fcaeffc2e00de7a...${recovery_framework_ref}" \
-                  > recovery-framework-flow-0135-bridge-ancestry.json
+              if [ "$RECOVERY_CONFIRMATION" != recover_exact_failed_webui_follower_v9 ]; then
+                gh api repos/gaofeng21cn/one-person-lab/commits/main > recovery-framework.json
+                recovery_framework_ref="$(jq -er '.sha | select(test("^[0-9a-f]{40}$"))' recovery-framework.json)"
+                gh api "repos/gaofeng21cn/one-person-lab/compare/95640c74e0b14ba2e88056de725c417fd1693cf1...${recovery_framework_ref}" \
+                  > recovery-framework-fix-ancestry.json
                 jq -e '
                   (.status == "ahead" or .status == "identical")
                   and .behind_by == 0
-                  and .merge_base_commit.sha == "e9a5cc46766215e4e301d8a59fcaeffc2e00de7a"
-                ' recovery-framework-flow-0135-bridge-ancestry.json >/dev/null
+                  and .merge_base_commit.sha == "95640c74e0b14ba2e88056de725c417fd1693cf1"
+                ' recovery-framework-fix-ancestry.json >/dev/null
+                if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
+                  || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+                  gh api "repos/gaofeng21cn/one-person-lab/compare/e9a5cc46766215e4e301d8a59fcaeffc2e00de7a...${recovery_framework_ref}" \
+                    > recovery-framework-flow-0135-bridge-ancestry.json
+                  jq -e '
+                    (.status == "ahead" or .status == "identical")
+                    and .behind_by == 0
+                    and .merge_base_commit.sha == "e9a5cc46766215e4e301d8a59fcaeffc2e00de7a"
+                  ' recovery-framework-flow-0135-bridge-ancestry.json >/dev/null
+                fi
+                echo "recovery_framework_ref=$recovery_framework_ref" >> "$GITHUB_OUTPUT"
               fi
-              echo "recovery_framework_ref=$recovery_framework_ref" >> "$GITHUB_OUTPUT"
             fi
             if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v4 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v5 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v6 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_v3_title="WebUI follower recovery v3 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V3_RUN_ID" \
                 > failed-recovery-v3-run.json
@@ -515,7 +544,8 @@ jobs:
             if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v5 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v6 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_v4_title="WebUI follower recovery v4 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V4_RUN_ID" \
                 > failed-recovery-v4-run.json
@@ -562,7 +592,8 @@ jobs:
             fi
             if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v6 ] \
               || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_v5_title="WebUI follower recovery v5 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V5_RUN_ID" \
                 > failed-recovery-v5-run.json
@@ -604,7 +635,8 @@ jobs:
                 failed-recovery-v5-artifacts.json >/dev/null
             fi
             if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_v6_title="WebUI follower recovery v6 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V6_RUN_ID" \
                 > failed-recovery-v6-run.json
@@ -722,7 +754,8 @@ jobs:
               grep -F '[opl-webui-entrypoint] ERROR: Official Profile first-install failed with status 1' \
                 "$failed_recovery_v6_log" >/dev/null
             fi
-            if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+            if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+              || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
               failed_recovery_v7_title="WebUI follower recovery v7 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID} failed recovery v6 ${FAILED_RECOVERY_V6_RUN_ID}"
               gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V7_RUN_ID" \
                 > failed-recovery-v7-run.json
@@ -762,6 +795,147 @@ jobs:
               jq -e '[.[]?.artifacts[]? | select(.expired == false)] | length == 0' \
                 failed-recovery-v7-artifacts.json >/dev/null
             fi
+            if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
+              failed_recovery_v8_title="WebUI follower recovery v8 for Stable run ${STABLE_AUTHORITY_RUN_ID} failed follower ${FAILED_FOLLOWER_RUN_ID} failed recovery v1 ${FAILED_RECOVERY_RUN_ID} failed recovery v2 ${FAILED_RECOVERY_V2_RUN_ID} failed recovery v3 ${FAILED_RECOVERY_V3_RUN_ID} failed recovery v4 ${FAILED_RECOVERY_V4_RUN_ID} failed recovery v5 ${FAILED_RECOVERY_V5_RUN_ID} failed recovery v6 ${FAILED_RECOVERY_V6_RUN_ID} failed recovery v7 ${FAILED_RECOVERY_V7_RUN_ID}"
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V8_RUN_ID" \
+                > failed-recovery-v8-run.json
+              jq -e \
+                --arg run "$FAILED_RECOVERY_V8_RUN_ID" \
+                --arg title "$failed_recovery_v8_title" '
+                  (.id | tostring) == $run
+                  and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+                  and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+                  and .path == ".github/workflows/release-webui-follower.yml"
+                  and .event == "workflow_dispatch"
+                  and .head_branch == "main"
+                  and .head_sha == "85d69499bf62dcc9c5ae7415c4c83d38c362b2ae"
+                  and .display_title == $title
+                  and .run_attempt == 1
+                  and .status == "completed"
+                  and .conclusion == "failure"
+                ' failed-recovery-v8-run.json >/dev/null
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V8_RUN_ID/jobs?per_page=100" \
+                > failed-recovery-v8-jobs.json
+              jq -e '
+                .total_count == 5
+                and ([.jobs[] | select(.name == "resolve-handoff" and .conclusion == "success")] | length == 1)
+                and ([.jobs[] | select(.name == "webui-carrier / build-and-qualify" and .conclusion == "success")] | length == 1)
+                and ([.jobs[] | select(.name == "webui-carrier / startup-canary" and .conclusion == "skipped")] | length == 1)
+                and ([.jobs[] | select(.name == "webui-carrier / publish-immutable-carrier" and .conclusion == "failure")] | length == 1)
+                and ([.jobs[] | select(.name == "promote-webui-stable" and .conclusion == "skipped")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Qualify exact local runtime before any registry tag is written" and .conclusion == "success")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Package qualified image and evidence for protected immutable publication" and .conclusion == "success")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Upload qualified image evidence" and .conclusion == "success")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Publish qualified candidate and CAS immutable version tag" and .conclusion == "success")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Write and verify exact carrier receipt" and .conclusion == "success")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Publish immutable durable carrier receipt sidecar" and .conclusion == "failure")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Stage exact carrier receipt evidence" and .conclusion == "skipped")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Upload immutable carrier receipt" and .conclusion == "skipped")] | length == 1)
+                and ([.jobs[].steps[]? | select(.name == "Preserve receipt sidecar reconcile evidence after failed publication" and .conclusion == "success")] | length == 1)
+              ' failed-recovery-v8-jobs.json >/dev/null
+              gh api --paginate --slurp \
+                "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_RECOVERY_V8_RUN_ID/artifacts?per_page=100" \
+                > failed-recovery-v8-artifacts.json
+              failed_recovery_v8_qualified_artifact_name="webui-qualified-26.8.4-${FAILED_RECOVERY_V8_RUN_ID}-1"
+              failed_recovery_v8_reconcile_artifact_name="webui-sidecar-reconcile-26.8.4-${FAILED_RECOVERY_V8_RUN_ID}-1"
+              jq -e \
+                --arg qualified "$failed_recovery_v8_qualified_artifact_name" \
+                --arg reconcile "$failed_recovery_v8_reconcile_artifact_name" '
+                  ([.[]?.artifacts[]? | select(.expired == false)] | length) == 2
+                  and ([.[]?.artifacts[]? | select(
+                    .id == 8911730316
+                    and .name == $qualified
+                    and .size_in_bytes == 1740223083
+                    and .digest == "sha256:44eb5268eeb16ca2362d46515da59c3db6ae5537fd9bd69ec42b6845618eed23"
+                  )] | length) == 1
+                  and ([.[]?.artifacts[]? | select(
+                    .id == 8911901173
+                    and .name == $reconcile
+                    and .size_in_bytes == 3284
+                    and .digest == "sha256:e4d5596ce90005fd1256477195b86b97eeb00ac7e60fbacbec7da3e8ad717b9d"
+                  )] | length) == 1
+                ' failed-recovery-v8-artifacts.json >/dev/null
+              gh run download "$FAILED_RECOVERY_V8_RUN_ID" \
+                --repo "$GITHUB_REPOSITORY" \
+                --name "$failed_recovery_v8_reconcile_artifact_name" \
+                --dir failed-recovery-v8-reconcile
+              test "$(find failed-recovery-v8-reconcile -type f | wc -l | tr -d ' ')" -eq 7
+              for file in \
+                receipt-sidecar-descriptor.json \
+                receipt-sidecar-lookup.stderr \
+                receipt-sidecar-push.txt \
+                receipt-sidecar-reconcile.json \
+                webui-publication-record-create.json \
+                webui-publication-record-verification.json \
+                webui-publication-record.json; do
+                test -f "failed-recovery-v8-reconcile/$file"
+                test ! -L "failed-recovery-v8-reconcile/$file"
+              done
+              test ! -s failed-recovery-v8-reconcile/receipt-sidecar-descriptor.json
+              grep -F 'receipt-26.8.4: not found' \
+                failed-recovery-v8-reconcile/receipt-sidecar-lookup.stderr >/dev/null
+              grep -F 'Error: absolute file path detected.' \
+                failed-recovery-v8-reconcile/receipt-sidecar-push.txt >/dev/null
+              grep -F '/webui-publication-record-sidecar/webui-publication-record.json' \
+                failed-recovery-v8-reconcile/receipt-sidecar-push.txt >/dev/null
+              record_path=failed-recovery-v8-reconcile/webui-publication-record.json
+              test "sha256:$(sha256sum "$record_path" | awk '{print $1}')" = \
+                sha256:1b2262f784576635b6c595501cade2e1f22d657abbf562c1ebbee9c1424da9cb
+              jq -e '
+                .schema == "opl_app_webui_publication_record.v1"
+                and .status == "published"
+                and .publication_id == "docker-webui:26.8.4@sha256:caff36778d8e39ca23682445d8734d6c335ed01e337e9e86dbba9e56657db501"
+                and .release == {
+                  version: "26.8.4",
+                  bundle_digest: "sha256:035c2dc0940c5163dd823eec1f4400a8045e2881b53163f4b00c0c1f0009f6d1",
+                  cohort_ref: "sha256:0badc4cedd63fd88bad380ead9b927ab3be59b06795a03747e9589687a6c68a7"
+                }
+                and .cohort == {
+                  app_sha: "aaf683f634f7d64345a90d1f0b34fd4a0e36e12d",
+                  shell_sha: "acf39e9221318846911b28e5b5d90111d9b70538",
+                  framework_sha: "398a81ef9f2614f38d796e10a3bc1a63a1e1171c"
+                }
+                and .image.repository == "ghcr.io/gaofeng21cn/one-person-lab-webui"
+                and .image.version_digest == "sha256:caff36778d8e39ca23682445d8734d6c335ed01e337e9e86dbba9e56657db501"
+                and .image.child_digest == "sha256:4403d7dc6aab45b1010ba5ac7d2e40048cb63c53b941cfaf995224cdffb0d7b4"
+                and .image.content_fingerprint == "sha256:94b34f8f6febe076144cfcd12ddc63fc6fc3c229859dcf12c2677ae2e563dd2a"
+                and .authority.mode == "production_follower"
+                and .authority.publication_workflow == ".github/workflows/release-webui-follower.yml"
+                and .authority.publication_run_id == "30957022809"
+                and .authority.publication_run_attempt == 1
+                and .authority.publication_executor_sha == "85d69499bf62dcc9c5ae7415c4c83d38c362b2ae"
+                and .authority.stable_authority_run_id == "30859273345"
+                and .qualification_disclosure.runtime_qualification.status == "passed"
+                and .qualification_disclosure.runtime_qualification.image_digest == "sha256:4403d7dc6aab45b1010ba5ac7d2e40048cb63c53b941cfaf995224cdffb0d7b4"
+                and .publication_record_digest == "sha256:f5a1b98969a0f48b226aa88710aa9ded79db2e8dabfc49553e7c6f80fc4c5daf"
+              ' "$record_path" >/dev/null
+              jq -e '
+                .status == "written"
+                and .publication_id == "docker-webui:26.8.4@sha256:caff36778d8e39ca23682445d8734d6c335ed01e337e9e86dbba9e56657db501"
+                and .receipt_ref == "ghcr.io/gaofeng21cn/one-person-lab-webui:receipt-26.8.4"
+                and .publication_record_digest == "sha256:f5a1b98969a0f48b226aa88710aa9ded79db2e8dabfc49553e7c6f80fc4c5daf"
+              ' failed-recovery-v8-reconcile/webui-publication-record-create.json >/dev/null
+              jq -e '
+                .status == "verified"
+                and .publication_id == "docker-webui:26.8.4@sha256:caff36778d8e39ca23682445d8734d6c335ed01e337e9e86dbba9e56657db501"
+                and .receipt_ref == "ghcr.io/gaofeng21cn/one-person-lab-webui:receipt-26.8.4"
+                and .publication_record_digest == "sha256:f5a1b98969a0f48b226aa88710aa9ded79db2e8dabfc49553e7c6f80fc4c5daf"
+              ' failed-recovery-v8-reconcile/webui-publication-record-verification.json >/dev/null
+              jq -e '
+                .schema == "opl_app_webui_receipt_sidecar_reconcile.v1"
+                and .status == "pending"
+                and .publication_outcome == "reconciled_after_unknown_write"
+                and .receipt_ref == "ghcr.io/gaofeng21cn/one-person-lab-webui:receipt-26.8.4"
+                and .expected_publication_record_sha256 == "sha256:1b2262f784576635b6c595501cade2e1f22d657abbf562c1ebbee9c1424da9cb"
+              ' failed-recovery-v8-reconcile/receipt-sidecar-reconcile.json >/dev/null
+              {
+                echo 'recovery_framework_ref=398a81ef9f2614f38d796e10a3bc1a63a1e1171c'
+                echo 'recovery_executor_ref=85d69499bf62dcc9c5ae7415c4c83d38c362b2ae'
+                echo 'prior_recovery_authority_digest=sha256:0badc4cedd63fd88bad380ead9b927ab3be59b06795a03747e9589687a6c68a7'
+                echo "qualified_artifact_run_id=$FAILED_RECOVERY_V8_RUN_ID"
+                echo "qualified_artifact_name=$failed_recovery_v8_qualified_artifact_name"
+              } >> "$GITHUB_OUTPUT"
+            fi
             gh api --paginate --slurp \
               "repos/$GITHUB_REPOSITORY/actions/workflows/release-webui-follower.yml/runs?event=workflow_dispatch&per_page=100" \
               > recovery-runs.json
@@ -781,7 +955,9 @@ jobs:
               --arg failed_recovery_v6_run "$FAILED_RECOVERY_V6_RUN_ID" \
               --arg failed_recovery_v6_title "${failed_recovery_v6_title:-}" \
               --arg failed_recovery_v7_run "$FAILED_RECOVERY_V7_RUN_ID" \
-              --arg failed_recovery_v7_title "${failed_recovery_v7_title:-}" '
+              --arg failed_recovery_v7_title "${failed_recovery_v7_title:-}" \
+              --arg failed_recovery_v8_run "$FAILED_RECOVERY_V8_RUN_ID" \
+              --arg failed_recovery_v8_title "${failed_recovery_v8_title:-}" '
               [.[]?.workflow_runs[]? | select(.display_title == $title)] as $matches
               | [.[]?.workflow_runs[]? | select(.display_title == $failed_recovery_title)] as $failed_recovery_matches
               | [.[]?.workflow_runs[]? | select(.display_title == $failed_recovery_v2_title)] as $failed_recovery_v2_matches
@@ -790,6 +966,7 @@ jobs:
               | [.[]?.workflow_runs[]? | select(.display_title == $failed_recovery_v5_title)] as $failed_recovery_v5_matches
               | [.[]?.workflow_runs[]? | select(.display_title == $failed_recovery_v6_title)] as $failed_recovery_v6_matches
               | [.[]?.workflow_runs[]? | select(.display_title == $failed_recovery_v7_title)] as $failed_recovery_v7_matches
+              | [.[]?.workflow_runs[]? | select(.display_title == $failed_recovery_v8_title)] as $failed_recovery_v8_matches
               | ($matches | length) == 1
               and (($matches[0].id | tostring) == $run)
               and $matches[0].run_attempt == 1
@@ -856,10 +1033,19 @@ jobs:
                   and $failed_recovery_v7_matches[0].run_attempt == 1
                 )
               )
+              and (
+                ($failed_recovery_v8_run == "" and ($failed_recovery_v8_matches | length) == 0)
+                or (
+                  $failed_recovery_v8_run != ""
+                  and ($failed_recovery_v8_matches | length) == 1
+                  and (($failed_recovery_v8_matches[0].id | tostring) == $failed_recovery_v8_run)
+                  and $failed_recovery_v8_matches[0].run_attempt == 1
+                )
+              )
             ' recovery-runs.json >/dev/null
           else
             test "$TRIGGER_EVENT" = workflow_run
-            test -z "$FAILED_FOLLOWER_RUN_ID$FAILED_RECOVERY_RUN_ID$FAILED_RECOVERY_V2_RUN_ID$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$RECOVERY_CONFIRMATION"
+            test -z "$FAILED_FOLLOWER_RUN_ID$FAILED_RECOVERY_RUN_ID$FAILED_RECOVERY_V2_RUN_ID$FAILED_RECOVERY_V3_RUN_ID$FAILED_RECOVERY_V4_RUN_ID$FAILED_RECOVERY_V5_RUN_ID$FAILED_RECOVERY_V6_RUN_ID$FAILED_RECOVERY_V7_RUN_ID$FAILED_RECOVERY_V8_RUN_ID$RECOVERY_CONFIRMATION"
           fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_AUTHORITY_RUN_ID" \
             > stable-authority-run.json
@@ -921,7 +1107,12 @@ jobs:
           FAILED_RECOVERY_V5_RUN_ID: ${{ inputs.failed_recovery_v5_run_id || '' }}
           FAILED_RECOVERY_V6_RUN_ID: ${{ inputs.failed_recovery_v6_run_id || '' }}
           FAILED_RECOVERY_V7_RUN_ID: ${{ inputs.failed_recovery_v7_run_id || '' }}
+          FAILED_RECOVERY_V8_RUN_ID: ${{ inputs.failed_recovery_v8_run_id || '' }}
           RECOVERY_FRAMEWORK_REF: ${{ steps.authority.outputs.recovery_framework_ref || '' }}
+          RECOVERY_EXECUTOR_REF: ${{ steps.authority.outputs.recovery_executor_ref || '' }}
+          PRIOR_RECOVERY_AUTHORITY_DIGEST: ${{ steps.authority.outputs.prior_recovery_authority_digest || '' }}
+          QUALIFIED_ARTIFACT_RUN_ID: ${{ steps.authority.outputs.qualified_artifact_run_id || '' }}
+          QUALIFIED_ARTIFACT_NAME: ${{ steps.authority.outputs.qualified_artifact_name || '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -979,15 +1170,23 @@ jobs:
           framework_ref="$stable_framework_ref"
           release_cohort_ref="$(jq -er .release.bundle_digest "$handoff")"
           recovery_authority_digest=''
+          recovery_executor_ref="$GITHUB_SHA"
           production_recovery=false
           if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v3 ] \
             || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v4 ] \
             || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v5 ] \
             || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v6 ] \
             || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v7 ] \
-            || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ]; then
+            || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v8 ] \
+            || [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
             [[ "$RECOVERY_FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
             test "$RECOVERY_FRAMEWORK_REF" != "$stable_framework_ref"
+            if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
+              [[ "$RECOVERY_EXECUTOR_REF" =~ ^[0-9a-f]{40}$ ]]
+              recovery_executor_ref="$RECOVERY_EXECUTOR_REF"
+            else
+              test -z "$RECOVERY_EXECUTOR_REF$PRIOR_RECOVERY_AUTHORITY_DIGEST$QUALIFIED_ARTIFACT_RUN_ID$QUALIFIED_ARTIFACT_NAME"
+            fi
             recovery_authority_core="$(jq -cnS \
               --arg stable_run "$STABLE_AUTHORITY_RUN_ID" \
               --arg failed_follower "$FAILED_FOLLOWER_RUN_ID" \
@@ -1003,7 +1202,7 @@ jobs:
               --arg app "$(jq -er .release.cohort.app_sha "$handoff")" \
               --arg shell "$(jq -er .release.cohort.shell_sha "$handoff")" \
               --arg stable_framework "$stable_framework_ref" \
-              --arg executor "$GITHUB_SHA" \
+              --arg executor "$recovery_executor_ref" \
               --arg recovery_framework "$RECOVERY_FRAMEWORK_REF" '
               ({
                 schema:"opl_app_webui_framework_recovery_authority.v1",
@@ -1023,11 +1222,17 @@ jobs:
               + (if $failed_v7 == "" then {} else {failed_recovery_v7_run_id:$failed_v7} end))
             ')"
             recovery_authority_digest="sha256:$(printf '%s' "$recovery_authority_core" | shasum -a 256 | awk '{print $1}')"
+            if [ "$RECOVERY_CONFIRMATION" = recover_exact_failed_webui_follower_v9 ]; then
+              test "$recovery_authority_digest" = "$PRIOR_RECOVERY_AUTHORITY_DIGEST"
+              test "$FAILED_RECOVERY_V8_RUN_ID" = "$QUALIFIED_ARTIFACT_RUN_ID"
+              test "$QUALIFIED_ARTIFACT_NAME" = \
+                "webui-qualified-$(jq -er .release.version "$handoff")-${FAILED_RECOVERY_V8_RUN_ID}-1"
+            fi
             framework_ref="$RECOVERY_FRAMEWORK_REF"
             release_cohort_ref="$recovery_authority_digest"
             production_recovery=true
           else
-            test -z "$RECOVERY_FRAMEWORK_REF"
+            test -z "$RECOVERY_FRAMEWORK_REF$RECOVERY_EXECUTOR_REF$PRIOR_RECOVERY_AUTHORITY_DIGEST$QUALIFIED_ARTIFACT_RUN_ID$QUALIFIED_ARTIFACT_NAME$FAILED_RECOVERY_V8_RUN_ID"
           fi
           {
             echo "eligible=true"
@@ -1044,6 +1249,8 @@ jobs:
             echo "release_cohort_ref=$release_cohort_ref"
             echo "production_recovery=$production_recovery"
             echo "recovery_authority_digest=$recovery_authority_digest"
+            echo "qualified_artifact_run_id=$QUALIFIED_ARTIFACT_RUN_ID"
+            echo "qualified_artifact_name=$QUALIFIED_ARTIFACT_NAME"
           } >> "$GITHUB_OUTPUT"
 
   webui-carrier:
@@ -1078,6 +1285,9 @@ jobs:
       failed_recovery_v5_run_id: ${{ inputs.failed_recovery_v5_run_id || '' }}
       failed_recovery_v6_run_id: ${{ inputs.failed_recovery_v6_run_id || '' }}
       failed_recovery_v7_run_id: ${{ inputs.failed_recovery_v7_run_id || '' }}
+      failed_recovery_v8_run_id: ${{ inputs.failed_recovery_v8_run_id || '' }}
+      qualified_artifact_run_id: ${{ needs.resolve-handoff.outputs.qualified_artifact_run_id }}
+      qualified_artifact_name: ${{ needs.resolve-handoff.outputs.qualified_artifact_name }}
 
   promote-webui-stable:
     if: ${{ needs.resolve-handoff.outputs.eligible == 'true' }}

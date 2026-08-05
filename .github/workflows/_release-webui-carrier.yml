@@ -117,6 +117,21 @@ on:
         type: string
         required: false
         default: ''
+      failed_recovery_v8_run_id:
+        description: Exact failed WebUI recovery v8 whose qualified image is reused by production recovery v9.
+        type: string
+        required: false
+        default: ''
+      qualified_artifact_run_id:
+        description: Exact prior failed publication run whose qualified image artifact is reused without rebuilding.
+        type: string
+        required: false
+        default: ''
+      qualified_artifact_name:
+        description: Exact qualified image artifact name from qualified_artifact_run_id.
+        type: string
+        required: false
+        default: ''
       image_repository:
         description: GHCR repository without a tag or digest.
         type: string
@@ -160,7 +175,7 @@ jobs:
           fi
 
   build-and-qualify:
-    if: ${{ inputs.mode == 'execute' }}
+    if: ${{ inputs.mode == 'execute' && inputs.qualified_artifact_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
@@ -709,12 +724,17 @@ jobs:
           retention-days: 7
 
   publish-immutable-carrier:
-    if: ${{ inputs.mode == 'execute' }}
+    if: >-
+      ${{ always()
+        && inputs.mode == 'execute'
+        && ((inputs.qualified_artifact_run_id == '' && needs.build-and-qualify.result == 'success')
+        || (inputs.qualified_artifact_run_id != '' && needs.build-and-qualify.result == 'skipped')) }}
     needs: build-and-qualify
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: ${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}
     permissions:
+      actions: read
       contents: read
       packages: write
     outputs:
@@ -736,10 +756,24 @@ jobs:
       - name: Setup ORAS for durable carrier receipt sidecar
         uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
 
+      - name: Validate exact qualified artifact recovery authority
+        if: ${{ inputs.qualified_artifact_run_id != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ inputs.authority_mode }}' = production_follower
+          test '${{ inputs.production_recovery }}' = true
+          [[ '${{ inputs.qualified_artifact_run_id }}' =~ ^[1-9][0-9]*$ ]]
+          test '${{ inputs.qualified_artifact_run_id }}' = '${{ inputs.failed_recovery_v8_run_id }}'
+          test '${{ inputs.qualified_artifact_name }}' = \
+            "webui-qualified-${{ inputs.opl_version }}-${{ inputs.qualified_artifact_run_id }}-1"
+
       - name: Download exact qualified image evidence
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
-          name: ${{ needs.build-and-qualify.outputs.image_artifact_name }}
+          name: ${{ inputs.qualified_artifact_name || needs.build-and-qualify.outputs.image_artifact_name }}
+          run-id: ${{ inputs.qualified_artifact_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           path: webui-carrier
 
       - name: Load locally qualified image

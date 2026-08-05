@@ -1426,7 +1426,7 @@ function validateWebuiGhcrImage(webuiImage) {
       'ghcr.io/gaofeng21cn/one-person-lab-webui:stable' ||
     webuiImage.stable_promotion?.manual_version_promotion_policy !==
       'manual_development_validation_may_advance_latest_after_exact_immutable_carrier_qualification_while_preserving_stable' ||
-    webuiImage.stable_promotion?.schema !== 'opl_app_webui_stable_promotion_contract.v5' ||
+    webuiImage.stable_promotion?.schema !== 'opl_app_webui_stable_promotion_contract.v6' ||
     webuiImage.stable_promotion?.admission_schema !==
       'opl_app_webui_stable_promotion_admission.v5' ||
     webuiImage.stable_promotion?.decision_schema !==
@@ -1464,6 +1464,48 @@ function validateWebuiGhcrImage(webuiImage) {
   ) {
     throw new Error('Docker/WebUI GHCR publishing must validate canonical manifest, seed metadata, full profile, and explicit Preview Latest boundaries');
   }
+  const webuiRecovery = webuiImage.stable_promotion.exact_failed_follower_recovery;
+  if (
+    webuiRecovery?.trigger !== 'workflow_dispatch'
+    || webuiRecovery?.recovery_generation !== 9
+    || webuiRecovery?.confirmation !== 'recover_exact_failed_webui_follower_v9'
+    || webuiRecovery?.failed_recovery_v8_moving_channel_mutation_count_required !== 0
+    || webuiRecovery?.failed_recovery_v8_durable_sidecar_count_required !== 0
+    || webuiRecovery?.failed_recovery_v8_immutable_version_digest !==
+      'sha256:caff36778d8e39ca23682445d8734d6c335ed01e337e9e86dbba9e56657db501'
+    || webuiRecovery?.recovery_v9_qualified_artifact_run_id !== '30957022809'
+    || webuiRecovery?.recovery_v9_qualified_artifact_id !== '8911730316'
+    || webuiRecovery?.recovery_v9_qualified_artifact_digest !==
+      'sha256:44eb5268eeb16ca2362d46515da59c3db6ae5537fd9bd69ec42b6845618eed23'
+    || webuiRecovery?.recovery_v9_artifact_rebuild_allowed !== false
+    || webuiRecovery?.same_identity_recovery_v9_run_count_required !== 1
+    || webuiRecovery?.automatic_workflow_run_route_preserved !== true
+    || webuiRecovery?.rerun_or_stable_redispatch_allowed !== false
+  ) {
+    throw new Error('Docker/WebUI recovery v9 must reuse the exact qualified v8 artifact without rebuilding or widening authority');
+  }
+  assertDeepEqualJson(
+    webuiRecovery.consumed_recovery_generations,
+    [1, 2, 3, 4, 5, 6, 7, 8],
+    'Docker/WebUI consumed recovery generations',
+  );
+  assertDeepEqualJson(
+    webuiRecovery.inputs,
+    [
+      'source_run_id',
+      'failed_follower_run_id',
+      'failed_recovery_run_id',
+      'failed_recovery_v2_run_id',
+      'failed_recovery_v3_run_id',
+      'failed_recovery_v4_run_id',
+      'failed_recovery_v5_run_id',
+      'failed_recovery_v6_run_id',
+      'failed_recovery_v7_run_id',
+      'failed_recovery_v8_run_id',
+      'recovery_confirmation',
+    ],
+    'Docker/WebUI recovery v9 inputs',
+  );
   assertDeepEqualJson(
     webuiImage.stable_promotion.task_modes.production_release.promotion_tags,
     ['stable', 'latest'],
