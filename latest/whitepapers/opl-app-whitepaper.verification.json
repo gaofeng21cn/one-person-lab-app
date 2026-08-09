@@ -1,7 +1,7 @@
 {
   "schema_version": "opl_whitepaper_artifact_verification.v2",
   "status": "whitepaper_artifact_verified",
-  "generated_at": "2026-07-13T01:06:21.068Z",
+  "generated_at": "2026-08-09T19:34:00.872Z",
   "publication_date": "2026-07-13",
   "claim_boundary": {
     "artifact_render_verified": true,
@@ -11,7 +11,7 @@
     "domain_ready": false
   },
   "source_git": {
-    "commit": "9d0ebd1bb81b89a374fe95e77e8916ad23e68ef5",
+    "commit": "6693a66d3993909fd62064a90712ea7c3e64f71e",
     "branch": "main",
     "tracked_dirty": false
   },
@@ -19,50 +19,50 @@
   "source_profile_sha256": "878c176c5df957096eff4f4451eca54a24fd03b4d24d324ccfb35fe122924605",
   "source_profile_size": 578,
   "source_markdown": "docs/whitepapers/opl-app-whitepaper.md",
-  "source_markdown_sha256": "3bc0a6dd91307bfb15e3e99ca3d838206783266c7d3a93271d9352d273108a26",
-  "source_markdown_size": 12671,
+  "source_markdown_sha256": "3b4a1cc3513776f263f1f98fdddf65532374ef04c89c6c369fd1310d891f007a",
+  "source_markdown_size": 12575,
   "generated_markdown": "docs/site/latest/whitepapers/opl-app-whitepaper.md",
-  "generated_markdown_sha256": "3bc0a6dd91307bfb15e3e99ca3d838206783266c7d3a93271d9352d273108a26",
-  "generated_markdown_size": 12671,
+  "generated_markdown_sha256": "3b4a1cc3513776f263f1f98fdddf65532374ef04c89c6c369fd1310d891f007a",
+  "generated_markdown_size": 12575,
   "generated_html": "docs/site/latest/whitepapers/opl-app-whitepaper.html",
-  "generated_html_sha256": "567de906289c22a25c2f42b55f1f8065e2369f876df3b983375780088d5045bf",
-  "generated_html_size": 16668,
+  "generated_html_sha256": "a2d687a45252ae0387782efc75443113cb8d81dfe8ce76a1f483ec954c4442c9",
+  "generated_html_size": 2643239,
   "generated_pdf": "docs/site/latest/whitepapers/opl-app-whitepaper.pdf",
-  "generated_pdf_sha256": "e0948b632c98ca75782ac9959acd72bf9a0d04dcba9b7371cd2c2dcece068713",
-  "generated_pdf_size": 153151,
+  "generated_pdf_sha256": "0055d4255d688a5ea24e694ae00639aadfbe9f0c72f2ef826cca5214ec14daa8",
+  "generated_pdf_size": 1837859,
   "temp_markdown": "tmp/pdfs/opl-app-whitepaper/opl-app-whitepaper.pandoc.md",
   "rendered_dir": "tmp/pdfs/opl-app-whitepaper/rendered",
   "rendered_pages": 6,
   "rendered_page_hashes": [
     {
       "page": "page-1.png",
-      "sha256": "2c3cc681ac833ed440b8ffaded59f4e45617b95da1c31f5b3297c44975496ddb",
-      "size": 80949
+      "sha256": "12804bacc0997a1f87cc325854197efbad5a586cb71e1a21cfa9095ffe830e80",
+      "size": 72314
     },
     {
       "page": "page-2.png",
-      "sha256": "3b62c1d2154131239d8e011194c5746bd06c6d71115c297c7efd8a27c2e5edd6",
-      "size": 63011
+      "sha256": "a0b9f5eb643cf6a8f9c411c03d64ee48f6470673fa0255fcf5371828ff612906",
+      "size": 64961
     },
     {
       "page": "page-3.png",
-      "sha256": "0e9ec2e71848b409815f38df39d7b931499d1ded06fb193d346fa9aba8d977dc",
-      "size": 399233
+      "sha256": "1572c342db09d76bd75c5f4dd137dcf6a8d46abc50b2067518039fc36e37f0e4",
+      "size": 750675
     },
     {
       "page": "page-4.png",
-      "sha256": "0b73b2d94faa5eb778020a3ffc082d41a4092911dc64c86edaa768c09162749d",
-      "size": 474985
+      "sha256": "eca67eaa7e23aa9be370c11b8967ba14abbaea7201bd14edce2a1a1553cc60b0",
+      "size": 439697
     },
     {
       "page": "page-5.png",
-      "sha256": "93dab3edf2aeeb0c927f7114bad0b74782a2c98cf062c57d31fe421412c3b7ca",
-      "size": 400311
+      "sha256": "152c577d5fa1ec98971e46c6a45d92542397f63714b9c7b78e36d3d249d411d5",
+      "size": 424107
     },
     {
       "page": "page-6.png",
-      "sha256": "9242a4f4ba2f71840553f1a883882dacfe9f39eddf610a4ac7d0234f1496fbd9",
-      "size": 94537
+      "sha256": "d76b0190e100675b833fd2c4a32c5fe7be84332c6d9449bcdbb7ea3d8c1e8775",
+      "size": 290820
     }
   ],
   "pdf_pages": 6,
@@ -76,11 +76,11 @@
   },
   "style_profile": "opl-whitepaper-pandoc-xelatex-v2",
   "renderer": {
-    "repo_commit": "5a03f35221af23be15cf0f56fa90d21b4bdc3631",
+    "repo_commit": "52356ace7fb15a216fced99ae2ee4c99af24eec9",
     "builder": {
       "path": "scripts/opl-whitepaper-builder.ts",
-      "sha256": "d66d778d68af41130cdf0e4433fd05f6fb92e9cc613d430702e28223ff51c4e9",
-      "size": 16951
+      "sha256": "1b9f93e4678d9f74a370d7ca6baf29dbca0636382c6fa443f60f0e6589b514aa",
+      "size": 17276
     },
     "style": {
       "path": "scripts/whitepaper-style.css",
@@ -95,24 +95,24 @@
   "additional_public_artifacts": [],
   "tools": {
     "pandoc": {
-      "path": "/usr/bin/pandoc",
-      "version": "pandoc 3.1.3"
+      "path": "/opt/homebrew/bin/pandoc",
+      "version": "pandoc 3.9.0.2"
     },
     "xelatex": {
-      "path": "/usr/bin/xelatex",
-      "version": "XeTeX 3.141592653-2.6-0.999995 (TeX Live 2023/Debian)"
+      "path": "/Users/gaofeng/Library/TinyTeX/bin/universal-darwin/xelatex",
+      "version": "XeTeX 3.141592653-2.6-0.999997 (TeX Live 2025)"
     },
     "pdfinfo": {
-      "path": "/usr/bin/pdfinfo",
-      "version": "pdfinfo version 24.02.0"
+      "path": "/opt/homebrew/bin/pdfinfo",
+      "version": "pdfinfo version 26.04.0"
     },
     "pdftoppm": {
-      "path": "/usr/bin/pdftoppm",
-      "version": "pdftoppm version 24.02.0"
+      "path": "/opt/homebrew/bin/pdftoppm",
+      "version": "pdftoppm version 26.04.0"
     },
     "pdftotext": {
-      "path": "/usr/bin/pdftotext",
-      "version": "pdftotext version 24.02.0"
+      "path": "/opt/homebrew/bin/pdftotext",
+      "version": "pdftotext version 26.04.0"
     }
   },
   "references": []
