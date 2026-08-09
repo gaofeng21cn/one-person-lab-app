@@ -4186,16 +4186,15 @@ blockquote {
   <ul>
   <li><a href="#先理解证据边界" id="toc-先理解证据边界" class="nav-link active" data-scroll-target="#先理解证据边界">先理解证据边界</a></li>
   <li><a href="#准备-windows-11-x64" id="toc-准备-windows-11-x64" class="nav-link" data-scroll-target="#准备-windows-11-x64">1. 准备 Windows 11 x64</a></li>
-  <li><a href="#下载当前-stable-windows-资产" id="toc-下载当前-stable-windows-资产" class="nav-link" data-scroll-target="#下载当前-stable-windows-资产">2. 下载当前 Stable Windows 资产</a></li>
-  <li><a href="#校验-sha-256" id="toc-校验-sha-256" class="nav-link" data-scroll-target="#校验-sha-256">3. 校验 SHA-256</a></li>
-  <li><a href="#安装" id="toc-安装" class="nav-link" data-scroll-target="#安装">4. 安装</a></li>
-  <li><a href="#首次启动与-gateway-账户" id="toc-首次启动与-gateway-账户" class="nav-link" data-scroll-target="#首次启动与-gateway-账户">5. 首次启动与 Gateway 账户</a></li>
-  <li><a href="#wsl-2-与-opl-linux" id="toc-wsl-2-与-opl-linux" class="nav-link" data-scroll-target="#wsl-2-与-opl-linux">6. WSL 2 与 OPL-Linux</a></li>
-  <li><a href="#做一次真实模型访问检查" id="toc-做一次真实模型访问检查" class="nav-link" data-scroll-target="#做一次真实模型访问检查">7. 做一次真实模型访问检查</a></li>
-  <li><a href="#检查更新" id="toc-检查更新" class="nav-link" data-scroll-target="#检查更新">8. 检查更新</a></li>
-  <li><a href="#可选docker-webui" id="toc-可选docker-webui" class="nav-link" data-scroll-target="#可选docker-webui">9. 可选：Docker WebUI</a></li>
-  <li><a href="#日志与问题报告" id="toc-日志与问题报告" class="nav-link" data-scroll-target="#日志与问题报告">10. 日志与问题报告</a></li>
-  <li><a href="#卸载与用户数据" id="toc-卸载与用户数据" class="nav-link" data-scroll-target="#卸载与用户数据">11. 卸载与用户数据</a></li>
+  <li><a href="#从-latest-下载并校验-windows-资产" id="toc-从-latest-下载并校验-windows-资产" class="nav-link" data-scroll-target="#从-latest-下载并校验-windows-资产">2. 从 Latest 下载并校验 Windows 资产</a></li>
+  <li><a href="#安装" id="toc-安装" class="nav-link" data-scroll-target="#安装">3. 安装</a></li>
+  <li><a href="#首次启动与-gateway-账户" id="toc-首次启动与-gateway-账户" class="nav-link" data-scroll-target="#首次启动与-gateway-账户">4. 首次启动与 Gateway 账户</a></li>
+  <li><a href="#wsl-2-与-opl-linux" id="toc-wsl-2-与-opl-linux" class="nav-link" data-scroll-target="#wsl-2-与-opl-linux">5. WSL 2 与 OPL-Linux</a></li>
+  <li><a href="#做一次真实模型访问检查" id="toc-做一次真实模型访问检查" class="nav-link" data-scroll-target="#做一次真实模型访问检查">6. 做一次真实模型访问检查</a></li>
+  <li><a href="#检查更新" id="toc-检查更新" class="nav-link" data-scroll-target="#检查更新">7. 检查更新</a></li>
+  <li><a href="#可选docker-webui" id="toc-可选docker-webui" class="nav-link" data-scroll-target="#可选docker-webui">8. 可选：Docker WebUI</a></li>
+  <li><a href="#日志与问题报告" id="toc-日志与问题报告" class="nav-link" data-scroll-target="#日志与问题报告">9. 日志与问题报告</a></li>
+  <li><a href="#卸载与用户数据" id="toc-卸载与用户数据" class="nav-link" data-scroll-target="#卸载与用户数据">10. 卸载与用户数据</a></li>
   <li><a href="#常见问题" id="toc-常见问题" class="nav-link" data-scroll-target="#常见问题">常见问题</a>
   <ul class="collapse">
   <li><a href="#双击后没有窗口" id="toc-双击后没有窗口" class="nav-link" data-scroll-target="#双击后没有窗口">双击后没有窗口</a></li>
@@ -4213,23 +4212,15 @@ blockquote {
 
 
 
-<p>当前公开下载来自 One Person Lab App 的同 tag <strong>Stable Release</strong>：</p>
-<p><a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.8.4" class="uri">https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.8.4</a></p>
-<p>当前安装器：</p>
-<ul>
-<li>tag：<code>v26.8.4</code></li>
-<li>文件：<code>One-Person-Lab-26.8.4-win-x64.exe</code></li>
-<li>大小：约 319 MB</li>
-<li>SHA-256：<code>5520f5ee022104b800ef2784fc8ec51b5690fcc49f05b5d45087f79a3f1063e6</code></li>
-<li>Authenticode 状态：<code>unsigned</code></li>
-<li>签名政策：<code>optional_nonblocking</code></li>
-</ul>
+<p>当前公开下载入口始终是 One Person Lab App 的 <strong>Latest Stable Release</strong>：</p>
+<p><a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/latest" class="uri">https://github.com/gaofeng21cn/one-person-lab-app/releases/latest</a></p>
+<p>Release 页面中的版本号和安装包文件名会随发布变化。教程不复制某个版本的 tag、文件名、 大小或 SHA-256；这些值应在安装时从同一 Latest Release 的平台 manifest 与 updater receipt 读取。</p>
 <p>PDF 版本：<a href="windows-app-install-detailed-guide.pdf">下载本教程</a></p>
 <section id="先理解证据边界" class="level2">
 <h2 class="anchored" data-anchor-id="先理解证据边界">先理解证据边界</h2>
-<p>GitHub 已公开 <code>v26.8.4</code> 的 Windows x64 EXE、blockmap、 <code>latest.yml</code> 和 updater receipt。这个事实只证明 release carrier 上存在这些精确 bytes 及其 digest。</p>
+<p>Latest Release 上的 Windows x64 EXE、blockmap、<code>latest.yml</code>、平台 manifest 和 updater receipt，只能证明 release carrier 上存在这些精确 bytes 及其 digest。</p>
 <p>它不能证明 WSL2 runtime acceptance、installed behavior 或产品支持完成，也不能从 release asset、文档生成或 focused tests 推导出生产环境、长期升级、代码签名或 release-wide ready。安装后应以实际 App readback、可见错误和独立的 installed/runtime 验收为准。</p>
-<p>当前 EXE 的签名状态是 <code>unsigned</code>，政策是 <code>optional_nonblocking</code>。因此 Windows SmartScreen 可能显示警告；不要关闭 Microsoft Defender、修改全局 SmartScreen 策略， 也不要把未签名文件描述为已签名。</p>
+<p>安装器的 Authenticode 状态以 Latest Release 中 <code>opl-windows-updater-assets.json</code> 的 <code>code_signing</code> 字段为准。Windows SmartScreen 仍可能显示警告；不要关闭 Microsoft Defender、修改全局 SmartScreen 策略，也不要把未签名文件描述为已签名。</p>
 </section>
 <section id="准备-windows-11-x64" class="level2">
 <h2 class="anchored" data-anchor-id="准备-windows-11-x64">1. 准备 Windows 11 x64</h2>
@@ -4243,35 +4234,52 @@ blockquote {
 </ul>
 <p>关闭正在运行的旧 One Person Lab 窗口。不要删除 <code>%APPDATA%</code>、项目目录、Docker volume 或 WSL 发行版来“准备干净环境”；这些位置可能包含用户数据。</p>
 </section>
-<section id="下载当前-stable-windows-资产" class="level2">
-<h2 class="anchored" data-anchor-id="下载当前-stable-windows-资产">2. 下载当前 Stable Windows 资产</h2>
+<section id="从-latest-下载并校验-windows-资产" class="level2">
+<h2 class="anchored" data-anchor-id="从-latest-下载并校验-windows-资产">2. 从 Latest 下载并校验 Windows 资产</h2>
 <p>打开：</p>
-<p><a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.8.4" class="uri">https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.8.4</a></p>
-<p>下载：</p>
-<p><a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v26.8.4/One-Person-Lab-26.8.4-win-x64.exe" class="uri">https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v26.8.4/One-Person-Lab-26.8.4-win-x64.exe</a></p>
-<p>浏览器保存后的文件名必须是：</p>
-<p><code>One-Person-Lab-26.8.4-win-x64.exe</code></p>
-<p>不要从旧截图、旧 issue、第三方网盘或历史 tag 猜测下载地址。当前指南不提供独立 下载助手；GitHub Release asset 和其公开 digest 是下载 currentness 来源。</p>
-</section>
-<section id="校验-sha-256" class="level2">
-<h2 class="anchored" data-anchor-id="校验-sha-256">3. 校验 SHA-256</h2>
-<p>在下载目录打开普通 PowerShell，运行：</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Get-FileHash <span class="st">".\One-Person-Lab-26.8.4-win-x64.exe"</span> <span class="op">-</span>Algorithm SHA256</span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
-<p>输出必须等于：</p>
-<pre class="text"><code>5520f5ee022104b800ef2784fc8ec51b5690fcc49f05b5d45087f79a3f1063e6</code></pre>
-<p>如果文件名、大小或 SHA-256 不一致：</p>
+<p><a href="https://github.com/gaofeng21cn/one-person-lab-app/releases/latest" class="uri">https://github.com/gaofeng21cn/one-person-lab-app/releases/latest</a></p>
+<p>在 <strong>Assets</strong> 区域选择名称符合 <code>One-Person-Lab-*-win-x64.exe</code> 的 EXE。不要选择 <code>.blockmap</code>、<code>latest.yml</code>、JSON 或 Source code。若页面中没有唯一的 Windows x64 EXE， 不要从历史 tag 猜测地址；这表示当前 Latest 尚不能提供该平台资产。</p>
+<p>也可以在下载目录打开普通 PowerShell，运行下面的命令，让平台 manifest 决定当前文件名 和 SHA-256，并通过 Latest URL 下载和校验：</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">$repo</span> <span class="op">=</span> <span class="st">'gaofeng21cn/one-person-lab-app'</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">$latest</span> <span class="op">=</span> <span class="st">"https://github.com/</span><span class="va">$repo</span><span class="st">/releases/latest"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">$platformManifest</span> <span class="op">=</span> <span class="st">"</span><span class="va">$latest</span><span class="st">/download/opl-desktop-platforms-manifest.json"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="va">$platforms</span> <span class="op">=</span> <span class="fu">Invoke-RestMethod</span> <span class="va">$platformManifest</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="va">$matches</span> <span class="op">=</span> <span class="op">@(</span><span class="va">$platforms</span><span class="op">.</span><span class="fu">assets</span> <span class="op">|</span> <span class="fu">Where-Object</span> <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">$_</span><span class="op">.</span><span class="fu">name</span> <span class="op">-like</span> <span class="st">'One-Person-Lab-*-win-x64.exe'</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="va">$matches</span><span class="op">.</span><span class="fu">Count</span> <span class="op">-ne</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="st">"Latest Release 必须包含一个 Windows x64 EXE，实际为 </span><span class="op">$(</span><span class="va">$matches</span><span class="op">.</span><span class="fu">Count</span><span class="op">)</span><span class="st"> 个。"</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="va">$asset</span> <span class="op">=</span> <span class="va">$matches</span><span class="op">[</span><span class="dv">0</span><span class="op">]</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="va">$installer</span> <span class="op">=</span> <span class="fu">Join-Path</span> <span class="op">(</span><span class="fu">Get-Location</span><span class="op">)</span> <span class="va">$asset</span><span class="op">.</span><span class="fu">name</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">Invoke-WebRequest</span> <span class="op">-</span>UseBasicParsing <span class="st">"</span><span class="va">$latest</span><span class="st">/download/</span><span class="op">$(</span><span class="va">$asset</span><span class="op">.</span><span class="fu">name</span><span class="op">)</span><span class="st">"</span> <span class="op">-</span>OutFile <span class="va">$installer</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="va">$expected</span> <span class="op">=</span> <span class="va">$asset</span><span class="op">.</span><span class="fu">digest</span> <span class="op">-replace</span> <span class="st">'^sha256:'</span><span class="op">,</span> <span class="st">''</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="va">$actual</span> <span class="op">=</span> <span class="op">(</span>Get-FileHash <span class="va">$installer</span> <span class="op">-</span>Algorithm SHA256<span class="op">).</span><span class="fu">Hash</span><span class="op">.</span><span class="fu">ToLowerInvariant</span><span class="op">()</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="va">$actual</span> <span class="op">-ne</span> <span class="va">$expected</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Remove-Item</span> <span class="va">$installer</span> <span class="op">-</span>Force</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="st">'SHA-256 不一致，已删除下载文件。'</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">Write-Host</span> <span class="st">"已校验: </span><span class="op">$(</span><span class="va">$asset</span><span class="op">.</span><span class="fu">name</span><span class="op">)</span><span class="st">"</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<p>需要查看签名政策和当前签名状态时，读取同一 Latest Release 的 updater receipt：</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$updaterReceipt</span> <span class="op">=</span> <span class="st">"</span><span class="va">$latest</span><span class="st">/download/opl-windows-updater-assets.json"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="va">$receipt</span> <span class="op">=</span> <span class="fu">Invoke-RestMethod</span> <span class="va">$updaterReceipt</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">$receipt</span><span class="op">.</span><span class="fu">code_signing</span> <span class="op">|</span> <span class="fu">Format-List</span></span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
+<p>不要从旧截图、旧 issue、第三方网盘或历史 tag 猜测下载地址。若文件名、大小或 SHA-256 不一致：</p>
 <ol type="1">
 <li>不要运行该 EXE。</li>
 <li>删除这一个错误下载文件。</li>
-<li>从上面的 <code>v26.8.4</code> Release 页面重新下载。</li>
-<li>再次运行 <code>Get-FileHash</code>。</li>
+<li>从上面的 Latest Release 页面重新下载。</li>
+<li>重新读取平台 manifest 并再次运行 <code>Get-FileHash</code>。</li>
 </ol>
 <p>不要通过关闭 Defender、忽略 digest 或改名来绕过不一致。</p>
 </section>
 <section id="安装" class="level2">
-<h2 class="anchored" data-anchor-id="安装">4. 安装</h2>
+<h2 class="anchored" data-anchor-id="安装">3. 安装</h2>
 <ol type="1">
-<li>双击 <code>One-Person-Lab-26.8.4-win-x64.exe</code>。</li>
+<li>双击刚才校验通过的 <code>One-Person-Lab-...-win-x64.exe</code>。</li>
 <li>如果 Windows SmartScreen 出现，先确认文件名和刚才校验的 SHA-256。</li>
 <li>只有在来源与 digest 都一致时，才根据系统界面决定是否继续。</li>
 <li>完成安装后，从开始菜单启动 One Person Lab。</li>
@@ -4279,7 +4287,7 @@ blockquote {
 <p>本指南记录当前公开资产，不承诺每台机器都已通过 exact installed acceptance。若 安装器失败，记录 Windows 版本、文件名、SHA-256、时间点和完整可见错误，不要重复 快速启动多个安装进程。</p>
 </section>
 <section id="首次启动与-gateway-账户" class="level2">
-<h2 class="anchored" data-anchor-id="首次启动与-gateway-账户">5. 首次启动与 Gateway 账户</h2>
+<h2 class="anchored" data-anchor-id="首次启动与-gateway-账户">4. 首次启动与 Gateway 账户</h2>
 <p>首次启动后，按 App 当前界面完成设置。若界面要求 Gateway 账户：</p>
 <ol type="1">
 <li>在 App 的受控输入界面填写邮箱和密码。</li>
@@ -4291,7 +4299,7 @@ blockquote {
 <p>Gateway 密码、token 和 API Key 不应进入 PowerShell、命令行参数、日志、截图或 问题报告。</p>
 </section>
 <section id="wsl-2-与-opl-linux" class="level2">
-<h2 class="anchored" data-anchor-id="wsl-2-与-opl-linux">6. WSL 2 与 OPL-Linux</h2>
+<h2 class="anchored" data-anchor-id="wsl-2-与-opl-linux">5. WSL 2 与 OPL-Linux</h2>
 <p>App contract 要求 Windows 上的 agent 和 Framework 执行边界使用专用 <code>OPL-Linux</code>，不允许 native Windows executor fallback。但当前 Stable Release asset 的存在本身不证明该执行边界已经在你的安装上通过验收。</p>
 <p>如果 App 实际显示 WSL 2 配置、修复或重启流程：</p>
 <ul>
@@ -4307,14 +4315,14 @@ blockquote {
 <p>如果 App 没有显示 WSL 流程，也不要根据本指南自行 bootstrap 产品 runtime。记录 实际界面和 readback，由 App/Shell owner 的合法入口判断。</p>
 </section>
 <section id="做一次真实模型访问检查" class="level2">
-<h2 class="anchored" data-anchor-id="做一次真实模型访问检查">7. 做一次真实模型访问检查</h2>
+<h2 class="anchored" data-anchor-id="做一次真实模型访问检查">6. 做一次真实模型访问检查</h2>
 <p>在单独的测试目录创建一个短任务，例如：</p>
 <pre class="text"><code>只回复 OPL_WINDOWS_MODEL_ACCESS_PASS，不要添加其他内容。</code></pre>
 <p>只有真实回复、会话完成和重新打开后的状态 readback 才能说明这次模型访问成功。 只打开窗口、只看到首页、下载成功或本地 health 响应都不能替代模型访问结果。</p>
 </section>
 <section id="检查更新" class="level2">
-<h2 class="anchored" data-anchor-id="检查更新">8. 检查更新</h2>
-<p><code>v26.8.4</code> 包含 Windows updater metadata <code>latest.yml</code> 和 receipt <code>opl-windows-updater-assets.json</code>。这证明当前 Release 上存在 updater 资产， 不自动证明长期升级或所有 predecessor 路径已通过。</p>
+<h2 class="anchored" data-anchor-id="检查更新">7. 检查更新</h2>
+<p>Latest Release 中的 Windows updater metadata <code>latest.yml</code> 和 receipt <code>opl-windows-updater-assets.json</code> 证明当前 Release 上存在 updater 资产， 但不自动证明长期升级或所有 predecessor 路径已通过。</p>
 <p>使用 App 内“检查更新”时：</p>
 <ol type="1">
 <li>记录当前显示版本。</li>
@@ -4325,7 +4333,7 @@ blockquote {
 <p>不要手工替换 <code>latest.yml</code>、blockmap 或安装目录中的二进制文件。</p>
 </section>
 <section id="可选docker-webui" class="level2">
-<h2 class="anchored" data-anchor-id="可选docker-webui">9. 可选：Docker WebUI</h2>
+<h2 class="anchored" data-anchor-id="可选docker-webui">8. 可选：Docker WebUI</h2>
 <p>Container WebUI 是独立运行形态：</p>
 <p><a href="https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html" class="uri">https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html</a></p>
 <p>Windows Desktop App 不要求 Docker Desktop。只有在选择 Container WebUI 时，才按 独立教程安装 Docker Desktop，并访问：</p>
@@ -4333,11 +4341,11 @@ blockquote {
 <p>不要为修复桌面 App 执行 Docker Factory Reset 或全局 Docker prune。</p>
 </section>
 <section id="日志与问题报告" class="level2">
-<h2 class="anchored" data-anchor-id="日志与问题报告">10. 日志与问题报告</h2>
+<h2 class="anchored" data-anchor-id="日志与问题报告">9. 日志与问题报告</h2>
 <p>遇到问题时记录：</p>
 <ul>
 <li>Windows 版本和 OS build；</li>
-<li>release tag <code>v26.8.4</code>；</li>
+<li>App“关于”页显示的版本，以及当时的 Latest Release URL；</li>
 <li>安装包文件名与 SHA-256；</li>
 <li>安装、首次启动、WSL、登录或模型访问阶段；</li>
 <li>可见错误原文；</li>
@@ -4349,7 +4357,7 @@ blockquote {
 <p>不要上传整个用户数据目录。先删除邮箱、项目内容、token、API Key 和其他秘密。</p>
 </section>
 <section id="卸载与用户数据" class="level2">
-<h2 class="anchored" data-anchor-id="卸载与用户数据">11. 卸载与用户数据</h2>
+<h2 class="anchored" data-anchor-id="卸载与用户数据">10. 卸载与用户数据</h2>
 <ol type="1">
 <li>正常退出 One Person Lab。</li>
 <li>打开“设置 -&gt; 应用 -&gt; 已安装的应用”。</li>
@@ -4366,7 +4374,7 @@ blockquote {
 </section>
 <section id="smartscreen-为什么提示未知发布者" class="level3">
 <h3 class="anchored" data-anchor-id="smartscreen-为什么提示未知发布者">SmartScreen 为什么提示未知发布者</h3>
-<p>当前安装器状态是 <code>unsigned</code>。先核对 <code>v26.8.4</code>、文件名和 SHA-256；不要关闭 Defender 或修改全局安全策略。未来签名状态只能以 exact release receipt 和 Windows readback 为准。</p>
+<p>先读取 Latest Release updater receipt 的 <code>code_signing.status</code>，再核对文件名和 SHA-256；不要关闭 Defender 或修改全局安全策略。签名状态只能以该 Release receipt 和 Windows readback 为准。</p>
 </section>
 <section id="是否已经证明-windows-产品支持完成" class="level3">
 <h3 class="anchored" data-anchor-id="是否已经证明-windows-产品支持完成">是否已经证明 Windows 产品支持完成</h3>
