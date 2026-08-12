@@ -454,6 +454,10 @@ function validateGithubReleaseName(releaseContract: Record<string, any>): number
     releaseName?.tag_pattern !== 'v<version>' ||
     releaseName?.stable_revision?.maximum_revision !== 9 ||
     releaseName?.stable_revision?.allocation !== 'explicit_base_plus_highest_existing_remote_revision_plus_one' ||
+    releaseName?.stable_revision?.eligibility !== 'macos_primary_stable_asset_invalid_only' ||
+    releaseName?.stable_revision?.additive_platform_full_or_installer_failure_eligible !== false ||
+    releaseName?.stable_revision?.additive_failure_route !==
+      'repair_in_original_release_set_without_new_version' ||
     releaseName?.machine_version?.legacy_stable_last_display_version !== '26.7.20' ||
     releaseName?.machine_version?.shared_preview_lane_cutover_display_version !== '26.7.31' ||
     releaseName?.machine_version?.stable_patch_formula_before_cutover !== 'day_times_100_plus_revision' ||
@@ -1392,6 +1396,13 @@ function validateOptionalCertificationPolicy(releaseContract: Record<string, any
     || policy?.validator !== 'scripts/validate-optional-certification-receipt.ts'
     || policy?.required_for_publication !== false
     || policy?.required_for_latest !== false
+    || policy?.stable_additive_repair_receipt_schema !== 'opl_app_stable_additive_repair.v1'
+    || policy?.stable_additive_repair_requires_clean_linux_install !== true
+    || policy?.stable_additive_repair_recertifies_macos_primary_assets !== false
+    || !sameStringSet(policy?.stable_additive_repair_digest_chain_fields, [
+      'replacement.previous.digest',
+      'replacement.next.digest',
+    ])
     || policy?.artifact_source !== 'exact_published_release_artifact_with_workflow_cas_and_unified_attestation'
     || policy?.artifact_rebuild_allowed !== false
     || policy?.full_artifact_release_source !== 'same_tag_mutable_standard_release'
@@ -1815,9 +1826,12 @@ export function validateReleaseAccelerationPolicy(
     failures += 1;
   }
   if (
-    publication?.stable?.only_manual_dispatch_workflow !== '.github/workflows/release-stable.yml' ||
+    publication?.stable?.primary_release_manual_dispatch_workflow !== '.github/workflows/release-stable.yml' ||
+    publication?.stable?.additive_repair_manual_dispatch_workflow !==
+      '.github/workflows/release-stable-post-success-followups.yml' ||
     publication?.stable?.trigger !== 'workflow_dispatch' ||
-    publication?.stable?.lower_level_workflows !== 'workflow_call_only' ||
+    publication?.stable?.lower_level_workflows !==
+      'workflow_call_only_except_protected_same_tag_installer_repair' ||
     JSON.stringify(publication?.stable?.latest_admission) !== JSON.stringify(requiredStandardLatestAdmission)
   ) {
     console.error('FAIL release_latest_admission: Latest must require the hosted publication floor, exact candidate bytes, and Homebrew publication/readback without optional certification evidence');
@@ -2416,6 +2430,7 @@ export function validateReleasePlatformMatrix(
   }
   const desktopSelection = matrix.stable_desktop_additional_selection;
   const desktopFollower = matrix.desktop_platform_additive_follower;
+  const additiveRepair = desktopFollower?.stable_additive_repair;
   if (
     desktopSelection?.authority_field !== 'opl_app_stable_operation_authority.v1#desktop_additional_platforms'
     || desktopSelection?.control_field !== 'opl_app_stable_operation_control.v1#desktop_additional_platforms'
@@ -2425,6 +2440,20 @@ export function validateReleasePlatformMatrix(
     || desktopFollower?.new_release_or_tag_allowed !== false
     || desktopFollower?.make_latest !== false
     || desktopFollower?.base_release_asset_append_allowed !== true
+    || additiveRepair?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
+    || additiveRepair?.operation !== 'repair_additive'
+    || additiveRepair?.protected_environment !== 'release-stable'
+    || !sameStringSet(additiveRepair?.allowed_asset_names, ['opl-install.sh'])
+    || additiveRepair?.new_release_or_tag_allowed !== false
+    || additiveRepair?.version_allocator_used !== false
+    || additiveRepair?.macos_primary_assets_frozen !== true
+    || additiveRepair?.updater_metadata_frozen !== true
+    || additiveRepair?.release_body_frozen !== true
+    || additiveRepair?.tag_target_frozen !== true
+    || !sameStringSet(additiveRepair?.current_asset_cas_fields, ['asset_id', 'size', 'sha256'])
+    || additiveRepair?.receipt_schema !== 'opl_app_stable_additive_repair.v1'
+    || additiveRepair?.certification !==
+      'same_tag_public_installer_digest_chain_and_clean_linux_install'
   ) {
     console.error('FAIL release_platform_matrix: additional Desktop selection and same-Release carrier must remain authority-bound');
     failures += 1;

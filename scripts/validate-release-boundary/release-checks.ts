@@ -1757,6 +1757,8 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
     file: ".github/workflows/release-stable-post-success-followups.yml",
     required: [
       "workflow_run:",
+      "workflow_dispatch:",
+      "repair_additive",
       "build-desktop-platforms:",
       "desktop_additional_platforms",
       "uses: ./.github/workflows/build-manual.yml",
@@ -1765,6 +1767,11 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "source_bundle_digest:",
       "append-stable-desktop-assets.ts",
       "stable-desktop-append.json",
+      "--repair-additive",
+      "--expected-old-asset-id",
+      "--expected-old-asset-digest",
+      "opl-stable-additive-repair-plan-",
+      "opl-stable-additive-repair-",
       "remaining:(if $applicable != \"true\" then [] elif $desktop == \"success\"",
     ],
     forbidden: [

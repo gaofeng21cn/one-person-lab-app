@@ -39,6 +39,8 @@ const homebrewFullFollowerWorkflowPath = '.github/workflows/release-homebrew-ful
 const homebrewFullPublisherWorkflowPath = '.github/workflows/_release-homebrew-full-publish.yml';
 const postPublicationOptionalCertificationWorkflowPath =
   '.github/workflows/release-post-publication-certification.yml';
+const stableDesktopFollowupWorkflowPath =
+  '.github/workflows/release-stable-post-success-followups.yml';
 const nightlyReleaseWorkflowPath = '.github/workflows/release-nightly.yml';
 const nightlyHomebrewFollowerWorkflowPath =
   '.github/workflows/release-nightly-homebrew-follower.yml';
@@ -178,6 +180,32 @@ function isAuthorizedManualPreviewWriteJob(
     && job.with?.mode === 'execute'
     && job.with?.operation === 'resume_standard'
     && job.with?.publication_channel === 'preview';
+}
+
+function isAuthorizedStableDesktopFollowupWriteJob(
+  workflowPath: string,
+  jobId: string,
+  job: Record<string, any>,
+): boolean {
+  if (workflowPath !== stableDesktopFollowupWorkflowPath) return false;
+  const automaticIf =
+    "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}";
+  if (jobId === 'append-desktop-platforms') {
+    return job.if === automaticIf
+      && needsExactly(job, ['admit', 'build-desktop-platforms'])
+      && job.environment === 'release-stable'
+      && exactObject(job.permissions, exactStableEntryPermissions);
+  }
+  if (jobId === 'dispatch-full') {
+    return job.if === automaticIf
+      && needsExactly(job, ['admit', 'append-desktop-platforms'])
+      && exactObject(job.permissions, { contents: 'read', actions: 'write' });
+  }
+  return jobId === 'repair-additive'
+    && job.if === "${{ needs.repair-admit.result == 'success' }}"
+    && needsExactly(job, ['repair-admit'])
+    && job.environment === 'release-stable'
+    && exactObject(job.permissions, exactStableEntryPermissions);
 }
 
 function validatePreviewLatestPointerTopology(appRoot: string): number {
@@ -1916,6 +1944,10 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
         continue;
       }
       if (isAuthorizedManualPreviewWriteJob(workflowPath, jobId, job)) {
+        continue;
+      }
+      if (isAuthorizedStableDesktopFollowupWriteJob(workflowPath, jobId, job)) {
+        failures += validateExactActionPins(workflowPath, jobId, steps);
         continue;
       }
       if (

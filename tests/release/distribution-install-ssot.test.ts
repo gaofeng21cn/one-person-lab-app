@@ -519,7 +519,9 @@ test('ordinary docs point to the SSOT without advertising retired or unpublished
   assert.match(distributionGuide, /Stable Desktop Release Set/);
   assert.match(distributionGuide, /opl-desktop-platforms-manifest\.json/);
   assert.match(distributionGuide, /durable GHCR publication record/);
-  assert.match(releaseGuide, /same-tag Full macOS, Linux x64 and Windows x64/);
+  assert.match(releaseGuide, /macOS arm64 primary release passes publication and public readback/);
+  assert.match(releaseGuide, /Full macOS, Linux x64, Windows x64 and installer deliveries additively/);
+  assert.match(releaseGuide, /A new `-rN` Stable is allowed only when the[\s\S]{0,80}macOS primary Stable assets themselves are invalid/);
   assert.match(releaseGuide, /independent source authority/);
   assert.doesNotMatch(releaseGuide, /carrier_owned_durable_publication_record/);
   assert.match(

@@ -9,9 +9,9 @@ const workflowPath = path.join(appRoot, '.github/workflows/release-stable-post-s
 const source = fs.readFileSync(workflowPath, 'utf8');
 const workflow = parseYaml(source) as Record<string, any>;
 
-test('Stable success has one Desktop Release Set follow-up', () => {
+test('Stable success and protected installer repair share one Desktop Release Set owner', () => {
   assert.equal(workflow.name, 'OPL Stable Desktop Release Set Follow-up');
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_run']);
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.deepEqual(workflow.on.workflow_run.types, ['completed']);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
@@ -22,8 +22,19 @@ test('Stable success has one Desktop Release Set follow-up', () => {
     'append-desktop-platforms',
     'dispatch-full',
     'receipt',
+    'repair-admit',
+    'repair-additive',
   ]);
-  assert.doesNotMatch(source, /recovery_confirmation|skipped_followup|workflow_dispatch:\s*$/m);
+  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
+    'operation',
+    'source_run_id',
+    'repair_source_commit',
+    'expected_old_asset_id',
+    'expected_old_asset_digest',
+    'operator_confirmation',
+  ]);
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.operation.options, ['repair_additive']);
+  assert.doesNotMatch(source, /recovery_confirmation|skipped_followup/);
 });
 
 test('admission binds one published mutable Stable Release and the frozen Desktop selection', () => {
@@ -45,7 +56,7 @@ test('admission binds one published mutable Stable Release and the frozen Deskto
 
 test('additional Desktop builds are build-only and authority-bound', () => {
   const build = workflow.jobs['build-desktop-platforms'];
-  assert.equal(build.if, "${{ needs.admit.outputs.applicable == 'true' }}");
+  assert.equal(build.if, "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}");
   assert.equal(build.uses, './.github/workflows/build-manual.yml');
   assert.equal(build.with.invocation_mode, 'stable_release_set_build');
   assert.equal(build.with.platform_policy, 'stable_desktop_additional');
@@ -55,7 +66,7 @@ test('additional Desktop builds are build-only and authority-bound', () => {
 
 test('Desktop assets append to the same Release through one CAS controller', () => {
   const append = workflow.jobs['append-desktop-platforms'];
-  assert.equal(append.if, "${{ needs.admit.outputs.applicable == 'true' }}");
+  assert.equal(append.if, "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}");
   assert.deepEqual(append.needs, ['admit', 'build-desktop-platforms']);
   assert.equal(append.environment, 'release-stable');
   assert.deepEqual(append.permissions, { contents: 'write', actions: 'read' });
@@ -85,7 +96,7 @@ test('Desktop assets append to the same Release through one CAS controller', () 
 
 test('Full append starts only after Desktop append and binds exactly one new successful run', () => {
   const full = workflow.jobs['dispatch-full'];
-  assert.equal(full.if, "${{ needs.admit.outputs.applicable == 'true' }}");
+  assert.equal(full.if, "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}");
   assert.deepEqual(full.needs, ['admit', 'append-desktop-platforms']);
   assert.equal(full['timeout-minutes'], 160);
   assert.deepEqual(full.permissions, { contents: 'read', actions: 'write' });
@@ -103,7 +114,7 @@ test('Full append starts only after Desktop append and binds exactly one new suc
 
 test('follow-up receipt is terminal only after Desktop and Full completion', () => {
   const receipt = workflow.jobs.receipt;
-  assert.equal(receipt.if, "${{ always() && needs.admit.result != 'skipped' }}");
+  assert.equal(receipt.if, "${{ always() && github.event_name == 'workflow_run' && needs.admit.result != 'skipped' }}");
   assert.deepEqual(receipt.needs, [
     'admit',
     'build-desktop-platforms',
@@ -117,4 +128,24 @@ test('follow-up receipt is terminal only after Desktop and Full completion', () 
   assert.match(source, /full_append:\$full/);
   assert.match(source, /full_run_id:\$full_run_id/);
   assert.match(source, /remaining:\(if .* then \[\] else \["followup_failure"\]/);
+});
+
+test('additive repair is one protected opl-install.sh compare-and-swap path', () => {
+  const admit = workflow.jobs['repair-admit'];
+  const repair = workflow.jobs['repair-additive'];
+  assert.equal(admit.if, "${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'repair_additive' }}");
+  assert.equal(repair.if, "${{ needs.repair-admit.result == 'success' }}");
+  assert.deepEqual(repair.needs, ['repair-admit']);
+  assert.equal(repair.environment, 'release-stable');
+  assert.deepEqual(repair.permissions, { contents: 'write', actions: 'read' });
+  assert.match(source, /test "\$GITHUB_REF" = refs\/heads\/main/);
+  assert.match(source, /test "\$OPERATOR_CONFIRMATION" = 'REPAIR ADDITIVE INSTALLER'/);
+  assert.match(source, /opl-release-standard-remote-verify-\$SOURCE_RUN_ID/);
+  assert.match(source, /generate-frozen-universal-installer\.ts/);
+  assert.match(source, /--repair-additive/);
+  assert.match(source, /--expected-old-asset-id/);
+  assert.match(source, /--expected-old-asset-digest/);
+  assert.match(source, /opl-stable-additive-repair-plan-/);
+  assert.match(source, /opl-stable-additive-repair-/);
+  assert.doesNotMatch(source, /--clobber|gh run rerun|gh run cancel/);
 });

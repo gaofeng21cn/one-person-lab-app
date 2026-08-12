@@ -141,6 +141,18 @@
         "framework_source_ref": "OPL_FRAMEWORK_SOURCE_REF",
         "release_version": "OPL_RELEASE_VERSION",
         "release_repository": "OPL_RELEASE_REPO",
+        "same_tag_additive_repair": {
+          "allowed": true,
+          "allowed_asset_names": [
+            "opl-install.sh"
+          ],
+          "requires_original_stable_cohort": true,
+          "requires_previous_asset_id_and_digest_cas": true,
+          "requires_public_supersession_receipt": true,
+          "requires_clean_linux_install_certification": true,
+          "new_release_or_version_required": false,
+          "macos_primary_assets_release_body_tag_and_updater_metadata_must_remain_unchanged": true
+        },
         "release_tag": "OPL_FROZEN_RELEASE_TAG",
         "source_ref_role": "recorded_build_provenance_only_never_dependency_selection_or_compatibility_gate"
       },

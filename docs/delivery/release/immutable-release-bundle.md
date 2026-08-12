@@ -21,9 +21,11 @@ One Stable Bundle produces one public GitHub Release/tag:
 3. Linux x64 Desktop may be appended to the same Release/tag.
 4. Windows x64 Desktop may be appended to the same Release/tag.
 
-Full, Linux and Windows are additional members of the same Desktop Release Set. They do not derive
-another version, tag or Release. Each append is exact-name digest CAS and may not alter Standard
-bytes, updater identity, notes, release body or Latest.
+Full, Linux, Windows and the universal installer are additional members of the same Desktop Release
+Set. They do not derive another version, tag or Release. The macOS primary publication defines
+whether the Stable version exists; additive delivery failures do not invalidate that version.
+Each append is exact-name digest CAS and may not alter macOS Standard bytes, updater identity, notes,
+release body or Latest.
 
 The public manifests are owner-specific:
 
@@ -45,8 +47,11 @@ only after exact qualification and public readback.
 
 `.github/workflows/release-stable-post-success-followups.yml` consumes the exact successful Standard
 checkpoint, appends selected Linux/Windows assets to that same mutable Release/tag, and dispatches the
-one Full append. `.github/workflows/release-post-publication-certification.yml` is a read-only
-consumer of the completed same-tag Release Set.
+one Full append. Its protected manual `repair_additive` branch may replace only `opl-install.sh` in
+the same Release/tag after old asset ID/size/digest CAS and frozen primary-asset/body/tag checks. It
+does not create a Framework Bundle operation, allocate a version, rebuild platform assets or move
+Latest. `.github/workflows/release-post-publication-certification.yml` is a read-only consumer of the
+completed same-tag Release Set and additive repair receipt.
 
 Nightly and Windows Preview/RC are separate Preview policies and never become alternate Stable
 Releases. Docker WebUI is also outside this Bundle control plane.
@@ -58,6 +63,8 @@ Only protected publish jobs receive write permissions. For every asset name:
 - absent: one upload is allowed;
 - present with the same digest and size: accept as idempotent;
 - present with different bytes: fail closed;
+- present `opl-install.sh` with different bytes: only the protected additive repair branch may delete
+  the exact old asset ID and upload the replacement, with pre-mutation and public receipts;
 - timeout or unknown result: read-only reconcile, no repeated mutation.
 
 Canonical source must be absorbed and remotely read back before public mutation. A Bundle,
@@ -65,7 +72,9 @@ checkpoint, candidate, task branch, test pass or workflow success is not a relea
 
 ## Terminal Proof
 
-A Stable Release is complete only when owner-authoritative readback proves:
+A Stable macOS primary release is complete when owner-authoritative readback proves its signed,
+notarized public assets and Latest identity. Additive deliveries converge independently in the same
+Release Set. Overall release maintenance is closed only when owner-authoritative readback proves:
 
 - canonical `main` commit/tree/blob and hosted gates;
 - exact public asset names, sizes and SHA-256 values;

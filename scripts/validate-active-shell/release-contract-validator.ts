@@ -327,6 +327,9 @@ function validateOptionalCertificationPolicy(releaseChannel) {
     || policy?.validator !== 'scripts/validate-optional-certification-receipt.ts'
     || policy?.required_for_publication !== false
     || policy?.required_for_latest !== false
+    || policy?.stable_additive_repair_receipt_schema !== 'opl_app_stable_additive_repair.v1'
+    || policy?.stable_additive_repair_requires_clean_linux_install !== true
+    || policy?.stable_additive_repair_recertifies_macos_primary_assets !== false
     || policy?.artifact_source !== 'exact_published_release_artifact_with_workflow_cas_and_unified_attestation'
     || policy?.full_artifact_release_source !== 'same_tag_mutable_standard_release'
     || policy?.artifact_rebuild_allowed !== false
@@ -772,11 +775,14 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     'Stable failure fingerprint fields',
   );
   if (
-    publication?.stable?.only_manual_dispatch_workflow !== '.github/workflows/release-stable.yml' ||
+    publication?.stable?.primary_release_manual_dispatch_workflow !== '.github/workflows/release-stable.yml' ||
+    publication?.stable?.additive_repair_manual_dispatch_workflow !==
+      '.github/workflows/release-stable-post-success-followups.yml' ||
     publication?.stable?.trigger !== 'workflow_dispatch' ||
-    publication?.stable?.lower_level_workflows !== 'workflow_call_only'
+    publication?.stable?.lower_level_workflows !==
+      'workflow_call_only_except_protected_same_tag_installer_repair'
   ) {
-    throw new Error('Stable must have one manual dispatch entry and workflow_call-only lower-level topology');
+    throw new Error('Stable primary publication and protected same-tag installer repair must remain separate bounded manual entries');
   }
   if (
     publication?.nightly?.status !== 'implemented_pending_first_publication_readback' ||
@@ -1297,6 +1303,16 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.desktop_platform_additive_follower?.new_release_or_tag_allowed !== false
     || platformMatrix?.desktop_platform_additive_follower?.base_release_asset_append_allowed !== true
     || platformMatrix?.desktop_platform_additive_follower?.make_latest !== false
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.operation !==
+      'repair_additive'
+    || JSON.stringify(platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.allowed_asset_names) !==
+      JSON.stringify(['opl-install.sh'])
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.new_release_or_tag_allowed !== false
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.version_allocator_used !== false
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.macos_primary_assets_frozen !== true
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.updater_metadata_frozen !== true
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.release_body_frozen !== true
+    || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.tag_target_frozen !== true
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.build_validator !==
       'scripts/validate-windows-updater-assets.ts'
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.updater_version_source !==

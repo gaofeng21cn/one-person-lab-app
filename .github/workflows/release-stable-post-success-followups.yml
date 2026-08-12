@@ -1,5 +1,5 @@
 name: OPL Stable Desktop Release Set Follow-up
-run-name: Desktop Release Set follow-up for Stable run ${{ github.event.workflow_run.id }}
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Stable additive repair for source run {0}', inputs.source_run_id) || format('Desktop Release Set follow-up for Stable run {0}', github.event.workflow_run.id) }}
 
 on:
   workflow_run:
@@ -7,6 +7,34 @@ on:
       - OPL Stable Release Bundle
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Protected same-tag additive operation.
+        required: true
+        type: choice
+        options:
+          - repair_additive
+      source_run_id:
+        description: Exact successful Stable source run that published the original Release Set.
+        required: true
+        type: string
+      repair_source_commit:
+        description: Exact canonical App main commit containing the installer repair.
+        required: true
+        type: string
+      expected_old_asset_id:
+        description: Current opl-install.sh GitHub asset ID for compare-and-swap.
+        required: true
+        type: string
+      expected_old_asset_digest:
+        description: Current opl-install.sh sha256 digest for compare-and-swap.
+        required: true
+        type: string
+      operator_confirmation:
+        description: Type REPAIR ADDITIVE INSTALLER to authorize the protected replacement.
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,12 +44,12 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: opl-stable-desktop-release-set-${{ github.event.workflow_run.id }}
+  group: opl-stable-desktop-release-set-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
   cancel-in-progress: false
 
 jobs:
   admit:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -158,7 +186,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   build-desktop-platforms:
-    if: ${{ needs.admit.outputs.applicable == 'true' }}
+    if: ${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}
     needs: [admit]
     uses: ./.github/workflows/build-manual.yml
     with:
@@ -175,7 +203,7 @@ jobs:
     secrets: inherit
 
   append-desktop-platforms:
-    if: ${{ needs.admit.outputs.applicable == 'true' }}
+    if: ${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}
     needs: [admit, build-desktop-platforms]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -256,7 +284,7 @@ jobs:
           retention-days: 30
 
   dispatch-full:
-    if: ${{ needs.admit.outputs.applicable == 'true' }}
+    if: ${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}
     needs: [admit, append-desktop-platforms]
     runs-on: ubuntu-latest
     timeout-minutes: 160
@@ -341,7 +369,7 @@ jobs:
           echo "full_run_id=$full_run_id" >> "$GITHUB_OUTPUT"
 
   receipt:
-    if: ${{ always() && needs.admit.result != 'skipped' }}
+    if: ${{ always() && github.event_name == 'workflow_run' && needs.admit.result != 'skipped' }}
     needs: [admit, build-desktop-platforms, append-desktop-platforms, dispatch-full]
     runs-on: ubuntu-latest
     steps:
@@ -361,5 +389,247 @@ jobs:
         with:
           name: opl-stable-release-set-followup-${{ needs.admit.outputs.source_run_id }}
           path: stable-release-set-followup.json
+          if-no-files-found: error
+          retention-days: 30
+
+  repair-admit:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'repair_additive' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      source_run_id: ${{ steps.bind.outputs.source_run_id }}
+      release_id: ${{ steps.bind.outputs.release_id }}
+      release_tag: ${{ steps.bind.outputs.release_tag }}
+      version: ${{ steps.bind.outputs.version }}
+      app_ref: ${{ steps.bind.outputs.app_ref }}
+      shell_ref: ${{ steps.bind.outputs.shell_ref }}
+      framework_ref: ${{ steps.bind.outputs.framework_ref }}
+      expected_body_digest: ${{ steps.bind.outputs.expected_body_digest }}
+      expected_old_asset_id: ${{ steps.bind.outputs.expected_old_asset_id }}
+      expected_old_asset_size: ${{ steps.bind.outputs.expected_old_asset_size }}
+      expected_old_asset_digest: ${{ steps.bind.outputs.expected_old_asset_digest }}
+      frozen_assets: ${{ steps.bind.outputs.frozen_assets }}
+      repair_source_commit: ${{ steps.bind.outputs.repair_source_commit }}
+      public_receipt_name: ${{ steps.bind.outputs.public_receipt_name }}
+    steps:
+      - name: Checkout exact canonical repair source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.repair_source_commit }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Bind original Stable publication and additive repair CAS
+        id: bind
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          REPAIR_SOURCE_COMMIT: ${{ inputs.repair_source_commit }}
+          EXPECTED_OLD_ASSET_ID: ${{ inputs.expected_old_asset_id }}
+          EXPECTED_OLD_ASSET_DIGEST: ${{ inputs.expected_old_asset_digest }}
+          OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$GITHUB_REF" = refs/heads/main
+          test "$OPERATOR_CONFIRMATION" = 'REPAIR ADDITIVE INSTALLER'
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$REPAIR_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_OLD_ASSET_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EXPECTED_OLD_ASSET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$(git rev-parse HEAD)" = "$REPAIR_SOURCE_COMMIT"
+          gh api "repos/$GITHUB_REPOSITORY/branches/main" > main-branch.json
+          test "$(jq -er .commit.sha main-branch.json)" = "$REPAIR_SOURCE_COMMIT"
+
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          jq -e --arg run "$SOURCE_RUN_ID" '
+            (.id | tostring) == $run
+            and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .path == ".github/workflows/release-stable.yml"
+            and .event == "workflow_dispatch"
+            and .head_branch == "main"
+            and .run_attempt == 1
+            and .status == "completed"
+            and .conclusion == "success"
+          ' source-run.json >/dev/null
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "opl-release-bundle-$SOURCE_RUN_ID" --dir source-bundle
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "opl-release-standard-remote-verify-$SOURCE_RUN_ID" --dir original-publication
+          mapfile -t bundles < <(find source-bundle -type f -name release-bundle.json -print)
+          mapfile -t terminals < <(find original-publication -type f -name mutable-standard-terminal.json -print)
+          test "${#bundles[@]}" = 1
+          test "${#terminals[@]}" = 1
+          bundle="${bundles[0]}"
+          terminal="${terminals[0]}"
+          jq -e '
+            .release.channel == "stable"
+            and .release.prerelease == false
+            and (.release.tag == ("v" + .release.version))
+            and (.sources.app.source_commit | test("^[0-9a-f]{40}$"))
+            and (.sources.shell.source_commit | test("^[0-9a-f]{40}$"))
+            and (.sources.framework.source_commit | test("^[0-9a-f]{40}$"))
+          ' "$bundle" >/dev/null
+          tag="$(jq -er .release.tag "$bundle")"
+          version="$(jq -er .release.version "$bundle")"
+          app="$(jq -er .sources.app.source_commit "$bundle")"
+          shell="$(jq -er .sources.shell.source_commit "$bundle")"
+          framework="$(jq -er .sources.framework.source_commit "$bundle")"
+          jq -e --arg tag "$tag" --arg target "$app" '
+            .surface_kind == "opl_app_github_release_inspection.v1"
+            and .repository == "gaofeng21cn/one-person-lab-app"
+            and .tag == $tag
+            and .release.exists == true
+            and .release.draft == false
+            and .release.prerelease == false
+            and .release.immutable == false
+            and .release.target_commitish == $target
+            and ([.assets[].name] | length == (unique | length))
+          ' "$terminal" >/dev/null
+          original_installer="$(jq -ce '[.assets[] | select(.name == "opl-install.sh")] | select(length == 1) | .[0]' "$terminal")"
+          test "$(jq -er .sha256 <<<"$original_installer")" = "$EXPECTED_OLD_ASSET_DIGEST"
+          expected_old_size="$(jq -er .size_bytes <<<"$original_installer")"
+          frozen_assets="$(jq -ce --arg version "$version" '
+            [.assets[] | select(
+              .name == "latest-arm64-mac.yml"
+              or .name == "latest-mac.yml"
+              or .name == ("One-Person-Lab-" + $version + "-mac-arm64.dmg")
+              or .name == ("One-Person-Lab-" + $version + "-mac-arm64.zip")
+              or .name == ("One-Person-Lab-" + $version + "-mac-arm64.zip.blockmap")
+            ) | {name, size:.size_bytes, digest:.sha256}] | select(length == 5)
+          ' "$terminal")"
+          expected_body_digest="sha256:$(jq -er .release.body_sha256 "$terminal")"
+          public_receipt_name="opl-additive-repair-${REPAIR_SOURCE_COMMIT:0:12}.json"
+
+          release_id="$(jq -er .release.id "$terminal")"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" > live-release.json
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" > live-tag.json
+          jq -e --arg tag "$tag" --arg target "$app" '
+            .ref == ("refs/tags/" + $tag) and .object.type == "commit" and .object.sha == $target
+          ' live-tag.json >/dev/null
+          jq -e --argjson id "$release_id" --arg tag "$tag" --arg target "$app" \
+            --argjson frozen "$frozen_assets" \
+            --arg installer_id "$EXPECTED_OLD_ASSET_ID" --arg installer_digest "$EXPECTED_OLD_ASSET_DIGEST" \
+            --arg public_receipt "$public_receipt_name" \
+            --argjson installer_size "$expected_old_size" '
+            . as $release
+            | .id == $id and .tag_name == $tag and .target_commitish == $target
+            and .draft == false and .prerelease == false and .immutable == false
+            and ([.assets[].name] | length == (unique | length))
+            and all($frozen[]; . as $asset | any($release.assets[]; .name == $asset.name and .size == $asset.size and .digest == $asset.digest))
+            and ([.assets[] | select((.id | tostring) == $installer_id and .name == "opl-install.sh" and .size == $installer_size and .digest == $installer_digest)] | length == 1)
+            and ([.assets[] | select(.name == $public_receipt)] | length == 0)
+          ' live-release.json >/dev/null
+          live_body_digest="sha256:$(jq -jr .body live-release.json | sha256sum | awk '{print $1}')"
+          test "$live_body_digest" = "$expected_body_digest"
+          {
+            echo "source_run_id=$SOURCE_RUN_ID"
+            echo "release_id=$release_id"
+            echo "release_tag=$tag"
+            echo "version=$version"
+            echo "app_ref=$app"
+            echo "shell_ref=$shell"
+            echo "framework_ref=$framework"
+            echo "expected_body_digest=$expected_body_digest"
+            echo "expected_old_asset_id=$EXPECTED_OLD_ASSET_ID"
+            echo "expected_old_asset_size=$expected_old_size"
+            echo "expected_old_asset_digest=$EXPECTED_OLD_ASSET_DIGEST"
+            echo "frozen_assets=$frozen_assets"
+            echo "repair_source_commit=$REPAIR_SOURCE_COMMIT"
+            echo "public_receipt_name=$public_receipt_name"
+          } >> "$GITHUB_OUTPUT"
+
+  repair-additive:
+    if: ${{ needs.repair-admit.result == 'success' }}
+    needs: [repair-admit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-stable
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout exact canonical repair source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.repair-admit.outputs.repair_source_commit }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Generate exact same-cohort repaired universal installer
+        env:
+          VERSION: ${{ needs.repair-admit.outputs.version }}
+          APP_REF: ${{ needs.repair-admit.outputs.app_ref }}
+          SHELL_REF: ${{ needs.repair-admit.outputs.shell_ref }}
+          FRAMEWORK_REF: ${{ needs.repair-admit.outputs.framework_ref }}
+          FROZEN_ASSETS: ${{ needs.repair-admit.outputs.frozen_assets }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir repair-assets
+          node --experimental-strip-types scripts/generate-frozen-universal-installer.ts \
+            --source install.sh --output repair-assets/opl-install.sh --version "$VERSION" \
+            --app-sha "$APP_REF" --shell-sha "$SHELL_REF" --framework-sha "$FRAMEWORK_REF" \
+            --repository "$GITHUB_REPOSITORY"
+          jq -e 'length == 5 and ([.[].name] | length == (unique | length))' <<<"$FROZEN_ASSETS" \
+            > frozen-assets.json
+      - name: Plan additive repair before public mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: >-
+          node --experimental-strip-types scripts/append-stable-desktop-assets.ts
+          --repository "$GITHUB_REPOSITORY"
+          --release-id "${{ needs.repair-admit.outputs.release_id }}"
+          --tag "${{ needs.repair-admit.outputs.release_tag }}"
+          --target "${{ needs.repair-admit.outputs.app_ref }}"
+          --asset-dir repair-assets
+          --output additive-repair-plan.json
+          --repair-additive
+          --expected-old-asset-id "${{ needs.repair-admit.outputs.expected_old_asset_id }}"
+          --expected-old-asset-size "${{ needs.repair-admit.outputs.expected_old_asset_size }}"
+          --expected-old-asset-digest "${{ needs.repair-admit.outputs.expected_old_asset_digest }}"
+          --expected-body-digest "${{ needs.repair-admit.outputs.expected_body_digest }}"
+          --frozen-assets frozen-assets.json
+          --repair-source "${{ needs.repair-admit.outputs.repair_source_commit }}"
+          --source-run-id "${{ needs.repair-admit.outputs.source_run_id }}"
+          --public-receipt-name "${{ needs.repair-admit.outputs.public_receipt_name }}"
+      - name: Upload pre-mutation additive repair plan
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-stable-additive-repair-plan-${{ needs.repair-admit.outputs.source_run_id }}
+          path: additive-repair-plan.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Replace only opl-install.sh and publish additive repair receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: >-
+          node --experimental-strip-types scripts/append-stable-desktop-assets.ts
+          --repository "$GITHUB_REPOSITORY"
+          --release-id "${{ needs.repair-admit.outputs.release_id }}"
+          --tag "${{ needs.repair-admit.outputs.release_tag }}"
+          --target "${{ needs.repair-admit.outputs.app_ref }}"
+          --asset-dir repair-assets
+          --output "${{ needs.repair-admit.outputs.public_receipt_name }}"
+          --repair-additive
+          --expected-old-asset-id "${{ needs.repair-admit.outputs.expected_old_asset_id }}"
+          --expected-old-asset-size "${{ needs.repair-admit.outputs.expected_old_asset_size }}"
+          --expected-old-asset-digest "${{ needs.repair-admit.outputs.expected_old_asset_digest }}"
+          --expected-body-digest "${{ needs.repair-admit.outputs.expected_body_digest }}"
+          --frozen-assets frozen-assets.json
+          --repair-source "${{ needs.repair-admit.outputs.repair_source_commit }}"
+          --source-run-id "${{ needs.repair-admit.outputs.source_run_id }}"
+          --public-receipt-name "${{ needs.repair-admit.outputs.public_receipt_name }}"
+          --apply
+      - name: Upload additive repair receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-stable-additive-repair-${{ needs.repair-admit.outputs.source_run_id }}
+          path: ${{ needs.repair-admit.outputs.public_receipt_name }}
           if-no-files-found: error
           retention-days: 30

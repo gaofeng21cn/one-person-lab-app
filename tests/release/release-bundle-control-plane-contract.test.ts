@@ -215,11 +215,18 @@ test("local and GitHub executors consume one exact build-once Bundle", () => {
 
 test("qualified Stable defaults Latest while daily-default Nightly keeps development validation identity-distinct", () => {
   assert.equal(
-    control.publication.stable.only_manual_dispatch_workflow,
+    control.publication.stable.primary_release_manual_dispatch_workflow,
     ".github/workflows/release-stable.yml",
   );
+  assert.equal(
+    control.publication.stable.additive_repair_manual_dispatch_workflow,
+    ".github/workflows/release-stable-post-success-followups.yml",
+  );
   assert.equal(control.publication.stable.trigger, "workflow_dispatch");
-  assert.equal(control.publication.stable.lower_level_workflows, "workflow_call_only");
+  assert.equal(
+    control.publication.stable.lower_level_workflows,
+    "workflow_call_only_except_protected_same_tag_installer_repair",
+  );
   assert.deepEqual(control.publication.stable.latest_requires.slice(-3), [
     "remote_digest_readback",
     "standard_homebrew_digest_bound_publication",

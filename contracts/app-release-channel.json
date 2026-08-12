@@ -807,7 +807,32 @@
         "platforms",
         "asset_digests",
         "manifest_digest"
-      ]
+      ],
+      "stable_additive_repair": {
+        "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+        "operation": "repair_additive",
+        "protected_environment": "release-stable",
+        "allowed_asset_names": [
+          "opl-install.sh"
+        ],
+        "new_release_or_tag_allowed": false,
+        "version_allocator_used": false,
+        "macos_primary_assets_frozen": true,
+        "updater_metadata_frozen": true,
+        "release_body_frozen": true,
+        "tag_target_frozen": true,
+        "current_asset_cas_fields": [
+          "asset_id",
+          "size",
+          "sha256"
+        ],
+        "source_binding": "original_successful_stable_source_run_plus_exact_canonical_repair_source",
+        "pre_mutation_receipt": "opl-stable-additive-repair-plan-<source-run-id>",
+        "public_receipt": "opl-additive-repair-<repair-source-prefix>.json",
+        "receipt_schema": "opl_app_stable_additive_repair.v1",
+        "certification": "same_tag_public_installer_digest_chain_and_clean_linux_install",
+        "unknown_result_policy": "owner_authoritative_read_only_reconcile_no_retry_rerun_redispatch_or_cancel"
+      }
     },
     "validation_ownership": {
       "stable": {
@@ -924,6 +949,9 @@
       "base_tag_absent_selects_base": true,
       "base_tag_present_selects_next_revision": true,
       "independent_release_per_revision": true,
+      "eligibility": "macos_primary_stable_asset_invalid_only",
+      "additive_platform_full_or_installer_failure_eligible": false,
+      "additive_failure_route": "repair_in_original_release_set_without_new_version",
       "stable_release_native_immutable_required": false,
       "wall_clock_role": "reject_future_base_only"
     },
@@ -973,7 +1001,7 @@
         "latest_activation"
       ]
     },
-    "rule": "GitHub Release names, tags, assets, and UI use the display version. Updater, app package metadata, CFBundle versions, and Homebrew ordering use the separately bound machine version; Stable revisions are independent immutable releases."
+    "rule": "GitHub Release names, tags, assets, and UI use the display version. Updater, app package metadata, CFBundle versions, and Homebrew ordering use the separately bound machine version. A Stable revision is an independent release only when the macOS primary Stable assets are invalid; additive Linux, Windows, Full, or installer failures are repaired inside the original Release Set and never allocate a revision."
   },
   "release_profiles": {
     "default": "stable",
@@ -1531,9 +1559,10 @@
     },
     "publication": {
       "stable": {
-        "only_manual_dispatch_workflow": ".github/workflows/release-stable.yml",
+        "primary_release_manual_dispatch_workflow": ".github/workflows/release-stable.yml",
+        "additive_repair_manual_dispatch_workflow": ".github/workflows/release-stable-post-success-followups.yml",
         "trigger": "workflow_dispatch",
-        "lower_level_workflows": "workflow_call_only",
+        "lower_level_workflows": "workflow_call_only_except_protected_same_tag_installer_repair",
         "pre_publication_admission": {
           "validator": "scripts/validate-standard-publication-input.ts",
           "receipt_schema": "opl_standard_pre_publication_admission_receipt.v1",
@@ -4147,6 +4176,13 @@
     "validator": "scripts/validate-optional-certification-receipt.ts",
     "required_for_publication": false,
     "required_for_latest": false,
+    "stable_additive_repair_receipt_schema": "opl_app_stable_additive_repair.v1",
+    "stable_additive_repair_requires_clean_linux_install": true,
+    "stable_additive_repair_recertifies_macos_primary_assets": false,
+    "stable_additive_repair_digest_chain_fields": [
+      "replacement.previous.digest",
+      "replacement.next.digest"
+    ],
     "artifact_source": "exact_published_release_artifact_with_workflow_cas_and_unified_attestation",
     "artifact_rebuild_allowed": false,
     "full_artifact_release_source": "same_tag_mutable_standard_release",

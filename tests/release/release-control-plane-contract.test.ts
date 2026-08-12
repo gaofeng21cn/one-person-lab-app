@@ -105,6 +105,25 @@ test('release platform contract keeps the primary Stable platform separate from 
     matrix.desktop_platform_additive_follower.windows_x64_updater_assets.runtime_resolver,
     'opl-aion-shell/packages/desktop/src/process/bridge/updateBridge.ts',
   );
+  assert.deepEqual(matrix.desktop_platform_additive_follower.stable_additive_repair, {
+    workflow: '.github/workflows/release-stable-post-success-followups.yml',
+    operation: 'repair_additive',
+    protected_environment: 'release-stable',
+    allowed_asset_names: ['opl-install.sh'],
+    new_release_or_tag_allowed: false,
+    version_allocator_used: false,
+    macos_primary_assets_frozen: true,
+    updater_metadata_frozen: true,
+    release_body_frozen: true,
+    tag_target_frozen: true,
+    current_asset_cas_fields: ['asset_id', 'size', 'sha256'],
+    source_binding: 'original_successful_stable_source_run_plus_exact_canonical_repair_source',
+    pre_mutation_receipt: 'opl-stable-additive-repair-plan-<source-run-id>',
+    public_receipt: 'opl-additive-repair-<repair-source-prefix>.json',
+    receipt_schema: 'opl_app_stable_additive_repair.v1',
+    certification: 'same_tag_public_installer_digest_chain_and_clean_linux_install',
+    unknown_result_policy: 'owner_authoritative_read_only_reconcile_no_retry_rerun_redispatch_or_cancel',
+  });
   assert.equal(
     release.release_validation_profiles.stable.required_lanes.includes('standard_linux_x64_build'),
     false,

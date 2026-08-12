@@ -7,14 +7,15 @@ Product and installation semantics live in
 Machine policy lives in `contracts/app-release-channel.json`; Framework owns immutable Bundle,
 checkpoint and operation receipt identity. This guide describes the App executor only.
 
-The public App release product is Desktop. A Stable version is one mutable GitHub Release/tag
-containing the macOS arm64 primary release plus same-tag Full macOS, Linux x64 and Windows x64
-Desktop assets. Independent WebUI archives, qualification archives and follower Releases are retired.
+The public App release product is Desktop. A Stable version becomes valid when its signed and
+notarized macOS arm64 primary release passes publication and public readback. The same mutable GitHub
+Release/tag then receives Full macOS, Linux x64, Windows x64 and installer deliveries additively.
+Independent WebUI archives, qualification archives and follower Releases are retired.
 Docker WebUI is a separate GHCR product line and never consumes Desktop Stable authority.
 
 ## Stable Operations
 
-`.github/workflows/release-stable.yml` is the only manual Stable mutation entry. It accepts exactly:
+`.github/workflows/release-stable.yml` is the only manual Stable version/publication entry. It accepts exactly:
 
 - `standard`: build, qualify and publish the primary macOS arm64 Desktop release;
 - `resume_standard`: reconcile the same admitted Standard operation without a second mutation;
@@ -32,8 +33,18 @@ appends those Desktop assets to the same Release/tag and then dispatches Full ap
 append script performs exact release/tag identity checks and same-name digest CAS. It cannot create
 a Release/tag or move Latest.
 
+If an additive delivery is defective while the macOS primary release remains valid, the Stable
+version stays unchanged. The protected `repair_additive` branch in that same follow-up workflow may
+replace only `opl-install.sh`. It requires the original successful Stable source run, canonical repair
+source, old asset ID/size/digest CAS, frozen macOS DMG/ZIP/blockmap and updater YAML digests, frozen
+Release body and tag target, a pre-mutation Actions receipt, and a public supersession receipt. Linux,
+Windows, Full and macOS primary assets are not rebuilt. A new `-rN` Stable is allowed only when the
+macOS primary Stable assets themselves are invalid.
+
 Post-publication certification consumes the completed same-tag Desktop Release Set. Linux installs
 the exact public `.deb` through the exact public installer; macOS Standard/Full checks are read-only.
+After an installer repair, certification additionally binds the public receipt and old/new installer
+digest chain, then repeats the clean Linux install without re-running macOS primary qualification.
 Certification failure records evidence but cannot roll back or rewrite the public Release.
 
 ## Local Gates
@@ -66,7 +77,8 @@ For an existing Stable Release migration:
 1. Read the owner API and freeze the exact release id, tag, asset inventory and draft/prerelease state.
 2. Download source assets to a task-owned temporary directory; record name, byte size and SHA-256.
 3. Before each upload, compare the target asset name. Missing is writable, same bytes are idempotent,
-   and same name with different bytes is a conflict.
+   and same name with different bytes is a conflict except for the protected `opl-install.sh` repair
+   path described above.
 4. Append Desktop assets first; fresh-read the target inventory.
 5. Delete only the exact superseded asset ids authorized for this migration.
 6. Verify every public download by size and SHA-256, plus Latest and release flags.
