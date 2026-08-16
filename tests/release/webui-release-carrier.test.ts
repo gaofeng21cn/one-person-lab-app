@@ -860,7 +860,7 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
     'receipt-sidecar-pulled-record.json',
     'receipt-sidecar-pull-verification.json',
   ]) {
-    assert.match(stage.run, new RegExp(file.replace(/\./g, '\\.')));
+    assert.match(stage.run, new RegExp(file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });
 

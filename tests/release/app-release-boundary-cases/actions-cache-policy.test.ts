@@ -22,7 +22,7 @@ test('repository Actions caches satisfy the reusable cache policy', () => {
   assert.deepEqual(collectActionsCachePolicyViolations(appRoot), []);
 });
 
-test('first-run Codex install seed uses full content identity and main-only miss saves', () => {
+test('first-run Codex install seed uses full content identity and direct-main-push miss saves', () => {
   const workflowPath = path.join(appRoot, '.github', 'workflows', 'opl-first-run-vm.yml');
   const workflowText = fs.readFileSync(workflowPath, 'utf8');
   const prefetchScriptText = fs.readFileSync(
@@ -45,7 +45,7 @@ test('first-run Codex install seed uses full content identity and main-only miss
   assert.match(prefetchScriptText, /`cache_save_required=\$\{cacheSaveRequired\}`/);
   assert.equal(
     saveStep?.if,
-    "${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}",
+    "${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}",
   );
   assert.equal(saveStep?.with?.key, '${{ steps.codex_package_preflight.outputs.cache_key }}');
   assert.equal(saveStep?.env?.OPL_ACTIONS_CACHE_CLASS, 'first_run_install_seed');

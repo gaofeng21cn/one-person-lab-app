@@ -473,7 +473,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
 
       - name: Setup active shell implementation
         uses: ./.github/actions/setup-active-shell-deps
@@ -578,7 +577,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
 
       - name: Setup active shell implementation
         uses: ./.github/actions/setup-active-shell-deps
@@ -656,7 +654,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
 
       - name: Install App root validation dependencies
         run: npm ci --ignore-scripts
@@ -728,7 +725,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
 
       - name: Install App root validation dependencies
         shell: pwsh

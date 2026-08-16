@@ -166,8 +166,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: app-source/package-lock.json
 
       - name: Install App admission dependencies without lifecycle scripts
         working-directory: app-source
@@ -339,8 +337,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: app-source/package-lock.json
 
       - name: Bind one pre-issued Stable authority to this run
         id: control

@@ -109,11 +109,7 @@ export function humanizeCommitSubject(subject: string) {
   return subject
     .replace(/\s+\(#\d+\)\s*$/, '')
     .replace(/^[a-z]+(?:\([^)]+\))?!?:\s*/i, '')
-    .replace(/\bMAS\b/g, 'MAS')
-    .replace(/\bMAG\b/g, 'MAG')
-    .replace(/\bRCA\b/g, 'RCA')
     .replace(/\bOMA\b/g, 'OPL Meta Agent')
-    .replace(/\bOPL\b/g, 'OPL')
     .replace(/[-_]+/g, ' ')
     .trim();
 }

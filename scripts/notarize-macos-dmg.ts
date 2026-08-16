@@ -738,8 +738,8 @@ export function finalizeNotarizedDmg() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     process.stdout.write(`${JSON.stringify(finalizeNotarizedDmg(), null, 2)}\n`);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+  } catch {
+    console.error('DMG notarization finalization failed; inspect the persisted recovery evidence.');
     process.exit(1);
   }
 }

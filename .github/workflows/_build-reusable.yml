@@ -195,7 +195,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
-          cache: npm
 
       - name: Install App root typecheck dependencies
         run: npm ci --ignore-scripts
@@ -1219,7 +1218,7 @@ jobs:
         run: bun run validate:opl-package
 
       - name: Save Electron artifacts cache
-        if: ${{ github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -1231,7 +1230,7 @@ jobs:
           key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
 
       - name: Save Bun install cache
-        if: ${{ github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache

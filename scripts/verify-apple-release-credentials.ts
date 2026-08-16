@@ -939,8 +939,8 @@ if (isMain) {
   try {
     const receipt = verifyAppleReleaseCredentials(cliOptions());
     process.stdout.write(`${JSON.stringify(receipt)}\n`);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+  } catch {
+    console.error('Apple release credential verification failed.');
     process.exit(1);
   }
 }

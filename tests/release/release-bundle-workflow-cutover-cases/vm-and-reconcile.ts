@@ -481,10 +481,10 @@ case "$url" in
     printf '%s\\n' '{}' > "$output"
     ;;
   https://registry.example/openai-codex.tgz)
-    printf '%b' '${rootTarball.replace('\n', '\\n')}' > "$output"
+    printf '%b' '${rootTarball.replaceAll('\n', '\\n')}' > "$output"
     ;;
   https://registry.example/openai-codex-darwin-arm64.tgz)
-    printf '%b' '${platformTarball.replace('\n', '\\n')}' > "$output"
+    printf '%b' '${platformTarball.replaceAll('\n', '\\n')}' > "$output"
     ;;
   *)
     exit 2

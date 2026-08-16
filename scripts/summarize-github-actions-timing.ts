@@ -437,7 +437,10 @@ function markdownRows(entries: Array<Record<string, unknown>>, columns: string[]
     ...entries.map((entry) => `| ${columns.map((column) => {
       const value = entry[column];
       if (column.endsWith('seconds')) return formatDuration(typeof value === 'number' ? value : null);
-      return String(value ?? 'n/a').replace(/\|/g, '\\|');
+      return String(value ?? 'n/a')
+        .replace(/\\/g, '\\\\')
+        .replace(/\|/g, '\\|')
+        .replace(/[\r\n]+/g, ' ');
     }).join(' | ')} |`),
   ];
 }

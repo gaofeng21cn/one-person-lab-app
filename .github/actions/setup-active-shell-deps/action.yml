@@ -63,7 +63,7 @@ runs:
       run: bun run postinstall || true
 
     - name: Save Bun install cache
-      if: ${{ github.ref == 'refs/heads/main' && inputs.install-dependencies == 'true' && steps.restore-bun-install-cache.outputs.cache-hit != 'true' }}
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.install-dependencies == 'true' && steps.restore-bun-install-cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
       with:
         path: ~/.bun/install/cache

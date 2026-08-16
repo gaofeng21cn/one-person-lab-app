@@ -5,7 +5,19 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parse as parseYaml } from 'yaml';
-import { updateElectronUpdaterMetadataForArtifact } from '../../scripts/update-electron-updater-metadata.ts';
+import {
+  isElectronUpdaterMetadataName,
+  updateElectronUpdaterMetadataForArtifact,
+} from '../../scripts/update-electron-updater-metadata.ts';
+
+test('recognizes updater metadata names without regex backtracking', () => {
+  for (const name of ['latest.yml', 'latest.yaml', 'latest-mac.yml', 'LATEST-arm64-mac.YAML']) {
+    assert.equal(isElectronUpdaterMetadataName(name), true, name);
+  }
+  for (const name of ['latest-.yml', 'latest-mac.json', 'prefix-latest.yml', `latest-${'--'.repeat(10_000)}.txt`]) {
+    assert.equal(isElectronUpdaterMetadataName(name), false, name.slice(0, 80));
+  }
+});
 
 test('installs App release tooling before finalized metadata is updated', () => {
   const workflowText = fs.readFileSync(

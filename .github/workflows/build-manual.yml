@@ -55,11 +55,6 @@ on:
         default: ''
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to build from'
-        required: true
-        default: 'main'
-        type: string
       platform:
         description: 'Platform to build'
         required: true
@@ -122,7 +117,7 @@ jobs:
       - name: Checkout requested App source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.app_ref || inputs.branch }}
+          ref: ${{ inputs.app_ref || github.sha }}
 
       - name: Checkout protected release control source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -178,11 +173,6 @@ jobs:
                   echo '::error::macos_x64_signed_development_validation accepts only macos-x64.'
                   exit 1
                 }
-                test '${{ inputs.branch }}' = "$GITHUB_SHA" || {
-                  echo '::error::Signed macOS x64 development validation requires branch to equal the triggering github.sha.'
-                  exit 1
-                }
-                [[ '${{ inputs.branch }}' =~ ^[0-9a-f]{40}$ ]]
                 [[ '${{ inputs.shell_ref }}' =~ ^[0-9a-f]{40}$ ]] || {
                   echo '::error::Signed macOS x64 development validation requires a 40-character Shell SHA.'
                   exit 1

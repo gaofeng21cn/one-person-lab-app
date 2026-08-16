@@ -1389,7 +1389,7 @@ jobs:
           CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.codex_install_asset_cache.outputs.cache-matched-key }}
 
       - name: Save Codex install asset cache
-        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
+        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
         env:
           OPL_ACTIONS_CACHE_CLASS: first_run_install_seed
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

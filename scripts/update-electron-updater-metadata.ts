@@ -14,6 +14,19 @@ type UpdaterMetadata = {
   files?: unknown;
 };
 
+export function isElectronUpdaterMetadataName(name: string) {
+  const normalized = name.toLowerCase();
+  const extension = normalized.endsWith('.yaml')
+    ? '.yaml'
+    : normalized.endsWith('.yml')
+      ? '.yml'
+      : '';
+  if (!extension) return false;
+  const stem = normalized.slice(0, -extension.length);
+  return stem === 'latest'
+    || (stem.startsWith('latest-') && stem.length > 'latest-'.length && !stem.includes('.'));
+}
+
 function artifactIdentity(artifactPath: string) {
   const bytes = fs.readFileSync(artifactPath);
   return {
@@ -26,7 +39,7 @@ function artifactIdentity(artifactPath: string) {
 export function updateElectronUpdaterMetadataForArtifact(artifactPath: string, metadataDir: string) {
   const identity = artifactIdentity(artifactPath);
   const metadataFiles = fs.readdirSync(metadataDir)
-    .filter((name) => /^latest(?:-[^.]+)*\.ya?ml$/i.test(name))
+    .filter(isElectronUpdaterMetadataName)
     .sort();
   if (metadataFiles.length === 0) throw new Error(`No electron-updater metadata found under ${metadataDir}.`);
 
