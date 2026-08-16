@@ -24,7 +24,7 @@ jobs:
       source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - name: Check out Studio source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: gaofeng21cn/opl-studio
           ref: ${{ inputs.studio_ref }}
@@ -42,7 +42,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Check out exact Studio source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: gaofeng21cn/opl-studio
           ref: ${{ needs.resolve-studio.outputs.source_sha }}
@@ -86,7 +86,7 @@ jobs:
           tar -C studio -czf candidate-artifacts/desktop-headless/standalone-headless-webui.tgz dist/webui
 
       - name: Upload local Electron and Headless evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: opl-studio-desktop-headless-candidate-${{ needs.resolve-studio.outputs.source_sha }}
           path: candidate-artifacts/desktop-headless
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out exact Studio source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: gaofeng21cn/opl-studio
           ref: ${{ needs.resolve-studio.outputs.source_sha }}
@@ -125,7 +125,7 @@ jobs:
           npm run smoke:docker | tee out/docker-local-smoke.json
 
       - name: Upload local OCI evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: opl-studio-oci-candidate-${{ needs.resolve-studio.outputs.source_sha }}
           path: studio/out/docker-local-smoke.json
@@ -138,12 +138,12 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Check out App contract authority
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Check out exact Studio source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: gaofeng21cn/opl-studio
           ref: ${{ needs.resolve-studio.outputs.source_sha }}
@@ -156,13 +156,13 @@ jobs:
           node-version: 22
 
       - name: Download Electron and Headless evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: opl-studio-desktop-headless-candidate-${{ needs.resolve-studio.outputs.source_sha }}
           path: candidate-artifacts/desktop-headless
 
       - name: Download OCI evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: opl-studio-oci-candidate-${{ needs.resolve-studio.outputs.source_sha }}
           path: candidate-artifacts/oci
@@ -258,7 +258,7 @@ jobs:
           NODE
 
       - name: Upload candidate-only manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: opl-studio-carrier-evidence-${{ needs.resolve-studio.outputs.source_sha }}
           path: shells/opl-studio/out/opl-studio-carrier-evidence-manifest.json
