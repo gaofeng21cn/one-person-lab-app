@@ -22,6 +22,36 @@ test('repository Actions caches satisfy the reusable cache policy', () => {
   assert.deepEqual(collectActionsCachePolicyViolations(appRoot), []);
 });
 
+test('shared dependency caches are restored only for direct main pushes', () => {
+  const mainPushGuard = "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}";
+  const activeShellMainPushGuard =
+    "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.install-dependencies == 'true' }}";
+  const activeShellAction = parseYaml(
+    fs.readFileSync(
+      path.join(appRoot, '.github', 'actions', 'setup-active-shell-deps', 'action.yml'),
+      'utf8',
+    ),
+  ) as Record<string, any>;
+  const activeShellSteps = activeShellAction.runs.steps as Array<Record<string, any>>;
+  assert.equal(
+    activeShellSteps.find((step) => step.name === 'Restore Bun install cache')?.if,
+    activeShellMainPushGuard,
+  );
+
+  const buildWorkflow = parseYaml(
+    fs.readFileSync(path.join(appRoot, '.github', 'workflows', '_build-reusable.yml'), 'utf8'),
+  ) as Record<string, any>;
+  const buildSteps = buildWorkflow.jobs.build.steps as Array<Record<string, any>>;
+  assert.equal(
+    buildSteps.find((step) => step.name === 'Restore Electron artifacts cache')?.if,
+    mainPushGuard,
+  );
+  assert.equal(
+    buildSteps.find((step) => step.name === 'Restore Bun install cache')?.if,
+    mainPushGuard,
+  );
+});
+
 test('first-run Codex install seed uses full content identity and direct-main-push miss saves', () => {
   const workflowPath = path.join(appRoot, '.github', 'workflows', 'opl-first-run-vm.yml');
   const workflowText = fs.readFileSync(workflowPath, 'utf8');

@@ -543,6 +543,7 @@ jobs:
       # Restore Electron/Electron-Builder caches before any build-related install
       - name: Restore Electron artifacts cache
         id: electron-cache
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -558,6 +559,7 @@ jobs:
 
       - name: Restore Bun install cache
         id: bun-cache
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache

@@ -42,6 +42,7 @@ runs:
 
     - name: Restore Bun install cache
       id: restore-bun-install-cache
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.install-dependencies == 'true' }}
       uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
       with:
         path: ~/.bun/install/cache
