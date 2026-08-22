@@ -4221,7 +4221,7 @@ blockquote {
 </section>
 <section id="安装-one-person-lab" class="level2">
 <h2 class="anchored" data-anchor-id="安装-one-person-lab">1. 安装 One Person Lab</h2>
-<p><strong>首次安装推荐 Full。</strong> 打开上面的 Latest Release 页面，在 <strong>Assets</strong> 区域下载 <code>One-Person-Lab-Full-&lt;版本&gt;-mac-arm64.dmg</code>。Standard 会先成为 Latest，Full 随后追加到同一 Release/tag；刚发布时如果暂未看到 Full，请等待追加发布完成并刷新 Assets，不要改下 ZIP、Source code 或其他元数据文件。</p>
+<p><strong>首次安装推荐 Full。</strong> 打开上面的 Latest Release 页面，在 <strong>Assets</strong> 区域下载 <code>One-Person-Lab-Full-&lt;版本&gt;-mac-arm64.dmg</code>。不要下载 ZIP、Source code 或其他元数据文件。</p>
 <p>已经完成首次安装、准备升级，或确认网络环境足以在线下载全部模块时，可以打开 macOS“终端”， 粘贴并运行下面的 Homebrew Standard 安装命令：</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install <span class="at">--cask</span> gaofeng21cn/one-person-lab/one-person-lab</span></code></pre></div><button title="复制到剪贴板" class="code-copy-button"><i class="bi"></i></button></div>
 <p>这条命令适用于 Standard 联网安装和稳定版升级。Homebrew Cask 会把 App 安装到 “应用程序”，但不会自动打开 App，也不应被当作清理 quarantine 的入口。安装完成后运行：</p>
@@ -4320,7 +4320,7 @@ blockquote {
 <li><strong>Intel Mac 可以安装吗？</strong> 当前不支持。请使用 Apple Silicon（arm64）Mac。</li>
 <li><strong>已经在用 Codex，还需要登录 OPL Gateway 吗？</strong> 不需要。点击“重新检测已有配置”即可确认现有模型访问。</li>
 <li><strong>暂时没有 Gateway 账户或 API Key 怎么办？</strong> 可以先“进入 OPL”，后续从“设置 -&gt; 账户与访问”完成配置。</li>
-<li><strong>下载页面里文件很多，应该选哪个？</strong> 首次安装选择 <code>One-Person-Lab-Full-&lt;版本&gt;-mac-arm64.dmg</code>。刚发版时 Full 可能正在向同一 Release 追加，请等待它出现；不要下载 ZIP、blockmap、YML、JSON 或 Source code。</li>
+<li><strong>下载页面里文件很多，应该选哪个？</strong> 首次安装选择 <code>One-Person-Lab-Full-&lt;版本&gt;-mac-arm64.dmg</code>。不要下载 ZIP、blockmap、YML、JSON 或 Source code。</li>
 <li><strong>Standard 安装或首次检查卡住怎么办？</strong> Standard 需要在线下载 Base、Packages 和其他模块。先确认网络、代理和 DNS 正常，并检查所选模型服务是否可达；例如使用 OpenAI 时，需要能够直连 OpenAI。网络条件不稳定时改用 Full 首次安装。</li>
 <li><strong>打不开 App 怎么办？</strong> 确认 App 已复制到 <code>/Applications</code> 并按 macOS 安全提示允许打开；仍无法启动时，使用同 tag <code>opl-install.sh</code> 安装。</li>
 <li><strong>账户登录失败怎么办？</strong> 先确认邮箱和密码正确，并检查 <code>gateway.medopl.com</code> 的网络连通性；反馈问题时提供操作系统、发生步骤和不含密码或 API Key 的报错截图。</li>
