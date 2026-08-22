@@ -4297,6 +4297,8 @@ blockquote {
 <li>打开模型设置，确认模型目录可读。</li>
 </ol>
 <p>Gateway 密码、token 和 API Key 不应进入 PowerShell、命令行参数、日志、截图或 问题报告。</p>
+<p>当前版本只把 <code>gateway.medopl.com</code> 作为 OPL Gateway 的可信服务主机：账户登录、账户信息和用量查看使用 <code>https://gateway.medopl.com/api/v1</code>，模型访问使用 <code>https://gateway.medopl.com/v1</code>。新配置会由 App 自动写入 provider ID <code>oplgateway</code> 和上述模型地址，无需手工填写 Base URL。</p>
+<p>已有 OPL Gateway Codex 配置会按 Gateway 地址原位复用，不会隐式迁移旧配置，也不会改写原 provider ID、名称或 Base URL，以保留既有会话和配置关联。</p>
 </section>
 <section id="wsl-2-与-opl-linux" class="level2">
 <h2 class="anchored" data-anchor-id="wsl-2-与-opl-linux">5. WSL 2 与 OPL-Linux</h2>
