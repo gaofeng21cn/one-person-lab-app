@@ -780,6 +780,22 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     reusableFullVerificationRun,
     /\.evidence\.scope_proof\.classification == "harness_mechanics_only"[\s\S]*\.evidence\.scope_proof\.artifact_semantic_digest == \$semantic_digest/,
   );
+  assert.equal(
+    full.jobs['materialize-full-build'].outputs.artifact_producer_run_id,
+    '${{ steps.full_source.outputs.artifact_producer_run_id }}',
+  );
+  assert.equal(
+    cleanVmQualification.with.release_artifact_run_id,
+    '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}',
+  );
+  const checkpointFull = full.jobs['checkpoint-full'];
+  const checkpointFullRun = checkpointFull.steps
+    .map((step: Record<string, unknown>) => String(step.run ?? ''))
+    .join('\n');
+  assert.match(
+    checkpointFullRun,
+    /--arg source_artifact_run_id '\$\{\{ needs\.materialize-full-build\.outputs\.artifact_producer_run_id \|\| github\.run_id \}\}'/,
+  );
   assert.match(readWorkflow('_release-full-addon.yml'), /rebuild_performed/);
 });
 

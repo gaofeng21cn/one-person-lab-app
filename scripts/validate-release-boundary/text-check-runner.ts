@@ -1073,7 +1073,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       'materialize-full-build',
       'full-qualification',
     ])
-    || fullCleanVm.with?.release_artifact_run_id !== '${{ inputs.prior_full_artifact_run_id || github.run_id }}'
+    || fullCleanVm.with?.release_artifact_run_id !== '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'
     || fullCleanVm.with?.verification_app_ref !== "${{ inputs.smoke_harness_ref != '' && github.sha || inputs.full_content_app_ref }}"
     || fullCleanVm.with?.smoke_harness_ref !== '${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}'
     || fullCleanVm.with?.package_profile !== 'full'
@@ -1091,7 +1091,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     !checkpointFullRuns.includes('--hosted-core-qualification "$hosted_receipt"')
     || !checkpointFullRuns.includes('full-clean-vm-qualification-receipt.json')
     || !checkpointFullRuns.includes('standard-clean-vm-qualification-receipt.json')
-    || !checkpointFullRuns.includes("--arg source_artifact_run_id '${{ inputs.prior_full_artifact_run_id || github.run_id }}'")
+    || !checkpointFullRuns.includes("--arg source_artifact_run_id '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'")
     || !checkpointFullRuns.includes('.qualification.source_artifact_run_id == $source_artifact_run_id')
     || checkpointFullRuns.includes('--legacy-qualification')
   ) {

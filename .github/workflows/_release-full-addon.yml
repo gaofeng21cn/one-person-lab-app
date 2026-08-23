@@ -847,6 +847,7 @@ jobs:
       actions: read
     outputs:
       mas_ref: ${{ steps.full_source.outputs.mas_ref }}
+      artifact_producer_run_id: ${{ steps.full_source.outputs.artifact_producer_run_id }}
     steps:
       - name: Checkout canonical App executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1090,7 +1091,14 @@ jobs:
         run: |
           set -euo pipefail
           mas_ref="$(jq -er '.manifest.resolved_refs.mas.resolved_commit | select(type == "string" and test("^[0-9a-f]{40}$"))' full-output/opl-release-manifest.json)"
-          echo "mas_ref=$mas_ref" >> "$GITHUB_OUTPUT"
+          artifact_producer_run_id='${{ needs.restore-standard.outputs.source_run_id }}'
+          if [ -f full-cohort/opl-build-cohort.json ]; then
+            artifact_producer_run_id="$(jq -er '.actions.run_id | select(type == "string" and test("^[1-9][0-9]*$"))' full-cohort/opl-build-cohort.json)"
+          fi
+          {
+            echo "mas_ref=$mas_ref"
+            echo "artifact_producer_run_id=$artifact_producer_run_id"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Download original Full build cohort identity
         if: ${{ inputs.prior_full_artifact_run_id == '' }}
@@ -1263,7 +1271,7 @@ jobs:
     with:
       mode: execute
       release_artifact_name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
-      release_artifact_run_id: ${{ inputs.prior_full_artifact_run_id || github.run_id }}
+      release_artifact_run_id: ${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.restore-standard.outputs.bundle_digest }}
       artifact_app_ref: ${{ inputs.full_content_app_ref }}
@@ -1494,7 +1502,7 @@ jobs:
             }
             jq -e \
               --arg run_id "$GITHUB_RUN_ID" \
-              --arg source_artifact_run_id '${{ inputs.prior_full_artifact_run_id || github.run_id }}' \
+              --arg source_artifact_run_id '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}' \
               --arg artifact 'opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64' \
               --arg bundle "$BUNDLE_DIGEST" \
               --arg app '${{ inputs.full_content_app_ref }}' \
