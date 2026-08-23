@@ -536,25 +536,6 @@ jobs:
             echo "operation_deadline_at=$operation_deadline_at"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Upload independent Full operation checkpoint
-        if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-release-append-full-operation-checkpoint-${{ github.run_id }}
-          path: |
-            append-full-operation-checkpoint
-            standard-build-receipt.json
-            full-build-receipt.json
-            append-operation-status-before.json
-            append-operation-status-after-reconcile.json
-            append-operation-admit.json
-            append-operation-checkpoint-export.json
-            full-resume-observation.json
-            full-resume-reconcile.receipt.json
-            full-resume-reconcile-result.json
-          if-no-files-found: warn
-          retention-days: 30
-
       - name: Bind checkpoint build provenance and exact Standard reference
         id: identity
         env:
@@ -753,6 +734,27 @@ jobs:
               "$SOURCE_RUN_ID" \
               "opl-full-first-install-dmg-${version}-mac-arm64"
           fi
+
+      - name: Upload independent Full operation checkpoint
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-release-append-full-operation-checkpoint-${{ github.run_id }}
+          path: |
+            append-full-operation-checkpoint
+            checkpoint-identity-bootstrap/**/standard-clean-vm-qualification-receipt.json
+            checkpoint-identity-bootstrap/**/standard-clean-vm-qualification-receipt.sha256
+            standard-build-receipt.json
+            full-build-receipt.json
+            append-operation-status-before.json
+            append-operation-status-after-reconcile.json
+            append-operation-admit.json
+            append-operation-checkpoint-export.json
+            full-resume-observation.json
+            full-resume-reconcile.receipt.json
+            full-resume-reconcile-result.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Admit executor-head Full publication target before build
         env:
