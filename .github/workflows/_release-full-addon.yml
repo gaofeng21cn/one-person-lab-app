@@ -1431,10 +1431,7 @@ jobs:
           stage='${{ needs.restore-standard.outputs.completed_stage }}'
           case "$stage" in
             standard_built|standard_qualified)
-              full_build_run_id="$GITHUB_RUN_ID"
-              if [ -n '${{ inputs.prior_full_artifact_run_id }}' ]; then
-                full_build_run_id='${{ inputs.prior_full_artifact_run_id }}'
-              fi
+              full_build_run_id='${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'
               node --experimental-strip-types app-source/scripts/framework-release-adapter.ts executor-receipt \
                 --operation build --executor remote --attempt-id "gha-${full_build_run_id}-full-build" \
                 --release-operation append_full --operation-id "$operation_id" \
