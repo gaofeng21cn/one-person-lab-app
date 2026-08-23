@@ -923,7 +923,7 @@ jobs:
               and .head_branch == "main"
               and .run_attempt == 1
               and .status == "completed"
-              and .conclusion == "failure"
+              and (.conclusion == "failure" or .conclusion == "cancelled")
               and .path == ".github/workflows/release-stable.yml"
               and .repository.full_name == $repository
             ' <<<"$run_json" >/dev/null
