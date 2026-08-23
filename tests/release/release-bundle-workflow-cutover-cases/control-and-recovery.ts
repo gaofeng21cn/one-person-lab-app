@@ -764,6 +764,22 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     reusableFullVerificationRun,
     /\.retry\.disposition == "same_artifact_retry_allowed"\s+or \(\$smoke_harness_ref != "" and \.retry\.disposition == "new_cohort_required"\)/,
   );
+  assert.match(
+    reusableFullVerificationRun,
+    /artifact_producer_run_id=.*\.actions\.run_id/,
+  );
+  assert.match(
+    reusableFullVerificationRun,
+    /\.identity\.source_artifact_run_id == \$producer_run_id/,
+  );
+  assert.match(
+    reusableFullVerificationRun,
+    /\.retry\.disposition == "reconcile_only"[\s\S]*\.failure == \{type:"none",boundary:"passed",classification:"passed"\}[\s\S]*\.evidence\.strict_qualification_receipt_sha256/,
+  );
+  assert.match(
+    reusableFullVerificationRun,
+    /\.evidence\.scope_proof\.classification == "harness_mechanics_only"[\s\S]*\.evidence\.scope_proof\.artifact_semantic_digest == \$semantic_digest/,
+  );
   assert.match(readWorkflow('_release-full-addon.yml'), /rebuild_performed/);
 });
 

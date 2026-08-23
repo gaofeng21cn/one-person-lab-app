@@ -939,6 +939,7 @@ jobs:
           dmg_sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
           dmg_size="$(wc -c < "$dmg" | tr -d ' ')"
           cohort_sha="$(shasum -a 256 "$cohort" | awk '{print $1}')"
+          artifact_producer_run_id="$(jq -er '.actions.run_id | select(type == "string" and test("^[1-9][0-9]*$"))' "$cohort")"
 
           jq -e \
             --arg version "$VERSION" \
@@ -946,7 +947,7 @@ jobs:
             --arg app "$APP_REF" \
             --arg shell "$SHELL_REF" \
             --arg framework "$FRAMEWORK_REF" \
-            --arg run_id "$PRIOR_RUN_ID" \
+            --arg producer_run_id "$artifact_producer_run_id" \
             --arg artifact "opl-full-first-install-dmg-${VERSION}-mac-arm64" \
             --arg dmg_name "$(basename "$dmg")" \
             --arg dmg_sha "$dmg_sha" \
@@ -957,7 +958,7 @@ jobs:
               and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
               and .build == {version:$version,kind:"full"}
               and .artifact == {name:$dmg_name,sha256:$dmg_sha,size_bytes:$dmg_size}
-              and .actions.run_id == $run_id
+              and .actions.run_id == $producer_run_id
               and .actions.run_attempt == "1"
               and .actions.artifact_name == $artifact
             ' "$cohort" >/dev/null
@@ -970,6 +971,7 @@ jobs:
             --arg app "$APP_REF" \
             --arg shell "$SHELL_REF" \
             --arg run_id "$PRIOR_RUN_ID" \
+            --arg producer_run_id "$artifact_producer_run_id" \
             --arg artifact "opl-full-first-install-dmg-${VERSION}-mac-arm64" \
             --arg dmg_sha "$dmg_sha" \
             --arg cohort_sha "$cohort_sha" \
@@ -982,6 +984,20 @@ jobs:
               and (
                 .retry.disposition == "same_artifact_retry_allowed"
                 or ($smoke_harness_ref != "" and .retry.disposition == "new_cohort_required")
+                or (
+                  $smoke_harness_ref != ""
+                  and .retry.disposition == "reconcile_only"
+                  and .failure_taxonomy == "unknown"
+                  and .failure == {type:"none",boundary:"passed",classification:"passed"}
+                  and .outcomes.validate_inputs == "success"
+                  and .outcomes.clean_vm == "failure"
+                  and .errors == []
+                  and (.evidence.strict_qualification_receipt_path | type == "string" and endswith("/artifact-qualification-receipt.json"))
+                  and (.evidence.strict_qualification_receipt_sha256 | type == "string" and test("^[0-9a-f]{64}$"))
+                  and (.evidence.smoke_summary_path | type == "string" and endswith("/tart-smoke-summary.json"))
+                  and (.evidence.smoke_summary_sha256 | type == "string" and test("^[0-9a-f]{64}$"))
+                  and (.evidence.critical_diagnostics_sha256 | type == "string" and test("^[0-9a-f]{64}$"))
+                )
                 or (
                   .retry.disposition == "reconcile_only"
                   and .failure_taxonomy == "infrastructure"
@@ -1001,18 +1017,34 @@ jobs:
               and .identity.package_profile == "full"
               and .identity.qualification_run_id == $run_id
               and .identity.qualification_run_attempt == "1"
-              and .identity.source_artifact_run_id == $run_id
+              and .identity.source_artifact_run_id == $producer_run_id
               and .identity.source_artifact_name == $artifact
               and .artifact.sha256 == $dmg_sha
               and .artifact.manifest_sha256 == $cohort_sha
               and .expectations.semantic_digest == $semantic_digest
               and .expectations.probe_digest == $probe_digest
               and .qualification_inputs.manifest_sha256 == $qualification_input_digest
-              and .evidence.scope_proof.classification == "same_as_artifact_cohort"
-              and .evidence.scope_proof.app_base_sha == $app
-              and .evidence.scope_proof.app_head_sha == $app
-              and .evidence.scope_proof.shell_base_sha == $shell
-              and .evidence.scope_proof.shell_head_sha == $shell
+              and (
+                (
+                  .evidence.scope_proof.classification == "same_as_artifact_cohort"
+                  and .evidence.scope_proof.app_base_sha == $app
+                  and .evidence.scope_proof.app_head_sha == $app
+                  and .evidence.scope_proof.shell_base_sha == $shell
+                  and .evidence.scope_proof.shell_head_sha == $shell
+                )
+                or (
+                  $smoke_harness_ref != ""
+                  and .evidence.scope_proof.classification == "harness_mechanics_only"
+                  and .evidence.scope_proof.app_base_sha == $app
+                  and .evidence.scope_proof.shell_base_sha == $shell
+                  and (.evidence.scope_proof.app_head_sha | type == "string" and test("^[0-9a-f]{40}$"))
+                  and (.evidence.scope_proof.shell_head_sha | type == "string" and test("^[0-9a-f]{40}$"))
+                  and (
+                    .evidence.scope_proof.app_head_sha != $app
+                    or .evidence.scope_proof.shell_head_sha != $shell
+                  )
+                )
+              )
               and .evidence.scope_proof.artifact_semantic_digest == $semantic_digest
               and .evidence.scope_proof.verification_semantic_digest == $semantic_digest
               and .evidence.scope_proof.artifact_probe_digest == $probe_digest
