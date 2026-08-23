@@ -784,7 +784,10 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     live?.mutation_executor_owner !== 'one-person-lab-app' ||
     live?.state_authority_ref !== 'release_bundle_control_plane.framework_authority' ||
     live?.app_executor_consumes_framework_cli_results_without_state_projection !== true ||
-    live?.stable_manual_entry !== '.github/workflows/release-stable.yml' ||
+    live?.stable_operator_entry !== 'npm run release:stable-dispatch' ||
+    live?.stable_workflow_mutation_sink !== '.github/workflows/release-stable.yml' ||
+    live?.direct_stable_workflow_dispatch_allowed !== false ||
+    live?.attempt_identity_separate_from_release_version !== true ||
     live?.validation_canary_entry !== '.github/workflows/release-bundle-canary.yml_schedule' ||
     live?.app_session_broker_or_operator_may_authorize_mutation !== false ||
     live?.framework_checkpoint_required_for_resume_or_executor_switch !== true
@@ -859,6 +862,21 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
   if (
     operations?.schema !== 'opl_release_bundle_operation_control.v1' ||
     operations?.stable_mutation_mutex !== 'opl-release-bundle-global' ||
+    operations?.operator_entry !== 'npm run release:stable-dispatch' ||
+    operations?.dispatch_plan_schema !== 'opl_app_stable_dispatch_plan.v1' ||
+    operations?.dispatch_attempt_schema !== 'opl_app_stable_dispatch_attempt.v1' ||
+    operations?.maximum_workflow_mutations_per_attempt !== 1 ||
+    operations?.mutation_retry_allowed !== false ||
+    operations?.unknown_dispatch_outcome !== 'read_only_reconcile_never_redispatch' ||
+    operations?.version_input_policy?.standard !== 'forbidden_controller_delegates_single_allocation_to_workflow' ||
+    operations?.version_input_policy?.resume_standard !== 'forbidden_preserve_source_checkpoint_tag' ||
+    operations?.version_input_policy?.append_full !== 'forbidden_preserve_source_checkpoint_tag' ||
+    operations?.version_input_policy?.recover_full !== 'forbidden_preserve_source_checkpoint_tag' ||
+    operations?.full_recovery_identity_roles?.source_checkpoint_run_id !== 'portable_framework_checkpoint_owner' ||
+    operations?.full_recovery_identity_roles?.artifact_producer_run_id !== 'full_cohort_actions_run_id' ||
+    operations?.full_recovery_identity_roles?.qualification_run_id !== 'failed_qualification_receipt_run_id' ||
+    operations?.full_recovery_identity_roles?.smoke_harness_ref !== 'qualification_scope_proof_shell_head_sha_or_explicit_exact_override' ||
+    operations?.full_recovery_identity_roles?.roles_must_not_be_inferred_as_equal !== true ||
     standardOperation?.source !== 'new_framework_bundle' ||
     standardOperation?.control !== 'new_immutable_standard_control' ||
     standardOperation?.deadline_minutes !== 90 ||

@@ -238,6 +238,19 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   const resilience = control.resilience_policy;
 
   assert.equal(operations.stable_mutation_mutex, 'opl-release-bundle-global');
+  assert.equal(operations.operator_entry, 'npm run release:stable-dispatch');
+  assert.equal(operations.dispatch_plan_schema, 'opl_app_stable_dispatch_plan.v1');
+  assert.equal(operations.dispatch_attempt_schema, 'opl_app_stable_dispatch_attempt.v1');
+  assert.equal(operations.maximum_workflow_mutations_per_attempt, 1);
+  assert.equal(operations.mutation_retry_allowed, false);
+  assert.equal(operations.unknown_dispatch_outcome, 'read_only_reconcile_never_redispatch');
+  assert.deepEqual(operations.full_recovery_identity_roles, {
+    source_checkpoint_run_id: 'portable_framework_checkpoint_owner',
+    artifact_producer_run_id: 'full_cohort_actions_run_id',
+    qualification_run_id: 'failed_qualification_receipt_run_id',
+    smoke_harness_ref: 'qualification_scope_proof_shell_head_sha_or_explicit_exact_override',
+    roles_must_not_be_inferred_as_equal: true,
+  });
   assert.equal(operations.stable_operations.standard.deadline_minutes, 90);
   assert.equal(operations.stable_operations.resume_standard.deadline_minutes, 30);
   assert.equal(operations.stable_operations.resume_standard.control, 'reuse_exact_standard_identity_with_bounded_expired_window_rotation');

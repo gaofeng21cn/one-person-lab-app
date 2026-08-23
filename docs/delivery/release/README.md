@@ -4,7 +4,7 @@
 
 Product and installation semantics live in
 [`../distribution-and-install-ssot.md`](../distribution-and-install-ssot.md).
-Machine policy lives in `contracts/app-release-channel.json`; Framework owns immutable Bundle,
+Machine policy lives in `contracts/app-release-channel.json`; Framework owns the content-addressed Bundle,
 checkpoint and operation receipt identity. This guide describes the App executor only.
 
 The public App release product is Desktop. A Stable version becomes valid when its signed and
@@ -20,14 +20,33 @@ PR/main CI or blocks the primary macOS arm64 Desktop release.
 
 ## Stable Operations
 
-`.github/workflows/release-stable.yml` is the only manual protected App release entry. Its three
-Framework-backed mutation operations remain exactly:
+`npm run release:stable-dispatch` is the only operator entry for a Stable release. It resolves and
+validates the checkpoint, original artifact producer, qualification run, verification harness,
+cohort, source gate, operation identity and active owner before invoking the protected workflow at
+most once. `.github/workflows/release-stable.yml` is the mutation sink, not an operator API; do not
+fill its Stable inputs manually or rerun it from the GitHub UI.
+
+The controller exposes these commands:
+
+```bash
+npm run release:stable-dispatch -- standard --execute
+npm run release:stable-dispatch -- resume-standard --run-id <standard-run> --execute
+npm run release:stable-dispatch -- append-full --source-run-id <checkpoint-run> --execute
+npm run release:stable-dispatch -- recover-full --run-id <failed-full-qualification-run> --execute
+```
+
+Omit `--execute` for a read-only plan. The command never accepts a version: only `standard` lets the
+workflow allocate one new version, while resume, append and recovery preserve the source checkpoint
+tag. One controller attempt makes at most one workflow mutation. If the dispatch result is unknown,
+the controller performs read-only reconciliation and never retries the mutation.
+
+The three Framework-backed workflow mutation operations remain exactly:
 
 - `standard`: build, qualify and publish the primary macOS arm64 Desktop release;
 - `resume_standard`: reconcile the same admitted Standard operation without a second mutation;
 - `append_full`: append Full macOS bytes to the same exact Release/tag.
 
-The same entry also exposes `entry=studio_carrier_admission`, a plan-only source admission for the candidate
+The protected workflow separately exposes `entry=studio_carrier_admission`, a plan-only source admission for the candidate
 Studio Electron carrier. It requires an exact `gaofeng21cn/opl-studio` commit, tree and tag, runs in
 the App-owned `release-stable` environment with read-only permissions, and writes
 `opl_studio_protected_release_admission.v1`. It does not map protected secret values into the job,

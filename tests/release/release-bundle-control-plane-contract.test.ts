@@ -576,11 +576,29 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
 
 test("operation safety is explicit in the machine contract", () => {
   assert.equal(control.operation_control.schema, "opl_release_bundle_operation_control.v1");
+  assert.equal(control.live_authority.stable_operator_entry, "npm run release:stable-dispatch");
+  assert.equal(control.live_authority.stable_workflow_mutation_sink, ".github/workflows/release-stable.yml");
+  assert.equal(control.live_authority.direct_stable_workflow_dispatch_allowed, false);
+  assert.equal(control.live_authority.attempt_identity_separate_from_release_version, true);
   assert.equal(
     control.operation_control.stable_mutation_mutex,
     "opl-release-bundle-global",
   );
   assert.equal(control.operation_control.partial_workflow_rerun_allowed, false);
+  assert.equal(control.operation_control.operator_entry, "npm run release:stable-dispatch");
+  assert.equal(control.operation_control.maximum_workflow_mutations_per_attempt, 1);
+  assert.equal(control.operation_control.mutation_retry_allowed, false);
+  assert.equal(control.operation_control.unknown_dispatch_outcome, "read_only_reconcile_never_redispatch");
+  assert.deepEqual(control.operation_control.version_input_policy, {
+    standard: "forbidden_controller_delegates_single_allocation_to_workflow",
+    resume_standard: "forbidden_preserve_source_checkpoint_tag",
+    append_full: "forbidden_preserve_source_checkpoint_tag",
+    recover_full: "forbidden_preserve_source_checkpoint_tag",
+  });
+  assert.equal(
+    control.operation_control.full_recovery_identity_roles.roles_must_not_be_inferred_as_equal,
+    true,
+  );
   assert.equal(control.operation_control.github_run_attempt_required, 1);
   assert.equal(
     control.operation_control.deadline_clock,

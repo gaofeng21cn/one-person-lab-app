@@ -19,7 +19,7 @@ const stableDesktopAdditionalPlatformIds = [
   'windows-x64',
 ] as const;
 const defaultStableDesktopAdditionalPlatformIds = ['linux-x64', 'windows-x64'] as const;
-const requiredCriticalBlobPaths = [
+export const stableOperationCriticalBlobPaths = [
   '.github/workflows/release-stable.yml',
   '.github/workflows/_release-bundle.yml',
   '.github/workflows/_release-standard-publish.yml',
@@ -224,13 +224,13 @@ function normalizedCriticalBlobs(value: unknown): Record<string, string> {
     }
   }
   const normalized = Object.fromEntries(entries);
-  const expected = new Set(requiredCriticalBlobPaths);
+  const expected = new Set(stableOperationCriticalBlobPaths);
   if (
     Object.keys(normalized).length !== expected.size
-    || requiredCriticalBlobPaths.some((file) => normalized[file] === undefined)
+    || stableOperationCriticalBlobPaths.some((file) => normalized[file] === undefined)
   ) {
     throw new Error(
-      `critical_blobs must bind exactly the Stable control paths: ${requiredCriticalBlobPaths.join(', ')}.`,
+      `critical_blobs must bind exactly the Stable control paths: ${stableOperationCriticalBlobPaths.join(', ')}.`,
     );
   }
   return normalized;
@@ -279,6 +279,21 @@ function normalizedStableDesktopAdditionalPlatforms(value: unknown): string[] {
 
 function bytesDigest(bytes: Buffer): string {
   return `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+}
+
+export function stableOperationCriticalBlobs(appRoot: string): Record<string, string> {
+  const root = path.resolve(appRoot);
+  return Object.fromEntries(stableOperationCriticalBlobPaths.map((relativePath) => {
+    const candidate = path.resolve(root, relativePath);
+    if (!candidate.startsWith(`${root}${path.sep}`)) {
+      throw new Error(`Stable operation critical blob escapes the App root: ${relativePath}`);
+    }
+    const stat = fs.lstatSync(candidate);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error(`Stable operation critical blob must be a regular file: ${relativePath}`);
+    }
+    return [relativePath, bytesDigest(fs.readFileSync(candidate))];
+  }));
 }
 
 function assertAuthorityMatchesControl(

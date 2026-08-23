@@ -94,6 +94,7 @@
     "release:nightly-version:resolve": "node --experimental-strip-types scripts/resolve-nightly-version.ts",
     "release:source-gate": "node --experimental-strip-types scripts/validate-release-source-gate.ts",
     "release:dispatch-guard": "node --experimental-strip-types scripts/release-dispatch-guard.ts",
+    "release:stable-dispatch": "node --experimental-strip-types scripts/stable-release-dispatch.ts",
     "release:attestation:verify": "node --experimental-strip-types scripts/verify-release-attestations.ts",
     "release:actions-timing": "node --experimental-strip-types scripts/summarize-github-actions-timing.ts",
     "release:incident-status": "node --experimental-strip-types scripts/release-incident-status.ts",

@@ -1745,7 +1745,10 @@
         "resume_standard",
         "append_full"
       ],
-      "stable_manual_entry": ".github/workflows/release-stable.yml",
+      "stable_operator_entry": "npm run release:stable-dispatch",
+      "stable_workflow_mutation_sink": ".github/workflows/release-stable.yml",
+      "direct_stable_workflow_dispatch_allowed": false,
+      "attempt_identity_separate_from_release_version": true,
       "validation_canary_entry": ".github/workflows/release-bundle-canary.yml_schedule",
       "app_session_broker_or_operator_may_authorize_mutation": false,
       "framework_checkpoint_required_for_resume_or_executor_switch": true,
@@ -1868,6 +1871,25 @@
     "operation_control": {
       "schema": "opl_release_bundle_operation_control.v1",
       "stable_mutation_mutex": "opl-release-bundle-global",
+      "operator_entry": "npm run release:stable-dispatch",
+      "dispatch_plan_schema": "opl_app_stable_dispatch_plan.v1",
+      "dispatch_attempt_schema": "opl_app_stable_dispatch_attempt.v1",
+      "maximum_workflow_mutations_per_attempt": 1,
+      "mutation_retry_allowed": false,
+      "unknown_dispatch_outcome": "read_only_reconcile_never_redispatch",
+      "version_input_policy": {
+        "standard": "forbidden_controller_delegates_single_allocation_to_workflow",
+        "resume_standard": "forbidden_preserve_source_checkpoint_tag",
+        "append_full": "forbidden_preserve_source_checkpoint_tag",
+        "recover_full": "forbidden_preserve_source_checkpoint_tag"
+      },
+      "full_recovery_identity_roles": {
+        "source_checkpoint_run_id": "portable_framework_checkpoint_owner",
+        "artifact_producer_run_id": "full_cohort_actions_run_id",
+        "qualification_run_id": "failed_qualification_receipt_run_id",
+        "smoke_harness_ref": "qualification_scope_proof_shell_head_sha_or_explicit_exact_override",
+        "roles_must_not_be_inferred_as_equal": true
+      },
       "stable_operations": {
         "standard": {
           "source": "new_framework_bundle",
