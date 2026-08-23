@@ -318,9 +318,9 @@ test('release-gate Gateway credentials stay file-bound and are scanned before ar
   assert.match(String(scan.run), /const roots = \['artifacts'\]/);
   assert.match(String(scan.run), /Protected Gateway credential found in release evidence/);
   assert.deepEqual(scan.env, {
-    GATEWAY_ACCOUNT_EMAIL: '${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}',
     GATEWAY_ACCOUNT_PASSWORD: '${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}',
   });
+  assert.doesNotMatch(String(scan.run), /GATEWAY_ACCOUNT_EMAIL/);
   assert.doesNotMatch(
     JSON.stringify(workflow),
     /OPL_GATEWAY_ACCOUNT_EMAIL|OPL_GATEWAY_ACCOUNT_PASSWORD/,

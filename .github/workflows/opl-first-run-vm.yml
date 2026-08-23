@@ -2313,7 +2313,6 @@ jobs:
         if: ${{ always() && needs.validate-vm-inputs.outputs.diagnostic_scope == 'release_gate' && (needs.validate-vm-inputs.outputs.package_profile == 'standard' || needs.validate-vm-inputs.outputs.package_profile == 'full') }}
         shell: bash
         env:
-          GATEWAY_ACCOUNT_EMAIL: ${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}
           GATEWAY_ACCOUNT_PASSWORD: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}
         run: |
           set -euo pipefail
@@ -2321,7 +2320,6 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
           const secrets = [
-            process.env.GATEWAY_ACCOUNT_EMAIL || '',
             process.env.GATEWAY_ACCOUNT_PASSWORD || '',
           ];
           if (secrets.some((value) => !value)) throw new Error('Protected Gateway credentials are unavailable for evidence scanning.');
