@@ -482,15 +482,26 @@ export function buildFullCheckpointRecoveryPlan(input: {
   fullCheckpoint: WorkflowArtifact;
   cohort: FullBuildCohort;
   smokeHarnessSha?: string;
+  sourceRunId?: string;
+  sourceArtifact?: string;
 }): StableDispatchPlan {
   const recoveryRunId = runId(input.recoveryRunId, 'recovery_run_id');
+  if (Boolean(input.sourceRunId) !== Boolean(input.sourceArtifact)) {
+    throw new Error('Full checkpoint recovery source override requires both run id and artifact name.');
+  }
+  const sourceRunId = input.sourceRunId
+    ? runId(input.sourceRunId, 'source_run_id')
+    : recoveryRunId;
+  const sourceArtifact = input.sourceArtifact
+    ? text(input.sourceArtifact, 'source_artifact')
+    : text(input.fullCheckpoint.name, 'full_checkpoint_artifact');
   const smokeHarnessSha = input.smokeHarnessSha
     ? sha(input.smokeHarnessSha, 'smoke_harness_ref')
     : undefined;
   return buildAppendFullPlan({
     attemptId: input.attemptId,
-    sourceRunId: recoveryRunId,
-    sourceArtifact: text(input.fullCheckpoint.name, 'full_checkpoint_artifact'),
+    sourceRunId,
+    sourceArtifact,
     appSha: input.cohort.cohort.app_sha,
     shellSha: input.cohort.cohort.shell_sha,
     frameworkSha: input.cohort.cohort.framework_sha,
@@ -820,7 +831,7 @@ function usage(): never {
   npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--execute]
   npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
   npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-run> [--execute]
-  npm run release:stable-dispatch -- recover-full --run-id <failed-full-run> [--smoke-harness-ref <sha>] [--execute]
+  npm run release:stable-dispatch -- recover-full --run-id <failed-full-run> [--source-run-id <standard-checkpoint-run>] [--smoke-harness-ref <sha>] [--execute]
 
 Only new-product-release may allocate a tag, and it requires an explicit product-change summary. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
 `);
@@ -906,12 +917,20 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     ));
     const fullCheckpoint = selectFullCheckpointArtifact(artifacts, recoveryRunId);
     if (fullCheckpoint) {
+      const sourceRunId = values['source-run-id']
+        ? runId(values['source-run-id'], 'source_run_id')
+        : undefined;
+      const sourceArtifact = sourceRunId
+        ? selectCheckpointArtifact(workflowArtifacts(runtime, repository, sourceRunId), sourceRunId)
+        : undefined;
       plan = buildFullCheckpointRecoveryPlan({
         attemptId: attemptId('recover-full', runtime),
         recoveryRunId,
         fullCheckpoint,
         cohort,
         smokeHarnessSha: values['smoke-harness-ref'],
+        sourceRunId,
+        sourceArtifact,
       });
     } else {
       const qualificationArtifact = selectFullQualificationArtifact(artifacts, recoveryRunId);

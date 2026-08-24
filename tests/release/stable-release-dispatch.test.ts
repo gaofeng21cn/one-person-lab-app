@@ -175,9 +175,14 @@ test('Full checkpoint recovery binds an override harness to the original Full pr
     fullCheckpoint: checkpoint,
     cohort,
     smokeHarnessSha: '4'.repeat(40),
+    sourceRunId: '32525582101',
+    sourceArtifact: 'opl-release-standard-operation-checkpoint-32525582101',
   });
 
-  assert.equal(plan.source.artifact, checkpoint.name);
+  assert.deepEqual(plan.source, {
+    run_id: '32525582101',
+    artifact: 'opl-release-standard-operation-checkpoint-32525582101',
+  });
   assert.equal(plan.workflow_inputs.prior_full_artifact_run_id, '32680048326');
   assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
   assert.equal(plan.recovery.artifact_producer_run_id, '32680048326');
