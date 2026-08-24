@@ -1,5 +1,5 @@
 name: OPL Stable Release Bundle
-run-name: "${{ inputs.entry == 'studio_carrier_admission' && format('OPL Stable Studio release ref:{0} run:{1}', inputs.studio_sha, github.run_id) || inputs.operation == 'standard' && format('OPL Stable standard operation:{0} authority:{1} run:{2}', inputs.operation_id, inputs.authority_id, github.run_id) || inputs.operation == 'append_full' && format('OPL Stable append_full source:{0} run:{1}', inputs.source_run_id, github.run_id) || format('OPL Stable {0} {1}', inputs.operation, github.run_id) }}"
+run-name: "${{ inputs.entry == 'studio_carrier_admission' && format('OPL Stable Studio release ref:{0} run:{1}', inputs.studio_sha, github.run_id) || inputs.operation == 'standard' && format('OPL Stable standard operation:{0} authority:{1} run:{2}', inputs.operation_id, inputs.authority_id, github.run_id) || (inputs.operation == 'append_full' || inputs.operation == 'resume_standard') && format('OPL Stable {0} source:{1} run:{2}', inputs.operation, inputs.source_run_id, github.run_id) || format('OPL Stable {0} {1}', inputs.operation, github.run_id) }}"
 
 on:
   workflow_dispatch:
@@ -92,7 +92,7 @@ on:
         default: ''
         type: string
       smoke_harness_ref:
-        description: Exact opl-aion-shell verification ref used only when recovering unchanged Full bytes from prior_full_artifact_run_id
+        description: Exact opl-aion-shell verification ref used only when requalifying unchanged Full checkpoint bytes
         required: false
         default: ''
         type: string
@@ -131,10 +131,6 @@ env:
   OPL_APP_STANDARD_PACKAGE_COMPATIBILITY_VERSION_RANGE: '>=0.1.0 <1.0.0'
   OPL_APP_STABLE_STAGE_RESULT_SCHEMA: opl_app_stable_stage_result.v1
   OPL_APP_STABLE_STAGE_RESULT_AUTHORITY: attempt_observation_only_no_framework_state_projection
-
-concurrency:
-  group: opl-release-bundle-global
-  cancel-in-progress: false
 
 jobs:
   studio-protected-release-admission:
@@ -668,11 +664,18 @@ jobs:
                     exit 1
                   }
                 fi
-              else
-                test -z "$REQUESTED_SMOKE_HARNESS_REF" || {
-                  echo "::error::smoke_harness_ref is allowed only with prior_full_artifact_run_id."
+              elif [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
+                [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                  echo "::error::append_full recovery smoke_harness_ref must be an exact lowercase Shell SHA."
                   exit 1
                 }
+                case "$SOURCE_ARTIFACT" in
+                  "opl-release-full-checkpoint-$SOURCE_RUN_ID"|"opl-release-append-full-operation-checkpoint-$SOURCE_RUN_ID") ;;
+                  *)
+                    echo "::error::smoke_harness_ref requires an exact reusable Full checkpoint."
+                    exit 1
+                    ;;
+                esac
               fi
               ;;
             *) exit 1 ;;
@@ -922,6 +925,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
       mode: execute

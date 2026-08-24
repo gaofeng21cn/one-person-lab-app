@@ -147,12 +147,12 @@ test('production github-apply callers keep rehearsal and execute CLI parity', (t
   assert.ok(withoutExpectedDiagnostics(() => validateGithubApplyCallerParity(root)) > 0);
 });
 
-test('Stable operation set and global concurrency are exact and fail closed on drift', (t) => {
+test('Stable operation set and mutation-only concurrency are exact and fail closed on drift', (t) => {
   const root = fixture(t);
   updateWorkflow(root, 'release-stable.yml', (workflow) => {
     workflow.on.workflow_dispatch.inputs.operation.options.push('promote');
-    workflow.concurrency.group = 'opl-release-bundle-${{ inputs.operation }}';
-    workflow.concurrency['cancel-in-progress'] = true;
+    workflow.jobs['resume-standard'].concurrency.group = 'opl-release-bundle-${{ inputs.operation }}';
+    workflow.jobs['resume-standard'].concurrency['cancel-in-progress'] = true;
   });
 
   assert.ok(withoutExpectedDiagnostics(() => validateStableReleaseControlPlane(root)) >= 2);

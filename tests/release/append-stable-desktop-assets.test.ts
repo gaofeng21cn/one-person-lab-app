@@ -4,6 +4,9 @@ import {
   assertFrozenReleaseAssets,
   buildAdditiveRepairPlan,
   buildAppendPlan,
+  mergeDesktopPlatformManifest,
+  validateDesktopPlatformManifest,
+  validateDesktopReleaseSetManifest,
 } from '../../scripts/append-stable-desktop-assets.ts';
 
 const release = {
@@ -20,6 +23,25 @@ const release = {
   ],
 };
 
+const desktopIdentity = {
+  release: { version: '26.8.22', updater_version: '26.8.220' },
+  source: { run_id: '100', bundle_digest: `sha256:${'a'.repeat(64)}` },
+  cohort: { app_sha: '1'.repeat(40), shell_sha: '2'.repeat(40), framework_sha: '3'.repeat(40) },
+};
+
+const linuxAsset = {
+  name: 'One-Person-Lab-26.8.22-linux-x64.deb',
+  size: 4,
+  digest: `sha256:${'4'.repeat(64)}`,
+};
+
+const windowsAssets = [
+  { name: 'One-Person-Lab-26.8.22-win-x64.exe', size: 5, digest: `sha256:${'5'.repeat(64)}` },
+  { name: 'One-Person-Lab-26.8.22-win-x64.exe.blockmap', size: 6, digest: `sha256:${'6'.repeat(64)}` },
+  { name: 'latest.yml', size: 7, digest: `sha256:${'7'.repeat(64)}` },
+  { name: 'opl-windows-updater-assets.json', size: 8, digest: `sha256:${'8'.repeat(64)}` },
+];
+
 test('same-tag Desktop append plans only missing exact assets', () => {
   const missing = { name: 'linux.deb', size: 4, digest: `sha256:${'2'.repeat(64)}`, source_path: '/tmp/linux.deb' };
   const complete = { ...release.assets[0], source_path: '/tmp/mac.dmg' };
@@ -35,6 +57,53 @@ test('same-name different bytes fail closed', () => {
     }]),
     /asset conflict/,
   );
+});
+
+test('independent Desktop platform manifests merge without rebuilding the completed platform', () => {
+  const linux = validateDesktopPlatformManifest({
+    schema: 'opl_app_desktop_platform_manifest.v1',
+    ...desktopIdentity,
+    platform: 'linux-x64',
+    assets: [linuxAsset],
+  }, [linuxAsset]);
+  const windows = validateDesktopPlatformManifest({
+    schema: 'opl_app_desktop_platform_manifest.v1',
+    ...desktopIdentity,
+    platform: 'windows-x64',
+    assets: windowsAssets,
+  }, windowsAssets);
+
+  const first = mergeDesktopPlatformManifest(null, windows);
+  assert.equal(first.changed, true);
+  assert.deepEqual(first.manifest.platforms, ['windows-x64']);
+  const complete = mergeDesktopPlatformManifest(first.manifest, linux);
+  assert.equal(complete.changed, true);
+  assert.deepEqual(complete.manifest.platforms, ['linux-x64', 'windows-x64']);
+  assert.deepEqual(complete.manifest.assets.map((asset) => asset.name), [linuxAsset, ...windowsAssets]
+    .map((asset) => asset.name).sort());
+  assert.equal(mergeDesktopPlatformManifest(complete.manifest, linux).changed, false);
+  assert.doesNotThrow(() => validateDesktopReleaseSetManifest(complete.manifest));
+});
+
+test('Desktop platform reconcile rejects cohort drift and same-platform byte drift', () => {
+  const linux = validateDesktopPlatformManifest({
+    schema: 'opl_app_desktop_platform_manifest.v1',
+    ...desktopIdentity,
+    platform: 'linux-x64',
+    assets: [linuxAsset],
+  }, [linuxAsset]);
+  const existing = mergeDesktopPlatformManifest(null, linux).manifest;
+  const driftedBytes = {
+    ...linux,
+    assets: [{ ...linuxAsset, digest: `sha256:${'9'.repeat(64)}` }],
+  };
+  assert.throws(() => mergeDesktopPlatformManifest(existing, driftedBytes), /conflicts with the requested bytes/);
+  assert.throws(() => mergeDesktopPlatformManifest(existing, {
+    ...linux,
+    platform: 'windows-x64',
+    cohort: { ...linux.cohort, framework_sha: '4'.repeat(40) },
+    assets: windowsAssets,
+  }), /cohort conflicts/);
 });
 
 test('additive repair replaces only the exact current universal installer', () => {

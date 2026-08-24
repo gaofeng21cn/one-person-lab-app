@@ -888,6 +888,17 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
   if (
     operations?.schema !== 'opl_release_bundle_operation_control.v1' ||
     operations?.stable_mutation_mutex !== 'opl-release-bundle-global' ||
+    operations?.stable_mutation_mutex_scope !== 'public_mutation_jobs_only' ||
+    JSON.stringify(operations?.stable_mutation_mutex_jobs) !== JSON.stringify([
+      '_release-bundle.yml#publish-standard',
+      'release-stable.yml#resume-standard',
+      '_release-full-addon.yml#publish-full',
+      '_release-desktop-platform-addon.yml#append-platform',
+      'release-stable-post-success-followups.yml#repair-additive',
+      'release-manual-preview.yml#resume-preview',
+      'release-manual-preview.yml#move-latest-pointer',
+      'release-manual-full-preview.yml#mutate',
+    ]) ||
     operations?.operator_entry !== 'npm run release:stable-dispatch' ||
     operations?.dispatch_plan_schema !== 'opl_app_stable_dispatch_plan.v1' ||
     operations?.dispatch_attempt_schema !== 'opl_app_stable_dispatch_attempt.v1' ||
@@ -897,7 +908,6 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     operations?.version_input_policy?.standard !== 'forbidden_controller_delegates_single_allocation_to_workflow' ||
     operations?.version_input_policy?.resume_standard !== 'forbidden_preserve_source_checkpoint_tag' ||
     operations?.version_input_policy?.append_full !== 'forbidden_preserve_source_checkpoint_tag' ||
-    operations?.version_input_policy?.recover_full !== 'forbidden_preserve_source_checkpoint_tag' ||
     operations?.full_recovery_identity_roles?.source_checkpoint_run_id !== 'portable_framework_checkpoint_owner' ||
     operations?.full_recovery_identity_roles?.artifact_producer_run_id !== 'full_cohort_actions_run_id' ||
     operations?.full_recovery_identity_roles?.qualification_run_id !== 'failed_qualification_receipt_run_id' ||
@@ -1561,8 +1571,34 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.stable_desktop_additional_selection?.arbitrary_command_or_os_input_allowed !== false
     || platformMatrix?.desktop_platform_additive_follower?.carrier !==
       'same_mutable_stable_release_assets'
+    || platformMatrix?.desktop_platform_additive_follower?.workflow !==
+      '.github/workflows/release-stable-post-success-followups.yml'
+    || platformMatrix?.desktop_platform_additive_follower?.platform_workflow !==
+      '.github/workflows/_release-desktop-platform-addon.yml'
+    || platformMatrix?.desktop_platform_additive_follower?.builder !==
+      '.github/workflows/build-manual.yml'
     || platformMatrix?.desktop_platform_additive_follower?.base_release_must_be_published_mutable !== true
     || platformMatrix?.desktop_platform_additive_follower?.new_release_or_tag_allowed !== false
+    || platformMatrix?.desktop_platform_additive_follower?.same_name_different_digest !== 'fail_closed'
+    || platformMatrix?.desktop_platform_additive_follower?.platform_manifest_schema !==
+      'opl_app_desktop_platform_manifest.v1'
+    || platformMatrix?.desktop_platform_additive_follower?.aggregate_manifest_schema !==
+      'opl_app_desktop_release_set_manifest.v1'
+    || platformMatrix?.desktop_platform_additive_follower?.execution !==
+      'one_independent_fail_fast_false_matrix_lane_per_platform'
+    || platformMatrix?.desktop_platform_additive_follower?.build_mutex !== null
+    || platformMatrix?.desktop_platform_additive_follower?.public_append_mutex !== 'opl-release-bundle-global'
+    || platformMatrix?.desktop_platform_additive_follower?.aggregate_manifest_replacement !==
+      'staged_exact_asset_id_size_digest_compare_and_swap_then_rename'
+    || platformMatrix?.desktop_platform_additive_follower?.asset_upload_order !==
+      'platform_assets_before_aggregate_manifest'
+    || platformMatrix?.desktop_platform_additive_follower?.same_platform_same_digest !== 'already_complete'
+    || platformMatrix?.desktop_platform_additive_follower?.manual_reconcile?.operation !==
+      'reconcile_desktop_platform'
+    || JSON.stringify(platformMatrix?.desktop_platform_additive_follower?.manual_reconcile?.inputs) !==
+      JSON.stringify(['source_run_id', 'desktop_platform'])
+    || platformMatrix?.desktop_platform_additive_follower?.manual_reconcile?.failed_run_or_generation_input_allowed !== false
+    || platformMatrix?.desktop_platform_additive_follower?.manual_reconcile?.new_tag_allowed !== false
     || platformMatrix?.desktop_platform_additive_follower?.base_release_asset_append_allowed !== true
     || platformMatrix?.desktop_platform_additive_follower?.make_latest !== false
     || platformMatrix?.desktop_platform_additive_follower?.stable_additive_repair?.operation !==
@@ -1631,6 +1667,9 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.full_macos_additive_follower?.blocks_latest_activation !== false
     || platformMatrix?.full_macos_additive_follower?.recovery !==
       'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
+    || platformMatrix?.full_macos_additive_follower?.automatic_checkpoint_reuse !==
+      'latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain'
+    || platformMatrix?.full_macos_additive_follower?.one_active_owner_per_recovery_chain !== true
   ) {
     throw new Error('Release platform matrix must keep only macOS ARM64 Stable-blocking while platform followers and the same-tag Full module remain non-blocking');
   }

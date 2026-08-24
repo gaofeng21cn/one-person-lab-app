@@ -527,7 +527,14 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
     full.successor_trigger.trigger,
     "successful_standard_publication_or_manual_target_state_reconcile",
   );
-  assert.equal(full.successor_trigger.one_successor_per_standard_run, true);
+  assert.equal(full.successor_trigger.one_active_owner_per_standard_recovery_chain, true);
+  assert.equal(full.successor_trigger.controller, "scripts/stable-release-dispatch.ts#append-full");
+  assert.deepEqual(full.successor_trigger.owner_resolution_order, [
+    "published_owner",
+    "active_owner",
+    "latest_reusable_full_checkpoint",
+    "original_standard_checkpoint",
+  ]);
   assert.equal(
     full.successor_trigger.operation_kind_source,
     "opl-release-operation-admission-<source-run-id>/release-operation-admission.json",
@@ -538,6 +545,7 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.deepEqual(full.successor_trigger.manual_reconcile_inputs, [
     "source_run_id",
     "reconcile_confirmation",
+    "smoke_harness_ref_optional",
   ]);
   assert.equal(full.successor_trigger.failed_run_identity_inputs_allowed, false);
   assert.equal(
@@ -594,6 +602,17 @@ test("operation safety is explicit in the machine contract", () => {
     control.operation_control.stable_mutation_mutex,
     "opl-release-bundle-global",
   );
+  assert.equal(control.operation_control.stable_mutation_mutex_scope, "public_mutation_jobs_only");
+  assert.deepEqual(control.operation_control.stable_mutation_mutex_jobs, [
+    "_release-bundle.yml#publish-standard",
+    "release-stable.yml#resume-standard",
+    "_release-full-addon.yml#publish-full",
+    "_release-desktop-platform-addon.yml#append-platform",
+    "release-stable-post-success-followups.yml#repair-additive",
+    "release-manual-preview.yml#resume-preview",
+    "release-manual-preview.yml#move-latest-pointer",
+    "release-manual-full-preview.yml#mutate",
+  ]);
   assert.equal(control.operation_control.partial_workflow_rerun_allowed, false);
   assert.equal(control.operation_control.operator_entry, "npm run release:stable-dispatch");
   assert.equal(control.operation_control.maximum_workflow_mutations_per_attempt, 1);
@@ -603,7 +622,6 @@ test("operation safety is explicit in the machine contract", () => {
     standard: "forbidden_controller_delegates_single_allocation_to_workflow",
     resume_standard: "forbidden_preserve_source_checkpoint_tag",
     append_full: "forbidden_preserve_source_checkpoint_tag",
-    recover_full: "forbidden_preserve_source_checkpoint_tag",
   });
   assert.equal(
     control.operation_control.full_recovery_identity_roles.roles_must_not_be_inferred_as_equal,

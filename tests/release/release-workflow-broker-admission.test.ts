@@ -47,10 +47,21 @@ test('Stable has one dispatch and exactly three Framework Bundle operations', ()
   assert.doesNotMatch(source, /gh run rerun|gh run cancel/);
 });
 
-test('Stable serialization is repository-wide and never cancels an in-flight operation', () => {
+test('Stable serializes only public mutation jobs and never locks admission', () => {
   const workflow = parseWorkflow('release-stable.yml');
-  assert.equal(workflow.concurrency.group, 'opl-release-bundle-global');
-  assert.equal(workflow.concurrency['cancel-in-progress'], false);
+  const mutationMutex = { group: 'opl-release-bundle-global', 'cancel-in-progress': false };
+  assert.equal(workflow.concurrency, undefined);
+  assert.equal(workflow.jobs.admission.concurrency, undefined);
+  assert.equal(workflow.jobs['protected-operation-admission'].concurrency, undefined);
+  assert.deepEqual(workflow.jobs['resume-standard'].concurrency, mutationMutex);
+  assert.deepEqual(
+    parseWorkflow('_release-bundle.yml').jobs['publish-standard'].concurrency,
+    mutationMutex,
+  );
+  assert.deepEqual(
+    parseWorkflow('_release-full-addon.yml').jobs['publish-full'].concurrency,
+    mutationMutex,
+  );
   assert.deepEqual(workflow.jobs.admission.permissions, { contents: 'read', actions: 'read' });
   assert.equal(workflow.jobs['protected-operation-admission'].environment, 'release-stable');
   assert.deepEqual(workflow.jobs['protected-operation-admission'].permissions, { contents: 'read', actions: 'read' });

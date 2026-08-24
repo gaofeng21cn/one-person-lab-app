@@ -29,16 +29,19 @@ fill its Stable inputs manually or rerun it from the GitHub UI.
 The controller exposes these commands:
 
 ```bash
-npm run release:stable-dispatch -- standard --execute
-npm run release:stable-dispatch -- resume-standard --run-id <standard-run> --execute
+npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> --execute
+npm run release:stable-dispatch -- publish-qualified-standard --run-id <standard-run> --execute
 npm run release:stable-dispatch -- append-full --source-run-id <checkpoint-run> --execute
-npm run release:stable-dispatch -- recover-full --run-id <failed-full-qualification-run> --execute
 ```
 
-Omit `--execute` for a read-only plan. The command never accepts a version: only `standard` lets the
-workflow allocate one new version, while resume, append and recovery preserve the source checkpoint
-tag. One controller attempt makes at most one workflow mutation. If the dispatch result is unknown,
-the controller performs read-only reconciliation and never retries the mutation.
+Omit `--execute` for a read-only plan. The command never accepts a version: only
+`new-product-release` may ask the workflow to allocate one, and it requires an explicit nonempty
+user-visible product change summary. `publish-qualified-standard` and `append-full` preserve the
+source checkpoint tag. For Full, `append-full` follows the complete recovery chain, binds a published or active owner when one
+exists, otherwise reuses the newest non-expired Full checkpoint before falling back to the original
+Standard checkpoint. An exact `--smoke-harness-ref <sha>` may requalify unchanged Full checkpoint
+bytes without rebuilding them. One controller attempt makes at most one workflow mutation. If the
+dispatch result is unknown, the controller performs read-only reconciliation and never retries it.
 
 The three Framework-backed workflow mutation operations remain exactly:
 
@@ -68,14 +71,18 @@ it has only `actions: read` / `contents: read` permissions and cannot publish, p
 or authorize Stable. A Standard VM run requires the exact 40-character Framework SHA so the existing
 VM workflow can inject a local source archive instead of resolving mutable `main` anonymously.
 
-Linux x64 and Windows x64 are selected as `desktop_additional_platforms`. The successful Standard
-path dispatches `.github/workflows/release-stable-post-success-followups.yml`, which builds and
-appends those Desktop assets to the same Release/tag. Full is reconciled independently by
+Linux x64 and Windows x64 are selected as `desktop_additional_platforms`. A successful Standard
+publication is already terminal without either platform or Full. Its thin follower starts one
+independent `fail-fast: false` lane per selected Desktop platform; each lane builds only that platform
+and briefly acquires the public mutation mutex only while appending its assets and aggregate manifest
+to the same Release/tag. A failed Linux lane can therefore be reconciled without rebuilding Windows,
+and vice versa. Full is reconciled independently by
 `.github/workflows/release-full-addon-follower.yml`: it consumes the successful Standard handoff,
-binds an existing Full owner or dispatches one current-canonical executor once, then exits without
-waiting for Full completion. Either follower may fail or be repaired without rerunning the other or
-changing the release version. The append script performs exact release/tag identity checks and
-same-name digest CAS. It cannot create a Release/tag or move Latest.
+delegates desired-state resolution to the canonical controller, and exits after binding or dispatching
+one owner without waiting for Full completion. Either follower may fail or be repaired without
+rerunning Standard, the other platform, or Full, and without changing the release version. The append
+script performs exact release/tag identity checks and same-name digest CAS. It cannot create a
+Release/tag or move Latest.
 
 If an additive delivery is defective while the macOS primary release remains valid, the Stable
 version stays unchanged. The protected `repair_additive` branch in that same follow-up workflow may
@@ -83,7 +90,10 @@ replace only `opl-install.sh`. It requires the original successful Stable source
 source, old asset ID/size/digest CAS, frozen macOS DMG/ZIP/blockmap and updater YAML digests, frozen
 Release body and tag target, a pre-mutation Actions receipt, and a public supersession receipt. Linux,
 Windows, Full and macOS primary assets are not rebuilt. A new `-rN` Stable is allowed only when the
-macOS primary Stable assets themselves are invalid.
+user has explicitly requested a new product version with a nonempty user-visible capability change.
+Build, signing, notarization, packaging, publication, release-note, Homebrew, Full, installer or
+platform-only repair must stay on the existing mutable tag, including replacement of primary assets
+through the protected exact-current-identity CAS path.
 
 Post-publication Desktop certification consumes the completed Desktop append without waiting for
 Full. Linux installs the exact public `.deb` through the exact public installer; macOS Standard checks

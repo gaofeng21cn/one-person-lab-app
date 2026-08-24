@@ -42,34 +42,21 @@ export type WorkflowArtifact = {
   expired: boolean;
 };
 
-export type FullBuildCohort = {
-  schema: 'opl_app_build_artifact_cohort.v2';
-  cohort: {
-    app_sha: string;
-    shell_sha: string;
-    framework_sha: string;
+export type AppendFullTargetState =
+  | {
+    state: 'published' | 'owner_identified';
+    root_source_run_id: string;
+    owner_run_id: number;
+    source_run_id: null;
+    source_artifact: null;
+  }
+  | {
+    state: 'dispatch_required';
+    root_source_run_id: string;
+    owner_run_id: null;
+    source_run_id: string;
+    source_artifact: string;
   };
-  build: {
-    version: string;
-    kind: 'full';
-  };
-  artifact: {
-    name: string;
-    sha256: string;
-    size_bytes: number;
-  };
-  actions: {
-    run_id: string;
-    run_attempt: string;
-    artifact_name: string;
-  };
-};
-
-export type FullRecoveryEvidence = {
-  qualification_run_id: string;
-  artifact_producer_run_id: string;
-  smoke_harness_ref: string | null;
-};
 
 export type StableDispatchPlan = {
   schema: 'opl_app_stable_dispatch_plan.v1';
@@ -195,15 +182,38 @@ function writeJson(filePath: string | undefined, value: unknown): void {
 
 export function selectCheckpointArtifact(artifacts: WorkflowArtifact[], sourceRunId: string): string {
   const id = runId(sourceRunId, 'source_run_id');
-  const expected = new Set([
-    `opl-release-standard-operation-checkpoint-${id}`,
+  const preferredNames = [
+    `opl-release-full-checkpoint-${id}`,
     `opl-release-append-full-operation-checkpoint-${id}`,
-  ]);
-  const matches = artifacts.filter((artifact) => !artifact.expired && expected.has(artifact.name));
-  if (matches.length !== 1) {
-    throw new Error(`Run ${id} must expose exactly one reusable Standard or Full operation checkpoint; found ${matches.length}.`);
+    `opl-release-standard-operation-checkpoint-${id}`,
+    `opl-release-standard-checkpoint-${id}`,
+  ];
+  for (const expected of preferredNames) {
+    const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
+    if (matches.length > 1) {
+      throw new Error(`Run ${id} exposes multiple reusable ${expected} artifacts.`);
+    }
+    if (matches.length === 1) return expected;
   }
-  return matches[0]!.name;
+  throw new Error(`Run ${id} exposes no reusable Standard or Full checkpoint.`);
+}
+
+export function selectReusableFullCheckpointArtifact(
+  artifacts: WorkflowArtifact[],
+  sourceRunId: string,
+): string | null {
+  const id = runId(sourceRunId, 'source_run_id');
+  for (const expected of [
+    `opl-release-full-checkpoint-${id}`,
+    `opl-release-append-full-operation-checkpoint-${id}`,
+  ]) {
+    const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
+    if (matches.length > 1) {
+      throw new Error(`Run ${id} exposes multiple reusable ${expected} artifacts.`);
+    }
+    if (matches.length === 1) return expected;
+  }
+  return null;
 }
 
 export function selectQualifiedStandardCheckpointArtifact(
@@ -217,142 +227,6 @@ export function selectQualifiedStandardCheckpointArtifact(
     throw new Error(`Run ${id} must expose exactly one qualified Standard checkpoint; found ${matches.length}.`);
   }
   return matches[0]!.name;
-}
-
-export function selectFullCheckpointArtifact(
-  artifacts: WorkflowArtifact[],
-  sourceRunId: string,
-): WorkflowArtifact | null {
-  const id = runId(sourceRunId, 'source_run_id');
-  const expected = `opl-release-full-checkpoint-${id}`;
-  const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
-  if (matches.length > 1) {
-    throw new Error(`Run ${id} exposes multiple reusable qualified Full checkpoints.`);
-  }
-  return matches[0] ?? null;
-}
-
-export function selectFullCohortArtifact(artifacts: WorkflowArtifact[]): WorkflowArtifact {
-  const matches = artifacts.filter((artifact) => (
-    !artifact.expired
-    && /^opl-full-first-install-dmg-.+-mac-arm64-cohort$/.test(artifact.name)
-  ));
-  if (matches.length !== 1) {
-    throw new Error(`Full recovery requires exactly one non-expired Full DMG cohort artifact; found ${matches.length}.`);
-  }
-  return matches[0]!;
-}
-
-export function selectFullQualificationArtifact(
-  artifacts: WorkflowArtifact[],
-  recoveryRunId: string,
-): WorkflowArtifact {
-  const id = runId(recoveryRunId, 'recovery_run_id');
-  const expected = `opl-qualification-attempt-full-${id}`;
-  const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
-  if (matches.length !== 1) {
-    throw new Error(`Full recovery requires exactly one non-expired ${expected}; found ${matches.length}.`);
-  }
-  return matches[0]!;
-}
-
-export function validateFullBuildCohort(value: unknown): FullBuildCohort {
-  const candidate = record(value, 'Full build cohort');
-  const cohort = record(candidate.cohort, 'Full build cohort.cohort');
-  const build = record(candidate.build, 'Full build cohort.build');
-  const artifact = record(candidate.artifact, 'Full build cohort.artifact');
-  const actions = record(candidate.actions, 'Full build cohort.actions');
-  if (
-    candidate.schema !== 'opl_app_build_artifact_cohort.v2'
-    || build.kind !== 'full'
-    || typeof build.version !== 'string'
-    || !build.version.trim()
-    || typeof artifact.name !== 'string'
-    || !/^One-Person-Lab-Full-.+-mac-arm64\.dmg$/.test(artifact.name)
-    || typeof artifact.sha256 !== 'string'
-    || !/^[0-9a-f]{64}$/.test(artifact.sha256)
-    || !Number.isSafeInteger(artifact.size_bytes)
-    || Number(artifact.size_bytes) <= 0
-    || actions.run_attempt !== '1'
-    || typeof actions.artifact_name !== 'string'
-    || !actions.artifact_name.trim()
-  ) {
-    throw new Error('Full build cohort identity is invalid.');
-  }
-  return {
-    schema: 'opl_app_build_artifact_cohort.v2',
-    cohort: {
-      app_sha: sha(cohort.app_sha, 'cohort.app_sha'),
-      shell_sha: sha(cohort.shell_sha, 'cohort.shell_sha'),
-      framework_sha: sha(cohort.framework_sha, 'cohort.framework_sha'),
-    },
-    build: { version: build.version.trim(), kind: 'full' },
-    artifact: {
-      name: artifact.name,
-      sha256: artifact.sha256,
-      size_bytes: Number(artifact.size_bytes),
-    },
-    actions: {
-      run_id: runId(actions.run_id, 'actions.run_id'),
-      run_attempt: '1',
-      artifact_name: actions.artifact_name.trim(),
-    },
-  };
-}
-
-export function validateFullRecoveryEvidence(
-  value: unknown,
-  recoveryRunId: string,
-  cohort: FullBuildCohort,
-): FullRecoveryEvidence {
-  const candidate = record(value, 'Full qualification attempt');
-  const identity = record(candidate.identity, 'Full qualification attempt.identity');
-  const retry = record(candidate.retry, 'Full qualification attempt.retry');
-  const outcomes = record(candidate.outcomes, 'Full qualification attempt.outcomes');
-  const evidence = record(candidate.evidence, 'Full qualification attempt.evidence');
-  const scope = record(evidence.scope_proof, 'Full qualification attempt.evidence.scope_proof');
-  const qualificationRunId = runId(recoveryRunId, 'recovery_run_id');
-  const producerRunId = runId(identity.source_artifact_run_id, 'identity.source_artifact_run_id');
-  const scopeClassification = text(scope.classification, 'scope_proof.classification');
-  const scopeAppBase = sha(scope.app_base_sha, 'scope_proof.app_base_sha');
-  const scopeShellBase = sha(scope.shell_base_sha, 'scope_proof.shell_base_sha');
-  const forbiddenAppPaths = scope.forbidden_app_paths;
-  const forbiddenShellPaths = scope.forbidden_shell_paths;
-  const retryDisposition = text(retry.disposition, 'retry.disposition');
-  const retryEligible = retryDisposition === 'same_artifact_retry_allowed'
-    || retryDisposition === 'new_cohort_required'
-    || retryDisposition === 'reconcile_only';
-  if (
-    candidate.schema !== 'opl_app_qualification_attempt_receipt.v1'
-    || candidate.status !== 'failed'
-    || !retryEligible
-    || identity.artifact_kind !== 'full'
-    || identity.package_profile !== 'full'
-    || identity.qualification_run_id !== qualificationRunId
-    || identity.qualification_run_attempt !== '1'
-    || producerRunId !== cohort.actions.run_id
-    || identity.source_artifact_name !== cohort.actions.artifact_name
-    || outcomes.validate_inputs !== 'success'
-    || outcomes.clean_vm !== 'failure'
-    || scopeAppBase !== cohort.cohort.app_sha
-    || scopeShellBase !== cohort.cohort.shell_sha
-    || !Array.isArray(forbiddenAppPaths)
-    || forbiddenAppPaths.length !== 0
-    || !Array.isArray(forbiddenShellPaths)
-    || forbiddenShellPaths.length !== 0
-    || !['same_as_artifact_cohort', 'harness_mechanics_only'].includes(scopeClassification)
-  ) {
-    throw new Error(
-      'Full recovery receipt is not an eligible failed qualification bound to the exact recovery run and original Full producer.',
-    );
-  }
-  return {
-    qualification_run_id: qualificationRunId,
-    artifact_producer_run_id: producerRunId,
-    smoke_harness_ref: scopeClassification === 'harness_mechanics_only'
-      ? sha(scope.shell_head_sha, 'scope_proof.shell_head_sha')
-      : null,
-  };
 }
 
 function normalizedOwnerRun(value: unknown): OwnerWorkflowRun | null {
@@ -386,7 +260,136 @@ export function activeStableRunIds(runs: unknown[], workflow = defaultWorkflow):
     .map((run) => run.id);
 }
 
-export function assertLatestReleaseSetComplete(value: unknown): void {
+function appendFullSourceRunId(run: OwnerWorkflowRun): string | null {
+  const match = /^OPL Stable append_full source:([1-9][0-9]*) run:([1-9][0-9]*)$/.exec(
+    run.display_title,
+  );
+  if (!match || Number(match[2]) !== run.id) return null;
+  return match[1]!;
+}
+
+function isAppendFullOwnerRun(run: OwnerWorkflowRun, workflow: string): boolean {
+  return run.path === workflow
+    && run.event === 'workflow_dispatch'
+    && run.head_branch === 'main'
+    && run.run_attempt === 1
+    && appendFullSourceRunId(run) !== null;
+}
+
+export function reachableAppendFullRuns(
+  runs: unknown[],
+  rootSourceRunId: string,
+  workflow = defaultWorkflow,
+): OwnerWorkflowRun[] {
+  const root = runId(rootSourceRunId, 'root_source_run_id');
+  const owners = runs
+    .map(normalizedOwnerRun)
+    .filter((run): run is OwnerWorkflowRun => run !== null)
+    .filter((run) => isAppendFullOwnerRun(run, workflow))
+    .sort((left, right) => left.id - right.id);
+  const reachableSources = new Set([root]);
+  const selected = new Map<number, OwnerWorkflowRun>();
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const owner of owners) {
+      if (selected.has(owner.id)) continue;
+      const source = appendFullSourceRunId(owner);
+      if (!source || !reachableSources.has(source)) continue;
+      selected.set(owner.id, owner);
+      reachableSources.add(String(owner.id));
+      changed = true;
+    }
+  }
+  return [...selected.values()].sort((left, right) => left.id - right.id);
+}
+
+export function reconcileAppendFullTarget(input: {
+  runs: unknown[];
+  rootSourceRunId: string;
+  artifactsByRunId: Readonly<Record<string, readonly WorkflowArtifact[]>>;
+  workflow?: string;
+}): AppendFullTargetState {
+  const workflow = input.workflow ?? defaultWorkflow;
+  const root = runId(input.rootSourceRunId, 'root_source_run_id');
+  const normalized = input.runs
+    .map(normalizedOwnerRun)
+    .filter((run): run is OwnerWorkflowRun => run !== null);
+  const reachable = reachableAppendFullRuns(normalized, root, workflow);
+  const rootOwner = normalized.find((run) => run.id === Number(root) && isAppendFullOwnerRun(run, workflow));
+  const owners = rootOwner && !reachable.some((run) => run.id === rootOwner.id)
+    ? [rootOwner, ...reachable]
+    : reachable;
+
+  for (const owner of [...owners].sort((left, right) => right.id - left.id)) {
+    if (owner.status !== 'completed' || owner.conclusion !== 'success') continue;
+    const expected = `opl-release-full-published-${owner.id}`;
+    const published = (input.artifactsByRunId[String(owner.id)] ?? [])
+      .filter((artifact) => !artifact.expired && artifact.name === expected);
+    if (published.length > 1) {
+      throw new Error(`Full owner run ${owner.id} exposes multiple ${expected} artifacts.`);
+    }
+    if (published.length === 1) {
+      return {
+        state: 'published',
+        root_source_run_id: root,
+        owner_run_id: owner.id,
+        source_run_id: null,
+        source_artifact: null,
+      };
+    }
+  }
+
+  const active = owners.filter((owner) => activeRunStatuses.has(owner.status));
+  if (active.length > 1) {
+    throw new Error(`Multiple active Full owners exist for Standard source ${root}: ${active.map((run) => run.id).join(', ')}.`);
+  }
+  if (active.length === 1) {
+    return {
+      state: 'owner_identified',
+      root_source_run_id: root,
+      owner_run_id: active[0]!.id,
+      source_run_id: null,
+      source_artifact: null,
+    };
+  }
+
+  const unprovenSuccess = owners.find((owner) => owner.status === 'completed' && owner.conclusion === 'success');
+  if (unprovenSuccess) {
+    throw new Error(
+      `Full owner run ${unprovenSuccess.id} succeeded but its exact publication receipt is unavailable; reconcile public state before dispatch.`,
+    );
+  }
+
+  for (const owner of [...owners].sort((left, right) => right.id - left.id)) {
+    if (owner.status !== 'completed' || owner.conclusion === 'success') continue;
+    const checkpoint = selectReusableFullCheckpointArtifact(
+      [...(input.artifactsByRunId[String(owner.id)] ?? [])],
+      String(owner.id),
+    );
+    if (checkpoint) {
+      return {
+        state: 'dispatch_required',
+        root_source_run_id: root,
+        owner_run_id: null,
+        source_run_id: String(owner.id),
+        source_artifact: checkpoint,
+      };
+    }
+  }
+
+  const rootArtifacts = [...(input.artifactsByRunId[root] ?? [])];
+  return {
+    state: 'dispatch_required',
+    root_source_run_id: root,
+    owner_run_id: null,
+    source_run_id: root,
+    source_artifact: selectCheckpointArtifact(rootArtifacts, root),
+  };
+}
+
+export function assertLatestStandardReleaseComplete(value: unknown): void {
   const release = record(value, 'Latest GitHub Release');
   const tag = text(release.tag_name, 'Latest GitHub Release tag');
   if (!tag.startsWith('v')) throw new Error('Latest GitHub Release tag must start with v.');
@@ -396,15 +399,13 @@ export function assertLatestReleaseSetComplete(value: unknown): void {
     text(record(item, 'Latest GitHub Release asset').name, 'Latest GitHub Release asset name')));
   const required = [
     `One-Person-Lab-${version}-mac-arm64.dmg`,
-    `One-Person-Lab-Full-${version}-mac-arm64.dmg`,
     'opl-app-component-manifest.json',
-    'opl-release-manifest.json',
   ];
   const missing = required.filter((name) => !names.has(name));
   if (missing.length > 0) {
     throw new Error(
-      `Latest ${tag} is an incomplete Release Set (${missing.join(', ')} missing). `
-      + 'Finish or repair that same tag before creating another product version.',
+      `Latest ${tag} is missing required Standard publication assets (${missing.join(', ')}). `
+      + 'Repair that same tag before creating another product version.',
     );
   }
 }
@@ -448,8 +449,10 @@ export function buildAppendFullPlan(input: {
     );
   }
   if (input.smokeHarnessSha) {
-    if (!input.priorFullArtifactRunId) {
-      throw new Error('smoke_harness_ref requires a reusable Full artifact run.');
+    const checkpointRecovery = input.sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
+      || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-${sourceRunId}`;
+    if (!input.priorFullArtifactRunId && !checkpointRecovery) {
+      throw new Error('smoke_harness_ref requires a reusable Full checkpoint.');
     }
     workflowInputs.smoke_harness_ref = sha(input.smokeHarnessSha, 'smoke_harness_ref');
   }
@@ -474,43 +477,6 @@ export function buildAppendFullPlan(input: {
     },
     authority: null,
   };
-}
-
-export function buildFullCheckpointRecoveryPlan(input: {
-  attemptId: string;
-  recoveryRunId: string;
-  fullCheckpoint: WorkflowArtifact;
-  cohort: FullBuildCohort;
-  smokeHarnessSha?: string;
-  sourceRunId?: string;
-  sourceArtifact?: string;
-}): StableDispatchPlan {
-  const recoveryRunId = runId(input.recoveryRunId, 'recovery_run_id');
-  if (Boolean(input.sourceRunId) !== Boolean(input.sourceArtifact)) {
-    throw new Error('Full checkpoint recovery source override requires both run id and artifact name.');
-  }
-  const sourceRunId = input.sourceRunId
-    ? runId(input.sourceRunId, 'source_run_id')
-    : recoveryRunId;
-  const sourceArtifact = input.sourceArtifact
-    ? text(input.sourceArtifact, 'source_artifact')
-    : text(input.fullCheckpoint.name, 'full_checkpoint_artifact');
-  const smokeHarnessSha = input.smokeHarnessSha
-    ? sha(input.smokeHarnessSha, 'smoke_harness_ref')
-    : undefined;
-  return buildAppendFullPlan({
-    attemptId: input.attemptId,
-    sourceRunId,
-    sourceArtifact,
-    appSha: input.cohort.cohort.app_sha,
-    shellSha: input.cohort.cohort.shell_sha,
-    frameworkSha: input.cohort.cohort.framework_sha,
-    priorFullArtifactRunId: smokeHarnessSha ? input.cohort.actions.run_id : undefined,
-    artifactProducerRunId: input.cohort.actions.run_id,
-    qualificationRunId: smokeHarnessSha ? input.cohort.actions.run_id : recoveryRunId,
-    smokeHarnessSha,
-    recoveryRunId,
-  });
 }
 
 export function buildPublishQualifiedStandardPlan(input: {
@@ -583,42 +549,41 @@ function workflowArtifacts(runtime: Runtime, repository: string, sourceRunId: st
   });
 }
 
-function downloadArtifactJson(
-  runtime: Runtime,
-  repository: string,
-  sourceRunId: string,
-  artifactName: string,
-  fileName: string,
-): unknown {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-stable-dispatch-'));
-  try {
-    runRequired(
-      runtime,
-      'gh',
-      ['run', 'download', sourceRunId, '--repo', repository, '--name', artifactName, '--dir', tempRoot],
-      120_000,
-      `Download ${artifactName}`,
-    );
-    const matches = fs.globSync('**/*', { cwd: tempRoot, withFileTypes: true })
-      .filter((entry) => entry.isFile() && entry.name === fileName)
-      .map((entry) => path.join(entry.parentPath, entry.name));
-    if (matches.length !== 1) {
-      throw new Error(`${artifactName} must contain exactly one ${fileName}; found ${matches.length}.`);
-    }
-    return readJsonFile(matches[0]!);
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
-  }
+export function conflictingStableRunIds(
+  runs: unknown[],
+  plan: StableDispatchPlan,
+  workflow = defaultWorkflow,
+): number[] {
+  return runs
+    .map(normalizedOwnerRun)
+    .filter((run): run is OwnerWorkflowRun => run !== null)
+    .filter((run) => (
+      run.path === workflow
+      && run.event === 'workflow_dispatch'
+      && run.head_branch === 'main'
+      && activeRunStatuses.has(run.status)
+    ))
+    .filter((run) => {
+      if (plan.operation === 'standard') {
+        return plan.authority !== null
+          && run.display_title === `OPL Stable standard operation:${plan.authority.operation_id} authority:${plan.authority.authority_id} run:${run.id}`;
+      }
+      const sourceRunId = plan.source.run_id;
+      if (!sourceRunId) return false;
+      return run.display_title === `OPL Stable ${plan.operation} source:${sourceRunId} run:${run.id}`
+        || run.display_title === `OPL Stable ${plan.operation} ${run.id}`;
+    })
+    .map((run) => run.id);
 }
 
-function assertNoActiveRun(runtime: Runtime, workflow: string): void {
+function assertNoConflictingActiveRun(runtime: Runtime, workflow: string, plan: StableDispatchPlan): void {
   const observation = readOwnerWorkflowRuns({ workflow, runner: runtime.runner, cwd: appRoot });
   if (observation.status !== 'ok') {
     throw new Error(`Stable owner-run reconciliation failed: ${observation.failure_code}.`);
   }
-  const active = activeStableRunIds(observation.runs, workflow);
+  const active = conflictingStableRunIds(observation.runs, plan, workflow);
   if (active.length > 0) {
-    throw new Error(`A Stable owner run is already active: ${active.join(', ')}.`);
+    throw new Error(`A matching ${plan.operation} owner run is already active: ${active.join(', ')}.`);
   }
 }
 
@@ -830,8 +795,7 @@ function usage(): never {
   process.stderr.write(`Usage:
   npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--execute]
   npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
-  npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-run> [--execute]
-  npm run release:stable-dispatch -- recover-full --run-id <failed-full-run> [--source-run-id <standard-checkpoint-run>] [--smoke-harness-ref <sha>] [--execute]
+  npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--smoke-harness-ref <sha>] [--execute]
 
 Only new-product-release may allocate a tag, and it requires an explicit product-change summary. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
 `);
@@ -865,7 +829,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
   let plan: StableDispatchPlan;
 
   if (command === 'new-product-release') {
-    assertLatestReleaseSetComplete(latestRelease(runtime, repository));
+    assertLatestStandardReleaseComplete(latestRelease(runtime, repository));
     const appSha = values['app-ref'] ? sha(values['app-ref'], 'app_ref') : executorSha;
     const shellSha = values['shell-ref'] ? sha(values['shell-ref'], 'shell_ref') : wireSha(runtime, shellRemote);
     const frameworkSha = values['framework-ref']
@@ -892,70 +856,70 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
         : wireSha(runtime, frameworkRemote),
     });
   } else if (command === 'append-full') {
-    const sourceRunId = runId(values['source-run-id'], 'source_run_id');
-    const artifacts = workflowArtifacts(runtime, repository, sourceRunId);
+    const rootSourceRunId = runId(values['source-run-id'], 'source_run_id');
+    const observation = readOwnerWorkflowRuns({ workflow, runner: runtime.runner, cwd: appRoot });
+    if (observation.status !== 'ok') {
+      throw new Error(`Stable owner-run reconciliation failed: ${observation.failure_code}.`);
+    }
+    const reachable = reachableAppendFullRuns(observation.runs, rootSourceRunId, workflow);
+    const artifactRunIds = new Set([
+      rootSourceRunId,
+      ...reachable
+        .filter((owner) => owner.status === 'completed')
+        .map((owner) => String(owner.id)),
+    ]);
+    const artifactsByRunId: Record<string, WorkflowArtifact[]> = {};
+    for (const artifactRunId of artifactRunIds) {
+      artifactsByRunId[artifactRunId] = workflowArtifacts(runtime, repository, artifactRunId);
+    }
+    const target = reconcileAppendFullTarget({
+      runs: observation.runs,
+      rootSourceRunId,
+      artifactsByRunId,
+      workflow,
+    });
+    const appendAttemptId = attemptId('append-full', runtime);
+    if (target.state !== 'dispatch_required') {
+      const ownerRun = observation.runs
+        .map(normalizedOwnerRun)
+        .find((owner) => owner?.id === target.owner_run_id) ?? null;
+      writeJson(values.output, {
+        schema: 'opl_app_stable_dispatch_attempt.v1',
+        status: target.state,
+        operation: 'append_full',
+        attempt_id: appendAttemptId,
+        version_policy: 'preserve_source_tag',
+        mutation_invocation_count: 0,
+        mutation_retry_count: 0,
+        dispatch_transport: null,
+        owner_run: ownerRun,
+        read_only_reconcile_only: true,
+        plan: {
+          root_source_run_id: rootSourceRunId,
+          source: { run_id: null, artifact: null },
+          recovery: null,
+          cohort: null,
+          authority: null,
+        },
+      });
+      return;
+    }
+    const sourceRunId = target.source_run_id;
+    const sourceArtifact = target.source_artifact;
+    const isFullRecovery = sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
+      || sourceArtifact === `opl-release-append-full-operation-checkpoint-${sourceRunId}`;
     plan = buildAppendFullPlan({
-      attemptId: attemptId('append-full', runtime),
+      attemptId: appendAttemptId,
       sourceRunId,
-      sourceArtifact: selectCheckpointArtifact(artifacts, sourceRunId),
+      sourceArtifact,
       appSha: values['app-ref'] ? sha(values['app-ref'], 'app_ref') : executorSha,
       shellSha: values['shell-ref'] ? sha(values['shell-ref'], 'shell_ref') : wireSha(runtime, shellRemote),
       frameworkSha: values['framework-ref']
         ? sha(values['framework-ref'], 'framework_ref')
         : wireSha(runtime, frameworkRemote),
+      smokeHarnessSha: values['smoke-harness-ref'],
+      recoveryRunId: isFullRecovery ? sourceRunId : rootSourceRunId,
     });
-  } else if (command === 'recover-full') {
-    const recoveryRunId = runId(values['run-id'], 'run_id');
-    const artifacts = workflowArtifacts(runtime, repository, recoveryRunId);
-    const fullCohortArtifact = selectFullCohortArtifact(artifacts);
-    const cohort = validateFullBuildCohort(downloadArtifactJson(
-      runtime,
-      repository,
-      recoveryRunId,
-      fullCohortArtifact.name,
-      'opl-build-cohort.json',
-    ));
-    const fullCheckpoint = selectFullCheckpointArtifact(artifacts, recoveryRunId);
-    if (fullCheckpoint) {
-      const sourceRunId = values['source-run-id']
-        ? runId(values['source-run-id'], 'source_run_id')
-        : undefined;
-      const sourceArtifact = sourceRunId
-        ? selectCheckpointArtifact(workflowArtifacts(runtime, repository, sourceRunId), sourceRunId)
-        : undefined;
-      plan = buildFullCheckpointRecoveryPlan({
-        attemptId: attemptId('recover-full', runtime),
-        recoveryRunId,
-        fullCheckpoint,
-        cohort,
-        smokeHarnessSha: values['smoke-harness-ref'],
-        sourceRunId,
-        sourceArtifact,
-      });
-    } else {
-      const qualificationArtifact = selectFullQualificationArtifact(artifacts, recoveryRunId);
-      const recovery = validateFullRecoveryEvidence(downloadArtifactJson(
-        runtime,
-        repository,
-        recoveryRunId,
-        qualificationArtifact.name,
-        'qualification-attempt-receipt.json',
-      ), recoveryRunId, cohort);
-      plan = buildAppendFullPlan({
-        attemptId: attemptId('recover-full', runtime),
-        sourceRunId: recoveryRunId,
-        sourceArtifact: selectCheckpointArtifact(artifacts, recoveryRunId),
-        appSha: cohort.cohort.app_sha,
-        shellSha: cohort.cohort.shell_sha,
-        frameworkSha: cohort.cohort.framework_sha,
-        priorFullArtifactRunId: recoveryRunId,
-        artifactProducerRunId: recovery.artifact_producer_run_id,
-        qualificationRunId: recovery.qualification_run_id,
-        smokeHarnessSha: values['smoke-harness-ref']
-          ? sha(values['smoke-harness-ref'], 'smoke_harness_ref')
-          : recovery.smoke_harness_ref ?? undefined,
-      });
-    }
   } else {
     usage();
   }
@@ -972,7 +936,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     return;
   }
 
-  if (plan.operation !== 'standard') assertNoActiveRun(runtime, workflow);
+  if (plan.operation !== 'standard') assertNoConflictingActiveRun(runtime, workflow, plan);
   const result = await dispatchOnce(runtime, repository, workflow, executorSha, plan);
   writeJson(values.output, result);
   if (result.status !== 'dispatched') process.exitCode = 2;

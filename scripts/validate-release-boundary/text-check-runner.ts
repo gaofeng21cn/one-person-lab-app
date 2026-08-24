@@ -43,6 +43,7 @@ const postPublicationOptionalCertificationWorkflowPath =
   '.github/workflows/release-post-publication-certification.yml';
 const stableDesktopFollowupWorkflowPath =
   '.github/workflows/release-stable-post-success-followups.yml';
+const desktopPlatformAddonWorkflowPath = '.github/workflows/_release-desktop-platform-addon.yml';
 const fullAddonFollowerWorkflowPath = '.github/workflows/release-full-addon-follower.yml';
 const nightlyReleaseWorkflowPath = '.github/workflows/release-nightly.yml';
 const nightlyHomebrewFollowerWorkflowPath =
@@ -72,6 +73,11 @@ function exactObject(value: unknown, expected: Record<string, unknown>): boolean
   const actual = value as Record<string, unknown>;
   return Object.keys(actual).length === Object.keys(expected).length &&
     Object.entries(expected).every(([name, expectedValue]) => actual[name] === expectedValue);
+}
+
+function hasStableMutationMutex(job: Record<string, any> | undefined): boolean {
+  return job?.concurrency?.group === 'opl-release-bundle-global'
+    && job.concurrency?.['cancel-in-progress'] === false;
 }
 
 function requestsWritePermission(value: unknown): boolean {
@@ -177,14 +183,16 @@ function isAuthorizedManualPreviewWriteJob(
       && job.with?.operation_started_at ===
         '${{ needs.admission.outputs.operation_started_at }}'
       && job.with?.operation_deadline_at ===
-        '${{ needs.admission.outputs.operation_deadline_at }}';
+        '${{ needs.admission.outputs.operation_deadline_at }}'
+      && hasStableMutationMutex(job);
   }
   return jobId === 'resume-preview'
     && job.if === "${{ needs.admission.outputs.operation == 'resume_preview' }}"
     && job.uses === './.github/workflows/_release-standard-publish.yml'
     && job.with?.mode === 'execute'
     && job.with?.operation === 'resume_standard'
-    && job.with?.publication_channel === 'preview';
+    && job.with?.publication_channel === 'preview'
+    && hasStableMutationMutex(job);
 }
 
 function isAuthorizedStableDesktopFollowupWriteJob(
@@ -193,19 +201,23 @@ function isAuthorizedStableDesktopFollowupWriteJob(
   job: Record<string, any>,
 ): boolean {
   if (workflowPath !== stableDesktopFollowupWorkflowPath) return false;
-  const automaticIf =
-    "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}";
-  if (jobId === 'append-desktop-platforms') {
-    return job.if === automaticIf
-      && needsExactly(job, ['admit', 'build-desktop-platforms'])
-      && job.environment === 'release-stable'
-      && exactObject(job.permissions, exactStableEntryPermissions);
+  if (jobId === 'reconcile-desktop-platforms') {
+    return job.if === "${{ needs.admit.outputs.applicable == 'true' }}"
+      && needsExactly(job, ['admit'])
+      && job.uses === './.github/workflows/_release-desktop-platform-addon.yml'
+      && exactObject(job.permissions, exactStableEntryPermissions)
+      && job.strategy?.['fail-fast'] === false
+      && job.concurrency?.group ===
+        'opl-stable-desktop-${{ needs.admit.outputs.source_run_id }}-${{ matrix.platform_id }}'
+      && job.concurrency?.['cancel-in-progress'] === false
+      && !Array.isArray(job.steps);
   }
   return jobId === 'repair-additive'
     && job.if === "${{ needs.repair-admit.result == 'success' }}"
     && needsExactly(job, ['repair-admit'])
     && job.environment === 'release-stable'
-    && exactObject(job.permissions, exactStableEntryPermissions);
+    && exactObject(job.permissions, exactStableEntryPermissions)
+    && hasStableMutationMutex(job);
 }
 
 function isAuthorizedFullAddonFollowerWriteJob(
@@ -222,7 +234,7 @@ function isAuthorizedFullAddonFollowerWriteJob(
     && job.environment === undefined
     && exactObject(job.permissions, { contents: 'read', actions: 'write' })
     && stepNames.includes('Bind successful Standard publication handoff')
-    && stepNames.includes('Reconcile target state and dispatch at most once')
+    && stepNames.includes('Reconcile Full target state through the canonical controller')
     && stepNames.includes('Write thin Full follower handoff');
 }
 
@@ -419,9 +431,8 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       JSON.stringify(operationInput?.options) !== JSON.stringify(expectedOperations)) {
     failures += reportFailure(id, `operation choices must be exactly ${expectedOperations.join(', ')}`);
   }
-  if (workflow.concurrency?.group !== 'opl-release-bundle-global' ||
-      workflow.concurrency?.['cancel-in-progress'] !== false) {
-    failures += reportFailure(id, 'all Stable operations must share fixed concurrency with cancel-in-progress=false');
+  if (workflow.concurrency !== undefined) {
+    failures += reportFailure(id, 'Stable admission and qualification must not hold the public mutation mutex');
   }
   if (!exactObject(workflow.permissions, exactReadPermissions)) {
     failures += reportFailure(id, 'top-level Stable permissions must be exactly contents:read/actions:read');
@@ -431,6 +442,12 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
   }
 
   const jobs = workflowJobs(workflow);
+  if (!hasStableMutationMutex(jobs['resume-standard'])) {
+    failures += reportFailure(
+      id,
+      'resume-standard must acquire the public mutation mutex only around its reusable publisher',
+    );
+  }
   const authorityInputs = workflow.on?.workflow_dispatch?.inputs ?? {};
   if (
     authorityInputs.entry?.type !== 'choice'
@@ -821,6 +838,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   const bundle = parseWorkflow(appRoot, '.github/workflows/_release-bundle.yml', id);
   const standard = parseWorkflow(appRoot, '.github/workflows/_release-standard-publish.yml', id);
   const full = parseWorkflow(appRoot, '.github/workflows/_release-full-addon.yml', id);
+  const desktopPlatformAddon = parseWorkflow(appRoot, desktopPlatformAddonWorkflowPath, id);
   const homebrewStandardFollower = parseWorkflow(
     appRoot,
     homebrewStandardFollowerWorkflowPath,
@@ -837,13 +855,14 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     id,
   );
   if (
-    !bundle || !standard || !full || !homebrewStandardFollower ||
+    !bundle || !standard || !full || !desktopPlatformAddon || !homebrewStandardFollower ||
     !optionalCertification || !optionalCertificationVm
   ) {
     return [
       bundle,
       standard,
       full,
+      desktopPlatformAddon,
       homebrewStandardFollower,
       optionalCertification,
       optionalCertificationVm,
@@ -965,6 +984,12 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'publish-standard',
     './.github/workflows/_release-standard-publish.yml',
   );
+  if (!hasStableMutationMutex(bundleJobs['publish-standard'])) {
+    failures += reportFailure(
+      id,
+      'publish-standard must acquire the public mutation mutex after build and qualification',
+    );
+  }
   if (
     !needsExactly(bundleJobs['checkpoint-standard'], [
       'admission',
@@ -1153,6 +1178,12 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   if (fullJobs['publish-full'] && fullJobs['publish-full'].environment !== 'release-stable') {
     failures += reportFailure(id, 'publish-full must use the release-stable environment');
   }
+  if (!hasStableMutationMutex(fullJobs['publish-full'])) {
+    failures += reportFailure(
+      id,
+      'publish-full must acquire the public mutation mutex only after Full qualification',
+    );
+  }
   if (standardUpdaterOrLatest(full.text)) {
     failures += reportFailure(id, 'append_full must not qualify Standard updater or activate Latest');
   }
@@ -1171,6 +1202,39 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'operation_deadline_at',
   ]) {
     if (!full.text.includes(required)) failures += reportFailure(id, `append_full handoff is missing ${required}`);
+  }
+
+  const desktopAddonJobs = workflowJobs(desktopPlatformAddon.workflow);
+  if (
+    JSON.stringify(Object.keys(desktopPlatformAddon.workflow.on ?? {})) !== JSON.stringify(['workflow_call'])
+    || !exactObject(desktopPlatformAddon.workflow.permissions, exactReadPermissions)
+    || JSON.stringify(Object.keys(desktopAddonJobs)) !== JSON.stringify([
+      'build-platform', 'append-platform', 'receipt',
+    ])
+  ) {
+    failures += reportFailure(id, 'Desktop platform add-on must expose one reusable build/append/receipt lane');
+  }
+  const desktopBuild = desktopAddonJobs['build-platform'];
+  const desktopAppend = desktopAddonJobs['append-platform'];
+  const desktopReceipt = desktopAddonJobs.receipt;
+  if (
+    desktopBuild?.uses !== './.github/workflows/build-manual.yml'
+    || desktopBuild?.concurrency !== undefined
+    || typeof desktopBuild?.with?.platform_ids !== 'string'
+    || !desktopBuild.with.platform_ids.includes('inputs.platform_id')
+    || !desktopAppend
+    || !needsExactly(desktopAppend, ['build-platform'])
+    || desktopAppend?.environment !== 'release-stable'
+    || !exactObject(desktopAppend?.permissions, exactStableEntryPermissions)
+    || !hasStableMutationMutex(desktopAppend)
+    || !desktopReceipt
+    || desktopReceipt?.if !== '${{ always() }}'
+    || !needsExactly(desktopReceipt, ['build-platform', 'append-platform'])
+  ) {
+    failures += reportFailure(
+      id,
+      'Desktop platform build must remain unlocked while only its public append holds the release mutex',
+    );
   }
 
   const certificationTriggers = optionalCertification.workflow.on ?? {};
@@ -2094,11 +2158,8 @@ export function validateManualFullPreviewControlPlane(appRoot: string): number {
   if (!exactObject(workflow.permissions, exactReadPermissions)) {
     failures += reportFailure(id, 'Manual Full preview top-level permissions must be exactly contents:read/actions:read');
   }
-  if (
-    workflow.concurrency?.group !== 'opl-release-bundle-global'
-    || workflow.concurrency?.['cancel-in-progress'] !== false
-  ) {
-    failures += reportFailure(id, 'Manual Full preview must share the non-cancelling repository release mutex');
+  if (workflow.concurrency !== undefined) {
+    failures += reportFailure(id, 'Manual Full preview ingress must not hold the public mutation mutex');
   }
   const jobs = workflowJobs(workflow);
   if (JSON.stringify(Object.keys(jobs).sort()) !== JSON.stringify(['ingress', 'mutate'])) {
@@ -2120,6 +2181,7 @@ export function validateManualFullPreviewControlPlane(appRoot: string): number {
     || !needsExactly(mutate, ['ingress'])
     || mutate.environment !== 'release-stable'
     || !exactObject(mutate.permissions, exactStableEntryPermissions)
+    || !hasStableMutationMutex(mutate)
     || mutate.secrets !== undefined
   ) {
     failures += reportFailure(id, 'Manual Full preview mutation must be admission-dependent and protected by release-stable');

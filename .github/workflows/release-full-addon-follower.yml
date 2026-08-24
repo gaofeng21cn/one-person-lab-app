@@ -22,6 +22,11 @@ on:
         type: choice
         options:
           - reconcile_full_addon
+      smoke_harness_ref:
+        description: Optional exact Shell verification SHA used only with a reusable Full checkpoint
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -139,92 +144,48 @@ jobs:
             echo "release_tag=$tag"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Reconcile target state and dispatch at most once
+      - name: Reconcile Full target state through the canonical controller
         id: owner
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ steps.source.outputs.source_run_id }}
-          SOURCE_ARTIFACT: ${{ steps.source.outputs.source_artifact }}
           APP_REF: ${{ steps.source.outputs.app_ref }}
           SHELL_REF: ${{ steps.source.outputs.shell_ref }}
           FRAMEWORK_REF: ${{ steps.source.outputs.framework_ref }}
+          SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref || '' }}
         shell: bash
         run: |
           set -euo pipefail
-          title_regex="^OPL Stable append_full source:${SOURCE_RUN_ID} run:[1-9][0-9]*$"
-          gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/workflows/release-stable.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
-            > owner-runs.json
-          matches="$(jq -c --arg title "$title_regex" '[.[]?.workflow_runs[]? | select(.display_title | test($title))]' owner-runs.json)"
-          active="$(jq -c '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")]' <<<"$matches")"
-          active_count="$(jq -r length <<<"$active")"
-          test "$active_count" -le 1 || { echo '::error::Multiple active Full owners exist for one Standard handoff.'; exit 1; }
-
-          published_run=''
-          while IFS= read -r run_id; do
-            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?per_page=100" > candidate-artifacts.json
-            if [ "$(jq -r --arg name "opl-release-full-published-${run_id}" '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length' candidate-artifacts.json)" = 1 ]; then
-              published_run="$run_id"
-              break
-            fi
-          done < <(jq -r '[.[] | select(.status == "completed" and .conclusion == "success")] | sort_by(.id) | reverse | .[].id' <<<"$matches")
-          if [ -n "$published_run" ]; then
-            {
-              echo "state=published"
-              echo "owner_run_id=$published_run"
-              echo "mutation_invocation_count=0"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "$active_count" = 1 ]; then
-            {
-              echo "state=owner_identified"
-              echo "owner_run_id=$(jq -r '.[0].id' <<<"$active")"
-              echo "mutation_invocation_count=0"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           executor_sha="$(git rev-parse HEAD)"
           [[ "$executor_sha" =~ ^[0-9a-f]{40}$ ]]
           gh api "repos/$GITHUB_REPOSITORY/branches/main" > current-main.json
           test "$(jq -er .commit.sha current-main.json)" = "$executor_sha"
-          prior_ids="$(jq -c '[.[].id]' <<<"$matches")"
-          jq -n --arg ref main --arg source_run_id "$SOURCE_RUN_ID" \
-            --arg source_artifact "$SOURCE_ARTIFACT" --arg app_ref "$APP_REF" \
-            --arg shell_ref "$SHELL_REF" --arg framework_ref "$FRAMEWORK_REF" \
-            '{ref:$ref,inputs:{operation:"append_full",source_run_id:$source_run_id,source_artifact:$source_artifact,app_ref:$app_ref,shell_ref:$shell_ref,framework_ref:$framework_ref}}' \
-            > dispatch.json
-          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/release-stable.yml/dispatches" --input dispatch.json
-
-          owner_run_id=''
-          for _ in $(seq 1 60); do
-            if gh api --paginate --slurp \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/release-stable.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
-              > after-runs.json; then
-              successors="$(jq -c --arg title "$title_regex" --arg head "$executor_sha" --argjson prior "$prior_ids" '
-                [.[]?.workflow_runs[]?
-                  | select(.display_title | test($title))
-                  | select(.head_sha == $head)
-                  | select((.id as $id | $prior | index($id)) | not)]
-              ' after-runs.json)"
-              count="$(jq -r length <<<"$successors")"
-              test "$count" -le 1 || { echo '::error::Full dispatch produced ambiguous successor runs.'; exit 1; }
-              if [ "$count" = 1 ]; then
-                owner_run_id="$(jq -r '.[0].id' <<<"$successors")"
-                break
-              fi
-            fi
-            sleep 10
-          done
-          [[ "$owner_run_id" =~ ^[1-9][0-9]*$ ]] || {
-            echo '::error::Full dispatch outcome is unknown; reconcile target state read-only before another invocation.'
-            exit 1
-          }
+          args=(
+            append-full
+            --source-run-id "$SOURCE_RUN_ID"
+            --app-ref "$APP_REF"
+            --shell-ref "$SHELL_REF"
+            --framework-ref "$FRAMEWORK_REF"
+            --output stable-full-reconcile.json
+            --execute
+          )
+          if [ -n "$SMOKE_HARNESS_REF" ]; then
+            [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
+            args+=(--smoke-harness-ref "$SMOKE_HARNESS_REF")
+          fi
+          node --experimental-strip-types scripts/stable-release-dispatch.ts "${args[@]}"
+          state="$(jq -er .status stable-full-reconcile.json)"
+          case "$state" in published|owner_identified|dispatched) ;; *) exit 1 ;; esac
+          owner_run_id="$(jq -er '.owner_run.id | tostring | select(test("^[1-9][0-9]*$"))' stable-full-reconcile.json)"
+          mutation_count="$(jq -er '.mutation_invocation_count | select(. == 0 or . == 1)' stable-full-reconcile.json)"
+          resolved_source_run_id="$(jq -r '.plan.source.run_id // empty' stable-full-reconcile.json)"
+          resolved_source_artifact="$(jq -r '.plan.source.artifact // empty' stable-full-reconcile.json)"
           {
-            echo "state=owner_identified"
+            echo "state=$state"
             echo "owner_run_id=$owner_run_id"
-            echo "mutation_invocation_count=1"
+            echo "mutation_invocation_count=$mutation_count"
+            echo "resolved_source_run_id=$resolved_source_run_id"
+            echo "resolved_source_artifact=$resolved_source_artifact"
           } >> "$GITHUB_OUTPUT"
 
       - name: Write thin Full follower handoff
@@ -234,14 +195,17 @@ jobs:
           MUTATION_COUNT: ${{ steps.owner.outputs.mutation_invocation_count }}
           SOURCE_RUN_ID: ${{ steps.source.outputs.source_run_id }}
           SOURCE_ARTIFACT: ${{ steps.source.outputs.source_artifact }}
+          RESOLVED_SOURCE_RUN_ID: ${{ steps.owner.outputs.resolved_source_run_id }}
+          RESOLVED_SOURCE_ARTIFACT: ${{ steps.owner.outputs.resolved_source_artifact }}
           RELEASE_TAG: ${{ steps.source.outputs.release_tag }}
         shell: bash
         run: |
           set -euo pipefail
           jq -n --arg state "$STATE" --arg owner "$OWNER_RUN_ID" \
             --arg source "$SOURCE_RUN_ID" --arg artifact "$SOURCE_ARTIFACT" --arg tag "$RELEASE_TAG" \
+            --arg resolved_source "$RESOLVED_SOURCE_RUN_ID" --arg resolved_artifact "$RESOLVED_SOURCE_ARTIFACT" \
             --argjson mutations "$MUTATION_COUNT" '
-              {schema:"opl_app_full_addon_follower.v1",status:$state,source_run_id:$source,source_artifact:$artifact,release_tag:$tag,owner_run_id:$owner,mutation_invocation_count:$mutations,waits_for_owner_completion:false,remaining:(if $state == "published" then [] else ["full_addon"] end)}
+              {schema:"opl_app_full_addon_follower.v1",status:$state,root_source_run_id:$source,source_run_id:(if $resolved_source == "" then $source else $resolved_source end),source_artifact:(if $resolved_artifact == "" then $artifact else $resolved_artifact end),release_tag:$tag,owner_run_id:$owner,mutation_invocation_count:$mutations,waits_for_owner_completion:false,remaining:(if $state == "published" then [] else ["full_addon"] end)}
             ' > full-addon-follower.json
 
       - name: Upload Full follower handoff

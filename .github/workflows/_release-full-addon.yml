@@ -48,7 +48,7 @@ on:
         default: ''
         type: string
       smoke_harness_ref:
-        description: Exact opl-aion-shell verification ref for recovery-only clean-VM execution; empty uses the frozen product Shell ref
+        description: Exact opl-aion-shell verification ref for unchanged Full checkpoint requalification; empty uses the frozen product Shell ref
         required: false
         default: ''
         type: string
@@ -170,8 +170,12 @@ jobs:
             if [ -n "$SMOKE_HARNESS_REF" ]; then
               [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
             fi
-          else
-            test -z "$SMOKE_HARNESS_REF"
+          elif [ -n "$SMOKE_HARNESS_REF" ]; then
+            [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
+            case '${{ inputs.source_artifact }}' in
+              "opl-release-full-checkpoint-${{ inputs.source_run_id }}"|"opl-release-append-full-operation-checkpoint-${{ inputs.source_run_id }}") ;;
+              *) echo "::error::smoke_harness_ref requires an exact reusable Full checkpoint."; exit 1 ;;
+            esac
           fi
           mkdir -p release-failure-evidence
           status=passed
@@ -1651,6 +1655,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: release-stable
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
     needs: [restore-standard, checkpoint-full, provenance]
     steps:
       - name: Reject partial rerun before Full GitHub mutation

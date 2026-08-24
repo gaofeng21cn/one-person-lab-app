@@ -272,7 +272,11 @@ test('Manual Preview workflow and explicit Latest override keep quality separate
   );
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
   assert.deepEqual(workflow.jobs.admission.permissions, { contents: 'read', actions: 'read' });
-  assert.deepEqual(workflow.concurrency, { group: 'opl-release-bundle-global', 'cancel-in-progress': false });
+  const mutationMutex = { group: 'opl-release-bundle-global', 'cancel-in-progress': false };
+  assert.equal(workflow.concurrency, undefined);
+  assert.equal(workflow.jobs.admission.concurrency, undefined);
+  assert.deepEqual(workflow.jobs['resume-preview'].concurrency, mutationMutex);
+  assert.deepEqual(workflow.jobs['move-latest-pointer'].concurrency, mutationMutex);
   assert.equal(workflow.jobs.preview.uses, './.github/workflows/_release-bundle.yml');
   assert.equal(workflow.jobs.preview.with.channel, 'preview');
   assert.equal(workflow.jobs.preview.with.publication_channel, 'preview');

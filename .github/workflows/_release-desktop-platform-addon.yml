@@ -1,0 +1,188 @@
+name: OPL Stable Desktop Platform Add-on
+
+on:
+  workflow_call:
+    inputs:
+      platform_id:
+        description: Exact independently reconciled Desktop platform
+        required: true
+        type: string
+      app_ref:
+        description: Exact frozen App product SHA
+        required: true
+        type: string
+      shell_ref:
+        description: Exact frozen Shell product SHA
+        required: true
+        type: string
+      framework_ref:
+        description: Exact frozen Framework product SHA
+        required: true
+        type: string
+      version:
+        description: Exact Stable display version
+        required: true
+        type: string
+      updater_version:
+        description: Exact updater SemVer
+        required: true
+        type: string
+      source_run_id:
+        description: Exact successful Standard publication run
+        required: true
+        type: string
+      source_bundle_digest:
+        description: Exact frozen Release Bundle digest
+        required: true
+        type: string
+      release_id:
+        description: Exact mutable Stable GitHub Release ID
+        required: true
+        type: string
+      release_tag:
+        description: Exact existing Stable tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-platform:
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/build-manual.yml
+    with:
+      invocation_mode: stable_release_set_build
+      platform_policy: stable_desktop_additional
+      app_ref: ${{ inputs.app_ref }}
+      shell_ref: ${{ inputs.shell_ref }}
+      framework_ref: ${{ inputs.framework_ref }}
+      opl_release_version: ${{ inputs.version }}
+      opl_updater_version: ${{ inputs.updater_version }}
+      source_run_id: ${{ inputs.source_run_id }}
+      source_bundle_digest: ${{ inputs.source_bundle_digest }}
+      platform_ids: ${{ format('["{0}"]', inputs.platform_id) }}
+    secrets: inherit
+
+  append-platform:
+    needs: [build-platform]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release-stable
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout current canonical Desktop append controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download exact independently built Desktop platform artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: ${{ format('stable-desktop-{0}-*', inputs.platform_id) }}
+          path: selected-platform-assets
+          merge-multiple: true
+
+      - name: Materialize one exact Desktop platform append
+        env:
+          PLATFORM_ID: ${{ inputs.platform_id }}
+          VERSION: ${{ inputs.version }}
+          UPDATER_VERSION: ${{ inputs.updater_version }}
+          APP_REF: ${{ inputs.app_ref }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_BUNDLE_DIGEST: ${{ inputs.source_bundle_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$PLATFORM_ID" in linux-x64|windows-x64) ;; *) exit 1 ;; esac
+          mkdir desktop-platform-assets
+          if [ "$PLATFORM_ID" = linux-x64 ]; then
+            find selected-platform-assets -type f -name '*.deb' -exec cp {} desktop-platform-assets/ \;
+            test "$(find desktop-platform-assets -maxdepth 1 -type f | wc -l | tr -d ' ')" = 1
+            test -f "desktop-platform-assets/One-Person-Lab-${VERSION}-linux-x64.deb"
+          else
+            find selected-platform-assets -type f \
+              \( -name '*.exe' -o -name '*.exe.blockmap' -o -name 'latest.yml' -o -name 'opl-windows-updater-assets.json' \) \
+              -exec cp {} desktop-platform-assets/ \;
+            test "$(find desktop-platform-assets -maxdepth 1 -type f | wc -l | tr -d ' ')" = 4
+            test -f "desktop-platform-assets/One-Person-Lab-${VERSION}-win-x64.exe"
+            test -f "desktop-platform-assets/One-Person-Lab-${VERSION}-win-x64.exe.blockmap"
+            test -f desktop-platform-assets/latest.yml
+            test -f desktop-platform-assets/opl-windows-updater-assets.json
+            node --experimental-strip-types scripts/validate-windows-updater-assets.ts \
+              --artifact-dir desktop-platform-assets --release-version "$VERSION" \
+              --updater-version "$UPDATER_VERSION" \
+              --output desktop-platform-assets/opl-windows-updater-assets.json >/dev/null
+          fi
+          assets="$(for file in desktop-platform-assets/*; do jq -n \
+            --arg name "$(basename "$file")" \
+            --arg digest "sha256:$(sha256sum "$file" | awk '{print $1}')" \
+            --argjson size "$(wc -c < "$file")" \
+            '{name:$name,digest:$digest,size:$size}'; done | jq -cs 'sort_by(.name)')"
+          jq -S -n --arg version "$VERSION" --arg updater "$UPDATER_VERSION" \
+            --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" \
+            --arg run "$SOURCE_RUN_ID" --arg bundle "$SOURCE_BUNDLE_DIGEST" \
+            --arg platform "$PLATFORM_ID" --argjson assets "$assets" \
+            '{schema:"opl_app_desktop_platform_manifest.v1",release:{version:$version,updater_version:$updater},source:{run_id:$run,bundle_digest:$bundle},cohort:{app_sha:$app,shell_sha:$shell,framework_sha:$framework},platform:$platform,assets:$assets}' \
+            > desktop-platform-manifest.json
+
+      - name: Append or reconcile only this Desktop platform
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node --experimental-strip-types scripts/append-stable-desktop-assets.ts
+          --repository "$GITHUB_REPOSITORY"
+          --release-id "${{ inputs.release_id }}"
+          --tag "${{ inputs.release_tag }}"
+          --target "${{ inputs.app_ref }}"
+          --asset-dir desktop-platform-assets
+          --platform-manifest desktop-platform-manifest.json
+          --output "stable-desktop-${{ inputs.platform_id }}-append.json"
+          --apply
+
+      - name: Upload independent Desktop platform append receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-stable-desktop-append-${{ inputs.source_run_id }}-${{ inputs.platform_id }}
+          path: stable-desktop-${{ inputs.platform_id }}-append.json
+          if-no-files-found: error
+          retention-days: 30
+
+  receipt:
+    if: ${{ always() }}
+    needs: [build-platform, append-platform]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write independent Desktop platform follower receipt
+        env:
+          PLATFORM_ID: ${{ inputs.platform_id }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          BUILD_RESULT: ${{ needs.build-platform.result }}
+          APPEND_RESULT: ${{ needs.append-platform.result }}
+        shell: bash
+        run: |
+          jq -n --arg platform "$PLATFORM_ID" --arg source "$SOURCE_RUN_ID" --arg tag "$RELEASE_TAG" \
+            --arg build "$BUILD_RESULT" --arg append "$APPEND_RESULT" \
+            '{schema:"opl_app_stable_desktop_platform_followup.v1",platform:$platform,source_run_id:$source,release_tag:$tag,build:$build,append:$append,remaining:(if $append == "success" then [] else [$platform] end)}' \
+            > desktop-platform-followup.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-stable-desktop-platform-followup-${{ inputs.source_run_id }}-${{ inputs.platform_id }}
+          path: desktop-platform-followup.json
+          if-no-files-found: error
+          retention-days: 30

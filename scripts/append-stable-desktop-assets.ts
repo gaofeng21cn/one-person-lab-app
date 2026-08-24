@@ -2,6 +2,7 @@
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
@@ -20,7 +21,33 @@ type ReleaseRecord = {
 
 type ExpectedRepairAsset = Required<Pick<ReleaseAsset, 'id' | 'name' | 'size' | 'digest'>>;
 
+export type DesktopPlatformId = 'linux-x64' | 'windows-x64';
+type ManifestAsset = Pick<ReleaseAsset, 'name' | 'size' | 'digest'>;
+type DesktopManifestIdentity = {
+  release: { version: string; updater_version: string };
+  source: { run_id: string; bundle_digest: string };
+  cohort: { app_sha: string; shell_sha: string; framework_sha: string };
+};
+export type DesktopPlatformManifest = DesktopManifestIdentity & {
+  schema: 'opl_app_desktop_platform_manifest.v1';
+  platform: DesktopPlatformId;
+  assets: ManifestAsset[];
+};
+export type DesktopReleaseSetManifest = DesktopManifestIdentity & {
+  schema: 'opl_app_desktop_release_set_manifest.v1';
+  platforms: DesktopPlatformId[];
+  assets: ManifestAsset[];
+};
+
+const aggregateManifestName = 'opl-desktop-platforms-manifest.json';
+const aggregateManifestStagePattern = /^opl-desktop-platforms-manifest\.([0-9a-f]{64})\.json$/;
+const desktopPlatformOrder: DesktopPlatformId[] = ['linux-x64', 'windows-x64'];
+
 const additiveRepairAssetNames = new Set(['opl-install.sh']);
+
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 
 function fail(message: string): never {
   throw new Error(message);
@@ -66,10 +93,191 @@ function digestFile(file: string): ReleaseAsset & { source_path: string } {
   };
 }
 
+function digestBytes(value: string): ManifestAsset {
+  return {
+    name: aggregateManifestName,
+    size: Buffer.byteLength(value),
+    digest: `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`,
+  };
+}
+
+function record(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) fail(`${label} must be one object.`);
+  return value as Record<string, unknown>;
+}
+
+function requiredString(value: unknown, label: string, pattern?: RegExp): string {
+  if (typeof value !== 'string' || !value.trim() || (pattern && !pattern.test(value))) {
+    fail(`${label} is invalid.`);
+  }
+  return value;
+}
+
+function manifestAsset(value: unknown, label: string): ManifestAsset {
+  const candidate = record(value, label);
+  const name = requiredString(candidate.name, `${label}.name`, /^[A-Za-z0-9][A-Za-z0-9._-]*$/);
+  if (!Number.isSafeInteger(candidate.size) || Number(candidate.size) <= 0) fail(`${label}.size is invalid.`);
+  const digest = requiredString(candidate.digest, `${label}.digest`, /^sha256:[0-9a-f]{64}$/);
+  return { name, size: Number(candidate.size), digest };
+}
+
+function manifestIdentity(value: Record<string, unknown>, label: string): DesktopManifestIdentity {
+  const release = record(value.release, `${label}.release`);
+  const source = record(value.source, `${label}.source`);
+  const cohort = record(value.cohort, `${label}.cohort`);
+  return {
+    release: {
+      version: requiredString(release.version, `${label}.release.version`, /^[0-9]+\.[0-9]+\.[0-9]+(?:-r[1-9][0-9]*)?$/),
+      updater_version: requiredString(release.updater_version, `${label}.release.updater_version`, /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/),
+    },
+    source: {
+      run_id: requiredString(source.run_id, `${label}.source.run_id`, /^[1-9][0-9]*$/),
+      bundle_digest: requiredString(source.bundle_digest, `${label}.source.bundle_digest`, /^sha256:[0-9a-f]{64}$/),
+    },
+    cohort: {
+      app_sha: requiredString(cohort.app_sha, `${label}.cohort.app_sha`, /^[0-9a-f]{40}$/),
+      shell_sha: requiredString(cohort.shell_sha, `${label}.cohort.shell_sha`, /^[0-9a-f]{40}$/),
+      framework_sha: requiredString(cohort.framework_sha, `${label}.cohort.framework_sha`, /^[0-9a-f]{40}$/),
+    },
+  };
+}
+
+function expectedPlatformAssetNames(platform: DesktopPlatformId, version: string): string[] {
+  if (platform === 'linux-x64') return [`One-Person-Lab-${version}-linux-x64.deb`];
+  return [
+    `One-Person-Lab-${version}-win-x64.exe`,
+    `One-Person-Lab-${version}-win-x64.exe.blockmap`,
+    'latest.yml',
+    'opl-windows-updater-assets.json',
+  ].sort(compareText);
+}
+
+function assertPlatformAssets(platform: DesktopPlatformId, version: string, assets: ManifestAsset[]): void {
+  const names = assets.map((asset) => asset.name).sort(compareText);
+  if (new Set(names).size !== names.length) fail(`Desktop ${platform} manifest contains duplicate assets.`);
+  if (JSON.stringify(names) !== JSON.stringify(expectedPlatformAssetNames(platform, version))) {
+    fail(`Desktop ${platform} manifest contains the wrong asset set.`);
+  }
+}
+
+function sortedAssets(assets: ManifestAsset[]): ManifestAsset[] {
+  return [...assets].sort((left, right) => compareText(left.name, right.name));
+}
+
+function sameAssets(left: ManifestAsset[], right: ManifestAsset[]): boolean {
+  return JSON.stringify(sortedAssets(left)) === JSON.stringify(sortedAssets(right));
+}
+
+export function validateDesktopPlatformManifest(
+  value: unknown,
+  localAssets: ManifestAsset[],
+): DesktopPlatformManifest {
+  const candidate = record(value, 'Desktop platform manifest');
+  if (candidate.schema !== 'opl_app_desktop_platform_manifest.v1') fail('Desktop platform manifest schema is invalid.');
+  const platform = requiredString(candidate.platform, 'Desktop platform manifest.platform') as DesktopPlatformId;
+  if (!desktopPlatformOrder.includes(platform)) fail('Desktop platform manifest platform is invalid.');
+  if (!Array.isArray(candidate.assets)) fail('Desktop platform manifest assets are missing.');
+  const identity = manifestIdentity(candidate, 'Desktop platform manifest');
+  const assets = sortedAssets(candidate.assets.map((asset, index) => manifestAsset(asset, `Desktop platform manifest.assets[${index}]`)));
+  assertPlatformAssets(platform, identity.release.version, assets);
+  if (!sameAssets(assets, localAssets)) fail('Desktop platform manifest does not match the exact local assets.');
+  return {
+    schema: 'opl_app_desktop_platform_manifest.v1',
+    ...identity,
+    platform,
+    assets,
+  };
+}
+
+export function validateDesktopReleaseSetManifest(value: unknown): DesktopReleaseSetManifest {
+  const candidate = record(value, 'Desktop Release Set manifest');
+  if (candidate.schema !== 'opl_app_desktop_release_set_manifest.v1') fail('Desktop Release Set manifest schema is invalid.');
+  if (!Array.isArray(candidate.platforms) || !Array.isArray(candidate.assets)) {
+    fail('Desktop Release Set manifest platforms or assets are missing.');
+  }
+  const identity = manifestIdentity(candidate, 'Desktop Release Set manifest');
+  const platforms = candidate.platforms.map((platform, index) => {
+    const id = requiredString(platform, `Desktop Release Set manifest.platforms[${index}]`) as DesktopPlatformId;
+    if (!desktopPlatformOrder.includes(id)) fail(`Unsupported Desktop platform ${id}.`);
+    return id;
+  });
+  const canonicalPlatforms = desktopPlatformOrder.filter((platform) => platforms.includes(platform));
+  if (new Set(platforms).size !== platforms.length || JSON.stringify(platforms) !== JSON.stringify(canonicalPlatforms)) {
+    fail('Desktop Release Set manifest platform order or uniqueness is invalid.');
+  }
+  const assets = sortedAssets(candidate.assets.map((asset, index) => manifestAsset(asset, `Desktop Release Set manifest.assets[${index}]`)));
+  const expectedNames = platforms.flatMap((platform) => expectedPlatformAssetNames(platform, identity.release.version)).sort();
+  if (JSON.stringify(assets.map((asset) => asset.name)) !== JSON.stringify(expectedNames)) {
+    fail('Desktop Release Set manifest asset ownership is invalid.');
+  }
+  return {
+    schema: 'opl_app_desktop_release_set_manifest.v1',
+    ...identity,
+    platforms,
+    assets,
+  };
+}
+
+function sameManifestIdentity(left: DesktopManifestIdentity, right: DesktopManifestIdentity): boolean {
+  return JSON.stringify({ release: left.release, source: left.source, cohort: left.cohort })
+    === JSON.stringify({ release: right.release, source: right.source, cohort: right.cohort });
+}
+
+export function mergeDesktopPlatformManifest(
+  existing: DesktopReleaseSetManifest | null,
+  incoming: DesktopPlatformManifest,
+): { manifest: DesktopReleaseSetManifest; changed: boolean } {
+  if (!existing) {
+    return {
+      manifest: {
+        schema: 'opl_app_desktop_release_set_manifest.v1',
+        release: incoming.release,
+        source: incoming.source,
+        cohort: incoming.cohort,
+        platforms: [incoming.platform],
+        assets: incoming.assets,
+      },
+      changed: true,
+    };
+  }
+  if (!sameManifestIdentity(existing, incoming)) fail('Desktop platform cohort conflicts with the published aggregate manifest.');
+  const expectedIncomingNames = new Set(expectedPlatformAssetNames(incoming.platform, incoming.release.version));
+  const existingPlatformAssets = existing.assets.filter((asset) => expectedIncomingNames.has(asset.name));
+  if (existing.platforms.includes(incoming.platform)) {
+    if (!sameAssets(existingPlatformAssets, incoming.assets)) {
+      fail(`Published Desktop ${incoming.platform} manifest conflicts with the requested bytes.`);
+    }
+    return { manifest: existing, changed: false };
+  }
+  if (existingPlatformAssets.length > 0) fail(`Published aggregate already contains unowned ${incoming.platform} assets.`);
+  return {
+    manifest: {
+      schema: 'opl_app_desktop_release_set_manifest.v1',
+      release: existing.release,
+      source: existing.source,
+      cohort: existing.cohort,
+      platforms: desktopPlatformOrder.filter((platform) => [...existing.platforms, incoming.platform].includes(platform)),
+      assets: sortedAssets([...existing.assets, ...incoming.assets]),
+    },
+    changed: true,
+  };
+}
+
+function canonicalJson(value: unknown): string {
+  const sort = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(sort);
+    if (!item || typeof item !== 'object') return item;
+    return Object.fromEntries(Object.entries(item as Record<string, unknown>)
+      .sort(([left], [right]) => compareText(left, right))
+      .map(([key, nested]) => [key, sort(nested)]));
+  };
+  return `${JSON.stringify(sort(value), null, 2)}\n`;
+}
+
 function inventory(record: ReleaseRecord): ReleaseAsset[] {
   return record.assets
     .map(({ name, size, digest }) => ({ name, size, digest }))
-    .sort((left, right) => left.name.localeCompare(right.name));
+    .sort((left, right) => compareText(left.name, right.name));
 }
 
 function bodyDigest(record: ReleaseRecord): string {
@@ -96,13 +304,70 @@ function assertRelease(record: ReleaseRecord, expected: {
   if (new Set(names).size !== names.length) fail('Stable Release contains duplicate asset names.');
 }
 
+function requiredRemoteAsset(asset: ReleaseAsset, label: string): ExpectedRepairAsset {
+  if (
+    !Number.isSafeInteger(asset.id)
+    || Number(asset.id) <= 0
+    || !Number.isSafeInteger(asset.size)
+    || asset.size <= 0
+    || !/^sha256:[0-9a-f]{64}$/.test(asset.digest)
+  ) fail(`${label} has no exact GitHub asset identity.`);
+  return { id: Number(asset.id), name: asset.name, size: asset.size, digest: asset.digest };
+}
+
+function readReleaseAssetText(repository: string, asset: ExpectedRepairAsset): string {
+  const bytes = runGh([
+    'api',
+    '-H', 'Accept: application/octet-stream',
+    `repos/${repository}/releases/assets/${asset.id}`,
+  ]);
+  const observed = {
+    size: Buffer.byteLength(bytes),
+    digest: `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`,
+  };
+  if (observed.size !== asset.size || observed.digest !== asset.digest) {
+    fail(`Downloaded GitHub asset ${asset.name} does not match its exact API identity.`);
+  }
+  return bytes;
+}
+
+function aggregateAssets(record: ReleaseRecord): {
+  canonical: ExpectedRepairAsset | null;
+  stages: ExpectedRepairAsset[];
+} {
+  const canonicalMatches = record.assets.filter((asset) => asset.name === aggregateManifestName);
+  if (canonicalMatches.length > 1) fail('Stable Release contains duplicate aggregate Desktop manifests.');
+  const stages = record.assets
+    .filter((asset) => aggregateManifestStagePattern.test(asset.name))
+    .map((asset) => requiredRemoteAsset(asset, 'Staged Desktop aggregate manifest'));
+  if (stages.length > 1) fail('Stable Release contains multiple staged Desktop aggregate manifests.');
+  return {
+    canonical: canonicalMatches[0]
+      ? requiredRemoteAsset(canonicalMatches[0], 'Desktop aggregate manifest')
+      : null,
+    stages,
+  };
+}
+
+function assertExactAsset(record: ReleaseRecord, expected: ManifestAsset & { id?: number }, label: string): ExpectedRepairAsset {
+  const matches = record.assets.filter((asset) => asset.name === expected.name);
+  if (matches.length !== 1) fail(`${label} is absent or duplicated after mutation.`);
+  const observed = requiredRemoteAsset(matches[0]!, label);
+  if (
+    observed.size !== expected.size
+    || observed.digest !== expected.digest
+    || (expected.id !== undefined && observed.id !== expected.id)
+  ) fail(`${label} differs from the expected bytes after mutation.`);
+  return observed;
+}
+
 function assertExpectedState(
   record: ReleaseRecord,
   base: ReleaseAsset[],
   completed: Array<ReleaseAsset & { source_path: string }>,
 ) {
   const expected = [...base, ...completed.map(({ source_path: _sourcePath, ...asset }) => asset)]
-    .sort((left, right) => left.name.localeCompare(right.name));
+    .sort((left, right) => compareText(left.name, right.name));
   if (JSON.stringify(inventory(record)) !== JSON.stringify(expected)) {
     fail('Stable Release inventory changed outside this append operation.');
   }
@@ -168,7 +433,7 @@ export function assertFrozenReleaseAssets(record: ReleaseRecord, frozen: Release
 function assertInventory(record: ReleaseRecord, expected: ReleaseAsset[]) {
   const normalized = expected
     .map(({ name, size, digest }) => ({ name, size, digest }))
-    .sort((left, right) => left.name.localeCompare(right.name));
+    .sort((left, right) => compareText(left.name, right.name));
   if (JSON.stringify(inventory(record)) !== JSON.stringify(normalized)) {
     fail('Stable Release inventory changed outside this additive repair operation.');
   }
@@ -187,6 +452,101 @@ function mutateAndReadback(
   return { result, release: readRelease(repository, releaseId) };
 }
 
+function uploadAsset(
+  repository: string,
+  releaseId: number,
+  tag: string,
+  target: string,
+  asset: ManifestAsset & { source_path: string },
+): { release: ReleaseRecord; asset: ExpectedRepairAsset } {
+  const mutation = mutateAndReadback(repository, releaseId, [
+    'release', 'upload', tag, asset.source_path, '--repo', repository,
+  ]);
+  assertRelease(mutation.release, { releaseId, tag, target });
+  assertTagTarget(repository, tag, target);
+  const observed = assertExactAsset(mutation.release, asset, `Upload ${asset.name}`);
+  return { release: mutation.release, asset: observed };
+}
+
+function deleteAsset(
+  repository: string,
+  releaseId: number,
+  tag: string,
+  target: string,
+  asset: ExpectedRepairAsset,
+): ReleaseRecord {
+  const before = readRelease(repository, releaseId);
+  assertRelease(before, { releaseId, tag, target });
+  assertTagTarget(repository, tag, target);
+  assertExactAsset(before, asset, `Delete CAS ${asset.name}`);
+  const mutation = mutateAndReadback(repository, releaseId, [
+    'api', '--method', 'DELETE', `repos/${repository}/releases/assets/${asset.id}`,
+  ]);
+  assertRelease(mutation.release, { releaseId, tag, target });
+  assertTagTarget(repository, tag, target);
+  if (mutation.release.assets.some((candidate) => candidate.id === asset.id || candidate.name === asset.name)) {
+    fail(`Delete outcome for ${asset.name} is unknown; no duplicate mutation is allowed.`);
+  }
+  return mutation.release;
+}
+
+function renameAsset(
+  repository: string,
+  releaseId: number,
+  tag: string,
+  target: string,
+  asset: ExpectedRepairAsset,
+  name: string,
+): { release: ReleaseRecord; asset: ExpectedRepairAsset } {
+  const before = readRelease(repository, releaseId);
+  assertRelease(before, { releaseId, tag, target });
+  assertTagTarget(repository, tag, target);
+  assertExactAsset(before, asset, `Rename CAS ${asset.name}`);
+  const mutation = mutateAndReadback(repository, releaseId, [
+    'api', '--method', 'PATCH', `repos/${repository}/releases/assets/${asset.id}`, '-f', `name=${name}`,
+  ]);
+  assertRelease(mutation.release, { releaseId, tag, target });
+  assertTagTarget(repository, tag, target);
+  const observed = assertExactAsset(
+    mutation.release,
+    { id: asset.id, name, size: asset.size, digest: asset.digest },
+    `Rename ${asset.name} to ${name}`,
+  );
+  return { release: mutation.release, asset: observed };
+}
+
+function assertManifestSuccessor(
+  current: DesktopReleaseSetManifest | null,
+  staged: DesktopReleaseSetManifest,
+): void {
+  if (!current) return;
+  if (!sameManifestIdentity(current, staged)) fail('Staged Desktop manifest cohort conflicts with the current aggregate.');
+  for (const platform of current.platforms) {
+    if (!staged.platforms.includes(platform)) fail('Staged Desktop manifest removes an already published platform.');
+  }
+  const stagedAssets = new Map(staged.assets.map((asset) => [asset.name, asset]));
+  for (const asset of current.assets) {
+    const successor = stagedAssets.get(asset.name);
+    if (!successor || successor.size !== asset.size || successor.digest !== asset.digest) {
+      fail(`Staged Desktop manifest changes already published asset ${asset.name}.`);
+    }
+  }
+}
+
+function readAggregateManifest(
+  repository: string,
+  asset: ExpectedRepairAsset,
+): { manifest: DesktopReleaseSetManifest; bytes: string } {
+  const bytes = readReleaseAssetText(repository, asset);
+  let value: unknown;
+  try {
+    value = JSON.parse(bytes) as unknown;
+  } catch {
+    fail(`Published Desktop manifest ${asset.name} is not JSON.`);
+  }
+  return { manifest: validateDesktopReleaseSetManifest(value), bytes };
+}
+
 function main() {
   const { values } = parseArgs({
     options: {
@@ -195,6 +555,7 @@ function main() {
       tag: { type: 'string' },
       target: { type: 'string' },
       'asset-dir': { type: 'string' },
+      'platform-manifest': { type: 'string' },
       output: { type: 'string' },
       apply: { type: 'boolean', default: false },
       'repair-additive': { type: 'boolean', default: false },
@@ -366,45 +727,193 @@ function main() {
     return;
   }
 
+  const platformManifestPath = path.resolve(values['platform-manifest'] || fail('--platform-manifest is required.'));
+  const platformManifestStat = fs.lstatSync(platformManifestPath);
+  if (!platformManifestStat.isFile() || platformManifestStat.isSymbolicLink() || platformManifestStat.size <= 0) {
+    fail('--platform-manifest must be one nonempty regular file.');
+  }
+  let platformManifestValue: unknown;
+  try {
+    platformManifestValue = JSON.parse(fs.readFileSync(platformManifestPath, 'utf8')) as unknown;
+  } catch {
+    fail('--platform-manifest must contain JSON.');
+  }
+  const localAssetIdentities = assets.map(({ source_path: _sourcePath, ...asset }) => asset);
+  const platformManifest = validateDesktopPlatformManifest(platformManifestValue, localAssetIdentities);
+  if (tag !== `v${platformManifest.release.version}` || target !== platformManifest.cohort.app_sha) {
+    fail('Desktop platform manifest does not match the exact Stable Release tag and target.');
+  }
+
   let release = readRelease(repository, releaseId);
   assertRelease(release, { releaseId, tag, target });
-  const base = inventory(release);
-  const plan = buildAppendPlan(release, assets);
-  const completed: Array<ReleaseAsset & { source_path: string }> = [];
+  assertTagTarget(repository, tag, target);
 
-  if (values.apply) {
-    for (const asset of plan.upload) {
-      release = readRelease(repository, releaseId);
-      assertRelease(release, { releaseId, tag, target });
-      assertExpectedState(release, base, completed);
-      const result = spawnSync('gh', ['release', 'upload', tag, asset.source_path, '--repo', repository], {
-        encoding: 'utf8', timeout: 1_800_000, env: { ...process.env, GH_PROMPT_DISABLED: '1' },
-      });
-      release = readRelease(repository, releaseId);
-      const observed = release.assets.filter((candidate) => candidate.name === asset.name);
-      if (observed.length !== 1 || observed[0].size !== asset.size || observed[0].digest !== asset.digest) {
-        fail(`Upload outcome for ${asset.name} is unknown or conflicting; no retry is allowed.`);
+  let aggregate = aggregateAssets(release);
+  let currentManifest: DesktopReleaseSetManifest | null = null;
+  let currentManifestBytes: string | null = null;
+  if (aggregate.canonical) {
+    const current = readAggregateManifest(repository, aggregate.canonical);
+    currentManifest = current.manifest;
+    currentManifestBytes = current.bytes;
+  }
+
+  let stagedRecoveryRequired = false;
+  if (aggregate.stages.length === 1) {
+    const stagedAsset = aggregate.stages[0]!;
+    const stagedDigest = aggregateManifestStagePattern.exec(stagedAsset.name)?.[1];
+    if (`sha256:${stagedDigest}` !== stagedAsset.digest) fail('Staged Desktop manifest name and digest disagree.');
+    const staged = readAggregateManifest(repository, stagedAsset);
+    assertManifestSuccessor(currentManifest, staged.manifest);
+    stagedRecoveryRequired = true;
+    if (values.apply) {
+      if (
+        aggregate.canonical
+        && aggregate.canonical.size === stagedAsset.size
+        && aggregate.canonical.digest === stagedAsset.digest
+      ) {
+        release = deleteAsset(repository, releaseId, tag, target, stagedAsset);
+      } else {
+        if (aggregate.canonical) {
+          release = deleteAsset(repository, releaseId, tag, target, aggregate.canonical);
+        }
+        const promoted = renameAsset(repository, releaseId, tag, target, stagedAsset, aggregateManifestName);
+        release = promoted.release;
       }
-      if (result.error || result.status !== 0) {
-        fail(`Upload for ${asset.name} returned failure after owner-authoritative readback.`);
+      aggregate = aggregateAssets(release);
+      if (!aggregate.canonical || aggregate.stages.length !== 0) {
+        fail('Staged Desktop manifest recovery did not converge to one canonical manifest.');
       }
-      completed.push(asset);
+      const recovered = readAggregateManifest(repository, aggregate.canonical);
+      currentManifest = recovered.manifest;
+      currentManifestBytes = recovered.bytes;
+    } else {
+      currentManifest = staged.manifest;
+      currentManifestBytes = staged.bytes;
     }
   }
 
-  release = readRelease(repository, releaseId);
-  assertRelease(release, { releaseId, tag, target });
-  if (values.apply) assertExpectedState(release, base, completed);
-  const finalPlan = buildAppendPlan(release, assets);
-  if (values.apply && finalPlan.upload.length !== 0) fail('Stable Desktop append did not reach exact completion.');
+  const initialMerge = mergeDesktopPlatformManifest(currentManifest, platformManifest);
+  const initialDesiredBytes = initialMerge.changed || !currentManifestBytes
+    ? canonicalJson(initialMerge.manifest)
+    : currentManifestBytes;
+  const initialDesiredManifestAsset = digestBytes(initialDesiredBytes);
+  const initialAppendPlan = buildAppendPlan(release, assets);
+  const plannedRemaining = [
+    ...initialAppendPlan.upload.map((asset) => asset.name),
+    ...(stagedRecoveryRequired && !values.apply ? ['resume_staged_desktop_manifest'] : []),
+    ...(initialMerge.changed ? [aggregateManifestName] : []),
+  ];
 
+  if (values.apply) {
+    const base = inventory(release);
+    const completed: Array<ReleaseAsset & { source_path: string }> = [];
+    for (const asset of initialAppendPlan.upload) {
+      release = readRelease(repository, releaseId);
+      assertRelease(release, { releaseId, tag, target });
+      assertExpectedState(release, base, completed);
+      const uploaded = uploadAsset(repository, releaseId, tag, target, asset);
+      release = uploaded.release;
+      completed.push(asset);
+    }
+    release = readRelease(repository, releaseId);
+    assertRelease(release, { releaseId, tag, target });
+    assertExpectedState(release, base, completed);
+
+    aggregate = aggregateAssets(release);
+    if (aggregate.stages.length !== 0) fail('No staged Desktop manifest may remain before a new aggregate mutation.');
+    let liveManifest: DesktopReleaseSetManifest | null = null;
+    let liveManifestBytes: string | null = null;
+    if (aggregate.canonical) {
+      const current = readAggregateManifest(repository, aggregate.canonical);
+      liveManifest = current.manifest;
+      liveManifestBytes = current.bytes;
+    }
+    const liveMerge = mergeDesktopPlatformManifest(liveManifest, platformManifest);
+    const desiredBytes = liveMerge.changed || !liveManifestBytes
+      ? canonicalJson(liveMerge.manifest)
+      : liveManifestBytes;
+    const desiredManifestAsset = digestBytes(desiredBytes);
+
+    if (liveMerge.changed) {
+      const expectedCanonical = aggregate.canonical;
+      const stageName = `opl-desktop-platforms-manifest.${desiredManifestAsset.digest.slice('sha256:'.length)}.json`;
+      const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-desktop-manifest-'));
+      try {
+        const stagePath = path.join(temporaryRoot, stageName);
+        fs.writeFileSync(stagePath, desiredBytes, 'utf8');
+        const stagedUpload = uploadAsset(repository, releaseId, tag, target, {
+          ...desiredManifestAsset,
+          name: stageName,
+          source_path: stagePath,
+        });
+        release = stagedUpload.release;
+        aggregate = aggregateAssets(release);
+        if (expectedCanonical) {
+          if (
+            !aggregate.canonical
+            || aggregate.canonical.id !== expectedCanonical.id
+            || aggregate.canonical.size !== expectedCanonical.size
+            || aggregate.canonical.digest !== expectedCanonical.digest
+          ) fail('Desktop aggregate manifest changed before compare-and-swap replacement.');
+          release = deleteAsset(repository, releaseId, tag, target, expectedCanonical);
+        } else if (aggregate.canonical) {
+          fail('Desktop aggregate manifest appeared before first publication.');
+        }
+        const promoted = renameAsset(
+          repository,
+          releaseId,
+          tag,
+          target,
+          stagedUpload.asset,
+          aggregateManifestName,
+        );
+        release = promoted.release;
+      } finally {
+        fs.rmSync(temporaryRoot, { recursive: true, force: true });
+      }
+    }
+
+    release = readRelease(repository, releaseId);
+    assertRelease(release, { releaseId, tag, target });
+    assertTagTarget(repository, tag, target);
+    const finalPlan = buildAppendPlan(release, assets);
+    if (finalPlan.upload.length !== 0) fail('Stable Desktop platform append did not reach exact completion.');
+    aggregate = aggregateAssets(release);
+    if (!aggregate.canonical || aggregate.stages.length !== 0) {
+      fail('Stable Desktop aggregate manifest did not reach one canonical asset.');
+    }
+    const finalAggregate = readAggregateManifest(repository, aggregate.canonical);
+    const finalMerge = mergeDesktopPlatformManifest(finalAggregate.manifest, platformManifest);
+    if (finalMerge.changed) fail('Stable Desktop aggregate manifest did not include the completed platform.');
+    currentManifest = finalAggregate.manifest;
+    currentManifestBytes = finalAggregate.bytes;
+  }
+
+  const manifestAsset = values.apply
+    ? requiredRemoteAsset(aggregateAssets(release).canonical || fail('Desktop aggregate manifest is absent.'), 'Desktop aggregate manifest')
+    : initialDesiredManifestAsset;
   fs.writeFileSync(output, `${JSON.stringify({
     schema: 'opl_app_stable_desktop_asset_append.v1',
     status: values.apply ? 'complete' : 'planned',
+    platform: platformManifest.platform,
     release: { id: releaseId, tag, target_commitish: target, draft: false, prerelease: false },
-    assets: assets.map(({ source_path: _sourcePath, ...asset }) => asset),
-    upload: finalPlan.upload.map(({ source_path: _sourcePath, ...asset }) => asset),
-    remaining: values.apply ? [] : finalPlan.upload.map((asset) => asset.name),
+    source: platformManifest.source,
+    cohort: platformManifest.cohort,
+    assets: sortedAssets([...localAssetIdentities, {
+      name: aggregateManifestName,
+      size: manifestAsset.size,
+      digest: manifestAsset.digest,
+    }]),
+    upload: values.apply ? [] : initialAppendPlan.upload.map(({ source_path: _sourcePath, ...asset }) => asset),
+    aggregate_manifest: {
+      name: aggregateManifestName,
+      asset_id: values.apply ? manifestAsset.id : null,
+      size: manifestAsset.size,
+      digest: manifestAsset.digest,
+      platforms: currentManifest?.platforms ?? initialMerge.manifest.platforms,
+      staged_recovery_performed: values.apply && stagedRecoveryRequired,
+    },
+    remaining: values.apply ? [] : plannedRemaining,
   }, null, 2)}\n`);
 }
 

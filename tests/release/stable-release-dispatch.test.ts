@@ -5,18 +5,15 @@ import test from 'node:test';
 
 import {
   activeStableRunIds,
-  assertLatestReleaseSetComplete,
+  assertLatestStandardReleaseComplete,
   buildAppendFullPlan,
-  buildFullCheckpointRecoveryPlan,
   buildPublishQualifiedStandardPlan,
   dispatchOnce,
+  reachableAppendFullRuns,
+  reconcileAppendFullTarget,
   selectCheckpointArtifact,
   selectQualifiedStandardCheckpointArtifact,
-  selectFullCheckpointArtifact,
-  selectFullCohortArtifact,
-  selectFullQualificationArtifact,
-  validateFullBuildCohort,
-  validateFullRecoveryEvidence,
+  selectReusableFullCheckpointArtifact,
   workflowDispatchArgs,
 } from '../../scripts/stable-release-dispatch.ts';
 import {
@@ -38,15 +35,21 @@ test('Stable dispatch binds the existing critical control bytes without duplicat
   }
 });
 
-test('checkpoint recovery selects one exact non-expired operation checkpoint', () => {
+test('checkpoint selection prefers the deepest exact non-expired checkpoint', () => {
   assert.equal(selectCheckpointArtifact([
     { id: 1, name: 'opl-release-standard-operation-checkpoint-123', expired: false },
-    { id: 2, name: 'unrelated', expired: false },
-  ], '123'), 'opl-release-standard-operation-checkpoint-123');
-  assert.throws(
-    () => selectCheckpointArtifact([], '123'),
-    /exactly one reusable Standard or Full operation checkpoint/,
-  );
+    { id: 2, name: 'opl-release-full-checkpoint-123', expired: false },
+    { id: 3, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
+  ], '123'), 'opl-release-full-checkpoint-123');
+  assert.equal(selectReusableFullCheckpointArtifact([
+    { id: 1, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
+    { id: 2, name: 'opl-release-full-checkpoint-123', expired: false },
+  ], '123'), 'opl-release-full-checkpoint-123');
+  assert.equal(selectReusableFullCheckpointArtifact([
+    { id: 1, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
+  ], '123'), 'opl-release-append-full-operation-checkpoint-123');
+  assert.equal(selectReusableFullCheckpointArtifact([], '123'), null);
+  assert.throws(() => selectCheckpointArtifact([], '123'), /no reusable Standard or Full checkpoint/);
 });
 
 test('qualified Standard publication selects only the exact qualification checkpoint', () => {
@@ -60,248 +63,96 @@ test('qualified Standard publication selects only the exact qualification checkp
   );
 });
 
-test('a new product version is blocked while Latest is not a complete Release Set', () => {
+test('a new product version requires the prior Standard publication, not optional followers', () => {
   const complete = {
     tag_name: 'v26.8.22',
     assets: [
       { name: 'One-Person-Lab-26.8.22-mac-arm64.dmg' },
-      { name: 'One-Person-Lab-Full-26.8.22-mac-arm64.dmg' },
       { name: 'opl-app-component-manifest.json' },
-      { name: 'opl-release-manifest.json' },
     ],
   };
-  assert.doesNotThrow(() => assertLatestReleaseSetComplete(complete));
+  assert.doesNotThrow(() => assertLatestStandardReleaseComplete(complete));
   assert.throws(
-    () => assertLatestReleaseSetComplete({ ...complete, assets: complete.assets.slice(0, 2) }),
-    /Finish or repair that same tag before creating another product version/,
+    () => assertLatestStandardReleaseComplete({ ...complete, assets: complete.assets.slice(0, 1) }),
+    /Repair that same tag before creating another product version/,
   );
 });
 
-test('Full recovery keeps the recovery and original producer identities distinct', () => {
-  const cohort = validateFullBuildCohort({
-    schema: 'opl_app_build_artifact_cohort.v2',
-    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
-    build: { version: '26.8.23-r1', kind: 'full' },
-    artifact: {
-      name: 'One-Person-Lab-Full-26.8.23-r1-mac-arm64.dmg',
-      sha256: 'a'.repeat(64),
-      size_bytes: 123,
-    },
-    actions: {
-      run_id: '32660259139',
-      run_attempt: '1',
-      artifact_name: 'opl-full-first-install-dmg-26.8.23-r1-mac-arm64',
-    },
-  });
+test('Full checkpoint requalification preserves the tag and accepts one optional harness', () => {
   const plan = buildAppendFullPlan({
-    attemptId: 'recover-full-20260824-aabbccdd',
+    attemptId: 'append-full-20260824-aabbccdd',
     sourceRunId: '32665218996',
-    sourceArtifact: 'opl-release-append-full-operation-checkpoint-32665218996',
-    appSha: cohort.cohort.app_sha,
-    shellSha: cohort.cohort.shell_sha,
-    frameworkSha: cohort.cohort.framework_sha,
-    priorFullArtifactRunId: '32665218996',
-    artifactProducerRunId: cohort.actions.run_id,
-    qualificationRunId: '32665218996',
-    smokeHarnessSha: '4'.repeat(40),
-  });
-
-  assert.equal(plan.version_policy, 'preserve_source_tag');
-  assert.equal(plan.workflow_inputs.prior_full_artifact_run_id, '32665218996');
-  assert.equal(plan.recovery.artifact_producer_run_id, '32660259139');
-  assert.equal(plan.recovery.qualification_run_id, '32665218996');
-  assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
-  assert.equal('version' in plan.workflow_inputs, false);
-});
-
-test('Full publication recovery consumes one qualified checkpoint without rebuilding or requalifying', () => {
-  const artifacts = [{
-    id: 7,
-    name: 'opl-release-full-checkpoint-32675178143',
-    expired: false,
-  }];
-  const checkpoint = selectFullCheckpointArtifact(artifacts, '32675178143');
-  assert.equal(checkpoint, artifacts[0]);
-  assert.throws(
-    () => selectFullCheckpointArtifact([...artifacts, { ...artifacts[0]!, id: 8 }], '32675178143'),
-    /multiple reusable qualified Full checkpoints/,
-  );
-
-  const plan = buildAppendFullPlan({
-    attemptId: 'recover-full-20260824-aabbccdd',
-    sourceRunId: '32675178143',
-    sourceArtifact: checkpoint!.name,
+    sourceArtifact: 'opl-release-full-checkpoint-32665218996',
     appSha,
     shellSha,
     frameworkSha,
-    artifactProducerRunId: '32660259139',
-    qualificationRunId: '32675178143',
-    recoveryRunId: '32675178143',
-  });
-
-  assert.equal(plan.source.artifact, 'opl-release-full-checkpoint-32675178143');
-  assert.equal(plan.recovery.requested_run_id, '32675178143');
-  assert.equal(plan.recovery.artifact_producer_run_id, '32660259139');
-  assert.equal(plan.recovery.qualification_run_id, '32675178143');
-  assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
-  assert.equal('smoke_harness_ref' in plan.workflow_inputs, false);
-  assert.equal('version' in plan.workflow_inputs, false);
-});
-
-test('Full checkpoint recovery binds an override harness to the original Full producer run', () => {
-  const checkpoint = {
-    id: 7,
-    name: 'opl-release-full-checkpoint-32684596671',
-    expired: false,
-  };
-  const cohort = validateFullBuildCohort({
-    schema: 'opl_app_build_artifact_cohort.v2',
-    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
-    build: { version: '26.8.22', kind: 'full' },
-    artifact: {
-      name: 'One-Person-Lab-Full-26.8.22-mac-arm64.dmg',
-      sha256: 'a'.repeat(64),
-      size_bytes: 123,
-    },
-    actions: {
-      run_id: '32680048326',
-      run_attempt: '1',
-      artifact_name: 'opl-full-first-install-dmg-26.8.22-mac-arm64',
-    },
-  });
-  const plan = buildFullCheckpointRecoveryPlan({
-    attemptId: 'recover-full-20260824-aabbccdd',
-    recoveryRunId: '32684596671',
-    fullCheckpoint: checkpoint,
-    cohort,
     smokeHarnessSha: '4'.repeat(40),
-    sourceRunId: '32525582101',
-    sourceArtifact: 'opl-release-standard-operation-checkpoint-32525582101',
+    recoveryRunId: '32665218996',
   });
-
-  assert.deepEqual(plan.source, {
-    run_id: '32525582101',
-    artifact: 'opl-release-standard-operation-checkpoint-32525582101',
-  });
-  assert.equal(plan.workflow_inputs.prior_full_artifact_run_id, '32680048326');
+  assert.equal(plan.version_policy, 'preserve_source_tag');
+  assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
   assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
-  assert.equal(plan.recovery.artifact_producer_run_id, '32680048326');
-  assert.equal(plan.recovery.qualification_run_id, '32680048326');
+  assert.equal('version' in plan.workflow_inputs, false);
+  assert.throws(() => buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '32617588213',
+    sourceArtifact: 'opl-release-standard-checkpoint-32617588213',
+    appSha,
+    shellSha,
+    frameworkSha,
+    smokeHarnessSha: '4'.repeat(40),
+  }), /reusable Full checkpoint/);
 });
 
-test('Full cohort selection and validation fail closed on ambiguity or malformed identity', () => {
-  const artifact = { id: 1, name: 'opl-full-first-install-dmg-26.8.23-r1-mac-arm64-cohort', expired: false };
-  assert.equal(selectFullCohortArtifact([artifact]), artifact);
-  assert.throws(() => selectFullCohortArtifact([artifact, { ...artifact, id: 2 }]), /exactly one/);
-  assert.throws(() => validateFullBuildCohort({ schema: 'opl_app_build_artifact_cohort.v2' }), /must be one JSON object/);
-});
+test('Full target-state reconciliation follows checkpoint retries back to one Standard source', () => {
+  const owner = (id: number, source: number, status: string, conclusion: string | null) => ({
+    id,
+    path: '.github/workflows/release-stable.yml',
+    status,
+    conclusion,
+    event: 'workflow_dispatch',
+    head_branch: 'main',
+    head_sha: appSha,
+    run_attempt: 1,
+    created_at: `2026-08-24T00:00:${id % 60}.000Z`,
+    display_title: `OPL Stable append_full source:${source} run:${id}`,
+  });
+  const runs = [
+    owner(101, 100, 'completed', 'failure'),
+    owner(102, 101, 'completed', 'failure'),
+  ];
+  assert.deepEqual(reachableAppendFullRuns(runs, '100').map((run) => run.id), [101, 102]);
+  assert.deepEqual(reconcileAppendFullTarget({
+    runs,
+    rootSourceRunId: '100',
+    artifactsByRunId: {
+      100: [{ id: 1, name: 'opl-release-standard-checkpoint-100', expired: false }],
+      101: [{ id: 2, name: 'opl-release-full-checkpoint-101', expired: false }],
+      102: [{ id: 3, name: 'opl-release-append-full-operation-checkpoint-102', expired: false }],
+    },
+  }), {
+    state: 'dispatch_required',
+    root_source_run_id: '100',
+    owner_run_id: null,
+    source_run_id: '102',
+    source_artifact: 'opl-release-append-full-operation-checkpoint-102',
+  });
 
-test('Full recovery derives the verification Shell from the exact failed qualification receipt', () => {
-  const cohort = validateFullBuildCohort({
-    schema: 'opl_app_build_artifact_cohort.v2',
-    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
-    build: { version: '26.8.23-r1', kind: 'full' },
-    artifact: {
-      name: 'One-Person-Lab-Full-26.8.23-r1-mac-arm64.dmg',
-      sha256: 'a'.repeat(64),
-      size_bytes: 123,
-    },
-    actions: {
-      run_id: '32660259139',
-      run_attempt: '1',
-      artifact_name: 'opl-full-first-install-dmg-26.8.23-r1-mac-arm64',
-    },
-  });
-  const artifacts = [{
-    id: 9,
-    name: 'opl-qualification-attempt-full-32665218996',
-    expired: false,
-  }];
-  assert.equal(
-    selectFullQualificationArtifact(artifacts, '32665218996'),
-    artifacts[0],
-  );
-  const recovery = validateFullRecoveryEvidence({
-    schema: 'opl_app_qualification_attempt_receipt.v1',
-    status: 'failed',
-    retry: { disposition: 'reconcile_only' },
-    identity: {
-      artifact_kind: 'full',
-      package_profile: 'full',
-      qualification_run_id: '32665218996',
-      qualification_run_attempt: '1',
-      source_artifact_run_id: '32660259139',
-      source_artifact_name: 'opl-full-first-install-dmg-26.8.23-r1-mac-arm64',
-    },
-    outcomes: { validate_inputs: 'success', clean_vm: 'failure' },
-    evidence: {
-      scope_proof: {
-        classification: 'harness_mechanics_only',
-        app_base_sha: appSha,
-        app_head_sha: '4'.repeat(40),
-        shell_base_sha: shellSha,
-        shell_head_sha: '5'.repeat(40),
-        forbidden_app_paths: [],
-        forbidden_shell_paths: [],
-      },
-    },
-  }, '32665218996', cohort);
-  assert.deepEqual(recovery, {
-    qualification_run_id: '32665218996',
-    artifact_producer_run_id: '32660259139',
-    smoke_harness_ref: '5'.repeat(40),
-  });
-});
+  const active = owner(103, 102, 'in_progress', null);
+  assert.equal(reconcileAppendFullTarget({
+    runs: [...runs, active],
+    rootSourceRunId: '100',
+    artifactsByRunId: {},
+  }).state, 'owner_identified');
 
-test('Full recovery rejects a later passed run or a mismatched original producer before dispatch', () => {
-  const cohort = validateFullBuildCohort({
-    schema: 'opl_app_build_artifact_cohort.v2',
-    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
-    build: { version: '26.8.23-r1', kind: 'full' },
-    artifact: {
-      name: 'One-Person-Lab-Full-26.8.23-r1-mac-arm64.dmg',
-      sha256: 'a'.repeat(64),
-      size_bytes: 123,
+  const published = owner(104, 102, 'completed', 'success');
+  assert.equal(reconcileAppendFullTarget({
+    runs: [...runs, published],
+    rootSourceRunId: '100',
+    artifactsByRunId: {
+      104: [{ id: 4, name: 'opl-release-full-published-104', expired: false }],
     },
-    actions: {
-      run_id: '32660259139',
-      run_attempt: '1',
-      artifact_name: 'opl-full-first-install-dmg-26.8.23-r1-mac-arm64',
-    },
-  });
-  const receipt = {
-    schema: 'opl_app_qualification_attempt_receipt.v1',
-    status: 'failed',
-    retry: { disposition: 'reconcile_only' },
-    identity: {
-      artifact_kind: 'full',
-      package_profile: 'full',
-      qualification_run_id: '32665218996',
-      qualification_run_attempt: '1',
-      source_artifact_run_id: '32665218996',
-      source_artifact_name: 'opl-full-first-install-dmg-26.8.23-r1-mac-arm64',
-    },
-    outcomes: { validate_inputs: 'success', clean_vm: 'failure' },
-    evidence: {
-      scope_proof: {
-        classification: 'harness_mechanics_only',
-        app_base_sha: appSha,
-        app_head_sha: '4'.repeat(40),
-        shell_base_sha: shellSha,
-        shell_head_sha: '5'.repeat(40),
-        forbidden_app_paths: [],
-        forbidden_shell_paths: [],
-      },
-    },
-  };
-  assert.throws(
-    () => validateFullRecoveryEvidence(receipt, '32665218996', cohort),
-    /original Full producer/,
-  );
-  assert.throws(
-    () => validateFullRecoveryEvidence({ ...receipt, status: 'passed' }, '32665218996', cohort),
-    /eligible failed qualification/,
-  );
+  }).state, 'published');
 });
 
 test('qualified Standard publication preserves its source tag and derives no new version input', () => {

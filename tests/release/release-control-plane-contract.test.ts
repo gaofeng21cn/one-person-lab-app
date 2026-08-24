@@ -105,6 +105,25 @@ test('release platform contract keeps the primary Stable platform separate from 
     matrix.desktop_platform_additive_follower.windows_x64_updater_assets.runtime_resolver,
     'opl-aion-shell/packages/desktop/src/process/bridge/updateBridge.ts',
   );
+  assert.equal(
+    matrix.desktop_platform_additive_follower.platform_workflow,
+    '.github/workflows/_release-desktop-platform-addon.yml',
+  );
+  assert.equal(
+    matrix.desktop_platform_additive_follower.execution,
+    'one_independent_fail_fast_false_matrix_lane_per_platform',
+  );
+  assert.equal(matrix.desktop_platform_additive_follower.build_mutex, null);
+  assert.equal(
+    matrix.desktop_platform_additive_follower.public_append_mutex,
+    'opl-release-bundle-global',
+  );
+  assert.deepEqual(matrix.desktop_platform_additive_follower.manual_reconcile, {
+    operation: 'reconcile_desktop_platform',
+    inputs: ['source_run_id', 'desktop_platform'],
+    failed_run_or_generation_input_allowed: false,
+    new_tag_allowed: false,
+  });
   assert.deepEqual(matrix.desktop_platform_additive_follower.stable_additive_repair, {
     workflow: '.github/workflows/release-stable-post-success-followups.yml',
     operation: 'repair_additive',
@@ -238,6 +257,17 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   const resilience = control.resilience_policy;
 
   assert.equal(operations.stable_mutation_mutex, 'opl-release-bundle-global');
+  assert.equal(operations.stable_mutation_mutex_scope, 'public_mutation_jobs_only');
+  assert.deepEqual(operations.stable_mutation_mutex_jobs, [
+    '_release-bundle.yml#publish-standard',
+    'release-stable.yml#resume-standard',
+    '_release-full-addon.yml#publish-full',
+    '_release-desktop-platform-addon.yml#append-platform',
+    'release-stable-post-success-followups.yml#repair-additive',
+    'release-manual-preview.yml#resume-preview',
+    'release-manual-preview.yml#move-latest-pointer',
+    'release-manual-full-preview.yml#mutate',
+  ]);
   assert.equal(operations.operator_entry, 'npm run release:stable-dispatch');
   assert.equal(operations.dispatch_plan_schema, 'opl_app_stable_dispatch_plan.v1');
   assert.equal(operations.dispatch_attempt_schema, 'opl_app_stable_dispatch_attempt.v1');

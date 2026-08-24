@@ -28,10 +28,6 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-concurrency:
-  group: opl-release-bundle-global
-  cancel-in-progress: false
-
 jobs:
   ingress:
     runs-on: [self-hosted, macOS, ARM64, opl-gui-vm]
@@ -116,6 +112,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: release-stable
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
     permissions:
       contents: write
       actions: read

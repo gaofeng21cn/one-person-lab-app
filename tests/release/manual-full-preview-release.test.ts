@@ -652,8 +652,9 @@ test('workflow and release contract expose only the protected preview exception'
   assert.deepEqual(workflow.jobs.ingress['runs-on'], ['self-hosted', 'macOS', 'ARM64', 'opl-gui-vm']);
   assert.equal(workflow.jobs.mutate.environment, 'release-stable');
   assert.deepEqual(workflow.jobs.mutate.permissions, { contents: 'write', actions: 'read' });
-  assert.equal(workflow.concurrency.group, 'opl-release-bundle-global');
-  assert.equal(workflow.concurrency['cancel-in-progress'], false);
+  assert.equal(workflow.concurrency, undefined);
+  assert.equal(workflow.jobs.mutate.concurrency.group, 'opl-release-bundle-global');
+  assert.equal(workflow.jobs.mutate.concurrency['cancel-in-progress'], false);
 
   const release = JSON.parse(fs.readFileSync('contracts/app-release-channel.json', 'utf8'));
   const freeze = release.release_bundle_control_plane.source_freeze_currentness_policy;

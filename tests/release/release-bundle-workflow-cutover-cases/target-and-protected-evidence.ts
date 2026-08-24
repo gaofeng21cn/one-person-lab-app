@@ -136,7 +136,9 @@ test('Stable and protected Manual Preview are isolated from daily-default Nightl
     'framework_release',
     'studio_carrier_admission',
   ]);
-  assert.deepEqual(stable.concurrency, { group: 'opl-release-bundle-global', 'cancel-in-progress': false });
+  const mutationMutex = { group: 'opl-release-bundle-global', 'cancel-in-progress': false };
+  assert.equal(stable.concurrency, undefined);
+  assert.deepEqual(stable.jobs['resume-standard'].concurrency, mutationMutex);
   assert.deepEqual(Object.keys(canary.on).sort(), ['schedule', 'workflow_dispatch']);
   assert.deepEqual(canary.on.schedule, [{ cron: '0 13 * * *' }]);
   assert.equal(canary.on.workflow_dispatch, null);
@@ -192,9 +194,11 @@ test('Stable and protected Manual Preview are isolated from daily-default Nightl
   const standardPublishSource = readWorkflow('_release-standard-publish.yml');
   assert.match(standardPublishSource, /reason=unsupported_publication_channel/);
   assert.doesNotMatch(standardPublishSource, /^\s*nightly-terminal:/m);
-  for (const workflow of ['_release-bundle.yml', '_release-standard-publish.yml', '_release-full-addon.yml']) {
-    assert.doesNotMatch(readWorkflow(workflow), /opl-release-bundle-global/);
-  }
+  const bundle = parseWorkflow('_release-bundle.yml');
+  const fullAddon = parseWorkflow('_release-full-addon.yml');
+  assert.deepEqual(bundle.jobs['publish-standard'].concurrency, mutationMutex);
+  assert.deepEqual(fullAddon.jobs['publish-full'].concurrency, mutationMutex);
+  assert.doesNotMatch(readWorkflow('_release-standard-publish.yml'), /opl-release-bundle-global/);
 });
 
 test('new Standard consumes frozen protected evidence before sealing its run-bound control', () => {

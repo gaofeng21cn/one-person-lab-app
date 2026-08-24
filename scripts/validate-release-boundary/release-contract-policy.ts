@@ -565,7 +565,14 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
       'required_exact_mutable_release_and_sealed_standard_asset_set_cas' ||
     fullAddon?.successor_trigger?.workflow !== '.github/workflows/release-full-addon-follower.yml' ||
     fullAddon?.successor_trigger?.trigger !== 'successful_standard_publication_or_manual_target_state_reconcile' ||
-    fullAddon?.successor_trigger?.one_successor_per_standard_run !== true ||
+    fullAddon?.successor_trigger?.one_active_owner_per_standard_recovery_chain !== true ||
+    fullAddon?.successor_trigger?.controller !== 'scripts/stable-release-dispatch.ts#append-full' ||
+    JSON.stringify(fullAddon?.successor_trigger?.owner_resolution_order) !== JSON.stringify([
+      'published_owner',
+      'active_owner',
+      'latest_reusable_full_checkpoint',
+      'original_standard_checkpoint',
+    ]) ||
     fullAddon?.successor_trigger?.operation_kind_source !==
       'opl-release-operation-admission-<source-run-id>/release-operation-admission.json' ||
     !sameStringSet(fullAddon?.successor_trigger?.non_applicable_operation_kinds, ['append_full']) ||
@@ -574,6 +581,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     !sameStringSet(fullAddon?.successor_trigger?.manual_reconcile_inputs, [
       'source_run_id',
       'reconcile_confirmation',
+      'smoke_harness_ref_optional',
     ]) ||
     fullAddon?.successor_trigger?.failed_run_identity_inputs_allowed !== false ||
     fullAddon?.successor_trigger?.completion_boundary !==
@@ -1423,7 +1431,6 @@ function validateReleasePreflightContract(releaseContract: Record<string, any>):
 
 function validateOptionalCertificationPolicy(releaseContract: Record<string, any>): number {
   const policy = releaseContract.post_publication_optional_certification;
-  const recovery = policy?.producer?.exact_failed_follower_recovery;
   const existingRepairVerification = policy?.producer?.existing_repair_verification;
   let failures = 0;
   if (
@@ -1478,23 +1485,7 @@ function validateOptionalCertificationPolicy(releaseContract: Record<string, any
     || existingRepairVerification?.new_receipt_or_asset_allowed !== false
     || existingRepairVerification?.reuses_existing_public_repair_receipt !== true
     || existingRepairVerification?.canonical_main_executor_required !== true
-    || recovery?.trigger !== 'workflow_dispatch'
-    || recovery?.authority_binding !==
-      'same_successful_append_full_run_exact_failed_first_attempt_and_consumed_recovery_v1'
-    || recovery?.recovery_generation !== 2
-    || recovery?.consumed_recovery_generation !== 1
-    || !sameStringSet(recovery?.required_inputs, [
-      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'recovery_confirmation',
-    ])
-    || recovery?.confirmation !== 'recover_exact_failed_optional_certification_v2'
-    || recovery?.failed_boundary !==
-      'first_attempt_current_handoff_bind_failed_and_recovery_v1_adjunct_component_manifest_lookup_failed_with_all_certification_executors_skipped'
-    || recovery?.failed_follower_public_mutation_count_required !== 0
-    || recovery?.failed_recovery_public_mutation_count_required !== 0
-    || recovery?.canonical_main_executor_required !== true
-    || recovery?.same_identity_recovery_v2_run_count_required !== 1
-    || recovery?.workflow_rerun_allowed !== false
-    || recovery?.append_full_redispatch_allowed !== false
+    || policy?.producer?.exact_failed_follower_recovery !== undefined
   ) {
     console.error('FAIL optional_certification_policy: certification must be four-state, post-publication, same-artifact, and non-blocking');
     failures += 1;
@@ -1779,6 +1770,17 @@ export function validateReleaseAccelerationPolicy(
   if (
     operations?.schema !== 'opl_release_bundle_operation_control.v1' ||
     operations?.stable_mutation_mutex !== 'opl-release-bundle-global' ||
+    operations?.stable_mutation_mutex_scope !== 'public_mutation_jobs_only' ||
+    JSON.stringify(operations?.stable_mutation_mutex_jobs) !== JSON.stringify([
+      '_release-bundle.yml#publish-standard',
+      'release-stable.yml#resume-standard',
+      '_release-full-addon.yml#publish-full',
+      '_release-desktop-platform-addon.yml#append-platform',
+      'release-stable-post-success-followups.yml#repair-additive',
+      'release-manual-preview.yml#resume-preview',
+      'release-manual-preview.yml#move-latest-pointer',
+      'release-manual-full-preview.yml#mutate',
+    ]) ||
     operations?.operator_entry !== 'npm run release:stable-dispatch' ||
     operations?.dispatch_plan_schema !== 'opl_app_stable_dispatch_plan.v1' ||
     operations?.dispatch_attempt_schema !== 'opl_app_stable_dispatch_attempt.v1' ||
@@ -1788,7 +1790,6 @@ export function validateReleaseAccelerationPolicy(
     operations?.version_input_policy?.standard !== 'forbidden_controller_delegates_single_allocation_to_workflow' ||
     operations?.version_input_policy?.resume_standard !== 'forbidden_preserve_source_checkpoint_tag' ||
     operations?.version_input_policy?.append_full !== 'forbidden_preserve_source_checkpoint_tag' ||
-    operations?.version_input_policy?.recover_full !== 'forbidden_preserve_source_checkpoint_tag' ||
     operations?.full_recovery_identity_roles?.source_checkpoint_run_id !== 'portable_framework_checkpoint_owner' ||
     operations?.full_recovery_identity_roles?.artifact_producer_run_id !== 'full_cohort_actions_run_id' ||
     operations?.full_recovery_identity_roles?.qualification_run_id !== 'failed_qualification_receipt_run_id' ||
@@ -2531,6 +2532,9 @@ export function validateReleasePlatformMatrix(
     || follower?.blocks_latest_activation !== false
     || follower?.failure_receipt_required !== true
     || follower?.recovery !== 'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
+    || follower?.automatic_checkpoint_reuse !==
+      'latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain'
+    || follower?.one_active_owner_per_recovery_chain !== true
   ) {
     console.error('FAIL release_platform_matrix: Full macOS follower must remain same-tag, mutable-target CAS-bound, durable, and non-blocking');
     failures += 1;
@@ -2543,8 +2547,25 @@ export function validateReleasePlatformMatrix(
     || desktopSelection?.control_field !== 'opl_app_stable_operation_control.v1#desktop_additional_platforms'
     || desktopSelection?.arbitrary_command_or_os_input_allowed !== false
     || desktopFollower?.carrier !== 'same_mutable_stable_release_assets'
+    || desktopFollower?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
+    || desktopFollower?.platform_workflow !== '.github/workflows/_release-desktop-platform-addon.yml'
+    || desktopFollower?.builder !== '.github/workflows/build-manual.yml'
     || desktopFollower?.base_release_must_be_published_mutable !== true
     || desktopFollower?.new_release_or_tag_allowed !== false
+    || desktopFollower?.same_name_different_digest !== 'fail_closed'
+    || desktopFollower?.platform_manifest_schema !== 'opl_app_desktop_platform_manifest.v1'
+    || desktopFollower?.aggregate_manifest_schema !== 'opl_app_desktop_release_set_manifest.v1'
+    || desktopFollower?.execution !== 'one_independent_fail_fast_false_matrix_lane_per_platform'
+    || desktopFollower?.build_mutex !== null
+    || desktopFollower?.public_append_mutex !== 'opl-release-bundle-global'
+    || desktopFollower?.aggregate_manifest_replacement !==
+      'staged_exact_asset_id_size_digest_compare_and_swap_then_rename'
+    || desktopFollower?.asset_upload_order !== 'platform_assets_before_aggregate_manifest'
+    || desktopFollower?.same_platform_same_digest !== 'already_complete'
+    || desktopFollower?.manual_reconcile?.operation !== 'reconcile_desktop_platform'
+    || !sameStringSet(desktopFollower?.manual_reconcile?.inputs, ['source_run_id', 'desktop_platform'])
+    || desktopFollower?.manual_reconcile?.failed_run_or_generation_input_allowed !== false
+    || desktopFollower?.manual_reconcile?.new_tag_allowed !== false
     || desktopFollower?.make_latest !== false
     || desktopFollower?.base_release_asset_append_allowed !== true
     || additiveRepair?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'

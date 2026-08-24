@@ -63,10 +63,6 @@ env:
   OPL_APP_STANDARD_PACKAGE_COMPATIBILITY_ABI: opl_packages.v1
   OPL_APP_STANDARD_PACKAGE_COMPATIBILITY_VERSION_RANGE: '>=0.1.0 <1.0.0'
 
-concurrency:
-  group: opl-release-bundle-global
-  cancel-in-progress: false
-
 jobs:
   admission:
     runs-on: ubuntu-latest
@@ -353,6 +349,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
       mode: execute
@@ -371,6 +370,9 @@ jobs:
     permissions:
       contents: write
       actions: read
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
     uses: ./.github/workflows/_release-preview-latest-pointer.yml
     with:
       app_ref: ${{ needs.admission.outputs.app_ref }}

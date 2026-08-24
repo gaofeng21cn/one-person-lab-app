@@ -153,12 +153,14 @@ jobs:
             and .conclusion == "success"
             and (
               (.event == "workflow_run" and (.display_title | test("^Desktop Release Set follow-up for Stable run [1-9][0-9]*$")))
-              or (.event == "workflow_dispatch" and (.display_title | test("^Stable additive repair for source run [1-9][0-9]*$")))
+              or (.event == "workflow_dispatch" and (
+                (.display_title | test("^Stable additive repair for source run [1-9][0-9]*$"))
+                or (.display_title | test("^Desktop (linux-x64|windows-x64) reconcile for Stable run [1-9][0-9]*$"))
+              ))
             )
           ' followup-run.json >/dev/null
-          followup_event="$(jq -er .event followup-run.json)"
           followup_run_id="$FOLLOWUP_RUN_ID"
-          if [ "$followup_event" = workflow_dispatch ]; then
+          if jq -e '.display_title | test("^Stable additive repair for source run ")' followup-run.json >/dev/null; then
             source_run_id="$(jq -er '.display_title | capture("source run (?<run>[1-9][0-9]*)$").run' followup-run.json)"
             certification_kind=repair_additive
           else
@@ -231,10 +233,24 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          for name in "opl-stable-release-set-followup-${source_run_id}" "opl-stable-desktop-append-${source_run_id}"; do
-            jq -e --arg name "$name" '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length == 1' \
-              followup-artifacts.json >/dev/null
-          done
+          jq -e --arg name "opl-stable-release-set-followup-${source_run_id}" \
+            '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length == 1' \
+            followup-artifacts.json >/dev/null
+          linux_receipt="opl-stable-desktop-append-${source_run_id}-linux-x64"
+          linux_count="$(jq -r --arg name "$linux_receipt" '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length' followup-artifacts.json)"
+          test "$linux_count" -le 1
+          if [ "$linux_count" = 0 ]; then
+            {
+              echo "applicable=false"
+              echo "reason_code=linux_platform_not_completed_in_followup"
+              echo "certification_kind=desktop_release_set"
+              echo "certify_macos=false"
+              echo "source_run_id=$source_run_id"
+              echo "followup_run_id=$followup_run_id"
+              echo "operation_kind=$operation_kind"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           {
             echo "applicable=true"
             echo "reason_code=desktop_release_set_followup"
@@ -244,7 +260,7 @@ jobs:
             echo "followup_run_id=$followup_run_id"
             echo "operation_kind=$operation_kind"
             echo "followup_receipt=opl-stable-release-set-followup-${source_run_id}"
-            echo "desktop_receipt=opl-stable-desktop-append-${source_run_id}"
+            echo "desktop_receipt=$linux_receipt"
           } >> "$GITHUB_OUTPUT"
 
       - name: Download exact Release Set follow-up receipt
@@ -279,10 +295,11 @@ jobs:
           jq -e --arg source "$SOURCE_RUN_ID" '
             .schema == "opl_app_stable_desktop_followup.v1"
             and .source_run_id == $source
-            and .applicable == true
             and (.operation_kind == "standard" or .operation_kind == "resume_standard")
             and (.release_tag | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-r[1-9][0-9]*)?$"))
-            and .desktop_platform_append == "success"
+            and (.platforms | index("linux-x64") != null)
+            and .platform_reconcile == "success"
+            and .required_for_standard_or_latest == false
             and .remaining == []
           ' "$receipt" >/dev/null
           {
@@ -300,7 +317,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t append_receipts < <(find desktop-receipt -type f -name stable-desktop-append.json -print)
+          mapfile -t append_receipts < <(find desktop-receipt -type f -name stable-desktop-linux-x64-append.json -print)
           test "${#append_receipts[@]}" = 1
           append_receipt="${append_receipts[0]}"
           jq -e --arg tag "$EXPECTED_TAG" '
@@ -310,6 +327,7 @@ jobs:
             and .release.draft == false
             and .release.prerelease == false
             and (.release.target_commitish | test("^[0-9a-f]{40}$"))
+            and .platform == "linux-x64"
             and .remaining == []
             and ([.assets[].name] | length == (unique | length))
             and ([.assets[].name] | index("opl-desktop-platforms-manifest.json") != null)

@@ -6,135 +6,95 @@ import { parse as parseYaml } from 'yaml';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
 const workflowPath = path.join(appRoot, '.github/workflows/release-stable-post-success-followups.yml');
+const platformWorkflowPath = path.join(appRoot, '.github/workflows/_release-desktop-platform-addon.yml');
 const source = fs.readFileSync(workflowPath, 'utf8');
+const platformSource = fs.readFileSync(platformWorkflowPath, 'utf8');
 const workflow = parseYaml(source) as Record<string, any>;
+const platformWorkflow = parseYaml(platformSource) as Record<string, any>;
 
-test('Stable success and protected installer repair share one Desktop Release Set owner', () => {
+test('Desktop follower owns independent platform reconcile and protected installer repair only', () => {
   assert.equal(workflow.name, 'OPL Stable Desktop Release Set Follow-up');
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
-  assert.deepEqual(workflow.on.workflow_run.types, ['completed']);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
-  assert.equal(workflow.concurrency['cancel-in-progress'], false);
+  assert.equal(workflow.concurrency, undefined);
   assert.deepEqual(Object.keys(workflow.jobs), [
     'admit',
-    'build-desktop-platforms',
-    'append-desktop-platforms',
+    'reconcile-desktop-platforms',
     'receipt',
     'repair-admit',
     'repair-additive',
   ]);
-  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
-    'operation',
-    'source_run_id',
-    'repair_source_commit',
-    'expected_old_asset_id',
-    'expected_old_asset_digest',
-    'operator_confirmation',
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.operation.options, [
+    'reconcile_desktop_platform',
+    'repair_additive',
   ]);
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs.operation.options, ['repair_additive']);
-  assert.doesNotMatch(source, /recovery_confirmation|skipped_followup/);
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.desktop_platform.options, [
+    'linux-x64',
+    'windows-x64',
+  ]);
+  for (const input of ['repair_source_commit', 'expected_old_asset_id', 'expected_old_asset_digest', 'operator_confirmation']) {
+    assert.equal(workflow.on.workflow_dispatch.inputs[input].required, false);
+  }
 });
 
-test('admission binds one published mutable Stable Release and the frozen Desktop selection', () => {
+test('admission binds the exact published mutable Stable source without requiring Latest', () => {
   const admit = workflow.jobs.admit;
-  assert.match(admit.if.replace(/\s+/g, ' '), /workflow_run\.conclusion == 'success'/);
+  assert.match(admit.if.replace(/\s+/g, ' '), /reconcile_desktop_platform/);
   assert.match(source, /opl-release-operation-admission-\$SOURCE_RUN_ID/);
-  assert.match(source, /operation_kind=\$operation_kind/);
-  assert.match(source, /applicable=\$applicable/);
-  assert.match(source, /\.path == "\.github\/workflows\/release-stable\.yml"/);
-  assert.match(source, /\.event == "workflow_dispatch"/);
-  assert.match(source, /\.run_attempt == 1/);
   assert.match(source, /opl-release-standard-checkpoint-\$SOURCE_RUN_ID/);
   assert.match(source, /opl-release-standard-operation-checkpoint-\$SOURCE_RUN_ID/);
   assert.match(source, /\.desktop_additional_platforms/);
-  assert.match(source, /test "\$platforms" = '\["linux-x64","windows-x64"\]'/);
+  assert.match(source, /platforms="\$\(jq -cn --arg platform/);
   assert.match(source, /\.immutable == false/);
-  assert.match(source, /releases\/latest/);
+  assert.doesNotMatch(source, /releases\/latest/);
 });
 
-test('additional Desktop builds are build-only and authority-bound', () => {
-  const build = workflow.jobs['build-desktop-platforms'];
-  assert.equal(build.if, "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}");
-  assert.equal(build.uses, './.github/workflows/build-manual.yml');
-  assert.equal(build.with.invocation_mode, 'stable_release_set_build');
-  assert.equal(build.with.platform_policy, 'stable_desktop_additional');
-  assert.equal(build.with.platform_ids, '${{ needs.admit.outputs.desktop_platforms }}');
-  assert.equal(build.with.source_bundle_digest, '${{ needs.admit.outputs.source_bundle_digest }}');
-});
+test('Linux and Windows build and append independently with only public mutation globally locked', () => {
+  const reconcile = workflow.jobs['reconcile-desktop-platforms'];
+  assert.equal(reconcile.strategy['fail-fast'], false);
+  assert.equal(reconcile.strategy.matrix.platform_id, '${{ fromJSON(needs.admit.outputs.desktop_platforms) }}');
+  assert.match(reconcile.concurrency.group, /matrix\.platform_id/);
+  assert.equal(reconcile.uses, './.github/workflows/_release-desktop-platform-addon.yml');
 
-test('Desktop assets append to the same Release through one CAS controller', () => {
-  const append = workflow.jobs['append-desktop-platforms'];
-  assert.equal(append.if, "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}");
-  assert.deepEqual(append.needs, ['admit', 'build-desktop-platforms']);
+  assert.deepEqual(Object.keys(platformWorkflow.jobs), ['build-platform', 'append-platform', 'receipt']);
+  assert.equal(platformWorkflow.jobs['build-platform'].uses, './.github/workflows/build-manual.yml');
+  assert.match(platformWorkflow.jobs['build-platform'].with.platform_ids, /inputs\.platform_id/);
+  const append = platformWorkflow.jobs['append-platform'];
+  assert.deepEqual(append.needs, ['build-platform']);
   assert.equal(append.environment, 'release-stable');
+  assert.equal(append.concurrency.group, 'opl-release-bundle-global');
   assert.deepEqual(append.permissions, { contents: 'write', actions: 'read' });
-  const setupIndex = append.steps.findIndex(
-    (step: Record<string, unknown>) => step.name === 'Setup Node.js',
-  );
-  const installIndex = append.steps.findIndex(
-    (step: Record<string, unknown>) => step.name === 'Install App root validation dependencies',
-  );
-  const materializeIndex = append.steps.findIndex(
-    (step: Record<string, unknown>) => step.name === 'Materialize exact Desktop Release Set append',
-  );
-  assert.deepEqual(append.steps[setupIndex], {
-    name: 'Setup Node.js',
-    uses: 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
-    with: { 'node-version': '24' },
-  });
-  assert.equal(append.steps[installIndex].run, 'npm ci --ignore-scripts');
-  assert.ok(setupIndex < installIndex && installIndex < materializeIndex);
-  assert.match(source, /scripts\/append-stable-desktop-assets\.ts/);
-  assert.match(source, /--release-id "\$\{\{ needs\.admit\.outputs\.release_id \}\}"/);
-  assert.match(source, /--tag "\$\{\{ needs\.admit\.outputs\.release_tag \}\}"/);
-  assert.match(source, /opl_app_desktop_release_set_manifest\.v1/);
-  assert.match(source, /opl-desktop-platforms-manifest\.json/);
-  assert.doesNotMatch(source, /gh release create|releases\/tags\/.*optional|make_latest/);
+  assert.match(platformSource, /--platform-manifest desktop-platform-manifest\.json/);
+  assert.match(platformSource, /opl_app_desktop_platform_manifest\.v1/);
+  assert.match(platformSource, /opl-stable-desktop-append-\$\{\{ inputs\.source_run_id \}\}-\$\{\{ inputs\.platform_id \}\}/);
 });
 
-test('Desktop follower does not own, dispatch, or wait for Full', () => {
-  assert.equal(workflow.jobs['dispatch-full'], undefined);
-  assert.doesNotMatch(source, /operation:"append_full"|release-stable\.yml\/dispatches/);
-  assert.doesNotMatch(source, /full_run_id|full_append|seq 1 840|reconcile that run/);
+test('aggregate manifest is the last platform append and no Desktop lane owns Full or Latest', () => {
+  assert.match(platformSource, /Append or reconcile only this Desktop platform/);
+  assert.match(platformSource, /scripts\/append-stable-desktop-assets\.ts/);
+  assert.doesNotMatch(source + platformSource, /operation:"append_full"|release-stable\.yml\/dispatches/);
+  assert.doesNotMatch(source + platformSource, /gh release create|make_latest/);
 });
 
-test('Desktop receipt is terminal at the Desktop append boundary', () => {
+test('Desktop receipt reports the selected platform set without becoming a Standard gate', () => {
   const receipt = workflow.jobs.receipt;
-  assert.equal(receipt.if, "${{ always() && github.event_name == 'workflow_run' && needs.admit.result != 'skipped' }}");
-  assert.deepEqual(receipt.needs, [
-    'admit',
-    'build-desktop-platforms',
-    'append-desktop-platforms',
-  ]);
+  assert.equal(receipt.if, "${{ always() && needs.admit.result != 'skipped' }}");
+  assert.deepEqual(receipt.needs, ['admit', 'reconcile-desktop-platforms']);
   assert.match(source, /opl_app_stable_desktop_followup\.v1/);
-  assert.match(source, /operation_kind:\$operation_kind/);
-  assert.match(source, /applicable:\(\$applicable == "true"\)/);
-  assert.match(source, /desktop_platform_append:\$desktop/);
-  assert.match(source, /remaining:\(if .* then \[\] else \["desktop_platform_append"\]/);
+  assert.match(source, /platform_reconcile:\$result/);
+  assert.match(source, /required_for_standard_or_latest:false/);
 });
 
-test('additive repair is one protected opl-install.sh compare-and-swap path', () => {
+test('additive installer repair remains one same-tag protected compare-and-swap path', () => {
   const admit = workflow.jobs['repair-admit'];
   const repair = workflow.jobs['repair-additive'];
   assert.equal(admit.if, "${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'repair_additive' }}");
   assert.equal(repair.if, "${{ needs.repair-admit.result == 'success' }}");
-  assert.deepEqual(repair.needs, ['repair-admit']);
-  assert.equal(repair.environment, 'release-stable');
+  assert.equal(repair.concurrency.group, 'opl-release-bundle-global');
   assert.deepEqual(repair.permissions, { contents: 'write', actions: 'read' });
-  assert.match(source, /test "\$GITHUB_REF" = refs\/heads\/main/);
   assert.match(source, /test "\$OPERATOR_CONFIRMATION" = 'REPAIR ADDITIVE INSTALLER'/);
-  assert.match(source, /opl-release-standard-remote-verify-\$SOURCE_RUN_ID/);
-  assert.match(source, /live_installer=.*EXPECTED_OLD_ASSET_ID.*EXPECTED_OLD_ASSET_DIGEST/s);
-  assert.match(source, /expected_old_size=.*\.size <<<"\$live_installer"/);
-  assert.doesNotMatch(source, /original_installer=.*terminal/s);
-  assert.match(source, /generate-frozen-universal-installer\.ts/);
-  assert.match(source, /jq -e 'select\(length == 5 and \(\[\.\[\]\.name\] \| length == \(unique \| length\)\)\)'/);
-  assert.doesNotMatch(source, /jq -e 'length == 5 and \(\[\.\[\]\.name\] \| length == \(unique \| length\)\)'/);
   assert.match(source, /--repair-additive/);
   assert.match(source, /--expected-old-asset-id/);
-  assert.match(source, /--expected-old-asset-digest/);
-  assert.match(source, /opl-stable-additive-repair-plan-/);
-  assert.match(source, /opl-stable-additive-repair-/);
   assert.doesNotMatch(source, /--clobber|gh run rerun|gh run cancel/);
 });

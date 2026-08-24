@@ -432,26 +432,48 @@ test('Full macOS publication is self-identified, same-tag additive, recoverable,
     follower.recovery,
     'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs',
   );
+  assert.equal(
+    follower.automatic_checkpoint_reuse,
+    'latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain',
+  );
+  assert.equal(follower.one_active_owner_per_recovery_chain, true);
 });
 
 test('additional Desktop platform publication is an independent protected post-success operation', () => {
-  const follower = parseYaml(
+  const dispatcher = parseYaml(
     fs.readFileSync(
       path.join(appRoot, '.github/workflows/release-stable-post-success-followups.yml'),
+      'utf8',
+    ),
+  ) as any;
+  const platformAddon = parseYaml(
+    fs.readFileSync(
+      path.join(appRoot, '.github/workflows/_release-desktop-platform-addon.yml'),
       'utf8',
     ),
   ) as any;
   const manual = parseYaml(
     fs.readFileSync(path.join(appRoot, '.github/workflows/build-manual.yml'), 'utf8'),
   ) as any;
-  const build = follower.jobs['build-desktop-platforms'];
-  const append = follower.jobs['append-desktop-platforms'];
+  const reconcile = dispatcher.jobs['reconcile-desktop-platforms'];
+  assert.equal(reconcile.strategy['fail-fast'], false);
+  assert.equal(reconcile.uses, './.github/workflows/_release-desktop-platform-addon.yml');
+  assert.equal(reconcile.with.platform_id, '${{ matrix.platform_id }}');
+  assert.deepEqual(reconcile.permissions, { contents: 'write', actions: 'read' });
+
+  const build = platformAddon.jobs['build-platform'];
+  const append = platformAddon.jobs['append-platform'];
   assert.equal(build.uses, './.github/workflows/build-manual.yml');
   assert.equal(build.with.invocation_mode, 'stable_release_set_build');
   assert.equal(build.with.platform_policy, 'stable_desktop_additional');
-  assert.equal(build.with.platform_ids, '${{ needs.admit.outputs.desktop_platforms }}');
-  assert.equal(build.with.opl_updater_version, '${{ needs.admit.outputs.updater_version }}');
+  assert.equal(build.with.platform_ids, '${{ format(\'["{0}"]\', inputs.platform_id) }}');
+  assert.equal(build.with.opl_updater_version, '${{ inputs.updater_version }}');
+  assert.equal(build.concurrency, undefined);
   assert.equal(append.environment, 'release-stable');
+  assert.deepEqual(append.concurrency, {
+    group: 'opl-release-bundle-global',
+    'cancel-in-progress': false,
+  });
   assert.deepEqual(append.permissions, { contents: 'write', actions: 'read' });
   const manualMatrixRun = String(
     manual.jobs['prepare-matrix'].steps.find((step: any) => step.id === 'set-matrix')?.run,

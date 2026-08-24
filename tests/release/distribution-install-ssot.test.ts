@@ -539,7 +539,14 @@ test('ordinary docs point to the SSOT without advertising retired or unpublished
   assert.match(distributionGuide, /durable GHCR publication record/);
   assert.match(releaseGuide, /macOS arm64 primary release passes publication and public readback/);
   assert.match(releaseGuide, /Full macOS, Linux x64, Windows x64 and installer deliveries additively/);
-  assert.match(releaseGuide, /A new `-rN` Stable is allowed only when the[\s\S]{0,80}macOS primary Stable assets themselves are invalid/);
+  assert.match(
+    releaseGuide,
+    /A new `-rN` Stable is allowed only when the[\s\S]{0,140}nonempty user-visible capability change/,
+  );
+  assert.match(
+    releaseGuide,
+    /Build, signing, notarization, packaging, publication, release-note, Homebrew, Full, installer or[\s\S]{0,120}must stay on the existing mutable tag/,
+  );
   assert.match(releaseGuide, /independent source authority/);
   assert.doesNotMatch(releaseGuide, /carrier_owned_durable_publication_record/);
   assert.match(

@@ -1641,6 +1641,9 @@ jobs:
   publish-standard:
     if: ${{ always() && inputs.mode == 'execute' && needs.freeze.result == 'success' && needs.checkpoint-standard.result == 'success' }}
     needs: [freeze, checkpoint-standard]
+    concurrency:
+      group: opl-release-bundle-global
+      cancel-in-progress: false
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
       mode: execute
