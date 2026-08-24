@@ -2130,41 +2130,22 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.full?.formula_dependency_required !== false ||
     homebrew?.tap_update_policy?.full?.promotion_status !== 'approved_pending_first_protected_follower_readback' ||
     homebrew?.tap_update_policy?.full?.unknown_or_conflicting_result !== 'fail_closed_no_retry_rerun_or_redispatch' ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.trigger !== 'workflow_dispatch' ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.authority_binding !==
-      'same_successful_append_full_run_exact_failed_first_attempt_consumed_recovery_v1_and_consumed_deadline_failed_recovery_v2' ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.recovery_generation !== 3 ||
-    !sameStringSet(homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.consumed_recovery_generations, [1, 2]) ||
-    !sameStringSet(homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.required_inputs, [
-      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'failed_recovery_v2_run_id', 'recovery_confirmation',
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.trigger !== 'workflow_dispatch' ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.authority_binding !==
+      'same_successful_append_full_run_and_exact_published_handoff' ||
+    !sameStringSet(homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.required_inputs, [
+      'source_run_id', 'reconcile_confirmation',
     ]) ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.confirmation !==
-      'recover_exact_failed_homebrew_full_follower_v3' ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_boundary !==
-      'first_attempt_handoff_bind_failed_recovery_v1_framework_checkpoint_restore_failed_and_recovery_v2_noncanonical_45_minute_deadline_failed_before_protected_publish' ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_follower_public_mutation_count_required !== 0 ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_recovery_public_mutation_count_required !== 0 ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.failed_recovery_v2_public_mutation_count_required !== 0 ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.canonical_main_executor_required !== true ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.same_identity_recovery_v3_run_count_required !== 1 ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.workflow_rerun_allowed !== false ||
-    homebrew?.tap_update_policy?.full?.exact_failed_follower_recovery?.append_full_redispatch_allowed !== false ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.trigger !== 'workflow_dispatch' ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.authority_binding !==
-      'same_successful_append_full_run_with_zero_matching_workflow_run_follower_and_unexpired_exact_publication_handoff' ||
-    !sameStringSet(homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.required_inputs, [
-      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'failed_recovery_v2_run_id', 'recovery_confirmation',
-    ]) ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.failed_run_input_sentinel !== 'none' ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.confirmation !==
-      'recover_exact_missing_homebrew_full_follower_v1' ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.missing_boundary !==
-      'nested_workflow_run_chain_suppressed_before_homebrew_full_follower_creation' ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.matching_workflow_run_count_required !== 0 ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.canonical_main_executor_required !== true ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.same_identity_recovery_run_count_required !== 1 ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.workflow_rerun_allowed !== false ||
-    homebrew?.tap_update_policy?.full?.exact_missing_follower_recovery?.append_full_redispatch_allowed !== false ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.confirmation !==
+      'reconcile_published_homebrew_full' ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.failed_run_history_inputs_forbidden !== true ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.exact_publication_handoff_required !== true ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.missing_or_expired_handoff !== 'fail' ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.exact_current_cask_sha256_cas_required !== true ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.canonical_main_executor_required !== true ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.concurrency_scope !== 'source_run_id' ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.workflow_rerun_allowed !== false ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.append_full_redispatch_allowed !== false ||
     homebrew?.full_first_install_policy !== 'the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, release body, Latest, and updater metadata remain unchanged' ||
     !sameStringSet(homebrew?.opl_packages_boundary?.allowed_homebrew_casks, [
       'one-person-lab', 'one-person-lab-nightly', 'one-person-lab-full',

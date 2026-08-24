@@ -1357,33 +1357,24 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
   let failures = 0;
   const followerJobs = workflowJobs(follower.workflow);
   const followerTriggers = follower.workflow.on ?? {};
-  const followerRecoveryInputs = followerTriggers.workflow_dispatch?.inputs ?? {};
+  const followerReconcileInputs = followerTriggers.workflow_dispatch?.inputs ?? {};
   if (
     JSON.stringify(Object.keys(followerTriggers)) !== JSON.stringify(['workflow_run', 'workflow_dispatch'])
     || JSON.stringify(followerTriggers.workflow_run?.workflows) !== JSON.stringify(['OPL Stable Release Bundle'])
     || JSON.stringify(followerTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
-    || JSON.stringify(Object.keys(followerRecoveryInputs)) !== JSON.stringify([
-      'source_run_id', 'failed_follower_run_id', 'failed_recovery_run_id', 'failed_recovery_v2_run_id', 'recovery_confirmation',
+    || JSON.stringify(Object.keys(followerReconcileInputs)) !== JSON.stringify([
+      'source_run_id', 'reconcile_confirmation',
     ])
-    || followerRecoveryInputs.source_run_id?.required !== true
-    || followerRecoveryInputs.source_run_id?.type !== 'string'
-    || followerRecoveryInputs.failed_follower_run_id?.required !== true
-    || followerRecoveryInputs.failed_follower_run_id?.type !== 'string'
-    || followerRecoveryInputs.failed_recovery_run_id?.required !== true
-    || followerRecoveryInputs.failed_recovery_run_id?.type !== 'string'
-    || followerRecoveryInputs.failed_recovery_v2_run_id?.required !== true
-    || followerRecoveryInputs.failed_recovery_v2_run_id?.type !== 'string'
-    || followerRecoveryInputs.recovery_confirmation?.required !== true
-    || followerRecoveryInputs.recovery_confirmation?.type !== 'choice'
-    || JSON.stringify(followerRecoveryInputs.recovery_confirmation?.options) !==
-      JSON.stringify([
-        'recover_exact_missing_homebrew_full_follower_v1',
-        'recover_exact_failed_homebrew_full_follower_v3',
-      ])
+    || followerReconcileInputs.source_run_id?.required !== true
+    || followerReconcileInputs.source_run_id?.type !== 'string'
+    || followerReconcileInputs.reconcile_confirmation?.required !== true
+    || followerReconcileInputs.reconcile_confirmation?.type !== 'choice'
+    || JSON.stringify(followerReconcileInputs.reconcile_confirmation?.options) !==
+      JSON.stringify(['reconcile_published_homebrew_full'])
     || !exactObject(follower.workflow.permissions, exactReadPermissions)
     || JSON.stringify(Object.keys(followerJobs)) !== JSON.stringify(['resolve-handoff', 'publish-homebrew-full'])
   ) {
-    failures += reportFailure(id, 'Full Homebrew follower must be automatic with only exact bounded recovery dispatch');
+    failures += reportFailure(id, 'Full Homebrew follower must expose only automatic delivery and source-bound reconciliation');
   }
   const delegated = followerJobs['publish-homebrew-full'];
   if (
@@ -1406,32 +1397,22 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     '.source.checkpoint_transport_executor == "github_actions"',
     '.source.transport_run_id',
     '.homebrew_modified == false',
-    'recover_exact_missing_homebrew_full_follower_v1',
-    'Homebrew Full follower missing-trigger recovery for Stable run',
-    'test "$FAILED_FOLLOWER_RUN_ID:$FAILED_RECOVERY_RUN_ID:$FAILED_RECOVERY_V2_RUN_ID" = none:none:none',
-    'runs?event=workflow_run&per_page=100',
-    'follower-runs.json',
-    '| length == 0',
-    'recover_exact_failed_homebrew_full_follower_v3',
-    'failed-follower-run.json',
-    'failed-recovery-run.json',
-    'failed_recovery_run_id',
-    'failed-recovery-v2-run.json',
-    'failed-recovery-v2-jobs.json',
-    'failed_recovery_v2_run_id',
-    'append_full deadline must be exactly 120 minutes after operation start.',
-    '.name == "Admit one successful append_full authority run" and .conclusion == "success"',
-    '.name == "Download exact Full publication handoff" and .conclusion == "success"',
-    '.name == "Bind same-tag Homebrew Full handoff" and .conclusion == "failure"',
-    '.name == "publish-homebrew-full" and .conclusion == "skipped"',
-    'runs?event=workflow_dispatch&per_page=100',
-    '($matches | length) == 1',
+    'reconcile_published_homebrew_full',
+    'Homebrew Full reconcile for Stable run',
+    'reconcile-run.json',
+    '.head_sha == $sha',
+    '.display_title == $title',
     'test "$GITHUB_REF" = refs/heads/main',
+    'test "$count" = 1',
   ]) {
     if (!follower.text.includes(required)) failures += reportFailure(id, `Full Homebrew follower is missing ${required}`);
   }
-  if (/continue-on-error|git\b[^\n]*\bpush\b|OPL_HOMEBREW_TAP_TOKEN/.test(follower.text)) {
-    failures += reportFailure(id, 'Full Homebrew recovery follower must not expose direct mutation paths');
+  if (
+    /continue-on-error|git\b[^\n]*\bpush\b|OPL_HOMEBREW_TAP_TOKEN|failed_(?:follower|recovery)_run_id|recover_exact|artifact_found=false|eligible=false/.test(
+      follower.text,
+    )
+  ) {
+    failures += reportFailure(id, 'Full Homebrew reconcile follower must not expose failure history or direct mutation paths');
   }
 
   const publisherJobs = workflowJobs(publisher.workflow);
@@ -1483,7 +1464,7 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     'max_push_attempts:1',
     'standard_manifest_url=',
     'opl-app-component-manifest.json',
-    '.source_cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}',
+    '--expected-source-commit "$base_target_commitish"',
     'a1561bdf1dfe6f316dad22f16152a537ddfb69d5',
     'merge-base --is-ancestor "$embedded_base_floor" "$shell_sha"',
     'predates the embedded-Base fail-closed carrier',
