@@ -581,13 +581,55 @@ jobs:
           while IFS= read -r receipt; do identity_receipts+=("$receipt"); done < <(
             find checkpoint-identity-bootstrap -type f -name standard-identity-receipt.json -print | LC_ALL=C sort
           )
-          test "${#identity_receipts[@]}" -eq 1 || {
-            echo "::error::Checkpoint transport must contain exactly one Standard identity receipt."
-            exit 1
-          }
+          standard_run_id=''
+          case "${#identity_receipts[@]}" in
+            1)
+              standard_run_id="$(jq -er '.source.run_id | strings | select(test("^[1-9][0-9]*$"))' "${identity_receipts[0]}")"
+              ;;
+            0)
+              case "$completed_stage" in
+                full_built|full_qualified) ;;
+                *)
+                  echo "::error::Standard checkpoint transport must contain exactly one Standard identity receipt."
+                  exit 1
+                  ;;
+              esac
+              standard_vm_receipts=()
+              standard_vm_digests=()
+              while IFS= read -r receipt; do standard_vm_receipts+=("$receipt"); done < <(
+                find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.json -print | LC_ALL=C sort
+              )
+              while IFS= read -r digest; do standard_vm_digests+=("$digest"); done < <(
+                find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.sha256 -print | LC_ALL=C sort
+              )
+              test "${#standard_vm_receipts[@]}" -eq 1
+              test "${#standard_vm_digests[@]}" -eq 1
+              standard_vm_receipt="${standard_vm_receipts[0]}"
+              standard_vm_digest="${standard_vm_digests[0]}"
+              test -s "$standard_vm_receipt" && test ! -L "$standard_vm_receipt"
+              test -s "$standard_vm_digest" && test ! -L "$standard_vm_digest"
+              expected_standard_vm_sha="$(tr -d '\r\n' < "$standard_vm_digest")"
+              observed_standard_vm_sha="sha256:$(shasum -a 256 "$standard_vm_receipt" | awk '{print $1}')"
+              [[ "$expected_standard_vm_sha" =~ ^sha256:[0-9a-f]{64}$ ]]
+              test "$observed_standard_vm_sha" = "$expected_standard_vm_sha"
+              standard_run_id="$(jq -er '.qualification.run_id | strings | select(test("^[1-9][0-9]*$"))' "$standard_vm_receipt")"
+              jq -e --arg run_id "$standard_run_id" '
+                .schema == "opl_app_artifact_qualification_receipt.v1"
+                and .status == "passed"
+                and .package_profile == "standard"
+                and .qualification.run_id == $run_id
+                and .qualification.source_artifact_run_id == $run_id
+                and .qualification.source_artifact_name == ("opl-release-standard-vm-bound-" + $run_id)
+                and .qualification.result == "passed"
+              ' "$standard_vm_receipt" >/dev/null
+              ;;
+            *)
+              echo "::error::Checkpoint transport contains multiple Standard identity receipts."
+              exit 1
+              ;;
+          esac
           {
             bundle_digest="$(jq -r .bundle_digest "$bundle")"
-            standard_run_id="$(jq -er '.source.run_id | strings | select(test("^[1-9][0-9]*$"))' "${identity_receipts[0]}")"
             echo "version=$(jq -r .release.version "$bundle")"
             echo "updater_version=$(jq -r .release.updater_version "$bundle")"
             echo "tag=$tag"
@@ -656,6 +698,7 @@ jobs:
         shell: bash
         env:
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          STANDARD_RUN_ID: ${{ steps.identity.outputs.standard_run_id }}
         run: |
           set -euo pipefail
           bundle='${{ steps.checkpoint.outputs.bundle_path }}'
@@ -665,12 +708,8 @@ jobs:
           shell_sha="$(jq -er .sources.shell.source_commit "$bundle")"
           framework_sha="$(jq -er .sources.framework.source_commit "$bundle")"
           version="$(jq -er .release.version "$bundle")"
-          identity_receipts=()
-          while IFS= read -r item; do identity_receipts+=("$item"); done < <(
-            find checkpoint-identity-bootstrap -type f -name standard-identity-receipt.json -print | LC_ALL=C sort
-          )
-          test "${#identity_receipts[@]}" -eq 1
-          standard_run_id="$(jq -er '.source.run_id | strings | select(test("^[1-9][0-9]*$"))' "${identity_receipts[0]}")"
+          standard_run_id="$STANDARD_RUN_ID"
+          [[ "$standard_run_id" =~ ^[1-9][0-9]*$ ]]
           verify_sidecar() {
             local profile="$1"
             local receipt_name="$2"

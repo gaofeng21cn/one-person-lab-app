@@ -712,6 +712,26 @@ test('checkpoint state lineage remains Framework-owned while App exposes transpo
 
 test('completed Full stages skip work already proven by the checkpoint', () => {
   const full = parseWorkflow('_release-full-addon.yml');
+  const identity = workflowStep(
+    '_release-full-addon.yml',
+    'restore-standard',
+    'Bind checkpoint build provenance and exact Standard reference',
+  );
+  const identityRun = String(identity.run ?? '');
+  assert.match(identityRun, /full_built\|full_qualified/);
+  assert.match(identityRun, /standard-clean-vm-qualification-receipt\.json/);
+  assert.match(identityRun, /standard-clean-vm-qualification-receipt\.sha256/);
+  assert.match(identityRun, /\.qualification\.run_id/);
+  assert.match(identityRun, /\.qualification\.source_artifact_run_id == \$run_id/);
+  assert.match(identityRun, /observed_standard_vm_sha/);
+  const sidecar = workflowStep(
+    '_release-full-addon.yml',
+    'restore-standard',
+    'Verify protected clean-VM checkpoint sidecars',
+  );
+  assert.equal(sidecar.env.STANDARD_RUN_ID, '${{ steps.identity.outputs.standard_run_id }}');
+  assert.match(String(sidecar.run ?? ''), /standard_run_id="\$STANDARD_RUN_ID"/);
+  assert.doesNotMatch(String(sidecar.run ?? ''), /standard-identity-receipt\.json/);
   assert.match(String(full.jobs['full-build'].if), /standard_qualified/);
   assert.match(String(full.jobs['materialize-full-build'].if), /full_built/);
   assert.match(String(full.jobs['full-qualification'].if), /standard_qualified/);
