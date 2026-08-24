@@ -50,34 +50,28 @@ test('append_full delegates Full Homebrew without mutating Standard publication 
   }
 });
 
-test('Standard Homebrew uses inspect-before-write CAS and one bounded non-force push', () => {
-  const workflow = parseWorkflow('_release-standard-publish.yml');
+test('Standard Homebrew follower uses same-tag inspect-before-write CAS and cannot block core publication', () => {
+  const workflow = parseWorkflow('release-homebrew-standard-follower.yml');
   const source = String(
-    workflow.jobs['publish-homebrew-standard'].steps.find(
-      (step: Record<string, unknown>) => step.name === 'Publish one digest-bound Standard cask commit',
+    workflow.jobs['publish-standard-cask'].steps.find(
+      (step: Record<string, unknown>) => step.name === 'Apply one exact-CAS Standard Cask update',
     )?.run ?? '',
   );
-  assert.ok(source.indexOf('preplan_remote_commit="$(inspect_remote_head)"') < source.indexOf('--remote-write-mode inspect_only'));
+  assert.match(workflow.jobs['publish-standard-cask'].if, /workflow_run\.conclusion == 'success'/);
+  assert.match(source, /opl_homebrew_standard_follower_handoff\.v1/);
+  assert.match(source, /same_tag_replacement_allowed: true/);
+  assert.ok(source.indexOf('tap_base="$(git -C tap-source rev-parse HEAD)"') < source.indexOf('--remote-write-mode inspect_only'));
   assert.ok(source.indexOf('--remote-write-mode inspect_only') < source.indexOf('--remote-write-mode direct_commit'));
-  assert.match(source, /case "\$cas_decision" in[\s\S]*idempotent\)[\s\S]*write_homebrew_success idempotent "\$base_commit" 0[\s\S]*exit 0/);
-  assert.ok(source.indexOf('write_homebrew_success idempotent "$base_commit" 0') < source.indexOf('git -C tap-source commit '));
-  assert.ok(source.indexOf('write_homebrew_success idempotent "$base_commit" 0') < source.indexOf('git -C tap-source push --no-force'));
-  assert.match(source, /version_conflict\)[\s\S]*new_release_revision_required[\s\S]*exit 1/);
-  assert.match(source, /--expected-current-cask-sha256 "\$current_cask_sha"/);
+  assert.match(source, /test "\$decision" = idempotent \|\| test "\$decision" = write_once/);
+  assert.match(source, /--expected-current-cask-sha256 "\$current_cask"/);
   assert.equal((source.match(/git -C tap-source commit /g) ?? []).length, 1);
   assert.equal((source.match(/git -C tap-source push --no-force/g) ?? []).length, 1);
-  assert.match(source, /push_count=\$\(\(push_count \+ 1\)\)[\s\S]*test "\$push_count" -eq 1/);
+  assert.match(source, /push_count=1/);
   assert.doesNotMatch(source, /for attempt in 1 2 3|three read-only reconciliations/);
-  assert.match(source, /write_framework_homebrew_receipt unknown/);
-  assert.match(source, /opl release publish[\s\S]*homebrew-unknown-persisted\.json/);
-  assert.match(source, /opl release checkpoint export[\s\S]*homebrew-unknown-checkpoint/);
-  assert.match(source, /opl release status[\s\S]*active_unknown_markers/);
-  assert.match(source, /write_framework_homebrew_receipt complete[\s\S]*opl release reconcile/);
-  assert.match(source, /--prior-attempt-id/);
-  assert.match(source, /--publication-scope external_target/);
+  assert.doesNotMatch(source, /new_release_revision_required|version_conflict/);
   assert.match(source, /push_exit_status/);
-  assert.match(source, /release-failure-evidence\/stdout\.txt/);
-  assert.match(source, /release-failure-evidence\/stderr\.txt/);
+  assert.match(source, /core_release_or_latest_blocked:false/);
+  assert.match(source, /the core Release and Latest remain complete/);
 });
 
 test('new Bundle callers do not activate legacy broker or Stable-session admission', () => {
@@ -304,8 +298,11 @@ test('Standard checkpoint stage follows the immutable Bundle track set', () => {
 test('Standard moving pointers require exact Desktop readback and a protected clean-VM checkpoint sidecar', () => {
   const workflow = parseWorkflow('_release-standard-publish.yml');
   const source = readWorkflow('_release-standard-publish.yml');
-  assert.ok(workflow.jobs['publish-homebrew-standard'].needs.includes('remote-digest-verify'));
-  assert.ok(workflow.jobs['activate-latest'].needs.includes('remote-digest-verify'));
+  assert.equal(workflow.jobs['publish-homebrew-standard'], undefined);
+  assert.equal(workflow.jobs['homebrew-standard-readback'], undefined);
+  assert.deepEqual(workflow.jobs['activate-latest'].needs, ['restore', 'remote-digest-verify']);
+  assert.match(source, /homebrew-standard-handoff\.json/);
+  assert.doesNotMatch(source, /OPL_HOMEBREW_TAP_TOKEN|git -C tap-source push/);
   assert.doesNotMatch(source, /docker buildx imagetools inspect "\$(?:latest_)?webui_ref"/);
   assert.doesNotMatch(source, /--track webui --outcome complete/);
   assert.doesNotMatch(source, /stable_promotion_barrier\.satisfied == true/);

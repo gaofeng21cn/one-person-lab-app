@@ -1,6 +1,7 @@
 import {
   assert,
   appRoot,
+  crypto,
   fs,
   os,
   path,
@@ -158,7 +159,11 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
     remoteWriteMode: 'inspect_only',
   });
   assert.equal(conflictingDigestInspect.status, 0, conflictingDigestInspect.stderr || conflictingDigestInspect.stdout);
-  assert.equal(JSON.parse(conflictingDigestInspect.stdout).cas.decision, 'version_conflict');
+  assert.equal(JSON.parse(conflictingDigestInspect.stdout).cas.decision, 'write_once');
+  assert.equal(
+    JSON.parse(conflictingDigestInspect.stdout).cas.reason,
+    'stable_same_tag_replacement_requires_exact_current_cask_cas',
+  );
   assert.equal(fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8'), stableCask);
 
   const conflictingDigestWrite = runTap({
@@ -170,9 +175,12 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
     expectedCurrentCaskSha256: stableCaskSha,
     write: true,
   });
-  assert.notEqual(conflictingDigestWrite.status, 0);
-  assert.match(conflictingDigestWrite.stderr, /freeze a new release revision/);
-  assert.equal(fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8'), stableCask);
+  assert.equal(conflictingDigestWrite.status, 0, conflictingDigestWrite.stderr || conflictingDigestWrite.stdout);
+  assert.equal(JSON.parse(conflictingDigestWrite.stdout).cas.decision, 'write_once');
+  assert.equal(JSON.parse(conflictingDigestWrite.stdout).cas.write_performed, true);
+  const replacedStableCask = fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8');
+  assert.notEqual(replacedStableCask, stableCask);
+  assert.match(replacedStableCask, new RegExp(`sha256 "${'c'.repeat(64)}"`));
 
   const directWriteWithoutCas = runTap({
     version: '26.6.5',
@@ -184,7 +192,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   });
   assert.notEqual(directWriteWithoutCas.status, 0);
   assert.match(directWriteWithoutCas.stderr, /require exact --expected-current-cask-sha256/);
-  assert.equal(fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8'), stableCask);
+  assert.equal(fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8'), replacedStableCask);
 
   const staleCaskCas = runTap({
     version: '26.6.5',
@@ -197,7 +205,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   });
   assert.notEqual(staleCaskCas.status, 0);
   assert.match(staleCaskCas.stderr, /Homebrew Cask CAS mismatch/);
-  assert.equal(fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8'), stableCask);
+  assert.equal(fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8'), replacedStableCask);
 
   const releaseContract = JSON.parse(
     fs.readFileSync(path.join(appRoot, 'contracts', 'app-release-channel.json'), 'utf8'),
@@ -214,9 +222,12 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   assert.equal(homebrew.initial_live_targets.includes('Casks/one-person-lab-full.rb'), true);
   assert.equal(
     homebrew.tap_update_policy.stable.mode,
-    'release_bundle_publishes_standard_cask_then_hosted_readback_before_latest',
+    'post_publication_digest_bound_cas_follower',
   );
   assert.equal(homebrew.tap_update_policy.stable.mode, homebrew.tap_update_policy.stable.publication_mode);
+  assert.equal(homebrew.tap_update_policy.stable.core_release_or_latest_blocking, false);
+  assert.equal(homebrew.tap_update_policy.stable.same_tag_replacement_allowed, true);
+  assert.equal(homebrew.tap_update_policy.stable.new_release_version_required_for_changed_bytes, false);
   assert.equal(homebrew.tap_update_policy.full.homebrew_publish_allowed, true);
   assert.equal(homebrew.tap_update_policy.full.homebrew_clean_vm_gate_required, false);
   assert.equal(fs.existsSync(path.join(tapRoot, 'Casks', 'one-person-lab-full.rb')), false);
@@ -268,7 +279,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
     manifest: 'latest-arm64-mac.yml',
     download: standardDmg('26.6.5'),
     remoteWriteMode: 'direct_commit',
-    expectedCurrentCaskSha256: stableCaskSha,
+    expectedCurrentCaskSha256: `sha256:${crypto.createHash('sha256').update(replacedStableCask).digest('hex')}`,
     write: true,
   });
   assert.equal(stableRefresh.status, 0, stableRefresh.stderr || stableRefresh.stdout);
@@ -342,6 +353,18 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
     /releases\/download\/v#\{version\.csv\.second\}\/One-Person-Lab-#\{version\.csv\.second\}-mac-arm64\.dmg/,
   );
   assert.doesNotMatch(nightlyCask, /One-Person-Lab-Full-/);
+
+  const nightlySameVersionConflict = runTap({
+    channel: 'nightly',
+    version: '26.7.31-nightly.r1',
+    updaterVersion: '26.7.3191-nightly.1',
+    target: 'Casks/one-person-lab-nightly.rb',
+    manifest: 'latest-arm64-mac.yml',
+    download: standardDmg('26.7.31-nightly.r1'),
+    checksum: 'd'.repeat(64),
+  });
+  assert.equal(nightlySameVersionConflict.status, 0, nightlySameVersionConflict.stderr);
+  assert.equal(JSON.parse(nightlySameVersionConflict.stdout).cas.decision, 'version_conflict');
 
   const nightlyToStable = runTap({
     channel: 'nightly',

@@ -294,8 +294,11 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   assert.deepEqual(resilience.updater_zip_identity_fields, ['size_bytes', 'sha256']);
   assert.equal(resilience.updater_metadata_declared_digest_is_not_sufficient, true);
   assert.equal(resilience.homebrew_single_writer, true);
-  assert.equal(resilience.homebrew_unknown_outcome, 'framework_durable_marker_status_then_exact_reconcile');
-  assert.equal(resilience.homebrew_reconcile_owner, 'OPL Framework opl release');
+  assert.equal(
+    resilience.homebrew_unknown_outcome,
+    'follower_fails_independently_then_fresh_cas_readback_before_optional_rerun',
+  );
+  assert.equal(resilience.homebrew_reconcile_owner, 'release-homebrew-standard-follower');
   assert.equal(resilience.homebrew_app_local_reconcile_loop_allowed, false);
   assert.equal(resilience.homebrew_reconcile_max_attempts, undefined);
   assert.equal(resilience.homebrew_retry_push_on_unknown_allowed, false);
@@ -354,7 +357,7 @@ test('Stable attempt results are deterministic observations and unchanged finger
   assert.doesNotMatch(workflow, /stable_stage_result.*framework_checkpoint/i);
 });
 
-test('Standard Latest admission consumes hosted publication and Homebrew readback without optional certification', () => {
+test('Standard Latest admission consumes hosted publication while Homebrew remains a non-blocking follower', () => {
   const stable = readJson('contracts/app-release-channel.json')
     .release_bundle_control_plane.publication.stable;
   const admission = stable.latest_admission;
@@ -393,17 +396,12 @@ test('Standard Latest admission consumes hosted publication and Homebrew readbac
     'candidate.dmg.sha256',
     'candidate.dmg.size_bytes',
   ]);
-  assert.equal(admission.homebrew_evidence.publication_schema, 'opl_bundle_homebrew_publication_receipt.v1');
-  assert.equal(
-    admission.homebrew_evidence.readback_schema,
-    'opl_bundle_homebrew_publication_readback_receipt.v1',
-  );
-  assert.deepEqual(admission.homebrew_evidence.required_digest_fields, [
-    'homebrew.publication_receipt_sha256',
-    'homebrew.readback_receipt_sha256',
-  ]);
-  assert.equal(admission.homebrew_evidence.readback_must_bind_publication_actual_file_digest, true);
-  assert.equal(admission.homebrew_evidence.clean_vm_receipt_allowed, false);
+  assert.deepEqual(admission.homebrew_follower, {
+    workflow: '.github/workflows/release-homebrew-standard-follower.yml',
+    latest_receipt_value: null,
+    consumed_by_latest_admission: false,
+    failure_blocks_core_release_or_latest: false,
+  });
   assert.equal(admission.failure_mode, 'fail_closed_before_latest_patch');
 });
 
@@ -667,7 +665,7 @@ test('release boundary rejects live authority, checkpoint, resilience, and broke
     },
     (release) => {
       release.release_bundle_control_plane.publication.stable.latest_admission
-        .homebrew_evidence.clean_vm_receipt_allowed = true;
+        .homebrew_follower.consumed_by_latest_admission = true;
     },
     (release) => {
       release.release_bundle_control_plane.publisher_idempotency.reconcile_admission

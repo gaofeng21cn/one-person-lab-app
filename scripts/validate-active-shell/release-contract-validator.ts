@@ -54,15 +54,11 @@ const standardLatestAdmissionContract = {
     'candidate.dmg.sha256',
     'candidate.dmg.size_bytes',
   ],
-  homebrew_evidence: {
-    publication_schema: 'opl_bundle_homebrew_publication_receipt.v1',
-    readback_schema: 'opl_bundle_homebrew_publication_readback_receipt.v1',
-    required_digest_fields: [
-      'homebrew.publication_receipt_sha256',
-      'homebrew.readback_receipt_sha256',
-    ],
-    readback_must_bind_publication_actual_file_digest: true,
-    clean_vm_receipt_allowed: false,
+  homebrew_follower: {
+    workflow: '.github/workflows/release-homebrew-standard-follower.yml',
+    latest_receipt_value: null,
+    consumed_by_latest_admission: false,
+    failure_blocks_core_release_or_latest: false,
   },
   failure_mode: 'fail_closed_before_latest_patch',
 };
@@ -80,8 +76,6 @@ const standardPrePublicationAdmissionContract = {
   public_mutation_allowed: false,
   does_not_replace: [
     'remote_digest_readback',
-    'standard_homebrew_digest_bound_publication',
-    'standard_homebrew_publication_readback',
     'latest_admission',
   ],
   failure_mode: 'fail_closed_before_public_release_creation',
@@ -591,6 +585,8 @@ function validateProviderConfigurationBoundary(boundary) {
 
 function validateReleaseCalendarGuard(releaseName) {
   const guard = releaseName?.calendar_guard;
+  const stableRevision = releaseName?.stable_revision;
+  const releaseIntent = releaseName?.release_intent_policy;
   assertDeepEqualJson(
     guard?.required_entrypoints,
     [
@@ -611,6 +607,36 @@ function validateReleaseCalendarGuard(releaseName) {
   ) {
     throw new Error('Release calendar guard must reject future-dated versions before build, lookup, or mutation');
   }
+  if (
+    stableRevision?.eligibility !== 'explicit_user_visible_product_change_only'
+    || stableRevision?.release_intent_required !== 'new_product'
+    || stableRevision?.nonempty_product_change_summary_required !== true
+    || stableRevision?.publication_build_packaging_signing_notarization_notes_homebrew_or_additive_failure_eligible !== false
+    || stableRevision?.same_tag_repair_required !== true
+    || releaseIntent?.new_tag_requires !== 'release_intent_new_product_and_nonempty_user_visible_product_change_summary'
+    || releaseIntent?.current_latest_release_set_must_be_complete_before_new_tag !== true
+    || releaseIntent?.same_tag_asset_and_notes_replacement_allowed !== true
+    || releaseIntent?.same_tag_mutation_requires_exact_current_identity_cas_and_public_readback !== true
+    || releaseIntent?.nonfunctional_release_work_may_allocate_version !== false
+  ) {
+    throw new Error('Stable tag allocation must require a user-visible product change; publication repair must preserve the tag');
+  }
+  assertDeepEqualJson(
+    releaseIntent?.preserve_existing_tag_for,
+    [
+      'build_failure',
+      'signing_failure',
+      'notarization_failure',
+      'packaging_failure',
+      'publication_failure',
+      'release_notes_repair',
+      'standard_asset_replacement',
+      'full_asset_append_or_replacement',
+      'homebrew_repair',
+      'additive_platform_repair',
+    ],
+    'Stable same-tag repair reasons',
+  );
 }
 
 function validateStandardUpdater(updater) {
@@ -1076,8 +1102,8 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     JSON.stringify(resilience?.updater_zip_identity_fields) !== JSON.stringify(['size_bytes', 'sha256']) ||
     resilience?.updater_metadata_declared_digest_is_not_sufficient !== true ||
     resilience?.homebrew_single_writer !== true ||
-    resilience?.homebrew_unknown_outcome !== 'framework_durable_marker_status_then_exact_reconcile' ||
-    resilience?.homebrew_reconcile_owner !== 'OPL Framework opl release' ||
+    resilience?.homebrew_unknown_outcome !== 'follower_fails_independently_then_fresh_cas_readback_before_optional_rerun' ||
+    resilience?.homebrew_reconcile_owner !== 'release-homebrew-standard-follower' ||
     resilience?.homebrew_app_local_reconcile_loop_allowed !== false ||
     resilience?.homebrew_reconcile_max_attempts !== undefined ||
     resilience?.homebrew_retry_push_on_unknown_allowed !== false ||

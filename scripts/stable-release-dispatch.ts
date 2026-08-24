@@ -76,7 +76,7 @@ export type StableDispatchPlan = {
   status: 'ready';
   operation: StableDispatchOperation;
   attempt_id: string;
-  version_policy: 'allocate_once_for_new_release' | 'preserve_source_tag';
+  version_policy: 'explicit_new_product_release' | 'preserve_source_tag';
   workflow_inputs: Record<string, string>;
   source: {
     run_id: string | null;
@@ -202,6 +202,19 @@ export function selectCheckpointArtifact(artifacts: WorkflowArtifact[], sourceRu
   const matches = artifacts.filter((artifact) => !artifact.expired && expected.has(artifact.name));
   if (matches.length !== 1) {
     throw new Error(`Run ${id} must expose exactly one reusable Standard or Full operation checkpoint; found ${matches.length}.`);
+  }
+  return matches[0]!.name;
+}
+
+export function selectQualifiedStandardCheckpointArtifact(
+  artifacts: WorkflowArtifact[],
+  sourceRunId: string,
+): string {
+  const id = runId(sourceRunId, 'source_run_id');
+  const expected = `opl-release-standard-checkpoint-${id}`;
+  const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
+  if (matches.length !== 1) {
+    throw new Error(`Run ${id} must expose exactly one qualified Standard checkpoint; found ${matches.length}.`);
   }
   return matches[0]!.name;
 }
@@ -373,6 +386,39 @@ export function activeStableRunIds(runs: unknown[], workflow = defaultWorkflow):
     .map((run) => run.id);
 }
 
+export function assertLatestReleaseSetComplete(value: unknown): void {
+  const release = record(value, 'Latest GitHub Release');
+  const tag = text(release.tag_name, 'Latest GitHub Release tag');
+  if (!tag.startsWith('v')) throw new Error('Latest GitHub Release tag must start with v.');
+  if (!Array.isArray(release.assets)) throw new Error('Latest GitHub Release assets are missing.');
+  const version = tag.slice(1);
+  const names = new Set(release.assets.map((item) =>
+    text(record(item, 'Latest GitHub Release asset').name, 'Latest GitHub Release asset name')));
+  const required = [
+    `One-Person-Lab-${version}-mac-arm64.dmg`,
+    `One-Person-Lab-Full-${version}-mac-arm64.dmg`,
+    'opl-app-component-manifest.json',
+    'opl-release-manifest.json',
+  ];
+  const missing = required.filter((name) => !names.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `Latest ${tag} is an incomplete Release Set (${missing.join(', ')} missing). `
+      + 'Finish or repair that same tag before creating another product version.',
+    );
+  }
+}
+
+function latestRelease(runtime: Runtime, repository: string): unknown {
+  return JSON.parse(runRequired(
+    runtime,
+    'gh',
+    ['api', `repos/${repository}/releases/latest`],
+    30_000,
+    'Read Latest Release Set',
+  ));
+}
+
 export function buildAppendFullPlan(input: {
   attemptId: string;
   sourceRunId: string;
@@ -456,7 +502,7 @@ export function buildFullCheckpointRecoveryPlan(input: {
   });
 }
 
-export function buildResumeStandardPlan(input: {
+export function buildPublishQualifiedStandardPlan(input: {
   attemptId: string;
   sourceRunId: string;
   sourceArtifact: string;
@@ -554,23 +600,6 @@ function downloadArtifactJson(
   }
 }
 
-function resolveBundleFrameworkSha(runtime: Runtime, repository: string, sourceRunId: string): string {
-  const artifacts = workflowArtifacts(runtime, repository, sourceRunId);
-  const expectedName = `opl-release-bundle-${sourceRunId}`;
-  const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expectedName);
-  if (matches.length !== 1) {
-    throw new Error(`Run ${sourceRunId} must expose exactly one ${expectedName}; found ${matches.length}.`);
-  }
-  const bundle = record(
-    downloadArtifactJson(runtime, repository, sourceRunId, expectedName, 'release-bundle.json'),
-    'Framework release bundle',
-  );
-  return sha(
-    record(record(bundle.sources, 'release bundle.sources').framework, 'release bundle.sources.framework').source_commit,
-    'release bundle Framework source commit',
-  );
-}
-
 function assertNoActiveRun(runtime: Runtime, workflow: string): void {
   const observation = readOwnerWorkflowRuns({ workflow, runner: runtime.runner, cwd: appRoot });
   if (observation.status !== 'ok') {
@@ -625,6 +654,7 @@ function buildStandardPlan(input: {
   shellSha: string;
   frameworkSha: string;
   desktopAdditionalPlatforms: string[];
+  productChangeSummary: string;
 }): StableDispatchPlan {
   const objectiveFingerprint = 'opl-desktop-stable-release';
   const criticalBlobs = stableOperationCriticalBlobs(appRoot);
@@ -684,9 +714,11 @@ function buildStandardPlan(input: {
     status: 'ready',
     operation: 'standard',
     attempt_id: attemptId('standard', input.runtime),
-    version_policy: 'allocate_once_for_new_release',
+    version_policy: 'explicit_new_product_release',
     workflow_inputs: {
       operation: 'standard',
+      release_intent: 'new_product',
+      product_change_summary: text(input.productChangeSummary, 'product_change_summary'),
       authority_id: authority.authority_id,
       operation_id: authority.operation_id,
       authority_carrier: encodeStableOperationAuthorityCarrier(authority),
@@ -785,12 +817,12 @@ function parsePlatforms(value: string | undefined): string[] {
 
 function usage(): never {
   process.stderr.write(`Usage:
-  npm run release:stable-dispatch -- standard [--execute]
-  npm run release:stable-dispatch -- resume-standard --run-id <standard-run> [--execute]
+  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--execute]
+  npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
   npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-run> [--execute]
   npm run release:stable-dispatch -- recover-full --run-id <failed-full-run> [--smoke-harness-ref <sha>] [--execute]
 
-The command never accepts a version. Recovery operations preserve the source checkpoint tag and perform at most one workflow dispatch.
+Only new-product-release may allocate a tag, and it requires an explicit product-change summary. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
 `);
   process.exit(2);
 }
@@ -812,6 +844,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       'framework-ref': { type: 'string' },
       'smoke-harness-ref': { type: 'string' },
       'desktop-additional-platforms': { type: 'string' },
+      'product-change-summary': { type: 'string' },
       output: { type: 'string' },
     },
   });
@@ -820,7 +853,8 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
   const executorSha = wireSha(runtime, 'origin');
   let plan: StableDispatchPlan;
 
-  if (command === 'standard') {
+  if (command === 'new-product-release') {
+    assertLatestReleaseSetComplete(latestRelease(runtime, repository));
     const appSha = values['app-ref'] ? sha(values['app-ref'], 'app_ref') : executorSha;
     const shellSha = values['shell-ref'] ? sha(values['shell-ref'], 'shell_ref') : wireSha(runtime, shellRemote);
     const frameworkSha = values['framework-ref']
@@ -833,17 +867,18 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       shellSha,
       frameworkSha,
       desktopAdditionalPlatforms: parsePlatforms(values['desktop-additional-platforms']),
+      productChangeSummary: text(values['product-change-summary'], 'product_change_summary'),
     });
-  } else if (command === 'resume-standard') {
+  } else if (command === 'publish-qualified-standard') {
     const sourceRunId = runId(values['run-id'], 'run_id');
     const artifacts = workflowArtifacts(runtime, repository, sourceRunId);
-    plan = buildResumeStandardPlan({
-      attemptId: attemptId('resume-standard', runtime),
+    plan = buildPublishQualifiedStandardPlan({
+      attemptId: attemptId('publish-qualified-standard', runtime),
       sourceRunId,
-      sourceArtifact: selectCheckpointArtifact(artifacts, sourceRunId),
+      sourceArtifact: selectQualifiedStandardCheckpointArtifact(artifacts, sourceRunId),
       frameworkSha: values['framework-ref']
         ? sha(values['framework-ref'], 'framework_ref')
-        : resolveBundleFrameworkSha(runtime, repository, sourceRunId),
+        : wireSha(runtime, frameworkRemote),
     });
   } else if (command === 'append-full') {
     const sourceRunId = runId(values['source-run-id'], 'source_run_id');

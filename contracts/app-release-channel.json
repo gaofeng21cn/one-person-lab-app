@@ -1374,11 +1374,34 @@
       "base_tag_absent_selects_base": true,
       "base_tag_present_selects_next_revision": true,
       "independent_release_per_revision": true,
-      "eligibility": "macos_primary_stable_asset_invalid_only",
+      "eligibility": "explicit_user_visible_product_change_only",
+      "release_intent_required": "new_product",
+      "nonempty_product_change_summary_required": true,
+      "publication_build_packaging_signing_notarization_notes_homebrew_or_additive_failure_eligible": false,
+      "same_tag_repair_required": true,
       "additive_platform_full_or_installer_failure_eligible": false,
       "additive_failure_route": "repair_in_original_release_set_without_new_version",
       "stable_release_native_immutable_required": false,
       "wall_clock_role": "reject_future_base_only"
+    },
+    "release_intent_policy": {
+      "new_tag_requires": "release_intent_new_product_and_nonempty_user_visible_product_change_summary",
+      "current_latest_release_set_must_be_complete_before_new_tag": true,
+      "preserve_existing_tag_for": [
+        "build_failure",
+        "signing_failure",
+        "notarization_failure",
+        "packaging_failure",
+        "publication_failure",
+        "release_notes_repair",
+        "standard_asset_replacement",
+        "full_asset_append_or_replacement",
+        "homebrew_repair",
+        "additive_platform_repair"
+      ],
+      "same_tag_asset_and_notes_replacement_allowed": true,
+      "same_tag_mutation_requires_exact_current_identity_cas_and_public_readback": true,
+      "nonfunctional_release_work_may_allocate_version": false
     },
     "machine_version": {
       "legacy_stable_last_display_version": "26.7.20",
@@ -1435,7 +1458,7 @@
         "latest_activation"
       ]
     },
-    "rule": "GitHub Release names, tags, assets, and UI use the display version. Updater, app package metadata, CFBundle versions, and Homebrew ordering use the separately bound machine version. A Stable revision is an independent release only when the macOS primary Stable assets are invalid; additive Linux, Windows, Full, or installer failures are repaired inside the original Release Set and never allocate a revision."
+    "rule": "GitHub Release names, tags, assets, and UI use the display version. Updater, app package metadata, CFBundle versions, and Homebrew ordering use the separately bound machine version. A new Stable tag or same-day revision requires an explicit user-visible product change. Build, signing, notarization, packaging, publication, notes, Homebrew, Full, or additive-platform repair stays in the original mutable Release Set under the same tag with exact-current-identity CAS and public readback."
   },
   "release_profiles": {
     "default": "stable",
@@ -1975,8 +1998,8 @@
       ],
       "updater_metadata_declared_digest_is_not_sufficient": true,
       "homebrew_single_writer": true,
-      "homebrew_unknown_outcome": "framework_durable_marker_status_then_exact_reconcile",
-      "homebrew_reconcile_owner": "OPL Framework opl release",
+      "homebrew_unknown_outcome": "follower_fails_independently_then_fresh_cas_readback_before_optional_rerun",
+      "homebrew_reconcile_owner": "release-homebrew-standard-follower",
       "homebrew_app_local_reconcile_loop_allowed": false,
       "homebrew_retry_push_on_unknown_allowed": false,
       "homebrew_success_requires_exact_remote_commit_and_cask_digest_readback": true,
@@ -2068,8 +2091,6 @@
           "public_mutation_allowed": false,
           "does_not_replace": [
             "remote_digest_readback",
-            "standard_homebrew_digest_bound_publication",
-            "standard_homebrew_publication_readback",
             "latest_admission"
           ],
           "failure_mode": "fail_closed_before_public_release_creation"
@@ -2098,15 +2119,11 @@
             "candidate.dmg.sha256",
             "candidate.dmg.size_bytes"
           ],
-          "homebrew_evidence": {
-            "publication_schema": "opl_bundle_homebrew_publication_receipt.v1",
-            "readback_schema": "opl_bundle_homebrew_publication_readback_receipt.v1",
-            "required_digest_fields": [
-              "homebrew.publication_receipt_sha256",
-              "homebrew.readback_receipt_sha256"
-            ],
-            "readback_must_bind_publication_actual_file_digest": true,
-            "clean_vm_receipt_allowed": false
+          "homebrew_follower": {
+            "workflow": ".github/workflows/release-homebrew-standard-follower.yml",
+            "latest_receipt_value": null,
+            "consumed_by_latest_admission": false,
+            "failure_blocks_core_release_or_latest": false
           },
           "failure_mode": "fail_closed_before_latest_patch"
         },
@@ -2124,9 +2141,7 @@
           "install-docker-webui.ps1",
           "github_hosted_source_contract_build_preflight",
           "github_hosted_signed_notarized_standard_build",
-          "remote_digest_readback",
-          "standard_homebrew_digest_bound_publication",
-          "standard_homebrew_publication_readback"
+          "remote_digest_readback"
         ]
       },
       "manual_full_preview": {
@@ -3561,20 +3576,20 @@
     "tap_update_policy": {
       "discovery_model": "user_taps_github_homebrew_tap_repo_then_homebrew_reads_formula_or_cask",
       "download_source": "app_owned_github_release_asset_url",
-      "default_remote_write_path": "release_bundle_protected_job_digest_bound_direct_commit",
+      "default_remote_write_path": "post_publication_non_blocking_digest_bound_follower",
       "default_workflow_repo": "gaofeng21cn/one-person-lab-app",
-      "default_workflow": ".github/workflows/_release-bundle.yml",
+      "default_workflow": ".github/workflows/release-homebrew-standard-follower.yml",
       "tap_sync_script": null,
       "app_release_promotion_workflow": ".github/workflows/release-stable.yml",
       "tap_owned_stable_distribution_workflow": null,
-      "app_release_direct_workflow": ".github/workflows/_release-bundle.yml",
+      "app_release_direct_workflow": null,
       "app_release_direct_token": "release-stable.OPL_HOMEBREW_TAP_TOKEN",
       "app_release_pull_request_allowed": false,
-      "app_release_workflow_write_mode": "protected_environment_single_attempt_digest_bound_direct_commit",
-      "stable_release_workflow_write_mode": "release_bundle_standard_before_latest_only",
-      "direct_commit_conflict_policy": "Push once, then compare exact local and remote tap commits; an unknown or mismatched result fails closed without retry, rerun, or redispatch",
+      "app_release_workflow_write_mode": "protected_environment_post_publication_follower_exact_cas",
+      "stable_release_workflow_write_mode": "post_publication_non_blocking_follower",
+      "direct_commit_conflict_policy": "Apply against the exact current Cask SHA and push once without force. A mismatched result fails only the follower; a later follower rerun starts from fresh public Cask state and never allocates a release version.",
       "planner_script": "scripts/update-homebrew-tap.ts",
-    "nightly": {
+      "nightly": {
       "mode": "post_publication_digest_bound_single_attempt_follower",
       "workflow": ".github/workflows/release-nightly-homebrew-follower.yml",
       "environment": "release-nightly",
@@ -3590,9 +3605,19 @@
       "stable_cask_must_remain_exact": true,
       "unknown_or_conflicting_result": "fail_closed_no_retry_rerun_or_redispatch"
     },
-    "stable": {
-      "mode": "release_bundle_publishes_standard_cask_then_hosted_readback_before_latest",
-      "publication_mode": "release_bundle_publishes_standard_cask_then_hosted_readback_before_latest",
+      "stable": {
+      "mode": "post_publication_digest_bound_cas_follower",
+      "publication_mode": "post_publication_digest_bound_cas_follower",
+      "workflow": ".github/workflows/release-homebrew-standard-follower.yml",
+      "environment": "release-stable",
+      "target": "Casks/one-person-lab.rb",
+      "source_completed_stage": "standard_public_and_latest_activated",
+      "mutation_allowed": true,
+      "core_release_or_latest_blocking": false,
+      "same_tag_replacement_allowed": true,
+      "new_release_version_required_for_changed_bytes": false,
+      "exact_current_cask_sha256_cas_required": true,
+      "fresh_cas_rerun_allowed": true,
       "may_consume_nightly_directly": false
       },
       "full": {
@@ -4791,9 +4816,7 @@
         "required_floor": [
           "github_hosted_source_contract_build_preflight",
           "github_hosted_signed_notarized_standard_build",
-          "remote_digest_readback",
-          "standard_homebrew_digest_bound_publication",
-          "standard_homebrew_publication_readback"
+          "remote_digest_readback"
         ],
         "self_hosted_ancestor_count": 1,
         "self_hosted_ancestor_scope": "exact_profile_protected_clean_install_only",

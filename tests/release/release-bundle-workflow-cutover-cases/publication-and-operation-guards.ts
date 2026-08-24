@@ -31,13 +31,12 @@ test('mutation unknown states persist evidence and only use bounded read-only re
     assert.match(source, /--operation-started-at/);
     assert.match(source, /--operation-deadline-at/);
   }
-  const homebrew = readWorkflow('_release-standard-publish.yml');
+  const homebrew = readWorkflow('release-homebrew-standard-follower.yml');
   assert.match(homebrew, /timeout --foreground --signal=TERM --kill-after=5s/);
-  assert.match(homebrew, /readonly_timeout_seconds=30/);
   assert.match(homebrew, /git -C tap-source ls-remote origin refs\/heads\/main/);
   assert.doesNotMatch(homebrew, /for attempt in 1 2 3|three read-only reconciliations/);
   assert.match(homebrew, /push_count=0/);
-  assert.match(homebrew, /test "\$push_count" -eq 1/);
+  assert.match(homebrew, /push_count=1/);
   assert.equal((homebrew.match(/git -C tap-source push --no-force origin/g) ?? []).length, 1);
   const standardSource = readWorkflow('_release-standard-publish.yml');
   const fullSource = readWorkflow('_release-full-addon.yml');
@@ -127,12 +126,6 @@ test('every recoverable Standard unknown artifact carries exactly one original b
       checkpoint: 'standard-github-unknown-checkpoint',
     },
     {
-      name: 'publish-homebrew-standard',
-      uploadStep: 'Upload Standard Homebrew publication receipt',
-      artifact: 'opl-release-homebrew-standard-${{ github.run_id }}',
-      checkpoint: 'homebrew-unknown-checkpoint',
-    },
-    {
       name: 'activate-latest',
       uploadStep: 'Upload Latest activation receipt',
       artifact: 'opl-release-activation-${{ github.run_id }}',
@@ -184,16 +177,6 @@ test('every recoverable Standard unknown artifact carries exactly one original b
   assert.match(standardFailure, /opl-release-standard-published-\$\{GITHUB_RUN_ID\}/);
   assert.match(standardFailure, /resume_source:\(if \$framework_reconcile_authorized then \{run_id:\$resume_source_run_id,artifact:\$resume_source_artifact\}/);
 
-  const homebrewMutation = String(
-    workflowStep(
-      '_release-standard-publish.yml',
-      'publish-homebrew-standard',
-      'Publish one digest-bound Standard cask commit',
-    ).run,
-  );
-  assert.match(homebrewMutation, /true "opl-release-homebrew-standard-\$\{GITHUB_RUN_ID\}"/);
-  assert.match(homebrewMutation, /resume_source_run_id:\(if \$resume_source_artifact == "" then null else \$resume_source_run_id end\)/);
-
   const latestFailure = String(
     workflowStep(
       '_release-standard-publish.yml',
@@ -211,7 +194,6 @@ test('every real release build, VM, and mutation job rejects a partial rerun loc
     ['full-first-install-release.yml', 'full-first-install'],
     ['opl-first-run-vm.yml', 'clean-vm-first-run'],
     ['_release-standard-publish.yml', 'publish-standard-nonlatest'],
-    ['_release-standard-publish.yml', 'publish-homebrew-standard'],
     ['_release-standard-publish.yml', 'activate-latest'],
     ['_release-full-addon.yml', 'publish-full'],
   ] as const;

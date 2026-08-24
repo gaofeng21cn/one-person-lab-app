@@ -48,10 +48,6 @@ export type StandardLatestAdmissionAuthority = {
 };
 
 const shaPattern = /^[0-9a-f]{40}$/;
-const standardTapRepository = 'gaofeng21cn/homebrew-one-person-lab';
-const standardCaskPath = 'Casks/one-person-lab.rb';
-
-
 function requireLatestReleaseTag(value: unknown, label: string): string {
   if (
     typeof value !== 'string'
@@ -285,14 +281,8 @@ export function assertStandardLatestAdmissionReceipt(
   ) {
     throw new Error('Hosted publication floor asset set does not match the frozen Standard candidate.');
   }
-  if (publicationChannel === 'stable') {
-    requireDigest(receipt.homebrew?.publication_receipt_sha256, 'Homebrew publication receipt sha256');
-    requireDigest(receipt.homebrew?.readback_receipt_sha256, 'Homebrew readback receipt sha256');
-    if ('clean_vm_receipt_sha256' in receipt.homebrew) {
-      throw new Error('Latest admission must not consume Homebrew clean-VM evidence.');
-    }
-  } else if (receipt.homebrew !== null) {
-    throw new Error('Preview Latest admission must not claim Homebrew publication evidence.');
+  if (receipt.homebrew !== null) {
+    throw new Error('Latest admission must not consume Homebrew follower evidence.');
   }
   for (const forbidden of ['updater_predecessor_policy', 'updater_receipts', 'optional_certification']) {
     if (forbidden in receipt) throw new Error(`Latest admission must not consume ${forbidden}.`);
@@ -409,64 +399,11 @@ export function validateStandardLatestAdmission(input: StandardLatestAdmissionIn
     'Staged component manifest sha256',
   );
 
-  let homebrewEvidence: JsonRecord | null = null;
-  if (input.publicationChannel === 'stable') {
-    const publicationPath = path.resolve(required(input.homebrewPublicationPath, 'homebrew-publication'));
-    const readbackPath = path.resolve(required(input.homebrewReadbackPath, 'homebrew-readback'));
-    const publication = readJson(publicationPath);
-    const readback = readJson(readbackPath);
-    requireEqual(publication.schema, 'opl_bundle_homebrew_publication_receipt.v1', 'Homebrew publication schema');
-    requireEqual(publication.status, 'passed', 'Homebrew publication status');
-    requireEqual(publication.track, 'standard', 'Homebrew publication track');
-    requireEqual(publication.bundle_digest, bundleDigest, 'Homebrew publication bundle_digest');
-    requireEqual(publication.release_version, input.candidateDisplayVersion, 'Homebrew release version');
-    requireEqual(publication.updater_version, input.candidateUpdaterVersion, 'Homebrew updater version');
-    requireEqual(publication.tap_repository, standardTapRepository, 'Homebrew tap repository');
-    if (!shaPattern.test(String(publication.tap_commit ?? ''))) {
-      throw new Error('Homebrew publication tap_commit must be exact.');
-    }
-    requireEqual(publication.cask?.path, standardCaskPath, 'Homebrew Standard cask path');
-    requireDigest(publication.cask?.sha256, 'Homebrew cask sha256');
-    requireEqual(publication.artifact?.name, bundleDmg.name, 'Homebrew DMG name');
-    requireEqual(
-      requireDigest(publication.artifact?.sha256, 'Homebrew DMG sha256'),
-      bundleDmg.sha256,
-      'Homebrew DMG sha256',
-    );
-    const releaseBase = `https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v${input.candidateDisplayVersion}`;
-    requireEqual(publication.artifact?.url, `${releaseBase}/${bundleDmg.name}`, 'Homebrew DMG URL');
-    requireEqual(
-      publication.component_manifest_url,
-      `${releaseBase}/opl-app-component-manifest.json`,
-      'Homebrew component manifest URL',
-    );
-    requireEqual(
-      readback.schema,
-      'opl_bundle_homebrew_publication_readback_receipt.v1',
-      'Homebrew readback schema',
-    );
-    requireEqual(readback.status, 'passed', 'Homebrew readback status');
-    requireEqual(readback.track, 'standard', 'Homebrew readback track');
-    requireEqual(readback.bundle_digest, bundleDigest, 'Homebrew readback bundle_digest');
-    requireEqual(readback.release_version, input.candidateDisplayVersion, 'Homebrew readback release version');
-    requireEqual(readback.updater_version, input.candidateUpdaterVersion, 'Homebrew readback updater version');
-    requireEqual(
-      readback.publication_receipt_sha256,
-      sha256File(publicationPath),
-      'Homebrew publication receipt digest',
-    );
-    if ('clean_vm_receipt_sha256' in readback) {
-      throw new Error('Hosted Homebrew readback must not bind clean-VM evidence.');
-    }
-    homebrewEvidence = {
-      publication_receipt_sha256: sha256File(publicationPath),
-      readback_receipt_sha256: sha256File(readbackPath),
-    };
-  } else if (
+  if (
     input.homebrewPublicationPath !== undefined
     || input.homebrewReadbackPath !== undefined
   ) {
-    throw new Error('Preview Latest admission rejects Homebrew evidence.');
+    throw new Error('Latest admission rejects Homebrew evidence; Homebrew runs as a non-blocking follower.');
   }
 
   const classification = expectedClassification(input.publicationChannel);
@@ -509,7 +446,7 @@ export function validateStandardLatestAdmission(input: StandardLatestAdmissionIn
       vm_ancestor_count: 0,
       tart_ancestor_count: 0,
     },
-    homebrew: homebrewEvidence,
+    homebrew: null,
     latest_compare_and_swap: {
       expected_current: { tag: expectedCurrentLatestTag },
       candidate: { tag: `v${input.candidateDisplayVersion}` },
@@ -545,8 +482,6 @@ function main(argv: string[]): void {
       'component-manifest': { type: 'string' },
       'expected-current-latest-tag': { type: 'string' },
       'latest-override-authority': { type: 'string' },
-      'homebrew-publication': { type: 'string' },
-      'homebrew-readback': { type: 'string' },
       output: { type: 'string' },
     },
   });
@@ -569,8 +504,6 @@ function main(argv: string[]): void {
     componentManifestPath: required(values['component-manifest'], 'component-manifest'),
     expectedCurrentLatestTag: required(values['expected-current-latest-tag'], 'expected-current-latest-tag'),
     latestOverrideAuthorityPath: values['latest-override-authority']?.trim() || undefined,
-    homebrewPublicationPath: values['homebrew-publication']?.trim() || undefined,
-    homebrewReadbackPath: values['homebrew-readback']?.trim() || undefined,
   });
   const output = path.resolve(required(values.output, 'output'));
   fs.mkdirSync(path.dirname(output), { recursive: true });

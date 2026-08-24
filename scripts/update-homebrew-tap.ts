@@ -542,20 +542,23 @@ function buildPlan(inputOptions: Options): {
     return target;
   });
 
-  const decision: TapCasDecision = targets.some((target) => target.changed && target.same_candidate_version)
+  const sameVersionChanged = targets.some((target) => target.changed && target.same_candidate_version);
+  const decision: TapCasDecision = sameVersionChanged && options.channel === 'nightly'
     ? 'version_conflict'
     : targets.some((target) => target.changed)
       ? 'write_once'
       : 'idempotent';
   const reason = decision === 'version_conflict'
-    ? 'candidate_version_conflicts_with_existing_bytes_require_new_revision'
+    ? 'nightly_candidate_version_conflicts_with_existing_bytes_require_new_revision'
     : decision === 'write_once'
-      ? 'different_or_missing_version_requires_one_write'
+      ? sameVersionChanged
+        ? 'stable_same_tag_replacement_requires_exact_current_cask_cas'
+        : 'different_or_missing_version_requires_one_write'
       : 'exact_candidate_bytes_already_present';
 
   if (options.write) {
     if (decision === 'version_conflict') {
-      throw new Error('Homebrew candidate version already exists with different Cask or DMG bytes; freeze a new release revision.');
+      throw new Error('Nightly Homebrew candidate version already exists with different Cask or DMG bytes; allocate a Nightly revision.');
     }
     if (options.expectedCurrentCaskSha256 !== null) {
       if (targets.length !== 1) {

@@ -13,7 +13,7 @@ on:
           - framework_release
           - studio_carrier_admission
       operation:
-        description: One bounded operation over an immutable Framework Bundle
+        description: New product release or same-tag Release Set completion
         required: true
         default: standard
         type: choice
@@ -21,6 +21,16 @@ on:
           - standard
           - resume_standard
           - append_full
+      release_intent:
+        description: New tag allocation is accepted only for an explicit product release
+        required: false
+        default: ''
+        type: string
+      product_change_summary:
+        description: User-visible product change that justifies a new version; empty for repair or add-on work
+        required: false
+        default: ''
+        type: string
       authority_id:
         description: Pre-issued canonical Stable authority identity for this one operation
         required: false
@@ -148,6 +158,8 @@ jobs:
           AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
           AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
           REQUESTED_VERSION: ${{ inputs.version }}
+          RELEASE_INTENT: ${{ inputs.release_intent }}
+          PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
           INCLUDE_FULL: ${{ inputs.include_full }}
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
           REQUESTED_SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
@@ -166,7 +178,7 @@ jobs:
           [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]
-          test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+          test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
           test "$INCLUDE_FULL" = false
 
       - name: Checkout exact App release authority
@@ -272,6 +284,8 @@ jobs:
           AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
           AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
           REQUESTED_VERSION: ${{ inputs.version }}
+          RELEASE_INTENT: ${{ inputs.release_intent }}
+          PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
           REQUESTED_SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
           REQUESTED_FRAMEWORK_REF: ${{ inputs.framework_ref }}
@@ -291,6 +305,8 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_RUN_ATTEMPT" = 1
           test "$OPERATION" = standard
+          test "$RELEASE_INTENT" = new_product
+          test -n "${PRODUCT_CHANGE_SUMMARY//[[:space:]]/}"
           test -n "$AUTHORITY_ID"
           test -n "$OPERATION_ID"
           test -n "$AUTHORITY_CARRIER"
@@ -310,6 +326,19 @@ jobs:
           ref: ${{ github.sha }}
           path: app-executor
           fetch-depth: 0
+
+      - name: Require the current Latest Release Set to be complete
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > latest-release.json
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { assertLatestReleaseSetComplete } from './app-executor/scripts/stable-release-dispatch.ts';
+          assertLatestReleaseSetComplete(JSON.parse(fs.readFileSync('latest-release.json', 'utf8')));
+          NODE
 
       - name: Decode and verify pre-issued Stable authority before dependency installation
         id: authority
@@ -528,6 +557,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           OPERATION: ${{ inputs.operation }}
           REQUESTED_VERSION: ${{ inputs.version }}
+          RELEASE_INTENT: ${{ inputs.release_intent }}
+          PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
           REQUESTED_APP_REF: ${{ inputs.app_ref }}
           INCLUDE_FULL: ${{ inputs.include_full }}
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
@@ -560,6 +591,11 @@ jobs:
           FRAMEWORK_EXECUTOR_REF=''
           case "$OPERATION" in
             standard)
+              test "$RELEASE_INTENT" = new_product
+              test -n "${PRODUCT_CHANGE_SUMMARY//[[:space:]]/}" || {
+                echo "::error::A new product release requires a user-visible product change summary."
+                exit 1
+              }
               test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
                 echo "::error::A new Standard Bundle accepts no external source artifact."
                 exit 1
@@ -582,6 +618,10 @@ jobs:
               FRAMEWORK_EXECUTOR_REF="$FRAMEWORK_SOURCE_REF"
               ;;
             resume_standard|append_full)
+              test -z "$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY" || {
+                echo "::error::Publication repair and Full append preserve the existing tag and accept no product-release intent."
+                exit 1
+              }
               test -z "$PRIOR_STANDARD_ARTIFACT_RUN_ID" || {
                 echo "::error::Only a fresh Standard operation may reuse signed Standard bytes."
                 exit 1
@@ -735,6 +775,8 @@ jobs:
           APP_REF: ${{ needs.admission.outputs.app_ref }}
           SHELL_REF: ${{ needs.admission.outputs.shell_ref }}
           FRAMEWORK_REF: ${{ needs.admission.outputs.framework_ref }}
+          RELEASE_INTENT: ${{ inputs.release_intent }}
+          PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
         shell: bash
         run: |
           set -euo pipefail
@@ -782,6 +824,8 @@ jobs:
           echo "source_gate_path=$source_gate_path" >> "$GITHUB_OUTPUT"
           node --experimental-strip-types app-executor/scripts/stable-release-admission-manifest.ts create \
             --base-version "$base_version" \
+            --release-intent "$RELEASE_INTENT" \
+            --product-change-summary "$PRODUCT_CHANGE_SUMMARY" \
             --app-ref "$APP_REF" --shell-ref "$SHELL_REF" --framework-ref "$FRAMEWORK_REF" \
             --app-source-root app-source \
             --admission-run-id "$GITHUB_RUN_ID" \

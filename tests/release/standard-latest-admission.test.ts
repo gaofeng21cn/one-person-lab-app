@@ -101,7 +101,7 @@ function configureCandidate(
   );
 }
 
-function createFixture(): { root: string; input: StandardLatestAdmissionInput; updateReadback(): void } {
+function createFixture(): { root: string; input: StandardLatestAdmissionInput } {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-standard-latest-admission-'));
   const standardAssetsPath = writeJson(root, 'checkpoint/tracks/standard/assets.json', {
     surface_kind: 'opl_release_bundle_staged_assets.v1',
@@ -120,36 +120,6 @@ function createFixture(): { root: string; input: StandardLatestAdmissionInput; u
       },
     ],
   });
-  const homebrewPublicationPath = writeJson(root, 'homebrew/publication.json', {
-    schema: 'opl_bundle_homebrew_publication_receipt.v1',
-    status: 'passed',
-    track: 'standard',
-    bundle_digest: bundleDigest,
-    release_version: '26.7.21-r1',
-    updater_version: '26.7.2101',
-    tap_repository: 'gaofeng21cn/homebrew-one-person-lab',
-    tap_commit: '4'.repeat(40),
-    cask: { path: 'Casks/one-person-lab.rb', sha256: `sha256:${'d'.repeat(64)}` },
-    artifact: {
-      name: 'One-Person-Lab-26.7.21-r1-mac-arm64.dmg',
-      sha256: `sha256:${dmgSha}`,
-      url: 'https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v26.7.21-r1/One-Person-Lab-26.7.21-r1-mac-arm64.dmg',
-    },
-    component_manifest_url: 'https://github.com/gaofeng21cn/one-person-lab-app/releases/download/v26.7.21-r1/opl-app-component-manifest.json',
-  });
-  const homebrewReadbackPath = path.join(root, 'homebrew/readback.json');
-  const updateReadback = (): void => {
-    writeJson(root, 'homebrew/readback.json', {
-      schema: 'opl_bundle_homebrew_publication_readback_receipt.v1',
-      status: 'passed',
-      track: 'standard',
-      bundle_digest: bundleDigest,
-      release_version: '26.7.21-r1',
-      updater_version: '26.7.2101',
-      publication_receipt_sha256: sha256(homebrewPublicationPath),
-    });
-  };
-  updateReadback();
   const input: StandardLatestAdmissionInput = {
     publicationChannel: 'stable',
     bundleDigest,
@@ -161,11 +131,9 @@ function createFixture(): { root: string; input: StandardLatestAdmissionInput; u
     standardAssetsPath,
     componentManifestPath: path.join(root, 'component-manifest.json'),
     expectedCurrentLatestTag: 'v26.7.20',
-    homebrewPublicationPath,
-    homebrewReadbackPath,
   };
   configureCandidate(root, input, 'stable', '26.7.21-r1', '26.7.2101');
-  return { root, updateReadback, input };
+  return { root, input };
 }
 
 function stableAuthority(receipt: Record<string, any>): Record<string, any> {
@@ -182,7 +150,7 @@ function stableAuthority(receipt: Record<string, any>): Record<string, any> {
   };
 }
 
-test('Latest admission binds the hosted publication floor, exact Standard bytes, and Homebrew readback', () => {
+test('Latest admission binds the hosted publication floor and exact Standard bytes without Homebrew', () => {
   const fixture = createFixture();
   try {
     const receipt = validateStandardLatestAdmission(fixture.input);
@@ -220,6 +188,7 @@ test('Latest admission binds the hosted publication floor, exact Standard bytes,
       vm_ancestor_count: 0,
       tart_ancestor_count: 0,
     });
+    assert.equal(receipt.homebrew, null);
     assert.equal('updater_predecessor_policy' in receipt, false);
     assert.equal('updater_receipts' in receipt, false);
     assert.equal('optional_certification' in receipt, false);
@@ -328,19 +297,6 @@ test('Preview Latest admission fails closed without exact single-use authority',
   }
 });
 
-test('Preview Latest admission rejects Homebrew evidence', () => {
-  const fixture = createFixture();
-  try {
-    configureCandidate(fixture.root, fixture.input, 'preview', '26.7.21-preview.r1', '26.7.2101');
-    assert.throws(
-      () => validateStandardLatestAdmission(fixture.input),
-      /Preview Latest admission rejects Homebrew evidence/,
-    );
-  } finally {
-    fs.rmSync(fixture.root, { recursive: true, force: true });
-  }
-});
-
 test('Latest admission input digest binds the exact current Latest tag', () => {
   const fixture = createFixture();
   try {
@@ -373,33 +329,22 @@ test('Latest admission accepts the candidate as current for observational idempo
   }
 });
 
-test('Latest admission rejects Homebrew readback not bound to source receipt bytes', () => {
+test('Latest admission rejects legacy Homebrew evidence because the Cask runs as a follower', () => {
   const fixture = createFixture();
   try {
-    const readback = JSON.parse(fs.readFileSync(fixture.input.homebrewReadbackPath!, 'utf8'));
-    readback.publication_receipt_sha256 = `sha256:${'0'.repeat(64)}`;
-    fs.writeFileSync(fixture.input.homebrewReadbackPath!, `${JSON.stringify(readback)}\n`);
+    fixture.input.homebrewPublicationPath = path.join(fixture.root, 'legacy-homebrew-publication.json');
     assert.throws(
       () => validateStandardLatestAdmission(fixture.input),
-      /Homebrew publication receipt digest does not match/,
+      /Homebrew runs as a non-blocking follower/,
     );
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
   }
 });
 
-test('Latest admission rejects clean-VM and optional-certification evidence', () => {
+test('Latest admission rejects optional-certification evidence', () => {
   const fixture = createFixture();
   try {
-    const readback = JSON.parse(fs.readFileSync(fixture.input.homebrewReadbackPath!, 'utf8'));
-    readback.clean_vm_receipt_sha256 = `sha256:${'9'.repeat(64)}`;
-    fs.writeFileSync(fixture.input.homebrewReadbackPath!, `${JSON.stringify(readback)}\n`);
-    assert.throws(
-      () => validateStandardLatestAdmission(fixture.input),
-      /must not bind clean-VM evidence/,
-    );
-
-    fixture.updateReadback();
     const receipt = validateStandardLatestAdmission(fixture.input);
     receipt.optional_certification = { status: 'passed' };
     assert.throws(
@@ -408,22 +353,6 @@ test('Latest admission rejects clean-VM and optional-certification evidence', ()
         __standardAssetsPath: fixture.input.standardAssetsPath,
       })),
       /must not consume optional_certification/,
-    );
-  } finally {
-    fs.rmSync(fixture.root, { recursive: true, force: true });
-  }
-});
-
-test('Latest admission rejects Homebrew publication for bytes outside the frozen Standard assets', () => {
-  const fixture = createFixture();
-  try {
-    const publication = JSON.parse(fs.readFileSync(fixture.input.homebrewPublicationPath!, 'utf8'));
-    publication.artifact.sha256 = `sha256:${'f'.repeat(64)}`;
-    fs.writeFileSync(fixture.input.homebrewPublicationPath!, `${JSON.stringify(publication)}\n`);
-    fixture.updateReadback();
-    assert.throws(
-      () => validateStandardLatestAdmission(fixture.input),
-      /Homebrew DMG sha256 does not match/,
     );
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });

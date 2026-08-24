@@ -5,11 +5,13 @@ import test from 'node:test';
 
 import {
   activeStableRunIds,
+  assertLatestReleaseSetComplete,
   buildAppendFullPlan,
   buildFullCheckpointRecoveryPlan,
-  buildResumeStandardPlan,
+  buildPublishQualifiedStandardPlan,
   dispatchOnce,
   selectCheckpointArtifact,
+  selectQualifiedStandardCheckpointArtifact,
   selectFullCheckpointArtifact,
   selectFullCohortArtifact,
   selectFullQualificationArtifact,
@@ -44,6 +46,34 @@ test('checkpoint recovery selects one exact non-expired operation checkpoint', (
   assert.throws(
     () => selectCheckpointArtifact([], '123'),
     /exactly one reusable Standard or Full operation checkpoint/,
+  );
+});
+
+test('qualified Standard publication selects only the exact qualification checkpoint', () => {
+  assert.equal(selectQualifiedStandardCheckpointArtifact([
+    { id: 1, name: 'opl-release-standard-checkpoint-123', expired: false },
+    { id: 2, name: 'opl-release-standard-operation-checkpoint-123', expired: false },
+  ], '123'), 'opl-release-standard-checkpoint-123');
+  assert.throws(
+    () => selectQualifiedStandardCheckpointArtifact([], '123'),
+    /exactly one qualified Standard checkpoint/,
+  );
+});
+
+test('a new product version is blocked while Latest is not a complete Release Set', () => {
+  const complete = {
+    tag_name: 'v26.8.22',
+    assets: [
+      { name: 'One-Person-Lab-26.8.22-mac-arm64.dmg' },
+      { name: 'One-Person-Lab-Full-26.8.22-mac-arm64.dmg' },
+      { name: 'opl-app-component-manifest.json' },
+      { name: 'opl-release-manifest.json' },
+    ],
+  };
+  assert.doesNotThrow(() => assertLatestReleaseSetComplete(complete));
+  assert.throws(
+    () => assertLatestReleaseSetComplete({ ...complete, assets: complete.assets.slice(0, 2) }),
+    /Finish or repair that same tag before creating another product version/,
   );
 });
 
@@ -268,9 +298,9 @@ test('Full recovery rejects a later passed run or a mismatched original producer
   );
 });
 
-test('resume Standard preserves its source tag and derives no new version input', () => {
-  const plan = buildResumeStandardPlan({
-    attemptId: 'resume-standard-20260824-aabbccdd',
+test('qualified Standard publication preserves its source tag and derives no new version input', () => {
+  const plan = buildPublishQualifiedStandardPlan({
+    attemptId: 'publish-qualified-standard-20260824-aabbccdd',
     sourceRunId: '32617588213',
     sourceArtifact: 'opl-release-standard-operation-checkpoint-32617588213',
     frameworkSha,

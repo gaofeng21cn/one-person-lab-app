@@ -324,16 +324,8 @@ test('Standard publisher keeps Stable qualification separate from protected Prev
   const run = String(activate?.run ?? '');
 
   assert.doesNotMatch(source, /WebUI follower|webui-follower-handoff/);
-  assert.deepEqual(
-    homebrewDownloads.map((step: Record<string, unknown>) => step.name),
-    [
-      'Download Standard Homebrew publication receipt',
-      'Download Standard Homebrew readback receipt',
-    ],
-  );
-  for (const step of homebrewDownloads) {
-    assert.equal(step.if, "${{ needs.restore.outputs.channel == 'stable' }}");
-  }
+  assert.deepEqual(homebrewDownloads, []);
+  assert.deepEqual(activation.needs, ['restore', 'remote-digest-verify']);
   assert.match(run, /write-latest-pointer-override-authority\.ts/);
   assert.match(run, /--component-manifest latest-component-manifest\.json/);
   assert.match(run, /--latest-override-authority latest-override-authority\.json/);
@@ -341,7 +333,7 @@ test('Standard publisher keeps Stable qualification separate from protected Prev
   assert.match(run, /persistent_override: false/);
   assert.doesNotMatch(run, /stable_promotion_barrier\.satisfied == true/);
   assert.doesNotMatch(run, /release_bundle_status\.latest_eligible == true/);
-  assert.match(run, /if \[ '\$\{\{ needs\.restore\.outputs\.channel \}\}' = stable \]; then/);
+  assert.match(run, /if \[ '\$\{\{ needs\.restore\.outputs\.channel \}\}' != stable \]; then/);
   assert.doesNotMatch(
     source,
     /needs\.restore\.outputs\.channel == 'preview' && needs\.homebrew-standard-readback\.result == 'success'/,

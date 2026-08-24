@@ -1595,6 +1595,77 @@ jobs:
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
           jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
             bundle-status.json >/dev/null
+          if [ '${{ needs.restore.outputs.channel }}' = stable ]; then
+            dmg_name='One-Person-Lab-${{ needs.restore.outputs.version }}-mac-arm64.dmg'
+            component_manifest_name=opl-app-component-manifest.json
+            jq -n \
+              --slurpfile remote remote.json \
+              --slurpfile publication_record "$record" \
+              --arg repository "$GITHUB_REPOSITORY" \
+              --arg workflow '.github/workflows/release-stable.yml' \
+              --arg run_id "$GITHUB_RUN_ID" \
+              --arg executor_head_sha "$GITHUB_SHA" \
+              --arg operation '${{ needs.restore.outputs.release_operation }}' \
+              --arg source_run_id '${{ needs.restore.outputs.source_run_id }}' \
+              --arg source_artifact '${{ needs.restore.outputs.source_artifact }}' \
+              --arg version '${{ needs.restore.outputs.version }}' \
+              --arg updater_version '${{ needs.restore.outputs.updater_version }}' \
+              --arg tag '${{ needs.restore.outputs.tag }}' \
+              --arg bundle_digest "$BUNDLE_DIGEST" \
+              --arg app_sha '${{ needs.restore.outputs.app_ref }}' \
+              --arg shell_sha '${{ needs.restore.outputs.shell_ref }}' \
+              --arg framework_sha '${{ needs.restore.outputs.framework_source_ref }}' \
+              --arg dmg_name "$dmg_name" \
+              --arg component_manifest_name "$component_manifest_name" '
+                ($remote[0].assets | map(select(.name == $dmg_name))) as $dmg
+                | ($remote[0].assets | map(select(.name == $component_manifest_name))) as $manifest
+                | if ($dmg | length) != 1 or ($manifest | length) != 1 then
+                    error("Stable Homebrew handoff requires one exact Standard DMG and component manifest")
+                  else {
+                    schema: "opl_homebrew_standard_follower_handoff.v1",
+                    status: "ready",
+                    authority: {
+                      repository: $repository,
+                      workflow: $workflow,
+                      run_id: $run_id,
+                      run_attempt: 1,
+                      executor_head_sha: $executor_head_sha
+                    },
+                    source: {
+                      operation: $operation,
+                      checkpoint_run_id: $source_run_id,
+                      checkpoint_artifact: $source_artifact
+                    },
+                    release: {
+                      version: $version,
+                      updater_version: $updater_version,
+                      tag: $tag,
+                      id: $remote[0].release.id,
+                      target_commitish: $remote[0].release.target_commitish,
+                      mutable_same_tag_release_set: true
+                    },
+                    cohort: {
+                      app_sha: $app_sha,
+                      shell_sha: $shell_sha,
+                      framework_sha: $framework_sha
+                    },
+                    publication: {
+                      bundle_digest: $bundle_digest,
+                      publication_record_digest: $publication_record[0].publication_record_digest,
+                      remote_digest_readback: "passed"
+                    },
+                    standard_dmg: $dmg[0],
+                    component_manifest: $manifest[0],
+                    homebrew: {
+                      role: "non_blocking_follower",
+                      target: "Casks/one-person-lab.rb",
+                      exact_current_cask_sha256_cas_required: true,
+                      same_tag_replacement_allowed: true,
+                      core_release_or_latest_blocking: false
+                    }
+                  } end
+              ' > homebrew-standard-handoff.json
+          fi
 
       - name: Upload remote digest proof
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -1614,456 +1685,7 @@ jobs:
             webui-remote.receipt.json
             webui-publication.json
             bundle-status.json
-          if-no-files-found: error
-          retention-days: 30
-
-  publish-homebrew-standard:
-    if: ${{ needs.restore.outputs.channel == 'stable' && needs.remote-digest-verify.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    environment: release-stable
-    permissions:
-      contents: read
-      actions: read
-    needs: [restore, remote-digest-verify]
-    steps:
-      - name: Reject partial rerun before Standard Homebrew mutation
-        shell: bash
-        run: |
-          if [ "$GITHUB_RUN_ATTEMPT" != 1 ]; then
-            printf '%s\0' homebrew_standard_publish '${{ needs.restore.outputs.bundle_digest }}' '${{ needs.restore.outputs.operation_deadline_at }}' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
-              | shasum -a 256 | awk '{print "sha256:"$1}' > homebrew-standard-input-digest.txt
-            jq -n --arg input_digest "$(cat homebrew-standard-input-digest.txt)" \
-              '{schema:"opl_homebrew_mutation_failure_receipt.v1",status:"failed",failure_taxonomy:"workflow_rerun",input_digest:$input_digest,push_count:0,retry_disposition:"inspect_only_no_second_push"}' \
-              > homebrew-standard-failure.json
-            cat homebrew-standard-failure.json >&2
-            exit 1
-          fi
-
-      - name: Checkout canonical App executor
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { ref: '${{ github.sha }}', path: app-source }
-
-      - name: Restore Standard checkpoint
-        id: checkpoint
-        uses: ./app-source/.github/actions/restore-release-checkpoint
-        with:
-          framework-executor-ref: ${{ needs.restore.outputs.framework_executor_ref }}
-          source-run-id: ${{ needs.restore.outputs.source_run_id }}
-          source-artifact: ${{ needs.restore.outputs.source_artifact }}
-          github-token: ${{ github.token }}
-
-      - name: Materialize unique Standard build receipt for portable recovery
-        shell: bash
-        run: |
-          set -euo pipefail
-          standard_build_receipts=()
-          while IFS= read -r standard_build_receipt; do
-            standard_build_receipts+=("$standard_build_receipt")
-          done < <(
-            find imported-checkpoint -type f -name standard-build-receipt.json -print | LC_ALL=C sort
-          )
-          if [ "${#standard_build_receipts[@]}" -ne 1 ]; then
-            echo "::error::Source artifact must contain exactly one App-owned standard-build-receipt.json; found ${#standard_build_receipts[@]}."
-            exit 1
-          fi
-          cp "${standard_build_receipts[0]}" standard-build-receipt.json
-          cmp "${standard_build_receipts[0]}" standard-build-receipt.json
-
-      - name: Checkout canonical Homebrew tap
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: gaofeng21cn/homebrew-one-person-lab
-          ref: main
-          token: ${{ secrets.OPL_HOMEBREW_TAP_TOKEN }}
-          path: tap-source
-          fetch-depth: 0
-
-      - name: Publish one digest-bound Standard cask commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAP_TOKEN: ${{ secrets.OPL_HOMEBREW_TAP_TOKEN }}
-          VERSION: ${{ needs.restore.outputs.version }}
-          UPDATER_VERSION: ${{ needs.restore.outputs.updater_version }}
-          BUNDLE_DIGEST: ${{ needs.restore.outputs.bundle_digest }}
-          OPERATION_DEADLINE_AT: ${{ needs.restore.outputs.operation_deadline_at }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p release-failure-evidence
-          exec > >(tee release-failure-evidence/stdout.txt) 2> >(tee release-failure-evidence/stderr.txt >&2)
-          assets='${{ steps.checkpoint.outputs.checkpoint_dir }}/tracks/standard/assets'
-          dmg="$assets/One-Person-Lab-${VERSION}-mac-arm64.dmg"
-          test -s "$dmg"
-          dmg_sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
-          release_base="https://github.com/$GITHUB_REPOSITORY/releases/download/v${VERSION}"
-          base_commit="$(git -C tap-source rev-parse HEAD)"
-          test -z "$(git -C tap-source status --porcelain)"
-          readonly_timeout_seconds=30
-
-          inspect_remote_head() {
-            local remote_output
-            remote_output="$(timeout --foreground --signal=TERM --kill-after=5s "${readonly_timeout_seconds}s" \
-              git -C tap-source ls-remote origin refs/heads/main)" || return 1
-            awk 'NF == 2 && $2 == "refs/heads/main" { print $1 }' <<<"$remote_output"
-          }
-
-          cask_path=tap-source/Casks/one-person-lab.rb
-          preplan_cask_sha=absent
-          if [ -f "$cask_path" ]; then
-            preplan_cask_sha="$(shasum -a 256 "$cask_path" | awk '{print "sha256:"$1}')"
-          fi
-          printf '%s\0' "$BUNDLE_DIGEST" standard "$VERSION" "$UPDATER_VERSION" \
-            "sha256:$dmg_sha" "$preplan_cask_sha" "$base_commit" "$OPERATION_DEADLINE_AT" \
-            | shasum -a 256 | awk '{print "sha256:"$1}' > release-failure-evidence/input-digest.txt
-          preplan_remote_commit="$(inspect_remote_head)" || {
-            jq -n --arg bundle "$BUNDLE_DIGEST" --arg release "$VERSION" --arg updater "$UPDATER_VERSION" \
-              --arg dmg "sha256:$dmg_sha" --arg cask "$preplan_cask_sha" --arg base_commit "$base_commit" \
-              --arg input_digest "$(cat release-failure-evidence/input-digest.txt)" --arg operation_deadline_at "$OPERATION_DEADLINE_AT" \
-              '{schema:"opl_homebrew_mutation_failure_receipt.v1",status:"failed",track:"standard",bundle_digest:$bundle,release_version:$release,updater_version:$updater,failure_taxonomy:"homebrew_remote_inspect_failed",input_digest:$input_digest,operation_deadline_at:$operation_deadline_at,base_commit:$base_commit,result_commit:null,push_count:0,push_exit_status:null,dmg_sha256:$dmg,cask_sha256:$cask,retry_disposition:"bounded_read_only_inspect_only_no_framework_reconcile",framework_reconcile_authorized:false,evidence:{stdout:"release-failure-evidence/stdout.txt",stderr:"release-failure-evidence/stderr.txt",input_digest:"release-failure-evidence/input-digest.txt"}}' \
-              > homebrew-standard-failure.json
-            exit 1
-          }
-          if [ -z "$preplan_remote_commit" ] || [ "$preplan_remote_commit" != "$base_commit" ]; then
-            jq -n --arg bundle "$BUNDLE_DIGEST" --arg release "$VERSION" --arg updater "$UPDATER_VERSION" \
-              --arg dmg "sha256:$dmg_sha" --arg cask "$preplan_cask_sha" --arg base_commit "$base_commit" \
-              --arg result_commit "$preplan_remote_commit" --arg input_digest "$(cat release-failure-evidence/input-digest.txt)" --arg operation_deadline_at "$OPERATION_DEADLINE_AT" \
-              '{schema:"opl_homebrew_mutation_failure_receipt.v1",status:"failed",track:"standard",bundle_digest:$bundle,release_version:$release,updater_version:$updater,failure_taxonomy:"homebrew_remote_head_drift",input_digest:$input_digest,operation_deadline_at:$operation_deadline_at,base_commit:$base_commit,result_commit:$result_commit,push_count:0,push_exit_status:null,dmg_sha256:$dmg,cask_sha256:$cask,retry_disposition:"new_operation_required_no_mutation",framework_reconcile_authorized:false,evidence:{stdout:"release-failure-evidence/stdout.txt",stderr:"release-failure-evidence/stderr.txt",input_digest:"release-failure-evidence/input-digest.txt"}}' \
-              > homebrew-standard-failure.json
-            exit 1
-          fi
-
-          # Render and validate expected bytes without touching the tap worktree.
-          node --experimental-strip-types app-source/scripts/update-homebrew-tap.ts \
-            --channel stable --package-kind app_standard \
-            --version "$VERSION" --updater-version "$UPDATER_VERSION" \
-            --tap-root tap-source --cask Casks/one-person-lab.rb \
-            --manifest-url "$release_base/opl-app-component-manifest.json" \
-            --checksum-sha256 "$dmg_sha" \
-            --download-url "$release_base/One-Person-Lab-${VERSION}-mac-arm64.dmg" \
-            --remote-write-mode inspect_only --summary-path homebrew-standard-plan.json > /dev/null
-          test "$(jq -r .schema homebrew-standard-plan.json)" = opl_homebrew_tap_cas_plan.v1
-          cas_decision="$(jq -er .cas.decision homebrew-standard-plan.json)"
-          current_cask_sha="$(jq -er 'if (.targets | length) == 1 then (.targets[0].current_cask_sha256 // "absent") else error("exactly one target required") end' homebrew-standard-plan.json)"
-          expected_cask_sha="$(jq -er 'if (.targets | length) == 1 then .targets[0].expected_cask_sha256 else error("exactly one target required") end' homebrew-standard-plan.json)"
-          test "$current_cask_sha" = "$preplan_cask_sha"
-          bundle='${{ steps.checkpoint.outputs.bundle_path }}'
-          store='${{ steps.checkpoint.outputs.store_dir }}'
-          operation_id='${{ needs.restore.outputs.operation_id }}'
-          operation_args=(
-            --operation '${{ needs.restore.outputs.release_operation }}'
-            --operation-id "$operation_id"
-            --operation-started-at '${{ needs.restore.outputs.operation_started_at }}'
-            --operation-deadline-at "$OPERATION_DEADLINE_AT"
-          )
-          homebrew_remote_target="homebrew:gaofeng21cn/homebrew-one-person-lab/Casks/one-person-lab.rb/${expected_cask_sha}"
-          github_remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
-          framework-executor/bin/opl release operation admit \
-            --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
-            --store "$store" --json > homebrew-operation-admit.json
-          node --experimental-strip-types app-source/scripts/framework-release-adapter.ts github-inspect \
-            --repo "$GITHUB_REPOSITORY" --tag '${{ needs.restore.outputs.tag }}' \
-            --output homebrew-github-assets.json
-          node --experimental-strip-types app-source/scripts/framework-release-adapter.ts executor-receipt \
-            --operation remote_inspect --executor remote --attempt-id "gha-${GITHUB_RUN_ID}-homebrew-github-assets" \
-            --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
-            --remote-target "$github_remote_target" --publication-scope track_assets \
-            --bundle "$bundle" --track standard --outcome complete \
-            --inspection homebrew-github-assets.json --output homebrew-github-assets.receipt.json
-          framework-executor/bin/opl release publish \
-            --bundle "$BUNDLE_DIGEST" --executor-receipt homebrew-github-assets.receipt.json \
-            "${operation_args[@]}" --store "$store" --json > homebrew-track-assets.json
-          test "$(jq -r .release_bundle_publish.status homebrew-track-assets.json)" = complete
-          printf '%s\0' "$BUNDLE_DIGEST" standard "$VERSION" "$UPDATER_VERSION" \
-            "sha256:$dmg_sha" "$expected_cask_sha" "$base_commit" "$OPERATION_DEADLINE_AT" \
-            | shasum -a 256 | awk '{print "sha256:"$1}' > release-failure-evidence/input-digest.txt
-
-          write_homebrew_failure() {
-            local taxonomy="$1"
-            local retry_disposition="$2"
-            local push_count="$3"
-            local result_commit="${4:-}"
-            local push_exit_status="${5:-}"
-            local framework_reconcile_authorized="${6:-false}"
-            local resume_source_artifact="${7:-}"
-            jq -n \
-              --arg bundle "$BUNDLE_DIGEST" --arg release "$VERSION" --arg updater "$UPDATER_VERSION" \
-              --arg dmg "sha256:$dmg_sha" --arg cask "$expected_cask_sha" \
-              --arg base_commit "$base_commit" --arg result_commit "$result_commit" \
-              --arg input_digest "$(cat release-failure-evidence/input-digest.txt)" \
-              --arg operation_deadline_at "$OPERATION_DEADLINE_AT" \
-              --arg failure_taxonomy "$taxonomy" --arg retry_disposition "$retry_disposition" \
-              --arg push_exit_status "$push_exit_status" --argjson push_count "$push_count" \
-              --argjson framework_reconcile_authorized "$framework_reconcile_authorized" \
-              --arg resume_source_artifact "$resume_source_artifact" \
-              --arg resume_source_run_id "$GITHUB_RUN_ID" \
-              '{schema:"opl_homebrew_mutation_failure_receipt.v1",status:"failed",track:"standard",bundle_digest:$bundle,release_version:$release,updater_version:$updater,failure_taxonomy:$failure_taxonomy,input_digest:$input_digest,operation_deadline_at:$operation_deadline_at,base_commit:$base_commit,result_commit:(if $result_commit == "" then null else $result_commit end),push_count:$push_count,push_exit_status:(if $push_exit_status == "" then null else ($push_exit_status|tonumber) end),dmg_sha256:$dmg,cask_sha256:$cask,retry_disposition:$retry_disposition,framework_reconcile_authorized:$framework_reconcile_authorized,resume_source_run_id:(if $resume_source_artifact == "" then null else $resume_source_run_id end),resume_source_artifact:(if $resume_source_artifact == "" then null else $resume_source_artifact end),evidence:{stdout:"release-failure-evidence/stdout.txt",stderr:"release-failure-evidence/stderr.txt",input_digest:"release-failure-evidence/input-digest.txt"}}' \
-              > homebrew-standard-failure.json
-          }
-
-          write_homebrew_success() {
-            local outcome="$1"
-            local result_commit="$2"
-            local push_count="$3"
-            jq -n \
-              --arg bundle "$BUNDLE_DIGEST" --arg release "$VERSION" --arg updater "$UPDATER_VERSION" \
-              --arg base_commit "$base_commit" --arg result_commit "$result_commit" \
-              --arg input_digest "$(cat release-failure-evidence/input-digest.txt)" \
-              --arg cask "$expected_cask_sha" --arg dmg "sha256:$dmg_sha" --arg base "$release_base" \
-              --arg outcome "$outcome" --argjson push_count "$push_count" \
-              '{schema:"opl_bundle_homebrew_publication_receipt.v1",status:"passed",track:"standard",outcome:$outcome,bundle_digest:$bundle,release_version:$release,updater_version:$updater,tap_repository:"gaofeng21cn/homebrew-one-person-lab",base_commit:$base_commit,result_commit:$result_commit,tap_commit:$result_commit,push_count:$push_count,input_digest:$input_digest,cask:{path:"Casks/one-person-lab.rb",sha256:$cask},artifact:{name:("One-Person-Lab-"+$release+"-mac-arm64.dmg"),sha256:$dmg,url:($base+"/One-Person-Lab-"+$release+"-mac-arm64.dmg")},component_manifest_url:($base+"/opl-app-component-manifest.json")}' \
-              > homebrew-standard-publication-receipt.json
-          }
-
-          write_framework_homebrew_receipt() {
-            local outcome="$1"
-            local attempt_id="$2"
-            local prior_attempt_id="$3"
-            local receipt_args=(
-              --operation remote_inspect --executor remote --attempt-id "$attempt_id"
-              --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id"
-              --remote-target "$homebrew_remote_target" --publication-scope external_target
-              --bundle "$bundle" --track standard --outcome "$outcome"
-              --output homebrew-framework.receipt.json
-            )
-            if [ -n "$prior_attempt_id" ]; then
-              receipt_args+=(--prior-attempt-id "$prior_attempt_id")
-            fi
-            node --experimental-strip-types app-source/scripts/framework-release-adapter.ts executor-receipt \
-              "${receipt_args[@]}"
-          }
-
-          remote_commit="$(inspect_remote_head)" || {
-            write_homebrew_failure homebrew_remote_inspect_failed bounded_read_only_inspect_only_no_framework_reconcile 0
-            exit 1
-          }
-          if [ -z "$remote_commit" ] || [ "$remote_commit" != "$base_commit" ]; then
-            write_homebrew_failure homebrew_remote_head_drift new_operation_required_no_mutation 0 "$remote_commit"
-            echo "::error::Homebrew remote HEAD drifted before mutation; no Cask bytes were written."
-            exit 1
-          fi
-          node --experimental-strip-types app-source/scripts/release-operation-deadline.ts check \
-            --operation '${{ needs.restore.outputs.release_operation }}' \
-            --started-at '${{ needs.restore.outputs.operation_started_at }}' \
-            --deadline-at "$OPERATION_DEADLINE_AT" || {
-              write_homebrew_failure homebrew_push_deadline_elapsed bounded_read_only_inspect_only_no_framework_reconcile 0 "$base_commit"
-              exit 78
-            }
-
-          case "$cas_decision" in
-            idempotent)
-              test "$current_cask_sha" = "$expected_cask_sha"
-              test -z "$(git -C tap-source status --porcelain)"
-              write_framework_homebrew_receipt complete "gha-${GITHUB_RUN_ID}-homebrew-idempotent" ''
-              framework-executor/bin/opl release publish \
-                --bundle "$BUNDLE_DIGEST" --executor-receipt homebrew-framework.receipt.json \
-                "${operation_args[@]}" --store "$store" --json > homebrew-framework-result.json
-              test "$(jq -r .release_bundle_publish.status homebrew-framework-result.json)" = complete
-              write_homebrew_success idempotent "$base_commit" 0
-              exit 0
-              ;;
-            version_conflict)
-              write_homebrew_failure homebrew_candidate_version_conflict new_release_revision_required 0 "$base_commit"
-              echo "::error::The candidate version already exists with different Cask or DMG bytes; freeze a new revision."
-              exit 1
-              ;;
-            write_once) ;;
-            *)
-              write_homebrew_failure homebrew_invalid_cas_plan fail_closed 0 "$base_commit"
-              exit 1
-              ;;
-          esac
-
-          test -n "$TAP_TOKEN" || {
-            write_homebrew_failure homebrew_token_missing fail_closed_no_mutation 0 "$base_commit"
-            exit 1
-          }
-          node --experimental-strip-types app-source/scripts/release-operation-deadline.ts check \
-            --operation '${{ needs.restore.outputs.release_operation }}' \
-            --started-at '${{ needs.restore.outputs.operation_started_at }}' \
-            --deadline-at "$OPERATION_DEADLINE_AT" || {
-              write_homebrew_failure homebrew_push_deadline_elapsed bounded_read_only_inspect_only_no_framework_reconcile 0 "$base_commit"
-              exit 78
-            }
-          remote_commit="$(inspect_remote_head)" || {
-            write_homebrew_failure homebrew_remote_inspect_failed bounded_read_only_inspect_only_no_framework_reconcile 0
-            exit 1
-          }
-          if [ "$remote_commit" != "$base_commit" ]; then
-            write_homebrew_failure homebrew_remote_head_drift new_operation_required_no_mutation 0 "$remote_commit"
-            exit 1
-          fi
-
-          node --experimental-strip-types app-source/scripts/update-homebrew-tap.ts \
-            --channel stable --package-kind app_standard \
-            --version "$VERSION" --updater-version "$UPDATER_VERSION" \
-            --tap-root tap-source --cask Casks/one-person-lab.rb \
-            --manifest-url "$release_base/opl-app-component-manifest.json" \
-            --checksum-sha256 "$dmg_sha" \
-            --download-url "$release_base/One-Person-Lab-${VERSION}-mac-arm64.dmg" \
-            --remote-write-mode direct_commit --expected-current-cask-sha256 "$current_cask_sha" \
-            --summary-path homebrew-standard-apply.json --write > /dev/null
-          test "$(jq -r .cas.decision homebrew-standard-apply.json)" = write_once
-          test "$(jq -r .cas.write_performed homebrew-standard-apply.json)" = true
-          test "$(jq -r .targets[0].expected_cask_sha256 homebrew-standard-apply.json)" = "$expected_cask_sha"
-          git -C tap-source diff --check
-          test "$(git -C tap-source diff --name-only)" = Casks/one-person-lab.rb
-          git -C tap-source config user.name github-actions[bot]
-          git -C tap-source config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git -C tap-source add Casks/one-person-lab.rb
-          git -C tap-source commit -m "chore(cask): publish One Person Lab v${VERSION}"
-          expected_commit="$(git -C tap-source rev-parse HEAD)"
-          test "$expected_commit" != "$base_commit"
-
-          remote_commit="$(inspect_remote_head)" || {
-            write_homebrew_failure homebrew_remote_inspect_failed bounded_read_only_inspect_only_no_framework_reconcile 0
-            exit 1
-          }
-          if [ "$remote_commit" != "$base_commit" ]; then
-            write_homebrew_failure homebrew_remote_head_drift new_operation_required_no_mutation 0 "$remote_commit"
-            exit 1
-          fi
-          push_timeout_seconds="$(node -e '
-          const remaining = Date.parse(process.argv[1]) - Date.now();
-          const reserve = 4 * 60_000;
-          const bounded = Math.min(5 * 60_000, remaining - reserve);
-          if (!Number.isFinite(remaining) || bounded < 1_000) process.exit(1);
-          process.stdout.write((bounded / 1000).toFixed(3));
-          ' "$OPERATION_DEADLINE_AT")" || {
-            write_homebrew_failure homebrew_push_deadline_elapsed bounded_read_only_inspect_only_no_framework_reconcile 0 "$base_commit"
-            exit 78
-          }
-          push_count=0
-          push_status=0
-          push_count=$((push_count + 1))
-          timeout --foreground --signal=TERM --kill-after=5s "${push_timeout_seconds}s" \
-            git -C tap-source push --no-force origin "$expected_commit:refs/heads/main" || push_status=$?
-          test "$push_count" -eq 1
-          homebrew_push_attempt="gha-${GITHUB_RUN_ID}-homebrew-push"
-          write_framework_homebrew_receipt unknown "$homebrew_push_attempt" ''
-          framework-executor/bin/opl release publish \
-            --bundle "$BUNDLE_DIGEST" --executor-receipt homebrew-framework.receipt.json \
-            "${operation_args[@]}" --store "$store" --json > homebrew-unknown-persisted.json
-          test "$(jq -r .release_bundle_publish.status homebrew-unknown-persisted.json)" = reconcile_only
-          framework-executor/bin/opl release checkpoint export \
-            --bundle "$BUNDLE_DIGEST" --output homebrew-unknown-checkpoint \
-            --store "$store" --json > homebrew-unknown-checkpoint-export.json
-          framework-executor/bin/opl release status \
-            --bundle "$BUNDLE_DIGEST" --store "$store" --json > homebrew-reconcile-status.json
-          test "$(jq -r '.release_bundle_status.active_unknown_markers | length' homebrew-reconcile-status.json)" -eq 1
-          reconciled=false
-          result_commit=''
-          reconciled_outcome=''
-          observed_remote_drift=false
-          remote_commit="$(inspect_remote_head)" || remote_commit=''
-          if [ -n "$remote_commit" ] && timeout --foreground --signal=TERM --kill-after=5s "${readonly_timeout_seconds}s" git -C tap-source fetch --quiet origin main; then
-            fetched_commit="$(git -C tap-source rev-parse FETCH_HEAD)"
-            if [ "$fetched_commit" = "$remote_commit" ]; then
-              remote_cask_sha=absent
-              if git -C tap-source cat-file -e FETCH_HEAD:Casks/one-person-lab.rb 2>/dev/null; then
-                remote_cask_sha="$(git -C tap-source show FETCH_HEAD:Casks/one-person-lab.rb | shasum -a 256 | awk '{print "sha256:"$1}')"
-              fi
-              if [ "$remote_cask_sha" = "$expected_cask_sha" ]; then
-                reconciled=true
-                result_commit="$remote_commit"
-                reconciled_outcome=idempotent_concurrent
-                if [ "$remote_commit" = "$expected_commit" ]; then reconciled_outcome=committed; fi
-              elif [ "$remote_commit" != "$base_commit" ]; then
-                observed_remote_drift=true
-              fi
-            fi
-          fi
-          if [ "$reconciled" != true ]; then
-            taxonomy=homebrew_push_outcome_unknown
-            if [ "$observed_remote_drift" = true ]; then taxonomy=homebrew_remote_head_drift; fi
-            write_homebrew_failure "$taxonomy" read_only_reconcile_only_no_second_push "$push_count" "$remote_commit" "$push_status" \
-              true "opl-release-homebrew-standard-${GITHUB_RUN_ID}"
-            echo "::error::Homebrew push outcome remains unknown after one bounded read-only inspection; push was not retried."
-            exit 1
-          fi
-          write_framework_homebrew_receipt complete "gha-${GITHUB_RUN_ID}-homebrew-reconcile" "$homebrew_push_attempt"
-          framework-executor/bin/opl release reconcile \
-            --bundle "$BUNDLE_DIGEST" --executor-receipt homebrew-framework.receipt.json \
-            "${operation_args[@]}" --store "$store" --json > homebrew-framework-result.json
-          test "$(jq -r .release_bundle_reconcile.status homebrew-framework-result.json)" = complete
-          write_homebrew_success "$reconciled_outcome" "$result_commit" "$push_count"
-
-      - name: Upload Standard Homebrew publication receipt
-        if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-release-homebrew-standard-${{ github.run_id }}
-          path: |
-            homebrew-standard-plan.json
-            homebrew-standard-apply.json
-            homebrew-standard-publication-receipt.json
-            homebrew-standard-failure.json
-            homebrew-operation-admit.json
-            homebrew-track-assets.json
-            homebrew-framework.receipt.json
-            homebrew-framework-result.json
-            homebrew-unknown-persisted.json
-            homebrew-unknown-checkpoint-export.json
-            homebrew-unknown-checkpoint
-            standard-build-receipt.json
-            homebrew-reconcile-status.json
-            release-failure-evidence
-          if-no-files-found: warn
-          retention-days: 30
-
-  homebrew-standard-readback:
-    if: ${{ needs.restore.outputs.channel == 'stable' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [restore, publish-homebrew-standard]
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - name: Download Standard Homebrew publication receipt
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: opl-release-homebrew-standard-${{ github.run_id }}
-          path: homebrew-publication
-
-      - name: Bind public cask publication readback
-        env:
-          VERSION: ${{ needs.restore.outputs.version }}
-          UPDATER_VERSION: ${{ needs.restore.outputs.updater_version }}
-          BUNDLE_DIGEST: ${{ needs.restore.outputs.bundle_digest }}
-        run: |
-          set -euo pipefail
-          publication_receipts=()
-          while IFS= read -r receipt; do
-            publication_receipts+=("$receipt")
-          done < <(find homebrew-publication -name homebrew-standard-publication-receipt.json -type f -print | LC_ALL=C sort)
-          if [ "${#publication_receipts[@]}" -ne 1 ]; then
-            echo "::error::Standard Homebrew readback requires exactly one publication receipt; found ${#publication_receipts[@]}."
-            exit 1
-          fi
-          publication="${publication_receipts[0]}"
-          test -f "$publication" && test ! -L "$publication"
-          test "$(jq -r .schema "$publication")" = opl_bundle_homebrew_publication_receipt.v1
-          test "$(jq -r .status "$publication")" = passed
-          test "$(jq -r .track "$publication")" = standard
-          test "$(jq -r .bundle_digest "$publication")" = "$BUNDLE_DIGEST"
-          test "$(jq -r .release_version "$publication")" = "$VERSION"
-          test "$(jq -r .updater_version "$publication")" = "$UPDATER_VERSION"
-          [[ "$(jq -r .tap_commit "$publication")" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$(jq -r .cask.sha256 "$publication")" =~ ^sha256:[0-9a-f]{64}$ ]]
-          [[ "$(jq -r .artifact.sha256 "$publication")" =~ ^sha256:[0-9a-f]{64}$ ]]
-          publication_sha="$(shasum -a 256 "$publication" | awk '{print $1}')"
-          jq -n \
-            --arg bundle "$BUNDLE_DIGEST" --arg release "$VERSION" --arg updater "$UPDATER_VERSION" \
-            --arg publication "sha256:$publication_sha" \
-            '{schema:"opl_bundle_homebrew_publication_readback_receipt.v1",status:"passed",track:"standard",bundle_digest:$bundle,release_version:$release,updater_version:$updater,publication_receipt_sha256:$publication}' \
-            > homebrew-standard-readback.json
-
-      - name: Upload Standard Homebrew readback
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-release-homebrew-standard-readback-${{ github.run_id }}
-          path: homebrew-standard-readback.json
+            homebrew-standard-handoff.json
           if-no-files-found: error
           retention-days: 30
 
@@ -2072,7 +1694,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview-latest' }}
-    needs: [restore, remote-digest-verify, homebrew-standard-readback]
+    needs: [restore, remote-digest-verify]
     steps:
       - name: Reject partial rerun before Latest mutation
         shell: bash
@@ -2119,20 +1741,6 @@ jobs:
           cp "${standard_build_receipts[0]}" standard-build-receipt.json
           cmp "${standard_build_receipts[0]}" standard-build-receipt.json
 
-      - name: Download Standard Homebrew publication receipt
-        if: ${{ needs.restore.outputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: opl-release-homebrew-standard-${{ github.run_id }}
-          path: latest-admission/homebrew-publication
-
-      - name: Download Standard Homebrew readback receipt
-        if: ${{ needs.restore.outputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: opl-release-homebrew-standard-readback-${{ github.run_id }}
-          path: latest-admission/homebrew-readback
-
       - name: Activate Latest after exact remote parity
         env:
           GH_TOKEN: ${{ github.token }}
@@ -2178,19 +1786,6 @@ jobs:
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
           jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
             bundle-status.json >/dev/null
-          one_file() {
-            local root="$1" name="$2"
-            local matches=()
-            local match
-            while IFS= read -r match; do
-              matches+=("$match")
-            done < <(find "$root" -type f -name "$name" -print)
-            test "${#matches[@]}" -eq 1 || {
-              echo "::error::$root must contain exactly one $name."
-              return 1
-            }
-            printf '%s\n' "${matches[0]}"
-          }
           component_manifest='${{ steps.checkpoint.outputs.checkpoint_dir }}/tracks/standard/assets/opl-app-component-manifest.json'
           test -s "$component_manifest" && test ! -L "$component_manifest"
           cp "$component_manifest" latest-component-manifest.json
@@ -2208,14 +1803,7 @@ jobs:
             --expected-current-latest-tag '${{ needs.restore.outputs.previous_latest_tag }}'
             --output standard-latest-admission.json
           )
-          if [ '${{ needs.restore.outputs.channel }}' = stable ]; then
-            publication_receipt="$(one_file latest-admission/homebrew-publication homebrew-standard-publication-receipt.json)"
-            homebrew_readback_receipt="$(one_file latest-admission/homebrew-readback homebrew-standard-readback.json)"
-            admission_args+=(
-              --homebrew-publication "$publication_receipt"
-              --homebrew-readback "$homebrew_readback_receipt"
-            )
-          else
+          if [ '${{ needs.restore.outputs.channel }}' != stable ]; then
             node --experimental-strip-types app-source/scripts/write-latest-pointer-override-authority.ts \
               --component-manifest latest-component-manifest.json \
               --expected-current-latest-tag '${{ needs.restore.outputs.previous_latest_tag }}' \

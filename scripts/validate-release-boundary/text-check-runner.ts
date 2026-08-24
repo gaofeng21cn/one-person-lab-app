@@ -37,6 +37,8 @@ const webuiDevelopmentPromotionWorkflowPath =
   '.github/workflows/release-webui-development-promote.yml';
 const homebrewFullFollowerWorkflowPath = '.github/workflows/release-homebrew-full-follower.yml';
 const homebrewFullPublisherWorkflowPath = '.github/workflows/_release-homebrew-full-publish.yml';
+const homebrewStandardFollowerWorkflowPath =
+  '.github/workflows/release-homebrew-standard-follower.yml';
 const postPublicationOptionalCertificationWorkflowPath =
   '.github/workflows/release-post-publication-certification.yml';
 const stableDesktopFollowupWorkflowPath =
@@ -805,6 +807,11 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   const bundle = parseWorkflow(appRoot, '.github/workflows/_release-bundle.yml', id);
   const standard = parseWorkflow(appRoot, '.github/workflows/_release-standard-publish.yml', id);
   const full = parseWorkflow(appRoot, '.github/workflows/_release-full-addon.yml', id);
+  const homebrewStandardFollower = parseWorkflow(
+    appRoot,
+    homebrewStandardFollowerWorkflowPath,
+    id,
+  );
   const optionalCertification = parseWorkflow(
     appRoot,
     postPublicationOptionalCertificationWorkflowPath,
@@ -815,8 +822,18 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     '.github/workflows/opl-first-run-vm.yml',
     id,
   );
-  if (!bundle || !standard || !full || !optionalCertification || !optionalCertificationVm) {
-    return [bundle, standard, full, optionalCertification, optionalCertificationVm]
+  if (
+    !bundle || !standard || !full || !homebrewStandardFollower ||
+    !optionalCertification || !optionalCertificationVm
+  ) {
+    return [
+      bundle,
+      standard,
+      full,
+      homebrewStandardFollower,
+      optionalCertification,
+      optionalCertificationVm,
+    ]
       .filter((value) => !value).length;
   }
   let failures = 0;
@@ -985,11 +1002,30 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   }
   for (const jobId of [
     'publish-standard-nonlatest',
-    'publish-homebrew-standard',
-    'homebrew-standard-readback',
     'activate-latest',
   ]) {
     if (!standardJobs[jobId]) failures += reportFailure(id, `_release-standard-publish.yml is missing ${jobId}`);
+  }
+  for (const retiredInlineHomebrewJob of [
+    'publish-homebrew-standard',
+    'homebrew-standard-readback',
+  ]) {
+    if (standardJobs[retiredInlineHomebrewJob]) {
+      failures += reportFailure(
+        id,
+        `_release-standard-publish.yml must not retain blocking Homebrew job ${retiredInlineHomebrewJob}`,
+      );
+    }
+  }
+  if (
+    !needsExactly(standardJobs['activate-latest'], ['restore', 'remote-digest-verify'])
+    || !jobRuns(standardJobs['remote-digest-verify']).includes('homebrew-standard-handoff.json')
+    || /OPL_HOMEBREW_TAP_TOKEN|git -C tap-source push/.test(standard.text)
+  ) {
+    failures += reportFailure(
+      id,
+      'Standard Release and Latest must emit a handoff without depending on or writing Homebrew',
+    );
   }
   const expectedStandardMutationEnvironments = {
     'publish-standard-nonlatest':
@@ -1260,21 +1296,42 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     failures += reportFailure(id, 'optional certification VM must pass published artifact names through step env');
   }
 
-  const homebrewStandardRuns = jobRuns(standardJobs['publish-homebrew-standard']);
+  const homebrewStandardFollowerJobs = workflowJobs(homebrewStandardFollower.workflow);
+  const homebrewStandardFollowerJob = homebrewStandardFollowerJobs['publish-standard-cask'];
+  const homebrewStandardRuns = jobRuns(homebrewStandardFollowerJob);
+  const homebrewStandardTriggers = homebrewStandardFollower.workflow.on ?? {};
+  if (
+    JSON.stringify(Object.keys(homebrewStandardTriggers)) !== JSON.stringify(['workflow_run'])
+    || JSON.stringify(homebrewStandardTriggers.workflow_run?.workflows) !==
+      JSON.stringify(['OPL Stable Release Bundle'])
+    || JSON.stringify(homebrewStandardTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
+    || JSON.stringify(Object.keys(homebrewStandardFollowerJobs)) !==
+      JSON.stringify(['publish-standard-cask'])
+    || !homebrewStandardFollowerJob
+    || homebrewStandardFollowerJob.environment !== 'release-stable'
+    || !exactObject(homebrewStandardFollowerJob.permissions, exactReadPermissions)
+    || !String(homebrewStandardFollowerJob.if).includes("workflow_run.conclusion == 'success'")
+  ) {
+    failures += reportFailure(
+      id,
+      'Standard Homebrew follower must consume only one successful Stable Standard handoff',
+    );
+  }
   for (const required of [
-    'opl_homebrew_tap_cas_plan.v1',
+    'opl_homebrew_standard_follower_handoff.v1',
+    '.status == "ready"',
+    '.conclusion == "success"',
+    '.run_attempt == 1',
+    'same_tag_replacement_allowed: true',
+    'core_release_or_latest_blocking: false',
     'inspect_only',
+    'direct_commit',
     'expected-current-cask-sha256',
     'idempotent_concurrent',
-    'new_release_revision_required',
     'push_exit_status',
-    'homebrew_remote_target',
-    'active_unknown_markers',
-    'prior-attempt-id',
-    'publication-scope external_target',
-    'opl release status',
-    'opl release reconcile',
-    'homebrew-unknown-checkpoint',
+    'core_release_or_latest_blocked:false',
+    'second_push_attempted:false',
+    'the core Release and Latest remain complete',
   ]) {
     if (!homebrewStandardRuns.includes(required)) {
       failures += reportFailure(id, `Standard Homebrew CAS is missing ${required}`);
@@ -1283,8 +1340,11 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   if ((homebrewStandardRuns.match(/git -C tap-source push --no-force/g) ?? []).length !== 1) {
     failures += reportFailure(id, 'Standard Homebrew must have exactly one non-force push call');
   }
-  if (/for attempt in 1 2 3|three read-only reconciliations/.test(homebrewStandardRuns)) {
-    failures += reportFailure(id, 'Standard Homebrew must defer unknown outcomes to one Framework marker/status/exact-reconcile path, not an App-local three-pass state machine');
+  if (/for attempt in 1 2 3|three read-only reconciliations|new_release_revision_required/.test(homebrewStandardRuns)) {
+    failures += reportFailure(
+      id,
+      'Standard Homebrew follower must use fresh exact-CAS readback without retry loops or version allocation',
+    );
   }
   return failures;
 }

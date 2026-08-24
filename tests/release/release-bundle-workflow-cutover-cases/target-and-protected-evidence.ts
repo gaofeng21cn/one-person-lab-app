@@ -415,12 +415,12 @@ test('new Standard consumes frozen protected evidence before sealing its run-bou
       './app-source/.github/actions/restore-release-checkpoint',
       './app-executor/.github/actions/restore-release-checkpoint',
     ].includes(candidate.uses));
-  assert.equal(standardRestoreSteps.length, 6);
+  assert.equal(standardRestoreSteps.length, 5);
   assert.equal(
     standardRestoreSteps.filter(
       (candidate: any) => candidate.uses === './app-source/.github/actions/restore-release-checkpoint',
     ).length,
-    5,
+    4,
   );
   const publicationRestoreSteps = standardRestoreSteps.filter(
     (candidate: any) => candidate.uses === './app-executor/.github/actions/restore-release-checkpoint',

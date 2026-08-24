@@ -74,6 +74,8 @@ const requiredSecretNames = [
 function input(): StableAdmissionInput {
   return {
     baseVersion: '26.7.25',
+    releaseIntent: 'new_product',
+    productChangeSummary: 'Adds the user-visible product capability under test.',
     appRef,
     shellRef,
     frameworkRef,
@@ -255,6 +257,11 @@ function observation(overrides: Partial<StableAdmissionObservation> = {}): Stabl
 test('single Stable admission manifest allocates the first unused cross-namespace revision', () => {
   const manifest = buildStableReleaseAdmissionManifest(input(), observation());
   assert.equal(manifest.status, 'passed');
+  assert.deepEqual(manifest.intent, {
+    kind: 'new_product',
+    product_change_summary: 'Adds the user-visible product capability under test.',
+    repair_or_publication_failure_allowed_to_allocate_version: false,
+  });
   assert.deepEqual(manifest.cohort, {
     app_sha: appRef,
     shell_sha: shellRef,
@@ -666,6 +673,11 @@ test('Stable admission failure receipt preserves the transport breakpoint and fo
   assert.equal(failure.failure.class, 'transport');
   assert.equal(failure.failure.code, 'transport_timeout');
   assert.equal(failure.public_mutation_performed, false);
+  assert.deepEqual(failure.intent, {
+    kind: 'new_product',
+    product_change_summary: 'Adds the user-visible product capability under test.',
+    repair_or_publication_failure_allowed_to_allocate_version: false,
+  });
   assert.equal(failure.old_authority_or_run_reusable, false);
   assert.equal(failure.retry_disposition, 'repair_then_new_distinct_operation');
   assert.deepEqual(failure.cohort, {

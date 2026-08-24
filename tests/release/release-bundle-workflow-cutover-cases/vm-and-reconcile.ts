@@ -91,18 +91,19 @@ test('real build and qualification calls recalculate and consume the same remain
   assert.match(String(vmRun.run), /steps\.operation_smoke_budget\.outputs\.run_timeout_ms/);
 });
 
-test('first-run VM imports the frozen Shell harness without installing its dependency graph', () => {
+test('first-run VM imports the frozen Shell harness through the exact source handoff without installing its dependency graph', () => {
   const source = readWorkflow('opl-first-run-vm.yml');
   const workflow = parseWorkflow('opl-first-run-vm.yml');
-  const steps = workflow.jobs['clean-vm-first-run'].steps as Array<Record<string, any>>;
-  const stepIndex = (name: string) => steps.findIndex((step) => step.name === name);
-  const step = (name: string) => {
-    const found = steps[stepIndex(name)];
-    assert.ok(found, `clean-vm-first-run is missing ${name}`);
+  const handoffSteps = workflow.jobs['validate-vm-inputs'].steps as Array<Record<string, any>>;
+  const handoffStepIndex = (name: string) => handoffSteps.findIndex((step) => step.name === name);
+  const handoffStep = (name: string) => {
+    const found = handoffSteps[handoffStepIndex(name)];
+    assert.ok(found, `validate-vm-inputs is missing ${name}`);
     return found;
   };
-
-  const checkout = step('Checkout active shell');
+  const checkout = handoffStep('Checkout exact active shell source for VM handoff');
+  assert.equal(checkout.with.ref, '${{ steps.smoke_harness_ref.outputs.shell_sha }}');
+  assert.equal(checkout.with.path, '.opl-vm-source-checkouts/aionui');
   assert.equal(checkout.with['filter'], 'blob:limit=1m');
   assert.deepEqual(
     String(checkout.with['sparse-checkout']).trim().split('\n'),
@@ -112,13 +113,25 @@ test('first-run VM imports the frozen Shell harness without installing its depen
     ],
   );
   assert.equal(checkout.with['sparse-checkout-cone-mode'], false);
+  assert.ok(
+    handoffStepIndex('Checkout exact active shell source for VM handoff')
+      < handoffStepIndex('Build exact clean VM source handoff'),
+  );
+
+  const steps = workflow.jobs['clean-vm-first-run'].steps as Array<Record<string, any>>;
+  const stepIndex = (name: string) => steps.findIndex((step) => step.name === name);
+  const step = (name: string) => {
+    const found = steps[stepIndex(name)];
+    assert.ok(found, `clean-vm-first-run is missing ${name}`);
+    return found;
+  };
+
   assert.equal(stepIndex('Materialize active shell dependency metadata'), -1);
   assert.equal(stepIndex('Setup bun'), -1);
   assert.equal(stepIndex('Install active shell harness dependencies'), -1);
 
   const validate = step('Validate smoke scripts');
   assert.match(String(validate.run), /await import\('\.\/shells\/aionui\/scripts\/opl-first-run-tart-smoke\.mjs'\)/);
-  assert.ok(stepIndex('Checkout active shell') < stepIndex('Validate smoke scripts'));
   assert.ok(stepIndex('Validate smoke scripts') < stepIndex('Run clean VM first launch smoke'));
   assert.doesNotMatch(source, /git -C shells\/aionui sparse-checkout set/);
   assert.doesNotMatch(source, /\b(?:npm install|npm i|bun install|bun add)\b/);
@@ -173,6 +186,7 @@ test('active release workflows fail closed on duplicate critical evidence instea
     '_release-full-addon.yml',
     '_release-homebrew-full-publish.yml',
     '_release-standard-publish.yml',
+    'release-homebrew-standard-follower.yml',
     'full-first-install-release.yml',
     'opl-first-run-vm.yml',
   ];
@@ -192,7 +206,8 @@ test('active release workflows fail closed on duplicate critical evidence instea
 
   assert.match(readWorkflow('_release-bundle.yml'), /exactly one clean-VM qualification receipt/);
   assert.match(readWorkflow('_release-full-addon.yml'), /must contain at most one Full build receipt/);
-  assert.match(readWorkflow('_release-standard-publish.yml'), /requires exactly one publication receipt/);
+  assert.match(readWorkflow('_release-standard-publish.yml'), /exactly one App-owned standard-build-receipt/);
+  assert.match(readWorkflow('release-homebrew-standard-follower.yml'), /test "\$\{#handoffs\[@\]\}" -eq 1/);
   const observationalHomebrew = readWorkflow('_release-homebrew-full-publish.yml');
   assert.doesNotMatch(
     observationalHomebrew,
@@ -670,10 +685,9 @@ test('deadline failures never authorize Framework reconcile without persisted un
   const standard = readWorkflow('_release-standard-publish.yml');
   const full = readWorkflow('_release-full-addon.yml');
   assert.match(standard, /bounded_read_only_inspect_only_no_framework_reconcile/);
-  assert.match(standard, /framework_reconcile_authorized:false/);
+  assert.match(standard, /framework_reconcile_authorized=false/);
   assert.match(full, /framework_reconcile_authorized=false/);
   assert.match(full, /--argjson framework_reconcile_authorized "\$framework_reconcile_authorized"/);
-  assert.match(standard, /push_count:0/);
   assert.match(standard, /bounded_read_only_latest_readback_only_no_second_patch_no_framework_reconcile/);
   assert.match(standard, /--latest-admission standard-latest-admission\.json/);
 });

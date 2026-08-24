@@ -93,15 +93,11 @@ const requiredStandardLatestAdmission = {
     'candidate.dmg.sha256',
     'candidate.dmg.size_bytes',
   ],
-  homebrew_evidence: {
-    publication_schema: 'opl_bundle_homebrew_publication_receipt.v1',
-    readback_schema: 'opl_bundle_homebrew_publication_readback_receipt.v1',
-    required_digest_fields: [
-      'homebrew.publication_receipt_sha256',
-      'homebrew.readback_receipt_sha256',
-    ],
-    readback_must_bind_publication_actual_file_digest: true,
-    clean_vm_receipt_allowed: false,
+  homebrew_follower: {
+    workflow: '.github/workflows/release-homebrew-standard-follower.yml',
+    latest_receipt_value: null,
+    consumed_by_latest_admission: false,
+    failure_blocks_core_release_or_latest: false,
   },
   failure_mode: 'fail_closed_before_latest_patch',
 };
@@ -467,10 +463,32 @@ function validateGithubReleaseName(releaseContract: Record<string, any>): number
     releaseName?.tag_pattern !== 'v<version>' ||
     releaseName?.stable_revision?.maximum_revision !== 9 ||
     releaseName?.stable_revision?.allocation !== 'explicit_base_plus_highest_existing_remote_revision_plus_one' ||
-    releaseName?.stable_revision?.eligibility !== 'macos_primary_stable_asset_invalid_only' ||
+    releaseName?.stable_revision?.eligibility !== 'explicit_user_visible_product_change_only' ||
+    releaseName?.stable_revision?.release_intent_required !== 'new_product' ||
+    releaseName?.stable_revision?.nonempty_product_change_summary_required !== true ||
+    releaseName?.stable_revision?.publication_build_packaging_signing_notarization_notes_homebrew_or_additive_failure_eligible !== false ||
+    releaseName?.stable_revision?.same_tag_repair_required !== true ||
     releaseName?.stable_revision?.additive_platform_full_or_installer_failure_eligible !== false ||
     releaseName?.stable_revision?.additive_failure_route !==
       'repair_in_original_release_set_without_new_version' ||
+    releaseName?.release_intent_policy?.new_tag_requires !==
+      'release_intent_new_product_and_nonempty_user_visible_product_change_summary' ||
+    releaseName?.release_intent_policy?.current_latest_release_set_must_be_complete_before_new_tag !== true ||
+    !sameStringSet(releaseName?.release_intent_policy?.preserve_existing_tag_for, [
+      'build_failure',
+      'signing_failure',
+      'notarization_failure',
+      'packaging_failure',
+      'publication_failure',
+      'release_notes_repair',
+      'standard_asset_replacement',
+      'full_asset_append_or_replacement',
+      'homebrew_repair',
+      'additive_platform_repair',
+    ]) ||
+    releaseName?.release_intent_policy?.same_tag_asset_and_notes_replacement_allowed !== true ||
+    releaseName?.release_intent_policy?.same_tag_mutation_requires_exact_current_identity_cas_and_public_readback !== true ||
+    releaseName?.release_intent_policy?.nonfunctional_release_work_may_allocate_version !== false ||
     releaseName?.machine_version?.legacy_stable_last_display_version !== '26.7.20' ||
     releaseName?.machine_version?.shared_preview_lane_cutover_display_version !== '26.7.31' ||
     releaseName?.machine_version?.independent_nightly_revision_cutover_display_version !== '26.8.14' ||
@@ -1932,8 +1950,8 @@ export function validateReleaseAccelerationPolicy(
     !sameStringSet(resilience?.updater_zip_identity_fields, ['size_bytes', 'sha256']) ||
     resilience?.updater_metadata_declared_digest_is_not_sufficient !== true ||
     resilience?.homebrew_single_writer !== true ||
-    resilience?.homebrew_unknown_outcome !== 'framework_durable_marker_status_then_exact_reconcile' ||
-    resilience?.homebrew_reconcile_owner !== 'OPL Framework opl release' ||
+    resilience?.homebrew_unknown_outcome !== 'follower_fails_independently_then_fresh_cas_readback_before_optional_rerun' ||
+    resilience?.homebrew_reconcile_owner !== 'release-homebrew-standard-follower' ||
     resilience?.homebrew_app_local_reconcile_loop_allowed !== false ||
     resilience?.homebrew_reconcile_max_attempts !== undefined ||
     resilience?.homebrew_retry_push_on_unknown_allowed !== false ||
@@ -2068,11 +2086,21 @@ export function validateReleaseAccelerationPolicy(
     ]) ||
     !sameStringSet(homebrew?.excluded_casks, []) ||
     !sameStringSet(homebrew?.full_casks, ['one-person-lab-full']) ||
-    homebrew?.tap_update_policy?.stable_release_workflow_write_mode !== 'release_bundle_standard_before_latest_only' ||
+    homebrew?.tap_update_policy?.stable_release_workflow_write_mode !== 'post_publication_non_blocking_follower' ||
     homebrew?.tap_update_policy?.stable?.mode !==
-      'release_bundle_publishes_standard_cask_then_hosted_readback_before_latest' ||
+      'post_publication_digest_bound_cas_follower' ||
     homebrew?.tap_update_policy?.stable?.publication_mode !==
-      'release_bundle_publishes_standard_cask_then_hosted_readback_before_latest' ||
+      'post_publication_digest_bound_cas_follower' ||
+    homebrew?.tap_update_policy?.stable?.workflow !== '.github/workflows/release-homebrew-standard-follower.yml' ||
+    homebrew?.tap_update_policy?.stable?.environment !== 'release-stable' ||
+    homebrew?.tap_update_policy?.stable?.target !== 'Casks/one-person-lab.rb' ||
+    homebrew?.tap_update_policy?.stable?.source_completed_stage !== 'standard_public_and_latest_activated' ||
+    homebrew?.tap_update_policy?.stable?.mutation_allowed !== true ||
+    homebrew?.tap_update_policy?.stable?.core_release_or_latest_blocking !== false ||
+    homebrew?.tap_update_policy?.stable?.same_tag_replacement_allowed !== true ||
+    homebrew?.tap_update_policy?.stable?.new_release_version_required_for_changed_bytes !== false ||
+    homebrew?.tap_update_policy?.stable?.exact_current_cask_sha256_cas_required !== true ||
+    homebrew?.tap_update_policy?.stable?.fresh_cas_rerun_allowed !== true ||
     homebrew?.tap_update_policy?.stable?.may_consume_nightly_directly !== false ||
     homebrew?.tap_update_policy?.nightly?.mode !== 'post_publication_digest_bound_single_attempt_follower' ||
     homebrew?.tap_update_policy?.nightly?.workflow !== '.github/workflows/release-nightly-homebrew-follower.yml' ||

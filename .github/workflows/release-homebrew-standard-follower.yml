@@ -1,0 +1,259 @@
+name: OPL Homebrew Standard Follower
+run-name: Homebrew Standard follower for Stable run ${{ github.event.workflow_run.id }}
+
+on:
+  workflow_run:
+    workflows:
+      - OPL Stable Release Bundle
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: opl-homebrew-standard-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  publish-standard-cask:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+        && (startsWith(github.event.workflow_run.display_title, 'OPL Stable standard ')
+          || startsWith(github.event.workflow_run.display_title, 'OPL Stable resume_standard ')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-stable
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout exact App follower
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Bind one successful Standard publication run
+        id: authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          jq -e --arg run "$SOURCE_RUN_ID" --arg head '${{ github.event.workflow_run.head_sha }}' '
+            (.id | tostring) == $run
+            and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .path == ".github/workflows/release-stable.yml"
+            and .event == "workflow_dispatch"
+            and .head_branch == "main"
+            and .head_sha == $head
+            and .run_attempt == 1
+            and .status == "completed"
+            and .conclusion == "success"
+            and (
+              (.display_title | startswith("OPL Stable standard "))
+              or (.display_title | startswith("OPL Stable resume_standard "))
+            )
+          ' source-run.json >/dev/null
+          artifact="opl-release-standard-remote-verify-${SOURCE_RUN_ID}"
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" > source-artifacts.json
+          test "$(jq -r --arg name "$artifact" '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length' source-artifacts.json)" = 1
+          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
+
+      - name: Download exact Standard publication handoff
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ steps.authority.outputs.artifact }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: standard-publication
+
+      - name: Checkout canonical Homebrew tap
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/homebrew-one-person-lab
+          ref: main
+          token: ${{ secrets.OPL_HOMEBREW_TAP_TOKEN }}
+          path: tap-source
+          fetch-depth: 1
+
+      - name: Apply one exact-CAS Standard Cask update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          handoffs=()
+          while IFS= read -r handoff; do handoffs+=("$handoff"); done < <(
+            find standard-publication -type f -name homebrew-standard-handoff.json -print | LC_ALL=C sort
+          )
+          test "${#handoffs[@]}" -eq 1
+          handoff="${handoffs[0]}"
+          source_head_sha="$(jq -er .head_sha source-run.json)"
+          jq -e --arg run "$SOURCE_RUN_ID" --arg head "$source_head_sha" '
+            .schema == "opl_homebrew_standard_follower_handoff.v1"
+            and .status == "ready"
+            and .authority == {
+              repository: "gaofeng21cn/one-person-lab-app",
+              workflow: ".github/workflows/release-stable.yml",
+              run_id: $run,
+              run_attempt: 1,
+              executor_head_sha: $head
+            }
+            and (.source.operation == "standard" or .source.operation == "resume_standard")
+            and (.source.checkpoint_run_id | test("^[1-9][0-9]*$"))
+            and (.source.checkpoint_artifact | test("^[A-Za-z0-9][A-Za-z0-9._-]+$"))
+            and (.release.version | test("^[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(-r[1-9][0-9]*)?$"))
+            and .release.tag == ("v" + .release.version)
+            and (.release.updater_version | strings | length > 0)
+            and (.release.id | type == "number")
+            and (.release.target_commitish | test("^[0-9a-f]{40}$"))
+            and .release.mutable_same_tag_release_set == true
+            and (.cohort.app_sha | test("^[0-9a-f]{40}$"))
+            and (.cohort.shell_sha | test("^[0-9a-f]{40}$"))
+            and (.cohort.framework_sha | test("^[0-9a-f]{40}$"))
+            and (.publication.bundle_digest | test("^sha256:[0-9a-f]{64}$"))
+            and (.publication.publication_record_digest | test("^sha256:[0-9a-f]{64}$"))
+            and .publication.remote_digest_readback == "passed"
+            and (.standard_dmg.name == ("One-Person-Lab-" + .release.version + "-mac-arm64.dmg"))
+            and (.standard_dmg.sha256 | test("^sha256:[0-9a-f]{64}$"))
+            and (.standard_dmg.size_bytes | type == "number" and . > 0)
+            and .component_manifest.name == "opl-app-component-manifest.json"
+            and (.component_manifest.sha256 | test("^sha256:[0-9a-f]{64}$"))
+            and (.component_manifest.size_bytes | type == "number" and . > 0)
+            and .homebrew == {
+              role: "non_blocking_follower",
+              target: "Casks/one-person-lab.rb",
+              exact_current_cask_sha256_cas_required: true,
+              same_tag_replacement_allowed: true,
+              core_release_or_latest_blocking: false
+            }
+          ' "$handoff" >/dev/null
+
+          version="$(jq -er .release.version "$handoff")"
+          updater_version="$(jq -er .release.updater_version "$handoff")"
+          tag="$(jq -er .release.tag "$handoff")"
+          release_id="$(jq -er .release.id "$handoff")"
+          release_target="$(jq -er .release.target_commitish "$handoff")"
+          dmg_name="$(jq -er .standard_dmg.name "$handoff")"
+          dmg_digest="$(jq -er .standard_dmg.sha256 "$handoff")"
+          dmg_size="$(jq -er .standard_dmg.size_bytes "$handoff")"
+          manifest_name="$(jq -er .component_manifest.name "$handoff")"
+          manifest_digest="$(jq -er .component_manifest.sha256 "$handoff")"
+          manifest_size="$(jq -er .component_manifest.size_bytes "$handoff")"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > public-release.json
+          jq -e --argjson id "$release_id" --arg tag "$tag" --arg target "$release_target" \
+            --arg dmg "$dmg_name" --arg dmg_digest "$dmg_digest" --argjson dmg_size "$dmg_size" \
+            --arg manifest "$manifest_name" --arg manifest_digest "$manifest_digest" --argjson manifest_size "$manifest_size" '
+              .id == $id and .tag_name == $tag and .draft == false and .prerelease == false
+              and .immutable == false and .target_commitish == $target
+              and ([.assets[] | select(.name == $dmg and .digest == $dmg_digest and .size == $dmg_size)] | length == 1)
+              and ([.assets[] | select(.name == $manifest and .digest == $manifest_digest and .size == $manifest_size)] | length == 1)
+            ' public-release.json >/dev/null
+
+          release_base="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag"
+          curl --fail --location --retry 2 --retry-all-errors \
+            "$release_base/$manifest_name" --output public-component-manifest.json
+          test "sha256:$(shasum -a 256 public-component-manifest.json | awk '{print $1}')" = "$manifest_digest"
+
+          tap_base="$(git -C tap-source rev-parse HEAD)"
+          current_cask=absent
+          if [ -f tap-source/Casks/one-person-lab.rb ]; then
+            current_cask="sha256:$(shasum -a 256 tap-source/Casks/one-person-lab.rb | awk '{print $1}')"
+          fi
+          for sibling in one-person-lab-full.rb one-person-lab-nightly.rb; do
+            git -C tap-source show "HEAD:Casks/$sibling" > "before-$sibling"
+          done
+          node --experimental-strip-types scripts/update-homebrew-tap.ts \
+            --channel stable --package-kind app_standard \
+            --version "$version" --updater-version "$updater_version" \
+            --tap-root tap-source --cask Casks/one-person-lab.rb \
+            --manifest-url "$release_base/$manifest_name" \
+            --checksum-sha256 "${dmg_digest#sha256:}" \
+            --download-url "$release_base/$dmg_name" \
+            --remote-write-mode inspect_only --summary-path homebrew-standard-plan.json >/dev/null
+          decision="$(jq -er .cas.decision homebrew-standard-plan.json)"
+          test "$decision" = idempotent || test "$decision" = write_once
+          test "$(jq -er '.targets[0].current_cask_sha256 // "absent"' homebrew-standard-plan.json)" = "$current_cask"
+          expected_cask="$(jq -er .targets[0].expected_cask_sha256 homebrew-standard-plan.json)"
+          push_count=0
+          push_status=0
+          candidate_commit="$tap_base"
+          if [ "$decision" = write_once ]; then
+            node --experimental-strip-types scripts/update-homebrew-tap.ts \
+              --channel stable --package-kind app_standard \
+              --version "$version" --updater-version "$updater_version" \
+              --tap-root tap-source --cask Casks/one-person-lab.rb \
+              --manifest-url "$release_base/$manifest_name" \
+              --checksum-sha256 "${dmg_digest#sha256:}" \
+              --download-url "$release_base/$dmg_name" \
+              --remote-write-mode direct_commit --expected-current-cask-sha256 "$current_cask" \
+              --summary-path homebrew-standard-apply.json --write >/dev/null
+            test "$(git -C tap-source diff --name-only)" = Casks/one-person-lab.rb
+            git -C tap-source config user.name github-actions[bot]
+            git -C tap-source config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git -C tap-source add Casks/one-person-lab.rb
+            git -C tap-source commit -m "chore(cask): sync One Person Lab ${version}"
+            candidate_commit="$(git -C tap-source rev-parse HEAD)"
+            push_count=1
+            set +e
+            timeout --foreground --signal=TERM --kill-after=5s 240s \
+              git -C tap-source push --no-force origin "$candidate_commit:refs/heads/main"
+            push_status=$?
+            set -e
+          fi
+
+          remote_head="$(timeout --foreground --signal=TERM --kill-after=5s 30s \
+            git -C tap-source ls-remote origin refs/heads/main | awk 'NF == 2 {print $1}')"
+          [[ "$remote_head" =~ ^[0-9a-f]{40}$ ]]
+          git -C tap-source fetch --no-tags --depth=1 origin "$remote_head"
+          git -C tap-source show FETCH_HEAD:Casks/one-person-lab.rb > standard-cask-readback.rb
+          observed_cask="sha256:$(shasum -a 256 standard-cask-readback.rb | awk '{print $1}')"
+          if [ "$observed_cask" != "$expected_cask" ]; then
+            jq -n --arg source_run "$SOURCE_RUN_ID" --arg expected "$expected_cask" \
+              --arg observed "$observed_cask" --arg remote_head "$remote_head" \
+              --argjson push_count "$push_count" --argjson push_status "$push_status" \
+              '{schema:"opl_homebrew_standard_follower_failure.v1",status:"failed",source_run_id:$source_run,expected_cask_sha256:$expected,observed_cask_sha256:$observed,remote_head:$remote_head,push_count:$push_count,push_exit_status:$push_status,second_push_attempted:false,next_action:"rerun_follower_after_fresh_cas_read"}' \
+              > homebrew-standard-failure.json
+            echo "::error::Standard Cask public readback does not match; the core Release and Latest remain complete."
+            exit 1
+          fi
+          for sibling in one-person-lab-full.rb one-person-lab-nightly.rb; do
+            git -C tap-source show "FETCH_HEAD:Casks/$sibling" > "after-$sibling"
+            cmp "before-$sibling" "after-$sibling"
+          done
+          outcome=idempotent
+          if [ "$push_count" -eq 1 ]; then outcome=committed; fi
+          if [ "$push_count" -eq 1 ] && [ "$remote_head" != "$candidate_commit" ]; then outcome=idempotent_concurrent; fi
+          jq -n --arg source_run "$SOURCE_RUN_ID" --arg source_head "$source_head_sha" \
+            --arg version "$version" --arg updater_version "$updater_version" --arg tag "$tag" \
+            --arg dmg "$dmg_digest" --arg manifest "$manifest_digest" \
+            --arg tap_base "$tap_base" --arg tap_commit "$remote_head" --arg cask "$expected_cask" \
+            --arg decision "$decision" --arg outcome "$outcome" \
+            --argjson push_count "$push_count" --argjson push_status "$push_status" '
+              {schema:"opl_homebrew_standard_follower_receipt.v1",status:"passed",source:{run_id:$source_run,executor_head_sha:$source_head},release:{version:$version,updater_version:$updater_version,tag:$tag,mutable_same_tag_release_set:true},public_assets:{standard_dmg_sha256:$dmg,component_manifest_sha256:$manifest},tap:{repository:"gaofeng21cn/homebrew-one-person-lab",target:"Casks/one-person-lab.rb",base_commit:$tap_base,commit:$tap_commit,cask_sha256:$cask,decision:$decision,outcome:$outcome,push_count:$push_count,push_exit_status:$push_status},core_release_or_latest_blocked:false,second_push_attempted:false,public_readback:true}
+            ' > homebrew-standard-receipt.json
+
+      - name: Upload Standard Homebrew follower receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-homebrew-standard-${{ github.event.workflow_run.id }}
+          path: |
+            homebrew-standard-plan.json
+            homebrew-standard-apply.json
+            homebrew-standard-receipt.json
+            homebrew-standard-failure.json
+            standard-cask-readback.rb
+          if-no-files-found: warn
+          retention-days: 30

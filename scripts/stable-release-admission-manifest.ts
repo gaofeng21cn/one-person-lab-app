@@ -65,6 +65,8 @@ type CommandResult = {
 
 export type StableAdmissionInput = {
   baseVersion: string;
+  releaseIntent: 'new_product';
+  productChangeSummary: string;
   appRef: string;
   shellRef: string;
   frameworkRef: string;
@@ -89,6 +91,11 @@ export type StableAdmissionFailureReceipt = {
   status: 'failed';
   checked_at: string;
   operation: 'standard';
+  intent: {
+    kind: 'new_product';
+    product_change_summary: string;
+    repair_or_publication_failure_allowed_to_allocate_version: false;
+  };
   phase: 'collect_observation' | 'build_manifest';
   admission_run_id: string;
   cohort: {
@@ -140,6 +147,11 @@ export type StableAdmissionManifest = {
   status: 'passed';
   checked_at: string;
   operation: 'standard';
+  intent: {
+    kind: 'new_product';
+    product_change_summary: string;
+    repair_or_publication_failure_allowed_to_allocate_version: false;
+  };
   version: {
     base: string;
     display: string;
@@ -295,6 +307,11 @@ export function buildStableAdmissionFailureReceipt(options: {
     status: 'failed',
     checked_at: options.checkedAt ?? new Date().toISOString(),
     operation: 'standard',
+    intent: {
+      kind: options.input.releaseIntent,
+      product_change_summary: options.input.productChangeSummary,
+      repair_or_publication_failure_allowed_to_allocate_version: false,
+    },
     phase: options.phase,
     admission_run_id: options.input.admissionRunId,
     cohort: {
@@ -465,11 +482,16 @@ export function buildStableReleaseAdmissionManifest(
 ): StableAdmissionManifest {
   const input = {
     baseVersion: requiredString(inputValue.baseVersion, 'Stable base version'),
+    releaseIntent: requiredString(inputValue.releaseIntent, 'Release intent'),
+    productChangeSummary: requiredString(inputValue.productChangeSummary, 'Product change summary'),
     appRef: fullSha(inputValue.appRef, 'App ref'),
     shellRef: fullSha(inputValue.shellRef, 'Shell ref'),
     frameworkRef: fullSha(inputValue.frameworkRef, 'Framework ref'),
     admissionRunId: runId(inputValue.admissionRunId, 'Admission run id'),
   };
+  if (input.releaseIntent !== 'new_product') {
+    throw new Error('Stable version allocation requires release_intent=new_product.');
+  }
   if (input.baseVersion !== baseVersionForDate(observation.currentDate)) {
     throw new Error(
       `Stable admission base version ${input.baseVersion} must match Asia/Shanghai date ${observation.currentDate}.`,
@@ -535,6 +557,11 @@ export function buildStableReleaseAdmissionManifest(
     status: 'passed',
     checked_at: observation.checkedAt,
     operation: 'standard',
+    intent: {
+      kind: 'new_product',
+      product_change_summary: input.productChangeSummary,
+      repair_or_publication_failure_allowed_to_allocate_version: false,
+    },
     version: {
       base: input.baseVersion,
       display: selectedVersion,
@@ -1055,6 +1082,8 @@ export async function verifyStableReleaseAdmissionManifest(options: {
   }
   const input: StableAdmissionInput = {
     baseVersion: manifest.version.base,
+    releaseIntent: manifest.intent.kind,
+    productChangeSummary: manifest.intent.product_change_summary,
     appRef: manifest.cohort.app_sha,
     shellRef: manifest.cohort.shell_sha,
     frameworkRef: manifest.cohort.framework_sha,
@@ -1097,6 +1126,8 @@ function cliOptions() {
     strict: true,
     options: {
       'base-version': { type: 'string' },
+      'release-intent': { type: 'string' },
+      'product-change-summary': { type: 'string' },
       'app-ref': { type: 'string' },
       'shell-ref': { type: 'string' },
       'framework-ref': { type: 'string' },
@@ -1135,6 +1166,8 @@ function cliOptions() {
       appSourceRoot,
       input: {
         baseVersion: requiredString(values['base-version'], '--base-version'),
+        releaseIntent: requiredString(values['release-intent'], '--release-intent') as 'new_product',
+        productChangeSummary: requiredString(values['product-change-summary'], '--product-change-summary'),
         appRef: fullSha(values['app-ref'], '--app-ref'),
         shellRef: fullSha(values['shell-ref'], '--shell-ref'),
         frameworkRef: fullSha(values['framework-ref'], '--framework-ref'),

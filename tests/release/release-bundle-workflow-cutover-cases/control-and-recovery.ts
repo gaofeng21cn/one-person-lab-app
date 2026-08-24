@@ -541,7 +541,6 @@ test('resume admission preserves Standard identity and rotates only an expired e
   for (const jobId of [
     'publish-standard-nonlatest',
     'remote-digest-verify',
-    'publish-homebrew-standard',
   ]) {
     const jobSource = JSON.stringify(workflow.jobs[jobId]);
     assert.match(jobSource, /needs\.restore\.outputs\.release_operation/);
@@ -883,7 +882,6 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
 
   const standard = parseWorkflow('_release-standard-publish.yml');
   const publish = standard.jobs['publish-standard-nonlatest'];
-  const homebrew = standard.jobs['publish-homebrew-standard'];
   const latest = standard.jobs['activate-latest'];
 
   const ancestors = (jobName: string): string[] => {
@@ -899,7 +897,7 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
     visit(jobName);
     return [...found].sort();
   };
-  for (const jobName of ['publish-standard-nonlatest', 'remote-digest-verify', 'publish-homebrew-standard']) {
+  for (const jobName of ['publish-standard-nonlatest', 'remote-digest-verify']) {
     for (const ancestor of ancestors(jobName)) {
       assert.doesNotMatch(
         JSON.stringify(standard.jobs[ancestor]),
@@ -909,12 +907,13 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
     }
   }
   assert.deepEqual(publish.needs, ['restore', 'pre-publication-admission']);
-  assert.ok(homebrew.needs.includes('remote-digest-verify'));
+  assert.equal(standard.jobs['publish-homebrew-standard'], undefined);
+  assert.equal(standard.jobs['homebrew-standard-readback'], undefined);
   assert.equal(
     latest.if,
     "${{ needs.restore.result == 'success' && needs.remote-digest-verify.result == 'success' }}",
   );
-  assert.deepEqual(latest.needs, ['restore', 'remote-digest-verify', 'homebrew-standard-readback']);
+  assert.deepEqual(latest.needs, ['restore', 'remote-digest-verify']);
   const full = parseWorkflow('_release-full-addon.yml');
   const fullAncestors = (jobName: string): string[] => {
     const found = new Set<string>();
@@ -933,7 +932,10 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
   assert.ok(fullAncestors('publish-full').includes('full-qualification'));
   assert.ok(fullAncestors('publish-full').includes('full-clean-vm-qualification'));
   const fullPhysicalAncestors = fullAncestors('publish-full').filter((ancestor) =>
-    /self-hosted|(?:^|[^a-z])tart(?:[^a-z]|$)|opl-first-run-vm/i.test(JSON.stringify(full.jobs[ancestor])),
+    full.jobs[ancestor]?.uses === './.github/workflows/opl-first-run-vm.yml'
+    || full.jobs[ancestor]?.['runs-on'] === 'self-hosted'
+    || (Array.isArray(full.jobs[ancestor]?.['runs-on'])
+      && full.jobs[ancestor]['runs-on'].includes('self-hosted')),
   );
   assert.deepEqual(fullPhysicalAncestors, ['full-clean-vm-qualification']);
   const bundle = parseWorkflow('_release-bundle.yml');

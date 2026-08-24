@@ -259,11 +259,7 @@ test("qualified Stable defaults Latest while daily-default Nightly keeps develop
     control.publication.stable.lower_level_workflows,
     "workflow_call_only_except_protected_same_tag_installer_repair",
   );
-  assert.deepEqual(control.publication.stable.latest_requires.slice(-3), [
-    "remote_digest_readback",
-    "standard_homebrew_digest_bound_publication",
-    "standard_homebrew_publication_readback",
-  ]);
+  assert.equal(control.publication.stable.latest_requires.at(-1), "remote_digest_readback");
   assert.deepEqual(control.publication.full.required_assets, [
     "One-Person-Lab-Full-<version>-mac-arm64.dmg",
     "opl-release-manifest.json",
@@ -638,7 +634,7 @@ test("operation safety is explicit in the machine contract", () => {
   ]);
   assert.deepEqual(control.resilience_policy.updater_zip_identity_fields, ["size_bytes", "sha256"]);
   assert.equal(control.resilience_policy.homebrew_single_writer, true);
-  assert.equal(control.resilience_policy.homebrew_reconcile_owner, "OPL Framework opl release");
+  assert.equal(control.resilience_policy.homebrew_reconcile_owner, "release-homebrew-standard-follower");
   assert.equal(control.resilience_policy.homebrew_app_local_reconcile_loop_allowed, false);
   assert.equal(control.resilience_policy.homebrew_reconcile_max_attempts, undefined);
   assert.equal(control.resilience_policy.homebrew_retry_push_on_unknown_allowed, false);
