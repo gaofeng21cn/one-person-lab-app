@@ -19,6 +19,7 @@ test('Stable has one dispatch and exactly three Framework Bundle operations', ()
     'append_full',
   ]);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs).sort(), [
+    'app_ref',
     'authority_carrier',
     'authority_digest',
     'authority_id',
@@ -30,6 +31,8 @@ test('Stable has one dispatch and exactly three Framework Bundle operations', ()
     'operation_id',
     'prior_full_artifact_run_id',
     'prior_standard_artifact_run_id',
+    'product_change_summary',
+    'release_intent',
     'shell_ref',
     'smoke_harness_ref',
     'source_artifact',

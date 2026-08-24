@@ -3618,7 +3618,24 @@
       "new_release_version_required_for_changed_bytes": false,
       "exact_current_cask_sha256_cas_required": true,
       "fresh_cas_rerun_allowed": true,
-      "may_consume_nightly_directly": false
+      "may_consume_nightly_directly": false,
+      "desired_state_reconciliation": {
+        "trigger": "workflow_dispatch",
+        "authority_binding": "same_successful_standard_run_and_exact_published_handoff",
+        "required_inputs": [
+          "source_run_id",
+          "reconcile_confirmation"
+        ],
+        "confirmation": "reconcile_published_homebrew_standard",
+        "failed_run_history_inputs_forbidden": true,
+        "exact_publication_handoff_required": true,
+        "missing_or_expired_handoff": "fail",
+        "exact_current_cask_sha256_cas_required": true,
+        "canonical_main_executor_required": true,
+        "concurrency_scope": "source_run_id",
+        "workflow_rerun_allowed": false,
+        "standard_redispatch_allowed": false
+      }
       },
       "full": {
         "mode": "post_publication_digest_bound_single_attempt_follower",

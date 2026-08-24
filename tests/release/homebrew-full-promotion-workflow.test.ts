@@ -151,6 +151,12 @@ test('Full Homebrew follower permits automatic delivery or source-bound reconcil
   assert.doesNotMatch(source, /OPL_HOMEBREW_TAP_TOKEN|git\b[^\n]*\bpush\b/);
 });
 
+test('Standard Homebrew follower exposes the same source-bound reconciliation shape', () => {
+  const source = read('release-homebrew-standard-follower.yml');
+  assert.match(source, /reconcile_published_homebrew_standard/);
+  assert.doesNotMatch(source, /failed_(?:follower|recovery)_run_id|recovery_generation|actions\/jobs\/.*\/logs/);
+});
+
 test('Full Homebrew reusable publishes hosted-qualified bytes before optional physical certification', () => {
   const source = read('_release-homebrew-full-publish.yml');
   const workflow = parse('_release-homebrew-full-publish.yml');

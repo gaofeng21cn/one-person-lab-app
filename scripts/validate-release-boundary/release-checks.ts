@@ -1276,6 +1276,10 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
     required: [
       "workflow_run:",
       "OPL Stable Release Bundle",
+      "reconcile_published_homebrew_standard",
+      "ref: main",
+      ".commit.sha current-main.json",
+      "opl-release-standard-remote-verify-",
       "publish-standard-cask:",
       "conclusion == 'success'",
       "opl-release-standard-remote-verify-",
@@ -1290,7 +1294,6 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "second_push_attempted:false",
     ],
     forbidden: [
-      "workflow_dispatch:",
       "activate-latest",
       "gh release create",
       "gh release upload",

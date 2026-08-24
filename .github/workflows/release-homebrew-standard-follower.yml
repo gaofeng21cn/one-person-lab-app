@@ -1,5 +1,8 @@
 name: OPL Homebrew Standard Follower
-run-name: Homebrew Standard follower for Stable run ${{ github.event.workflow_run.id }}
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+    && format('Homebrew Standard reconcile for Stable run {0}', inputs.source_run_id)
+    || format('Homebrew Standard follower for Stable run {0}', github.event.workflow_run.id) }}
 
 on:
   workflow_run:
@@ -7,6 +10,18 @@ on:
       - OPL Stable Release Bundle
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Exact successful Stable publication run to reconcile
+        required: true
+        type: string
+      reconcile_confirmation:
+        description: Reconcile the published Standard handoff to the current Homebrew Cask
+        required: true
+        type: choice
+        options:
+          - reconcile_published_homebrew_standard
 
 permissions:
   contents: read
@@ -16,15 +31,18 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: opl-homebrew-standard-${{ github.event.workflow_run.id }}
+  group: opl-homebrew-standard-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
   cancel-in-progress: false
 
 jobs:
   publish-standard-cask:
     if: >-
-      ${{ github.event.workflow_run.conclusion == 'success'
+      ${{ (github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
         && (startsWith(github.event.workflow_run.display_title, 'OPL Stable standard ')
-          || startsWith(github.event.workflow_run.display_title, 'OPL Stable resume_standard ')) }}
+          || startsWith(github.event.workflow_run.display_title, 'OPL Stable resume_standard ')))
+        || (github.event_name == 'workflow_dispatch'
+        && inputs.reconcile_confirmation == 'reconcile_published_homebrew_standard') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: release-stable
@@ -35,19 +53,45 @@ jobs:
       - name: Checkout exact App follower
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Bind one successful Standard publication run
         id: authority
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
+          RECONCILE_CONFIRMATION: ${{ inputs.reconcile_confirmation || '' }}
+          TRIGGER_EVENT: ${{ github.event_name }}
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          if [ "$TRIGGER_EVENT" = workflow_dispatch ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$RECONCILE_CONFIRMATION" = reconcile_published_homebrew_standard
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > reconcile-run.json
+            jq -e --arg run "$GITHUB_RUN_ID" --arg title "Homebrew Standard reconcile for Stable run ${SOURCE_RUN_ID}" --arg sha "$GITHUB_SHA" '
+              (.id | tostring) == $run
+              and .path == ".github/workflows/release-homebrew-standard-follower.yml"
+              and .event == "workflow_dispatch"
+              and .head_branch == "main"
+              and .head_sha == $sha
+              and .display_title == $title
+              and .run_attempt == 1
+            ' reconcile-run.json >/dev/null
+            executor_sha="$(git rev-parse HEAD)"
+            [[ "$executor_sha" =~ ^[0-9a-f]{40}$ ]]
+            gh api "repos/$GITHUB_REPOSITORY/branches/main" > current-main.json
+            test "$(jq -er .commit.sha current-main.json)" = "$executor_sha"
+          else
+            test "$TRIGGER_EVENT" = workflow_run
+            test -z "$RECONCILE_CONFIRMATION"
+          fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
-          jq -e --arg run "$SOURCE_RUN_ID" --arg head '${{ github.event.workflow_run.head_sha }}' '
+          jq -e --arg run "$SOURCE_RUN_ID" --arg head "$(jq -er .head_sha source-run.json)" '
             (.id | tostring) == $run
             and .repository.full_name == "gaofeng21cn/one-person-lab-app"
             and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
@@ -73,7 +117,7 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ steps.authority.outputs.artifact }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.authority.outputs.source_run_id }}
           github-token: ${{ github.token }}
           path: standard-publication
 
@@ -89,7 +133,7 @@ jobs:
       - name: Apply one exact-CAS Standard Cask update
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_ID: ${{ steps.authority.outputs.source_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -248,7 +292,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-homebrew-standard-${{ github.event.workflow_run.id }}
+          name: opl-homebrew-standard-${{ steps.authority.outputs.source_run_id }}
           path: |
             homebrew-standard-plan.json
             homebrew-standard-apply.json

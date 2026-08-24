@@ -674,10 +674,7 @@ export function fixture(
       vm_ancestor_count: 0,
       tart_ancestor_count: 0,
     },
-    homebrew: {
-      publication_receipt_sha256: `sha256:${'7'.repeat(64)}`,
-      readback_receipt_sha256: `sha256:${'a'.repeat(64)}`,
-    },
+    homebrew: null,
     latest_compare_and_swap: {
       expected_current: { tag: expectedCurrentLatestTag },
       candidate: { tag },

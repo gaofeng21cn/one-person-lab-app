@@ -52,12 +52,34 @@ test('append_full delegates Full Homebrew without mutating Standard publication 
 
 test('Standard Homebrew follower uses same-tag inspect-before-write CAS and cannot block core publication', () => {
   const workflow = parseWorkflow('release-homebrew-standard-follower.yml');
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
+  assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
+  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
+    'source_run_id',
+    'reconcile_confirmation',
+  ]);
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.reconcile_confirmation.options, [
+    'reconcile_published_homebrew_standard',
+  ]);
   const source = String(
     workflow.jobs['publish-standard-cask'].steps.find(
       (step: Record<string, unknown>) => step.name === 'Apply one exact-CAS Standard Cask update',
     )?.run ?? '',
   );
   assert.match(workflow.jobs['publish-standard-cask'].if, /workflow_run\.conclusion == 'success'/);
+  assert.match(workflow.jobs['publish-standard-cask'].if, /reconcile_published_homebrew_standard/);
+  const bindStep = workflow.jobs['publish-standard-cask'].steps.find(
+    (step: Record<string, unknown>) => step.name === 'Bind one successful Standard publication run',
+  );
+  const checkoutStep = workflow.jobs['publish-standard-cask'].steps.find(
+    (step: Record<string, unknown>) => step.name === 'Checkout exact App follower',
+  );
+  assert.equal(checkoutStep?.with?.ref, 'main');
+  assert.equal(checkoutStep?.with?.['persist-credentials'], false);
+  assert.match(String(bindStep?.run), /test "\$GITHUB_REF" = refs\/heads\/main/);
+  assert.match(String(bindStep?.run), /test "\$RECONCILE_CONFIRMATION" = reconcile_published_homebrew_standard/);
+  assert.match(String(bindStep?.run), /\.commit\.sha current-main\.json/);
+  assert.match(String(bindStep?.run), /\.head_sha == \$head/);
   assert.match(source, /opl_homebrew_standard_follower_handoff\.v1/);
   assert.match(source, /same_tag_replacement_allowed: true/);
   assert.ok(source.indexOf('tap_base="$(git -C tap-source rev-parse HEAD)"') < source.indexOf('--remote-write-mode inspect_only'));

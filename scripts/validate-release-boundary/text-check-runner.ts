@@ -1313,10 +1313,24 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   const homebrewStandardRuns = jobRuns(homebrewStandardFollowerJob);
   const homebrewStandardTriggers = homebrewStandardFollower.workflow.on ?? {};
   if (
-    JSON.stringify(Object.keys(homebrewStandardTriggers)) !== JSON.stringify(['workflow_run'])
+    JSON.stringify(Object.keys(homebrewStandardTriggers)) !==
+      JSON.stringify(['workflow_run', 'workflow_dispatch'])
     || JSON.stringify(homebrewStandardTriggers.workflow_run?.workflows) !==
       JSON.stringify(['OPL Stable Release Bundle'])
     || JSON.stringify(homebrewStandardTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
+    || JSON.stringify(homebrewStandardTriggers.workflow_dispatch?.inputs) !== JSON.stringify({
+      source_run_id: {
+        description: 'Exact successful Stable publication run to reconcile',
+        required: true,
+        type: 'string',
+      },
+      reconcile_confirmation: {
+        description: 'Reconcile the published Standard handoff to the current Homebrew Cask',
+        required: true,
+        type: 'choice',
+        options: ['reconcile_published_homebrew_standard'],
+      },
+    })
     || JSON.stringify(Object.keys(homebrewStandardFollowerJobs)) !==
       JSON.stringify(['publish-standard-cask'])
     || !homebrewStandardFollowerJob
@@ -1344,6 +1358,10 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'core_release_or_latest_blocked:false',
     'second_push_attempted:false',
     'the core Release and Latest remain complete',
+    'test "$RECONCILE_CONFIRMATION" = reconcile_published_homebrew_standard',
+    '.head_sha == $sha',
+    '.display_title == $title',
+    'current-main.json',
   ]) {
     if (!homebrewStandardRuns.includes(required)) {
       failures += reportFailure(id, `Standard Homebrew CAS is missing ${required}`);

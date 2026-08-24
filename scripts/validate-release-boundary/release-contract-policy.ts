@@ -2110,6 +2110,22 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.stable?.exact_current_cask_sha256_cas_required !== true ||
     homebrew?.tap_update_policy?.stable?.fresh_cas_rerun_allowed !== true ||
     homebrew?.tap_update_policy?.stable?.may_consume_nightly_directly !== false ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.trigger !== 'workflow_dispatch' ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.authority_binding !==
+      'same_successful_standard_run_and_exact_published_handoff' ||
+    !sameStringSet(homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.required_inputs, [
+      'source_run_id', 'reconcile_confirmation',
+    ]) ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.confirmation !==
+      'reconcile_published_homebrew_standard' ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.failed_run_history_inputs_forbidden !== true ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.exact_publication_handoff_required !== true ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.missing_or_expired_handoff !== 'fail' ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.exact_current_cask_sha256_cas_required !== true ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.canonical_main_executor_required !== true ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.concurrency_scope !== 'source_run_id' ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.workflow_rerun_allowed !== false ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.standard_redispatch_allowed !== false ||
     homebrew?.tap_update_policy?.nightly?.mode !== 'post_publication_digest_bound_single_attempt_follower' ||
     homebrew?.tap_update_policy?.nightly?.workflow !== '.github/workflows/release-nightly-homebrew-follower.yml' ||
     homebrew?.tap_update_policy?.nightly?.environment !== 'release-nightly' ||
