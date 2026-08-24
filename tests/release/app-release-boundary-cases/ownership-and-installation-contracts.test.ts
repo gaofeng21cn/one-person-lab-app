@@ -135,6 +135,8 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   assert.match(stableCask, /package_specific_cask_allowed: false/);
   assert.match(stableCask, /conflicts_with cask: \["one-person-lab-full", "one-person-lab-nightly"\]/);
   assert.match(stableCask, /depends_on formula: "opl"/);
+  assert.match(stableCask, /Stable casks pair display tags with monotonic updater versions/);
+  assert.doesNotMatch(stableCask, /immutable/i);
   const stableCaskSha = stablePlan.targets[0].expected_cask_sha256;
 
   const idempotentInspect = runTap({
@@ -260,6 +262,8 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   assert.doesNotMatch(migratedFullCask, /depends_on formula:/);
   assert.match(migratedFullCask, /framework_carrier: full_dmg_embedded_opl_base/);
   assert.match(migratedFullCask, /active_framework_count_target: 1/);
+  assert.match(migratedFullCask, /Stable casks pair display tags with monotonic updater versions/);
+  assert.doesNotMatch(migratedFullCask, /immutable/i);
 
   const fullMigrationAgain = runTap({
     packageKind: 'app_full_first_install',

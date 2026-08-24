@@ -345,7 +345,7 @@ function skeletonContent(targetPath: string, options: ResolvedOptions): string {
     '  livecheck do',
     `    skip "${options.channel === 'nightly'
       ? 'Nightly casks track prerelease cohorts through App release automation'
-      : 'The immutable Release Bundle maps display tags to monotonic machine versions'}"`,
+      : 'Stable casks pair display tags with monotonic updater versions'}"`,
     '  end',
     '',
     ...(conflicts.length > 0
