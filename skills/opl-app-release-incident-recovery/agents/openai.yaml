@@ -1,0 +1,6 @@
+interface:
+  display_name: "OPL App Release Incident Recovery"
+  short_description: "Recover an active One Person Lab App release incident"
+  default_prompt: "Use $opl-app-release-incident-recovery to reconcile the current One Person Lab App release run, identify the exact breakpoint, and resume the authorized release path."
+policy:
+  allow_implicit_invocation: false
