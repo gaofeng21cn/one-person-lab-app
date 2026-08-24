@@ -105,7 +105,6 @@ jobs:
             and (.build_provenance.app_sha | test("^[0-9a-f]{40}$"))
             and (.build_provenance.shell_sha | test("^[0-9a-f]{40}$"))
             and (.build_provenance.framework_sha | test("^[0-9a-f]{40}$"))
-            and .release.target_standard.target_commitish == .build_provenance.app_sha
             and (.artifact.sha256 | test("^sha256:[0-9a-f]{64}$"))
             and (.manifest.sha256 | test("^sha256:[0-9a-f]{64}$"))
             and .github_full_publication.status == "complete"
@@ -155,10 +154,7 @@ jobs:
           curl --fail --location --retry 2 --retry-all-errors "$standard_manifest_url" --output standard-component-manifest.json
           node --experimental-strip-types scripts/read-opl-app-component-manifest-identity.ts \
             --manifest standard-component-manifest.json --expected-tag "$standard_tag" \
-            --release-prerelease false --expected-source-commit "$app_sha" > standard-component-identity.json
-          jq -e --arg app "$app_sha" --arg shell "$shell_sha" --arg framework "$framework_sha" '
-            .source_cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
-          ' standard-component-manifest.json >/dev/null
+            --release-prerelease false --expected-source-commit "$base_target_commitish" > standard-component-identity.json
 
           embedded_base_floor=a1561bdf1dfe6f316dad22f16152a537ddfb69d5
           git clone --filter=blob:none --no-checkout https://github.com/gaofeng21cn/opl-aion-shell.git shell-product

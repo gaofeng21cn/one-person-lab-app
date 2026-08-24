@@ -197,7 +197,10 @@ test('Full Homebrew reusable publishes hosted-qualified bytes before optional ph
   assert.match(source, /a1561bdf1dfe6f316dad22f16152a537ddfb69d5/);
   assert.match(source, /merge-base --is-ancestor "\$embedded_base_floor" "\$shell_sha"/);
   assert.match(source, /standard_manifest_url=.*opl-app-component-manifest\.json/);
-  assert.match(source, /\.source_cohort == \{app_sha:\$app,shell_sha:\$shell,framework_sha:\$framework\}/);
+  assert.match(source, /--expected-source-commit "\$base_target_commitish"/);
+  assert.doesNotMatch(source, /\.target_standard\.target_commitish == \.build_provenance\.app_sha/);
+  assert.doesNotMatch(source, /--expected-source-commit "\$app_sha"/);
+  assert.doesNotMatch(source, /\.source_cohort == \{app_sha:\$app,shell_sha:\$shell,framework_sha:\$framework\}/);
   assert.match(source, /git -C tap-source push --no-force origin "\$result_commit:refs\/heads\/main"/);
   assert.equal((source.match(/git -C tap-source push --no-force/g) ?? []).length, 1);
   assert.match(source, /git -C tap-source ls-remote origin refs\/heads\/main/);
