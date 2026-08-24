@@ -163,8 +163,8 @@ jobs:
                 ' failed-follower-jobs.json >/dev/null
                 failed_job_id="$(jq -er '[.jobs[] | select(.name == "publish-homebrew-full / prepare-candidate")] | select(length == 1) | .[0].id' failed-follower-jobs.json)"
                 gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$failed_job_id/logs" > failed-follower.log
-                stale_target_executor_assertion=".target_commitish == \$executor"
-                grep -F "$stale_target_executor_assertion" failed-follower.log >/dev/null
+                stale_full_standard_cohort_assertion=".release.target_standard.target_commitish == .build_provenance.app_sha"
+                grep -F "$stale_full_standard_cohort_assertion" failed-follower.log >/dev/null
                 gh api --paginate --slurp \
                   "repos/$GITHUB_REPOSITORY/actions/runs/$FAILED_FOLLOWER_RUN_ID/artifacts?per_page=100" \
                   > failed-follower-artifacts.json

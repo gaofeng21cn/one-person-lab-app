@@ -138,8 +138,8 @@ test('Full Homebrew follower permits only automatic delivery or exact bounded re
   assert.match(source, /\.name == "Decode and validate same-tag Full handoff" and \.conclusion == "failure"/);
   assert.match(source, /failed-follower-artifacts\.json/);
   assert.match(source, /\[\.\[\]\?\.artifacts\[\]\?\] \| length == 0/);
-  assert.match(source, /stale_target_executor_assertion="\.target_commitish == \\\$executor"/);
-  assert.match(source, /grep -F "\$stale_target_executor_assertion" failed-follower\.log/);
+  assert.match(source, /stale_full_standard_cohort_assertion="\.release\.target_standard\.target_commitish == \.build_provenance\.app_sha"/);
+  assert.match(source, /grep -F "\$stale_full_standard_cohort_assertion" failed-follower\.log/);
   assert.match(source, /failed-recovery-run\.json/);
   assert.match(source, /failed_recovery_run_id/);
   assert.match(source, /failed-recovery-v2-run\.json/);
