@@ -494,9 +494,9 @@ export function buildFullCheckpointRecoveryPlan(input: {
     appSha: input.cohort.cohort.app_sha,
     shellSha: input.cohort.cohort.shell_sha,
     frameworkSha: input.cohort.cohort.framework_sha,
-    priorFullArtifactRunId: smokeHarnessSha ? recoveryRunId : undefined,
+    priorFullArtifactRunId: smokeHarnessSha ? input.cohort.actions.run_id : undefined,
     artifactProducerRunId: input.cohort.actions.run_id,
-    qualificationRunId: recoveryRunId,
+    qualificationRunId: smokeHarnessSha ? input.cohort.actions.run_id : recoveryRunId,
     smokeHarnessSha,
     recoveryRunId,
   });
