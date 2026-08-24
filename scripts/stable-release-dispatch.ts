@@ -206,6 +206,19 @@ export function selectCheckpointArtifact(artifacts: WorkflowArtifact[], sourceRu
   return matches[0]!.name;
 }
 
+export function selectFullCheckpointArtifact(
+  artifacts: WorkflowArtifact[],
+  sourceRunId: string,
+): WorkflowArtifact | null {
+  const id = runId(sourceRunId, 'source_run_id');
+  const expected = `opl-release-full-checkpoint-${id}`;
+  const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
+  if (matches.length > 1) {
+    throw new Error(`Run ${id} exposes multiple reusable qualified Full checkpoints.`);
+  }
+  return matches[0] ?? null;
+}
+
 export function selectFullCohortArtifact(artifacts: WorkflowArtifact[]): WorkflowArtifact {
   const matches = artifacts.filter((artifact) => (
     !artifact.expired
@@ -371,6 +384,7 @@ export function buildAppendFullPlan(input: {
   artifactProducerRunId?: string;
   qualificationRunId?: string;
   smokeHarnessSha?: string;
+  recoveryRunId?: string;
 }): StableDispatchPlan {
   const sourceRunId = runId(input.sourceRunId, 'source_run_id');
   const workflowInputs: Record<string, string> = {
@@ -402,7 +416,7 @@ export function buildAppendFullPlan(input: {
     workflow_inputs: workflowInputs,
     source: { run_id: sourceRunId, artifact: workflowInputs.source_artifact },
     recovery: {
-      requested_run_id: input.priorFullArtifactRunId ?? null,
+      requested_run_id: input.recoveryRunId ?? input.priorFullArtifactRunId ?? null,
       artifact_producer_run_id: input.artifactProducerRunId ?? null,
       qualification_run_id: input.qualificationRunId ?? null,
       smoke_harness_ref: workflowInputs.smoke_harness_ref ?? null,
@@ -829,28 +843,43 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       fullCohortArtifact.name,
       'opl-build-cohort.json',
     ));
-    const qualificationArtifact = selectFullQualificationArtifact(artifacts, recoveryRunId);
-    const recovery = validateFullRecoveryEvidence(downloadArtifactJson(
-      runtime,
-      repository,
-      recoveryRunId,
-      qualificationArtifact.name,
-      'qualification-attempt-receipt.json',
-    ), recoveryRunId, cohort);
-    plan = buildAppendFullPlan({
-      attemptId: attemptId('recover-full', runtime),
-      sourceRunId: recoveryRunId,
-      sourceArtifact: selectCheckpointArtifact(artifacts, recoveryRunId),
-      appSha: cohort.cohort.app_sha,
-      shellSha: cohort.cohort.shell_sha,
-      frameworkSha: cohort.cohort.framework_sha,
-      priorFullArtifactRunId: recoveryRunId,
-      artifactProducerRunId: recovery.artifact_producer_run_id,
-      qualificationRunId: recovery.qualification_run_id,
-      smokeHarnessSha: values['smoke-harness-ref']
-        ? sha(values['smoke-harness-ref'], 'smoke_harness_ref')
-        : recovery.smoke_harness_ref ?? undefined,
-    });
+    const fullCheckpoint = selectFullCheckpointArtifact(artifacts, recoveryRunId);
+    if (fullCheckpoint) {
+      plan = buildAppendFullPlan({
+        attemptId: attemptId('recover-full', runtime),
+        sourceRunId: recoveryRunId,
+        sourceArtifact: fullCheckpoint.name,
+        appSha: cohort.cohort.app_sha,
+        shellSha: cohort.cohort.shell_sha,
+        frameworkSha: cohort.cohort.framework_sha,
+        artifactProducerRunId: cohort.actions.run_id,
+        qualificationRunId: recoveryRunId,
+        recoveryRunId,
+      });
+    } else {
+      const qualificationArtifact = selectFullQualificationArtifact(artifacts, recoveryRunId);
+      const recovery = validateFullRecoveryEvidence(downloadArtifactJson(
+        runtime,
+        repository,
+        recoveryRunId,
+        qualificationArtifact.name,
+        'qualification-attempt-receipt.json',
+      ), recoveryRunId, cohort);
+      plan = buildAppendFullPlan({
+        attemptId: attemptId('recover-full', runtime),
+        sourceRunId: recoveryRunId,
+        sourceArtifact: selectCheckpointArtifact(artifacts, recoveryRunId),
+        appSha: cohort.cohort.app_sha,
+        shellSha: cohort.cohort.shell_sha,
+        frameworkSha: cohort.cohort.framework_sha,
+        priorFullArtifactRunId: recoveryRunId,
+        artifactProducerRunId: recovery.artifact_producer_run_id,
+        qualificationRunId: recovery.qualification_run_id,
+        smokeHarnessSha: values['smoke-harness-ref']
+          ? sha(values['smoke-harness-ref'], 'smoke_harness_ref')
+          : recovery.smoke_harness_ref ?? undefined,
+      });
+    }
   } else {
     usage();
   }

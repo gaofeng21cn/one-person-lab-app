@@ -9,6 +9,7 @@ import {
   buildResumeStandardPlan,
   dispatchOnce,
   selectCheckpointArtifact,
+  selectFullCheckpointArtifact,
   selectFullCohortArtifact,
   selectFullQualificationArtifact,
   validateFullBuildCohort,
@@ -79,6 +80,40 @@ test('Full recovery keeps the recovery and original producer identities distinct
   assert.equal(plan.recovery.artifact_producer_run_id, '32660259139');
   assert.equal(plan.recovery.qualification_run_id, '32665218996');
   assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
+  assert.equal('version' in plan.workflow_inputs, false);
+});
+
+test('Full publication recovery consumes one qualified checkpoint without rebuilding or requalifying', () => {
+  const artifacts = [{
+    id: 7,
+    name: 'opl-release-full-checkpoint-32675178143',
+    expired: false,
+  }];
+  const checkpoint = selectFullCheckpointArtifact(artifacts, '32675178143');
+  assert.equal(checkpoint, artifacts[0]);
+  assert.throws(
+    () => selectFullCheckpointArtifact([...artifacts, { ...artifacts[0]!, id: 8 }], '32675178143'),
+    /multiple reusable qualified Full checkpoints/,
+  );
+
+  const plan = buildAppendFullPlan({
+    attemptId: 'recover-full-20260824-aabbccdd',
+    sourceRunId: '32675178143',
+    sourceArtifact: checkpoint!.name,
+    appSha,
+    shellSha,
+    frameworkSha,
+    artifactProducerRunId: '32660259139',
+    qualificationRunId: '32675178143',
+    recoveryRunId: '32675178143',
+  });
+
+  assert.equal(plan.source.artifact, 'opl-release-full-checkpoint-32675178143');
+  assert.equal(plan.recovery.requested_run_id, '32675178143');
+  assert.equal(plan.recovery.artifact_producer_run_id, '32660259139');
+  assert.equal(plan.recovery.qualification_run_id, '32675178143');
+  assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
+  assert.equal('smoke_harness_ref' in plan.workflow_inputs, false);
   assert.equal('version' in plan.workflow_inputs, false);
 });
 
