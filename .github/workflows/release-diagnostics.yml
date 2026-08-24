@@ -1,4 +1,8 @@
-name: OPL Desktop Release Diagnostics
+name: OPL Release Diagnostics
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+    && format('Release diagnostics: {0}', inputs.diagnostic)
+    || format('Desktop release diagnostics for {0}', inputs.opl_version) }}
 
 on:
   workflow_call:
@@ -89,9 +93,19 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      diagnostic:
+        description: Select one independent diagnostic lane.
+        required: true
+        default: desktop
+        type: choice
+        options:
+          - desktop
+          - apple_credentials
+          - timestamp_authority
       opl_version:
         description: OPL version to diagnose, for example 26.6.21
-        required: true
+        required: false
+        default: ''
         type: string
       release_run_id:
         description: GitHub Actions desktop release run id to inspect
@@ -180,20 +194,27 @@ on:
         options:
           - bootstrap_only
           - release_gate
+      large_dmg_canary:
+        description: "Apple credentials only: sign a synthetic Full-sized ULMO DMG without notarization submission."
+        required: false
+        default: false
+        type: boolean
+      notary_submission_id:
+        description: "Apple credentials only: exact existing Apple submission UUID to reconcile read-only."
+        required: false
+        default: ''
+        type: string
 
 permissions:
   actions: read
   contents: read
-
-concurrency:
-  group: opl-desktop-release-diagnostics-${{ inputs.opl_version }}-${{ inputs.diagnostic_scope }}-${{ inputs.build_standard_artifact && 'temporary-standard-artifact' || (inputs.release_artifact_run_id != '' && inputs.release_artifact_run_id || (inputs.release_dmg_url != '' && inputs.release_dmg_url || (inputs.release_run_id != '' && inputs.release_run_id || 'release-asset'))) }}-${{ inputs.release_artifact_name != '' && inputs.release_artifact_name || inputs.package_profile }}-${{ inputs.run_vm_diagnostic && 'vm' || 'metadata' }}
-  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   diagnostic-inputs:
+    if: ${{ github.event_name == 'workflow_call' || inputs.diagnostic == 'desktop' }}
     name: Validate diagnostic workflow inputs
     runs-on: ubuntu-latest
 
@@ -201,11 +222,13 @@ jobs:
       - name: Validate diagnostic input combinations
         shell: bash
         env:
+          OPL_VERSION: ${{ inputs.opl_version }}
           RUN_VM_DIAGNOSTIC: ${{ inputs.run_vm_diagnostic }}
           PACKAGE_PROFILE: ${{ inputs.package_profile }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
         run: |
           set -euo pipefail
+          test -n "$OPL_VERSION" || { echo "::error::desktop diagnostics require opl_version."; exit 1; }
           if [ "${{ inputs.build_standard_artifact }}" = "true" ]; then
             if [ "${{ inputs.package_profile }}" != "standard" ]; then
               echo "::error::build_standard_artifact only supports package_profile=standard."
@@ -227,7 +250,7 @@ jobs:
     name: Build release diagnostic harness outputs
     runs-on: ubuntu-latest
     needs: diagnostic-inputs
-    if: ${{ inputs.release_run_id != '' }}
+    if: ${{ (github.event_name == 'workflow_call' || inputs.diagnostic == 'desktop') && inputs.release_run_id != '' }}
 
     steps:
       - name: Checkout App repo
@@ -407,7 +430,7 @@ jobs:
   standard-dmg-diagnostic-artifact:
     name: Build temporary standard DMG diagnostic artifact
     needs: diagnostic-inputs
-    if: ${{ inputs.build_standard_artifact }}
+    if: ${{ (github.event_name == 'workflow_call' || inputs.diagnostic == 'desktop') && inputs.build_standard_artifact }}
     uses: ./.github/workflows/_build-reusable.yml
     with:
       matrix: >-
@@ -427,7 +450,7 @@ jobs:
     needs:
       - diagnostic-inputs
       - standard-dmg-diagnostic-artifact
-    if: ${{ !cancelled() && inputs.run_vm_diagnostic && inputs.build_standard_artifact && needs.diagnostic-inputs.result == 'success' && needs.standard-dmg-diagnostic-artifact.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'workflow_call' || inputs.diagnostic == 'desktop') && inputs.run_vm_diagnostic && inputs.build_standard_artifact && needs.diagnostic-inputs.result == 'success' && needs.standard-dmg-diagnostic-artifact.result == 'success' }}
     uses: ./.github/workflows/opl-first-run-vm.yml
     with:
       release_tag: ${{ inputs.release_tag != '' && inputs.release_tag || format('v{0}', inputs.opl_version) }}
@@ -449,7 +472,7 @@ jobs:
     name: Run first-run VM diagnostic harness for release asset
     needs:
       - diagnostic-inputs
-    if: ${{ !cancelled() && inputs.run_vm_diagnostic && !inputs.build_standard_artifact && needs.diagnostic-inputs.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'workflow_call' || inputs.diagnostic == 'desktop') && inputs.run_vm_diagnostic && !inputs.build_standard_artifact && needs.diagnostic-inputs.result == 'success' }}
     uses: ./.github/workflows/opl-first-run-vm.yml
     with:
       release_tag: ${{ inputs.release_tag != '' && inputs.release_tag || format('v{0}', inputs.opl_version) }}
@@ -466,3 +489,120 @@ jobs:
       smoke_timeout_ms: ${{ inputs.smoke_timeout_ms }}
       diagnostic_scope: ${{ inputs.diagnostic_scope }}
     secrets: inherit
+
+  apple-credentials:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'apple_credentials' }}
+    name: Diagnose protected Apple credential readiness
+    runs-on: macos-latest
+    timeout-minutes: 45
+    environment: release-stable
+    concurrency:
+      group: opl-release-apple-credentials-preflight
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact diagnostic source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Import Developer ID identity and authenticate notarization
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          IDENTITY: ${{ secrets.IDENTITY }}
+          NOTARY_SUBMISSION_ID: ${{ inputs.notary_submission_id }}
+          OPL_MACOS_RUNNER_LABEL: macos-latest
+        run: |
+          args=(--output "$RUNNER_TEMP/apple-release-credentials-preflight.json")
+          if [ '${{ inputs.large_dmg_canary }}' = true ]; then args+=(--large-dmg-canary); fi
+          if [ -n "$NOTARY_SUBMISSION_ID" ]; then args+=(--notary-submission-id "$NOTARY_SUBMISSION_ID"); fi
+          node --experimental-strip-types scripts/verify-apple-release-credentials.ts "${args[@]}"
+      - name: Upload sanitized Apple credential preflight receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-apple-release-credentials-preflight-${{ github.run_id }}
+          path: ${{ runner.temp }}/apple-release-credentials-preflight.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Summarize diagnostic-only result
+        run: |
+          notary_submission_id="$(jq -r '.notarization.submission_reconcile.submission_id // "not requested"' "$RUNNER_TEMP/apple-release-credentials-preflight.json")"
+          notary_status="$(jq -r '.notarization.submission_reconcile.apple_status // "not requested"' "$RUNNER_TEMP/apple-release-credentials-preflight.json")"
+          {
+            echo '## Apple credential diagnostic passed'
+            echo
+            echo '- Stable admission authority: false'
+            echo '- Standard dispatch performed: false'
+            echo '- Notarization submission performed: false'
+            echo "- Existing notarization submission: $notary_submission_id"
+            echo "- Existing notarization status: $notary_status"
+            echo '- Large DMG canary requested: ${{ inputs.large_dmg_canary }}'
+            echo '- Continue through release-stable.yml for publication.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  timestamp-authority:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'timestamp_authority' }}
+    name: Diagnose hosted Apple timestamp authority path
+    runs-on: macos-latest
+    timeout-minutes: 10
+    concurrency:
+      group: opl-release-timestamp-authority-diagnostic
+      cancel-in-progress: false
+    steps:
+      - name: Checkout exact diagnostic source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Probe and verify Apple RFC3161 timestamp authority
+        id: tsa
+        continue-on-error: true
+        run: >-
+          node --experimental-strip-types scripts/diagnose-apple-timestamp-authority.ts
+          --output "$RUNNER_TEMP/apple-timestamp-authority-diagnostic.json"
+      - name: Upload typed timestamp authority diagnostic
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-apple-timestamp-authority-diagnostic-${{ github.run_id }}
+          path: ${{ runner.temp }}/apple-timestamp-authority-diagnostic.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Summarize and enforce diagnostic result
+        if: ${{ always() }}
+        env:
+          OPL_TSA_STEP_OUTCOME: ${{ steps.tsa.outcome }}
+          OPL_TSA_RECEIPT: ${{ runner.temp }}/apple-timestamp-authority-diagnostic.json
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const receipt = JSON.parse(fs.readFileSync(process.env.OPL_TSA_RECEIPT, 'utf8'));
+          const lines = [
+            '## Apple timestamp authority diagnostic', '',
+            `- Status: ${receipt.status}`,
+            `- Endpoint: ${receipt.endpoint}`,
+            `- HTTP: ${receipt.response?.http_status ?? 'not reached'}`,
+            `- Duration: ${receipt.response?.duration_ms ?? 'unknown'} ms`,
+            `- Query/response binding: ${receipt.verification?.query_response_binding}`,
+            `- Signer chain to system root: ${receipt.verification?.signer_chain_to_system_root}`,
+            `- Production credentials used: ${receipt.production_credentials_used}`,
+            `- Release mutation authorized: ${receipt.mutation_authorized}`,
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+          if (process.env.OPL_TSA_STEP_OUTCOME !== 'success' || receipt.status !== 'passed') {
+            console.error(`Apple timestamp authority diagnostic failed: ${receipt.failure?.code ?? 'unknown'}`);
+            process.exit(1);
+          }
+          NODE

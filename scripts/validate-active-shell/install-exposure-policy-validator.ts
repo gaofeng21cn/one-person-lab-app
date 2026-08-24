@@ -1294,14 +1294,17 @@ function validateDockerWebuiSmokeGateContract(contract) {
   ) {
     throw new Error('Docker/WebUI smoke evidence must not import retired desktop release authority');
   }
-  if (contract.workflow_import?.linux_default_producer !== 'standalone_clean_linux_vm_workflow') {
-    throw new Error('Docker/WebUI clean Linux VM gate must declare the standalone producer');
+  if (contract.workflow_import?.manual_producer_workflow !== '.github/workflows/docker-webui-clean-vm.yml') {
+    throw new Error('Docker/WebUI clean VM gates must declare the unified standalone manual producer workflow');
   }
-  if (contract.workflow_import?.linux_manual_producer_workflow !== '.github/workflows/docker-webui-clean-linux-vm.yml') {
-    throw new Error('Docker/WebUI clean Linux VM gate must declare the standalone manual producer workflow');
+  if (contract.workflow_import?.manual_producer_platform_input !== 'platform') {
+    throw new Error('Docker/WebUI clean VM producer must select the platform through one typed input');
   }
-  if (contract.workflow_import?.windows_manual_producer_workflow !== '.github/workflows/docker-webui-clean-windows-vm.yml') {
-    throw new Error('Docker/WebUI clean Windows VM gate must declare the standalone manual producer workflow');
+  if (
+    contract.workflow_import?.manual_producer_platforms?.linux !== 'clean_linux_vm'
+    || contract.workflow_import?.manual_producer_platforms?.windows !== 'clean_windows_vm'
+  ) {
+    throw new Error('Docker/WebUI clean VM producer must preserve the Linux and Windows evidence gates');
   }
   assertIncludesAll(
     contract.diagnostic_bundle_artifacts,

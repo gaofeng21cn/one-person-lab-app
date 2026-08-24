@@ -3,11 +3,6 @@ name: OPL Full Bundle Add-on
 on:
   workflow_call:
     inputs:
-      mode:
-        description: execute or canary
-        required: false
-        default: execute
-        type: string
       operation:
         description: append_full for the independent Full operation
         required: false
@@ -75,31 +70,10 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF: ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc
   OPL_FULL_CHECKPOINT_ARTIFACT: opl-release-full-checkpoint-${{ github.run_id }}
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - name: Prove reusable Full add-on topology starts
-        run: |
-          test '${{ inputs.operation }}' = append_full
-          test '${{ inputs.source_run_id }}' = 424242
-          test '${{ inputs.source_artifact }}' = opl-release-canary-checkpoint-424242
-          test '${{ inputs.source_format }}' = checkpoint_v1
-          test '${{ inputs.framework_executor_ref }}' = "$OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF"
-          checkpoint_transport_executor=github_actions
-          transport_run_id=424242
-          test "$checkpoint_transport_executor/$transport_run_id" = github_actions/424242
-
   admission:
-    if: ${{ inputs.mode == 'execute' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -203,7 +177,7 @@ jobs:
           retention-days: 30
 
   restore-standard:
-    if: ${{ inputs.mode == 'execute' && needs.admission.result == 'success' }}
+    if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -858,14 +832,13 @@ jobs:
           retention-days: 30
 
   full-build:
-    if: ${{ inputs.mode == 'execute' && inputs.prior_full_artifact_run_id == '' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified') }}
+    if: ${{ inputs.prior_full_artifact_run_id == '' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified') }}
     needs: [restore-standard]
     permissions:
       contents: read
       actions: read
     uses: ./.github/workflows/full-first-install-release.yml
     with:
-      mode: execute
       opl_version: ${{ needs.restore-standard.outputs.version }}
       opl_updater_version: ${{ needs.restore-standard.outputs.updater_version }}
       framework_ref: ${{ inputs.full_content_framework_ref }}
@@ -883,7 +856,7 @@ jobs:
     secrets: inherit
 
   materialize-full-build:
-    if: ${{ inputs.mode == 'execute' && (needs.restore-standard.outputs.completed_stage == 'full_built' || inputs.prior_full_artifact_run_id != '') }}
+    if: ${{ needs.restore-standard.outputs.completed_stage == 'full_built' || inputs.prior_full_artifact_run_id != '' }}
     needs: [restore-standard]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1179,7 +1152,7 @@ jobs:
           retention-days: 30
 
   full-qualification:
-    if: ${{ always() && inputs.mode == 'execute' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified' || needs.restore-standard.outputs.completed_stage == 'full_built') && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
+    if: ${{ always() && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified' || needs.restore-standard.outputs.completed_stage == 'full_built') && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
     needs: [restore-standard, full-build, materialize-full-build]
     runs-on: macos-latest
     timeout-minutes: 20
@@ -1307,14 +1280,13 @@ jobs:
           retention-days: 30
 
   full-clean-vm-qualification:
-    if: ${{ always() && inputs.mode == 'execute' && needs.full-qualification.result == 'success' }}
+    if: ${{ always() && needs.full-qualification.result == 'success' }}
     needs: [restore-standard, full-build, materialize-full-build, full-qualification]
     permissions:
       contents: read
       actions: read
     uses: ./.github/workflows/opl-first-run-vm.yml
     with:
-      mode: execute
       release_artifact_name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
       release_artifact_run_id: ${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
@@ -1336,7 +1308,7 @@ jobs:
     secrets: inherit
 
   checkpoint-full:
-    if: ${{ always() && inputs.mode == 'execute' && needs.restore-standard.result == 'success' && needs.restore-standard.outputs.completed_stage != 'full_qualified' && (needs.restore-standard.outputs.completed_stage == 'full_built' || needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
+    if: ${{ always() && needs.restore-standard.result == 'success' && needs.restore-standard.outputs.completed_stage != 'full_qualified' && (needs.restore-standard.outputs.completed_stage == 'full_built' || needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [restore-standard, full-build, materialize-full-build, full-qualification, full-clean-vm-qualification]
@@ -1610,7 +1582,7 @@ jobs:
           retention-days: 30
 
   provenance:
-    if: ${{ always() && inputs.mode == 'execute' && needs.restore-standard.result == 'success' && (needs.restore-standard.outputs.completed_stage == 'full_qualified' || needs.checkpoint-full.result == 'success') }}
+    if: ${{ always() && needs.restore-standard.result == 'success' && (needs.restore-standard.outputs.completed_stage == 'full_qualified' || needs.checkpoint-full.result == 'success') }}
     needs: [restore-standard, checkpoint-full]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1651,7 +1623,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   publish-full:
-    if: ${{ always() && inputs.mode == 'execute' && needs.provenance.result == 'success' && needs.provenance.outputs.completed_stage == 'full_qualified' }}
+    if: ${{ always() && needs.provenance.result == 'success' && needs.provenance.outputs.completed_stage == 'full_qualified' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: release-stable

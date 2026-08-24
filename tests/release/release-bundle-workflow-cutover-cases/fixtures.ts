@@ -39,9 +39,6 @@ export const readAdapter = () => fs.readFileSync(
 );
 
 
-export const minimumCompatibleFrameworkAbiRef = 'ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc';
-
-
 export const rejectedBundle = 'sha256:91d5ea069757fca6bb9aa2280615dc952caeff55b6b4bc13e08e40df32378f49';
 
 

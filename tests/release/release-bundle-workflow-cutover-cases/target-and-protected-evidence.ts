@@ -8,7 +8,6 @@ import {
   createGithubOwnerReleaseNamespaceEvidence,
   readWorkflow,
   parseWorkflow,
-  minimumCompatibleFrameworkAbiRef,
   workflowStep,
   runExpectedImmutableReleaseAssetsBuilder,
   runAdmissionGate,
@@ -387,7 +386,8 @@ test('new Standard consumes frozen protected evidence before sealing its run-bou
   const standard = parseWorkflow('_release-standard-publish.yml');
   assert.equal(standard.on.workflow_call.inputs.framework_executor_ref.required, true);
   assert.equal(standard.on.workflow_call.inputs.framework_executor_ref.default, undefined);
-  assert.equal(standard.env.OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF, minimumCompatibleFrameworkAbiRef);
+  assert.equal(standard.on.workflow_call.inputs.mode, undefined);
+  assert.equal(standard.env.OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF, undefined);
   const standardSource = readWorkflow('_release-standard-publish.yml');
   assert.match(standardSource, /Download checkpoint identity bootstrap/);
   assert.match(standardSource, /Resolve frozen Framework source and current executor identities/);
@@ -396,7 +396,8 @@ test('new Standard consumes frozen protected evidence before sealing its run-bou
   const full = parseWorkflow('_release-full-addon.yml');
   assert.equal(full.on.workflow_call.inputs.framework_executor_ref.required, true);
   assert.equal(full.on.workflow_call.inputs.framework_executor_ref.default, undefined);
-  assert.equal(full.env.OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF, minimumCompatibleFrameworkAbiRef);
+  assert.equal(full.on.workflow_call.inputs.mode, undefined);
+  assert.equal(full.env.OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF, undefined);
   const fullSource = readWorkflow('_release-full-addon.yml');
   assert.match(fullSource, /Download checkpoint identity bootstrap/);
   assert.match(fullSource, /Resolve Bundle-bound Framework identity/);
@@ -535,15 +536,22 @@ test('one signed Standard build is sealed once and every final consumer binds it
   assert.equal(publish.jobs['updater-upgrade-qualification'], undefined);
   assert.equal(publish.jobs['updater-upgrade-qualification-highest'], undefined);
 
-  const updater = parseWorkflow('opl-updater-upgrade-vm.yml');
-  assert.equal(updater.on.workflow_call.inputs.standard_identity_sha256.required, false);
-  assert.match(readWorkflow('opl-updater-upgrade-vm.yml'), /Standard identity digest mismatch/);
+  const latestAdmission = fs.readFileSync(
+    path.join(process.cwd(), 'scripts', 'validate-standard-latest-admission.ts'),
+    'utf8',
+  );
+  assert.match(latestAdmission, /expectedZipName/);
+  assert.match(latestAdmission, /expectedDmgName/);
+  assert.match(latestAdmission, /Latest admission ZIP sha256/);
+  assert.match(latestAdmission, /Latest admission DMG sha256/);
+  assert.match(latestAdmission, /Latest admission ZIP size/);
+  assert.match(latestAdmission, /Latest admission DMG size/);
+  assert.equal(fs.existsSync(path.join(process.cwd(), '.github/workflows/opl-updater-upgrade-vm.yml')), false);
   assert.doesNotMatch(
     [
       source,
       readWorkflow('_release-standard-publish.yml'),
       readWorkflow('opl-first-run-vm.yml'),
-      readWorkflow('opl-updater-upgrade-vm.yml'),
     ].join('\n'),
     /package_release_set|package-release-set|release_set_manifest|\bbom\b/i,
   );

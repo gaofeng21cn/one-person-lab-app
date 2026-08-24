@@ -1,10 +1,12 @@
-name: OPL Stable Desktop Release Set Follow-up
+name: OPL Stable Follow-ups
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'repair_additive'
     && format('Stable additive repair for source run {0}', inputs.source_run_id)
-    || github.event_name == 'workflow_dispatch'
+    || github.event_name == 'workflow_dispatch' && inputs.operation == 'reconcile_desktop_platform'
     && format('Desktop {0} reconcile for Stable run {1}', inputs.desktop_platform, inputs.source_run_id)
-    || format('Desktop Release Set follow-up for Stable run {0}', github.event.workflow_run.id) }}
+    || github.event_name == 'workflow_dispatch'
+    && format('Stable follow-up {0} for source run {1}', inputs.operation, inputs.source_run_id)
+    || format('Stable follow-ups for Stable run {0}', github.event.workflow_run.id) }}
 
 on:
   workflow_run:
@@ -15,16 +17,32 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Protected same-tag additive operation.
+        description: Run one exact independent Stable follower or protected same-tag repair.
         required: true
         type: choice
         options:
+          - reconcile_full_addon
+          - reconcile_homebrew_standard
+          - reconcile_homebrew_full
           - reconcile_desktop_platform
           - repair_additive
       source_run_id:
-        description: Exact successful Stable source run that published the original Release Set.
+        description: Exact completed Stable source run.
         required: true
         type: string
+      smoke_harness_ref:
+        description: Optional exact Shell verification SHA for unchanged Full checkpoint bytes.
+        required: false
+        default: ''
+        type: string
+      desktop_platform:
+        description: Exact independently reconciled Desktop platform.
+        required: false
+        default: linux-x64
+        type: choice
+        options:
+          - linux-x64
+          - windows-x64
       repair_source_commit:
         description: Exact canonical App main commit containing the installer repair.
         required: false
@@ -41,18 +59,10 @@ on:
         default: ''
         type: string
       operator_confirmation:
-        description: Type REPAIR ADDITIVE INSTALLER to authorize the protected replacement.
+        description: Type REPAIR ADDITIVE INSTALLER for the protected replacement.
         required: false
         default: ''
         type: string
-      desktop_platform:
-        description: Exact independently reconciled Desktop platform.
-        required: false
-        default: linux-x64
-        type: choice
-        options:
-          - linux-x64
-          - windows-x64
 
 permissions:
   contents: read
@@ -62,14 +72,158 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      source_run_id: ${{ steps.route.outputs.source_run_id }}
+      source_operation: ${{ steps.route.outputs.source_operation }}
+      observe: ${{ steps.route.outputs.observe }}
+      full_addon: ${{ steps.route.outputs.full_addon }}
+      homebrew_standard: ${{ steps.route.outputs.homebrew_standard }}
+      homebrew_full: ${{ steps.route.outputs.homebrew_full }}
+      desktop_platforms: ${{ steps.route.outputs.desktop_platforms }}
+      repair_additive: ${{ steps.route.outputs.repair_additive }}
+    steps:
+      - name: Checkout canonical follow-up router
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Route one completed Stable run or explicit reconciliation
+        id: route
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
+          OPERATION: ${{ inputs.operation || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > stable-source-run.json
+            node --experimental-strip-types scripts/stable-followup-router.ts               --event workflow_run --run stable-source-run.json               --output stable-followup-route.json --github-output "$GITHUB_OUTPUT"
+          else
+            test "$GITHUB_REF" = refs/heads/main
+            node --experimental-strip-types scripts/stable-followup-router.ts               --event workflow_dispatch --source-run-id "$SOURCE_RUN_ID" --operation "$OPERATION"               --output stable-followup-route.json --github-output "$GITHUB_OUTPUT"
+          fi
+      - name: Upload typed Stable follow-up route
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-stable-followup-route-${{ steps.route.outputs.source_run_id }}
+          path: stable-followup-route.json
+          if-no-files-found: error
+          retention-days: 30
+
+  observe:
+    if: ${{ needs.route.outputs.observe == 'true' }}
+    needs: [route]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout canonical observer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: ./.github/actions/release-followups/observe
+        with:
+          source_run_id: ${{ needs.route.outputs.source_run_id }}
+
+  reconcile-full-addon:
+    if: ${{ needs.route.outputs.full_addon == 'true' }}
+    needs: [route]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: opl-stable-full-addon-${{ needs.route.outputs.source_run_id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout canonical Full follower
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: ./.github/actions/release-followups/full-addon
+        with:
+          source_run_id: ${{ needs.route.outputs.source_run_id }}
+          smoke_harness_ref: ${{ inputs.smoke_harness_ref || '' }}
+          github_token: ${{ github.token }}
+
+  publish-standard-cask:
+    if: ${{ needs.route.outputs.homebrew_standard == 'true' }}
+    needs: [route]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-stable
+    concurrency:
+      group: opl-homebrew-standard-${{ needs.route.outputs.source_run_id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout canonical Homebrew Standard follower
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: ./.github/actions/release-followups/homebrew-standard
+        with:
+          source_run_id: ${{ needs.route.outputs.source_run_id }}
+          github_token: ${{ github.token }}
+          homebrew_tap_token: ${{ secrets.OPL_HOMEBREW_TAP_TOKEN }}
+
+  resolve-homebrew-full:
+    if: ${{ needs.route.outputs.homebrew_full == 'true' }}
+    needs: [route]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      handoff_base64: ${{ steps.handoff.outputs.handoff_base64 }}
+      handoff_sha256: ${{ steps.handoff.outputs.handoff_sha256 }}
+      authority_run_id: ${{ steps.handoff.outputs.authority_run_id }}
+    steps:
+      - name: Checkout canonical Homebrew Full follower
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: ./.github/actions/release-followups/homebrew-full-handoff
+        id: handoff
+        with:
+          source_run_id: ${{ needs.route.outputs.source_run_id }}
+          github_token: ${{ github.token }}
+
+  publish-homebrew-full:
+    needs: [resolve-homebrew-full]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_release-homebrew-full-publish.yml
+    with:
+      authority_run_id: ${{ needs.resolve-homebrew-full.outputs.authority_run_id }}
+      handoff_base64: ${{ needs.resolve-homebrew-full.outputs.handoff_base64 }}
+      handoff_sha256: ${{ needs.resolve-homebrew-full.outputs.handoff_sha256 }}
+    secrets: inherit
+
   admit:
-    if: >-
-      ${{ (github.event_name == 'workflow_run'
-        && github.event.workflow_run.conclusion == 'success'
-        && github.event.workflow_run.head_branch == 'main'
-        && (startsWith(github.event.workflow_run.display_title, 'OPL Stable standard ')
-          || startsWith(github.event.workflow_run.display_title, 'OPL Stable resume_standard ')))
-        || (github.event_name == 'workflow_dispatch' && inputs.operation == 'reconcile_desktop_platform') }}
+    if: ${{ needs.route.outputs.desktop_platforms == 'true' }}
+    needs: [route]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -91,8 +245,8 @@ jobs:
         id: source
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
-          SOURCE_HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
+          SOURCE_RUN_ID: ${{ needs.route.outputs.source_run_id }}
+          SOURCE_HEAD_SHA: ''
           REQUESTED_PLATFORM: ${{ github.event_name == 'workflow_dispatch' && inputs.desktop_platform || '' }}
         shell: bash
         run: |
@@ -267,7 +421,8 @@ jobs:
           retention-days: 30
 
   repair-admit:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'repair_additive' }}
+    if: ${{ needs.route.outputs.repair_additive == 'true' }}
+    needs: [route]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

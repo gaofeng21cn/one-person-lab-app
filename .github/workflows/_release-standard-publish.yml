@@ -3,11 +3,6 @@ name: OPL Standard Bundle Publish
 on:
   workflow_call:
     inputs:
-      mode:
-        description: execute or canary
-        required: false
-        default: execute
-        type: string
       operation:
         description: standard or resume_standard
         required: false
@@ -68,30 +63,9 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF: ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - name: Prove reusable Standard publish topology starts
-        run: |
-          test '${{ inputs.operation }}' = resume_standard
-          test '${{ inputs.source_run_id }}' = 424242
-          test '${{ inputs.source_artifact }}' = opl-release-canary-checkpoint-424242
-          test '${{ inputs.source_format }}' = checkpoint_v1
-          test '${{ inputs.framework_executor_ref }}' = "$OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF"
-          checkpoint_transport_executor=github_actions
-          transport_run_id=424242
-          test "$checkpoint_transport_executor/$transport_run_id" = github_actions/424242
-
   admission:
-    if: ${{ inputs.mode == 'execute' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -150,7 +124,7 @@ jobs:
           retention-days: 30
 
   restore:
-    if: ${{ inputs.mode == 'execute' && needs.admission.result == 'success' }}
+    if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -144,9 +144,11 @@
     ]
   },
   "cache_only_warmup": {
-    "workflow": ".github/workflows/full-runtime-cache-warmup.yml",
-    "reusable_workflow": ".github/workflows/full-first-install-release.yml",
-    "scheduling": "ahead_of_time_for_current_main_or_planned_exact_cohort",
+    "workflow": ".github/workflows/full-first-install-release.yml",
+    "workflow_input": {
+      "cache_only": true
+    },
+    "scheduling": "reusable_capability_without_independent_event_entry",
     "release_gate": false,
     "miss_fallback": "full_package_build_materializes_validates_and_main_saves_missing_layers",
     "requires_exact_app_shell_framework_shas": true,

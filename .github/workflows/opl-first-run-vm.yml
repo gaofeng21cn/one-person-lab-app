@@ -8,11 +8,6 @@ on:
         description: Password for the dedicated non-admin OPL Gateway release-test account used by Standard and Full qualification.
         required: false
     inputs:
-      mode:
-        description: 'execute or canary validation-only startup.'
-        required: false
-        default: execute
-        type: string
       release_tag:
         description: 'GitHub release tag to test. Empty means latest release.'
         required: false
@@ -208,21 +203,9 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Prove VM validation-only topology starts
-        run: |
-          test '${{ inputs.release_bundle_digest }}' = sha256:canary
-          test '${{ inputs.operation }}' != ''
-          test '${{ inputs.framework_ref }}' = ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc
-
   validate-vm-inputs:
     name: Validate VM harness inputs
     runs-on: ubuntu-latest
-    if: ${{ inputs.mode != 'canary' }}
     permissions:
       contents: read
       actions: read
@@ -2539,7 +2522,7 @@ jobs:
 
   qualification-attempt-finalizer:
     name: Persist qualification attempt receipt
-    if: ${{ always() && inputs.mode != 'canary' && inputs.release_bundle_digest != '' }}
+    if: ${{ always() && inputs.release_bundle_digest != '' }}
     needs:
       - validate-vm-inputs
       - clean-vm-first-run

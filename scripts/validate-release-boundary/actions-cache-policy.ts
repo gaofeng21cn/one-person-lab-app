@@ -192,7 +192,9 @@ function collectCacheCatalogViolations(catalog: CacheCatalog | null): string[] {
     !catalog.cache_receipt.required_metrics.includes('hit_ratio') ||
     !catalog.cache_receipt.required_metrics.includes('total_duration_seconds') ||
     !catalog.cache_receipt.required_metrics.includes('save_failure_count') ||
-    catalog.cache_only_warmup?.scheduling !== 'ahead_of_time_for_current_main_or_planned_exact_cohort' ||
+    catalog.cache_only_warmup?.workflow !== '.github/workflows/full-first-install-release.yml' ||
+    catalog.cache_only_warmup?.workflow_input?.cache_only !== true ||
+    catalog.cache_only_warmup?.scheduling !== 'reusable_capability_without_independent_event_entry' ||
     catalog.cache_only_warmup?.release_gate !== false ||
     catalog.cache_only_warmup?.miss_fallback !== 'full_package_build_materializes_validates_and_main_saves_missing_layers' ||
     catalog.cache_only_warmup?.requires_exact_app_shell_framework_shas !== true ||

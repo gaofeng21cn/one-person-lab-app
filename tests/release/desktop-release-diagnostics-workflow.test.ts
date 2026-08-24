@@ -8,7 +8,7 @@ import test from 'node:test';
 import YAML from 'yaml';
 
 const appRoot = process.cwd();
-const workflowPath = path.join(appRoot, '.github/workflows/desktop-release-diagnostics.yml');
+const workflowPath = path.join(appRoot, '.github/workflows/release-diagnostics.yml');
 
 type WorkflowStep = {
   env?: Record<string, string>;
@@ -32,6 +32,11 @@ test('release diagnostics is manually invokable without Stable mutation authorit
   const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
 
   assert.deepEqual(Object.keys(workflow.on).sort(), ['workflow_call', 'workflow_dispatch']);
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.diagnostic.options, [
+    'desktop',
+    'apple_credentials',
+    'timestamp_authority',
+  ]);
   assert.ok(workflow.on.workflow_dispatch.inputs.opl_version);
   assert.ok(workflow.on.workflow_dispatch.inputs.run_vm_diagnostic);
   assert.ok(workflow.on.workflow_dispatch.inputs.build_standard_artifact);
@@ -42,6 +47,9 @@ test('release diagnostics is manually invokable without Stable mutation authorit
   const source = fs.readFileSync(workflowPath, 'utf8');
   assert.doesNotMatch(source, /contents:\s*write|packages:\s*write/);
   assert.doesNotMatch(source, /gh release (?:create|upload|edit)/);
+  assert.equal(fs.existsSync(path.join(appRoot, '.github/workflows/desktop-release-diagnostics.yml')), false);
+  assert.equal(fs.existsSync(path.join(appRoot, '.github/workflows/release-apple-credentials-preflight.yml')), false);
+  assert.equal(fs.existsSync(path.join(appRoot, '.github/workflows/release-timestamp-authority-diagnostic.yml')), false);
 });
 
 test('Standard VM diagnostics require and inject an exact Framework SHA', () => {
@@ -51,6 +59,7 @@ test('Standard VM diagnostics require and inject an exact Framework SHA', () => 
   );
 
   assert.deepEqual(validation?.env, {
+    OPL_VERSION: '${{ inputs.opl_version }}',
     RUN_VM_DIAGNOSTIC: '${{ inputs.run_vm_diagnostic }}',
     PACKAGE_PROFILE: '${{ inputs.package_profile }}',
     FRAMEWORK_REF: '${{ inputs.framework_ref }}',

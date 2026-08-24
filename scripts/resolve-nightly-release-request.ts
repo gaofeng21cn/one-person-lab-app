@@ -52,8 +52,8 @@ export type NightlyReleaseRequest = {
     full_allowed: false;
     webui_allowed: false;
     heavy_vm_blocking: false;
-    sampled_vm_follower: '.github/workflows/release-nightly-sampled-vm.yml';
-    homebrew_follower: '.github/workflows/release-nightly-homebrew-follower.yml';
+    followup_workflow: '.github/workflows/release-nightly-followups.yml';
+    followup_operations: ['reconcile_homebrew', 'run_sampled_vm'];
   };
   observed_same_day_versions: string[];
   request_digest: `sha256:${string}`;
@@ -139,8 +139,11 @@ export function assertNightlyRequestDigest(request: NightlyReleaseRequest): void
     || request.publication?.full_allowed !== false
     || request.publication?.webui_allowed !== false
     || request.publication?.heavy_vm_blocking !== false
-    || request.publication?.sampled_vm_follower !== '.github/workflows/release-nightly-sampled-vm.yml'
-    || request.publication?.homebrew_follower !== '.github/workflows/release-nightly-homebrew-follower.yml'
+    || request.publication?.followup_workflow !== '.github/workflows/release-nightly-followups.yml'
+    || JSON.stringify(request.publication?.followup_operations) !== JSON.stringify([
+      'reconcile_homebrew',
+      'run_sampled_vm',
+    ])
   ) {
     throw new Error('Nightly request must remain an attempt-one Standard-only non-Latest prerelease.');
   }
@@ -204,8 +207,8 @@ export function resolveNightlyReleaseRequest(input: {
       full_allowed: false,
       webui_allowed: false,
       heavy_vm_blocking: false,
-      sampled_vm_follower: '.github/workflows/release-nightly-sampled-vm.yml',
-      homebrew_follower: '.github/workflows/release-nightly-homebrew-follower.yml',
+      followup_workflow: '.github/workflows/release-nightly-followups.yml',
+      followup_operations: ['reconcile_homebrew', 'run_sampled_vm'],
     },
     observed_same_day_versions: resolution.observedSameDayVersions,
   };

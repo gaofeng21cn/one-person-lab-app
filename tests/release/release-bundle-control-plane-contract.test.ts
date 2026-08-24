@@ -522,7 +522,8 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.equal(full.standard_release_readback, "required_exact_mutable_release_and_sealed_standard_asset_set_cas");
   assert.equal(full.standard_release_prerequisite_required, true);
   assert.equal(full.mode, "same_tag_mutable_standard_addon");
-  assert.equal(full.successor_trigger.workflow, ".github/workflows/release-full-addon-follower.yml");
+  assert.equal(full.successor_trigger.workflow, ".github/workflows/release-stable-post-success-followups.yml");
+  assert.equal(full.successor_trigger.manual_operation, "reconcile_full_addon");
   assert.equal(
     full.successor_trigger.trigger,
     "successful_standard_publication_or_manual_target_state_reconcile",
@@ -544,7 +545,7 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.equal(full.successor_trigger.executor_head_sha, "current_canonical_main");
   assert.deepEqual(full.successor_trigger.manual_reconcile_inputs, [
     "source_run_id",
-    "reconcile_confirmation",
+    "operation",
     "smoke_harness_ref_optional",
   ]);
   assert.equal(full.successor_trigger.failed_run_identity_inputs_allowed, false);
@@ -666,7 +667,10 @@ test("operation safety is explicit in the machine contract", () => {
   ]);
   assert.deepEqual(control.resilience_policy.updater_zip_identity_fields, ["size_bytes", "sha256"]);
   assert.equal(control.resilience_policy.homebrew_single_writer, true);
-  assert.equal(control.resilience_policy.homebrew_reconcile_owner, "release-homebrew-standard-follower");
+  assert.equal(
+    control.resilience_policy.homebrew_reconcile_owner,
+    ".github/workflows/release-stable-post-success-followups.yml#reconcile_homebrew_standard",
+  );
   assert.equal(control.resilience_policy.homebrew_app_local_reconcile_loop_allowed, false);
   assert.equal(control.resilience_policy.homebrew_reconcile_max_attempts, undefined);
   assert.equal(control.resilience_policy.homebrew_retry_push_on_unknown_allowed, false);

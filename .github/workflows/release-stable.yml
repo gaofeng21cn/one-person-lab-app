@@ -912,7 +912,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/_release-bundle.yml
     with:
-      mode: execute
       operation: standard
       channel: stable
       version: ${{ needs.stable-admission-manifest.outputs.version }}
@@ -943,7 +942,6 @@ jobs:
       cancel-in-progress: false
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
-      mode: execute
       operation: resume_standard
       source_run_id: ${{ needs.admission.outputs.source_run_id }}
       source_artifact: ${{ needs.admission.outputs.source_artifact }}
@@ -960,7 +958,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/_release-full-addon.yml
     with:
-      mode: execute
       operation: append_full
       source_run_id: ${{ needs.admission.outputs.source_run_id }}
       source_artifact: ${{ needs.admission.outputs.source_artifact }}

@@ -327,7 +327,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/_release-bundle.yml
     with:
-      mode: execute
       operation: standard
       channel: preview
       publication_channel: preview
@@ -354,7 +353,6 @@ jobs:
       cancel-in-progress: false
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
-      mode: execute
       operation: resume_standard
       publication_channel: preview
       source_run_id: ${{ needs.admission.outputs.source_run_id }}

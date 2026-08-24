@@ -46,7 +46,7 @@ function usage(): void {
 Options:
   --repo <owner/name>              GitHub repository. Default: gaofeng21cn/one-person-lab-app.
   --ref <ref>                      Workflow ref. Default: main.
-  --workflow <file-or-name>        Workflow file/name. Default: docker-webui-clean-windows-vm.yml.
+  --workflow <file-or-name>        Workflow file/name. Default: docker-webui-clean-vm.yml.
   --runner-labels-json <json>      Required runner labels JSON array.
   --runner-inventory-json <json>   Pre-read runner inventory JSON array. If absent, gh api is used.
   --runner-inventory-file <path>   File containing runner inventory JSON array.
@@ -63,7 +63,7 @@ function defaultOptions(): Options {
   return {
     repo: 'gaofeng21cn/one-person-lab-app',
     ref: 'main',
-    workflow: 'docker-webui-clean-windows-vm.yml',
+    workflow: 'docker-webui-clean-vm.yml',
     runnerLabelsJson: JSON.stringify(defaultRunnerLabels),
     runnerInventoryJson: '',
     runnerInventoryFile: '',
@@ -191,6 +191,7 @@ function main(): void {
   const eligible = matchingRunners(inventory.runners, runnerLabels);
   const runnerInventoryJson = JSON.stringify(inventory.runners);
   const fields = {
+    platform: 'windows',
     runner_labels_json: JSON.stringify(runnerLabels),
     runner_inventory_json: runnerInventoryJson,
     image: options.image,

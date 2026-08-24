@@ -12,6 +12,7 @@ import {
   validateIndependentWebuiPreviewTopology,
   validateNightlyReleaseTopology,
   validateStableReleaseControlPlane,
+  validateWorkflowTopologyPolicy,
   validateWorkflowDispatchWriteAuthority,
 } from '../../scripts/validate-release-boundary/text-check-runner.ts';
 import { validateGithubApplyCallerParity } from '../../scripts/validate-release-boundary/release-contract-policy.ts';
@@ -21,6 +22,7 @@ import {
 } from '../../scripts/release-dispatch-guard.ts';
 
 const workflowDirectory = path.join('.github', 'workflows');
+const followupActionDirectory = path.join('.github', 'actions', 'release-followups');
 const appSha = '1'.repeat(40);
 const shellSha = '2'.repeat(40);
 const frameworkSha = '3'.repeat(40);
@@ -33,6 +35,11 @@ function fixture(t: test.TestContext): string {
   fs.cpSync(path.join(process.cwd(), workflowDirectory), path.join(root, workflowDirectory), {
     recursive: true,
   });
+  fs.cpSync(
+    path.join(process.cwd(), followupActionDirectory),
+    path.join(root, followupActionDirectory),
+    { recursive: true },
+  );
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }
@@ -129,6 +136,7 @@ test('release boundary admits the three-operation control plane and real no-secr
   assert.equal(validateReleaseBundleCanaryTopology(process.cwd()), 0);
   assert.equal(validateNightlyReleaseTopology(process.cwd()), 0);
   assert.equal(validateIndependentWebuiPreviewTopology(process.cwd()), 0);
+  assert.equal(validateWorkflowTopologyPolicy(process.cwd()), 0);
   assert.equal(validateWorkflowDispatchWriteAuthority(process.cwd()), 0);
   assert.equal(validateGithubApplyCallerParity(process.cwd()), 0);
 });
@@ -384,30 +392,38 @@ jobs: {}
   assert.ok(withoutExpectedDiagnostics(() => validateNightlyReleaseTopology(root)) > 0);
 });
 
-test('Canary compile ceilings keep reachable jobs read-only and mutation unreachable', (t) => {
+test('Canary keeps only local read-only contract checks and rejects reusable release entries', (t) => {
   const root = fixture(t);
   updateWorkflow(root, 'release-bundle-canary.yml', (workflow) => {
-    delete workflow.jobs['nested-updater-qualification'];
-    workflow.jobs.standard.secrets = 'inherit';
-    workflow.jobs['nested-standard-build'].permissions.contents = 'write';
-    workflow.jobs['nested-webui-carrier'].permissions.packages = 'read';
-    workflow.jobs['nested-webui-carrier'].secrets = 'inherit';
-  });
-  updateWorkflow(root, '_release-bundle.yml', (workflow) => {
-    workflow.jobs['startup-canary'].permissions.contents = 'write';
-  });
-  updateWorkflow(root, '_build-reusable.yml', (workflow) => {
-    workflow.permissions = 'write-all';
-  });
-  updateWorkflow(root, 'opl-first-run-vm.yml', (workflow) => {
-    workflow.jobs['startup-canary'].permissions = 'write-all';
-  });
-  updateWorkflow(root, '_release-webui-carrier.yml', (workflow) => {
-    workflow.jobs['build-and-qualify'].if = "${{ inputs.mode == 'canary' }}";
-    workflow.jobs['publish-immutable-carrier'].if = "${{ inputs.mode == 'canary' }}";
+    workflow.jobs.contract.permissions = { contents: 'write' };
+    workflow.jobs['duplicate-release-entry'] = {
+      uses: './.github/workflows/_release-bundle.yml',
+      permissions: { contents: 'read', actions: 'read' },
+    };
   });
 
-  assert.ok(withoutExpectedDiagnostics(() => validateReleaseBundleCanaryTopology(root)) >= 10);
+  assert.ok(withoutExpectedDiagnostics(() => validateReleaseBundleCanaryTopology(root)) >= 3);
+});
+
+test('workflow topology rejects duplicate automatic owners, orphan reusables, and retired entries', (t) => {
+  const duplicateScheduleRoot = fixture(t);
+  updateWorkflow(duplicateScheduleRoot, 'release-stable.yml', (workflow) => {
+    workflow.on.schedule = [{ cron: '0 13 * * *' }];
+  });
+  assert.ok(withoutExpectedDiagnostics(() => validateWorkflowTopologyPolicy(duplicateScheduleRoot)) > 0);
+
+  const orphanRoot = fixture(t);
+  updateWorkflow(orphanRoot, 'release-webui-development.yml', (workflow) => {
+    delete workflow.jobs['promote-webui-latest'];
+  });
+  assert.ok(withoutExpectedDiagnostics(() => validateWorkflowTopologyPolicy(orphanRoot)) > 0);
+
+  const retiredRoot = fixture(t);
+  fs.writeFileSync(
+    workflowPath(retiredRoot, 'release-homebrew-standard-follower.yml'),
+    'name: Retired follower\non:\n  workflow_dispatch:\njobs: {}\n',
+  );
+  assert.ok(withoutExpectedDiagnostics(() => validateWorkflowTopologyPolicy(retiredRoot)) > 0);
 });
 
 test('independent WebUI Preview publication cannot absorb Latest promotion or Desktop authority', (t) => {
@@ -417,7 +433,7 @@ test('independent WebUI Preview publication cannot absorb Latest promotion or De
   updateWorkflow(root, 'release-webui-development.yml', (workflow) => {
     workflow.jobs['webui-carrier'].with.authority_mode = 'independent_stable';
   });
-  updateWorkflow(root, 'release-webui-development-promote.yml', (workflow) => {
+  updateWorkflow(root, 'release-webui-development.yml', (workflow) => {
     workflow.on.workflow_dispatch.inputs.stable_authority_run_id = {
       description: 'Unexpected Desktop Stable authority.',
       required: true,

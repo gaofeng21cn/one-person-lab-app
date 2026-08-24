@@ -3,11 +3,6 @@ name: Promote WebUI Stable
 on:
   workflow_call:
     inputs:
-      mode:
-        description: execute or canary validation-only startup
-        required: false
-        default: execute
-        type: string
       authority_mode:
         description: independent_stable or independent_preview
         required: false
@@ -32,22 +27,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Prove WebUI Stable follower starts without promotion
-        shell: bash
-        run: |
-          set -euo pipefail
-          test '${{ inputs.mode }}' = canary
-          test '${{ inputs.authority_mode }}' = independent_preview \
-            || test '${{ inputs.authority_mode }}' = independent_stable
-          test '${{ inputs.publication_record_ref }}' = canary
-
   admission:
-    if: ${{ inputs.mode == 'execute' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -238,7 +218,7 @@ jobs:
             (.id | tostring) == $run
             and .repository.full_name == "gaofeng21cn/one-person-lab-app"
             and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .path == ".github/workflows/release-webui-development-promote.yml"
+            and .path == ".github/workflows/release-webui-development.yml"
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == 1
@@ -410,7 +390,6 @@ jobs:
           retention-days: 90
 
   promote-webui-stable:
-    if: ${{ inputs.mode == 'execute' }}
     needs: admission
     runs-on: ubuntu-latest
     timeout-minutes: 10

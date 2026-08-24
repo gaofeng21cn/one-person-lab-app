@@ -55,7 +55,8 @@ const standardLatestAdmissionContract = {
     'candidate.dmg.size_bytes',
   ],
   homebrew_follower: {
-    workflow: '.github/workflows/release-homebrew-standard-follower.yml',
+    workflow: '.github/workflows/release-stable-post-success-followups.yml',
+    operation: 'reconcile_homebrew_standard',
     latest_receipt_value: null,
     consumed_by_latest_admission: false,
     failure_blocks_core_release_or_latest: false,
@@ -185,17 +186,12 @@ const validationCanaryContract = {
   workflow: '.github/workflows/release-bundle-canary.yml',
   mode: 'validation_only',
   triggers: ['daily_schedule', 'workflow_dispatch'],
-  starts_reusable_topology: [
-    '_release-bundle.yml',
-    '_release-standard-publish.yml',
-    '_release-full-addon.yml',
-    '_build-reusable.yml',
-    'opl-first-run-vm.yml',
-    '_release-webui-carrier.yml',
-    'release-webui-stable.yml',
-    'opl-updater-upgrade-vm.yml',
-    'full-first-install-release.yml',
+  local_contract_checks: [
+    'framework_checkpoint_roundtrip',
+    'release_bundle_workflow_cutover',
+    'release_control_plane_boundary',
   ],
+  reusable_release_workflow_jobs_allowed: false,
   permissions: { contents: 'read', actions: 'read' },
   secrets_allowed: false,
   build_or_vm_execution_allowed: false,
@@ -1046,8 +1042,8 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     publication?.nightly?.stable_mutation_mutex_used !== false ||
     publication?.nightly?.heavy_vm_blocking !== false ||
     publication?.nightly?.post_publication_followers_block_github_prerelease !== false ||
-    publication?.nightly?.homebrew_follower !== '.github/workflows/release-nightly-homebrew-follower.yml' ||
-    publication?.nightly?.sampled_vm_follower !== '.github/workflows/release-nightly-sampled-vm.yml'
+    publication?.nightly?.followup_workflow !== '.github/workflows/release-nightly-followups.yml' ||
+    !sameStringSet(publication?.nightly?.followup_operations, ['reconcile_homebrew', 'run_sampled_vm'])
   ) {
     throw new Error('Nightly must default to the daily schedule and keep user-explicit development validation on the same Standard-only non-Latest path');
   }
@@ -1107,13 +1103,15 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     resilience?.display_and_machine_versions_both_must_increase !== true ||
     resilience?.source_and_remote_version_checks_required_before_build !== true ||
     JSON.stringify(resilience?.updater_baseline_sources) !== JSON.stringify(['current_latest', 'highest_public_stable']) ||
-    resilience?.updater_qualification_order !== 'exact_previous_latest_to_candidate_zip_upgrade_before_first_public_release_mutation' ||
+    resilience?.updater_candidate_identity_required_before_publication !== true ||
+    resilience?.updater_predecessor_to_candidate_vm_required_before_publication !== false ||
+    resilience?.updater_clean_install_qualification !== 'exact_candidate_standard_clean_install_and_runtime_version_readback' ||
     resilience?.updater_zip_digest_source !== 'sha256_of_actual_candidate_zip_bytes' ||
     JSON.stringify(resilience?.updater_zip_identity_fields) !== JSON.stringify(['size_bytes', 'sha256']) ||
     resilience?.updater_metadata_declared_digest_is_not_sufficient !== true ||
     resilience?.homebrew_single_writer !== true ||
     resilience?.homebrew_unknown_outcome !== 'follower_fails_independently_then_fresh_cas_readback_before_optional_rerun' ||
-    resilience?.homebrew_reconcile_owner !== 'release-homebrew-standard-follower' ||
+    resilience?.homebrew_reconcile_owner !== '.github/workflows/release-stable-post-success-followups.yml#reconcile_homebrew_standard' ||
     resilience?.homebrew_app_local_reconcile_loop_allowed !== false ||
     resilience?.homebrew_reconcile_max_attempts !== undefined ||
     resilience?.homebrew_retry_push_on_unknown_allowed !== false ||
@@ -1643,7 +1641,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.upgrade_vm_qualification?.publication_or_install_authority_granted_by_preflight !== false
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.upgrade_vm_qualification?.blocks_stable_or_latest !== false
     || platformMatrix?.full_macos_additive_follower?.workflow !==
-      '.github/workflows/release-full-addon-follower.yml'
+      '.github/workflows/release-stable-post-success-followups.yml'
     || platformMatrix?.full_macos_additive_follower?.trigger !==
       'successful_standard_publication_or_manual_target_state_reconcile'
     || platformMatrix?.full_macos_additive_follower?.source_policy !==

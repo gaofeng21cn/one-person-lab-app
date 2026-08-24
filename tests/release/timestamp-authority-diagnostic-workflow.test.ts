@@ -16,7 +16,7 @@ const workflowPath = path.join(
   appRoot,
   ".github",
   "workflows",
-  "release-timestamp-authority-diagnostic.yml",
+  "release-diagnostics.yml",
 );
 
 function writeExecutable(filePath: string, source: string): void {
@@ -127,17 +127,19 @@ printf '%s\n' '-----BEGIN CERTIFICATE-----' 'test' '-----END CERTIFICATE-----'
 test("workflow is a no-secret read-only hosted macOS diagnostic", () => {
   const source = fs.readFileSync(workflowPath, "utf8");
   const workflow = YAML.parse(source);
-  assert.deepEqual(Object.keys(workflow.on), ["workflow_dispatch"]);
-  assert.deepEqual(workflow.permissions, { contents: "read" });
-  assert.deepEqual(workflow.concurrency, {
+  assert.deepEqual(Object.keys(workflow.on), ["workflow_call", "workflow_dispatch"]);
+  assert.deepEqual(workflow.permissions, { actions: "read", contents: "read" });
+  const job = workflow.jobs["timestamp-authority"];
+  assert.deepEqual(job.concurrency, {
     group: "opl-release-timestamp-authority-diagnostic",
     "cancel-in-progress": false,
   });
-  const job = workflow.jobs.diagnose;
+  assert.equal(job.if, "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'timestamp_authority' }}");
   assert.equal(job["runs-on"], "macos-latest");
   assert.equal(job.environment, undefined);
-  assert.doesNotMatch(source, /\$\{\{\s*secrets\./);
-  assert.doesNotMatch(source, /contents:\s*write/);
+  const jobSource = YAML.stringify(job);
+  assert.doesNotMatch(jobSource, /\$\{\{\s*secrets\./);
+  assert.doesNotMatch(jobSource, /contents:\s*write/);
   const commandSource = job.steps
     .map((step: Record<string, unknown>) => String(step.run ?? ""))
     .join("\n");
@@ -160,6 +162,7 @@ test("workflow is a no-secret read-only hosted macOS diagnostic", () => {
     "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
   );
   assert.equal(upload.with["if-no-files-found"], "error");
+  assert.equal(fs.existsSync(path.join(appRoot, ".github/workflows/release-timestamp-authority-diagnostic.yml")), false);
 });
 
 test("diagnostic verifies one RFC3161 response against the query and system roots", () => {

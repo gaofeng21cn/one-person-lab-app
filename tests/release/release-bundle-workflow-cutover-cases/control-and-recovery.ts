@@ -9,7 +9,6 @@ import {
   assertReleaseOperationDeadline,
   readWorkflow,
   parseWorkflow,
-  minimumCompatibleFrameworkAbiRef,
   rejectedBundle,
   transportProvenanceFields,
   frameworkOwnedLineageFields,
@@ -163,13 +162,6 @@ test('every release-bound low-level admission rejects missing, invalid, or perma
       fields: ['release_bundle_digest', 'artifact_app_ref', 'shell_ref', 'framework_ref'],
     },
     {
-      workflow: 'opl-updater-upgrade-vm.yml',
-      job: 'upgrade',
-      step: 'Reject replay and invalid frozen identities',
-      operation: 'resume_standard',
-      fields: ['release_bundle_digest', 'app_ref', 'shell_ref', 'framework_ref'],
-    },
-    {
       workflow: 'full-first-install-release.yml',
       job: 'full-first-install',
       step: 'Admit one-shot release-bound Full build',
@@ -238,7 +230,6 @@ test('the live control plane is split into Standard build, Standard publish, and
   assert.equal(standard.permissions, undefined);
   assert.equal(full.permissions, undefined);
   assert.deepEqual(Object.keys(bundle.jobs), [
-    'startup-canary',
     'resolve-platform-matrix',
     'admission',
     'freeze',
@@ -687,7 +678,8 @@ test('checkpoint state lineage remains Framework-owned while App exposes transpo
     for (const field of frameworkOwnedLineageFields) {
       assert.equal(outputs[field], undefined, `${name} must not project Framework-owned ${field}`);
     }
-    assert.match(readWorkflow(name), new RegExp(minimumCompatibleFrameworkAbiRef));
+    assert.equal(inputs.mode, undefined, `${name} must not retain the retired reusable Canary mode`);
+    assert.doesNotMatch(readWorkflow(name), /OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF/);
     assert.match(readWorkflow(name), new RegExp(rejectedBundle));
   }
 
@@ -958,85 +950,19 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
   assert.doesNotMatch(readWorkflow('_release-bundle.yml'), /PUBLISHED_WEBUI_TAGS_TXT/);
   assert.match(readWorkflow('_release-bundle.yml'), /--published-releases-json/);
 
-  const updater = readWorkflow('opl-updater-upgrade-vm.yml');
-  assert.match(updater, /candidate_zip_size/);
-  assert.match(updater, /candidate_zip_sha256/);
-  assert.match(updater, /tracks\/standard\/assets\.json/);
-  assert.match(updater, /candidate ZIP entry must be unique/);
-  assert.match(updater, /sha256:\$candidate_zip_sha256.*\$checkpoint_zip_sha256/);
-  assert.match(updater, /candidate_zip_size.*checkpoint_zip_size/);
-  assert.match(updater, /metadata_declared_sha512/);
-  assert.match(updater, /metadata_declared_size/);
-  assert.match(updater, /same_candidate_zip_downloaded/);
-  assert.match(updater, /find candidate -type f -name latest-mac\.yml/);
-  assert.match(updater, /find candidate -type f -name latest-arm64-mac\.yml/);
-  assert.match(updater, /cmp -s "\$metadata" "\$compatibility_metadata"/);
-
-  const fingerprint = String(workflowStep(
-    'opl-updater-upgrade-vm.yml',
-    'upgrade',
-    'Download and fingerprint the installed predecessor',
-  ).run);
-  const metadataParser = fingerprint.match(
-    /metadata_json="\$\(ruby -ryaml -rjson -e '\n([\s\S]*?)\n\s*' "\$metadata" "\$\(basename "\$zip"\)"\)"/,
-  )?.[1];
-  assert.ok(metadataParser, 'updater metadata parser is missing');
-  assert.match(
-    metadataParser,
-    /YAML\.safe_load\(File\.read\(ARGV\[0\]\), permitted_classes: \[Time\], aliases: true\)/,
+  const latestAdmission = fs.readFileSync(
+    path.join(process.cwd(), 'scripts', 'validate-standard-latest-admission.ts'),
+    'utf8',
   );
-  assert.match(metadataParser, /File\.basename\(candidate\["url"\]\.to_s\) == name/);
-  assert.match(fingerprint, /Candidate ZIP SHA-256 does not match tracks\/standard\/assets\.json/);
-  assert.match(fingerprint, /Candidate ZIP size does not match tracks\/standard\/assets\.json/);
-  assert.match(fingerprint, /Updater metadata SHA-512 does not match candidate ZIP/);
-  assert.match(fingerprint, /Updater metadata size does not match candidate ZIP/);
-
-  const metadataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-updater-time-metadata-'));
-  const zipName = 'One-Person-Lab-26.7.26-mac-arm64.zip';
-  const metadataPath = path.join(metadataRoot, 'latest-arm64-mac.yml');
-  try {
-    fs.writeFileSync(metadataPath, [
-      'version: 26.7.2600',
-      'releaseDate: 2026-07-25T21:29:28Z',
-      'files:',
-      `  - url: ${zipName}`,
-      '    sha512: updater-sha512',
-      '    size: 465998660',
-      '',
-    ].join('\n'));
-    const parsedMetadata = spawnSync('ruby', [
-      '-ryaml',
-      '-rjson',
-      '-e',
-      metadataParser,
-      metadataPath,
-      zipName,
-    ], { encoding: 'utf8' });
-    assert.equal(parsedMetadata.status, 0, parsedMetadata.stderr);
-    assert.deepEqual(JSON.parse(parsedMetadata.stdout), {
-      sha512: 'updater-sha512',
-      size: 465998660,
-      url: zipName,
-    });
-  } finally {
-    fs.rmSync(metadataRoot, { recursive: true, force: true });
-  }
-
-  const sha512Command = fingerprint.match(/^\s*actual_sha512="\$\((.+)\)"$/m)?.[1];
-  assert.ok(sha512Command, 'updater SHA-512 calculation is missing');
-  assert.match(sha512Command, /openssl dgst -sha512 -binary "\$zip" \| base64 \| awk '\{printf "%s", \$0\}'/);
-
-  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-updater-sha512-'));
-  const fixture = path.join(fixtureRoot, 'candidate.zip');
-  fs.writeFileSync(fixture, 'opl-updater-sha512-regression-2\n');
-  const expected = crypto.createHash('sha512').update(fs.readFileSync(fixture)).digest('base64');
-  assert.ok(expected.includes('n'), 'regression fixture must exercise lowercase n in the Base64 alphabet');
-  const calculated = spawnSync('/bin/bash', ['-c', [
-    'set -euo pipefail',
-    `zip=${JSON.stringify(fixture)}`,
-    `actual_sha512="$(${sha512Command})"`,
-    'printf %s "$actual_sha512"',
-  ].join('\n')], { encoding: 'utf8' });
-  assert.equal(calculated.status, 0, calculated.stderr);
-  assert.equal(calculated.stdout, expected);
+  assert.match(latestAdmission, /Framework status must contain exactly one \$\{expectedZipName\}/);
+  assert.match(latestAdmission, /Framework status must contain exactly one \$\{expectedDmgName\}/);
+  assert.match(latestAdmission, /Latest admission ZIP sha256/);
+  assert.match(latestAdmission, /Latest admission ZIP size/);
+  assert.match(latestAdmission, /Latest admission DMG sha256/);
+  assert.match(latestAdmission, /Latest admission DMG size/);
+  assert.match(latestAdmission, /Homebrew runs as a non-blocking follower/);
+  assert.equal(
+    fs.existsSync(path.join(process.cwd(), '.github/workflows/opl-updater-upgrade-vm.yml')),
+    false,
+  );
 });

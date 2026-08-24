@@ -39,7 +39,8 @@ test('Docker/WebUI clean Windows dispatch dry-run records missing runner blocker
   assert.equal(plan.expected_preflight_status, 'typed_blocker');
   assert.equal(plan.expected_blocker_code, 'missing_clean_windows_self_hosted_runner');
   assert.equal(plan.dispatch, null);
-  assert.match(plan.command, /gh 'workflow' 'run' 'docker-webui-clean-windows-vm\.yml'/);
+  assert.match(plan.command, /gh 'workflow' 'run' 'docker-webui-clean-vm\.yml'/);
+  assert.match(plan.command, /platform=windows/);
   assert.match(plan.command, /runner_inventory_json=/);
 });
 

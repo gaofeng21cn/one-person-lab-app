@@ -278,22 +278,22 @@ test('workflow callers consume resolver output while reusable build keeps generi
   );
 });
 
-test('Stable profile excludes only Windows-only checks and retains shared build safety', () => {
+test('Stable profile excludes only Windows-specific checks and retains the unified clean-VM workflow', () => {
   const stableIds = new Set(releaseBoundaryChecksForProfile('stable').map((check) => check.id));
   const windowsIds = new Set(
     releaseBoundaryChecksForProfile('windows').map((check) => check.id),
   );
-  assert.equal(stableIds.has('docker_webui_clean_windows_vm_workflow'), false);
-  assert.equal(windowsIds.has('docker_webui_clean_windows_vm_workflow'), true);
+  assert.equal(stableIds.has('docker_webui_clean_vm_workflow'), true);
+  assert.equal(windowsIds.has('docker_webui_clean_vm_workflow'), true);
   assert.equal(stableIds.has('immutable_release_bundle_workflow'), true);
   assert.equal(stableIds.has('nightly_standard_release_entry'), true);
   assert.ok(releaseWorkflowPathsForProfile('stable').includes('.github/workflows/_build-reusable.yml'));
   assert.ok(releaseWorkflowPathsForProfile('stable').includes('.github/workflows/build-manual.yml'));
   assert.equal(
     releaseWorkflowPathsForProfile('stable').includes(
-      '.github/workflows/docker-webui-clean-windows-vm.yml',
+      '.github/workflows/docker-webui-clean-vm.yml',
     ),
-    false,
+    true,
   );
 });
 
@@ -396,7 +396,8 @@ test('Windows-only Docker/WebUI cases live only in the Windows-owned test file',
 
 test('Full macOS publication is self-identified, same-tag additive, recoverable, and non-blocking', () => {
   const follower = contract.release_platform_matrix.full_macos_additive_follower;
-  assert.equal(follower.workflow, '.github/workflows/release-full-addon-follower.yml');
+  assert.equal(follower.workflow, '.github/workflows/release-stable-post-success-followups.yml');
+  assert.equal(follower.manual_operation, 'reconcile_full_addon');
   assert.equal(
     follower.trigger,
     'successful_standard_publication_or_manual_target_state_reconcile',

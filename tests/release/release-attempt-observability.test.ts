@@ -59,13 +59,26 @@ test('cancelled workflow without a terminal job stays observational', () => {
   assert.equal(observation.terminal_failure_job_count, 0);
 });
 
-test('observability workflow is a read-only append-only follower', () => {
-  const source = fs.readFileSync(path.join(appRoot, '.github/workflows/release-attempt-observability.yml'), 'utf8');
-  const workflow = parseYaml(source) as Record<string, any>;
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_run']);
-  assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
-  assert.deepEqual(Object.keys(workflow.jobs), ['observe']);
-  assert.match(source, /release-attempt-observability\.ts/);
-  assert.match(source, /opl-release-attempt-observation-\$\{\{ github\.event\.workflow_run\.id \}\}/);
-  assert.doesNotMatch(source, /workflow_dispatch|contents: write|actions: write|gh workflow run|gh run rerun|gh run cancel/);
+test('the Stable follow-up hub keeps observation read-only and append-only', () => {
+  const hubPath = path.join(appRoot, '.github/workflows/release-stable-post-success-followups.yml');
+  const actionPath = path.join(appRoot, '.github/actions/release-followups/observe/action.yml');
+  const hubSource = fs.readFileSync(hubPath, 'utf8');
+  const actionSource = fs.readFileSync(actionPath, 'utf8');
+  const hub = parseYaml(hubSource) as Record<string, any>;
+  const observe = hub.jobs.observe;
+
+  assert.equal(
+    fs.existsSync(path.join(appRoot, '.github/workflows/release-attempt-observability.yml')),
+    false,
+  );
+  assert.deepEqual(Object.keys(hub.on), ['workflow_run', 'workflow_dispatch']);
+  assert.equal(observe.if, "${{ needs.route.outputs.observe == 'true' }}");
+  assert.deepEqual(observe.permissions, { contents: 'read', actions: 'read' });
+  assert.equal(observe.steps.at(-1).uses, './.github/actions/release-followups/observe');
+  assert.match(actionSource, /release-attempt-observability\.ts/);
+  assert.match(actionSource, /opl-release-attempt-observation-\$\{\{ inputs\.source_run_id \}\}/);
+  assert.doesNotMatch(
+    actionSource,
+    /contents: write|actions: write|gh workflow run|gh run rerun|gh run cancel|gh release (?:create|edit|upload|delete)|git push/,
+  );
 });

@@ -287,7 +287,8 @@
         "formula_dependency_current": true,
         "formula_dependency_required": true,
         "new_publication_status": "implemented_pending_first_follower_readback",
-        "publication_workflow": ".github/workflows/release-nightly-homebrew-follower.yml",
+        "publication_workflow": ".github/workflows/release-nightly-followups.yml",
+        "publication_operation": "reconcile_homebrew",
         "stable_cask_mutation_allowed": false
       },
     "full": {
@@ -1270,9 +1271,12 @@
           "linux_summary": "clean_linux_vm-validation-summary.json",
           "windows_summary": "clean_windows_vm-validation-summary.json",
           "accepted_result_file": "docker-webui-smoke-gate-result.json",
-          "linux_default_producer": "standalone_clean_linux_vm_workflow",
-          "linux_manual_producer_workflow": ".github/workflows/docker-webui-clean-linux-vm.yml",
-          "windows_manual_producer_workflow": ".github/workflows/docker-webui-clean-windows-vm.yml",
+          "manual_producer_workflow": ".github/workflows/docker-webui-clean-vm.yml",
+          "manual_producer_platform_input": "platform",
+          "manual_producer_platforms": {
+            "linux": "clean_linux_vm",
+            "windows": "clean_windows_vm"
+          },
           "windows_import_manifest": "windows-smoke-evidence.json",
           "missing_artifact_status": "typed_blocker",
           "missing_artifact_blocker_codes": [

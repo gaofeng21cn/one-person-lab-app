@@ -1,0 +1,134 @@
+name: Resolve Stable Full Homebrew handoff
+description: Bind one exact published Full handoff for the reusable Homebrew publisher.
+inputs:
+  source_run_id:
+    description: Exact successful append_full Stable run id.
+    required: true
+  github_token:
+    description: GitHub token used for source and artifact readback.
+    required: true
+outputs:
+  handoff_base64:
+    description: Canonical base64-encoded Full handoff.
+    value: ${{ steps.handoff.outputs.handoff_base64 }}
+  handoff_sha256:
+    description: Exact Full handoff digest.
+    value: ${{ steps.handoff.outputs.handoff_sha256 }}
+  authority_run_id:
+    description: Exact append_full authority run.
+    value: ${{ steps.authority.outputs.authority_run_id }}
+runs:
+  using: composite
+  steps:
+    - name: Admit one successful append_full authority run
+      id: authority
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        AUTHORITY_RUN_ID: ${{ inputs.source_run_id }}
+        RECONCILE_CONFIRMATION: reconcile_published_homebrew_full
+        TRIGGER_EVENT: ${{ github.event_name }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$GITHUB_RUN_ATTEMPT" = 1
+        [[ "$AUTHORITY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+        test "$GITHUB_REF" = refs/heads/main
+        test "$RECONCILE_CONFIRMATION" = reconcile_published_homebrew_full
+        gh api "repos/$GITHUB_REPOSITORY/actions/runs/$AUTHORITY_RUN_ID" > authority-run.json
+        jq -e --arg run "$AUTHORITY_RUN_ID" '
+          (.id | tostring) == $run
+          and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+          and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+          and .path == ".github/workflows/release-stable.yml"
+          and .event == "workflow_dispatch"
+          and .head_branch == "main"
+          and (.display_title | test("^OPL Stable append_full source:[1-9][0-9]* run:[1-9][0-9]*$"))
+          and .run_attempt == 1
+          and .status == "completed"
+          and .conclusion == "success"
+          and (.head_sha | test("^[0-9a-f]{40}$"))
+        ' authority-run.json >/dev/null
+        artifact="opl-release-full-published-${AUTHORITY_RUN_ID}"
+        gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$AUTHORITY_RUN_ID/artifacts?per_page=100" > artifacts.json
+        count="$(jq -r --arg name "$artifact" '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length' artifacts.json)"
+        test "$count" = 1
+        {
+          echo "artifact=$artifact"
+          echo "authority_run_id=$AUTHORITY_RUN_ID"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Download exact Full publication handoff
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: ${{ steps.authority.outputs.artifact }}
+        run-id: ${{ steps.authority.outputs.authority_run_id }}
+        github-token: ${{ inputs.github_token }}
+        path: full-publication
+
+    - name: Bind same-tag Homebrew Full handoff
+      id: handoff
+      env:
+        AUTHORITY_RUN_ID: ${{ steps.authority.outputs.authority_run_id }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        handoffs=()
+        while IFS= read -r handoff; do handoffs+=("$handoff"); done < <(
+          find full-publication -type f -name homebrew-full-handoff.json -print | LC_ALL=C sort
+        )
+        test "${#handoffs[@]}" -eq 1
+        handoff="${handoffs[0]}"
+        head_sha="$(jq -er .head_sha authority-run.json)"
+        head_branch="$(jq -er .head_branch authority-run.json)"
+        jq -e --arg run "$AUTHORITY_RUN_ID" --arg head "$head_sha" '
+          def opl_fromdateiso8601:
+            if type == "string"
+              and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?Z$")
+            then sub("[.][0-9]+Z$"; "Z") | fromdateiso8601
+            else error("expected UTC ISO-8601 timestamp with optional fractional seconds")
+            end;
+          .schema == "opl_homebrew_full_follower_handoff.v1"
+          and .status == "ready"
+          and .operation == "append_full"
+          and .authority == {repository:"gaofeng21cn/one-person-lab-app",workflow:".github/workflows/release-stable.yml",run_id:$run,run_attempt:1,executor_head_sha:$head}
+          and (.operation_control.operation_id | test("^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"))
+          and ((.operation_control.operation_started_at | opl_fromdateiso8601) > 0)
+          and ((.operation_control.operation_deadline_at | opl_fromdateiso8601) > (.operation_control.operation_started_at | opl_fromdateiso8601))
+          and (.source.run_id | test("^[1-9][0-9]*$"))
+          and (.source.checkpoint_artifact | test("^[A-Za-z0-9][A-Za-z0-9._-]+$"))
+          and .source.checkpoint_transport_executor == "github_actions"
+          and (.source.transport_run_id | test("^[1-9][0-9]*$"))
+          and .source.completed_stage == "full_qualified"
+          and (.source.qualification_receipt_sha256 | test("^sha256:[0-9a-f]{64}$"))
+          and (.release.version | test("^[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(-r[1-9][0-9]*)?$"))
+          and (.release.standard_tag | test("^v[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(-r[1-9][0-9]*)?$"))
+          and (.release.target_standard.release_id | type == "number")
+          and (.release.target_standard.tag | test("^v[0-9]{2}\\.[0-9]{1,2}\\.[0-9]{1,2}(-r[1-9][0-9]*)?$"))
+          and (.release.target_standard.target_commitish | test("^[0-9a-f]{40}$"))
+          and .release.standard_tag == .release.target_standard.tag
+          and .release.target_standard.immutable == false
+          and .release.target_standard.full_asset_append_allowed == true
+          and .release.target_standard.standard_asset_overwrite_or_delete_allowed == false
+          and .release.standard_attestation.name == "opl-release-attestation.json"
+          and (.release.standard_attestation.sha256 | test("^sha256:[0-9a-f]{64}$"))
+          and .build_provenance.admission_role == "observational_only"
+          and .build_provenance.may_gate_install_or_runtime == false
+          and (.build_provenance.bundle_digest | test("^sha256:[0-9a-f]{64}$"))
+          and (.build_provenance.app_sha | test("^[0-9a-f]{40}$"))
+          and (.build_provenance.shell_sha | test("^[0-9a-f]{40}$"))
+          and (.build_provenance.framework_sha | test("^[0-9a-f]{40}$"))
+          and (.artifact.sha256 | test("^sha256:[0-9a-f]{64}$"))
+          and (.manifest.sha256 | test("^sha256:[0-9a-f]{64}$"))
+          and .github_full_publication.status == "complete"
+          and .homebrew_modified == false
+          and .latest_modified == false
+        ' "$handoff" >/dev/null
+        test "$head_branch" = main
+        standard_tag="$(jq -er .release.standard_tag "$handoff")"
+        test "$standard_tag" = "$(jq -er .release.target_standard.tag "$handoff")"
+        handoff_sha="sha256:$(shasum -a 256 "$handoff" | awk '{print $1}')"
+        handoff_base64="$(base64 < "$handoff" | tr -d '\n')"
+        {
+          echo "handoff_sha256=$handoff_sha"
+          echo "handoff_base64=$handoff_base64"
+        } >> "$GITHUB_OUTPUT"

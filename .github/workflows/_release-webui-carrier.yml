@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       mode:
-        description: execute, qualify without publication, or canary startup.
+        description: execute or qualify without publication.
         type: string
         default: execute
       authority_mode:
@@ -66,25 +66,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Prove WebUI reusable topology starts without build or publication
-        shell: bash
-        run: |
-          set -euo pipefail
-          test '${{ inputs.release_bundle_digest }}' != ''
-          test '${{ inputs.release_cohort_ref }}' != ''
-          test '${{ inputs.app_ref }}' != ''
-          test '${{ inputs.shell_ref }}' != ''
-          test '${{ inputs.framework_ref }}' != ''
-          test '${{ inputs.authority_mode }}' = independent_preview \
-            || test '${{ inputs.authority_mode }}' = independent_stable
-          test '${{ inputs.source_artifact_run_id }}' != ''
-          test '${{ inputs.source_authority_artifact_name }}' != ''
-
   build-and-qualify:
     if: ${{ inputs.mode == 'execute' || inputs.mode == 'qualify' }}
     runs-on: ${{ matrix.runner }}

@@ -171,7 +171,7 @@ function fixture(mode: 'independent_stable' | 'independent_preview') {
     id: Number(promotionRunId),
     repository: { full_name: 'gaofeng21cn/one-person-lab-app' },
     head_repository: { full_name: 'gaofeng21cn/one-person-lab-app' },
-    path: '.github/workflows/release-webui-development-promote.yml',
+    path: '.github/workflows/release-webui-development.yml',
     event: 'workflow_dispatch',
     head_branch: 'main',
     status: 'in_progress',
@@ -238,21 +238,20 @@ function fixture(mode: 'independent_stable' | 'independent_preview') {
 }
 
 test('Docker WebUI workflows expose one independent Stable and Preview lane with no Desktop follower', () => {
-  const publication = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-development.yml'), 'utf8'));
-  const promotion = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-development-promote.yml'), 'utf8'));
+  const operations = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-development.yml'), 'utf8'));
   const stable = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-stable.yml'), 'utf8'));
-  assert.equal(publication.concurrency, undefined);
-  assert.equal(promotion.concurrency, undefined);
+  assert.equal(operations.concurrency, undefined);
   assert.equal(stable.concurrency, undefined);
   assert.equal(stable.jobs.admission.concurrency, undefined);
   assert.deepEqual(stable.jobs['promote-webui-stable'].concurrency, {
     group: 'opl-webui-stable-promotion-global',
     'cancel-in-progress': false,
   });
-  assert.deepEqual(publication.on.workflow_dispatch.inputs.channel.options, ['stable', 'preview']);
-  assert.equal(publication.jobs['webui-carrier'].with.authority_mode, '${{ needs.source-authority.outputs.authority_mode }}');
-  assert.deepEqual(promotion.on.workflow_dispatch.inputs.channel.options, ['stable', 'preview']);
-  assert.match(promotion.jobs['promote-webui-latest'].with.authority_mode, /independent_stable/);
+  assert.deepEqual(operations.on.workflow_dispatch.inputs.operation.options, ['qualify', 'publish', 'promote']);
+  assert.deepEqual(operations.on.workflow_dispatch.inputs.channel.options, ['stable', 'preview']);
+  assert.equal(operations.jobs['webui-carrier'].with.authority_mode, '${{ needs.source-authority.outputs.authority_mode }}');
+  assert.match(operations.jobs['promote-webui-latest'].with.authority_mode, /independent_stable/);
+  assert.equal(fs.existsSync(path.join(appRoot, '.github/workflows/release-webui-development-promote.yml')), false);
   const admissionSteps = stable.jobs.admission.steps as Array<{ name: string; run?: string }>;
   const materialize = admissionSteps.find((step) => step.name.startsWith('Materialize carrier'))?.run ?? '';
   const authorityRead = admissionSteps.find((step) => step.name.startsWith('Read immutable'))?.run ?? '';

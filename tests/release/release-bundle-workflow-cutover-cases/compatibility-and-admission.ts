@@ -3,6 +3,7 @@ import {
   assert,
   fs,
   path,
+  parseYaml,
   readWorkflow,
   parseWorkflow,
   readAdapter,
@@ -51,28 +52,27 @@ test('append_full delegates Full Homebrew without mutating Standard publication 
 });
 
 test('Standard Homebrew follower uses same-tag inspect-before-write CAS and cannot block core publication', () => {
-  const workflow = parseWorkflow('release-homebrew-standard-follower.yml');
+  const workflow = parseWorkflow('release-stable-post-success-followups.yml');
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
-  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
-    'source_run_id',
-    'reconcile_confirmation',
-  ]);
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs.reconcile_confirmation.options, [
-    'reconcile_published_homebrew_standard',
-  ]);
+  assert.ok(workflow.on.workflow_dispatch.inputs.operation.options.includes('reconcile_homebrew_standard'));
+  const job = workflow.jobs['publish-standard-cask'];
+  assert.equal(job.if, "${{ needs.route.outputs.homebrew_standard == 'true' }}");
+  const actionSource = fs.readFileSync(
+    path.join(process.cwd(), '.github/actions/release-followups/homebrew-standard/action.yml'),
+    'utf8',
+  );
+  const action = parseYaml(actionSource);
   const source = String(
-    workflow.jobs['publish-standard-cask'].steps.find(
+    action.runs.steps.find(
       (step: Record<string, unknown>) => step.name === 'Apply one exact-CAS Standard Cask update',
     )?.run ?? '',
   );
-  assert.match(workflow.jobs['publish-standard-cask'].if, /workflow_run\.conclusion == 'success'/);
-  assert.match(workflow.jobs['publish-standard-cask'].if, /reconcile_published_homebrew_standard/);
-  const bindStep = workflow.jobs['publish-standard-cask'].steps.find(
+  const bindStep = action.runs.steps.find(
     (step: Record<string, unknown>) => step.name === 'Bind one successful Standard publication run',
   );
-  const checkoutStep = workflow.jobs['publish-standard-cask'].steps.find(
-    (step: Record<string, unknown>) => step.name === 'Checkout exact App follower',
+  const checkoutStep = job.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Checkout canonical Homebrew Standard follower',
   );
   assert.equal(checkoutStep?.with?.ref, 'main');
   assert.equal(checkoutStep?.with?.['persist-credentials'], false);
@@ -94,6 +94,11 @@ test('Standard Homebrew follower uses same-tag inspect-before-write CAS and cann
   assert.match(source, /push_exit_status/);
   assert.match(source, /core_release_or_latest_blocked:false/);
   assert.match(source, /the core Release and Latest remain complete/);
+  assert.equal(
+    job.steps.some((step: Record<string, unknown>) => step.uses === './.github/actions/release-followups/homebrew-standard'),
+    true,
+  );
+  assert.equal(fs.existsSync(path.join(process.cwd(), '.github/workflows/release-homebrew-standard-follower.yml')), false);
 });
 
 test('new Bundle callers do not activate legacy broker or Stable-session admission', () => {

@@ -1281,7 +1281,8 @@
       ]
     },
     "full_macos_additive_follower": {
-      "workflow": ".github/workflows/release-full-addon-follower.yml",
+      "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+      "manual_operation": "reconcile_full_addon",
       "trigger": "successful_standard_publication_or_manual_target_state_reconcile",
       "source_policy": "full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas",
       "standard_release_prerequisite_required": true,
@@ -2045,7 +2046,9 @@
         "current_latest",
         "highest_public_stable"
       ],
-      "updater_qualification_order": "exact_previous_latest_to_candidate_zip_upgrade_before_first_public_release_mutation",
+      "updater_candidate_identity_required_before_publication": true,
+      "updater_predecessor_to_candidate_vm_required_before_publication": false,
+      "updater_clean_install_qualification": "exact_candidate_standard_clean_install_and_runtime_version_readback",
       "updater_zip_digest_source": "sha256_of_actual_candidate_zip_bytes",
       "updater_zip_identity_fields": [
         "size_bytes",
@@ -2054,7 +2057,7 @@
       "updater_metadata_declared_digest_is_not_sufficient": true,
       "homebrew_single_writer": true,
       "homebrew_unknown_outcome": "follower_fails_independently_then_fresh_cas_readback_before_optional_rerun",
-      "homebrew_reconcile_owner": "release-homebrew-standard-follower",
+      "homebrew_reconcile_owner": ".github/workflows/release-stable-post-success-followups.yml#reconcile_homebrew_standard",
       "homebrew_app_local_reconcile_loop_allowed": false,
       "homebrew_retry_push_on_unknown_allowed": false,
       "homebrew_success_requires_exact_remote_commit_and_cask_digest_readback": true,
@@ -2175,7 +2178,8 @@
             "candidate.dmg.size_bytes"
           ],
           "homebrew_follower": {
-            "workflow": ".github/workflows/release-homebrew-standard-follower.yml",
+            "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+            "operation": "reconcile_homebrew_standard",
             "latest_receipt_value": null,
             "consumed_by_latest_admission": false,
             "failure_blocks_core_release_or_latest": false
@@ -2368,8 +2372,11 @@
         "stable_mutation_mutex_used": false,
         "heavy_vm_blocking": false,
         "post_publication_followers_block_github_prerelease": false,
-        "homebrew_follower": ".github/workflows/release-nightly-homebrew-follower.yml",
-        "sampled_vm_follower": ".github/workflows/release-nightly-sampled-vm.yml"
+        "followup_workflow": ".github/workflows/release-nightly-followups.yml",
+        "followup_operations": [
+          "reconcile_homebrew",
+          "run_sampled_vm"
+        ]
       },
       "full": {
         "mode": "same_tag_mutable_standard_addon",
@@ -2563,17 +2570,12 @@
         "daily_schedule",
         "workflow_dispatch"
       ],
-      "starts_reusable_topology": [
-        "_release-bundle.yml",
-        "_release-standard-publish.yml",
-        "_release-full-addon.yml",
-        "_build-reusable.yml",
-        "opl-first-run-vm.yml",
-        "_release-webui-carrier.yml",
-        "release-webui-stable.yml",
-        "opl-updater-upgrade-vm.yml",
-        "full-first-install-release.yml"
+      "local_contract_checks": [
+        "framework_checkpoint_roundtrip",
+        "release_bundle_workflow_cutover",
+        "release_control_plane_boundary"
       ],
+      "reusable_release_workflow_jobs_allowed": false,
       "permissions": {
         "contents": "read",
         "actions": "read"
@@ -3273,8 +3275,11 @@
     "new_version_allocation_allowed": true,
     "historical_tag_and_receipt_parsing_allowed": true,
     "workflow": ".github/workflows/release-nightly.yml",
-    "homebrew_follower": ".github/workflows/release-nightly-homebrew-follower.yml",
-    "sampled_vm_follower": ".github/workflows/release-nightly-sampled-vm.yml",
+    "followup_workflow": ".github/workflows/release-nightly-followups.yml",
+    "followup_operations": [
+      "reconcile_homebrew",
+      "run_sampled_vm"
+    ],
     "default_trigger": "daily_schedule",
     "development_validation_trigger": {
       "event": "workflow_dispatch",
@@ -3511,7 +3516,8 @@
       "desktop_release_dependency": false,
       "desktop_release_follower_allowed": false,
       "source_workflow": ".github/workflows/release-webui-development.yml",
-      "promotion_entry_workflow": ".github/workflows/release-webui-development-promote.yml",
+      "entry_workflow": ".github/workflows/release-webui-development.yml",
+      "entry_operation": "promote",
       "protected_environment": "release-preview-publication",
       "immutable_version_required": true,
       "moving_tags": [
@@ -3633,7 +3639,8 @@
       "download_source": "app_owned_github_release_asset_url",
       "default_remote_write_path": "post_publication_non_blocking_digest_bound_follower",
       "default_workflow_repo": "gaofeng21cn/one-person-lab-app",
-      "default_workflow": ".github/workflows/release-homebrew-standard-follower.yml",
+      "default_workflow": ".github/workflows/release-stable-post-success-followups.yml",
+      "default_operation": "reconcile_homebrew_standard",
       "tap_sync_script": null,
       "app_release_promotion_workflow": ".github/workflows/release-stable.yml",
       "tap_owned_stable_distribution_workflow": null,
@@ -3646,7 +3653,8 @@
       "planner_script": "scripts/update-homebrew-tap.ts",
       "nightly": {
       "mode": "post_publication_digest_bound_single_attempt_follower",
-      "workflow": ".github/workflows/release-nightly-homebrew-follower.yml",
+      "workflow": ".github/workflows/release-nightly-followups.yml",
+      "operation": "reconcile_homebrew",
       "environment": "release-nightly",
       "credential": {
         "kind": "repository_scoped_write_deploy_key",
@@ -3663,7 +3671,8 @@
       "stable": {
       "mode": "post_publication_digest_bound_cas_follower",
       "publication_mode": "post_publication_digest_bound_cas_follower",
-      "workflow": ".github/workflows/release-homebrew-standard-follower.yml",
+      "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+      "operation": "reconcile_homebrew_standard",
       "environment": "release-stable",
       "target": "Casks/one-person-lab.rb",
       "source_completed_stage": "standard_public_and_latest_activated",
@@ -3674,14 +3683,14 @@
       "exact_current_cask_sha256_cas_required": true,
       "fresh_cas_rerun_allowed": true,
       "may_consume_nightly_directly": false,
-      "desired_state_reconciliation": {
-        "trigger": "workflow_dispatch",
-        "authority_binding": "same_successful_standard_run_and_exact_published_handoff",
-        "required_inputs": [
-          "source_run_id",
-          "reconcile_confirmation"
-        ],
-        "confirmation": "reconcile_published_homebrew_standard",
+        "desired_state_reconciliation": {
+          "trigger": "workflow_dispatch",
+          "authority_binding": "same_successful_standard_run_and_exact_published_handoff",
+          "required_inputs": [
+            "operation",
+            "source_run_id"
+          ],
+          "operation": "reconcile_homebrew_standard",
         "failed_run_history_inputs_forbidden": true,
         "exact_publication_handoff_required": true,
         "missing_or_expired_handoff": "fail",
@@ -3694,7 +3703,8 @@
       },
       "full": {
         "mode": "post_publication_digest_bound_single_attempt_follower",
-        "workflow": ".github/workflows/release-homebrew-full-follower.yml",
+        "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+        "operation": "reconcile_homebrew_full",
         "environment": "release-stable",
         "target": "Casks/one-person-lab-full.rb",
         "homebrew_publish_allowed": true,
@@ -3716,10 +3726,10 @@
           "trigger": "workflow_dispatch",
           "authority_binding": "same_successful_append_full_run_and_exact_published_handoff",
           "required_inputs": [
-            "source_run_id",
-            "reconcile_confirmation"
+            "operation",
+            "source_run_id"
           ],
-          "confirmation": "reconcile_published_homebrew_full",
+          "operation": "reconcile_homebrew_full",
           "failed_run_history_inputs_forbidden": true,
           "exact_publication_handoff_required": true,
           "missing_or_expired_handoff": "fail",
@@ -4158,7 +4168,8 @@
       "standard_identity_required": false,
       "standard_release_readback": "required_exact_mutable_release_and_sealed_standard_asset_set_cas",
       "successor_trigger": {
-        "workflow": ".github/workflows/release-full-addon-follower.yml",
+        "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+        "manual_operation": "reconcile_full_addon",
         "trigger": "successful_standard_publication_or_manual_target_state_reconcile",
         "one_active_owner_per_standard_recovery_chain": true,
         "controller": "scripts/stable-release-dispatch.ts#append-full",
@@ -4176,7 +4187,7 @@
         "executor_head_sha": "current_canonical_main",
         "manual_reconcile_inputs": [
           "source_run_id",
-          "reconcile_confirmation",
+          "operation",
           "smoke_harness_ref_optional"
         ],
         "failed_run_identity_inputs_allowed": false,
@@ -4668,7 +4679,8 @@
       }
     },
     "apple_credentials_diagnostic": {
-      "workflow": ".github/workflows/release-apple-credentials-preflight.yml",
+      "workflow": ".github/workflows/release-diagnostics.yml",
+      "diagnostic": "apple_credentials",
       "authority": "diagnostic_only",
       "may_create_stable_admission_manifest": false,
       "may_dispatch_standard": false,
@@ -4685,7 +4697,8 @@
     },
     "attempt_observability": {
       "schema": "opl_release_attempt_observation.v1",
-      "workflow": ".github/workflows/release-attempt-observability.yml",
+      "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+      "lane": "observe",
       "script": "scripts/release-attempt-observability.ts",
       "trigger": "release_stable_workflow_run_completed",
       "storage": "append_only_per_run_artifact",
@@ -5160,8 +5173,11 @@
           "restore_policy": "exact_only",
           "writer_ref": "refs/heads/main",
           "cache_only_warmup": {
-            "workflow": ".github/workflows/full-runtime-cache-warmup.yml",
-            "scheduling": "ahead_of_time_for_current_main_or_planned_exact_cohort",
+            "workflow": ".github/workflows/full-first-install-release.yml",
+            "workflow_input": {
+              "cache_only": true
+            },
+            "scheduling": "reusable_capability_without_independent_event_entry",
             "release_gate": false,
             "miss_fallback": "full_package_build_materializes_validates_and_main_saves_missing_layers",
             "requires_exact_app_shell_framework_shas": true,
@@ -5187,7 +5203,12 @@
         "truth_boundary": "Cache presence, restore hits, misses, writes, and cleanup receipts are acceleration evidence only; they cannot claim artifact identity, release readiness, owner approval, stable/latest publication, runtime truth, or domain truth."
       },
       "diagnostics_workflow_policy": {
-        "workflow": ".github/workflows/desktop-release-diagnostics.yml",
+        "workflow": ".github/workflows/release-diagnostics.yml",
+        "diagnostics": [
+          "desktop",
+          "apple_credentials",
+          "timestamp_authority"
+        ],
         "purpose": "harness_and_standard_artifact_only_release_diagnostics",
         "triggers": [
           "workflow_call",

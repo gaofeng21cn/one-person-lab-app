@@ -13,8 +13,8 @@ const fullAddonWorkflow = fs.readFileSync(
   path.join(appRoot, ".github", "workflows", "_release-full-addon.yml"),
   "utf8",
 );
-const dockerCleanLinuxWorkflow = fs.readFileSync(
-  path.join(appRoot, ".github", "workflows", "docker-webui-clean-linux-vm.yml"),
+const dockerCleanVmWorkflow = fs.readFileSync(
+  path.join(appRoot, ".github", "workflows", "docker-webui-clean-vm.yml"),
   "utf8",
 );
 const firstRunVmWorkflow = fs.readFileSync(
@@ -114,7 +114,7 @@ test("Full build verifies managed carrier and Home readiness before expensive pa
 
 test("desktop Stable leaves WebUI GHCR independent while Docker evidence still prunes seeded data", () => {
   assert.match(
-    dockerCleanLinuxWorkflow,
+    dockerCleanVmWorkflow,
     /name: Stop Docker\/WebUI smoke container and prune generated volumes[\s\S]*sudo rm -rf[\s\S]*OnePersonLab\/data[\s\S]*OnePersonLab\/projects[\s\S]*name: Upload clean Linux VM Docker\/WebUI evidence/,
   );
 });

@@ -3,10 +3,6 @@ name: OPL Homebrew Full Observational Publish
 on:
   workflow_call:
     inputs:
-      mode:
-        required: false
-        default: execute
-        type: string
       authority_run_id:
         required: true
         type: string
@@ -25,16 +21,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    permissions: { contents: read, actions: read }
-    steps:
-      - name: Prove observational Homebrew topology starts read-only
-        run: test '${{ inputs.authority_run_id }}' = 424242
-
   prepare-candidate:
-    if: ${{ inputs.mode == 'execute' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions: { contents: read, actions: read }
@@ -244,7 +231,6 @@ jobs:
           retention-days: 14
 
   publish-cask:
-    if: ${{ inputs.mode == 'execute' }}
     needs: [prepare-candidate]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -376,7 +362,6 @@ jobs:
           retention-days: 30
 
   readback:
-    if: ${{ inputs.mode == 'execute' }}
     needs: [prepare-candidate, publish-cask]
     runs-on: ubuntu-latest
     permissions: { contents: read, actions: read }

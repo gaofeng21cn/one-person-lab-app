@@ -3,10 +3,6 @@ name: Build Pipeline (Reusable)
 on:
   workflow_call:
     inputs:
-      mode:
-        description: execute or canary validation-only startup.
-        type: string
-        default: execute
       matrix:
         description: 'Build matrix JSON emitted by an audited source resolver or another trusted reusable caller'
         type: string
@@ -86,20 +82,8 @@ env:
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Prove reusable build validation-only topology starts
-        run: |
-          test '${{ inputs.release_bundle_digest }}' = sha256:canary
-          test '${{ inputs.operation }}' = standard
-          test '${{ inputs.framework_ref }}' = ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc
-
   resolve-active-shell-ref:
     name: Resolve immutable active Shell ref
-    if: ${{ inputs.mode != 'canary' }}
     runs-on: ubuntu-latest
     outputs:
       shell_sha: ${{ steps.resolve.outputs.shell_sha }}
@@ -125,7 +109,7 @@ jobs:
   workflow-lint:
     name: GitHub Actions workflow lint
     runs-on: ubuntu-latest
-    if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
+    if: ${{ !inputs.skip_code_quality }}
 
     steps:
       - name: Checkout code
@@ -154,7 +138,7 @@ jobs:
     name: Lint and format
     runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
-    if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
+    if: ${{ !inputs.skip_code_quality }}
     defaults:
       run:
         working-directory: shells/aionui
@@ -180,7 +164,7 @@ jobs:
     name: TypeScript type check
     runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
-    if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
+    if: ${{ !inputs.skip_code_quality }}
     defaults:
       run:
         working-directory: .
@@ -215,7 +199,7 @@ jobs:
     name: App release-boundary tests
     runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
-    if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
+    if: ${{ !inputs.skip_code_quality }}
 
     steps:
       - name: Checkout App repo
@@ -242,7 +226,7 @@ jobs:
     name: Active shell tests (${{ matrix.project }})
     runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
-    if: ${{ inputs.mode != 'canary' && !inputs.skip_code_quality }}
+    if: ${{ !inputs.skip_code_quality }}
 
     strategy:
       fail-fast: false
@@ -271,7 +255,7 @@ jobs:
     name: Prepare Windows Linux runtime
     runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
-    if: ${{ inputs.mode != 'canary' && contains(inputs.matrix, 'windows') }}
+    if: ${{ contains(inputs.matrix, 'windows') }}
 
     steps:
       - name: Checkout App repo
@@ -335,7 +319,6 @@ jobs:
     name: macOS release signing preflight
     runs-on: macos-latest
     timeout-minutes: 10
-    if: ${{ inputs.mode != 'canary' }}
     environment: ${{ inputs.require_macos_gatekeeper && 'release-stable' || null }}
 
     steps:
@@ -393,7 +376,7 @@ jobs:
       - prepare-windows-linux-runtime
       - macos-signing-preflight
       - resolve-active-shell-ref
-    if: ${{ always() && inputs.mode != 'canary' && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') && (inputs.skip_code_quality || (needs['workflow-lint'].result == 'success' && needs['lint-format'].result == 'success' && needs.typecheck.result == 'success' && needs['release-boundary'].result == 'success' && needs['active-shell-tests'].result == 'success')) }}
+    if: ${{ always() && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') && (inputs.skip_code_quality || (needs['workflow-lint'].result == 'success' && needs['lint-format'].result == 'success' && needs.typecheck.result == 'success' && needs['release-boundary'].result == 'success' && needs['active-shell-tests'].result == 'success')) }}
     defaults:
       run:
         working-directory: shells/aionui
@@ -1388,7 +1371,7 @@ jobs:
     name: Build Summary
     runs-on: ubuntu-latest
     needs: [lint-format, typecheck, release-boundary, active-shell-tests, build]
-    if: ${{ always() && inputs.mode != 'canary' }}
+    if: ${{ always() }}
 
     steps:
       - name: Write build summary

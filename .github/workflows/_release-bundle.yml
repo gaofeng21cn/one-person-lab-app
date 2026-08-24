@@ -3,11 +3,6 @@ name: OPL Standard Bundle Build
 on:
   workflow_call:
     inputs:
-      mode:
-        description: execute or canary
-        required: false
-        default: execute
-        type: string
       operation:
         description: standard for the initial build operation
         required: false
@@ -123,32 +118,12 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF: ad09977d7cdfc6cb3d1c04f7f1e6fd9358a7a2fc
   OPL_RELEASE_BUNDLE_ARTIFACT: opl-release-bundle-${{ github.run_id }}
   OPL_STANDARD_CHECKPOINT_ARTIFACT: opl-release-standard-checkpoint-${{ github.run_id }}
 
 jobs:
-  startup-canary:
-    if: ${{ inputs.mode == 'canary' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - name: Prove reusable Standard build topology starts
-        run: |
-          test '${{ inputs.operation }}' = standard
-          test '${{ inputs.channel }}' = canary
-          test -z '${{ inputs.publication_channel }}'
-          test '${{ inputs.latest_override_requested }}' = false
-          test '${{ inputs.app_ref }}' = canary
-          test '${{ inputs.framework_ref }}' = "$OPL_FRAMEWORK_CANARY_MINIMUM_ABI_REF"
-          test '${{ inputs.package_compatibility_abi }}' = opl_packages.v1
-          test '${{ inputs.package_compatibility_version_range }}' = '>=0.1.0 <1.0.0'
-
   resolve-platform-matrix:
-    if: ${{ inputs.mode == 'execute' && inputs.prior_standard_artifact_run_id == '' }}
+    if: ${{ inputs.prior_standard_artifact_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -182,7 +157,6 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
   admission:
-    if: ${{ inputs.mode == 'execute' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -326,7 +300,7 @@ jobs:
           retention-days: 30
 
   freeze:
-    if: ${{ inputs.mode == 'execute' && needs.admission.result == 'success' }}
+    if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
     runs-on: macos-latest
     timeout-minutes: 30
@@ -841,14 +815,13 @@ jobs:
           retention-days: 30
 
   standard-build:
-    if: ${{ inputs.mode == 'execute' && inputs.prior_standard_artifact_run_id == '' }}
+    if: ${{ inputs.prior_standard_artifact_run_id == '' }}
     needs: [freeze, resolve-platform-matrix]
     permissions:
       contents: read
       actions: read
     uses: ./.github/workflows/_build-reusable.yml
     with:
-      mode: execute
       matrix: ${{ needs.resolve-platform-matrix.outputs.matrix }}
       release_validation_profile: stable
       ref: ${{ needs.freeze.outputs.app_sha }}
@@ -859,13 +832,13 @@ jobs:
       release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.freeze.outputs.bundle_digest }}
       require_macos_gatekeeper: true
-      operation: ${{ inputs.mode == 'execute' && inputs.operation || '' }}
-      operation_started_at: ${{ inputs.mode == 'execute' && needs.freeze.outputs.operation_started_at || '' }}
-      operation_deadline_at: ${{ inputs.mode == 'execute' && needs.freeze.outputs.operation_deadline_at || '' }}
+      operation: ${{ inputs.operation }}
+      operation_started_at: ${{ needs.freeze.outputs.operation_started_at }}
+      operation_deadline_at: ${{ needs.freeze.outputs.operation_deadline_at }}
     secrets: inherit
 
   seal-standard-identity:
-    if: ${{ always() && inputs.mode == 'execute' && needs.freeze.result == 'success' && (inputs.prior_standard_artifact_run_id != '' || needs.standard-build.result == 'success') }}
+    if: ${{ always() && needs.freeze.result == 'success' && (inputs.prior_standard_artifact_run_id != '' || needs.standard-build.result == 'success') }}
     needs: [freeze, standard-build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1349,14 +1322,13 @@ jobs:
           retention-days: 30
 
   standard-clean-vm-qualification:
-    if: ${{ always() && inputs.mode == 'execute' && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}
+    if: ${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}
     needs: [freeze, seal-standard-identity]
     permissions:
       contents: read
       actions: read
     uses: ./.github/workflows/opl-first-run-vm.yml
     with:
-      mode: execute
       release_artifact_name: ${{ needs.seal-standard-identity.outputs.standard_vm_artifact_name }}
       release_artifact_run_id: ${{ needs.seal-standard-identity.outputs.standard_artifact_run_id }}
       standard_identity_sha256: ${{ needs.seal-standard-identity.outputs.standard_identity_sha256 }}
@@ -1378,7 +1350,7 @@ jobs:
     secrets: inherit
 
   checkpoint-standard:
-    if: ${{ always() && inputs.mode == 'execute' && needs.admission.result == 'success' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' && (inputs.channel != 'stable' || needs.standard-clean-vm-qualification.result == 'success') }}
+    if: ${{ always() && needs.admission.result == 'success' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' && (inputs.channel != 'stable' || needs.standard-clean-vm-qualification.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [admission, freeze, seal-standard-identity, standard-clean-vm-qualification]
@@ -1404,12 +1376,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
-          if [ '${{ inputs.mode }}' = execute ]; then
-            node <<'NODE'
+          node <<'NODE'
           const deadline = Date.parse('${{ inputs.operation_deadline_at }}');
           if (!Number.isFinite(deadline) || Date.now() >= deadline) process.exit(1);
           NODE
-          fi
 
       - name: Checkout App product adapter
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1639,14 +1609,13 @@ jobs:
           retention-days: 30
 
   publish-standard:
-    if: ${{ always() && inputs.mode == 'execute' && needs.freeze.result == 'success' && needs.checkpoint-standard.result == 'success' }}
+    if: ${{ always() && needs.freeze.result == 'success' && needs.checkpoint-standard.result == 'success' }}
     needs: [freeze, checkpoint-standard]
     concurrency:
       group: opl-release-bundle-global
       cancel-in-progress: false
     uses: ./.github/workflows/_release-standard-publish.yml
     with:
-      mode: execute
       operation: standard
       publication_channel: ${{ inputs.publication_channel || inputs.channel }}
       latest_override_requested: ${{ inputs.latest_override_requested }}

@@ -94,7 +94,8 @@ const requiredStandardLatestAdmission = {
     'candidate.dmg.size_bytes',
   ],
   homebrew_follower: {
-    workflow: '.github/workflows/release-homebrew-standard-follower.yml',
+    workflow: '.github/workflows/release-stable-post-success-followups.yml',
+    operation: 'reconcile_homebrew_standard',
     latest_receipt_value: null,
     consumed_by_latest_admission: false,
     failure_blocks_core_release_or_latest: false,
@@ -206,17 +207,12 @@ const requiredValidationCanary = {
   workflow: '.github/workflows/release-bundle-canary.yml',
   mode: 'validation_only',
   triggers: ['daily_schedule', 'workflow_dispatch'],
-  starts_reusable_topology: [
-    '_release-bundle.yml',
-    '_release-standard-publish.yml',
-    '_release-full-addon.yml',
-    '_build-reusable.yml',
-    'opl-first-run-vm.yml',
-    '_release-webui-carrier.yml',
-    'release-webui-stable.yml',
-    'opl-updater-upgrade-vm.yml',
-    'full-first-install-release.yml',
+  local_contract_checks: [
+    'framework_checkpoint_roundtrip',
+    'release_bundle_workflow_cutover',
+    'release_control_plane_boundary',
   ],
+  reusable_release_workflow_jobs_allowed: false,
   permissions: { contents: 'read', actions: 'read' },
   secrets_allowed: false,
   build_or_vm_execution_allowed: false,
@@ -563,7 +559,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     fullAddon?.standard_identity_required !== false ||
     fullAddon?.standard_release_readback !==
       'required_exact_mutable_release_and_sealed_standard_asset_set_cas' ||
-    fullAddon?.successor_trigger?.workflow !== '.github/workflows/release-full-addon-follower.yml' ||
+    fullAddon?.successor_trigger?.workflow !== '.github/workflows/release-stable-post-success-followups.yml' ||
     fullAddon?.successor_trigger?.trigger !== 'successful_standard_publication_or_manual_target_state_reconcile' ||
     fullAddon?.successor_trigger?.one_active_owner_per_standard_recovery_chain !== true ||
     fullAddon?.successor_trigger?.controller !== 'scripts/stable-release-dispatch.ts#append-full' ||
@@ -580,7 +576,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     fullAddon?.successor_trigger?.executor_head_sha !== 'current_canonical_main' ||
     !sameStringSet(fullAddon?.successor_trigger?.manual_reconcile_inputs, [
       'source_run_id',
-      'reconcile_confirmation',
+      'operation',
       'smoke_harness_ref_optional',
     ]) ||
     fullAddon?.successor_trigger?.failed_run_identity_inputs_allowed !== false ||
@@ -646,8 +642,8 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     nightly?.new_version_allocation_allowed !== true ||
     nightly?.historical_tag_and_receipt_parsing_allowed !== true ||
     nightly?.workflow !== '.github/workflows/release-nightly.yml' ||
-    nightly?.homebrew_follower !== '.github/workflows/release-nightly-homebrew-follower.yml' ||
-    nightly?.sampled_vm_follower !== '.github/workflows/release-nightly-sampled-vm.yml' ||
+    nightly?.followup_workflow !== '.github/workflows/release-nightly-followups.yml' ||
+    !sameStringSet(nightly?.followup_operations, ['reconcile_homebrew', 'run_sampled_vm']) ||
     nightly?.default_trigger !== 'daily_schedule' ||
     JSON.stringify(nightly?.development_validation_trigger) !== JSON.stringify({
       event: 'workflow_dispatch',
@@ -1345,7 +1341,7 @@ function validateReleasePreflightContract(releaseContract: Record<string, any>):
     failures += 1;
   }
   if (
-    preflight?.apple_credentials_diagnostic?.workflow !== '.github/workflows/release-apple-credentials-preflight.yml'
+    preflight?.apple_credentials_diagnostic?.workflow !== '.github/workflows/release-diagnostics.yml'
     || preflight?.apple_credentials_diagnostic?.authority !== 'diagnostic_only'
     || preflight?.apple_credentials_diagnostic?.may_create_stable_admission_manifest !== false
     || preflight?.apple_credentials_diagnostic?.may_dispatch_standard !== false
@@ -1363,7 +1359,7 @@ function validateReleasePreflightContract(releaseContract: Record<string, any>):
   const observability = preflight?.attempt_observability;
   if (
     observability?.schema !== 'opl_release_attempt_observation.v1'
-    || observability?.workflow !== '.github/workflows/release-attempt-observability.yml'
+    || observability?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
     || observability?.script !== 'scripts/release-attempt-observability.ts'
     || observability?.trigger !== 'release_stable_workflow_run_completed'
     || observability?.storage !== 'append_only_per_run_artifact'
@@ -1928,8 +1924,8 @@ export function validateReleaseAccelerationPolicy(
     publication?.nightly?.stable_mutation_mutex_used !== false ||
     publication?.nightly?.heavy_vm_blocking !== false ||
     publication?.nightly?.post_publication_followers_block_github_prerelease !== false ||
-    publication?.nightly?.homebrew_follower !== '.github/workflows/release-nightly-homebrew-follower.yml' ||
-    publication?.nightly?.sampled_vm_follower !== '.github/workflows/release-nightly-sampled-vm.yml'
+    publication?.nightly?.followup_workflow !== '.github/workflows/release-nightly-followups.yml' ||
+    !sameStringSet(publication?.nightly?.followup_operations, ['reconcile_homebrew', 'run_sampled_vm'])
   ) {
     console.error('FAIL release_nightly_publication: Nightly must default to the daily schedule and keep user-explicit development validation on the same Standard-only non-Latest path');
     failures += 1;
@@ -1954,13 +1950,15 @@ export function validateReleaseAccelerationPolicy(
     resilience?.display_and_machine_versions_both_must_increase !== true ||
     resilience?.source_and_remote_version_checks_required_before_build !== true ||
     !sameStringSet(resilience?.updater_baseline_sources, ['current_latest', 'highest_public_stable']) ||
-    resilience?.updater_qualification_order !== 'exact_previous_latest_to_candidate_zip_upgrade_before_first_public_release_mutation' ||
+    resilience?.updater_candidate_identity_required_before_publication !== true ||
+    resilience?.updater_predecessor_to_candidate_vm_required_before_publication !== false ||
+    resilience?.updater_clean_install_qualification !== 'exact_candidate_standard_clean_install_and_runtime_version_readback' ||
     resilience?.updater_zip_digest_source !== 'sha256_of_actual_candidate_zip_bytes' ||
     !sameStringSet(resilience?.updater_zip_identity_fields, ['size_bytes', 'sha256']) ||
     resilience?.updater_metadata_declared_digest_is_not_sufficient !== true ||
     resilience?.homebrew_single_writer !== true ||
     resilience?.homebrew_unknown_outcome !== 'follower_fails_independently_then_fresh_cas_readback_before_optional_rerun' ||
-    resilience?.homebrew_reconcile_owner !== 'release-homebrew-standard-follower' ||
+    resilience?.homebrew_reconcile_owner !== '.github/workflows/release-stable-post-success-followups.yml#reconcile_homebrew_standard' ||
     resilience?.homebrew_app_local_reconcile_loop_allowed !== false ||
     resilience?.homebrew_reconcile_max_attempts !== undefined ||
     resilience?.homebrew_retry_push_on_unknown_allowed !== false ||
@@ -2043,7 +2041,7 @@ export function validateReleaseAccelerationPolicy(
     }
   }
   if (JSON.stringify(validationCanary) !== JSON.stringify(requiredValidationCanary)) {
-    console.error('FAIL release_validation_canary: Canary must start the complete reusable topology in validation-only mode without secrets, builds, VMs, or external writes');
+    console.error('FAIL release_validation_canary: Canary must run only local read-only contract checks without starting reusable release workflows');
     failures += 1;
   }
   if (
@@ -2096,11 +2094,14 @@ export function validateReleaseAccelerationPolicy(
     !sameStringSet(homebrew?.excluded_casks, []) ||
     !sameStringSet(homebrew?.full_casks, ['one-person-lab-full']) ||
     homebrew?.tap_update_policy?.stable_release_workflow_write_mode !== 'post_publication_non_blocking_follower' ||
+    homebrew?.tap_update_policy?.default_workflow !== '.github/workflows/release-stable-post-success-followups.yml' ||
+    homebrew?.tap_update_policy?.default_operation !== 'reconcile_homebrew_standard' ||
     homebrew?.tap_update_policy?.stable?.mode !==
       'post_publication_digest_bound_cas_follower' ||
     homebrew?.tap_update_policy?.stable?.publication_mode !==
       'post_publication_digest_bound_cas_follower' ||
-    homebrew?.tap_update_policy?.stable?.workflow !== '.github/workflows/release-homebrew-standard-follower.yml' ||
+    homebrew?.tap_update_policy?.stable?.workflow !== '.github/workflows/release-stable-post-success-followups.yml' ||
+    homebrew?.tap_update_policy?.stable?.operation !== 'reconcile_homebrew_standard' ||
     homebrew?.tap_update_policy?.stable?.environment !== 'release-stable' ||
     homebrew?.tap_update_policy?.stable?.target !== 'Casks/one-person-lab.rb' ||
     homebrew?.tap_update_policy?.stable?.source_completed_stage !== 'standard_public_and_latest_activated' ||
@@ -2115,10 +2116,10 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.authority_binding !==
       'same_successful_standard_run_and_exact_published_handoff' ||
     !sameStringSet(homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.required_inputs, [
-      'source_run_id', 'reconcile_confirmation',
+      'operation', 'source_run_id',
     ]) ||
-    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.confirmation !==
-      'reconcile_published_homebrew_standard' ||
+    homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.operation !==
+      'reconcile_homebrew_standard' ||
     homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.failed_run_history_inputs_forbidden !== true ||
     homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.exact_publication_handoff_required !== true ||
     homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.missing_or_expired_handoff !== 'fail' ||
@@ -2128,7 +2129,8 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.workflow_rerun_allowed !== false ||
     homebrew?.tap_update_policy?.stable?.desired_state_reconciliation?.standard_redispatch_allowed !== false ||
     homebrew?.tap_update_policy?.nightly?.mode !== 'post_publication_digest_bound_single_attempt_follower' ||
-    homebrew?.tap_update_policy?.nightly?.workflow !== '.github/workflows/release-nightly-homebrew-follower.yml' ||
+    homebrew?.tap_update_policy?.nightly?.workflow !== '.github/workflows/release-nightly-followups.yml' ||
+    homebrew?.tap_update_policy?.nightly?.operation !== 'reconcile_homebrew' ||
     homebrew?.tap_update_policy?.nightly?.environment !== 'release-nightly' ||
     homebrew?.tap_update_policy?.nightly?.credential?.kind !== 'repository_scoped_write_deploy_key' ||
     homebrew?.tap_update_policy?.nightly?.credential?.repository !== 'gaofeng21cn/homebrew-one-person-lab' ||
@@ -2141,7 +2143,8 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.nightly?.stable_cask_must_remain_exact !== true ||
     homebrew?.tap_update_policy?.nightly?.unknown_or_conflicting_result !== 'fail_closed_no_retry_rerun_or_redispatch' ||
     homebrew?.tap_update_policy?.full?.mode !== 'post_publication_digest_bound_single_attempt_follower' ||
-    homebrew?.tap_update_policy?.full?.workflow !== '.github/workflows/release-homebrew-full-follower.yml' ||
+    homebrew?.tap_update_policy?.full?.workflow !== '.github/workflows/release-stable-post-success-followups.yml' ||
+    homebrew?.tap_update_policy?.full?.operation !== 'reconcile_homebrew_full' ||
     homebrew?.tap_update_policy?.full?.environment !== 'release-stable' ||
     homebrew?.tap_update_policy?.full?.target !== 'Casks/one-person-lab-full.rb' ||
     homebrew?.tap_update_policy?.full?.homebrew_publish_allowed !== true ||
@@ -2159,10 +2162,10 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.authority_binding !==
       'same_successful_append_full_run_and_exact_published_handoff' ||
     !sameStringSet(homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.required_inputs, [
-      'source_run_id', 'reconcile_confirmation',
+      'operation', 'source_run_id',
     ]) ||
-    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.confirmation !==
-      'reconcile_published_homebrew_full' ||
+    homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.operation !==
+      'reconcile_homebrew_full' ||
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.failed_run_history_inputs_forbidden !== true ||
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.exact_publication_handoff_required !== true ||
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.missing_or_expired_handoff !== 'fail' ||
@@ -2502,7 +2505,7 @@ export function validateReleasePlatformMatrix(
 
   const follower = matrix.full_macos_additive_follower;
   if (
-    follower?.workflow !== '.github/workflows/release-full-addon-follower.yml'
+    follower?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
     || follower?.trigger !== 'successful_standard_publication_or_manual_target_state_reconcile'
     || follower?.source_policy !== 'full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas'
     || follower?.standard_release_prerequisite_required !== true

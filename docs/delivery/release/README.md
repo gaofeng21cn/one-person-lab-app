@@ -68,7 +68,7 @@ hold it. Apple signing credentials are read only by the build layer, the dedicat
 by publication, and public readback uses no protected environment. None of these stages adopts
 Studio as the active shell or active Framework release carrier.
 
-`.github/workflows/desktop-release-diagnostics.yml` is a separate manual or reusable verification
+`.github/workflows/release-diagnostics.yml` is a separate manual or reusable verification
 entry. It may build a temporary Standard diagnostic artifact and run the first-run VM harness, but
 it has only `actions: read` / `contents: read` permissions and cannot publish, promote, move Latest,
 or authorize Stable. A Standard VM run requires the exact 40-character Framework SHA so the existing
@@ -80,7 +80,7 @@ independent `fail-fast: false` lane per selected Desktop platform; each lane bui
 and briefly acquires the public mutation mutex only while appending its assets and aggregate manifest
 to the same Release/tag. A failed Linux lane can therefore be reconciled without rebuilding Windows,
 and vice versa. Full is reconciled independently by
-`.github/workflows/release-full-addon-follower.yml`: it consumes the successful Standard handoff,
+`.github/workflows/release-stable-post-success-followups.yml`: it consumes the successful Standard handoff,
 delegates desired-state resolution to the canonical controller, and exits after binding or dispatching
 one owner without waiting for Full completion. Either follower may fail or be repaired without
 rerunning Standard, the other platform, or Full, and without changing the release version. The append
@@ -147,9 +147,10 @@ not rerun a workflow, repeat an upload/delete, alter settings/secrets, or guess 
 
 ## Docker WebUI
 
-`.github/workflows/release-webui-development.yml` publishes an independent Docker Stable or Preview
-immutable version plus a durable GHCR publication record. `.github/workflows/release-webui-development-promote.yml`
-consumes that record:
+`.github/workflows/release-webui-development.yml` is the only operator entry for independent Docker
+WebUI operations. Select `operation=qualify|publish|promote`; `publish` creates an exact Stable or
+Preview version bound to an OCI digest and durable GHCR publication record, while `promote` consumes
+that record:
 
 - `move-docker-stable-and-latest:<version>` moves `:stable` and `:latest` once;
 - `move-docker-latest:<version>` moves only `:latest` once.

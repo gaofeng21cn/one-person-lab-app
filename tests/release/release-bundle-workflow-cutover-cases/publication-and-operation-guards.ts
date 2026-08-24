@@ -5,7 +5,6 @@ import {
   path,
   readWorkflow,
   parseWorkflow,
-  minimumCompatibleFrameworkAbiRef,
   workflowStep,
   runPortableStandardBuildReceiptStep,
 } from "./fixtures.ts";
@@ -31,7 +30,10 @@ test('mutation unknown states persist evidence and only use bounded read-only re
     assert.match(source, /--operation-started-at/);
     assert.match(source, /--operation-deadline-at/);
   }
-  const homebrew = readWorkflow('release-homebrew-standard-follower.yml');
+  const homebrew = fs.readFileSync(
+    path.join(process.cwd(), '.github/actions/release-followups/homebrew-standard/action.yml'),
+    'utf8',
+  );
   assert.match(homebrew, /timeout --foreground --signal=TERM --kill-after=5s/);
   assert.match(homebrew, /git -C tap-source ls-remote origin refs\/heads\/main/);
   assert.doesNotMatch(homebrew, /for attempt in 1 2 3|three read-only reconciliations/);
@@ -211,31 +213,14 @@ test('every real release build, VM, and mutation job rejects a partial rerun loc
   }
 });
 
-test('the remote Canary starts all three reusable workflows with one synthetic checkpoint handle', () => {
+test('the remote Canary is a thin read-only contract check with no reusable release entry', () => {
   const canary = parseWorkflow('release-bundle-canary.yml');
   assert.equal(canary.on.push, undefined);
   assert.equal(canary.on.pull_request, undefined);
   assert.deepEqual(canary.on.schedule, [{ cron: '0 13 * * *' }]);
   assert.equal(canary.on.workflow_dispatch, null);
   assert.deepEqual(canary.permissions, { contents: 'read', actions: 'read' });
-  assert.equal(canary.jobs.standard.uses, './.github/workflows/_release-bundle.yml');
-  assert.equal(canary.jobs['resume-standard'].uses, './.github/workflows/_release-standard-publish.yml');
-  assert.equal(canary.jobs['append-full'].uses, './.github/workflows/_release-full-addon.yml');
-  assert.equal(canary.jobs['nested-standard-build'].uses, './.github/workflows/_build-reusable.yml');
-  assert.equal(canary.jobs['nested-standard-qualification'].uses, './.github/workflows/opl-first-run-vm.yml');
-  assert.equal(canary.jobs['nested-webui-carrier'].uses, './.github/workflows/_release-webui-carrier.yml');
-  assert.equal(canary.jobs['nested-webui-stable'].uses, './.github/workflows/release-webui-stable.yml');
-  assert.equal(canary.jobs['nested-native-webui'], undefined);
-  assert.equal(canary.jobs['nested-updater-qualification'].uses, './.github/workflows/opl-updater-upgrade-vm.yml');
-  assert.equal(canary.jobs['nested-full-build'].uses, './.github/workflows/full-first-install-release.yml');
-  const compileCeilingPermissions = { contents: 'read', actions: 'read', packages: 'write' };
-  assert.deepEqual(canary.jobs.standard.permissions, { contents: 'read', actions: 'read' });
-  assert.deepEqual(canary.jobs['nested-webui-carrier'].permissions, compileCeilingPermissions);
-  assert.deepEqual(canary.jobs['nested-webui-stable'].permissions, compileCeilingPermissions);
-  assert.equal(canary.jobs['resume-standard'].with.source_run_id, '424242');
-  assert.equal(canary.jobs['append-full'].with.source_run_id, '424242');
-  assert.equal(canary.jobs['resume-standard'].with.source_artifact, 'opl-release-canary-checkpoint-424242');
-  assert.equal(canary.jobs['append-full'].with.source_artifact, 'opl-release-canary-checkpoint-424242');
+  assert.deepEqual(Object.keys(canary.jobs), ['framework-checkpoint-roundtrip', 'contract']);
   const frameworkCheckpointSteps = canary.jobs['framework-checkpoint-roundtrip'].steps;
   const workspaceBuildIndex = frameworkCheckpointSteps.findIndex(
     (step: Record<string, any>) => step.name === 'Build Framework runtime workspaces',
@@ -246,24 +231,37 @@ test('the remote Canary starts all three reusable workflows with one synthetic c
   assert.ok(workspaceBuildIndex >= 0);
   assert.equal(frameworkCheckpointSteps[workspaceBuildIndex].run, 'npm run build:packages');
   assert.ok(workspaceBuildIndex < checkpointTestIndex);
-  for (const [jobId, job] of Object.entries(canary.jobs) as Array<[string, Record<string, any>]>) {
+  const contractRun = canary.jobs.contract.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Verify release workflow contracts without starting release jobs',
+  )?.run;
+  assert.match(String(contractRun), /release-bundle-workflow-cutover\.test\.ts/);
+  assert.match(String(contractRun), /release-control-plane-boundary\.test\.ts/);
+  for (const job of Object.values(canary.jobs) as Array<Record<string, any>>) {
     const permissions = job.permissions ?? canary.permissions;
     assert.equal(permissions.contents, 'read');
     assert.notEqual(permissions['id-token'], 'write');
-    if (!['nested-webui-carrier', 'nested-webui-stable'].includes(jobId)) {
-      assert.notEqual(permissions.packages, 'write');
-    }
+    assert.notEqual(permissions.packages, 'write');
+    assert.equal(job.uses, undefined);
+    assert.equal(job.secrets, undefined);
   }
-  assert.doesNotMatch(readWorkflow('release-bundle-canary.yml'), /secrets:\s+inherit/);
-  for (const name of ['_release-bundle.yml', '_release-standard-publish.yml', '_release-full-addon.yml']) {
+  assert.doesNotMatch(readWorkflow('release-bundle-canary.yml'), /secrets:\s+inherit|uses:\s+\.\/\.github\/workflows\//);
+  for (const name of [
+    '_release-bundle.yml',
+    '_release-standard-publish.yml',
+    '_release-full-addon.yml',
+    '_build-reusable.yml',
+    'full-first-install-release.yml',
+    'opl-first-run-vm.yml',
+    '_release-homebrew-full-publish.yml',
+    'release-webui-stable.yml',
+  ]) {
     const workflow = parseWorkflow(name);
-    assert.equal(workflow.jobs['startup-canary'].if, "${{ inputs.mode == 'canary' }}");
+    assert.equal(workflow.on.workflow_call.inputs.mode, undefined, `${name} retains a dead Canary mode`);
+    assert.equal(workflow.jobs['startup-canary'], undefined, `${name} retains a dead Canary job`);
   }
-  const bundle = parseWorkflow('_release-bundle.yml');
-  assert.deepEqual(bundle.jobs['startup-canary'].permissions, { contents: 'read', actions: 'read' });
   const webui = parseWorkflow('_release-webui-carrier.yml');
   assert.deepEqual(webui.permissions, { contents: 'read' });
-  assert.equal(webui.jobs['startup-canary'].if, "${{ inputs.mode == 'canary' }}");
+  assert.equal(webui.jobs['startup-canary'], undefined);
   assert.equal(
     webui.jobs['build-and-qualify'].if,
     "${{ inputs.mode == 'execute' || inputs.mode == 'qualify' }}",
@@ -277,16 +275,6 @@ test('the remote Canary starts all three reusable workflows with one synthetic c
     contents: 'read',
     packages: 'write',
   });
-  for (const name of [
-    '_build-reusable.yml',
-    'full-first-install-release.yml',
-    'opl-first-run-vm.yml',
-    'opl-updater-upgrade-vm.yml',
-  ]) {
-    const workflow = parseWorkflow(name);
-    assert.equal(workflow.jobs['startup-canary'].if, "${{ inputs.mode == 'canary' }}");
-    assert.match(readWorkflow(name), new RegExp(minimumCompatibleFrameworkAbiRef));
-  }
 });
 
 test('release-bound nested workflows inherit one operation and absolute deadline', () => {
@@ -294,7 +282,6 @@ test('release-bound nested workflows inherit one operation and absolute deadline
     '_build-reusable.yml',
     'full-first-install-release.yml',
     'opl-first-run-vm.yml',
-    'opl-updater-upgrade-vm.yml',
   ]) {
     const workflow = parseWorkflow(name);
     for (const input of ['operation', 'operation_started_at', 'operation_deadline_at']) {
@@ -317,7 +304,7 @@ test('release-bound nested workflows inherit one operation and absolute deadline
   const bundleWorkflow = parseWorkflow('_release-bundle.yml');
   assert.equal(
     bundleWorkflow.jobs['standard-build'].with.operation,
-    "${{ inputs.mode == 'execute' && inputs.operation || '' }}",
+    '${{ inputs.operation }}',
   );
   assert.equal(bundleWorkflow.jobs['standard-qualification'], undefined);
 });
@@ -325,8 +312,7 @@ test('release-bound nested workflows inherit one operation and absolute deadline
 test('production Standard and Full builds fail closed on Apple distribution trust', () => {
   const bundle = parseWorkflow('_release-bundle.yml');
   const reusableBuild = parseWorkflow('_build-reusable.yml');
-  const credentialPreflight = parseWorkflow('release-apple-credentials-preflight.yml');
-  const canary = parseWorkflow('release-bundle-canary.yml');
+  const diagnostics = parseWorkflow('release-diagnostics.yml');
   const fullAddon = parseWorkflow('_release-full-addon.yml');
   const fullBuild = parseWorkflow('full-first-install-release.yml');
   const fullBuildSource = readWorkflow('full-first-install-release.yml');
@@ -375,12 +361,6 @@ test('production Standard and Full builds fail closed on Apple distribution trus
       .map(([jobName]) => jobName),
     ['macos-signing-preflight', 'build'],
   );
-  assert.equal(canary.jobs['nested-standard-build'].with.require_macos_gatekeeper, undefined);
-  assert.equal(canary.jobs['nested-standard-build'].secrets, undefined);
-  assert.deepEqual(canary.jobs['nested-standard-build'].permissions, {
-    contents: 'read',
-    actions: 'read',
-  });
   assert.deepEqual(signingPreflight.env, {
     BUILD_CERTIFICATE_BASE64: '${{ secrets.BUILD_CERTIFICATE_BASE64 }}',
     P12_PASSWORD: '${{ secrets.P12_PASSWORD }}',
@@ -395,28 +375,30 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     signingPreflightUpload.with.name,
     'opl-apple-release-credentials-preflight-${{ github.run_id }}',
   );
-  assert.deepEqual(Object.keys(credentialPreflight.on), ['workflow_dispatch']);
-  assert.deepEqual(credentialPreflight.permissions, { contents: 'read', actions: 'read' });
-  assert.deepEqual(credentialPreflight.on.workflow_dispatch.inputs.large_dmg_canary, {
-    description: 'Sign a synthetic Full-sized ULMO DMG without submitting it for notarization.',
-    required: true,
+  assert.deepEqual(Object.keys(diagnostics.on).sort(), ['workflow_call', 'workflow_dispatch']);
+  assert.deepEqual(diagnostics.permissions, { contents: 'read', actions: 'read' });
+  assert.deepEqual(diagnostics.on.workflow_dispatch.inputs.large_dmg_canary, {
+    description: 'Apple credentials only: sign a synthetic Full-sized ULMO DMG without notarization submission.',
+    required: false,
     default: false,
     type: 'boolean',
   });
-  assert.deepEqual(credentialPreflight.on.workflow_dispatch.inputs.notary_submission_id, {
-    description: 'Optional exact existing Apple submission UUID to reconcile read-only.',
+  assert.deepEqual(diagnostics.on.workflow_dispatch.inputs.notary_submission_id, {
+    description: 'Apple credentials only: exact existing Apple submission UUID to reconcile read-only.',
     required: false,
     default: '',
     type: 'string',
   });
-  assert.equal(credentialPreflight.jobs.validate['runs-on'], 'macos-latest');
-  assert.equal(credentialPreflight.jobs.validate.environment, 'release-stable');
-  assert.equal(credentialPreflight.jobs.validate['timeout-minutes'], 45);
-  assert.equal(credentialPreflight.concurrency['cancel-in-progress'], false);
-  const credentialDiagnostic = credentialPreflight.jobs.validate.steps.find(
+  const credentialJob = diagnostics.jobs['apple-credentials'];
+  assert.equal(credentialJob.if, "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'apple_credentials' }}");
+  assert.equal(credentialJob['runs-on'], 'macos-latest');
+  assert.equal(credentialJob.environment, 'release-stable');
+  assert.equal(credentialJob['timeout-minutes'], 45);
+  assert.equal(credentialJob.concurrency['cancel-in-progress'], false);
+  const credentialDiagnostic = credentialJob.steps.find(
     (step: Record<string, unknown>) => step.name === 'Import Developer ID identity and authenticate notarization',
   );
-  const credentialReceiptUpload = credentialPreflight.jobs.validate.steps.find(
+  const credentialReceiptUpload = credentialJob.steps.find(
     (step: Record<string, unknown>) => step.name === 'Upload sanitized Apple credential preflight receipt',
   );
   assert.match(String(credentialDiagnostic.run), /--large-dmg-canary/);
@@ -424,19 +406,19 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   assert.equal(credentialReceiptUpload.if, '${{ always() }}');
   assert.equal(credentialReceiptUpload.with['if-no-files-found'], 'warn');
   assert.equal(
-    credentialPreflight.jobs.validate.steps.some(
+    credentialJob.steps.some(
       (step: Record<string, unknown>) => String(step.run ?? '').includes('verify-apple-release-credentials.ts'),
     ),
     true,
   );
   assert.equal(
-    credentialPreflight.jobs.validate.steps.some(
+    credentialJob.steps.some(
       (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-release-admission-manifest.ts create'),
     ),
     false,
   );
   assert.equal(
-    credentialPreflight.jobs.validate.steps.some(
+    credentialJob.steps.some(
       (step: Record<string, any>) => step.with?.name === 'opl-stable-admission-${{ github.run_id }}',
     ),
     false,

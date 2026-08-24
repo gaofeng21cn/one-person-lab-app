@@ -107,12 +107,6 @@ test('Tart VM consumers and routine advisory jobs use distinct exact capability 
     firstRun.on.workflow_call.secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD.required,
     false,
   );
-  const updater = readWorkflow('opl-updater-upgrade-vm.yml').workflow;
-  assert.deepEqual(
-    updater.jobs.upgrade['runs-on'],
-    ['self-hosted', 'macOS', 'ARM64', 'opl-cert-mac-tart'],
-  );
-
   const advisory = readWorkflow('self-hosted-advisory.yml');
   assert.match(advisory.source, /Requested labels are outside the declared advisory pool/);
   assert.deepEqual(

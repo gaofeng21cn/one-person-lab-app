@@ -265,7 +265,7 @@ and validates the generated `docker-webui-smoke-gate-result.json` as
 that artifact instead.
 
 For preflight or rerun without the whole desktop release flow, dispatch
-`.github/workflows/docker-webui-clean-linux-vm.yml`. It uploads
+`.github/workflows/docker-webui-clean-vm.yml` with `platform=linux`. It uploads
 `docker-webui-clean-linux-vm-evidence` by default; pass that artifact name to
 `docker_webui_clean_linux_evidence_artifact` when the desktop release should
 reuse the preflight result instead of generating Linux evidence in-job.
@@ -365,7 +365,7 @@ npm run smoke:docker-webui:windows-clean-vm:dispatch -- --execute --json
 That operator helper reads repository self-hosted runner inventory with the
 local `gh` token, passes the normalized inventory into the workflow as
 `runner_inventory_json`, and dispatches
-`.github/workflows/docker-webui-clean-windows-vm.yml`. When no matching runner
+`.github/workflows/docker-webui-clean-vm.yml` with `platform=windows`. When no matching runner
 exists, the workflow uploads `docker-webui-clean-windows-vm-runner-blocker` with
 `typed_blocker.code=missing_clean_windows_self_hosted_runner`; this is a
 blocked evidence artifact, not a clean Windows pass.
@@ -378,7 +378,7 @@ npm run smoke:docker-webui:windows-clean-vm:dispatch -- --json
 ```
 
 ```text
-.github/workflows/docker-webui-clean-windows-vm.yml
+.github/workflows/docker-webui-clean-vm.yml (platform=windows)
 artifact: docker-webui-clean-windows-vm-evidence
 default runner labels: ["self-hosted","Windows","X64","docker-webui-clean-vm"]
 ```

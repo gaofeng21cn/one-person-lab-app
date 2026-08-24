@@ -1,5 +1,8 @@
-name: OPL Nightly Homebrew Follower
-run-name: Nightly Homebrew follower for run ${{ github.event.workflow_run.id }}
+name: OPL Nightly Follow-ups
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+    && format('Nightly follow-up {0} for run {1}', inputs.operation, inputs.source_run_id)
+    || format('Nightly follow-ups for run {0}', github.event.workflow_run.id) }}
 
 on:
   workflow_run:
@@ -7,6 +10,19 @@ on:
       - OPL Standard Nightly Release
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Rerun one independent Nightly follower.
+        required: true
+        type: choice
+        options:
+          - reconcile_homebrew
+          - run_sampled_vm
+      source_run_id:
+        description: Exact completed Nightly source run.
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,16 +31,15 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-concurrency:
-  group: opl-nightly-homebrew-${{ github.event.workflow_run.id }}
-  cancel-in-progress: false
-
 jobs:
   publish-nightly-cask:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'workflow_dispatch' && inputs.operation == 'reconcile_homebrew') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: release-nightly
+    concurrency:
+      group: opl-nightly-homebrew-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
+      cancel-in-progress: false
     permissions:
       contents: read
       actions: read
@@ -32,7 +47,8 @@ jobs:
       - name: Checkout exact App follower
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -47,11 +63,12 @@ jobs:
         id: authority
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then test "$GITHUB_REF" = refs/heads/main; fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
           jq -e --arg run "$SOURCE_RUN_ID" '
             (.id | tostring) == $run
@@ -74,7 +91,7 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ steps.authority.outputs.artifact }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
           github-token: ${{ github.token }}
           path: nightly-publication
 
@@ -82,7 +99,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           OPL_HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.OPL_HOMEBREW_TAP_DEPLOY_KEY }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -129,7 +146,6 @@ jobs:
             and .cohort.app_sha == $head
             and (.primary_dmg.sha256 | test("^[0-9a-f]{64}$"))
           ' "$receipt" >/dev/null
-          test "$(jq -r .cohort.app_sha "$receipt")" = "$(git rev-parse HEAD)"
           test -n "$OPL_HOMEBREW_TAP_DEPLOY_KEY"
           tap_ssh_dir="$RUNNER_TEMP/nightly-homebrew-ssh"
           install -d -m 700 "$tap_ssh_dir"
@@ -199,7 +215,7 @@ jobs:
           stable_after="sha256:$(shasum -a 256 stable-cask-after.rb | awk '{print $1}')"
           test "$stable_after" = "$stable_before"
           jq -n \
-            --arg source_run_id '${{ github.event.workflow_run.id }}' \
+            --arg source_run_id "$SOURCE_RUN_ID" \
             --arg source_event "$source_event" \
             --arg source_invocation_mode "$(jq -er .invocation.mode "$receipt")" \
             --arg source_authority_source "$(jq -er .invocation.authority_source "$receipt")" \
@@ -216,7 +232,102 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-nightly-homebrew-${{ github.event.workflow_run.id }}
+          name: opl-nightly-homebrew-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
           path: nightly-homebrew-receipt.json
           if-no-files-found: error
           retention-days: 30
+
+  resolve-sample:
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'workflow_dispatch' && inputs.operation == 'run_sampled_vm') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sampled: ${{ steps.receipt.outputs.sampled }}
+      tag: ${{ steps.receipt.outputs.tag }}
+      app_ref: ${{ steps.receipt.outputs.app_ref }}
+      shell_ref: ${{ steps.receipt.outputs.shell_ref }}
+      framework_ref: ${{ steps.receipt.outputs.framework_ref }}
+    steps:
+      - name: Bind exact published Nightly and weekly sample
+        id: receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
+          FORCE_SAMPLE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then test "$GITHUB_REF" = refs/heads/main; fi
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          jq -e --arg run "$SOURCE_RUN_ID" '
+            (.id | tostring) == $run
+            and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .path == ".github/workflows/release-nightly.yml"
+            and (.event == "schedule" or .event == "workflow_dispatch")
+            and .head_branch == "main"
+            and .run_attempt == 1
+            and .status == "completed"
+            and .conclusion == "success"
+          ' source-run.json >/dev/null
+          artifact="opl-nightly-publication-${SOURCE_RUN_ID}"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" > artifacts.json
+          test "$(jq -r --arg name "$artifact" '[.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length' artifacts.json)" = 1
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir nightly-publication
+          receipt=nightly-publication/nightly-publication.json
+          source_event="$(jq -er .event source-run.json)"
+          source_head_sha="$(jq -er .head_sha source-run.json)"
+          jq -e --arg run "$SOURCE_RUN_ID" --arg event "$source_event" --arg head "$source_head_sha" '
+            .schema == "opl_standard_nightly_publication_receipt.v1"
+            and (.status == "published" or .status == "already_complete")
+            and .actions.run_id == $run
+            and .actions.run_attempt == "1"
+            and .invocation.event == $event
+            and (
+              (.invocation == {mode:"scheduled_production",event:"schedule",authority_source:"daily_schedule",confirmation:null,execution_path:"scheduled_nightly"})
+              or
+              (.invocation == {mode:"development_validation",event:"workflow_dispatch",authority_source:"user_explicit",confirmation:"publish_nonlatest_nightly",execution_path:"same_as_scheduled_nightly"})
+            )
+            and .github_release.prerelease == true
+            and .github_release.make_latest == false
+            and .include_full == false
+            and .heavy_vm_blocking == false
+            and (.cohort.app_sha | test("^[0-9a-f]{40}$"))
+            and (.cohort.shell_sha | test("^[0-9a-f]{40}$"))
+            and (.cohort.framework_sha | test("^[0-9a-f]{40}$"))
+            and .cohort.app_sha == $head
+          ' "$receipt" >/dev/null
+          sampled=false
+          if [ "$FORCE_SAMPLE" = true ] || [ "$(TZ=Asia/Shanghai date +%u)" = 6 ]; then sampled=true; fi
+          {
+            echo "sampled=$sampled"
+            echo "tag=$(jq -er .tag "$receipt")"
+            echo "app_ref=$(jq -er .cohort.app_sha "$receipt")"
+            echo "shell_ref=$(jq -er .cohort.shell_sha "$receipt")"
+            echo "framework_ref=$(jq -er .cohort.framework_sha "$receipt")"
+          } >> "$GITHUB_OUTPUT"
+
+  sampled-standard-vm:
+    if: ${{ needs.resolve-sample.outputs.sampled == 'true' }}
+    needs: [resolve-sample]
+    concurrency:
+      group: opl-nightly-sampled-vm-${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/opl-first-run-vm.yml
+    with:
+      release_tag: ${{ needs.resolve-sample.outputs.tag }}
+      artifact_app_ref: ${{ needs.resolve-sample.outputs.app_ref }}
+      shell_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
+      smoke_harness_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
+      framework_ref: ${{ needs.resolve-sample.outputs.framework_ref }}
+      package_profile: standard
+      diagnostic_scope: release_gate
+      require_macos_gatekeeper: false

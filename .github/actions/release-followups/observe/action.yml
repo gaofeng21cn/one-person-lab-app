@@ -1,0 +1,36 @@
+name: Observe Stable attempt
+description: Write one non-authoritative observation for an exact completed Stable run.
+inputs:
+  source_run_id:
+    description: Exact completed Stable run id.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Read the exact completed run and all jobs
+      env:
+        GH_TOKEN: ${{ github.token }}
+        STABLE_RUN_ID: ${{ inputs.source_run_id }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [[ "$STABLE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+        gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_RUN_ID" > stable-run.json
+        gh api --paginate --slurp \
+          "repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_RUN_ID/jobs?per_page=100" \
+          | jq '{jobs: [.[].jobs[]]}' > stable-jobs.json
+
+    - name: Write one non-authoritative first-terminal observation
+      shell: bash
+      run: |
+        node --experimental-strip-types scripts/release-attempt-observability.ts \
+          --run stable-run.json --jobs stable-jobs.json \
+          --output release-attempt-observation.json
+
+    - name: Upload append-only per-run observation
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: opl-release-attempt-observation-${{ inputs.source_run_id }}
+        path: release-attempt-observation.json
+        if-no-files-found: error
+        retention-days: 90

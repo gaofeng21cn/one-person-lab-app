@@ -47,7 +47,7 @@ only after exact qualification and public readback.
 
 `.github/workflows/release-stable-post-success-followups.yml` consumes the exact successful Standard
 checkpoint and appends selected Linux/Windows assets to that same mutable Release/tag. The independent
-`.github/workflows/release-full-addon-follower.yml` reconciles the same successful Standard handoff to
+`.github/workflows/release-stable-post-success-followups.yml` reconciles the same successful Standard handoff to
 one Full owner run and stops as soon as that owner is identified; it does not wait for the Full build,
 qualification or publication. Its protected manual reconciliation takes only the source run and a
 target-state confirmation, never failed-run generations or historical logs. The Desktop follower's

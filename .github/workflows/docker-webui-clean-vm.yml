@@ -1,8 +1,17 @@
-name: OPL Docker WebUI Clean Windows VM Smoke
+name: OPL Docker WebUI Clean VM Smoke
+run-name: Docker WebUI clean ${{ inputs.platform }} VM smoke
 
 on:
   workflow_dispatch:
     inputs:
+      platform:
+        description: Host platform to validate.
+        required: true
+        default: linux
+        type: choice
+        options:
+          - linux
+          - windows
       runner_labels_json:
         description: JSON array of labels for a clean Windows runner with Docker Desktop/WSL2 available.
         required: false
@@ -19,7 +28,7 @@ on:
         default: ghcr.io/gaofeng21cn/one-person-lab-webui:latest
         type: string
       artifact_name:
-        description: Artifact name to upload for desktop-release docker_webui_clean_windows_evidence_artifact.
+        description: Evidence artifact name; use the platform-specific default expected by desktop release intake.
         required: false
         default: docker-webui-clean-windows-vm-evidence
         type: string
@@ -38,15 +47,65 @@ permissions:
   contents: read
   actions: read
 
-concurrency:
-  group: docker-webui-clean-windows-vm-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  clean-linux-vm-smoke:
+    if: ${{ inputs.platform == 'linux' }}
+    name: Clean Linux VM Docker/WebUI smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: docker-webui-clean-linux-vm-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout App repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Run clean Linux VM Docker/WebUI smoke gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docker-webui-clean-linux-vm
+          node --experimental-strip-types scripts/docker-webui-smoke-gate.ts \
+            --gate clean_linux_vm \
+            --artifacts docker-webui-clean-linux-vm \
+            --image "${{ inputs.image }}" \
+            --port "${{ inputs.port }}" \
+            --health-timeout "${{ inputs.health_timeout }}" \
+            --json | tee docker-webui-clean-linux-vm-output.json
+          node --experimental-strip-types scripts/docker-webui-smoke-gate.ts \
+            --validate-result docker-webui-clean-linux-vm/docker-webui-smoke-gate-result.json \
+            --json | tee docker-webui-clean-linux-vm-validation.json
+      - name: Stop Docker/WebUI smoke container and prune generated volumes
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [ -f docker-webui-clean-linux-vm/home/OnePersonLab/compose.yaml ]; then
+            docker compose -f docker-webui-clean-linux-vm/home/OnePersonLab/compose.yaml down --remove-orphans || true
+          fi
+          sudo rm -rf \
+            docker-webui-clean-linux-vm/home/OnePersonLab/data \
+            docker-webui-clean-linux-vm/home/OnePersonLab/projects
+      - name: Upload clean Linux VM Docker/WebUI evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.artifact_name == 'docker-webui-clean-windows-vm-evidence' && 'docker-webui-clean-linux-vm-evidence' || inputs.artifact_name }}
+          path: |
+            docker-webui-clean-linux-vm
+            docker-webui-clean-linux-vm-output.json
+            docker-webui-clean-linux-vm-validation.json
+          if-no-files-found: error
+
   runner-preflight:
+    if: ${{ inputs.platform == 'windows' }}
     name: Clean Windows runner preflight
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -181,13 +240,18 @@ jobs:
   clean-windows-vm-smoke:
     name: Clean Windows VM Docker/WebUI smoke
     needs: runner-preflight
-    if: ${{ needs.runner-preflight.result == 'success' }}
+    if: ${{ inputs.platform == 'windows' && needs.runner-preflight.result == 'success' }}
+    concurrency:
+      group: docker-webui-clean-windows-vm-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 45
 
     steps:
       - name: Checkout App repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

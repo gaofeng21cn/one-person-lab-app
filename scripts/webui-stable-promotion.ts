@@ -199,7 +199,7 @@ function validatePromotionExecutorRun(
   promotionAppSha: string,
   carrierFollowerRunId: string,
 ): string {
-  const callerWorkflow = '.github/workflows/release-webui-development-promote.yml';
+  const callerWorkflow = '.github/workflows/release-webui-development.yml';
   exact(String(run.id), runId, 'promotion executor run.id');
   exact(run.repository?.full_name, appRepository, 'promotion executor run.repository');
   exact(run.head_repository?.full_name, appRepository, 'promotion executor run.head_repository');

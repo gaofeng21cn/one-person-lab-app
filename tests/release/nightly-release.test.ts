@@ -975,11 +975,8 @@ test('Nightly publisher refuses an unexpected public asset before publishing a d
 
 test('Nightly workflows keep one shared build implementation and post-publication followers', () => {
   const release = parseYaml(fs.readFileSync('.github/workflows/release-nightly.yml', 'utf8')) as any;
-  const homebrew = parseYaml(
-    fs.readFileSync('.github/workflows/release-nightly-homebrew-follower.yml', 'utf8'),
-  ) as any;
-  const sampledVm = parseYaml(
-    fs.readFileSync('.github/workflows/release-nightly-sampled-vm.yml', 'utf8'),
+  const followups = parseYaml(
+    fs.readFileSync('.github/workflows/release-nightly-followups.yml', 'utf8'),
   ) as any;
   assert.deepEqual(Object.keys(release.on).sort(), ['schedule', 'workflow_dispatch']);
   assert.deepEqual(Object.keys(release.on.workflow_dispatch.inputs), ['operator_confirmation']);
@@ -1033,21 +1030,29 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(qualificationRun, /--shell-sha '\$\{\{ needs\.admission\.outputs\.shell_ref \}\}'/);
   assert.match(qualificationRun, /--framework-sha '\$\{\{ needs\.admission\.outputs\.framework_ref \}\}'/);
   assert.equal(release.jobs['qualify-and-publish'].environment, 'release-nightly');
-  assert.deepEqual(homebrew.on.workflow_run.workflows, ['OPL Standard Nightly Release']);
-  assert.deepEqual(sampledVm.on.workflow_run.workflows, ['OPL Standard Nightly Release']);
+  assert.equal(followups.name, 'OPL Nightly Follow-ups');
+  assert.deepEqual(followups.on.workflow_run.workflows, ['OPL Standard Nightly Release']);
+  assert.deepEqual(followups.on.workflow_dispatch.inputs.operation.options, [
+    'reconcile_homebrew',
+    'run_sampled_vm',
+  ]);
+  assert.deepEqual(followups.jobs['publish-nightly-cask'].needs, undefined);
+  assert.deepEqual(followups.jobs['resolve-sample'].needs, undefined);
+  assert.equal(fs.existsSync('.github/workflows/release-nightly-homebrew-follower.yml'), false);
+  assert.equal(fs.existsSync('.github/workflows/release-nightly-sampled-vm.yml'), false);
   assert.match(
-    String(homebrew.jobs['publish-nightly-cask'].steps.find((step: any) => step.id === 'authority')?.run ?? ''),
+    String(followups.jobs['publish-nightly-cask'].steps.find((step: any) => step.id === 'authority')?.run ?? ''),
     /\.event == "schedule" or \.event == "workflow_dispatch"/,
   );
   const homebrewPublish = String(
-    homebrew.jobs['publish-nightly-cask'].steps.find(
+    followups.jobs['publish-nightly-cask'].steps.find(
       (step: any) => step.name === 'Publish one digest-bound Nightly Cask commit',
     )?.run ?? '',
   );
-  const homebrewPublishStep = homebrew.jobs['publish-nightly-cask'].steps.find(
+  const homebrewPublishStep = followups.jobs['publish-nightly-cask'].steps.find(
     (step: any) => step.name === 'Publish one digest-bound Nightly Cask commit',
   );
-  assert.equal(homebrew.jobs['publish-nightly-cask'].environment, 'release-nightly');
+  assert.equal(followups.jobs['publish-nightly-cask'].environment, 'release-nightly');
   assert.equal(
     homebrewPublishStep?.env?.OPL_HOMEBREW_TAP_DEPLOY_KEY,
     '${{ secrets.OPL_HOMEBREW_TAP_DEPLOY_KEY }}',
@@ -1062,17 +1067,17 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(homebrewPublish, /IdentitiesOnly=yes/);
   assert.match(homebrewPublish, /StrictHostKeyChecking=yes/);
   assert.match(
-    String(sampledVm.jobs['resolve-sample'].steps.find((step: any) => step.id === 'receipt')?.run ?? ''),
+    String(followups.jobs['resolve-sample'].steps.find((step: any) => step.id === 'receipt')?.run ?? ''),
     /\.event == "schedule" or \.event == "workflow_dispatch"/,
   );
   const sampledReceipt = String(
-    sampledVm.jobs['resolve-sample'].steps.find((step: any) => step.id === 'receipt')?.run ?? '',
+    followups.jobs['resolve-sample'].steps.find((step: any) => step.id === 'receipt')?.run ?? '',
   );
   assert.match(sampledReceipt, /\.actions\.run_id == \$run/);
   assert.match(sampledReceipt, /\.invocation\.event == \$event/);
-  assert.match(sampledReceipt, /authority_source: "user_explicit"/);
+  assert.match(sampledReceipt, /authority_source:\s*"?user_explicit"?/);
   assert.match(sampledReceipt, /\.cohort\.app_sha == \$head/);
-  assert.equal(sampledVm.jobs['sampled-standard-vm'].uses, './.github/workflows/opl-first-run-vm.yml');
-  assert.equal(sampledVm.jobs['sampled-standard-vm'].with.require_macos_gatekeeper, false);
+  assert.equal(followups.jobs['sampled-standard-vm'].uses, './.github/workflows/opl-first-run-vm.yml');
+  assert.equal(followups.jobs['sampled-standard-vm'].with.require_macos_gatekeeper, false);
   assert.equal(validateNightlyReleaseTopology(process.cwd()), 0);
 });

@@ -13,10 +13,10 @@ function readWorkflow(): { source: string; workflow: Record<string, any> } {
   return { source, workflow: YAML.parse(source) };
 }
 
-test('Desktop Release Set certification follows one completed same-tag append', () => {
+test('Desktop Release Set certification follows the one Stable follow-up hub', () => {
   const { source, workflow } = readWorkflow();
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
-  assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Desktop Release Set Follow-up']);
+  assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Follow-ups']);
   assert.deepEqual(workflow.on.workflow_run.types, ['completed']);
   assert.deepEqual(Object.keys(workflow.jobs), [
     'resolve-release-set',

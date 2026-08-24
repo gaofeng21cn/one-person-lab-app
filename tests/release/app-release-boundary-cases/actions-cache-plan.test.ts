@@ -112,7 +112,7 @@ test('Actions cache plan binds exact cohort, selected packages, and structured r
   const report = testRuntimeReport(frameworkSha);
   const plan = buildActionsCachePlan({
     mode: 'cache_only_warmup',
-    workflow: 'full-runtime-cache-warmup.yml',
+    workflow: 'full-first-install-release.yml',
     ref: 'refs/heads/main',
     appSha: 'a'.repeat(40),
     shellSha: 'b'.repeat(40),
@@ -287,12 +287,12 @@ test('Full cache-only workflow freezes exact refs and cannot emit release assets
   const fullPath = path.join(appRoot, '.github', 'workflows', 'full-first-install-release.yml');
   const warmupPath = path.join(appRoot, '.github', 'workflows', 'full-runtime-cache-warmup.yml');
   const fullText = fs.readFileSync(fullPath, 'utf8');
-  const warmupText = fs.readFileSync(warmupPath, 'utf8');
   const full = parseYaml(fullText) as Record<string, any>;
-  const warmup = parseYaml(warmupText) as Record<string, any>;
   const fullSteps = full.jobs['full-first-install'].steps as Array<Record<string, any>>;
   const fullStep = (name: string) => fullSteps.find((step) => step.name === name);
 
+  assert.equal(fs.existsSync(warmupPath), false);
+  assert.deepEqual(Object.keys(full.on), ['workflow_call']);
   assert.equal(full.on.workflow_call.inputs.cache_only.default, false);
   assert.match(String(fullStep('Enforce cache-only warmup boundary')?.if), /inputs\.cache_only/);
   assert.match(String(fullStep('Build Full first-install package')?.run), /--warm-runtime-cache-only/);
@@ -328,17 +328,9 @@ test('Full cache-only workflow freezes exact refs and cannot emit release assets
     assert.match(String(fullStep(name)?.if), /!inputs\.cache_only/, name);
   }
 
-  const resolver = warmup.jobs['resolve-version'];
-  assert.equal(warmup.jobs.warmup.with.cache_only, true);
-  assert.equal(warmup.jobs.warmup.secrets, undefined);
-  assert.equal(warmup.jobs.warmup.with.framework_ref, '${{ needs.resolve-version.outputs.framework_sha }}');
-  assert.equal(warmup.jobs.warmup.with.shell_ref, '${{ needs.resolve-version.outputs.shell_sha }}');
-  assert.equal(warmup.jobs.warmup.with.artifact_app_sha, '${{ needs.resolve-version.outputs.app_sha }}');
-  assert.match(
-    String((resolver.steps as Array<Record<string, any>>).find((step) => step.name === 'Require canonical main writer')?.run),
-    /refs\/heads\/main/,
-  );
-  assert.doesNotMatch(warmupText, /BUILD_CERTIFICATE_BASE64|APPLE_ID_PASSWORD|IDENTITY:/);
+  assert.equal(full.on.workflow_call.inputs.framework_ref.required, true);
+  assert.equal(full.on.workflow_call.inputs.shell_ref.required, true);
+  assert.match(fullText, /mode='cache_only_warmup'/);
 });
 
 test('Full cache-only builder returns before payload sync and DMG construction', () => {

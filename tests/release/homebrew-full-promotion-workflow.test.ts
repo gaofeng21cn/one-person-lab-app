@@ -96,28 +96,19 @@ test('append_full exports exact qualification-bound handoff without mutating Hom
 });
 
 test('Full Homebrew follower permits automatic delivery or source-bound reconciliation', () => {
-  const source = read('release-homebrew-full-follower.yml');
-  const workflow = parse('release-homebrew-full-follower.yml');
+  const source = fs.readFileSync(path.join(process.cwd(), '.github/actions/release-followups/homebrew-full-handoff/action.yml'), 'utf8');
+  const workflow = parse('release-stable-post-success-followups.yml');
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
-  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
-    'source_run_id', 'reconcile_confirmation',
-  ]);
   assert.equal(workflow.on.workflow_dispatch.inputs.source_run_id.required, true);
   assert.equal(workflow.on.workflow_dispatch.inputs.source_run_id.type, 'string');
-  assert.equal(workflow.on.workflow_dispatch.inputs.reconcile_confirmation.required, true);
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs.reconcile_confirmation.options, [
-    'reconcile_published_homebrew_full',
-  ]);
+  assert.equal(workflow.on.workflow_dispatch.inputs.operation.options.includes('reconcile_homebrew_full'), true);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
-  assert.deepEqual(Object.keys(workflow.jobs), ['resolve-handoff', 'publish-homebrew-full']);
-  assert.match(workflow.jobs['resolve-handoff'].if, /reconcile_published_homebrew_full/);
+  assert.equal(workflow.jobs['resolve-homebrew-full'].if, "${{ needs.route.outputs.homebrew_full == 'true' }}");
+  assert.equal(workflow.jobs['resolve-homebrew-full'].steps.at(-1).uses, './.github/actions/release-followups/homebrew-full-handoff');
   assert.equal(workflow.jobs['publish-homebrew-full'].uses, './.github/workflows/_release-homebrew-full-publish.yml');
-  assert.match(source, /Homebrew Full reconcile for Stable run/);
   assert.match(source, /test "\$RECONCILE_CONFIRMATION" = reconcile_published_homebrew_full/);
-  assert.match(source, /reconcile-run\.json/);
-  assert.match(source, /\.head_sha == \$sha/);
-  assert.match(source, /\.display_title == \$title/);
+  assert.match(source, /executor_head_sha:\$head/);
   assert.match(source, /test "\$GITHUB_REF" = refs\/heads\/main/);
   assert.match(source, /\.status == "completed"/);
   assert.match(source, /\.conclusion == "success"/);
@@ -149,12 +140,17 @@ test('Full Homebrew follower permits automatic delivery or source-bound reconcil
   assert.doesNotMatch(source, /test "\$\(jq -er \.release\.cohort\.app_sha "\$handoff"\)" = "\$head_sha"/);
   assert.doesNotMatch(source, /\.release\.(?:base_tag|bundle_digest|cohort)/);
   assert.doesNotMatch(source, /OPL_HOMEBREW_TAP_TOKEN|git\b[^\n]*\bpush\b/);
+  assert.equal(fs.existsSync(path.join(workflowRoot, 'release-homebrew-full-follower.yml')), false);
 });
 
 test('Standard Homebrew follower exposes the same source-bound reconciliation shape', () => {
-  const source = read('release-homebrew-standard-follower.yml');
+  const source = fs.readFileSync(path.join(process.cwd(), '.github/actions/release-followups/homebrew-standard/action.yml'), 'utf8');
   assert.match(source, /reconcile_published_homebrew_standard/);
   assert.doesNotMatch(source, /failed_(?:follower|recovery)_run_id|recovery_generation|actions\/jobs\/.*\/logs/);
+  const workflow = parse('release-stable-post-success-followups.yml');
+  assert.equal(workflow.jobs['publish-standard-cask'].if, "${{ needs.route.outputs.homebrew_standard == 'true' }}");
+  assert.equal(workflow.jobs['publish-standard-cask'].steps.at(-1).uses, './.github/actions/release-followups/homebrew-standard');
+  assert.equal(fs.existsSync(path.join(workflowRoot, 'release-homebrew-standard-follower.yml')), false);
 });
 
 test('Full Homebrew reusable publishes hosted-qualified bytes before optional physical certification', () => {
@@ -162,7 +158,6 @@ test('Full Homebrew reusable publishes hosted-qualified bytes before optional ph
   const workflow = parse('_release-homebrew-full-publish.yml');
   assert.deepEqual(Object.keys(workflow.on), ['workflow_call']);
   assert.deepEqual(Object.keys(workflow.jobs), [
-    'startup-canary',
     'prepare-candidate',
     'publish-cask',
     'readback',

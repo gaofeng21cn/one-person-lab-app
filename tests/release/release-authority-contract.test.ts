@@ -37,7 +37,8 @@ test('release contract exposes only the three Stable operations and validation-o
 
 test('release guide separates independent Docker authority from Desktop Stable', () => {
   assert.match(releaseGuide, /release-webui-development\.yml/);
-  assert.match(releaseGuide, /release-webui-development-promote\.yml/);
+  assert.match(releaseGuide, /operation=qualify\|publish\|promote/);
+  assert.doesNotMatch(releaseGuide, /release-webui-development-promote\.yml/);
   assert.match(releaseGuide, /independent source authority/);
   assert.match(releaseGuide, /not accepted authority/);
   assert.doesNotMatch(releaseGuide, /release-webui-follower\.yml/);

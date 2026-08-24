@@ -10,6 +10,7 @@ import { validateBunToolchainCompatibility } from './validate-release-boundary/b
 import {
   runReleaseBoundaryTextChecks,
   validateStableReleaseActionPinPolicy,
+  validateWorkflowTopologyPolicy,
   validateWorkflowDispatchWriteAuthority,
   validateWorkflowNode24Policy,
 } from './validate-release-boundary/text-check-runner.ts';
@@ -27,6 +28,7 @@ try {
 }
 
 failures += runReleaseBoundaryTextChecks(appRoot);
+failures += validateWorkflowTopologyPolicy(appRoot);
 failures += validateWorkflowNode24Policy(appRoot);
 failures += validateStableReleaseActionPinPolicy(appRoot);
 failures += validateWorkflowDispatchWriteAuthority(appRoot);

@@ -317,9 +317,11 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   assert.equal(resilience.stable_version_comparison_scope, 'all_public_stable_releases_not_latest_only');
   assert.equal(resilience.display_and_machine_versions_both_must_increase, true);
   assert.deepEqual(resilience.updater_baseline_sources, ['current_latest', 'highest_public_stable']);
+  assert.equal(resilience.updater_candidate_identity_required_before_publication, true);
+  assert.equal(resilience.updater_predecessor_to_candidate_vm_required_before_publication, false);
   assert.equal(
-    resilience.updater_qualification_order,
-    'exact_previous_latest_to_candidate_zip_upgrade_before_first_public_release_mutation',
+    resilience.updater_clean_install_qualification,
+    'exact_candidate_standard_clean_install_and_runtime_version_readback',
   );
   assert.deepEqual(resilience.updater_zip_identity_fields, ['size_bytes', 'sha256']);
   assert.equal(resilience.updater_metadata_declared_digest_is_not_sufficient, true);
@@ -328,7 +330,10 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
     resilience.homebrew_unknown_outcome,
     'follower_fails_independently_then_fresh_cas_readback_before_optional_rerun',
   );
-  assert.equal(resilience.homebrew_reconcile_owner, 'release-homebrew-standard-follower');
+  assert.equal(
+    resilience.homebrew_reconcile_owner,
+    '.github/workflows/release-stable-post-success-followups.yml#reconcile_homebrew_standard',
+  );
   assert.equal(resilience.homebrew_app_local_reconcile_loop_allowed, false);
   assert.equal(resilience.homebrew_reconcile_max_attempts, undefined);
   assert.equal(resilience.homebrew_retry_push_on_unknown_allowed, false);
@@ -427,7 +432,8 @@ test('Standard Latest admission consumes hosted publication while Homebrew remai
     'candidate.dmg.size_bytes',
   ]);
   assert.deepEqual(admission.homebrew_follower, {
-    workflow: '.github/workflows/release-homebrew-standard-follower.yml',
+    workflow: '.github/workflows/release-stable-post-success-followups.yml',
+    operation: 'reconcile_homebrew_standard',
     latest_receipt_value: null,
     consumed_by_latest_admission: false,
     failure_blocks_core_release_or_latest: false,
@@ -579,17 +585,12 @@ test('legacy broker, session, and operator contracts are historical receipt read
     workflow: '.github/workflows/release-bundle-canary.yml',
     mode: 'validation_only',
     triggers: ['daily_schedule', 'workflow_dispatch'],
-    starts_reusable_topology: [
-      '_release-bundle.yml',
-      '_release-standard-publish.yml',
-      '_release-full-addon.yml',
-      '_build-reusable.yml',
-      'opl-first-run-vm.yml',
-      '_release-webui-carrier.yml',
-      'release-webui-stable.yml',
-      'opl-updater-upgrade-vm.yml',
-      'full-first-install-release.yml',
+    local_contract_checks: [
+      'framework_checkpoint_roundtrip',
+      'release_bundle_workflow_cutover',
+      'release_control_plane_boundary',
     ],
+    reusable_release_workflow_jobs_allowed: false,
     permissions: { contents: 'read', actions: 'read' },
     secrets_allowed: false,
     build_or_vm_execution_allowed: false,

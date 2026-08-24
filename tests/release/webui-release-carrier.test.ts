@@ -919,13 +919,14 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
   assert.match(publishRun, /source-authority\.json/);
 });
 
-test('manual WebUI entry separates read-only qualification from protected publication', () => {
+test('manual WebUI entry separates qualification, publication, and promotion', () => {
   const workflow = YAML.parse(fs.readFileSync(developmentWorkflowPath, 'utf8'));
   const operation = workflow.on.workflow_dispatch.inputs.operation;
   const qualification = workflow.jobs['webui-carrier-qualification'];
   const publication = workflow.jobs['webui-carrier'];
+  const promotion = workflow.jobs['promote-webui-latest'];
 
-  assert.deepEqual(operation.options, ['qualify', 'publish']);
+  assert.deepEqual(operation.options, ['qualify', 'publish', 'promote']);
   assert.equal(operation.default, 'qualify');
   assert.equal(qualification.if, "${{ inputs.operation == 'qualify' }}");
   assert.equal(qualification.with.mode, 'qualify');
@@ -933,6 +934,9 @@ test('manual WebUI entry separates read-only qualification from protected public
   assert.equal(publication.if, "${{ inputs.operation == 'publish' }}");
   assert.equal(publication.with.mode, 'execute');
   assert.equal(publication.permissions.packages, 'write');
+  assert.equal(promotion.if, "${{ inputs.operation == 'promote' }}");
+  assert.match(promotion.with.authority_mode, /independent_stable/);
+  assert.equal(promotion.permissions.packages, 'write');
 });
 
 test('WebUI carrier publishes one idempotent durable receipt sidecar only after exact immutable tag readback', () => {

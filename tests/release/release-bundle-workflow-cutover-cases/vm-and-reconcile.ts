@@ -52,7 +52,7 @@ test('Full finalizer artifact digest normalization executes fail closed on the p
   }
 });
 
-test('real build and qualification calls recalculate and consume the same remaining operation budget', () => {
+test('real build and clean-install qualification consume the same remaining operation budget', () => {
   const build = parseWorkflow('_build-reusable.yml');
   const buildBudget = build.jobs.build.steps.find(
     (step: Record<string, unknown>) => step.name === 'Recalculate immutable operation budget before release build',
@@ -66,18 +66,6 @@ test('real build and qualification calls recalculate and consume the same remain
   assert.match(String(macBuild.run), /RELEASE_BUILD_TIMEOUT_MS/);
   assert.match(String(macBuild.run), /process\.kill\(-child\.pid, signal\)/);
   assert.match(String(macBuild.run), /operation_deadline_elapsed/);
-
-  const updater = parseWorkflow('opl-updater-upgrade-vm.yml');
-  const updaterBudget = updater.jobs.upgrade.steps.find(
-    (step: Record<string, unknown>) => step.name === 'Recalculate immutable operation budget before updater qualification',
-  );
-  assert.match(String(updaterBudget.run), /release-operation-deadline\.ts check/);
-  assert.match(String(updaterBudget.run), /Math\.min\(1_500_000, remainingMs\)/);
-  const updaterRun = updater.jobs.upgrade.steps.find(
-    (step: Record<string, unknown>) => step.name === 'Run real predecessor-to-candidate updater qualification',
-  );
-  assert.match(String(updaterRun.run), /steps\.updater_budget\.outputs\.timeout_ms/);
-  assert.doesNotMatch(String(updaterRun.run), /--timeout-ms 1500000/);
 
   const vm = parseWorkflow('opl-first-run-vm.yml');
   const vmBudget = vm.jobs['clean-vm-first-run'].steps.find(
@@ -186,7 +174,6 @@ test('active release workflows fail closed on duplicate critical evidence instea
     '_release-full-addon.yml',
     '_release-homebrew-full-publish.yml',
     '_release-standard-publish.yml',
-    'release-homebrew-standard-follower.yml',
     'full-first-install-release.yml',
     'opl-first-run-vm.yml',
   ];
@@ -204,10 +191,18 @@ test('active release workflows fail closed on duplicate critical evidence instea
     }
   }
 
+  const standardHomebrewAction = fs.readFileSync(
+    path.join(process.cwd(), '.github/actions/release-followups/homebrew-standard/action.yml'),
+    'utf8',
+  );
+  assert.doesNotMatch(standardHomebrewAction, /find[^\n]*-print -quit/);
+  assert.doesNotMatch(standardHomebrewAction, /find[^\n]*\|[^\n]*head\s+-n?\s*1/);
+  assert.match(standardHomebrewAction, /LC_ALL=C sort/);
+
   assert.match(readWorkflow('_release-bundle.yml'), /exactly one clean-VM qualification receipt/);
   assert.match(readWorkflow('_release-full-addon.yml'), /must contain at most one Full build receipt/);
   assert.match(readWorkflow('_release-standard-publish.yml'), /exactly one App-owned standard-build-receipt/);
-  assert.match(readWorkflow('release-homebrew-standard-follower.yml'), /test "\$\{#handoffs\[@\]\}" -eq 1/);
+  assert.match(standardHomebrewAction, /test "\$\{#handoffs\[@\]\}" -eq 1/);
   const observationalHomebrew = readWorkflow('_release-homebrew-full-publish.yml');
   assert.doesNotMatch(
     observationalHomebrew,
