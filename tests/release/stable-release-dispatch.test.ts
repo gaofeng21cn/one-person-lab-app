@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   activeStableRunIds,
   buildAppendFullPlan,
+  buildFullCheckpointRecoveryPlan,
   buildResumeStandardPlan,
   dispatchOnce,
   selectCheckpointArtifact,
@@ -115,6 +116,41 @@ test('Full publication recovery consumes one qualified checkpoint without rebuil
   assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
   assert.equal('smoke_harness_ref' in plan.workflow_inputs, false);
   assert.equal('version' in plan.workflow_inputs, false);
+});
+
+test('Full checkpoint recovery binds an override harness to the checkpoint source run', () => {
+  const checkpoint = {
+    id: 7,
+    name: 'opl-release-full-checkpoint-32680048326',
+    expired: false,
+  };
+  const cohort = validateFullBuildCohort({
+    schema: 'opl_app_build_artifact_cohort.v2',
+    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
+    build: { version: '26.8.22', kind: 'full' },
+    artifact: {
+      name: 'One-Person-Lab-Full-26.8.22-mac-arm64.dmg',
+      sha256: 'a'.repeat(64),
+      size_bytes: 123,
+    },
+    actions: {
+      run_id: '32680048326',
+      run_attempt: '1',
+      artifact_name: 'opl-full-first-install-dmg-26.8.22-mac-arm64',
+    },
+  });
+  const plan = buildFullCheckpointRecoveryPlan({
+    attemptId: 'recover-full-20260824-aabbccdd',
+    recoveryRunId: '32680048326',
+    fullCheckpoint: checkpoint,
+    cohort,
+    smokeHarnessSha: '4'.repeat(40),
+  });
+
+  assert.equal(plan.source.artifact, checkpoint.name);
+  assert.equal(plan.workflow_inputs.prior_full_artifact_run_id, '32680048326');
+  assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
+  assert.equal(plan.recovery.artifact_producer_run_id, '32680048326');
 });
 
 test('Full cohort selection and validation fail closed on ambiguity or malformed identity', () => {

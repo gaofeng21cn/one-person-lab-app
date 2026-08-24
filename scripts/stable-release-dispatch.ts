@@ -430,6 +430,32 @@ export function buildAppendFullPlan(input: {
   };
 }
 
+export function buildFullCheckpointRecoveryPlan(input: {
+  attemptId: string;
+  recoveryRunId: string;
+  fullCheckpoint: WorkflowArtifact;
+  cohort: FullBuildCohort;
+  smokeHarnessSha?: string;
+}): StableDispatchPlan {
+  const recoveryRunId = runId(input.recoveryRunId, 'recovery_run_id');
+  const smokeHarnessSha = input.smokeHarnessSha
+    ? sha(input.smokeHarnessSha, 'smoke_harness_ref')
+    : undefined;
+  return buildAppendFullPlan({
+    attemptId: input.attemptId,
+    sourceRunId: recoveryRunId,
+    sourceArtifact: text(input.fullCheckpoint.name, 'full_checkpoint_artifact'),
+    appSha: input.cohort.cohort.app_sha,
+    shellSha: input.cohort.cohort.shell_sha,
+    frameworkSha: input.cohort.cohort.framework_sha,
+    priorFullArtifactRunId: smokeHarnessSha ? recoveryRunId : undefined,
+    artifactProducerRunId: input.cohort.actions.run_id,
+    qualificationRunId: recoveryRunId,
+    smokeHarnessSha,
+    recoveryRunId,
+  });
+}
+
 export function buildResumeStandardPlan(input: {
   attemptId: string;
   sourceRunId: string;
@@ -845,16 +871,12 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     ));
     const fullCheckpoint = selectFullCheckpointArtifact(artifacts, recoveryRunId);
     if (fullCheckpoint) {
-      plan = buildAppendFullPlan({
+      plan = buildFullCheckpointRecoveryPlan({
         attemptId: attemptId('recover-full', runtime),
-        sourceRunId: recoveryRunId,
-        sourceArtifact: fullCheckpoint.name,
-        appSha: cohort.cohort.app_sha,
-        shellSha: cohort.cohort.shell_sha,
-        frameworkSha: cohort.cohort.framework_sha,
-        artifactProducerRunId: cohort.actions.run_id,
-        qualificationRunId: recoveryRunId,
         recoveryRunId,
+        fullCheckpoint,
+        cohort,
+        smokeHarnessSha: values['smoke-harness-ref'],
       });
     } else {
       const qualificationArtifact = selectFullQualificationArtifact(artifacts, recoveryRunId);
