@@ -781,7 +781,7 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.equal(cleanVmQualification.with.diagnostic_scope, 'release_gate');
   assert.equal(
     cleanVmQualification.with.verification_app_ref,
-    "${{ inputs.smoke_harness_ref != '' && github.sha || inputs.full_content_app_ref }}",
+    '${{ inputs.full_content_app_ref }}',
   );
   assert.equal(
     cleanVmQualification.with.smoke_harness_ref,

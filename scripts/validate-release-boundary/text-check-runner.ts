@@ -1110,7 +1110,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       'full-qualification',
     ])
     || fullCleanVm.with?.release_artifact_run_id !== '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'
-    || fullCleanVm.with?.verification_app_ref !== "${{ inputs.smoke_harness_ref != '' && github.sha || inputs.full_content_app_ref }}"
+    || fullCleanVm.with?.verification_app_ref !== '${{ inputs.full_content_app_ref }}'
     || fullCleanVm.with?.smoke_harness_ref !== '${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}'
     || fullCleanVm.with?.package_profile !== 'full'
     || fullCleanVm.with?.diagnostic_scope !== 'release_gate'

@@ -1316,7 +1316,7 @@ jobs:
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.restore-standard.outputs.bundle_digest }}
       artifact_app_ref: ${{ inputs.full_content_app_ref }}
-      verification_app_ref: ${{ inputs.smoke_harness_ref != '' && github.sha || inputs.full_content_app_ref }}
+      verification_app_ref: ${{ inputs.full_content_app_ref }}
       shell_ref: ${{ inputs.full_content_shell_ref }}
       smoke_harness_ref: ${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}
       framework_ref: ${{ inputs.full_content_framework_ref }}
