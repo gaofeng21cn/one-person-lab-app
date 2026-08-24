@@ -338,6 +338,22 @@ test('append_full preserves the Standard checkpoint while binding a fresh Full c
     assert.match(run, /inputs\.full_content_shell_ref/);
     assert.match(run, /inputs\.full_content_framework_ref/);
   }
+
+  const publishRun = String(
+    workflowStep(
+      '_release-full-addon.yml',
+      'publish-full',
+      'Append exact Full bytes to the mutable Standard Release',
+    ).run,
+  );
+  const fullManifestCheckEnd = publishRun.indexOf(`' "$full_manifest" >/dev/null`);
+  assert.notEqual(fullManifestCheckEnd, -1);
+  const fullManifestCheckStart = publishRun.lastIndexOf('jq -e \\', fullManifestCheckEnd);
+  assert.notEqual(fullManifestCheckStart, -1);
+  const fullManifestCheck = publishRun.slice(fullManifestCheckStart, fullManifestCheckEnd);
+  assert.match(fullManifestCheck, /--arg app '\$\{\{ inputs\.full_content_app_ref \}\}'/);
+  assert.match(fullManifestCheck, /--arg shell '\$\{\{ inputs\.full_content_shell_ref \}\}'/);
+  assert.match(fullManifestCheck, /--arg framework '\$\{\{ inputs\.full_content_framework_ref \}\}'/);
 });
 
 test('resume admission preserves Standard identity and rotates only an expired execution window', () => {

@@ -1715,10 +1715,7 @@ jobs:
           ' target-standard-release-before-publish.json >/dev/null
           jq -e \
             --arg tag "$TARGET_STANDARD_RELEASE_TAG" \
-            --arg target "$TARGET_STANDARD_TARGET_COMMITISH" \
-            --arg app '${{ inputs.full_content_app_ref }}' \
-            --arg shell '${{ inputs.full_content_shell_ref }}' \
-            --arg framework '${{ inputs.full_content_framework_ref }}' '
+            --arg target "$TARGET_STANDARD_TARGET_COMMITISH" '
             .ref == ("refs/tags/" + $tag)
             and .object.type == "commit"
             and .object.sha == $target
@@ -1726,7 +1723,10 @@ jobs:
           jq -e \
             --argjson release_id "$TARGET_STANDARD_RELEASE_ID" \
             --arg tag "$TARGET_STANDARD_RELEASE_TAG" \
-            --arg target "$TARGET_STANDARD_TARGET_COMMITISH" '
+            --arg target "$TARGET_STANDARD_TARGET_COMMITISH" \
+            --arg app '${{ inputs.full_content_app_ref }}' \
+            --arg shell '${{ inputs.full_content_shell_ref }}' \
+            --arg framework '${{ inputs.full_content_framework_ref }}' '
             .carrier_context.publication_model == "same_tag_mutable_standard_addon"
             and .carrier_context.target_standard_release.release_id == $release_id
             and .carrier_context.target_standard_release.tag == $tag
