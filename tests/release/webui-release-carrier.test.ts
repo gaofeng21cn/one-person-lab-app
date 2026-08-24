@@ -733,6 +733,12 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
   const inputs = workflow.on.workflow_call.inputs;
   const build = workflow.jobs['build-and-qualify'];
   const publish = workflow.jobs['publish-immutable-carrier'];
+  assert.equal(workflow.concurrency, undefined);
+  assert.equal(build.concurrency, undefined);
+  assert.deepEqual(publish.concurrency, {
+    group: 'opl-webui-independent-publication-global',
+    'cancel-in-progress': false,
+  });
   assert.equal(inputs.authority_mode.type, 'string');
   assert.equal(inputs.authority_mode.default, 'independent_stable');
   assert.equal(inputs.production_recovery, undefined);

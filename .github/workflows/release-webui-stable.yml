@@ -31,10 +31,6 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-concurrency:
-  group: ${{ inputs.mode == 'execute' && 'opl-webui-stable-promotion-global' || format('opl-webui-stable-canary-{0}', github.ref) }}
-  cancel-in-progress: false
-
 jobs:
   startup-canary:
     if: ${{ inputs.mode == 'canary' }}
@@ -418,6 +414,9 @@ jobs:
     needs: admission
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: opl-webui-stable-promotion-global
+      cancel-in-progress: false
     environment: ${{ needs.admission.outputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}
     permissions:
       actions: read

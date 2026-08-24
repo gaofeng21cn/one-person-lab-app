@@ -19,6 +19,11 @@ on:
         description: Exact v-prefixed numeric SemVer tag
         required: true
         type: string
+      prior_studio_artifact_run_id:
+        description: Optional failed Studio run containing reusable signed, notarized, or qualified bytes
+        required: false
+        default: ''
+        type: string
     secrets:
       BUILD_CERTIFICATE_BASE64:
         required: false
@@ -41,22 +46,24 @@ permissions:
   contents: read
   actions: read
 
-concurrency:
-  group: opl-studio-protected-release
-  cancel-in-progress: false
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   STUDIO_REPOSITORY: gaofeng21cn/opl-studio
 
 jobs:
-  release:
+  build-signed-notarized:
+    if: ${{ inputs.prior_studio_artifact_run_id == '' }}
     runs-on: macos-15
     timeout-minutes: 90
     environment: release-stable
     permissions:
       contents: read
       actions: read
+    outputs:
+      checkpoint_run_id: ${{ steps.checkpoint_identity.outputs.checkpoint_run_id }}
+      checkpoint_app_ref: ${{ steps.checkpoint_identity.outputs.checkpoint_app_ref }}
+      checkpoint_artifact_name: ${{ steps.checkpoint_identity.outputs.checkpoint_artifact_name }}
+      studio_version: ${{ steps.checkpoint_identity.outputs.studio_version }}
     steps:
       - name: Admit one first-attempt canonical Studio execution
         env:
@@ -76,6 +83,7 @@ jobs:
           [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test -z '${{ inputs.prior_studio_artifact_run_id }}'
 
       - name: Checkout exact App release executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,7 +138,7 @@ jobs:
             --studio-tag "$STUDIO_TAG" \
             --output studio-release-evidence/source-admission.json
 
-      - name: Verify protected Apple and GitHub capabilities before mutation
+      - name: Verify protected Apple capabilities before notarization
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -138,60 +146,11 @@ jobs:
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
           IDENTITY: ${{ secrets.IDENTITY }}
-          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
-          STUDIO_SHA: ${{ inputs.studio_sha }}
-          STUDIO_TREE: ${{ inputs.studio_tree }}
-          STUDIO_TAG: ${{ inputs.studio_tag }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$GH_TOKEN"
           node --experimental-strip-types app-source/scripts/verify-apple-release-credentials.ts \
             --output studio-release-evidence/apple-credentials-preflight.json
-          test "$(gh api "repos/$STUDIO_REPOSITORY" --jq '.permissions.push')" = true
-          remote_tree="$(gh api "repos/$STUDIO_REPOSITORY/git/commits/$STUDIO_SHA" --jq .tree.sha)"
-          test "$remote_tree" = "$STUDIO_TREE"
-
-          release_status="$(curl -sS -o "$RUNNER_TEMP/studio-release-existing.json" -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG")"
-          tag_status="$(curl -sS -o "$RUNNER_TEMP/studio-tag-existing.json" -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/$STUDIO_REPOSITORY/git/ref/tags/$STUDIO_TAG")"
-          test "$release_status" = 404
-          test "$tag_status" = 404
-
-          gh api --paginate "repos/$STUDIO_REPOSITORY/releases?per_page=100" \
-            --jq '.[] | select(.draft == false) | .tag_name' > "$RUNNER_TEMP/studio-public-tags.txt"
-          CANDIDATE_VERSION="$STUDIO_VERSION" TAGS_FILE="$RUNNER_TEMP/studio-public-tags.txt" node <<'NODE'
-          const fs = require('node:fs');
-          const parse = (value) => {
-            const match = String(value).match(/^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
-            return match ? match.slice(1).map(Number) : null;
-          };
-          const compare = (left, right) => {
-            for (let index = 0; index < left.length; index += 1) {
-              if (left[index] !== right[index]) return left[index] - right[index];
-            }
-            return 0;
-          };
-          const candidate = parse(process.env.CANDIDATE_VERSION);
-          if (!candidate) process.exit(1);
-          const existing = fs.readFileSync(process.env.TAGS_FILE, 'utf8').split(/\r?\n/).map(parse).filter(Boolean);
-          if (existing.some((version) => compare(candidate, version) <= 0)) {
-            throw new Error('Studio version must be strictly newer than every public numeric release.');
-          }
-          NODE
-          jq -n \
-            --arg repository "$STUDIO_REPOSITORY" \
-            --arg commit_sha "$STUDIO_SHA" \
-            --arg tree_sha "$STUDIO_TREE" \
-            --arg tag "$STUDIO_TAG" \
-            --arg version "$STUDIO_VERSION" \
-            '{schema:"opl_studio_release_capability_preflight.v1",status:"passed",repository:$repository,commit_sha:$commit_sha,tree_sha:$tree_sha,tag:$tag,version:$version,developer_id:true,apple_notarization:true,github_release_write:true,tag_absent:true,release_absent:true,monotonic_version:true}' \
-            > studio-release-evidence/capability-preflight.json
 
       - name: Import Developer ID identity into an ephemeral keychain
         env:
@@ -323,20 +282,6 @@ jobs:
             --metadata-dir studio-source/out
           rm -f "${dmg_path}.blockmap"
 
-      - name: Qualify final local release bytes before publication
-        working-directory: studio-source
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/desktop/macos-distribution.mjs --require-release-trust
-          cp out/macos-distribution-qualification.json \
-            ../studio-release-evidence/prepublication-qualification.json
-          cmp out/latest-mac.yml out/latest-arm64-mac.yml
-          jq -e \
-            --arg version "$STUDIO_VERSION" \
-            '.version == $version and .releaseReady == false and .releaseBlocker == "public_update_feed_qualification_required" and .trust.gatekeeperAccepted == true and .trust.appStapled == true and .trust.dmgStapled == true' \
-            out/macos-distribution-qualification.json >/dev/null
-
       - name: Seal exact release asset manifest
         shell: bash
         run: |
@@ -381,6 +326,399 @@ jobs:
           This release supplies the signed and notarized macOS arm64 installer and automatic-update feed.
           EOF
 
+      - name: Seal signed and notarized Studio checkpoint
+        id: checkpoint_identity
+        env:
+          APP_REF: ${{ inputs.app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          checkpoint_root=studio-release-checkpoint
+          mkdir -p "$checkpoint_root/assets" "$checkpoint_root/evidence"
+          cp "studio-source/out/one-person-lab-preview-${STUDIO_VERSION}-mac-arm64.dmg" "$checkpoint_root/assets/"
+          cp "studio-source/out/one-person-lab-preview-${STUDIO_VERSION}-mac-arm64.zip" "$checkpoint_root/assets/"
+          cp "studio-source/out/one-person-lab-preview-${STUDIO_VERSION}-mac-arm64.zip.blockmap" "$checkpoint_root/assets/"
+          cp studio-source/out/latest-mac.yml "$checkpoint_root/assets/"
+          cp studio-source/out/latest-arm64-mac.yml "$checkpoint_root/assets/"
+          cp studio-release-evidence/app-notarization.json "$checkpoint_root/evidence/"
+          cp studio-release-evidence/apple-credentials-preflight.json "$checkpoint_root/evidence/"
+          cp studio-release-evidence/dmg-notarization.json "$checkpoint_root/evidence/"
+          cp studio-release-evidence/release-assets.json "$checkpoint_root/evidence/"
+          cp studio-release-evidence/release-notes.md "$checkpoint_root/evidence/"
+          cp studio-release-evidence/source-admission.json "$checkpoint_root/evidence/"
+          node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts seal \
+            --root "$checkpoint_root" \
+            --app-ref "$APP_REF" \
+            --studio-sha "$STUDIO_SHA" \
+            --studio-tree "$STUDIO_TREE" \
+            --studio-tag "$STUDIO_TAG" \
+            > studio-release-evidence/checkpoint-seal.json
+          {
+            echo "checkpoint_run_id=$GITHUB_RUN_ID"
+            echo "checkpoint_app_ref=$APP_REF"
+            echo "checkpoint_artifact_name=opl-studio-signed-notarized-$STUDIO_SHA-$GITHUB_RUN_ID"
+            echo "studio_version=$STUDIO_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload reusable signed and notarized Studio checkpoint
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.checkpoint_identity.outputs.checkpoint_artifact_name }}
+          path: studio-release-checkpoint
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Clean up ephemeral signing keychain
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [ -n "${STUDIO_RELEASE_KEYCHAIN:-}" ] && security list-keychains -d user | grep -F "$STUDIO_RELEASE_KEYCHAIN" >/dev/null; then
+            security delete-keychain "$STUDIO_RELEASE_KEYCHAIN"
+          fi
+          rm -f "$RUNNER_TEMP/studio-release-certificate.p12" "$RUNNER_TEMP/opl-studio-app-notarization.zip"
+
+      - name: Upload Studio build evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-build-evidence-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: studio-release-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  resolve-checkpoint:
+    needs: build-signed-notarized
+    if: ${{ always() && (needs.build-signed-notarized.result == 'success' || needs.build-signed-notarized.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      source_checkpoint_run_id: ${{ steps.resolve.outputs.source_checkpoint_run_id }}
+      checkpoint_app_ref: ${{ steps.resolve.outputs.checkpoint_app_ref }}
+      source_checkpoint_artifact_name: ${{ steps.resolve.outputs.source_checkpoint_artifact_name }}
+      source_qualification_artifact_name: ${{ steps.resolve.outputs.source_qualification_artifact_name }}
+      checkpoint_artifact_name: ${{ steps.resolve.outputs.checkpoint_artifact_name }}
+      qualification_artifact_name: ${{ steps.resolve.outputs.qualification_artifact_name }}
+      qualification_present: ${{ steps.resolve.outputs.qualification_present }}
+      studio_version: ${{ steps.resolve.outputs.studio_version }}
+    steps:
+      - name: Checkout canonical Studio release executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.app_ref }}
+
+      - name: Resolve same-run or prior-run Studio checkpoint
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_RUN_ID: ${{ inputs.prior_studio_artifact_run_id }}
+          FRESH_RUN_ID: ${{ needs.build-signed-notarized.outputs.checkpoint_run_id }}
+          FRESH_APP_REF: ${{ needs.build-signed-notarized.outputs.checkpoint_app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$PRIOR_RUN_ID" ]; then
+            [[ "$PRIOR_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$PRIOR_RUN_ID" != "$GITHUB_RUN_ID"
+            run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID")"
+            test "$(jq -r .event <<< "$run_json")" = workflow_dispatch
+            test "$(jq -r .head_branch <<< "$run_json")" = main
+            test "$(jq -r .path <<< "$run_json")" = .github/workflows/release-stable.yml
+            test "$(jq -r .status <<< "$run_json")" = completed
+            source_checkpoint_run_id="$PRIOR_RUN_ID"
+            checkpoint_app_ref="$(jq -r .head_sha <<< "$run_json")"
+          else
+            test -n "$FRESH_RUN_ID$FRESH_APP_REF"
+            source_checkpoint_run_id="$FRESH_RUN_ID"
+            checkpoint_app_ref="$FRESH_APP_REF"
+          fi
+          [[ "$checkpoint_app_ref" =~ ^[0-9a-f]{40}$ ]]
+          studio_version="${STUDIO_TAG#v}"
+          source_checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$source_checkpoint_run_id"
+          source_qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$source_checkpoint_run_id"
+          checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$GITHUB_RUN_ID"
+          qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$GITHUB_RUN_ID"
+          qualification_present=false
+          if [ -n "$PRIOR_RUN_ID" ]; then
+            artifact_names="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$source_checkpoint_run_id/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .name')"
+            test "$(grep -Fxc "$source_checkpoint_artifact_name" <<< "$artifact_names")" -eq 1
+            if [ "$(grep -Fxc "$source_qualification_artifact_name" <<< "$artifact_names")" -eq 1 ]; then
+              qualification_present=true
+            fi
+          fi
+          {
+            echo "source_checkpoint_run_id=$source_checkpoint_run_id"
+            echo "checkpoint_app_ref=$checkpoint_app_ref"
+            echo "source_checkpoint_artifact_name=$source_checkpoint_artifact_name"
+            echo "source_qualification_artifact_name=$source_qualification_artifact_name"
+            echo "checkpoint_artifact_name=$checkpoint_artifact_name"
+            echo "qualification_artifact_name=$qualification_artifact_name"
+            echo "qualification_present=$qualification_present"
+            echo "studio_version=$studio_version"
+          } >> "$GITHUB_OUTPUT"
+
+  restore-checkpoint:
+    needs: resolve-checkpoint
+    if: ${{ inputs.prior_studio_artifact_run_id != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout checkpoint App executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          path: app-source
+
+      - name: Download prior signed and notarized Studio checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.source_checkpoint_artifact_name }}
+          run-id: ${{ needs.resolve-checkpoint.outputs.source_checkpoint_run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-checkpoint
+
+      - name: Download prior Studio qualification when present
+        if: ${{ needs.resolve-checkpoint.outputs.qualification_present == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.source_qualification_artifact_name }}
+          run-id: ${{ needs.resolve-checkpoint.outputs.source_checkpoint_run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-qualification
+
+      - name: Validate restored Studio checkpoint and qualification
+        env:
+          APP_REF: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate \
+            --root studio-release-checkpoint --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" \
+            --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" >/dev/null
+          if [ '${{ needs.resolve-checkpoint.outputs.qualification_present }}' = true ]; then
+            node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate-qualification \
+              --checkpoint-root studio-release-checkpoint \
+              --qualification-root studio-release-qualification \
+              --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
+              --studio-tag "$STUDIO_TAG" >/dev/null
+          fi
+
+      - name: Materialize restored Studio checkpoint in the current run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
+          path: studio-release-checkpoint
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Materialize restored Studio qualification in the current run
+        if: ${{ needs.resolve-checkpoint.outputs.qualification_present == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
+          path: studio-release-qualification
+          if-no-files-found: error
+          retention-days: 30
+
+  qualify-checkpoint:
+    needs: [resolve-checkpoint, restore-checkpoint]
+    if: ${{ always() && needs.resolve-checkpoint.result == 'success' && (needs.restore-checkpoint.result == 'success' || needs.restore-checkpoint.result == 'skipped') && needs.resolve-checkpoint.outputs.qualification_present != 'true' }}
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout checkpoint App executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          path: app-source
+
+      - name: Checkout exact Studio qualification source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-studio
+          ref: ${{ inputs.studio_sha }}
+          path: studio-source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Download exact signed and notarized Studio checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-checkpoint
+
+      - name: Validate and qualify unchanged Studio bytes
+        env:
+          APP_REF: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --prefix app-source
+          npm ci --ignore-scripts --prefix studio-source
+          node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate \
+            --root studio-release-checkpoint --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" \
+            --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" >/dev/null
+          mkdir -p studio-source/out studio-release-qualification
+          cp studio-release-checkpoint/assets/* studio-source/out/
+          (cd studio-source && node scripts/desktop/macos-distribution.mjs --require-release-trust)
+          cp studio-source/out/macos-distribution-qualification.json \
+            studio-release-qualification/prepublication-qualification.json
+          node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts seal-qualification \
+            --checkpoint-root studio-release-checkpoint \
+            --qualification-root studio-release-qualification \
+            --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
+            --studio-tag "$STUDIO_TAG" >/dev/null
+
+      - name: Upload reusable Studio qualification
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
+          path: studio-release-qualification
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: [resolve-checkpoint, restore-checkpoint, qualify-checkpoint]
+    if: ${{ always() && needs.resolve-checkpoint.result == 'success' && (needs.restore-checkpoint.result == 'success' || needs.restore-checkpoint.result == 'skipped') && (needs.qualify-checkpoint.result == 'success' || needs.qualify-checkpoint.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release-stable
+    concurrency:
+      group: opl-studio-publication-global
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+    env:
+      STUDIO_VERSION: ${{ needs.resolve-checkpoint.outputs.studio_version }}
+    steps:
+      - name: Checkout checkpoint App executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          path: app-source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Download exact signed and notarized Studio checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-checkpoint
+
+      - name: Download exact Studio qualification
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-qualification
+
+      - name: Verify exact qualified checkpoint before mutation
+        env:
+          APP_REF: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate-qualification \
+            --checkpoint-root studio-release-checkpoint \
+            --qualification-root studio-release-qualification \
+            --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
+            --studio-tag "$STUDIO_TAG" >/dev/null
+
+      - name: Materialize exact qualified release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p studio-source/out studio-release-evidence
+          cp studio-release-checkpoint/assets/* studio-source/out/
+          cp studio-release-checkpoint/evidence/* studio-release-evidence/
+
+      - name: Verify GitHub capability and same-tag prestate before mutation
+        env:
+          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          test "$(gh api "repos/$STUDIO_REPOSITORY" --jq '.permissions.push')" = true
+          test "$(gh api "repos/$STUDIO_REPOSITORY/git/commits/$STUDIO_SHA" --jq .tree.sha)" = "$STUDIO_TREE"
+          tag_status="$(curl -sS -o "$RUNNER_TEMP/studio-tag-prestate.json" -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$STUDIO_REPOSITORY/git/ref/tags/$STUDIO_TAG")"
+          release_status="$(curl -sS -o "$RUNNER_TEMP/studio-release-prestate.json" -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG")"
+          case "$tag_status" in
+            200) jq -e --arg sha "$STUDIO_SHA" '.object.type == "commit" and .object.sha == $sha' "$RUNNER_TEMP/studio-tag-prestate.json" >/dev/null ;;
+            404) ;;
+            *) echo "Unable to reconcile Studio tag prestate ($tag_status)." >&2; exit 1 ;;
+          esac
+          case "$release_status" in
+            200) jq -e --arg sha "$STUDIO_SHA" '.target_commitish == $sha and .draft == false and .prerelease == false' "$RUNNER_TEMP/studio-release-prestate.json" >/dev/null ;;
+            404) ;;
+            *) echo "Unable to reconcile Studio release prestate ($release_status)." >&2; exit 1 ;;
+          esac
+          test "$release_status" = 404 || test "$tag_status" = 200
+          gh api --paginate "repos/$STUDIO_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select(.draft == false) | .tag_name' > "$RUNNER_TEMP/studio-public-tags.txt"
+          CANDIDATE_VERSION="$STUDIO_VERSION" TAGS_FILE="$RUNNER_TEMP/studio-public-tags.txt" node <<'NODE'
+          const fs = require('node:fs');
+          const parse = (value) => {
+            const match = String(value).match(/^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+            return match ? match.slice(1).map(Number) : null;
+          };
+          const compare = (left, right) => {
+            for (let index = 0; index < left.length; index += 1) {
+              if (left[index] !== right[index]) return left[index] - right[index];
+            }
+            return 0;
+          };
+          const candidate = parse(process.env.CANDIDATE_VERSION);
+          if (!candidate) process.exit(1);
+          const existing = fs.readFileSync(process.env.TAGS_FILE, 'utf8').split(/\r?\n/).map(parse).filter(Boolean);
+          if (existing.some((version) => compare(candidate, version) < 0)) {
+            throw new Error('Studio version cannot move Latest behind a newer public numeric release.');
+          }
+          NODE
+
       - name: Publish exact Studio release once
         env:
           GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
@@ -389,16 +727,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          release_status="$(curl -sS -o "$RUNNER_TEMP/studio-release-race.json" -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG")"
-          tag_status="$(curl -sS -o "$RUNNER_TEMP/studio-tag-race.json" -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/$STUDIO_REPOSITORY/git/ref/tags/$STUDIO_TAG")"
-          test "$release_status" = 404
-          test "$tag_status" = 404
           out=studio-source/out
           assets=(
             "$out/one-person-lab-preview-${STUDIO_VERSION}-mac-arm64.dmg"
@@ -407,16 +735,100 @@ jobs:
             "$out/latest-mac.yml"
             "$out/latest-arm64-mac.yml"
           )
-          gh release create "$STUDIO_TAG" "${assets[@]}" \
-            --repo "$STUDIO_REPOSITORY" \
-            --target "$STUDIO_SHA" \
-            --title "One Person Lab Preview ${STUDIO_VERSION}" \
-            --notes-file studio-release-evidence/release-notes.md \
-            --latest
+          if gh release view "$STUDIO_TAG" --repo "$STUDIO_REPOSITORY" >/dev/null 2>&1; then
+            exact=true
+            existing="$RUNNER_TEMP/studio-existing-assets"
+            mkdir -p "$existing"
+            for asset in "${assets[@]}"; do
+              name="$(basename "$asset")"
+              if ! gh release download "$STUDIO_TAG" --repo "$STUDIO_REPOSITORY" \
+                --pattern "$name" --dir "$existing" >/dev/null 2>&1 \
+                || ! cmp -s "$asset" "$existing/$name"; then
+                exact=false
+              fi
+            done
+            if [ "$exact" != true ]; then
+              gh release upload "$STUDIO_TAG" "${assets[@]}" --repo "$STUDIO_REPOSITORY" --clobber
+            fi
+            gh release edit "$STUDIO_TAG" --repo "$STUDIO_REPOSITORY" \
+              --title "One Person Lab Preview ${STUDIO_VERSION}" \
+              --notes-file studio-release-evidence/release-notes.md \
+              --latest
+          else
+            gh release create "$STUDIO_TAG" "${assets[@]}" \
+              --repo "$STUDIO_REPOSITORY" \
+              --target "$STUDIO_SHA" \
+              --title "One Person Lab Preview ${STUDIO_VERSION}" \
+              --notes-file studio-release-evidence/release-notes.md \
+              --latest
+          fi
+
+  public-readback:
+    needs: [resolve-checkpoint, publish]
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    env:
+      STUDIO_VERSION: ${{ needs.resolve-checkpoint.outputs.studio_version }}
+    steps:
+      - name: Checkout checkpoint App executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          path: app-source
+
+      - name: Checkout exact Studio public qualification source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-studio
+          ref: ${{ inputs.studio_sha }}
+          path: studio-source
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Download current Studio checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-checkpoint
+
+      - name: Download current Studio qualification
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-release-qualification
+
+      - name: Materialize and verify the exact qualified checkpoint
+        env:
+          APP_REF: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --prefix studio-source
+          node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate-qualification \
+            --checkpoint-root studio-release-checkpoint \
+            --qualification-root studio-release-qualification \
+            --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
+            --studio-tag "$STUDIO_TAG" >/dev/null
+          mkdir -p studio-source/out studio-release-evidence
+          cp studio-release-checkpoint/assets/* studio-source/out/
+          cp studio-release-checkpoint/evidence/* studio-release-evidence/
 
       - name: Read back public updater bytes anonymously
         env:
-          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
         shell: bash
@@ -513,7 +925,7 @@ jobs:
 
       - name: Write terminal Studio release receipt
         env:
-          APP_REF: ${{ inputs.app_ref }}
+          APP_REF: ${{ needs.resolve-checkpoint.outputs.checkpoint_app_ref }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
@@ -534,20 +946,11 @@ jobs:
             '{schema:"opl_studio_protected_release_receipt.v1",status:"released_and_publicly_qualified",authority_owner:"one-person-lab-app",app_executor_sha:$app_ref,source:{repository:"gaofeng21cn/opl-studio",commit_sha:$studio_sha,tree_sha:$studio_tree,tag:$tag,version:$version},assets:$assets[0].assets,notarization:{app_status:$app_notary[0].status,dmg_status:$dmg_notary[0].notarization.status},public_assets:$public_assets[0],public_feed:{qualified:$public_qualification[0].publicFeed.qualified,anonymous_download:$public_qualification[0].publicFeed.anonymousDownload},active_shell_unchanged:true,active_release_carrier:false}' \
             > studio-release-evidence/terminal-release-receipt.json
 
-      - name: Clean up ephemeral signing keychain
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          if [ -n "${STUDIO_RELEASE_KEYCHAIN:-}" ] && security list-keychains -d user | grep -F "$STUDIO_RELEASE_KEYCHAIN" >/dev/null; then
-            security delete-keychain "$STUDIO_RELEASE_KEYCHAIN"
-          fi
-          rm -f "$RUNNER_TEMP/studio-release-certificate.p12" "$RUNNER_TEMP/opl-studio-app-notarization.zip"
-
-      - name: Upload Studio release evidence
+      - name: Upload Studio public readback evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-studio-protected-release-${{ inputs.studio_sha }}-${{ github.run_id }}
+          name: opl-studio-public-readback-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: studio-release-evidence
           if-no-files-found: warn
           retention-days: 30

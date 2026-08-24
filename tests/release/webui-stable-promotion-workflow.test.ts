@@ -241,6 +241,14 @@ test('Docker WebUI workflows expose one independent Stable and Preview lane with
   const publication = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-development.yml'), 'utf8'));
   const promotion = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-development-promote.yml'), 'utf8'));
   const stable = YAML.parse(fs.readFileSync(path.join(appRoot, '.github/workflows/release-webui-stable.yml'), 'utf8'));
+  assert.equal(publication.concurrency, undefined);
+  assert.equal(promotion.concurrency, undefined);
+  assert.equal(stable.concurrency, undefined);
+  assert.equal(stable.jobs.admission.concurrency, undefined);
+  assert.deepEqual(stable.jobs['promote-webui-stable'].concurrency, {
+    group: 'opl-webui-stable-promotion-global',
+    'cancel-in-progress': false,
+  });
   assert.deepEqual(publication.on.workflow_dispatch.inputs.channel.options, ['stable', 'preview']);
   assert.equal(publication.jobs['webui-carrier'].with.authority_mode, '${{ needs.source-authority.outputs.authority_mode }}');
   assert.deepEqual(promotion.on.workflow_dispatch.inputs.channel.options, ['stable', 'preview']);

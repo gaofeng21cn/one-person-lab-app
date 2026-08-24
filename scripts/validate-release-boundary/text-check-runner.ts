@@ -145,6 +145,10 @@ export function isAuthorizedWebuiStablePromotionWriteJob(
     && jobId === webuiStablePromotionMutationJob
     && needsExactly(job, ['admission'])
     && job.environment === webuiPromotionPublishEnvironment
+    && exactObject(job.concurrency, {
+      group: 'opl-webui-stable-promotion-global',
+      'cancel-in-progress': false,
+    })
     && exactObject(job.permissions, exactWebuiStablePromotionPermissions);
 }
 
@@ -591,6 +595,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     || studioRelease.with?.studio_sha !== '${{ inputs.studio_sha }}'
     || studioRelease.with?.studio_tree !== '${{ inputs.studio_tree }}'
     || studioRelease.with?.studio_tag !== '${{ inputs.studio_tag }}'
+    || studioRelease.with?.prior_studio_artifact_run_id !== '${{ inputs.prior_studio_artifact_run_id }}'
   ) {
     failures += reportFailure(
       id,
@@ -603,20 +608,65 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     failures += 1;
   } else {
     const releaseJobs = workflowJobs(studioWorkflow.workflow);
-    const release = releaseJobs.release;
-    const releaseEvidence = jobEvidenceText(release);
+    const build = releaseJobs['build-signed-notarized'];
+    const resolve = releaseJobs['resolve-checkpoint'];
+    const restore = releaseJobs['restore-checkpoint'];
+    const qualify = releaseJobs['qualify-checkpoint'];
+    const publish = releaseJobs.publish;
+    const readback = releaseJobs['public-readback'];
+    const buildEvidence = jobEvidenceText(build);
+    const restoreEvidence = jobEvidenceText(restore);
+    const qualifyEvidence = jobEvidenceText(qualify);
+    const publishEvidence = jobEvidenceText(publish);
+    const readbackEvidence = jobEvidenceText(readback);
+    const releaseEvidence = [buildEvidence, restoreEvidence, qualifyEvidence, publishEvidence, readbackEvidence].join('\n');
     if (
       JSON.stringify(Object.keys(studioWorkflow.workflow.on ?? {})) !== JSON.stringify(['workflow_call'])
-      || !release
-      || release.environment !== 'release-stable'
-      || !exactObject(release.permissions, exactReadPermissions)
-      || release['runs-on'] !== 'macos-15'
+      || studioWorkflow.workflow.concurrency !== undefined
+      || !exactObject(studioWorkflow.workflow.permissions, exactReadPermissions)
+      || studioWorkflow.workflow.on?.workflow_call?.inputs?.prior_studio_artifact_run_id?.type !== 'string'
+      || studioWorkflow.workflow.on?.workflow_call?.inputs?.prior_studio_artifact_run_id?.default !== ''
+      || JSON.stringify(Object.keys(releaseJobs)) !== JSON.stringify([
+        'build-signed-notarized',
+        'resolve-checkpoint',
+        'restore-checkpoint',
+        'qualify-checkpoint',
+        'publish',
+        'public-readback',
+      ])
+      || !build
+      || build.if !== "${{ inputs.prior_studio_artifact_run_id == '' }}"
+      || build.environment !== 'release-stable'
+      || !exactObject(build.permissions, exactReadPermissions)
+      || build['runs-on'] !== 'macos-15'
+      || !resolve
+      || !needsExactly(resolve, ['build-signed-notarized'])
+      || !restore
+      || !needsExactly(restore, ['resolve-checkpoint'])
+      || restore.if !== "${{ inputs.prior_studio_artifact_run_id != '' }}"
+      || !qualify
+      || !needsExactly(qualify, ['resolve-checkpoint', 'restore-checkpoint'])
+      || qualify.environment !== undefined
+      || qualify['runs-on'] !== 'macos-15'
+      || !publish
+      || !needsExactly(publish, ['resolve-checkpoint', 'restore-checkpoint', 'qualify-checkpoint'])
+      || publish.environment !== 'release-stable'
+      || publish['runs-on'] !== 'ubuntu-latest'
+      || !exactObject(publish.permissions, exactReadPermissions)
+      || !exactObject(publish.concurrency, { group: 'opl-studio-publication-global', 'cancel-in-progress': false })
+      || !readback
+      || !needsExactly(readback, ['resolve-checkpoint', 'publish'])
+      || readback.environment !== undefined
+      || readback['runs-on'] !== 'macos-15'
+      || !exactObject(readback.permissions, exactReadPermissions)
     ) {
-      failures += reportFailure(id, 'Studio reusable release must stay on the protected macOS App-owned runner');
+      failures += reportFailure(id, 'Studio reusable release must expose recoverable build, qualification, thin publication, and independent public readback jobs');
     }
     for (const binding of [
       'scripts/studio-protected-release-admission.ts plan',
       'scripts/verify-apple-release-credentials.ts',
+      'scripts/studio-release-checkpoint.ts seal',
+      'scripts/studio-release-checkpoint.ts validate-qualification',
       'security import',
       'electron-builder --mac --arm64 --dir',
       'pwd -P',
@@ -642,12 +692,21 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     }
     if (
       requestsWritePermission(studioWorkflow.workflow.permissions)
-      || requestsWritePermission(release?.permissions)
+      || Object.values(releaseJobs).some((job) => requestsWritePermission(job.permissions))
       || releaseEvidence.includes('secrets.GITHUB_TOKEN')
-      || !JSON.stringify(release).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN')
+      || !JSON.stringify(publish).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN')
+      || JSON.stringify(build).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN')
+      || JSON.stringify(readback).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN')
+      || workflowMutationCommandPattern.test(buildEvidence)
+      || workflowMutationCommandPattern.test(qualifyEvidence)
+      || workflowMutationCommandPattern.test(readbackEvidence)
+      || /notarytool\s+submit/.test(publishEvidence)
+      || !/gh\s+release\s+create/.test(publishEvidence)
+      || !/gh\s+release\s+upload/.test(publishEvidence)
+      || !/--clobber/.test(publishEvidence)
       || !releaseEvidence.includes('gaofeng21cn/opl-studio')
     ) {
-      failures += reportFailure(id, 'Studio release must use the dedicated token and repository without App GITHUB_TOKEN write authority');
+      failures += reportFailure(id, 'Studio public mutation must remain isolated in one protected same-tag-capable job while build, qualification, and readback stay mutation-free');
     }
   }
 
@@ -1885,6 +1944,9 @@ function validateWebUiCarrierCallee(
   if (!exactObject(workflow.permissions, { contents: 'read' })) {
     failures += reportFailure(id, 'WebUI carrier top-level permissions must be exactly contents:read');
   }
+  if (workflow.concurrency !== undefined) {
+    failures += reportFailure(id, 'WebUI carrier workflow cannot serialize read-only build or qualification work');
+  }
   const jobs = workflowJobs(workflow);
   if (JSON.stringify(Object.keys(jobs).sort()) !==
       JSON.stringify(['build-and-qualify', 'publish-immutable-carrier', 'startup-canary'])) {
@@ -1898,12 +1960,17 @@ function validateWebUiCarrierCallee(
     failures += reportFailure(id, 'WebUI carrier startup must be the only Canary-reachable job');
   }
   if (!build || build.if !== webuiCarrierBuildIf ||
+      build.concurrency !== undefined ||
       !exactObject(build.permissions, exactWebUiReadPermissions)) {
     failures += reportFailure(id, 'WebUI build/qualification must be reachable only from execute or qualify with exact read permissions');
   }
   if (!publish || publish.if !== webuiCarrierPublishIf ||
       publish.needs !== 'build-and-qualify' ||
       publish.environment !== webuiCarrierPublishEnvironment ||
+      !exactObject(publish.concurrency, {
+        group: 'opl-webui-independent-publication-global',
+        'cancel-in-progress': false,
+      }) ||
       !exactObject(publish.permissions, exactWebUiPublishPermissions)) {
     failures += reportFailure(id, 'WebUI immutable publish must be execute-only, protected, and request only actions:read/contents:read/packages:write');
   }
@@ -1995,7 +2062,9 @@ export function validateReleaseBundleCanaryTopology(appRoot: string): number {
         'operator_confirmation',
       ].sort();
       if (!exactObject(callee.workflow.permissions, exactReadPermissions) ||
+          callee.workflow.concurrency !== undefined ||
           !admission || admission.if !== "${{ inputs.mode == 'execute' }}" ||
+          admission.concurrency !== undefined ||
           !exactObject(admission.permissions, exactReadPermissions) ||
           !promotion || promotion.if !== "${{ inputs.mode == 'execute' }}" ||
           !isAuthorizedWebuiStablePromotionWriteJob(calleePath, 'promote-webui-stable', promotion) ||
@@ -2391,10 +2460,7 @@ export function validateIndependentWebuiPreviewTopology(appRoot: string): number
     JSON.stringify(Object.keys(publicationWorkflow.on?.workflow_dispatch?.inputs ?? {}).sort()) !==
       JSON.stringify(expectedPublicationInputs)
     || !exactObject(publicationWorkflow.permissions, exactReadPermissions)
-    || !exactObject(publicationWorkflow.concurrency, {
-      group: 'opl-webui-independent-publication-global',
-      'cancel-in-progress': false,
-    })
+    || publicationWorkflow.concurrency !== undefined
     || JSON.stringify(Object.keys(publicationJobs).sort()) !==
       JSON.stringify(['source-authority', 'webui-carrier', 'webui-carrier-qualification'])
   ) {
@@ -2458,10 +2524,7 @@ export function validateIndependentWebuiPreviewTopology(appRoot: string): number
     JSON.stringify(Object.keys(promotionWorkflow.on?.workflow_dispatch?.inputs ?? {}).sort()) !==
       JSON.stringify(expectedPromotionInputs)
     || !exactObject(promotionWorkflow.permissions, exactReadPermissions)
-    || !exactObject(promotionWorkflow.concurrency, {
-      group: 'opl-webui-independent-promotion-global',
-      'cancel-in-progress': false,
-    })
+    || promotionWorkflow.concurrency !== undefined
     || JSON.stringify(Object.keys(promotionJobs).sort()) !== JSON.stringify(['promote-webui-latest'])
     || !latestWriter
     || Object.prototype.hasOwnProperty.call(latestWriter, 'needs')

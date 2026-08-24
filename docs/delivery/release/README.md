@@ -56,14 +56,17 @@ the App-owned `release-stable` environment with read-only permissions, and write
 create a Framework release operation, submit to Apple, mutate a GitHub Release, change the active
 shell, or make Studio the active release carrier.
 
-An admitted Studio plan fixes this fail-closed order: exact checkout, Developer ID signed build,
-Apple notarization, App/DMG staple and Gatekeeper validation, exact-tag publication to the dedicated
-`opl-studio` GitHub Release, anonymous byte readback, then Studio's
-`qualify:desktop:mac:release`. Any failed or unknown stage blocks every later stage. The admission
-receipt is source evidence, not publication authority; protected execution still requires the exact
-receipt identity, an environment reviewer, explicit user approval, and capability preflight before
-the first external mutation. Apple and GitHub credentials remain only in the App protected
-environment and must never be copied into Studio repository secrets.
+An admitted Studio plan runs as four independently recoverable layers: a Developer ID signed and
+notarized byte checkpoint, local distribution qualification, a thin protected GitHub Release
+mutation, and an unlocked public readback. `prior_studio_artifact_run_id` restores the last successful
+checkpoint and, when available, its qualification receipt; the current run re-materializes those
+bytes as its own recovery point before continuing. A release or readback failure therefore does not
+rebuild, re-sign, re-notarize, or allocate another product version. Same-tag repair may replace only
+the dedicated Studio assets after the tag target and source identities are revalidated. The
+publication mutex is held only by the `publish` job; build, qualification and public readback never
+hold it. Apple signing credentials are read only by the build layer, the dedicated GitHub token only
+by publication, and public readback uses no protected environment. None of these stages adopts
+Studio as the active shell or active Framework release carrier.
 
 `.github/workflows/desktop-release-diagnostics.yml` is a separate manual or reusable verification
 entry. It may build a temporary Standard diagnostic artifact and run the first-run VM harness, but
@@ -154,6 +157,13 @@ consumes that record:
 Both routes bind an independent source authority, exact OCI digest, runtime qualification and
 anonymous readback. Desktop Stable run ids, production follower recovery and transient carrier
 artifact selection are not accepted authority.
+
+The WebUI workflows do not serialize source admission, native multi-architecture build,
+qualification, canary, or public readback. `opl-webui-independent-publication-global` belongs only to
+`_release-webui-carrier.yml#publish-immutable-carrier`, and
+`opl-webui-stable-promotion-global` belongs only to
+`release-webui-stable.yml#promote-webui-stable`. A failure before either mutation job can be retried
+without waiting for or blocking an unrelated public writer.
 
 ## Completion
 

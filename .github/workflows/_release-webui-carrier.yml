@@ -510,6 +510,9 @@ jobs:
     needs: build-and-qualify
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: opl-webui-independent-publication-global
+      cancel-in-progress: false
     environment: ${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}
     permissions:
       actions: read

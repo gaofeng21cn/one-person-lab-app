@@ -18,6 +18,10 @@ const stableWorkflowSource = fs.readFileSync(
   'utf8',
 );
 const stableWorkflow = parseYaml(stableWorkflowSource);
+const studioWorkflow = parseYaml(fs.readFileSync(
+  path.join(appRoot, '.github', 'workflows', '_release-studio.yml'),
+  'utf8',
+));
 
 const studioCarrier: DesktopReleaseCarrier = {
   schema: 'opl_app_desktop_release_carrier_resolution.v1',
@@ -69,6 +73,7 @@ const studioCarrier: DesktopReleaseCarrier = {
 test('App contract keeps Studio candidate-only while defining one protected source admission', () => {
   const successor = releaseContract.successor_delivery_target;
   const admission = successor.protected_release_admission;
+  const execution = successor.protected_release_execution;
 
   assert.equal(successor.active_shell_remains, 'aionui');
   assert.equal(successor.active_release_carrier, false);
@@ -93,6 +98,13 @@ test('App contract keeps Studio candidate-only while defining one protected sour
     'anonymous_public_byte_readback',
     'carrier_release_qualification',
   ]);
+  assert.equal(execution.schema, 'opl_studio_protected_release_execution_policy.v2');
+  assert.equal(execution.recovery.input, 'prior_studio_artifact_run_id');
+  assert.equal(execution.recovery.successful_checkpoint_bytes_are_reused_without_rebuild, true);
+  assert.equal(execution.recovery.release_failure_allocates_new_product_version, false);
+  assert.equal(execution.serialization.scope, 'github_release_mutation_only');
+  assert.equal(execution.serialization.build_or_qualification_holds_publication_mutex, false);
+  assert.equal(execution.serialization.public_readback_holds_publication_mutex, false);
 });
 
 test('Stable keeps Framework mutation operations closed and admits Studio through a plan-only protected job', () => {
@@ -117,12 +129,52 @@ test('Stable keeps Framework mutation operations closed and admits Studio throug
   assert.doesNotMatch(source, /notarytool\s+submit|gh\s+release\s+(?:create|upload|edit|delete)|framework-release-adapter\.ts\s+github-apply/);
   assert.doesNotMatch(source, /\$\{\{\s*inputs\./);
   assert.doesNotMatch(JSON.stringify(job), /secrets\./);
+  assert.equal(stableWorkflow.on.workflow_dispatch.inputs.prior_studio_artifact_run_id.type, 'string');
+  assert.equal(
+    stableWorkflow.jobs['studio-protected-release'].with.prior_studio_artifact_run_id,
+    '${{ inputs.prior_studio_artifact_run_id }}',
+  );
 
   assert.deepEqual(releaseContract.release_bundle_control_plane.live_authority.stable_operations, [
     'standard',
     'resume_standard',
     'append_full',
   ]);
+});
+
+test('Studio execution keeps build, qualification, publication, and public readback independently recoverable', () => {
+  assert.equal(studioWorkflow.concurrency, undefined);
+  assert.deepEqual(Object.keys(studioWorkflow.jobs), [
+    'build-signed-notarized',
+    'resolve-checkpoint',
+    'restore-checkpoint',
+    'qualify-checkpoint',
+    'publish',
+    'public-readback',
+  ]);
+  const build = studioWorkflow.jobs['build-signed-notarized'];
+  const qualify = studioWorkflow.jobs['qualify-checkpoint'];
+  const publish = studioWorkflow.jobs.publish;
+  const readback = studioWorkflow.jobs['public-readback'];
+  assert.equal(build.if, "${{ inputs.prior_studio_artifact_run_id == '' }}");
+  assert.equal(build.environment, 'release-stable');
+  assert.equal(qualify.environment, undefined);
+  assert.deepEqual(publish.concurrency, {
+    group: 'opl-studio-publication-global',
+    'cancel-in-progress': false,
+  });
+  assert.equal(publish.environment, 'release-stable');
+  assert.equal(readback.environment, undefined);
+  const buildText = JSON.stringify(build);
+  const publishText = JSON.stringify(publish);
+  const readbackText = JSON.stringify(readback);
+  assert.match(buildText, /notarytool submit/);
+  assert.doesNotMatch(buildText, /gh release (?:create|upload|edit)/);
+  assert.match(publishText, /gh release create/);
+  assert.match(publishText, /gh release upload/);
+  assert.doesNotMatch(publishText, /notarytool submit|--require-public-feed/);
+  assert.match(readbackText, /--require-public-feed/);
+  assert.doesNotMatch(readbackText, /OPL_GITHUB_RELEASE_ADMIN_TOKEN|gh release (?:create|upload|edit)/);
 });
 
 test('planner binds exact App and Studio identities without authorizing release mutation', () => {

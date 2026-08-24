@@ -27,10 +27,6 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-concurrency:
-  group: opl-webui-independent-promotion-global
-  cancel-in-progress: false
-
 jobs:
   promote-webui-latest:
     permissions:

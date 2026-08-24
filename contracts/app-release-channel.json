@@ -67,13 +67,37 @@
       "rule": "The App-owned protected admission binds one exact Studio commit, tree, and tag to the shared desktop carrier stage order, dedicated Studio repository, and carrier-specific qualification. Admission is source evidence only: it does not create a Framework release operation, authorize publication, change the active shell, or make Studio the active release carrier."
     },
     "protected_release_execution": {
-      "schema": "opl_studio_protected_release_execution_policy.v1",
+      "schema": "opl_studio_protected_release_execution_policy.v2",
       "authority_owner": "one-person-lab-app",
       "entry_workflow": ".github/workflows/release-stable.yml",
       "reusable_workflow": ".github/workflows/_release-studio.yml",
       "entry_selector": "studio_carrier_admission",
       "environment": "release-stable",
       "repository": "gaofeng21cn/opl-studio",
+      "execution_stages": {
+        "signed_notarized_checkpoint_job": "build-signed-notarized",
+        "checkpoint_resolver_job": "resolve-checkpoint",
+        "checkpoint_transport_job": "restore-checkpoint",
+        "qualification_job": "qualify-checkpoint",
+        "publication_job": "publish",
+        "public_readback_job": "public-readback"
+      },
+      "recovery": {
+        "input": "prior_studio_artifact_run_id",
+        "checkpoint_schema": "opl_studio_signed_notarized_checkpoint.v1",
+        "qualification_schema": "opl_studio_prepublication_qualification.v1",
+        "successful_checkpoint_bytes_are_reused_without_rebuild": true,
+        "every_recovery_run_materializes_a_current_run_checkpoint": true,
+        "same_tag_publication_repair_allowed": true,
+        "release_failure_allocates_new_product_version": false
+      },
+      "serialization": {
+        "scope": "github_release_mutation_only",
+        "job": "publish",
+        "concurrency_group": "opl-studio-publication-global",
+        "build_or_qualification_holds_publication_mutex": false,
+        "public_readback_holds_publication_mutex": false
+      },
       "version_identity": {
         "format": "numeric_semver",
         "package_bundle_feed_tag_equality_required": true,
@@ -86,7 +110,8 @@
         "source": "one-person-lab-app release-stable protected environment",
         "studio_repository_secret_copy_allowed": false,
         "github_release_token": "OPL_GITHUB_RELEASE_ADMIN_TOKEN",
-        "capability_preflight_before_notary_or_release_mutation_required": true
+        "apple_capability_preflight_before_notarization_required": true,
+        "github_capability_preflight_before_release_mutation_required": true
       },
       "published_assets": [
         "macos_arm64_dmg",
@@ -105,7 +130,7 @@
       ],
       "active_shell_after_release": "aionui",
       "active_release_carrier_after_release": false,
-      "rule": "A successful Studio preview release makes only the dedicated Studio package and updater feed current. It does not adopt Studio as the active App shell or replace the Framework Stable release carrier."
+      "rule": "A successful Studio preview release makes only the dedicated Studio package and updater feed current. Build, qualification and public readback remain independently recoverable; only the exact GitHub Release mutation is serialized. A publication repair reuses the same checkpoint and tag and never creates a product version merely because the release mechanism failed. It does not adopt Studio as the active App shell or replace the Framework Stable release carrier."
     }
   },
   "desktop_release_kernel": {

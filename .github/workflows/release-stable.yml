@@ -81,6 +81,11 @@ on:
         required: false
         default: ''
         type: string
+      prior_studio_artifact_run_id:
+        description: Exact failed Studio run containing a reusable signed/notarized checkpoint
+        required: false
+        default: ''
+        type: string
       app_ref:
         description: Exact Full content App SHA for append_full; Standard admission owns its own cohort
         required: false
@@ -148,6 +153,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          PRIOR_STUDIO_ARTIFACT_RUN_ID: ${{ inputs.prior_studio_artifact_run_id }}
           REQUESTED_APP_REF: ${{ inputs.app_ref }}
           AUTHORITY_ID: ${{ inputs.authority_id }}
           OPERATION_ID: ${{ inputs.operation_id }}
@@ -173,8 +179,12 @@ jobs:
           test "$OPERATION" = standard
           [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]
+          [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+          if [ -n "$PRIOR_STUDIO_ARTIFACT_RUN_ID" ]; then
+            [[ "$PRIOR_STUDIO_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$PRIOR_STUDIO_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
+          fi
           test "$INCLUDE_FULL" = false
 
       - name: Checkout exact App release authority
@@ -252,6 +262,7 @@ jobs:
       studio_sha: ${{ inputs.studio_sha }}
       studio_tree: ${{ inputs.studio_tree }}
       studio_tag: ${{ inputs.studio_tag }}
+      prior_studio_artifact_run_id: ${{ inputs.prior_studio_artifact_run_id }}
     secrets: inherit
 
   protected-operation-admission:
@@ -294,6 +305,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          PRIOR_STUDIO_ARTIFACT_RUN_ID: ${{ inputs.prior_studio_artifact_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -312,7 +324,7 @@ jobs:
             [[ "$PRIOR_STANDARD_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             test "$PRIOR_STANDARD_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
           fi
-          test -z "$STUDIO_SHA$STUDIO_TREE$STUDIO_TAG"
+          test -z "$STUDIO_SHA$STUDIO_TREE$STUDIO_TAG$PRIOR_STUDIO_ARTIFACT_RUN_ID"
           test "$INCLUDE_FULL" = false
           jq -e 'type == "array"' <<<"$REQUESTED_DESKTOP_ADDITIONAL_PLATFORMS" >/dev/null
 
@@ -567,6 +579,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          PRIOR_STUDIO_ARTIFACT_RUN_ID: ${{ inputs.prior_studio_artifact_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -574,7 +587,7 @@ jobs:
             echo "::error::Stable operations are one-shot; use resume_standard with the portable checkpoint."
             exit 1
           }
-          test -z "$STUDIO_SHA$STUDIO_TREE$STUDIO_TAG" || {
+          test -z "$STUDIO_SHA$STUDIO_TREE$STUDIO_TAG$PRIOR_STUDIO_ARTIFACT_RUN_ID" || {
             echo "::error::Studio identity inputs are accepted only by admit_studio_carrier."
             exit 1
           }
