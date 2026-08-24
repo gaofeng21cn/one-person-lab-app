@@ -396,9 +396,10 @@ test('Windows-only Docker/WebUI cases live only in the Windows-owned test file',
 
 test('Full macOS publication is self-identified, same-tag additive, recoverable, and non-blocking', () => {
   const follower = contract.release_platform_matrix.full_macos_additive_follower;
+  assert.equal(follower.workflow, '.github/workflows/release-full-addon-follower.yml');
   assert.equal(
     follower.trigger,
-    'protected_automatic_post_success_or_explicit_same_tag_full_append',
+    'successful_standard_publication_or_manual_target_state_reconcile',
   );
   assert.equal(follower.source_policy, 'full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas');
   assert.equal(follower.standard_release_prerequisite_required, true);
@@ -427,7 +428,10 @@ test('Full macOS publication is self-identified, same-tag additive, recoverable,
   assert.equal(follower.blocks_stable_base_terminal, false);
   assert.equal(follower.blocks_latest_activation, false);
   assert.equal(follower.failure_receipt_required, true);
-  assert.equal(follower.recovery, 'bounded_read_only_reconcile_same_standard_release_no_retry');
+  assert.equal(
+    follower.recovery,
+    'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs',
+  );
 });
 
 test('additional Desktop platform publication is an independent protected post-success operation', () => {

@@ -1238,8 +1238,8 @@
       ]
     },
     "full_macos_additive_follower": {
-      "workflow": ".github/workflows/release-stable-post-success-followups.yml",
-      "trigger": "protected_automatic_post_success_or_explicit_same_tag_full_append",
+      "workflow": ".github/workflows/release-full-addon-follower.yml",
+      "trigger": "successful_standard_publication_or_manual_target_state_reconcile",
       "source_policy": "full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas",
       "standard_release_prerequisite_required": true,
       "cross_component_exact_version_sha_or_cohort_binding_allowed": false,
@@ -1269,7 +1269,7 @@
       "blocks_stable_base_terminal": false,
       "blocks_latest_activation": false,
       "failure_receipt_required": true,
-      "recovery": "bounded_read_only_reconcile_same_standard_release_no_retry"
+      "recovery": "target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs"
     }
   },
   "release_repo": "gaofeng21cn/one-person-lab-app",
@@ -4086,15 +4086,22 @@
       "standard_identity_required": false,
       "standard_release_readback": "required_exact_mutable_release_and_sealed_standard_asset_set_cas",
       "successor_trigger": {
-        "workflow": ".github/workflows/release-stable-post-success-followups.yml",
-        "trigger": "successful_standard_workflow_run",
+        "workflow": ".github/workflows/release-full-addon-follower.yml",
+        "trigger": "successful_standard_publication_or_manual_target_state_reconcile",
         "one_successor_per_standard_run": true,
         "operation_kind_source": "opl-release-operation-admission-<source-run-id>/release-operation-admission.json",
         "non_applicable_operation_kinds": [
           "append_full"
         ],
         "workflow_dispatch_ref": "canonical_main",
-        "executor_head_sha": "workflow_run_head_sha"
+        "executor_head_sha": "current_canonical_main",
+        "manual_reconcile_inputs": [
+          "source_run_id",
+          "reconcile_confirmation"
+        ],
+        "failed_run_identity_inputs_allowed": false,
+        "completion_boundary": "owner_run_identified_without_waiting_for_full_completion",
+        "blocks_standard_or_desktop_terminal": false
       },
       "framework_operation_receipt_schema": "opl_release_bundle_operation_receipt.v1",
       "mode": "same_tag_mutable_standard_addon",

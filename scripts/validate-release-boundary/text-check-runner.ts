@@ -43,6 +43,7 @@ const postPublicationOptionalCertificationWorkflowPath =
   '.github/workflows/release-post-publication-certification.yml';
 const stableDesktopFollowupWorkflowPath =
   '.github/workflows/release-stable-post-success-followups.yml';
+const fullAddonFollowerWorkflowPath = '.github/workflows/release-full-addon-follower.yml';
 const nightlyReleaseWorkflowPath = '.github/workflows/release-nightly.yml';
 const nightlyHomebrewFollowerWorkflowPath =
   '.github/workflows/release-nightly-homebrew-follower.yml';
@@ -200,16 +201,29 @@ function isAuthorizedStableDesktopFollowupWriteJob(
       && job.environment === 'release-stable'
       && exactObject(job.permissions, exactStableEntryPermissions);
   }
-  if (jobId === 'dispatch-full') {
-    return job.if === automaticIf
-      && needsExactly(job, ['admit', 'append-desktop-platforms'])
-      && exactObject(job.permissions, { contents: 'read', actions: 'write' });
-  }
   return jobId === 'repair-additive'
     && job.if === "${{ needs.repair-admit.result == 'success' }}"
     && needsExactly(job, ['repair-admit'])
     && job.environment === 'release-stable'
     && exactObject(job.permissions, exactStableEntryPermissions);
+}
+
+function isAuthorizedFullAddonFollowerWriteJob(
+  workflowPath: string,
+  jobId: string,
+  job: Record<string, any>,
+): boolean {
+  if (workflowPath !== fullAddonFollowerWorkflowPath || jobId !== 'reconcile-full-addon') return false;
+  const stepNames = Array.isArray(job.steps)
+    ? job.steps.map((step: Record<string, unknown>) => step.name)
+    : [];
+  return job['runs-on'] === 'ubuntu-latest'
+    && job['timeout-minutes'] === 20
+    && job.environment === undefined
+    && exactObject(job.permissions, { contents: 'read', actions: 'write' })
+    && stepNames.includes('Bind successful Standard publication handoff')
+    && stepNames.includes('Reconcile target state and dispatch at most once')
+    && stepNames.includes('Write thin Full follower handoff');
 }
 
 function validatePreviewLatestPointerTopology(appRoot: string): number {
@@ -1166,7 +1180,6 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'certify-linux-x64',
     'admit-macos-vm',
     'certify-standard-vm',
-    'certify-full-vm',
     'receipt',
   ];
   if (
@@ -1192,7 +1205,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       failures += reportFailure(id, `Desktop Release Set certification job ${jobId} must be GitHub-hosted`);
     }
   }
-  for (const profile of ['standard', 'full']) {
+  for (const profile of ['standard']) {
     const jobId = `certify-${profile}-vm`;
     const job = certificationJobs[jobId];
     if (
@@ -1232,9 +1245,8 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     '.path == ".github/workflows/release-stable-post-success-followups.yml"',
     'opl-stable-release-set-followup-${source_run_id}',
     'opl-stable-desktop-append-${source_run_id}',
-    'opl_app_stable_desktop_release_set_followup.v2',
+    'opl_app_stable_desktop_followup.v1',
     'opl_app_stable_desktop_asset_append.v1',
-    'opl_homebrew_full_follower_handoff.v1',
     'opl_app_desktop_release_set_manifest.v1',
     'opl-desktop-platforms-manifest.json',
     'bash "$INSTALLER_NAME" --desktop --release-tag "$RELEASE_TAG" --no-open',
@@ -2184,6 +2196,10 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
         continue;
       }
       if (isAuthorizedStableDesktopFollowupWriteJob(workflowPath, jobId, job)) {
+        failures += validateExactActionPins(workflowPath, jobId, steps);
+        continue;
+      }
+      if (isAuthorizedFullAddonFollowerWriteJob(workflowPath, jobId, job)) {
         failures += validateExactActionPins(workflowPath, jobId, steps);
         continue;
       }

@@ -282,110 +282,21 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  dispatch-full:
-    if: ${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}
-    needs: [admit, append-desktop-platforms]
-    runs-on: ubuntu-latest
-    timeout-minutes: 160
-    permissions:
-      contents: read
-      actions: write
-    outputs:
-      full_run_id: ${{ steps.full.outputs.full_run_id }}
-    steps:
-      - name: Dispatch and bind one same-tag Full append
-        id: full
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ needs.admit.outputs.source_run_id }}
-          SOURCE_ARTIFACT: ${{ needs.admit.outputs.source_artifact }}
-          APP_REF: ${{ needs.admit.outputs.app_ref }}
-          SHELL_REF: ${{ needs.admit.outputs.shell_ref }}
-          FRAMEWORK_REF: ${{ needs.admit.outputs.framework_ref }}
-        run: |
-          set -euo pipefail
-          title_regex="^OPL Stable append_full source:${SOURCE_RUN_ID} run:[1-9][0-9]*$"
-          gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/workflows/release-stable.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
-            > before-runs.json
-          prior_ids="$(jq -c '[.[]?.workflow_runs[]? | select(.display_title | test($title)) | .id]' \
-            --arg title "$title_regex" before-runs.json)"
-          jq -n --arg ref main --arg app_ref "$APP_REF" --arg shell_ref "$SHELL_REF" \
-            --arg framework_ref "$FRAMEWORK_REF" \
-            --arg source_run_id "$SOURCE_RUN_ID" --arg source_artifact "$SOURCE_ARTIFACT" \
-            '{ref:$ref,inputs:{operation:"append_full",version:"",include_full:"false",app_ref:$app_ref,shell_ref:$shell_ref,framework_ref:$framework_ref,source_run_id:$source_run_id,source_artifact:$source_artifact}}' \
-            > dispatch.json
-          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/release-stable.yml/dispatches" --input dispatch.json
-
-          full_run_id=''
-          for _ in $(seq 1 60); do
-            if ! gh api --paginate --slurp \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/release-stable.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
-              > after-runs.json; then
-              sleep 10
-              continue
-            fi
-            matches="$(jq -c --arg title "$title_regex" --argjson prior "$prior_ids" '
-              [.[]?.workflow_runs[]?
-                | select(.display_title | test($title))
-                | select((.id as $id | $prior | index($id)) | not)]
-            ' after-runs.json)"
-            count="$(jq 'length' <<<"$matches")"
-            test "$count" -le 1 || { echo '::error::Full dispatch produced ambiguous successor runs.'; exit 1; }
-            if [ "$count" = 1 ]; then
-              full_run_id="$(jq -r '.[0].id' <<<"$matches")"
-              break
-            fi
-            sleep 10
-          done
-          [[ "$full_run_id" =~ ^[1-9][0-9]*$ ]] || {
-            echo '::error::Full dispatch outcome is unknown; do not redispatch before owner-authoritative reconciliation.'
-            exit 1
-          }
-          for _ in $(seq 1 840); do
-            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$full_run_id" > full-run.json
-            status="$(jq -er .status full-run.json)"
-            [ "$status" = completed ] && break
-            sleep 10
-          done
-          [ "$(jq -er .status full-run.json)" = completed ] || {
-            echo "::error::Full run $full_run_id did not complete within the bounded observation window; reconcile that run read-only and do not redispatch."
-            exit 1
-          }
-          jq -e --arg run "$full_run_id" --arg source "$SOURCE_RUN_ID" --arg title "$title_regex" '
-            (.id | tostring) == $run
-            and .path == ".github/workflows/release-stable.yml"
-            and .event == "workflow_dispatch"
-            and .head_branch == "main"
-            and .run_attempt == 1
-            and .status == "completed"
-            and .conclusion == "success"
-            and (.display_title | test($title))
-          ' full-run.json >/dev/null
-          gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/runs/$full_run_id/artifacts?per_page=100" \
-            > full-artifacts.json
-          jq -e --arg name "opl-release-full-published-${full_run_id}" '
-            [.[]?.artifacts[]? | select(.name == $name and .expired == false)] | length == 1
-          ' full-artifacts.json >/dev/null
-          echo "full_run_id=$full_run_id" >> "$GITHUB_OUTPUT"
-
   receipt:
     if: ${{ always() && github.event_name == 'workflow_run' && needs.admit.result != 'skipped' }}
-    needs: [admit, build-desktop-platforms, append-desktop-platforms, dispatch-full]
+    needs: [admit, build-desktop-platforms, append-desktop-platforms]
     runs-on: ubuntu-latest
     steps:
-      - name: Write Release Set follow-up receipt
+      - name: Write Desktop follower receipt
         run: |
           jq -n \
             --arg source_run_id '${{ needs.admit.outputs.source_run_id }}' \
             --arg operation_kind '${{ needs.admit.outputs.operation_kind }}' \
             --arg applicable '${{ needs.admit.outputs.applicable }}' \
             --arg release_tag '${{ needs.admit.outputs.release_tag }}' \
-            --arg desktop '${{ needs.append-desktop-platforms.result }}' \
-            --arg full '${{ needs.dispatch-full.result }}' \
-            --arg full_run_id '${{ needs.dispatch-full.outputs.full_run_id }}' \
-            '{schema:"opl_app_stable_desktop_release_set_followup.v2",source_run_id:$source_run_id,operation_kind:$operation_kind,applicable:($applicable == "true"),release_tag:$release_tag,desktop_platform_append:$desktop,full_append:$full,full_run_id:$full_run_id,remaining:(if $applicable != "true" then [] elif $desktop == "success" and $full == "success" and ($full_run_id | test("^[1-9][0-9]*$")) then [] else ["followup_failure"] end)}' \
+            --arg desktop '${{ needs.append-desktop-platforms.result }}' '
+              {schema:"opl_app_stable_desktop_followup.v1",source_run_id:$source_run_id,operation_kind:$operation_kind,applicable:($applicable == "true"),release_tag:$release_tag,desktop_platform_append:$desktop,remaining:(if $applicable != "true" or $desktop == "success" then [] else ["desktop_platform_append"] end)}
+            ' \
             > stable-release-set-followup.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

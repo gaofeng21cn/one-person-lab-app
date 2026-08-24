@@ -522,7 +522,11 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.equal(full.standard_release_readback, "required_exact_mutable_release_and_sealed_standard_asset_set_cas");
   assert.equal(full.standard_release_prerequisite_required, true);
   assert.equal(full.mode, "same_tag_mutable_standard_addon");
-  assert.equal(full.successor_trigger.workflow, ".github/workflows/release-stable-post-success-followups.yml");
+  assert.equal(full.successor_trigger.workflow, ".github/workflows/release-full-addon-follower.yml");
+  assert.equal(
+    full.successor_trigger.trigger,
+    "successful_standard_publication_or_manual_target_state_reconcile",
+  );
   assert.equal(full.successor_trigger.one_successor_per_standard_run, true);
   assert.equal(
     full.successor_trigger.operation_kind_source,
@@ -530,7 +534,17 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   );
   assert.deepEqual(full.successor_trigger.non_applicable_operation_kinds, ["append_full"]);
   assert.equal(full.successor_trigger.workflow_dispatch_ref, "canonical_main");
-  assert.equal(full.successor_trigger.executor_head_sha, "workflow_run_head_sha");
+  assert.equal(full.successor_trigger.executor_head_sha, "current_canonical_main");
+  assert.deepEqual(full.successor_trigger.manual_reconcile_inputs, [
+    "source_run_id",
+    "reconcile_confirmation",
+  ]);
+  assert.equal(full.successor_trigger.failed_run_identity_inputs_allowed, false);
+  assert.equal(
+    full.successor_trigger.completion_boundary,
+    "owner_run_identified_without_waiting_for_full_completion",
+  );
+  assert.equal(full.successor_trigger.blocks_standard_or_desktop_terminal, false);
   assert.equal(full.framework_operation_receipt_schema, "opl_release_bundle_operation_receipt.v1");
   assert.equal(full.standard_assets_modified, false);
   assert.equal(full.carrier_identity.base_release_tag, "exact_existing_mutable_standard_target");

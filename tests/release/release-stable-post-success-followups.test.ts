@@ -20,7 +20,6 @@ test('Stable success and protected installer repair share one Desktop Release Se
     'admit',
     'build-desktop-platforms',
     'append-desktop-platforms',
-    'dispatch-full',
     'receipt',
     'repair-admit',
     'repair-additive',
@@ -94,47 +93,25 @@ test('Desktop assets append to the same Release through one CAS controller', () 
   assert.doesNotMatch(source, /gh release create|releases\/tags\/.*optional|make_latest/);
 });
 
-test('Full append starts only after Desktop append and binds exactly one new successful run', () => {
-  const full = workflow.jobs['dispatch-full'];
-  const dispatchStep = full.steps.find(
-    (step: Record<string, unknown>) => step.name === 'Dispatch and bind one same-tag Full append',
-  );
-  assert.equal(full.if, "${{ github.event_name == 'workflow_run' && needs.admit.outputs.applicable == 'true' }}");
-  assert.deepEqual(full.needs, ['admit', 'append-desktop-platforms']);
-  assert.equal(full['timeout-minutes'], 160);
-  assert.deepEqual(full.permissions, { contents: 'read', actions: 'write' });
-  assert.equal(dispatchStep.env.APP_REF, '${{ needs.admit.outputs.app_ref }}');
-  assert.equal(dispatchStep.env.SHELL_REF, '${{ needs.admit.outputs.shell_ref }}');
-  assert.equal(dispatchStep.env.FRAMEWORK_REF, '${{ needs.admit.outputs.framework_ref }}');
-  assert.match(dispatchStep.run, /app_ref:\$app_ref,shell_ref:\$shell_ref,framework_ref:\$framework_ref/);
-  assert.match(source, /prior_ids=/);
-  assert.match(source, /prior \| index\(\$id\)/);
-  assert.equal((source.match(/actions\/workflows\/release-stable\.yml\/dispatches/g) ?? []).length, 1);
-  assert.match(source, /operation:"append_full"/);
-  assert.match(source, /if ! gh api --paginate --slurp/);
-  assert.match(source, /Full dispatch outcome is unknown; do not redispatch/);
-  assert.match(source, /for _ in \$\(seq 1 840\)/);
-  assert.match(source, /reconcile that run read-only and do not redispatch/);
-  assert.match(source, /opl-release-full-published-\$\{full_run_id\}/);
-  assert.doesNotMatch(source, /--rerun|rerun-failed|cancel\/|force/);
+test('Desktop follower does not own, dispatch, or wait for Full', () => {
+  assert.equal(workflow.jobs['dispatch-full'], undefined);
+  assert.doesNotMatch(source, /operation:"append_full"|release-stable\.yml\/dispatches/);
+  assert.doesNotMatch(source, /full_run_id|full_append|seq 1 840|reconcile that run/);
 });
 
-test('follow-up receipt is terminal only after Desktop and Full completion', () => {
+test('Desktop receipt is terminal at the Desktop append boundary', () => {
   const receipt = workflow.jobs.receipt;
   assert.equal(receipt.if, "${{ always() && github.event_name == 'workflow_run' && needs.admit.result != 'skipped' }}");
   assert.deepEqual(receipt.needs, [
     'admit',
     'build-desktop-platforms',
     'append-desktop-platforms',
-    'dispatch-full',
   ]);
-  assert.match(source, /opl_app_stable_desktop_release_set_followup\.v2/);
+  assert.match(source, /opl_app_stable_desktop_followup\.v1/);
   assert.match(source, /operation_kind:\$operation_kind/);
   assert.match(source, /applicable:\(\$applicable == "true"\)/);
   assert.match(source, /desktop_platform_append:\$desktop/);
-  assert.match(source, /full_append:\$full/);
-  assert.match(source, /full_run_id:\$full_run_id/);
-  assert.match(source, /remaining:\(if .* then \[\] else \["followup_failure"\]/);
+  assert.match(source, /remaining:\(if .* then \[\] else \["desktop_platform_append"\]/);
 });
 
 test('additive repair is one protected opl-install.sh compare-and-swap path', () => {

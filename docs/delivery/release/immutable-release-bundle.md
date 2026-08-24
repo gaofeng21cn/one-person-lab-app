@@ -46,8 +46,12 @@ version/cohort from protected admission, publishes the primary Desktop carrier, 
 only after exact qualification and public readback.
 
 `.github/workflows/release-stable-post-success-followups.yml` consumes the exact successful Standard
-checkpoint, appends selected Linux/Windows assets to that same mutable Release/tag, and dispatches the
-one Full append. Its protected manual `repair_additive` branch may replace only `opl-install.sh` in
+checkpoint and appends selected Linux/Windows assets to that same mutable Release/tag. The independent
+`.github/workflows/release-full-addon-follower.yml` reconciles the same successful Standard handoff to
+one Full owner run and stops as soon as that owner is identified; it does not wait for the Full build,
+qualification or publication. Its protected manual reconciliation takes only the source run and a
+target-state confirmation, never failed-run generations or historical logs. The Desktop follower's
+protected manual `repair_additive` branch may replace only `opl-install.sh` in
 the same Release/tag after old asset ID/size/digest CAS and frozen primary-asset/body/tag checks. It
 does not create a Framework Bundle operation, allocate a version, rebuild platform assets or move
 Latest. Repeated repairs form one complete, unforked digest-and-size chain from the component

@@ -70,9 +70,12 @@ VM workflow can inject a local source archive instead of resolving mutable `main
 
 Linux x64 and Windows x64 are selected as `desktop_additional_platforms`. The successful Standard
 path dispatches `.github/workflows/release-stable-post-success-followups.yml`, which builds and
-appends those Desktop assets to the same Release/tag and then dispatches Full append once. The
-append script performs exact release/tag identity checks and same-name digest CAS. It cannot create
-a Release/tag or move Latest.
+appends those Desktop assets to the same Release/tag. Full is reconciled independently by
+`.github/workflows/release-full-addon-follower.yml`: it consumes the successful Standard handoff,
+binds an existing Full owner or dispatches one current-canonical executor once, then exits without
+waiting for Full completion. Either follower may fail or be repaired without rerunning the other or
+changing the release version. The append script performs exact release/tag identity checks and
+same-name digest CAS. It cannot create a Release/tag or move Latest.
 
 If an additive delivery is defective while the macOS primary release remains valid, the Stable
 version stays unchanged. The protected `repair_additive` branch in that same follow-up workflow may
@@ -82,8 +85,9 @@ Release body and tag target, a pre-mutation Actions receipt, and a public supers
 Windows, Full and macOS primary assets are not rebuilt. A new `-rN` Stable is allowed only when the
 macOS primary Stable assets themselves are invalid.
 
-Post-publication certification consumes the completed same-tag Desktop Release Set. Linux installs
-the exact public `.deb` through the exact public installer; macOS Standard/Full checks are read-only.
+Post-publication Desktop certification consumes the completed Desktop append without waiting for
+Full. Linux installs the exact public `.deb` through the exact public installer; macOS Standard checks
+are read-only.
 After an installer repair, certification additionally binds the public receipt and old/new installer
 digest chain, then repeats the clean Linux install without re-running macOS primary qualification.
 Certification failure records evidence but cannot roll back or rewrite the public Release.

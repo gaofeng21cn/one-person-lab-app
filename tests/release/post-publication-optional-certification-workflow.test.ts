@@ -23,7 +23,6 @@ test('Desktop Release Set certification follows one completed same-tag append', 
     'certify-linux-x64',
     'admit-macos-vm',
     'certify-standard-vm',
-    'certify-full-vm',
     'receipt',
   ]);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
@@ -59,7 +58,6 @@ test('non-Desktop Stable operations complete certification as not applicable', (
     'Download exact Release Set follow-up receipt',
     'Download exact Desktop append receipt',
     'Bind completed follow-up identity',
-    'Download exact Full append publication evidence',
     'Bind one public Desktop Release Set',
   ]) {
     const step = resolve.steps.find((candidate: Record<string, unknown>) => candidate.name === stepName);
@@ -97,20 +95,15 @@ test('Linux certification consumes the exact public same-tag Desktop assets', ()
   assert.equal(source.includes("dpkg-query -W -f='\\${Architecture}'"), false);
 });
 
-test('macOS certification remains read-only and binds Standard and Full to the same tag', () => {
+test('Desktop macOS certification remains read-only and Standard-only', () => {
   const { workflow } = readWorkflow();
-  for (const profile of ['standard', 'full']) {
-    const certify = workflow.jobs[`certify-${profile}-vm`];
-    assert.deepEqual(certify.needs, ['resolve-release-set', 'admit-macos-vm']);
-    assert.equal(certify.uses, './.github/workflows/opl-first-run-vm.yml');
-    assert.deepEqual(certify.permissions, { contents: 'read', actions: 'read' });
-    assert.equal(certify.with.release_tag, '${{ needs.resolve-release-set.outputs.tag }}');
-    assert.equal(certify.with.package_profile, profile);
-    assert.equal(
-      certify.if,
-      "${{ needs.resolve-release-set.outputs.applicable == 'true' && needs.resolve-release-set.outputs.certify_macos == 'true' && needs.admit-macos-vm.outputs.eligible == 'true' }}",
-    );
-  }
+  const certify = workflow.jobs['certify-standard-vm'];
+  assert.deepEqual(certify.needs, ['resolve-release-set', 'admit-macos-vm']);
+  assert.equal(certify.uses, './.github/workflows/opl-first-run-vm.yml');
+  assert.deepEqual(certify.permissions, { contents: 'read', actions: 'read' });
+  assert.equal(certify.with.release_tag, '${{ needs.resolve-release-set.outputs.tag }}');
+  assert.equal(certify.with.package_profile, 'standard');
+  assert.equal(workflow.jobs['certify-full-vm'], undefined);
 });
 
 test('additive repair certification binds public receipt and old/new installer digests', () => {

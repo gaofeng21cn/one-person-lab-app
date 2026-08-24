@@ -1606,8 +1606,10 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.upgrade_vm_qualification?.current_execute_available !== false
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.upgrade_vm_qualification?.publication_or_install_authority_granted_by_preflight !== false
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.upgrade_vm_qualification?.blocks_stable_or_latest !== false
+    || platformMatrix?.full_macos_additive_follower?.workflow !==
+      '.github/workflows/release-full-addon-follower.yml'
     || platformMatrix?.full_macos_additive_follower?.trigger !==
-      'protected_automatic_post_success_or_explicit_same_tag_full_append'
+      'successful_standard_publication_or_manual_target_state_reconcile'
     || platformMatrix?.full_macos_additive_follower?.source_policy !==
       'full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas'
     || platformMatrix?.full_macos_additive_follower?.standard_release_prerequisite_required !== true
@@ -1627,6 +1629,8 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.full_macos_additive_follower?.standard_asset_or_latest_mutation_allowed !== false
     || platformMatrix?.full_macos_additive_follower?.blocks_stable_base_terminal !== false
     || platformMatrix?.full_macos_additive_follower?.blocks_latest_activation !== false
+    || platformMatrix?.full_macos_additive_follower?.recovery !==
+      'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
   ) {
     throw new Error('Release platform matrix must keep only macOS ARM64 Stable-blocking while platform followers and the same-tag Full module remain non-blocking');
   }

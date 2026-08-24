@@ -563,14 +563,22 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     fullAddon?.standard_identity_required !== false ||
     fullAddon?.standard_release_readback !==
       'required_exact_mutable_release_and_sealed_standard_asset_set_cas' ||
-    fullAddon?.successor_trigger?.workflow !== '.github/workflows/release-stable-post-success-followups.yml' ||
-    fullAddon?.successor_trigger?.trigger !== 'successful_standard_workflow_run' ||
+    fullAddon?.successor_trigger?.workflow !== '.github/workflows/release-full-addon-follower.yml' ||
+    fullAddon?.successor_trigger?.trigger !== 'successful_standard_publication_or_manual_target_state_reconcile' ||
     fullAddon?.successor_trigger?.one_successor_per_standard_run !== true ||
     fullAddon?.successor_trigger?.operation_kind_source !==
       'opl-release-operation-admission-<source-run-id>/release-operation-admission.json' ||
     !sameStringSet(fullAddon?.successor_trigger?.non_applicable_operation_kinds, ['append_full']) ||
     fullAddon?.successor_trigger?.workflow_dispatch_ref !== 'canonical_main' ||
-    fullAddon?.successor_trigger?.executor_head_sha !== 'workflow_run_head_sha' ||
+    fullAddon?.successor_trigger?.executor_head_sha !== 'current_canonical_main' ||
+    !sameStringSet(fullAddon?.successor_trigger?.manual_reconcile_inputs, [
+      'source_run_id',
+      'reconcile_confirmation',
+    ]) ||
+    fullAddon?.successor_trigger?.failed_run_identity_inputs_allowed !== false ||
+    fullAddon?.successor_trigger?.completion_boundary !==
+      'owner_run_identified_without_waiting_for_full_completion' ||
+    fullAddon?.successor_trigger?.blocks_standard_or_desktop_terminal !== false ||
     fullAddon?.framework_operation_receipt_schema !== 'opl_release_bundle_operation_receipt.v1' ||
     fullAddon?.mode !== 'same_tag_mutable_standard_addon' ||
     fullAddon?.standard_release_prerequisite_required !== true ||
@@ -2477,8 +2485,8 @@ export function validateReleasePlatformMatrix(
 
   const follower = matrix.full_macos_additive_follower;
   if (
-    follower?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
-    || follower?.trigger !== 'protected_automatic_post_success_or_explicit_same_tag_full_append'
+    follower?.workflow !== '.github/workflows/release-full-addon-follower.yml'
+    || follower?.trigger !== 'successful_standard_publication_or_manual_target_state_reconcile'
     || follower?.source_policy !== 'full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas'
     || follower?.standard_release_prerequisite_required !== true
     || follower?.cross_component_exact_version_sha_or_cohort_binding_allowed !== false
@@ -2506,7 +2514,7 @@ export function validateReleasePlatformMatrix(
     || follower?.blocks_stable_base_terminal !== false
     || follower?.blocks_latest_activation !== false
     || follower?.failure_receipt_required !== true
-    || follower?.recovery !== 'bounded_read_only_reconcile_same_standard_release_no_retry'
+    || follower?.recovery !== 'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
   ) {
     console.error('FAIL release_platform_matrix: Full macOS follower must remain same-tag, mutable-target CAS-bound, durable, and non-blocking');
     failures += 1;

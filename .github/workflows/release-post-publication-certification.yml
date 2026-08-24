@@ -55,7 +55,6 @@ jobs:
       certify_macos: ${{ steps.authority.outputs.certify_macos }}
       source_run_id: ${{ steps.authority.outputs.source_run_id }}
       followup_run_id: ${{ steps.authority.outputs.followup_run_id }}
-      full_run_id: ${{ steps.followup.outputs.full_run_id }}
       tag: ${{ steps.identity.outputs.tag || steps.repair_identity.outputs.tag }}
       app_sha: ${{ steps.identity.outputs.app_sha || steps.repair_identity.outputs.app_sha }}
       shell_sha: ${{ steps.identity.outputs.shell_sha || steps.repair_identity.outputs.shell_sha }}
@@ -68,8 +67,6 @@ jobs:
       standard_artifact_digest: ${{ steps.identity.outputs.standard_artifact_digest || steps.repair_identity.outputs.standard_artifact_digest }}
       linux_artifact_name: ${{ steps.identity.outputs.linux_artifact_name || steps.repair_identity.outputs.linux_artifact_name }}
       linux_artifact_digest: ${{ steps.identity.outputs.linux_artifact_digest || steps.repair_identity.outputs.linux_artifact_digest }}
-      full_artifact_name: ${{ steps.identity.outputs.full_artifact_name || steps.repair_identity.outputs.full_artifact_name }}
-      full_artifact_digest: ${{ steps.identity.outputs.full_artifact_digest || steps.repair_identity.outputs.full_artifact_digest }}
     steps:
       - name: Checkout exact certification source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -280,30 +277,18 @@ jobs:
           test "${#receipts[@]}" = 1
           receipt="${receipts[0]}"
           jq -e --arg source "$SOURCE_RUN_ID" '
-            .schema == "opl_app_stable_desktop_release_set_followup.v2"
+            .schema == "opl_app_stable_desktop_followup.v1"
             and .source_run_id == $source
             and .applicable == true
             and (.operation_kind == "standard" or .operation_kind == "resume_standard")
             and (.release_tag | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-r[1-9][0-9]*)?$"))
             and .desktop_platform_append == "success"
-            and .full_append == "success"
-            and (.full_run_id | test("^[1-9][0-9]*$"))
             and .remaining == []
           ' "$receipt" >/dev/null
           {
             echo "source_run_id=$SOURCE_RUN_ID"
-            echo "full_run_id=$(jq -er .full_run_id "$receipt")"
             echo "tag=$(jq -er .release_tag "$receipt")"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Download exact Full append publication evidence
-        if: ${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'desktop_release_set' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: opl-release-full-published-${{ steps.followup.outputs.full_run_id }}
-          run-id: ${{ steps.followup.outputs.full_run_id }}
-          github-token: ${{ github.token }}
-          path: full-publication
 
       - name: Bind one public Desktop Release Set
         if: ${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'desktop_release_set' }}
@@ -311,17 +296,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ steps.followup.outputs.source_run_id }}
-          FULL_RUN_ID: ${{ steps.followup.outputs.full_run_id }}
           EXPECTED_TAG: ${{ steps.followup.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
           mapfile -t append_receipts < <(find desktop-receipt -type f -name stable-desktop-append.json -print)
-          mapfile -t full_handoffs < <(find full-publication -type f -name homebrew-full-handoff.json -print)
           test "${#append_receipts[@]}" = 1
-          test "${#full_handoffs[@]}" = 1
           append_receipt="${append_receipts[0]}"
-          full_handoff="${full_handoffs[0]}"
           jq -e --arg tag "$EXPECTED_TAG" '
             .schema == "opl_app_stable_desktop_asset_append.v1"
             and .status == "complete"
@@ -335,22 +316,6 @@ jobs:
           ' "$append_receipt" >/dev/null
           app_sha="$(jq -er .release.target_commitish "$append_receipt")"
           release_id="$(jq -er .release.id "$append_receipt")"
-          jq -e --arg run "$FULL_RUN_ID" --arg tag "$EXPECTED_TAG" --arg app "$app_sha" '
-            .schema == "opl_homebrew_full_follower_handoff.v1"
-            and .status == "ready"
-            and .operation == "append_full"
-            and .authority.run_id == $run
-            and .release.standard_tag == $tag
-            and .release.target_standard.tag == $tag
-            and .release.target_standard.target_commitish == $app
-            and .release.target_standard.immutable == false
-            and .github_full_publication.status == "complete"
-            and .homebrew_modified == false
-            and .latest_modified == false
-          ' "$full_handoff" >/dev/null
-          shell_sha="$(jq -er .build_provenance.shell_sha "$full_handoff")"
-          framework_sha="$(jq -er .build_provenance.framework_sha "$full_handoff")"
-          test "$(jq -er .build_provenance.app_sha "$full_handoff")" = "$app_sha"
           gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" > public-release.json
           jq -e --argjson id "$release_id" --arg tag "$EXPECTED_TAG" --arg target "$app_sha" '
             .id == $id and .tag_name == $tag and .target_commitish == $target
@@ -363,6 +328,8 @@ jobs:
           node --experimental-strip-types scripts/read-opl-app-component-manifest-identity.ts \
             --manifest component-manifest.json --expected-tag "$EXPECTED_TAG" \
             --release-prerelease false --expected-source-commit "$app_sha" > component-identity.json
+          shell_sha="$(jq -er .cohort.shell_sha desktop-manifest.json)"
+          framework_sha="$(jq -er .cohort.framework_sha desktop-manifest.json)"
           jq -e --arg source "$SOURCE_RUN_ID" --arg app "$app_sha" --arg shell "$shell_sha" --arg framework "$framework_sha" '
             .schema == "opl_app_desktop_release_set_manifest.v1"
             and .source.run_id == $source
@@ -384,9 +351,6 @@ jobs:
           standard_digest="$(jq -er --arg name "$standard_name" '[.assets[] | select(.name == $name)] | select(length == 1) | .[0].digest' public-release.json)"
           linux_digest="$(jq -er --arg name "$linux_name" '[.assets[] | select(.name == $name)] | select(length == 1) | .[0].digest' public-release.json)"
           installer_digest="$(jq -er --arg name "$installer_name" '[.assets[] | select(.name == $name)] | select(length == 1) | .[0].digest' public-release.json)"
-          full_name="$(jq -er .artifact.name "$full_handoff")"
-          full_digest="$(jq -er .artifact.sha256 "$full_handoff")"
-          jq -e --arg name "$full_name" --arg digest "$full_digest" '[.assets[] | select(.name == $name and .digest == $digest)] | length == 1' public-release.json >/dev/null
           {
             echo "tag=$EXPECTED_TAG"
             echo "app_sha=$app_sha"
@@ -399,8 +363,6 @@ jobs:
             echo "standard_artifact_digest=$standard_digest"
             echo "linux_artifact_name=$linux_name"
             echo "linux_artifact_digest=$linux_digest"
-            echo "full_artifact_name=$full_name"
-            echo "full_artifact_digest=$full_digest"
           } >> "$GITHUB_OUTPUT"
 
       - name: Download exact additive repair receipt
@@ -506,8 +468,7 @@ jobs:
           version="${tag#v}"
           standard_name="One-Person-Lab-${version}-mac-arm64.dmg"
           linux_name="One-Person-Lab-${version}-linux-x64.deb"
-          full_name="One-Person-Lab-Full-${version}-mac-arm64.dmg"
-          for name in "$standard_name" "$linux_name" "$full_name" opl-app-component-manifest.json; do
+          for name in "$standard_name" "$linux_name" opl-app-component-manifest.json; do
             jq -e --arg name "$name" '[.assets[] | select(.name == $name)] | length == 1' public-release.json >/dev/null
           done
           {
@@ -523,8 +484,6 @@ jobs:
             echo "standard_artifact_digest=$(jq -er --arg name "$standard_name" '[.assets[] | select(.name == $name)][0].digest' public-release.json)"
             echo "linux_artifact_name=$linux_name"
             echo "linux_artifact_digest=$(jq -er --arg name "$linux_name" '[.assets[] | select(.name == $name)][0].digest' public-release.json)"
-            echo "full_artifact_name=$full_name"
-            echo "full_artifact_digest=$(jq -er --arg name "$full_name" '[.assets[] | select(.name == $name)][0].digest' public-release.json)"
           } >> "$GITHUB_OUTPUT"
 
   certify-linux-x64:
@@ -629,29 +588,9 @@ jobs:
       diagnostic_scope: post_publication_optional_certification
       require_macos_gatekeeper: true
 
-  certify-full-vm:
-    if: ${{ needs.resolve-release-set.outputs.applicable == 'true' && needs.resolve-release-set.outputs.certify_macos == 'true' && needs.admit-macos-vm.outputs.eligible == 'true' }}
-    needs: [resolve-release-set, admit-macos-vm]
-    permissions:
-      contents: read
-      actions: read
-    uses: ./.github/workflows/opl-first-run-vm.yml
-    with:
-      mode: execute
-      release_tag: ${{ needs.resolve-release-set.outputs.tag }}
-      published_artifact_name: ${{ needs.resolve-release-set.outputs.full_artifact_name }}
-      published_artifact_digest: ${{ needs.resolve-release-set.outputs.full_artifact_digest }}
-      artifact_app_ref: ${{ needs.resolve-release-set.outputs.app_sha }}
-      shell_ref: ${{ needs.resolve-release-set.outputs.shell_sha }}
-      smoke_harness_ref: ${{ needs.resolve-release-set.outputs.shell_sha }}
-      framework_ref: ${{ needs.resolve-release-set.outputs.framework_sha }}
-      package_profile: full
-      diagnostic_scope: post_publication_optional_certification
-      require_macos_gatekeeper: true
-
   receipt:
     if: ${{ always() }}
-    needs: [resolve-release-set, certify-linux-x64, admit-macos-vm, certify-standard-vm, certify-full-vm]
+    needs: [resolve-release-set, certify-linux-x64, admit-macos-vm, certify-standard-vm]
     runs-on: ubuntu-latest
     steps:
       - name: Write Desktop Release Set certification receipt
@@ -667,8 +606,7 @@ jobs:
             --arg linux '${{ needs.certify-linux-x64.result }}' \
             --arg admission '${{ needs.admit-macos-vm.outputs.reason_code }}' \
             --arg standard '${{ needs.certify-standard-vm.result }}' \
-            --arg full '${{ needs.certify-full-vm.result }}' \
-            '{schema:"opl_app_desktop_release_set_certification.v1",status:(if $applicable != "true" then "not_applicable" elif $kind == "repair_additive" and $linux != "success" then "failed" else "complete" end),applicable:($applicable == "true"),reason_code:$reason,certification_kind:$kind,release_tag:$tag,source_run_id:$source,installer_digest_chain:(if $kind == "repair_additive" then {previous:$old_installer,current:$new_installer} else null end),linux_x64:$linux,macos_vm_admission:$admission,macos_standard:$standard,macos_full:$full,required_for_publication:false,remaining:(if $kind == "repair_additive" and $linux != "success" then ["linux_clean_install"] else [] end)}' \
+            '{schema:"opl_app_desktop_release_set_certification.v1",status:(if $applicable != "true" then "not_applicable" elif $kind == "repair_additive" and $linux != "success" then "failed" else "complete" end),applicable:($applicable == "true"),reason_code:$reason,certification_kind:$kind,release_tag:$tag,source_run_id:$source,installer_digest_chain:(if $kind == "repair_additive" then {previous:$old_installer,current:$new_installer} else null end),linux_x64:$linux,macos_vm_admission:$admission,macos_standard:$standard,required_for_publication:false,remaining:(if $kind == "repair_additive" and $linux != "success" then ["linux_clean_install"] else [] end)}' \
             > desktop-release-set-certification.json
       - name: Upload Desktop Release Set certification receipt
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
