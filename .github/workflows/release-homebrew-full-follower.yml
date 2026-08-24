@@ -162,7 +162,7 @@ jobs:
                   and ([.jobs[].steps[]? | select(.name == "Publish one digest-bound Full Cask commit")] | length == 0)
                 ' failed-follower-jobs.json >/dev/null
                 failed_job_id="$(jq -er '[.jobs[] | select(.name == "publish-homebrew-full / prepare-candidate")] | select(length == 1) | .[0].id' failed-follower-jobs.json)"
-                gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$failed_job_id/logs" > failed-follower.log
+                gh api --allow-escape-sequences "repos/$GITHUB_REPOSITORY/actions/jobs/$failed_job_id/logs" > failed-follower.log
                 stale_full_standard_cohort_assertion=".release.target_standard.target_commitish == .build_provenance.app_sha"
                 grep -F "$stale_full_standard_cohort_assertion" failed-follower.log >/dev/null
                 gh api --paginate --slurp \
@@ -234,7 +234,7 @@ jobs:
                   and ([.jobs[].steps[]? | select(.name == "Publish one digest-bound Full Cask commit")] | length == 0)
                 ' failed-recovery-v2-jobs.json >/dev/null
                 failed_recovery_v2_job_id="$(jq -er '[.jobs[] | select(.name == "publish-homebrew-full / prepare-candidate")] | select(length == 1) | .[0].id' failed-recovery-v2-jobs.json)"
-                gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$failed_recovery_v2_job_id/logs" > failed-recovery-v2.log
+                gh api --allow-escape-sequences "repos/$GITHUB_REPOSITORY/actions/jobs/$failed_recovery_v2_job_id/logs" > failed-recovery-v2.log
                 grep -F 'append_full deadline must be exactly 120 minutes after operation start.' failed-recovery-v2.log >/dev/null
               fi
             fi

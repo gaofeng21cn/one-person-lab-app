@@ -140,6 +140,8 @@ test('Full Homebrew follower permits only automatic delivery or exact bounded re
   assert.match(source, /\[\.\[\]\?\.artifacts\[\]\?\] \| length == 0/);
   assert.match(source, /stale_full_standard_cohort_assertion="\.release\.target_standard\.target_commitish == \.build_provenance\.app_sha"/);
   assert.match(source, /grep -F "\$stale_full_standard_cohort_assertion" failed-follower\.log/);
+  assert.match(source, /gh api --allow-escape-sequences "repos\/\$GITHUB_REPOSITORY\/actions\/jobs\/\$failed_job_id\/logs" > failed-follower\.log/);
+  assert.match(source, /gh api --allow-escape-sequences "repos\/\$GITHUB_REPOSITORY\/actions\/jobs\/\$failed_recovery_v2_job_id\/logs" > failed-recovery-v2\.log/);
   assert.match(source, /failed-recovery-run\.json/);
   assert.match(source, /failed_recovery_run_id/);
   assert.match(source, /failed-recovery-v2-run\.json/);
