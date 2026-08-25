@@ -5,7 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { buildFullPublicReleaseManifest } from '../../scripts/build-full-first-install-package.ts';
+import {
+  assertFullCarrierReleaseVersions,
+  buildFullPublicReleaseManifest,
+} from '../../scripts/build-full-first-install-package.ts';
 import { resolveFullCarrierProfile } from '../../scripts/build-full-first-install-package/carrier-profile.ts';
 
 function buildManifestFixture(t: test.TestContext, carrierId: 'aionui' | 'opl-studio') {
@@ -69,4 +72,24 @@ test('Studio Full public manifest keeps Studio identity instead of AionUI defaul
   assert.equal(manifest.carrier.bundle_id, 'cn.onepersonlab.opl.studio.preview');
   assert.equal(manifest.carrier.codex_carrier, 'opl_codex_native');
   assert.equal(manifest.carrier.aioncore_required, false);
+});
+
+test('Full carrier profiles keep AionUI calendar versions and Studio numeric SemVer separate', () => {
+  const aionui = resolveFullCarrierProfile({ carrierId: 'aionui' });
+  const studio = resolveFullCarrierProfile({ carrierId: 'opl-studio' });
+  assert.equal(aionui.versionPolicy, 'stable_calendar');
+  assert.equal(studio.versionPolicy, 'numeric_semver');
+  assert.doesNotThrow(() => assertFullCarrierReleaseVersions(studio, '0.1.1', '0.1.1'));
+  assert.throws(
+    () => assertFullCarrierReleaseVersions(studio, '0.1.1-preview.1', '0.1.1-preview.1'),
+    /expected numeric SemVer/,
+  );
+  assert.throws(
+    () => assertFullCarrierReleaseVersions(studio, '0.1.1', '0.1.2'),
+    /must equal opl-studio Full release version/,
+  );
+  assert.throws(
+    () => assertFullCarrierReleaseVersions(aionui, '0.1.1', '0.1.1'),
+    /Invalid stable App release version/,
+  );
 });

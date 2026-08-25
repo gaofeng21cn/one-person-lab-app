@@ -3816,6 +3816,7 @@
       "aionui": {
         "schema": "opl_app_full_payload_carrier_profile.v1",
         "carrier_id": "aionui",
+        "version_policy": "stable_calendar",
         "profile_id": "opl-aionui-full-first-install",
         "product_name": "One Person Lab",
         "app_bundle_name": "One Person Lab.app",
@@ -3838,6 +3839,7 @@
       "opl-studio": {
         "schema": "opl_app_full_payload_carrier_profile.v1",
         "carrier_id": "opl-studio",
+        "version_policy": "numeric_semver",
         "profile_id": "opl-studio-full-first-install",
         "product_name": "One Person Lab Preview",
         "app_bundle_name": "One Person Lab Preview.app",

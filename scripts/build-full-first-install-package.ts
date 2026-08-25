@@ -63,6 +63,20 @@ const MANUAL_LOCAL_BUILD_ID_ENV = 'OPL_MANUAL_LOCAL_BUILD_ID';
 const MANUAL_LOCAL_SOURCE_PROVENANCE_ENV = 'OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256';
 const MANUAL_LOCAL_SOURCE_LOCK_ENV = 'OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256';
 
+export function assertFullCarrierReleaseVersions(carrier, version, updaterVersion) {
+  if (carrier.versionPolicy === 'stable_calendar') {
+    assertReleaseVersionNotFuture('stable', version);
+    assertUpdaterVersionMatchesDisplay('stable', version, updaterVersion);
+    return;
+  }
+  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) {
+    throw new Error(`Invalid ${carrier.carrierId} Full release version ${version}; expected numeric SemVer.`);
+  }
+  if (updaterVersion !== version) {
+    throw new Error(`Updater version ${updaterVersion || '<empty>'} must equal ${carrier.carrierId} Full release version ${version}.`);
+  }
+}
+
 function readJsonIfExists(filePath) {
   if (!fs.existsSync(filePath)) {
     return null;
@@ -194,8 +208,7 @@ export function materializeFullKimiCuOfflineSeed(prepared, input = {}) {
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const carrier = resolveFullCarrierProfile({ carrierId: options.carrierId });
-  assertReleaseVersionNotFuture('stable', options.version);
-  assertUpdaterVersionMatchesDisplay('stable', options.version, options.updaterVersion);
+  assertFullCarrierReleaseVersions(carrier, options.version, options.updaterVersion);
   const manualLocalAppIdentity = resolveManualLocalAppIdentity(options);
   const artifactNames = buildFullPackageArtifactNames(options.version, carrier);
   fs.mkdirSync(options.outDir, { recursive: true });

@@ -13,6 +13,7 @@ export type FullCarrierId = 'aionui' | 'opl-studio';
 export type FullCarrierProfile = {
   schema: 'opl_app_full_payload_carrier_profile.v1';
   carrierId: FullCarrierId;
+  versionPolicy: 'stable_calendar' | 'numeric_semver';
   profileId: string;
   productName: string;
   appBundleName: string;
@@ -36,6 +37,7 @@ export type FullCarrierProfile = {
 type CarrierProfileContract = {
   schema: 'opl_app_full_payload_carrier_profile.v1';
   carrier_id: FullCarrierId;
+  version_policy: FullCarrierProfile['versionPolicy'];
   profile_id: string;
   product_name: string;
   app_bundle_name: string;
@@ -89,6 +91,8 @@ function validateProfile(value: unknown, carrierId: string): CarrierProfileContr
   invariant(profile.carrier_id === carrierId, `Full payload carrier profile ${carrierId} has an invalid carrier_id.`);
   invariant(profile.carrier_id === 'aionui' || profile.carrier_id === 'opl-studio',
     `Unsupported Full payload carrier: ${carrierId}`);
+  invariant(profile.version_policy === (carrierId === 'aionui' ? 'stable_calendar' : 'numeric_semver'),
+    `${carrierId} Full payload profile has an invalid version_policy.`);
   for (const [key, valueToCheck] of Object.entries(profile)) {
     if (key === 'shell_runtime_path') {
       invariant(valueToCheck === null || typeof valueToCheck === 'string',
@@ -127,6 +131,7 @@ export function resolveFullCarrierProfile(options: CarrierProfileOptions = {}): 
   return Object.freeze({
     schema: profile.schema,
     carrierId: profile.carrier_id,
+    versionPolicy: profile.version_policy,
     profileId: profile.profile_id,
     productName: profile.product_name,
     appBundleName: profile.app_bundle_name,
