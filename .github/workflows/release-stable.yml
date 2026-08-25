@@ -52,16 +52,6 @@ on:
         required: false
         default: ''
         type: string
-      version:
-        description: Legacy raw Standard input; must be empty because the admission manifest owns version allocation
-        required: false
-        default: ''
-        type: string
-      include_full:
-        description: Legacy checkpoint compatibility; new Standard requests must keep this false
-        required: false
-        default: false
-        type: boolean
       desktop_additional_platforms:
         description: Canonical JSON array of audited optional Stable platform IDs bound by the authority
         required: false
@@ -142,11 +132,6 @@ on:
         required: false
         default: ''
         type: string
-      operation_deadline_at:
-        description: Optional bounded Studio Full notarization deadline
-        required: false
-        default: ''
-        type: string
       prior_standard_artifact_run_id:
         description: Exact failed Standard run containing reusable signed and notarized bytes for the frozen cohort
         required: false
@@ -185,10 +170,10 @@ jobs:
           OPERATION_ID: ${{ inputs.operation_id }}
           AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
           AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
-          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_VERSION: ''
           RELEASE_INTENT: ${{ inputs.release_intent }}
           PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
-          INCLUDE_FULL: ${{ inputs.include_full }}
+          INCLUDE_FULL: 'false'
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
           REQUESTED_SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
           REQUESTED_FRAMEWORK_REF: ${{ inputs.framework_ref }}
@@ -337,15 +322,15 @@ jobs:
           OPERATION_ID: ${{ inputs.operation_id }}
           AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
           AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
-          REQUESTED_VERSION: ${{ inputs.version }}
-          INCLUDE_FULL: ${{ inputs.include_full }}
+          REQUESTED_VERSION: ''
+          INCLUDE_FULL: 'false'
           SHELL_REF: ${{ inputs.shell_ref }}
           SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
           PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
           PRIOR_STANDARD_ARTIFACT_RUN_ID: ${{ inputs.prior_standard_artifact_run_id }}
-          REQUESTED_OPERATION_DEADLINE_AT: ${{ inputs.operation_deadline_at }}
+          REQUESTED_OPERATION_DEADLINE_AT: ''
         shell: bash
         run: |
           set -euo pipefail
@@ -524,7 +509,7 @@ jobs:
           OPERATION_ID: ${{ inputs.operation_id }}
           AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
           AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
-          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_VERSION: ''
           RELEASE_INTENT: ${{ inputs.release_intent }}
           PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
@@ -534,7 +519,7 @@ jobs:
           SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
           PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
           PRIOR_STANDARD_ARTIFACT_RUN_ID: ${{ inputs.prior_standard_artifact_run_id }}
-          INCLUDE_FULL: ${{ inputs.include_full }}
+          INCLUDE_FULL: 'false'
           REQUESTED_DESKTOP_ADDITIONAL_PLATFORMS: ${{ inputs.desktop_additional_platforms }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
@@ -798,11 +783,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           OPERATION: ${{ inputs.operation }}
-          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_VERSION: ''
           RELEASE_INTENT: ${{ inputs.release_intent }}
           PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
           REQUESTED_APP_REF: ${{ inputs.app_ref }}
-          INCLUDE_FULL: ${{ inputs.include_full }}
+          INCLUDE_FULL: 'false'
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
           REQUESTED_SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
           REQUESTED_FRAMEWORK_REF: ${{ inputs.framework_ref }}

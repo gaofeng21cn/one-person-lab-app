@@ -16,6 +16,10 @@ const runText = (job: Record<string, any>) => readSteps(job)
   .join('\n');
 
 test('Studio Full uses a separate same-tag append entry', () => {
+  assert.equal(Object.keys(stable.on.workflow_dispatch.inputs).length, 25);
+  for (const derivedInput of ['version', 'include_full', 'operation_deadline_at']) {
+    assert.equal(stable.on.workflow_dispatch.inputs[derivedInput], undefined);
+  }
   assert.deepEqual(stable.on.workflow_dispatch.inputs.entry.options, [
     'framework_release',
     'studio_carrier_admission',
