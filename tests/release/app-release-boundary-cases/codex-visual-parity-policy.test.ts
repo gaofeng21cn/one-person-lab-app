@@ -161,6 +161,11 @@ test('DSH visual source policy is discoverable and keeps sessions primary', () =
     paletteGroups.opl_capabilities.surface_actions.existing_conversation,
     ['invoke_opl_capability_for_current_turn'],
   );
+  assert.equal(
+    paletteGroups.opl_capabilities.package_entry_cardinality,
+    'one_shortcut_per_package_using_first_enabled_required_skill',
+  );
+  assert.equal(paletteGroups.opl_capabilities.duplicate_package_entries_for_multiple_required_skills, false);
   assert.equal(paletteGroups.opl_capabilities.existing_session_rebinding_allowed, false);
   assert.equal(
     paletteGroups.opl_capabilities.activation_policy,

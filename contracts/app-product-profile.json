@@ -1319,6 +1319,8 @@
             },
             "source_ref": "app_state.agent_packages.directory.entries + ordinary_capability_selector_policy",
             "membership_policy": "official_OPL_non_standard_agent_packages_with_enabled_required_skills_projected_by_the_active_adapter",
+            "package_entry_cardinality": "one_shortcut_per_package_using_first_enabled_required_skill",
+            "duplicate_package_entries_for_multiple_required_skills": false,
             "availability_policy": "render_only_owner_or_carrier_projected_skill_matches_without_app_package_allowlist",
             "activation_policy": "skill_injection_for_current_turn_only_no_package_activation_or_lifecycle_mutation",
             "thread_ownership_policy": "does_not_change_codex_thread_agent_identity_or_create_a_second_scheduler",
