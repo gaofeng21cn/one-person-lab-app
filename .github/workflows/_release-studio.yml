@@ -622,7 +622,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       actions: read
-      contents: read
+      contents: write
     env:
       STUDIO_VERSION: ${{ needs.resolve-checkpoint.outputs.studio_version }}
     steps:
@@ -678,7 +678,7 @@ jobs:
 
       - name: Verify GitHub capability and same-tag prestate before mutation
         env:
-          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
@@ -729,7 +729,7 @@ jobs:
 
       - name: Publish exact Studio release once
         env:
-          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
         shell: bash
