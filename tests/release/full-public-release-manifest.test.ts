@@ -38,7 +38,7 @@ function buildManifestFixture(t: test.TestContext, carrierId: 'aionui' | 'opl-st
     runtimeNativeTrust: { status: 'passed' },
     appBundleTrimReport: null,
     packageBoundaryAudit: null,
-    precompressionGate: null,
+      precompressionGate: null,
       carrier,
     }),
     dmgPath,
