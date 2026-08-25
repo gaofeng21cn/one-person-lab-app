@@ -1658,7 +1658,7 @@ export const appOwnedUnifiedContextMenu = {
     },
     {
       id: "agent_packages",
-      scope: "new_session_configuration_only",
+      scope: "new_session_configuration_or_existing_turn_invocation",
       label_i18n: {
         "zh-CN": "OPL 标准智能体",
         "en-US": "OPL standard agents",
@@ -1680,9 +1680,37 @@ export const appOwnedUnifiedContextMenu = {
       unknown_standard_agent_policy:
         "include_unknown_package_ids_only_when_they_match_opl_standard_agent_membership",
       existing_session_rebinding_allowed: false,
+      existing_conversation_invocation_policy:
+        "invoke_selected_standard_agent_for_current_turn_without_rebinding_the_codex_thread",
       surface_actions: {
         home_new_session: ["select_new_session_agent_package"],
-        existing_conversation: [],
+        existing_conversation: ["invoke_agent_package_for_current_turn"],
+      },
+    },
+    {
+      id: "opl_capabilities",
+      scope: "current_turn_invocation_only",
+      label_i18n: {
+        "zh-CN": "OPL 能力",
+        "en-US": "OPL capabilities",
+      },
+      source_ref:
+        "app_state.agent_packages.directory.entries + ordinary_capability_selector_policy",
+      membership_policy:
+        "official_OPL_non_standard_agent_packages_with_enabled_required_skills_projected_by_the_active_adapter",
+      package_entry_cardinality:
+        "one_shortcut_per_package_using_first_enabled_required_skill",
+      duplicate_package_entries_for_multiple_required_skills: false,
+      availability_policy:
+        "render_only_owner_or_carrier_projected_skill_matches_without_app_package_allowlist",
+      activation_policy:
+        "skill_injection_for_current_turn_only_no_package_activation_or_lifecycle_mutation",
+      thread_ownership_policy:
+        "does_not_change_codex_thread_agent_identity_or_create_a_second_scheduler",
+      existing_session_rebinding_allowed: false,
+      surface_actions: {
+        home_new_session: ["invoke_opl_capability_for_current_turn"],
+        existing_conversation: ["invoke_opl_capability_for_current_turn"],
       },
     },
     {
