@@ -1,0 +1,902 @@
+name: OPL Studio Full Same-Tag Append
+
+on:
+  workflow_call:
+    inputs:
+      app_ref:
+        description: Exact one-person-lab-app commit used as the Full builder and release executor
+        required: true
+        type: string
+      studio_sha:
+        description: Exact OPL Studio commit whose Standard Release is the append target
+        required: true
+        type: string
+      studio_tree:
+        description: Exact OPL Studio tree bound to studio_sha
+        required: true
+        type: string
+      studio_tag:
+        description: Existing published Studio Standard tag and same-tag Full append target
+        required: true
+        type: string
+      studio_version:
+        description: Numeric Studio package version bound to studio_tag
+        required: true
+        type: string
+      framework_ref:
+        description: Exact OPL Framework source SHA consumed by the Full builder
+        required: true
+        type: string
+      mas_ref:
+        description: Exact MAS source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      mas_scholar_skills_ref:
+        description: Exact MAS Scholar Skills source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      mag_ref:
+        description: Exact MAG source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      rca_ref:
+        description: Exact RCA source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      meta_agent_ref:
+        description: Exact OPL Meta Agent source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      bookforge_ref:
+        description: Exact OPL BookForge source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      opl_flow_ref:
+        description: Exact OPL Flow source SHA resolved by App-owned Studio Full admission
+        required: true
+        type: string
+      officecli_ref:
+        description: Exact OfficeCLI source SHA from the App Full source manifest
+        required: true
+        type: string
+      mineru_ref:
+        description: Exact MinerU Ecosystem source SHA from the App Full source manifest
+        required: true
+        type: string
+      standard_release_id:
+        description: Exact mutable Studio Standard GitHub Release ID
+        required: true
+        type: string
+      standard_release_tag:
+        description: Exact Studio Standard Release tag; must equal studio_tag
+        required: true
+        type: string
+      prior_studio_full_artifact_run_id:
+        description: Optional failed Studio Full run containing reusable unchanged Full bytes
+        required: false
+        default: ''
+        type: string
+      operation_deadline_at:
+        description: Optional bounded notarization observation deadline
+        required: false
+        default: ''
+        type: string
+    secrets:
+      BUILD_CERTIFICATE_BASE64:
+        required: false
+      P12_PASSWORD:
+        required: false
+      APPLE_ID:
+        required: false
+      APPLE_ID_PASSWORD:
+        required: false
+      TEAM_ID:
+        required: false
+      IDENTITY:
+        required: false
+      KEYCHAIN_PASSWORD:
+        required: false
+      OPL_GITHUB_RELEASE_ADMIN_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  STUDIO_REPOSITORY: gaofeng21cn/opl-studio
+  STUDIO_ARTIFACT_PREFIX: opl-studio-full-build
+
+jobs:
+  build-full-signed-notarized:
+    if: ${{ inputs.prior_studio_full_artifact_run_id == '' }}
+    runs-on: macos-15
+    timeout-minutes: 150
+    environment: release-stable
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Validate exact Studio Full inputs
+        env:
+          APP_REF: ${{ inputs.app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_VERSION: ${{ inputs.studio_version }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          STANDARD_RELEASE_ID: ${{ inputs.standard_release_id }}
+          STANDARD_RELEASE_TAG: ${{ inputs.standard_release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          [[ "$APP_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$STUDIO_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$STUDIO_TAG" = "v$STUDIO_VERSION"
+          test "$STANDARD_RELEASE_TAG" = "$STUDIO_TAG"
+          [[ "$STANDARD_RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
+
+      - name: Checkout exact App builder
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab-app
+          ref: ${{ inputs.app_ref }}
+          path: app-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact Studio source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-studio
+          ref: ${{ inputs.studio_sha }}
+          path: studio-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact Framework source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab
+          ref: ${{ inputs.framework_ref }}
+          path: framework-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate exact Full source refs and toolchain contract
+        id: source-refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          third_party="app-source/contracts/app-full-third-party-source-manifest.json"
+          test -s "$third_party"
+          mas_ref='${{ inputs.mas_ref }}'
+          mas_scholar_skills_ref='${{ inputs.mas_scholar_skills_ref }}'
+          mag_ref='${{ inputs.mag_ref }}'
+          rca_ref='${{ inputs.rca_ref }}'
+          meta_agent_ref='${{ inputs.meta_agent_ref }}'
+          bookforge_ref='${{ inputs.bookforge_ref }}'
+          opl_flow_ref='${{ inputs.opl_flow_ref }}'
+          officecli_ref='${{ inputs.officecli_ref }}'
+          mineru_ref='${{ inputs.mineru_ref }}'
+          for ref in "$mas_ref" "$mas_scholar_skills_ref" "$mag_ref" "$rca_ref" "$meta_agent_ref" "$bookforge_ref" "$opl_flow_ref" "$officecli_ref" "$mineru_ref"; do
+            [[ "$ref" =~ ^[0-9a-f]{40}$ ]]
+          done
+          jq -n \
+            --arg mas "$mas_ref" \
+            --arg mas_scholar_skills "$mas_scholar_skills_ref" \
+            --arg mag "$mag_ref" \
+            --arg rca "$rca_ref" \
+            --arg meta_agent "$meta_agent_ref" \
+            --arg bookforge "$bookforge_ref" \
+            --arg opl_flow "$opl_flow_ref" \
+            --arg officecli "$officecli_ref" \
+            --arg mineru "$mineru_ref" \
+            --arg source_manifest_sha256 "$(shasum -a 256 "$third_party" | awk '{print $1}')" \
+            '{schema:"opl_studio_full_source_resolution.v1",resolution:{source_refs_bound_by_app_admission:true,immutable_checkout_required:true},source_manifest_sha256:$source_manifest_sha256,sources:{mas:{repository:"gaofeng21cn/med-autoscience",requested_ref:"admitted_exact_sha",resolved_commit:$mas},mas_scholar_skills:{repository:"gaofeng21cn/mas-scholar-skills",requested_ref:"admitted_exact_sha",resolved_commit:$mas_scholar_skills},mag:{repository:"gaofeng21cn/med-autogrant",requested_ref:"admitted_exact_sha",resolved_commit:$mag},rca:{repository:"gaofeng21cn/redcube-ai",requested_ref:"admitted_exact_sha",resolved_commit:$rca},meta_agent:{repository:"gaofeng21cn/opl-meta-agent",requested_ref:"admitted_exact_sha",resolved_commit:$meta_agent},bookforge:{repository:"gaofeng21cn/opl-bookforge",requested_ref:"admitted_exact_sha",resolved_commit:$bookforge},opl_flow:{repository:"gaofeng21cn/opl-flow",requested_ref:"admitted_exact_sha",resolved_commit:$opl_flow},officecli:{repository:"iOfficeAI/OfficeCLI",requested_ref:"manifest_exact",resolved_commit:$officecli},mineru:{repository:"opendatalab/MinerU-Ecosystem",requested_ref:"manifest_exact",resolved_commit:$mineru}}}' \
+            > studio-full-source-refs.json
+          {
+            jq -r '.sources.mas.resolved_commit | "mas_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.mas_scholar_skills.resolved_commit | "mas_scholar_skills_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.mag.resolved_commit | "mag_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.rca.resolved_commit | "rca_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.meta_agent.resolved_commit | "meta_agent_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.bookforge.resolved_commit | "bookforge_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.opl_flow.resolved_commit | "opl_flow_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.officecli.resolved_commit | "officecli_ref=\(.)"' studio-full-source-refs.json
+            jq -r '.sources.mineru.resolved_commit | "mineru_ref=\(.)"' studio-full-source-refs.json
+          } >> "$GITHUB_OUTPUT"
+          for selector in \
+            bun_version:.toolchain.bun.version go_version:.toolchain.go.version \
+            python_version:.toolchain.python.version uv_version:.toolchain.uv.version zstd_version:.toolchain.zstd.version \
+            temporal_version:.runtime_payloads.temporal_cli.version temporal_sha256:.runtime_payloads.temporal_cli.darwin_arm64_archive_sha256 \
+            officecli_version:.runtime_payloads.officecli.version officecli_sha256:.runtime_payloads.officecli.darwin_arm64_asset_sha256; do
+            output="${selector%%:*}"
+            query="${selector#*:}"
+            value="$(jq -er "$query" "$third_party")"
+            echo "${output}=${value}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Checkout exact OPL module sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/med-autoscience
+          ref: ${{ steps.source-refs.outputs.mas_ref }}
+          path: med-autoscience
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact MAS Scholar Skills
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/mas-scholar-skills
+          ref: ${{ steps.source-refs.outputs.mas_scholar_skills_ref }}
+          path: mas-scholar-skills
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact MAG
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/med-autogrant
+          ref: ${{ steps.source-refs.outputs.mag_ref }}
+          path: med-autogrant
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact RCA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/redcube-ai
+          ref: ${{ steps.source-refs.outputs.rca_ref }}
+          path: redcube-ai
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact OPL Meta Agent
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-meta-agent
+          ref: ${{ steps.source-refs.outputs.meta_agent_ref }}
+          path: opl-meta-agent
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact OPL BookForge
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-bookforge
+          ref: ${{ steps.source-refs.outputs.bookforge_ref }}
+          path: opl-bookforge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact OPL Flow
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-flow
+          ref: ${{ steps.source-refs.outputs.opl_flow_ref }}
+          path: opl-flow
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact OfficeCLI
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: iOfficeAI/OfficeCLI
+          ref: ${{ steps.source-refs.outputs.officecli_ref }}
+          path: OfficeCLI
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact MinerU Ecosystem
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: opendatalab/MinerU-Ecosystem
+          ref: ${{ steps.source-refs.outputs.mineru_ref }}
+          path: MinerU-Ecosystem
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js and Bun
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ steps.source-refs.outputs.bun_version }}
+
+      - name: Setup exact uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ steps.source-refs.outputs.uv_version }}
+          enable-cache: false
+
+      - name: Setup exact Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ steps.source-refs.outputs.go_version }}
+          cache: true
+          cache-dependency-path: MinerU-Ecosystem/cli/mineru-open-api/go.sum
+
+      - name: Setup exact Python
+        shell: bash
+        env:
+          EXPECTED_PYTHON_VERSION: ${{ steps.source-refs.outputs.python_version }}
+          EXPECTED_UV_VERSION: ${{ steps.source-refs.outputs.uv_version }}
+        run: |
+          set -euo pipefail
+          uv python install --managed-python "$EXPECTED_PYTHON_VERSION"
+          python_executable="$(uv python find --managed-python "$EXPECTED_PYTHON_VERSION")"
+          test "$("$python_executable" --version 2>&1)" = "Python $EXPECTED_PYTHON_VERSION"
+          python_root="$(cd "$(dirname "$python_executable")/.." && pwd -P)"
+          toolchain_root="$RUNNER_TEMP/opl-studio-full-python-toolchain"
+          uv venv --python "$python_executable" "$toolchain_root"
+          uv pip install --python "$toolchain_root/bin/python" --no-deps "uv==$EXPECTED_UV_VERSION"
+          "$toolchain_root/bin/uv" --version | grep -F "uv $EXPECTED_UV_VERSION"
+          echo "$toolchain_root/bin" >> "$GITHUB_PATH"
+          {
+            echo "OPL_FULL_PYTHON_ROOT=$python_root"
+            echo "OPL_FULL_PYTHON_BIN=$python_executable"
+            echo "OPL_FULL_UV_BIN=$toolchain_root/bin/uv"
+          } >> "$GITHUB_ENV"
+          export PATH="$toolchain_root/bin:$PATH"
+          export UV_PYTHON="$python_executable"
+          python --version | grep -Fx "Python $EXPECTED_PYTHON_VERSION"
+          uv --version | grep -F "uv $EXPECTED_UV_VERSION"
+
+      - name: Install exact build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --prefix app-source
+          npm ci --prefix studio-source
+          npm ci --prefix framework-source
+          npm ci --prefix redcube-ai --ignore-scripts
+          export UV_PYTHON="$OPL_FULL_PYTHON_BIN"
+          uv sync --project med-autoscience --no-dev
+          uv sync --project med-autogrant --no-dev
+
+      - name: Install exact Full native tools
+        shell: bash
+        env:
+          EXPECTED_ZSTD_VERSION: ${{ steps.source-refs.outputs.zstd_version }}
+          EXPECTED_TEMPORAL_VERSION: ${{ steps.source-refs.outputs.temporal_version }}
+          EXPECTED_TEMPORAL_SHA256: ${{ steps.source-refs.outputs.temporal_sha256 }}
+          EXPECTED_OFFICECLI_VERSION: ${{ steps.source-refs.outputs.officecli_version }}
+          EXPECTED_OFFICECLI_SHA256: ${{ steps.source-refs.outputs.officecli_sha256 }}
+        run: |
+          set -euo pipefail
+          brew install zstd
+          zstd --version | grep -F "v$EXPECTED_ZSTD_VERSION"
+          mineru_root="$GITHUB_WORKSPACE/MinerU-Ecosystem/cli/mineru-open-api"
+          mineru_version="$(cat "$mineru_root/VERSION")"
+          mineru_commit="$(git -C "$GITHUB_WORKSPACE/MinerU-Ecosystem" rev-parse --short HEAD)"
+          mineru_built_at="$(git -C "$GITHUB_WORKSPACE/MinerU-Ecosystem" show -s --format=%cI HEAD)"
+          (
+            cd "$mineru_root"
+            go install -ldflags "-X github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api/cmd.version=$mineru_version -X github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api/cmd.commit=$mineru_commit -X github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api/cmd.date=$mineru_built_at" .
+          )
+          mkdir -p "$HOME/.local/bin"
+          officecli_bin="$HOME/.local/bin/officecli"
+          curl -fL --retry 5 --retry-all-errors --retry-delay 5 \
+            "https://github.com/iOfficeAI/OfficeCLI/releases/download/v$EXPECTED_OFFICECLI_VERSION/officecli-mac-arm64" \
+            -o "$officecli_bin"
+          echo "$EXPECTED_OFFICECLI_SHA256  $officecli_bin" | shasum -a 256 -c -
+          chmod +x "$officecli_bin"
+          temporal_archive="$RUNNER_TEMP/temporal_cli_${EXPECTED_TEMPORAL_VERSION}_darwin_arm64.tar.gz"
+          curl -fL --retry 5 --retry-all-errors --retry-delay 5 \
+            "https://github.com/temporalio/cli/releases/download/v$EXPECTED_TEMPORAL_VERSION/temporal_cli_${EXPECTED_TEMPORAL_VERSION}_darwin_arm64.tar.gz" \
+            -o "$temporal_archive"
+          echo "$EXPECTED_TEMPORAL_SHA256  $temporal_archive" | shasum -a 256 -c -
+          tar -xzf "$temporal_archive" -C "$HOME/.local/bin" temporal
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/go/bin:$HOME/.local/bin:$PATH"
+          officecli --version
+          mineru-open-api version
+          temporal --version | grep -F "temporal version $EXPECTED_TEMPORAL_VERSION"
+          go version | grep -F "go${{ steps.source-refs.outputs.go_version }}"
+          bun --version | grep -Fx '${{ steps.source-refs.outputs.bun_version }}'
+          python --version | grep -Fx 'Python ${{ steps.source-refs.outputs.python_version }}'
+          uv --version | grep -F 'uv ${{ steps.source-refs.outputs.uv_version }}'
+          {
+            echo "OPL_FULL_BUN_BIN=$(command -v bun)"
+            echo "OPL_FULL_TEMPORAL_CLI_BIN=$(command -v temporal)"
+            echo "OPL_FULL_TEMPORAL_CLI_ARCHIVE=$temporal_archive"
+            echo "OPL_FULL_OFFICECLI_BIN=$(command -v officecli)"
+            echo "OPL_FULL_MINERU_OPEN_API_BIN=$(command -v mineru-open-api)"
+          } >> "$GITHUB_ENV"
+
+      - name: Record Full source and toolchain observation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const path = require('node:path');
+          const source = JSON.parse(fs.readFileSync('studio-full-source-refs.json', 'utf8'));
+          const commands = [
+            ['bun', ['--version']],
+            ['go', ['version']],
+            ['python', ['--version']],
+            ['uv', ['--version']],
+            ['zstd', ['--version']],
+            ['temporal', ['--version']],
+            ['officecli', ['--version']],
+            ['mineru-open-api', ['version']],
+          ];
+          const sha256File = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          const components = Object.fromEntries(commands.map(([command, args]) => {
+            const executable = execFileSync('which', [command], { encoding: 'utf8' }).trim();
+            const resolved = fs.realpathSync(executable);
+            return [command, {
+              executable_path: executable,
+              resolved_executable_path: resolved,
+              executable_sha256: sha256File(resolved),
+              version_output: execFileSync(command, args, { encoding: 'utf8' }).trim(),
+            }];
+          }));
+          fs.writeFileSync('studio-full-toolchain-observation.json', `${JSON.stringify({
+            schema: 'opl_studio_full_toolchain_observation.v1',
+            source_resolution: source,
+            components,
+          }, null, 2)}\n`);
+          NODE
+
+      - name: Bind exact source identities and read the Standard Release prestate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_REF: ${{ inputs.app_ref }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_VERSION: ${{ inputs.studio_version }}
+          STANDARD_RELEASE_ID: ${{ inputs.standard_release_id }}
+          STANDARD_RELEASE_TAG: ${{ inputs.standard_release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C app-source rev-parse HEAD)" = "$APP_REF"
+          test "$(git -C studio-source rev-parse HEAD)" = "$STUDIO_SHA"
+          test "$(git -C studio-source rev-parse 'HEAD^{tree}')" = "$STUDIO_TREE"
+          test "$(git -C framework-source rev-parse HEAD)" = "${{ inputs.framework_ref }}"
+          test "$(node -p "require('./studio-source/package.json').version")" = "$STUDIO_VERSION"
+          gh api "repos/$STUDIO_REPOSITORY/releases/tags/$STANDARD_RELEASE_TAG" > standard-release-prestate.json
+          STANDARD_RELEASE_ID="$STANDARD_RELEASE_ID" STANDARD_RELEASE_TAG="$STANDARD_RELEASE_TAG" STUDIO_SHA="$STUDIO_SHA" node <<'NODE'
+          const fs = require('node:fs');
+          const release = JSON.parse(fs.readFileSync('standard-release-prestate.json', 'utf8'));
+          if (String(release.id) !== process.env.STANDARD_RELEASE_ID
+            || release.tag_name !== process.env.STANDARD_RELEASE_TAG
+            || release.target_commitish !== process.env.STUDIO_SHA
+            || release.draft !== false
+            || release.prerelease !== false
+            || release.immutable === true) {
+            throw new Error('Studio Standard Release prestate is not the exact published mutable same-tag target.');
+          }
+          if (!Array.isArray(release.assets) || release.assets.length === 0) throw new Error('Studio Standard assets are missing.');
+          const assets = release.assets.map((asset) => ({
+            name: asset.name,
+            size_bytes: Number(asset.size),
+            sha256: asset.digest,
+          }));
+          if (assets.some((asset) => !asset.name || !Number.isSafeInteger(asset.size_bytes) || asset.size_bytes <= 0 || !/^sha256:[0-9a-f]{64}$/.test(asset.sha256 || ''))) {
+            throw new Error('Studio Standard assets must expose exact size and SHA-256 digest metadata.');
+          }
+          if (!assets.some((asset) => asset.name === 'latest-mac.yml') || !assets.some((asset) => asset.name === 'latest-arm64-mac.yml')) {
+            throw new Error('Studio Standard updater metadata is incomplete.');
+          }
+          fs.writeFileSync('standard-assets.json', `${JSON.stringify({ schema: 'opl_studio_release_assets.v1', repository: process.env.STUDIO_REPOSITORY || 'gaofeng21cn/opl-studio', version: process.env.STUDIO_VERSION, tag: process.env.STANDARD_RELEASE_TAG, assets }, null, 2)}\n`);
+          fs.writeFileSync('standard-release-identity.json', `${JSON.stringify({ id: release.id, tag_name: release.tag_name, target_commitish: release.target_commitish, body_sha256: require('node:crypto').createHash('sha256').update(String(release.body || '')).digest('hex'), latest_assets: assets.filter((asset) => asset.name.startsWith('latest-')) }, null, 2)}\n`);
+          NODE
+          curl -fsSL "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/latest" > latest-prestate.json
+          jq -e --arg tag "$STANDARD_RELEASE_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' latest-prestate.json >/dev/null
+
+      - name: Verify protected Apple capabilities
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          IDENTITY: ${{ secrets.IDENTITY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types app-source/scripts/verify-apple-release-credentials.ts --output apple-credentials-preflight.json
+
+      - name: Import Developer ID identity
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          CONFIGURED_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          IDENTITY: ${{ secrets.IDENTITY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          keychain_path="$RUNNER_TEMP/opl-studio-full-release.keychain-db"
+          keychain_password="${CONFIGURED_KEYCHAIN_PASSWORD:-$(openssl rand -hex 32)}"
+          echo "::add-mask::$keychain_password"
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/opl-studio-full-release.p12"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 7200 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          security default-keychain -d user -s "$keychain_path"
+          security import "$RUNNER_TEMP/opl-studio-full-release.p12" -k "$keychain_path" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path"
+          security find-identity -v -p codesigning "$keychain_path" | grep -F "$IDENTITY" >/dev/null
+          {
+            echo "STUDIO_FULL_KEYCHAIN=$keychain_path"
+            echo "STUDIO_FULL_KEYCHAIN_PASSWORD=$keychain_password"
+          } >> "$GITHUB_ENV"
+
+      - name: Build the exact Studio desktop directory
+        working-directory: studio-source
+        env:
+          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          OPL_RELEASE_VERSION: ${{ inputs.studio_version }}
+          OPL_UPDATER_VERSION: ${{ inputs.studio_version }}
+          NODE_OPTIONS: --max-old-space-size=8192
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          security unlock-keychain -p "$STUDIO_FULL_KEYCHAIN_PASSWORD" "$STUDIO_FULL_KEYCHAIN"
+          npm run build:desktop
+          npx electron-builder --mac --arm64 --dir --config electron-builder.yml --publish never
+          app_paths=()
+          while IFS= read -r candidate; do app_paths+=("$candidate"); done < <(find out -maxdepth 2 -type d -name 'One Person Lab Preview.app' -print | LC_ALL=C sort)
+          test "${#app_paths[@]}" -eq 1
+          codesign --verify --deep --strict --verbose=2 "${app_paths[0]}"
+
+      - name: Build Studio Full through the App Full builder
+        env:
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
+          OPL_APP_SHELL_ADAPTER_CONTRACT: contracts/shell-adapters/opl-studio.json
+          OPL_FULL_CARRIER_ID: opl-studio
+          OPL_FRAMEWORK_ROOT: ${{ github.workspace }}/framework-source
+          OPL_FULL_FRAMEWORK_ROOT: ${{ github.workspace }}/framework-source
+          OPL_FULL_GUI_ROOT: ${{ github.workspace }}/studio-source
+          OPL_FULL_MAS_ROOT: ${{ github.workspace }}/med-autoscience
+          OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT: ${{ github.workspace }}/mas-scholar-skills
+          OPL_FULL_MAG_ROOT: ${{ github.workspace }}/med-autogrant
+          OPL_FULL_RCA_ROOT: ${{ github.workspace }}/redcube-ai
+          OPL_FULL_META_AGENT_ROOT: ${{ github.workspace }}/opl-meta-agent
+          OPL_FULL_BOOKFORGE_ROOT: ${{ github.workspace }}/opl-bookforge
+          OPL_FULL_OPL_FLOW_ROOT: ${{ github.workspace }}/opl-flow
+          OPL_FULL_OFFICECLI_ROOT: ${{ github.workspace }}/OfficeCLI
+          OPL_FULL_MINERU_ROOT: ${{ github.workspace }}/MinerU-Ecosystem
+          OPL_FULL_MINERU_DOCUMENT_EXTRACTOR_ROOT: ${{ github.workspace }}/app-source/assets/companion-skills/mineru-document-extractor
+          OPL_RELEASE_VERSION: ${{ inputs.studio_version }}
+          OPL_UPDATER_VERSION: ${{ inputs.studio_version }}
+          OPL_RUNTIME_CODESIGN_IDENTITY: ${{ secrets.IDENTITY }}
+          IDENTITY: ${{ secrets.IDENTITY }}
+          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          OPL_MAC_STRICT_SIGNING_CHECKS: 'true'
+          OPL_FULL_DMG_FORMAT: ULFO
+          OPL_FULL_DMG_COMPRESSION_LEVEL: '9'
+          CI: 'true'
+          NODE_OPTIONS: --max-old-space-size=8192
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p full-output
+          export OPL_FULL_BUN_BIN="$(command -v bun)"
+          export OPL_FULL_UV_BIN="$(command -v uv)"
+          export OPL_FULL_TEMPORAL_CLI_BIN="$(command -v temporal || true)"
+          npm --prefix app-source run release:full -- \
+            --version "${{ inputs.studio_version }}" \
+            --updater-version "${{ inputs.studio_version }}" \
+            --gui-root "$GITHUB_WORKSPACE/studio-source" \
+            --out-dir "$GITHUB_WORKSPACE/full-output" \
+            --runtime-cache-mode readwrite \
+            --skip-gui-build
+          dmg="full-output/one-person-lab-preview-full-${{ inputs.studio_version }}-mac-arm64.dmg"
+          manifest="full-output/opl-release-manifest.json"
+          test -s "$dmg" && test -s "$manifest"
+          jq -e '.schema == "opl_public_release_manifest.v1" and .carrier.carrier_id == "opl-studio" and .carrier.bundle_id == "cn.onepersonlab.opl.studio.preview" and .carrier.codex_carrier == "opl_codex_native" and .carrier.aioncore_required == false and .package_kind == "opl_studio_full_first_install_macos_arm64"' "$manifest" >/dev/null
+
+      - name: Notarize and staple the final Studio Full DMG
+        env:
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
+          OPL_RUNTIME_CODESIGN_IDENTITY: ${{ secrets.IDENTITY }}
+          OPL_MAC_STRICT_SIGNING_CHECKS: 'true'
+          OPL_RELEASE_VERSION: ${{ inputs.studio_version }}
+          OPERATION_DEADLINE_AT: ${{ inputs.operation_deadline_at }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTARY_ARGS=(
+            --dmg "full-output/one-person-lab-preview-full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+            --output full-output/full-apple-notarization-receipt.json
+          )
+          if [ -n "$OPERATION_DEADLINE_AT" ]; then
+            NOTARY_ARGS+=(--operation-deadline-at "$OPERATION_DEADLINE_AT")
+          fi
+          node --experimental-strip-types app-source/scripts/notarize-macos-dmg.ts "${NOTARY_ARGS[@]}"
+
+      - name: Validate Gatekeeper and bind final Full manifest bytes
+        env:
+          STUDIO_VERSION: ${{ inputs.studio_version }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="full-output/one-person-lab-preview-full-${STUDIO_VERSION}-mac-arm64.dmg"
+          manifest=full-output/opl-release-manifest.json
+          receipt=full-output/full-apple-notarization-receipt.json
+          jq -e --arg team "$TEAM_ID" '.schema == "opl_apple_notarized_dmg_receipt.v1" and .status == "passed" and .team_identifier == $team and .notarization.status == "Accepted" and .stapler_validate_status == "passed" and .dmg_spctl_status == "passed" and .app_spctl_status == "passed"' "$receipt" >/dev/null
+          hdiutil verify "$dmg"
+          mount_point="$(mktemp -d)"
+          mounted=false
+          cleanup() { if [ "$mounted" = true ]; then hdiutil detach "$mount_point" >/dev/null 2>&1 || true; fi; rm -rf "$mount_point"; }
+          trap cleanup EXIT
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount_point" >/dev/null
+          mounted=true
+          app_path="$(find "$mount_point" -maxdepth 2 -type d -name 'One Person Lab Preview.app' -print | head -1)"
+          test -n "$app_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          spctl --assess --type execute --verbose=4 "$app_path"
+          xcrun stapler validate "$dmg"
+          spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg"
+          node - "$dmg" "$manifest" "$receipt" "$app_path" "$TEAM_ID" "$STUDIO_TAG" "$STUDIO_SHA" "$STUDIO_TREE" <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const [dmgPath, manifestPath, receiptPath, appPath, teamId, tag, sha, tree] = process.argv.slice(2);
+          const bytes = fs.readFileSync(dmgPath);
+          const sha256 = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+          const dmgName = path.basename(dmgPath);
+          const gatekeeper = {
+            schema: 'opl_gatekeeper_launch_policy.v1',
+            package_kind: 'opl_studio_full_first_install_macos_arm64',
+            distribution_mode: 'developer_id_notarized',
+            app_path: appPath,
+            team_identifier: teamId,
+            codesign_status: 'passed',
+            spctl_status: 'passed',
+            dmg_codesign_status: 'passed',
+            dmg_spctl_status: 'passed',
+            stapler_validate_status: 'passed',
+            notarization_status: receipt.notarization?.status,
+            notarization_receipt_sha256: crypto.createHash('sha256').update(fs.readFileSync(receiptPath)).digest('hex'),
+            local_authorization_required: false,
+            quarantine_removal_required: false,
+          };
+          manifest.primary_install_asset = dmgName;
+          manifest.assets = [{ name: dmgName, role: 'full_first_install_carrier', size_bytes: bytes.length, sha256 }];
+          manifest.evidence = { ...(manifest.evidence || {}), gatekeeper_launch_policy: gatekeeper, apple_notarization_receipt: receipt };
+          manifest.carrier_context = {
+            publication_model: 'same_tag_mutable_standard_addon',
+            source: { repository: 'gaofeng21cn/opl-studio', commit_sha: sha, tree_sha: tree, tag, version: manifest.version },
+            full_assets_are_additive_only: true,
+          };
+          fs.writeFileSync(path.join(path.dirname(manifestPath), 'full-gatekeeper-launch-policy.json'), `${JSON.stringify(gatekeeper, null, 2)}\n`);
+          fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+          jq -e --arg name "$(basename "$dmg")" --arg sha "sha256:$(shasum -a 256 "$dmg" | awk '{print $1}')" --argjson size "$(stat -f '%z' "$dmg")" '.assets == [{name:$name, role:"full_first_install_carrier", size_bytes:$size, sha256:$sha}] and .evidence.gatekeeper_launch_policy.stapler_validate_status == "passed" and .carrier_context.publication_model == "same_tag_mutable_standard_addon"' "$manifest" >/dev/null
+
+      - name: Upload exact Studio Full build checkpoint
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: |
+            full-output
+            studio-full-source-refs.json
+            studio-full-toolchain-observation.json
+            standard-assets.json
+            standard-release-identity.json
+            latest-prestate.json
+            apple-credentials-preflight.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Remove ephemeral signing keychain
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [ -n "${STUDIO_FULL_KEYCHAIN:-}" ] && security list-keychains -d user | grep -F "$STUDIO_FULL_KEYCHAIN" >/dev/null 2>&1; then security delete-keychain "$STUDIO_FULL_KEYCHAIN" || true; fi
+          rm -f "$RUNNER_TEMP/opl-studio-full-release.p12"
+
+  restore-full:
+    if: ${{ inputs.prior_studio_full_artifact_run_id != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Validate prior Studio Full run identity
+        env:
+          PRIOR_RUN_ID: ${{ inputs.prior_studio_full_artifact_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PRIOR_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          test "$PRIOR_RUN_ID" != "$GITHUB_RUN_ID"
+
+      - name: Download exact prior Studio Full checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ inputs.prior_studio_full_artifact_run_id }}
+          run-id: ${{ inputs.prior_studio_full_artifact_run_id }}
+          github-token: ${{ github.token }}
+          path: restored-studio-full
+
+      - name: Validate restored Studio Full bytes without rebuilding
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="restored-studio-full/full-output/one-person-lab-preview-full-${{ inputs.studio_version }}-mac-arm64.dmg"
+          manifest=restored-studio-full/full-output/opl-release-manifest.json
+          test -s "$dmg" && test -s "$manifest"
+          jq -e --arg tag "${{ inputs.studio_tag }}" --arg sha "${{ inputs.studio_sha }}" --arg tree "${{ inputs.studio_tree }}" '.schema == "opl_public_release_manifest.v1" and .carrier.carrier_id == "opl-studio" and .package_kind == "opl_studio_full_first_install_macos_arm64" and .carrier_context.source.tag == $tag and .carrier_context.source.commit_sha == $sha and .carrier_context.source.tree_sha == $tree' "$manifest" >/dev/null
+
+      - name: Materialize restored Studio Full checkpoint in this run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: restored-studio-full
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  publish-full:
+    needs: [build-full-signed-notarized, restore-full]
+    if: ${{ always() && (needs.build-full-signed-notarized.result == 'success' || needs.build-full-signed-notarized.result == 'skipped') && (needs.restore-full.result == 'success' || needs.restore-full.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-stable
+    concurrency:
+      group: opl-studio-publication-global
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout exact App release adapter
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab-app
+          ref: ${{ inputs.app_ref }}
+          path: app-source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download current-run Studio Full checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-full-checkpoint
+
+      - name: Recheck Standard Release identity immediately before append
+        env:
+          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
+          STANDARD_RELEASE_ID: ${{ inputs.standard_release_id }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          gh api "repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG" > "$RUNNER_TEMP/studio-standard-before-append.json"
+          jq -e --arg id "$STANDARD_RELEASE_ID" --arg tag "$STUDIO_TAG" --arg sha "$STUDIO_SHA" '.id == ($id | tonumber) and .tag_name == $tag and .target_commitish == $sha and .draft == false and .prerelease == false and .immutable != true' "$RUNNER_TEMP/studio-standard-before-append.json" >/dev/null
+          jq -e --argjson expected "$(cat studio-full-checkpoint/standard-release-identity.json)" '.id == $expected.id and .tag_name == $expected.tag_name and .target_commitish == $expected.target_commitish' "$RUNNER_TEMP/studio-standard-before-append.json" >/dev/null
+
+      - name: Append exactly two Studio Full assets with CAS and no overwrite
+        env:
+          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types app-source/scripts/studio-full-release-adapter.ts append \
+            --repo "$STUDIO_REPOSITORY" \
+            --tag "${{ inputs.studio_tag }}" \
+            --studio-sha "${{ inputs.studio_sha }}" \
+            --studio-tree "${{ inputs.studio_tree }}" \
+            --standard-assets studio-full-checkpoint/standard-assets.json \
+            --dmg "studio-full-checkpoint/full-output/one-person-lab-preview-full-${{ inputs.studio_version }}-mac-arm64.dmg" \
+            --manifest studio-full-checkpoint/full-output/opl-release-manifest.json \
+            --output studio-full-append-receipt.json
+          jq -e '.schema == "opl_studio_full_same_tag_append_receipt.v1" and .status == "complete" and .uploaded | type == "array"' studio-full-append-receipt.json >/dev/null
+
+      - name: Upload Studio Full append receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-full-append-receipt-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: studio-full-append-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+  public-readback:
+    needs: [publish-full]
+    if: ${{ needs.publish-full.result == 'success' }}
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Download exact Studio Full checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: studio-full-checkpoint
+
+      - name: Read back public Standard and Full bytes anonymously
+        env:
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_VERSION: ${{ inputs.studio_version }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STANDARD_RELEASE_ID: ${{ inputs.standard_release_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_url="https://api.github.com/repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG"
+          latest_url="https://api.github.com/repos/$STUDIO_REPOSITORY/releases/latest"
+          curl -fsSL "$api_url" > public-release.json
+          curl -fsSL "$latest_url" > public-latest.json
+          jq -e --arg tag "$STUDIO_TAG" --arg sha "$STUDIO_SHA" --arg id "$STANDARD_RELEASE_ID" '.id == ($id | tonumber) and .tag_name == $tag and .target_commitish == $sha and .draft == false and .prerelease == false and .immutable != true' public-release.json >/dev/null
+          jq -e --arg tag "$STUDIO_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' public-latest.json >/dev/null
+          jq -e --slurpfile expected studio-full-checkpoint/standard-assets.json '([.assets[] | {name, size_bytes: .size, sha256: .digest}] | sort_by(.name)) == ($expected[0].assets | sort_by(.name))' public-release.json >/dev/null
+          mkdir -p public-assets
+          for name in "one-person-lab-preview-full-${STUDIO_VERSION}-mac-arm64.dmg" opl-release-manifest.json latest-mac.yml latest-arm64-mac.yml; do
+            curl -fsSL "https://github.com/$STUDIO_REPOSITORY/releases/download/$STUDIO_TAG/$name" -o "public-assets/$name"
+          done
+          node - <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const release = JSON.parse(fs.readFileSync('public-release.json', 'utf8'));
+          const expected = JSON.parse(fs.readFileSync('studio-full-checkpoint/standard-assets.json', 'utf8'));
+          const names = new Set(expected.assets.map((asset) => asset.name));
+          const fullNames = [`one-person-lab-preview-full-${process.env.STUDIO_VERSION}-mac-arm64.dmg`, 'opl-release-manifest.json'];
+          const records = [];
+          for (const name of [...fullNames, 'latest-mac.yml', 'latest-arm64-mac.yml']) {
+            const bytes = fs.readFileSync(path.join('public-assets', name));
+            const digest = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+            const remote = release.assets.find((asset) => asset.name === name);
+            if (!remote || Number(remote.size) !== bytes.length || remote.digest !== digest) throw new Error(`Anonymous public asset readback mismatch: ${name}`);
+            if (names.has(name) && !expected.assets.find((asset) => asset.name === name && asset.size_bytes === bytes.length && asset.sha256 === digest)) throw new Error(`Standard asset changed during Full append: ${name}`);
+            records.push({ name, size_bytes: bytes.length, sha256: digest, standard: names.has(name) });
+          }
+          const manifest = JSON.parse(fs.readFileSync('public-assets/opl-release-manifest.json', 'utf8'));
+          if (manifest.carrier?.carrier_id !== 'opl-studio' || manifest.primary_install_asset !== fullNames[0] || manifest.assets?.[0]?.sha256 !== records.find((record) => record.name === fullNames[0]).sha256) throw new Error('Public Studio Full manifest is not bound to the anonymous DMG bytes.');
+          fs.writeFileSync('public-asset-readback.json', `${JSON.stringify({ schema: 'opl_studio_full_public_asset_readback.v1', anonymous_download: true, standard_assets_unchanged: true, latest_unchanged: true, assets: records }, null, 2)}\n`);
+          NODE
+
+      - name: Upload anonymous public readback evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-full-public-readback-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: public-asset-readback.json
+          if-no-files-found: error
+          retention-days: 30

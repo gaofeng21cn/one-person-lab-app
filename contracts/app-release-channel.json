@@ -4302,6 +4302,62 @@
       "attestation_binding": "opl-release-manifest.json binds opl-release-attestation.json digest and exact Full asset name/size/digest",
       "source_or_bom_change_requires_new_version": true
     },
+    "studio_same_tag_append": {
+      "schema": "opl_studio_full_same_tag_append_policy.v1",
+      "authority_owner": "one-person-lab-app",
+      "repository": "gaofeng21cn/opl-studio",
+      "workflow": ".github/workflows/_release-studio-full.yml",
+      "entry_workflow": ".github/workflows/release-stable.yml",
+      "operation": "append_full",
+      "carrier_id": "opl-studio",
+      "target_release": "already_published_mutable_standard_release_same_tag",
+      "required_identity": [
+        "studio_sha",
+        "studio_tree",
+        "studio_tag",
+        "studio_version"
+      ],
+      "concurrency_group": "opl-studio-publication-global",
+      "allowed_assets": [
+        "one-person-lab-preview-full-<version>-mac-arm64.dmg",
+        "opl-release-manifest.json"
+      ],
+      "forbidden_mutations": [
+        "release_create",
+        "release_edit",
+        "tag_create",
+        "tag_update",
+        "release_notes",
+        "latest_pointer",
+        "latest-mac.yml",
+        "latest-arm64-mac.yml",
+        "standard_asset_overwrite",
+        "standard_asset_delete",
+        "full_asset_overwrite",
+        "full_asset_delete"
+      ],
+      "same_name_same_digest": "idempotent_skip",
+      "same_name_different_digest": "reject_without_mutation",
+      "unknown_upload_result": "readback_only_no_retry",
+      "standard_release_readback": {
+        "required": true,
+        "mutable": true,
+        "published": true,
+        "same_tag": true,
+        "standard_asset_manifest": "sealed_exact_size_and_sha256",
+        "updater_metadata_must_be_present_in_sealed_standard_assets": true
+      },
+      "completion_evidence": [
+        "exact_studio_full_manifest_identity",
+        "exact_full_asset_size_and_digest_readback",
+        "standard_asset_set_unchanged",
+        "release_notes_unchanged",
+        "latest_unchanged",
+        "updater_metadata_unchanged",
+        "anonymous_public_asset_readback"
+      ],
+      "rule": "Studio Full is an additive same-tag payload on the dedicated Studio Standard Release. The adapter may append only the two carrier assets after exact CAS inspection; it cannot create or edit Release metadata, move Latest, overwrite Standard assets, or retry an upload whose outcome is not proven by exact readback."
+    },
     "payload_boundary": {
       "role": "declared_payload_assembly_and_validation",
       "allowed_actions": [

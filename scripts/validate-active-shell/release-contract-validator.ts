@@ -211,7 +211,10 @@ export function validateReleaseChannelContract(
     throw new Error(`Unsupported release validation profile: ${validationProfile}`);
   }
   validateReleaseCalendarGuard(releaseChannel.github_release_name);
-  validateSuccessorProtectedReleaseAdmission(releaseChannel.successor_delivery_target);
+  validateSuccessorProtectedReleaseAdmission(
+    releaseChannel.successor_delivery_target,
+    releaseChannel.full_first_install,
+  );
   validateDesktopReleaseKernel(releaseChannel.desktop_release_kernel);
   validateProviderConfigurationBoundary(releaseChannel.provider_configuration_boundary);
   const managedUpdatePlane = releaseChannel.managed_update_plane;
@@ -226,8 +229,9 @@ export function validateReleaseChannelContract(
   validateReleaseFullFirstInstallPayloads(releaseChannel);
 }
 
-function validateSuccessorProtectedReleaseAdmission(successor) {
+function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall) {
   const admission = successor?.protected_release_admission;
+  const studioFullAppend = fullFirstInstall?.studio_same_tag_append;
   if (
     successor?.candidate_id !== 'opl-studio'
     || successor?.role !== 'target_only_not_current_release_authority'
@@ -261,8 +265,39 @@ function validateSuccessorProtectedReleaseAdmission(successor) {
     || admission?.admission_mutation_policy?.release_or_asset_mutation_allowed !== false
     || admission?.admission_mutation_policy?.deployment_allowed !== false
     || admission?.admission_mutation_policy?.publication_allowed !== false
+    || studioFullAppend?.schema !== 'opl_studio_full_same_tag_append_policy.v1'
+    || studioFullAppend?.authority_owner !== 'one-person-lab-app'
+    || studioFullAppend?.repository !== 'gaofeng21cn/opl-studio'
+    || studioFullAppend?.workflow !== '.github/workflows/_release-studio-full.yml'
+    || studioFullAppend?.entry_workflow !== '.github/workflows/release-stable.yml'
+    || studioFullAppend?.operation !== 'append_full'
+    || studioFullAppend?.carrier_id !== 'opl-studio'
+    || studioFullAppend?.target_release !== 'already_published_mutable_standard_release_same_tag'
+    || studioFullAppend?.concurrency_group !== 'opl-studio-publication-global'
+    || studioFullAppend?.same_name_same_digest !== 'idempotent_skip'
+    || studioFullAppend?.same_name_different_digest !== 'reject_without_mutation'
+    || studioFullAppend?.unknown_upload_result !== 'readback_only_no_retry'
+    || studioFullAppend?.standard_release_readback?.required !== true
+    || studioFullAppend?.standard_release_readback?.mutable !== true
+    || studioFullAppend?.standard_release_readback?.published !== true
+    || studioFullAppend?.standard_release_readback?.same_tag !== true
+    || studioFullAppend?.standard_release_readback?.updater_metadata_must_be_present_in_sealed_standard_assets !== true
+    || !sameStringSet(studioFullAppend?.forbidden_mutations, [
+      'release_create',
+      'release_edit',
+      'tag_create',
+      'tag_update',
+      'release_notes',
+      'latest_pointer',
+      'latest-mac.yml',
+      'latest-arm64-mac.yml',
+      'standard_asset_overwrite',
+      'standard_asset_delete',
+      'full_asset_overwrite',
+      'full_asset_delete',
+    ])
   ) {
-    throw new Error('Studio protected release admission must remain App-owned, plan-only, and fail closed');
+    throw new Error('Studio protected release admission and Full append policy must remain App-owned and fail closed');
   }
   assertDeepEqualJson(
     admission.identity_inputs,
@@ -281,6 +316,32 @@ function validateSuccessorProtectedReleaseAdmission(successor) {
       'carrier_release_qualification',
     ],
     'Studio protected release stage order',
+  );
+  assertDeepEqualJson(
+    studioFullAppend.required_identity,
+    ['studio_sha', 'studio_tree', 'studio_tag', 'studio_version'],
+    'Studio Full append identity inputs',
+  );
+  assertDeepEqualJson(
+    studioFullAppend.allowed_assets,
+    [
+      'one-person-lab-preview-full-<version>-mac-arm64.dmg',
+      'opl-release-manifest.json',
+    ],
+    'Studio Full append allowed assets',
+  );
+  assertDeepEqualJson(
+    studioFullAppend.completion_evidence,
+    [
+      'exact_studio_full_manifest_identity',
+      'exact_full_asset_size_and_digest_readback',
+      'standard_asset_set_unchanged',
+      'release_notes_unchanged',
+      'latest_unchanged',
+      'updater_metadata_unchanged',
+      'anonymous_public_asset_readback',
+    ],
+    'Studio Full append completion evidence',
   );
 }
 
