@@ -354,6 +354,104 @@ function runtimePayloadStatus(runtimeRoot, relativePath, options = {}) {
   };
 }
 
+function publicExportTarget(value) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return value.import ?? value.node ?? value.default;
+}
+
+function normalizeRequiredRuntimePath(value, label) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`Full runtime required built export ${label} must be a non-empty string.`);
+  }
+  const normalized = path.posix.normalize(value).replace(/^\.\//, '');
+  if (
+    normalized === ''
+    || normalized === '.'
+    || normalized === '..'
+    || normalized.startsWith('../')
+    || path.posix.isAbsolute(normalized)
+  ) {
+    throw new Error(`Full runtime required built export ${label} is unsafe: ${value}`);
+  }
+  return normalized;
+}
+
+function normalizePublicExportKey(value) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error('Full runtime required built export export_key must be a non-empty string.');
+  }
+  const normalized = path.posix.normalize(value).replace(/^\.\//, '');
+  if (
+    normalized === ''
+    || normalized.includes('..')
+    || path.posix.isAbsolute(normalized)
+  ) {
+    throw new Error(`Full runtime required built export export_key is unsafe: ${value}`);
+  }
+  return `./${normalized}`;
+}
+
+function requiredBuiltExportPayloadStatuses(runtimeRoot, { strict = false } = {}) {
+  const declarations = FULL_RUNTIME_PRUNE_POLICY.required_built_exports ?? [];
+  if (!Array.isArray(declarations)) {
+    throw new Error('Full runtime prune policy required_built_exports must be an array.');
+  }
+
+  return declarations.map((declaration) => {
+    if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) {
+      throw new Error('Full runtime required built export declaration must be an object.');
+    }
+    const packageRoot = normalizeRequiredRuntimePath(declaration.package_root, 'package_root');
+    const packageJson = normalizeRequiredRuntimePath(declaration.package_json, 'package_json');
+    const exportKey = normalizePublicExportKey(declaration.export_key);
+    const runtimePath = normalizeRequiredRuntimePath(declaration.runtime_path, 'runtime_path');
+    if (!packageJson.startsWith(`${packageRoot}/`)) {
+      throw new Error(`Full runtime required built export package_json escapes package_root: ${packageJson}`);
+    }
+    if (!runtimePath.startsWith(`${packageRoot}/`)) {
+      throw new Error(`Full runtime required built export runtime_path escapes package_root: ${runtimePath}`);
+    }
+
+    const packageJsonPath = path.join(runtimeRoot, ...packageJson.split('/'));
+    if (!fs.existsSync(packageJsonPath)) {
+      if (strict) {
+        throw new Error(`Full runtime required built export package metadata is missing: ${packageJson}`);
+      }
+      return {
+        ...runtimePayloadStatus(runtimeRoot, runtimePath),
+        role: declaration.role ?? null,
+        export_key: exportKey,
+        package_json: packageJson,
+      };
+    }
+    const packageManifest = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const exportValue = packageManifest.exports?.[exportKey];
+    const target = publicExportTarget(exportValue);
+    if (typeof target !== 'string' || target.trim() === '') {
+      throw new Error(`Full runtime required built export is missing from ${packageJson} at ${exportKey}.`);
+    }
+    const normalizedTarget = normalizeRequiredRuntimePath(target, `${packageJson} ${exportKey}`);
+    const resolvedRuntimePath = path.posix.join(packageRoot, normalizedTarget);
+    if (resolvedRuntimePath !== runtimePath) {
+      throw new Error(
+        `Full runtime required built export target drifted: ${packageJson} ${exportKey} resolves to `
+          + `${resolvedRuntimePath}, expected ${runtimePath}.`,
+      );
+    }
+    const status = runtimePayloadStatus(runtimeRoot, runtimePath);
+    if (!status.exists) {
+      throw new Error(`Full runtime required built export payload is missing: ${runtimePath}`);
+    }
+    return {
+      ...status,
+      role: declaration.role ?? null,
+      export_key: exportKey,
+      package_json: packageJson,
+    };
+  });
+}
+
 const FULL_RUNTIME_DOMAIN_PLUGIN_PAYLOADS = [
   { modulePath: 'modules/mas', pluginId: 'med-autoscience', skillId: 'med-autoscience' },
   { modulePath: 'modules/mag', pluginId: 'med-autogrant', skillId: 'med-autogrant' },
@@ -598,6 +696,7 @@ export function collectRuntimeAssertions(runtimeRoot) {
       runtimePayloadStatus(runtimeRoot, 'node/bin/npm', { executable: true }),
       runtimePayloadStatus(runtimeRoot, 'node/bin/npx', { executable: true }),
       runtimePayloadStatus(runtimeRoot, 'uv/bin/uv', { executable: true }),
+      ...requiredBuiltExportPayloadStatuses(runtimeRoot),
       runtimePayloadStatus(runtimeRoot, FLOW_CAPABILITY_BUILD_LOCK_RELATIVE_PATH),
       ...flowCapabilityAssembly.items.map((item) => (
         runtimePayloadStatus(runtimeRoot, item.runtime_relative_path, { executable: true })
@@ -702,6 +801,7 @@ export function buildOplLayer(layerRoot, options) {
   const targetRoot = path.join(layerRoot, 'opl');
   copyTreeFiltered(options.frameworkRoot, targetRoot, 'opl');
   copyProductionNodeModules(options.frameworkRoot, targetRoot);
+  requiredBuiltExportPayloadStatuses(layerRoot, { strict: true });
   removePackagedSourceExportConditions(path.join(targetRoot, 'node_modules'));
   pruneTemporalCoreBridgeReleases(path.join(targetRoot, 'node_modules'));
 }
@@ -756,6 +856,10 @@ export function buildRuntimeLayerImplementationHash(layerId: FullRuntimeCacheLay
       pruneTemporalCoreBridgeReleases,
       copyTreeFiltered,
       copyProductionNodeModules,
+      publicExportTarget,
+      normalizeRequiredRuntimePath,
+      normalizePublicExportKey,
+      requiredBuiltExportPayloadStatuses,
       removeOplSourceCondition,
       removePackagedSourceExportConditions,
       buildOplLayer,

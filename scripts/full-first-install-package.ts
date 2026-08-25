@@ -667,6 +667,7 @@ export function buildFullRuntimePrunePolicyCacheInput(
   }
   if (layerId === 'opl-runtime') {
     projection.production_node_modules = policy.production_node_modules ?? null;
+    projection.required_built_exports = policy.required_built_exports ?? null;
   }
   return projection;
 }

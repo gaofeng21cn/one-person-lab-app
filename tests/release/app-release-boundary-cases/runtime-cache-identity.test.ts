@@ -66,6 +66,16 @@ test('Full runtime prune policy changes invalidate only affected cache layers', 
     assert.equal(buildFullRuntimePrunePolicyCacheHash(layerId, oplPolicy), baseline[layerId]);
   }
 
+  const requiredExportPolicy = structuredClone(FULL_RUNTIME_PRUNE_POLICY);
+  requiredExportPolicy.required_built_exports[0].runtime_path = 'opl/dist/host/alternate.js';
+  assert.notEqual(
+    buildFullRuntimePrunePolicyCacheHash('opl-runtime', requiredExportPolicy),
+    baseline['opl-runtime'],
+  );
+  for (const layerId of ['toolchain', 'domain-runtime', 'skills'] as const) {
+    assert.equal(buildFullRuntimePrunePolicyCacheHash(layerId, requiredExportPolicy), baseline[layerId]);
+  }
+
   const unknownPolicy = structuredClone(FULL_RUNTIME_PRUNE_POLICY);
   unknownPolicy.runtime_tree.excluded_path_patterns.push('^future-layer/cache(?:/|$)');
   for (const layerId of FULL_RUNTIME_CACHE_LAYER_IDS) {

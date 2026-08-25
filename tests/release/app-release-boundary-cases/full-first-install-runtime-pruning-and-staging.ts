@@ -548,6 +548,16 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
     path.join(runtimeRoot, "opl", "node_modules", "@swc", "core-darwin-arm64", "swc.darwin-arm64.node"),
     "swc native binding",
   );
+  writeJson(path.join(runtimeRoot, "opl", "package.json"), {
+    name: "opl-framework",
+    exports: {
+      "./cordis-profiles": "./dist/host/composition-profiles.js",
+    },
+  });
+  writeFile(
+    path.join(runtimeRoot, "opl", "dist", "host", "composition-profiles.js"),
+    "export const startCordisChannelProviderHost = () => ({ });\n",
+  );
   writeExecutable(path.join(runtimeRoot, "uv", "bin", "uv"), "#!/bin/sh\nexit 0\n");
   writeExecutable(path.join(runtimeRoot, "bin", "officecli"), "#!/bin/sh\nexit 0\n");
   writeExecutable(path.join(runtimeRoot, "bin", "mineru-open-api"), "#!/bin/sh\nexit 0\n");

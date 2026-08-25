@@ -516,6 +516,7 @@ const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       '"node_toolchain_global_packages"',
       '"app_bundle_staging"',
       '"runtime_assertions"',
+      '"required_built_exports"',
       '"validation_examples"',
       '"audit_command": "npm run release:full:prune-audit -- --markdown"',
     ],

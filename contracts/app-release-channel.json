@@ -5612,6 +5612,7 @@
         "node_toolchain_global_packages",
         "app_bundle_staging",
         "runtime_assertions",
+        "required_built_exports",
         "validation_examples"
       ],
       "manifest_assertions": [

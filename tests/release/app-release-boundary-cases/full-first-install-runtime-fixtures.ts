@@ -228,6 +228,9 @@ export function writeFrameworkRuntimeSource(frameworkRoot) {
   writeJson(path.join(frameworkRoot, "package.json"), {
     name: "fixture-opl-framework",
     version: "0.0.0",
+    exports: {
+      "./cordis-profiles": "./dist/host/composition-profiles.js",
+    },
     dependencies,
   });
   writeJson(path.join(frameworkRoot, "package-lock.json"), {
@@ -236,6 +239,10 @@ export function writeFrameworkRuntimeSource(frameworkRoot) {
     packages: lockPackages,
   });
   writeJson(path.join(frameworkRoot, "tsconfig.json"), {});
+  writeFile(
+    path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
+    "export const startCordisChannelProviderHost = () => ({ });\n",
+  );
   for (const packageName of temporalPackages) {
     writeJson(path.join(frameworkRoot, "node_modules", ...packageName.split("/"), "package.json"), {
       name: packageName,

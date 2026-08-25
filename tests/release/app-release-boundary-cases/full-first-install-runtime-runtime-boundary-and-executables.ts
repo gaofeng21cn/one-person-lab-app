@@ -126,6 +126,9 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
       name: "fixture-framework",
       version: "1.0.0",
       type: "module",
+      exports: {
+        "./cordis-profiles": "./dist/host/composition-profiles.js",
+      },
       dependencies: { "@one-person-lab/cordis-abi": "0.1.0" },
     });
     writeJson(path.join(frameworkRoot, "package-lock.json"), {
@@ -154,12 +157,24 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
     });
     writeFile(path.join(packageRoot, "src", "index.ts"), "export const runtimeValue: string = 'source';\n");
     writeFile(path.join(packageRoot, "dist", "index.js"), "export const runtimeValue = 'built';\n");
+    writeFile(
+      path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
+      "export const startCordisChannelProviderHost = () => ({ });\n",
+    );
+    writeFile(path.join(frameworkRoot, "dist", "host", "other.js"), "export const other = true;\n");
+    writeFile(path.join(frameworkRoot, "dist", "other.js"), "export const other = true;\n");
 
     const { buildOplLayer } =
       await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
     buildOplLayer(layerRoot, { frameworkRoot });
 
     const packagedRoot = path.join(layerRoot, "opl");
+    assert.equal(
+      fs.existsSync(path.join(packagedRoot, "dist", "host", "composition-profiles.js")),
+      true,
+    );
+    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "host", "other.js")), false);
+    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "other.js")), false);
     const packagedManifest = JSON.parse(
       fs.readFileSync(
         path.join(packagedRoot, "node_modules", "@one-person-lab", "cordis-abi", "package.json"),
@@ -180,6 +195,52 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
     );
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.equal(result.stdout.trim(), "built");
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("Full runtime OPL layer fails closed when a required Framework export payload is missing", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-missing-export-"));
+  const frameworkRoot = path.join(tempRoot, "framework");
+  const layerRoot = path.join(tempRoot, "layer");
+  try {
+    writeJson(path.join(frameworkRoot, "package.json"), {
+      name: "fixture-framework",
+      version: "1.0.0",
+      type: "module",
+      exports: {
+        "./cordis-profiles": "./dist/host/composition-profiles.js",
+      },
+    });
+
+    const { buildOplLayer } =
+      await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
+    assert.throws(
+      () => buildOplLayer(layerRoot, { frameworkRoot }),
+      /required built export payload is missing: opl\/dist\/host\/composition-profiles\.js/,
+    );
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("Full runtime OPL layer fails closed when required Framework export metadata is missing", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-missing-export-metadata-"));
+  const frameworkRoot = path.join(tempRoot, "framework");
+  const layerRoot = path.join(tempRoot, "layer");
+  try {
+    writeFile(
+      path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
+      "export const startCordisChannelProviderHost = () => ({ });\n",
+    );
+
+    const { buildOplLayer } =
+      await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
+    assert.throws(
+      () => buildOplLayer(layerRoot, { frameworkRoot }),
+      /required built export package metadata is missing: opl\/package\.json/,
+    );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

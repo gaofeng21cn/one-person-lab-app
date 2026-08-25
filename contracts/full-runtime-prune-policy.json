@@ -79,7 +79,8 @@
       "^modules\\/[^/]+\\/(?:cache|logs?|tmp|temp)(?:\\/|$)",
       "^opl\\/node_modules(?:\\/|$)",
       "^opl\\/.*\\/\\.venv(?:\\/|$)",
-      "^opl\\/dist(?:\\/|$)",
+      "^opl\\/dist\\/(?!host(?:\\/|$))",
+      "^opl\\/dist\\/host\\/(?!composition-profiles\\.js$)",
       "^opl\\/(?:build|playwright-report|test-results)(?:\\/|$)",
       "^opl\\/(?:cache|logs?|tmp|temp)(?:\\/|$)",
       "^python\\/[^/]+\\/lib\\/python\\d+\\.\\d+\\/(?:test|idlelib\\/idle_test|tkinter\\/test|unittest\\/test|ctypes\\/test|distutils\\/tests|lib2to3\\/tests)(?:\\/|$)",
@@ -184,13 +185,23 @@
       "modules/*/runtime-state",
       "modules/*/runs",
       "modules/*/sessions",
-      "opl/dist",
+      "opl/dist/other.js",
+      "opl/dist/host/other.js",
       "opl/logs",
       "opl/tmp",
       "opl/cache",
       "opl/node_modules/@temporalio/testing"
     ]
   },
+  "required_built_exports": [
+    {
+      "package_root": "opl",
+      "package_json": "opl/package.json",
+      "export_key": "./cordis-profiles",
+      "runtime_path": "opl/dist/host/composition-profiles.js",
+      "role": "framework_cordis_profile_bootstrap"
+    }
+  ],
   "validation_examples": {
     "runtime_tree": {
       "excluded": [
@@ -204,11 +215,16 @@
         "modules/mas/cache/result.json",
         "modules/mag/runtime/authority_functions/debug-cache.json",
         "modules/mas/src/generated/client.js.map",
+        "opl/dist/other.js",
+        "opl/dist/host/other.js",
         "python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/test/test_os.py",
         "python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/site-packages/pip/_vendor/distlib/t32.exe",
         "python/cpython-3.12.12-macos-aarch64-none/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/pip/_vendor/distlib/w64-arm.exe"
       ],
       "retained": [
+        "opl/dist",
+        "opl/dist/host",
+        "opl/dist/host/composition-profiles.js",
         "modules/mas/src/med_autoscience/__init__.py",
         "modules/mas/runtime/authority_functions/README.md",
         "modules/mag/runtime/authority_functions/README.md",
