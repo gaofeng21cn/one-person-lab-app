@@ -115,14 +115,13 @@ function validateProfile(value: unknown, carrierId: string): CarrierProfileContr
 
 export function resolveFullCarrierProfile(options: CarrierProfileOptions = {}): FullCarrierProfile {
   const contract = options.contract ?? readAppShellAdapterContract();
-  const carrierId = (options.carrierId?.trim()
-    || process.env.OPL_FULL_CARRIER_ID?.trim()
-    || resolveShellAdapterIdentity(contract)) as FullCarrierId;
+  const explicitCarrierId = options.carrierId?.trim() || process.env.OPL_FULL_CARRIER_ID?.trim() || '';
+  const carrierId = (explicitCarrierId || resolveShellAdapterIdentity(contract)) as FullCarrierId;
   const profile = validateProfile(readCarrierProfiles()[carrierId], carrierId);
-  if (!options.carrierId && contract.candidate_shell === 'opl-studio' && carrierId !== 'opl-studio') {
+  if (!explicitCarrierId && contract.candidate_shell === 'opl-studio' && carrierId !== 'opl-studio') {
     throw new Error('OPL Studio Full build must resolve the opl-studio payload carrier profile.');
   }
-  if (!options.carrierId && contract.active_shell === 'aionui' && carrierId !== 'aionui') {
+  if (!explicitCarrierId && contract.active_shell === 'aionui' && carrierId !== 'aionui') {
     throw new Error('AionUI Full build must resolve the aionui payload carrier profile.');
   }
   return Object.freeze({

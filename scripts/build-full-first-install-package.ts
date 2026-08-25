@@ -383,6 +383,7 @@ function main() {
     dmgName: artifactNames.dmg,
     runtimeTarName: runtimeTar ? artifactNames.runtimeTar : null,
     notarized: process.env.OPL_FULL_PACKAGE_NOTARIZED === 'true',
+    carrier,
   }), 'utf8');
   const releaseManifestPath = path.join(options.outDir, artifactNames.releaseManifest);
   writeJsonFile(releaseManifestPath, buildFullPublicReleaseManifest({
