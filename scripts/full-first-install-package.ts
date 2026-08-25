@@ -223,7 +223,7 @@ export function buildFullPackageArtifactNames(versionInput: string, carrier = re
   const version = normalizeVersion(versionInput);
   return {
     dmg: formatCarrierTemplate(carrier.artifactNameTemplate, { version }),
-    runtimeTar: `opl-runtime-full-${version}-macos-arm64.tar.zst`,
+    runtimeTar: formatCarrierTemplate(carrier.runtimeArtifactNameTemplate, { version }),
     checksums: 'SHA256SUMS.txt',
     readme: 'README-Full-First-Install.txt',
     manifest: 'full-package-manifest.json',
@@ -338,6 +338,21 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
 
   return {
     manifest_version: 2,
+    carrier: {
+      schema: 'opl_app_full_payload_carrier_profile.v1',
+      carrier_id: carrier.carrierId,
+      profile_id: carrier.profileId,
+      product_name: carrier.productName,
+      app_bundle_name: carrier.appBundleName,
+      bundle_id: carrier.bundleId,
+      package_kind: carrier.packageKind,
+      runtime_resource_dir: carrier.runtimeResourceDir,
+      runtime_install_root_template: carrier.runtimeInstallRootTemplate,
+      runtime_version_metadata_path: carrier.runtimeVersionMetadataPath,
+      codex_carrier: carrier.codexCarrier,
+      aioncore_required: carrier.aioncoreRequired,
+      full_runtime_codex_payload_allowed: carrier.fullRuntimeCodexPayloadAllowed,
+    },
     package_kind: carrier.packageKind,
     version,
     arch: 'macos-arm64',
@@ -425,8 +440,8 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
       runtime_auto_update: false,
       app_auto_update: 'standard_github_release_metadata_only',
       standard_update_assets: [
-        `One-Person-Lab-${version}-mac-arm64.dmg`,
-        `One-Person-Lab-${version}-mac-arm64.zip`,
+        formatCarrierTemplate(carrier.standardArtifactNameTemplate, { version }),
+        formatCarrierTemplate(carrier.standardZipArtifactNameTemplate, { version }),
         'latest-mac.yml',
         'latest-arm64-mac.yml',
       ],
@@ -791,24 +806,33 @@ export function buildFullFirstInstallReadme(input: {
   dmgName: string;
   runtimeTarName: string | null;
   notarized: boolean;
+  carrier?: ReturnType<typeof resolveFullCarrierProfile>;
 }) {
-  const installPath = '~/Library/Application Support/OPL/runtime/current';
+  const carrier = input.carrier ?? resolveFullCarrierProfile();
+  const installPath = carrier.runtimeInstallRootTemplate;
   const codexProfile = formatCodexProfilePhrase();
+  const product = carrier.productName;
+  const codexCarrier = carrier.codexCarrier === 'aioncore_codex_only'
+    ? 'the bundled OPL Codex-only projection derived from AionCore managed-resources'
+    : 'the bundled opl-codex-native carrier';
+  const codexBoundary = carrier.aioncoreRequired
+    ? 'The App tree physically excludes Claude, and the Full runtime does not carry a second Framework-managed Codex archive, wrapper, cache, or ripgrep binary.'
+    : 'The Full runtime does not carry a Framework-managed Codex archive, wrapper, cache, or ripgrep binary; Codex remains owned by the Studio shell carrier.';
   return [
-    `One Person Lab Full First-Install Package ${normalizeVersion(input.version)}`,
+    `${product} Full First-Install Package ${normalizeVersion(input.version)}`,
     '',
     'Distribution: this package is built by the one-person-lab-app repository and published as the recommended GitHub Release asset for first-time installation. It is not written to latest*.yml and is not an App auto-update target.',
     'The in-app updater remains unchanged and continues to read only standard One Person Lab App GitHub Release metadata.',
     'Existing users should keep using in-app updates or the standard App package. New users can choose the Full package when they want the runtime, domain modules, and companion tools preloaded for the first setup.',
     '',
     'Installation:',
-    `1. Open ${input.dmgName} and drag One Person Lab to Applications.`,
+    `1. Open ${input.dmgName} and drag ${carrier.appBundleName.replace(/\.app$/, '')} to Applications.`,
     '2. On first launch, the bundled runtime is installed to the stable runtime path. Later Full package refreshes replace the same path:',
     `   ${installPath}`,
-    '3. The runtime version is recorded only in current.json and current/.opl-full-runtime-installed.json; it is not encoded in the runtime directory name.',
+    `3. The runtime version is recorded only in current.json and ${carrier.runtimeVersionMetadataPath}; it is not encoded in the runtime directory name.`,
     '4. Bundled MAS, its MAS Scholar Skills capability dependency, MAG, RCA, OPL Meta Agent, and OPL Book Forge payloads are launch sources inside the Full runtime. Managed repo reconciliation may later populate the standard module directory, but it is deferred maintenance and does not block first launch:',
     '   ~/Library/Application Support/OPL/state/modules/<repo-name>',
-    '5. The App shell resolves Codex from the bundled OPL Codex-only projection derived from AionCore managed-resources and passes the exact executable through OPL_CODEX_BIN. The App tree physically excludes Claude, and the Full runtime does not carry a second Framework-managed Codex archive, wrapper, cache, or ripgrep binary.',
+    `5. The App shell resolves Codex from ${codexCarrier} and passes the exact executable through OPL_CODEX_BIN. ${codexBoundary}`,
     `6. The bundled Codex profile seeds ${codexProfile} for first-run App sessions after OPL Gateway is configured; existing usable Codex login or provider access can satisfy first-launch model access without forcing Gateway setup.`,
     '7. The Full package only assembles and validates declared framework/runtime, domain module, and companion tool payloads. Runtime truth, provider implementation, domain truth, domain quality verdicts, and artifact authority remain owned by the OPL Framework and the domain agents.',
     '8. The Full package includes local state and module material required by the family runtime provider. OPL Framework source and contracts are runtime payload inputs, not owners of the App release flow. Production durable stage attempts are governed by the Temporal provider contract.',

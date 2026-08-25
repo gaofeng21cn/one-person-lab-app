@@ -19,6 +19,9 @@ export type FullCarrierProfile = {
   bundleId: string;
   packageKind: string;
   artifactNameTemplate: string;
+  runtimeArtifactNameTemplate: string;
+  standardArtifactNameTemplate: string;
+  standardZipArtifactNameTemplate: string;
   runtimeResourceDir: string;
   runtimeInstallRootTemplate: string;
   runtimeVersionMetadataPath: string;
@@ -39,6 +42,9 @@ type CarrierProfileContract = {
   bundle_id: string;
   package_kind: string;
   artifact_name_template: string;
+  runtime_artifact_name_template: string;
+  standard_artifact_name_template: string;
+  standard_zip_artifact_name_template: string;
   runtime_resource_dir: string;
   runtime_install_root_template: string;
   runtime_version_metadata_path: string;
@@ -128,6 +134,9 @@ export function resolveFullCarrierProfile(options: CarrierProfileOptions = {}): 
     bundleId: profile.bundle_id,
     packageKind: profile.package_kind,
     artifactNameTemplate: profile.artifact_name_template,
+    runtimeArtifactNameTemplate: profile.runtime_artifact_name_template,
+    standardArtifactNameTemplate: profile.standard_artifact_name_template,
+    standardZipArtifactNameTemplate: profile.standard_zip_artifact_name_template,
     runtimeResourceDir: profile.runtime_resource_dir,
     runtimeInstallRootTemplate: profile.runtime_install_root_template,
     runtimeVersionMetadataPath: profile.runtime_version_metadata_path,
