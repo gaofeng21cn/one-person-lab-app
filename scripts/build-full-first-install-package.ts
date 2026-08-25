@@ -408,6 +408,7 @@ function main() {
   writeJsonFile(releaseManifestPath, buildFullPublicReleaseManifest({
     version: options.version,
     updaterVersion: options.updaterVersion,
+    carrier,
     artifactNames,
     outDir: options.outDir,
     fullDmgPath: targetDmg,
