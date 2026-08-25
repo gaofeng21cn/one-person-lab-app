@@ -71,9 +71,28 @@ function readJsonIfExists(filePath) {
 }
 
 export function buildFullPublicReleaseManifest(input) {
+  const carrier = input.carrier ?? resolveFullCarrierProfile({
+    carrierId: input.fullPackageManifest?.carrier?.carrier_id,
+  });
+  const carrierIdentity = {
+    schema: carrier.schema,
+    carrier_id: carrier.carrierId,
+    profile_id: carrier.profileId,
+    product_name: carrier.productName,
+    app_bundle_name: carrier.appBundleName,
+    bundle_id: carrier.bundleId,
+    package_kind: carrier.packageKind,
+    runtime_resource_dir: carrier.runtimeResourceDir,
+    runtime_install_root_template: carrier.runtimeInstallRootTemplate,
+    runtime_version_metadata_path: carrier.runtimeVersionMetadataPath,
+    codex_carrier: carrier.codexCarrier,
+    aioncore_required: carrier.aioncoreRequired,
+    full_runtime_codex_payload_allowed: carrier.fullRuntimeCodexPayloadAllowed,
+  };
   return {
     schema: 'opl_public_release_manifest.v1',
-    package_kind: 'opl_full_first_install_macos_arm64',
+    carrier: carrierIdentity,
+    package_kind: carrier.packageKind,
     version: input.version,
     release_version: input.version,
     updater_version: input.updaterVersion,
@@ -389,6 +408,7 @@ function main() {
   writeJsonFile(releaseManifestPath, buildFullPublicReleaseManifest({
     version: options.version,
     updaterVersion: options.updaterVersion,
+    carrier,
     artifactNames,
     outDir: options.outDir,
     fullDmgPath: targetDmg,
