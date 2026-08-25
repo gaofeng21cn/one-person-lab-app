@@ -19,8 +19,8 @@
   "sources": {
     "officecli": {
       "repository": "iOfficeAI/OfficeCLI",
-      "ref": "79515527091fab74821ffb6647e73b29bc78d548",
-      "release_tag": "v1.0.141"
+      "ref": "e402d2853259177aba05ee6f79d38b7e1ff067ae",
+      "release_tag": "v1.0.145"
     },
     "mineru": {
       "repository": "opendatalab/MinerU-Ecosystem",
