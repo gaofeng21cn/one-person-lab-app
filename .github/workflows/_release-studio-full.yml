@@ -570,16 +570,26 @@ jobs:
           OPL_FULL_CARRIER_ID: opl-studio
           OPL_FRAMEWORK_ROOT: ${{ github.workspace }}/framework-source
           OPL_FULL_FRAMEWORK_ROOT: ${{ github.workspace }}/framework-source
+          OPL_FULL_FRAMEWORK_REF: ${{ inputs.framework_ref }}
           OPL_FULL_GUI_ROOT: ${{ github.workspace }}/studio-source
           OPL_FULL_MAS_ROOT: ${{ github.workspace }}/med-autoscience
+          OPL_FULL_MAS_REF: ${{ inputs.mas_ref }}
           OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT: ${{ github.workspace }}/mas-scholar-skills
+          OPL_FULL_MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
           OPL_FULL_MAG_ROOT: ${{ github.workspace }}/med-autogrant
+          OPL_FULL_MAG_REF: ${{ inputs.mag_ref }}
           OPL_FULL_RCA_ROOT: ${{ github.workspace }}/redcube-ai
+          OPL_FULL_RCA_REF: ${{ inputs.rca_ref }}
           OPL_FULL_META_AGENT_ROOT: ${{ github.workspace }}/opl-meta-agent
+          OPL_FULL_META_AGENT_REF: ${{ inputs.meta_agent_ref }}
           OPL_FULL_BOOKFORGE_ROOT: ${{ github.workspace }}/opl-bookforge
+          OPL_FULL_BOOKFORGE_REF: ${{ inputs.bookforge_ref }}
           OPL_FULL_OPL_FLOW_ROOT: ${{ github.workspace }}/opl-flow
+          OPL_FULL_OPL_FLOW_REF: ${{ inputs.opl_flow_ref }}
           OPL_FULL_OFFICECLI_ROOT: ${{ github.workspace }}/OfficeCLI
+          OPL_FULL_OFFICECLI_REF: ${{ inputs.officecli_ref }}
           OPL_FULL_MINERU_ROOT: ${{ github.workspace }}/MinerU-Ecosystem
+          OPL_FULL_MINERU_REF: ${{ inputs.mineru_ref }}
           OPL_FULL_MINERU_DOCUMENT_EXTRACTOR_ROOT: ${{ github.workspace }}/app-source/assets/companion-skills/mineru-document-extractor
           OPL_RELEASE_VERSION: ${{ inputs.studio_version }}
           OPL_UPDATER_VERSION: ${{ inputs.studio_version }}

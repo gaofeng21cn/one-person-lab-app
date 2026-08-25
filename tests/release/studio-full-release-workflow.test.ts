@@ -71,6 +71,22 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
   assert.equal(build.steps.some((step: Record<string, any>) => step.with?.repository === 'gaofeng21cn/one-person-lab'), true);
   const desktopBuild = build.steps.find((step: Record<string, any>) => step.name === 'Build the exact Studio desktop directory');
   assert.equal(desktopBuild?.env?.OPL_APP_REPO_ROOT, '${{ github.workspace }}/app-source');
+  const fullBuild = build.steps.find((step: Record<string, any>) => step.name === 'Build Studio Full through the App Full builder');
+  assert.ok(fullBuild);
+  for (const [environmentName, inputName] of Object.entries({
+    OPL_FULL_FRAMEWORK_REF: 'framework_ref',
+    OPL_FULL_MAS_REF: 'mas_ref',
+    OPL_FULL_MAS_SCHOLAR_SKILLS_REF: 'mas_scholar_skills_ref',
+    OPL_FULL_MAG_REF: 'mag_ref',
+    OPL_FULL_RCA_REF: 'rca_ref',
+    OPL_FULL_META_AGENT_REF: 'meta_agent_ref',
+    OPL_FULL_BOOKFORGE_REF: 'bookforge_ref',
+    OPL_FULL_OPL_FLOW_REF: 'opl_flow_ref',
+    OPL_FULL_OFFICECLI_REF: 'officecli_ref',
+    OPL_FULL_MINERU_REF: 'mineru_ref',
+  })) {
+    assert.equal(fullBuild.env?.[environmentName], `\${{ inputs.${inputName} }}`);
+  }
   for (const required of [
     'scripts/verify-apple-release-credentials.ts',
     'npm --prefix app-source run release:full',
