@@ -188,6 +188,7 @@ jobs:
         env:
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
           NODE_OPTIONS: --max-old-space-size=8192
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
@@ -576,6 +577,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
         shell: bash
         run: |
           set -euo pipefail
@@ -813,6 +815,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
         shell: bash
         run: |
           set -euo pipefail
