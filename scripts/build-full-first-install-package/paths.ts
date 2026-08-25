@@ -12,5 +12,5 @@ export const MACOS_TRUSTED_EXECUTABLE_PATTERNS = [
   /^runtime\/current\/node\/bin\/node$/,
   /^runtime\/current\/uv\/bin\/uv$/,
   /^runtime\/current\/vendor\/temporal\/cli\/temporal$/,
-  /^runtime\/current\/python\/[^/]+\/bin\/python3(?:\.\d+)?$/,
+  /^runtime\/current\/python\/[^/]+\/bin\/python(?:3(?:\.\d+)?)?$/,
 ];

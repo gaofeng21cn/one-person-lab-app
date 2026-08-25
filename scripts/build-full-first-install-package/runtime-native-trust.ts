@@ -89,6 +89,9 @@ function readCodeSignature(filePath) {
   return {
     status: result.status === 0 ? 'passed' : 'failed',
     ...parseMacosCodeSignatureOutput(output),
+    trusted_timestamp: /^Timestamp=.+$/m.test(output),
+    hardened_runtime: /^Runtime Version=.+$/m.test(output)
+      || /^CodeDirectory .+flags=.*\(runtime\)/m.test(output),
     raw: output.trim(),
   };
 }
@@ -239,6 +242,8 @@ function verifyMacosRuntimeExecutable(filePath, options) {
     team_identifier: signature.team_identifier,
     signature: signature.signature,
     signature_kind: signature.signature_kind,
+    trusted_timestamp: signature.trusted_timestamp,
+    hardened_runtime: signature.hardened_runtime,
     quarantine_status: quarantinePresent ? 'present' : 'absent',
     provenance_status: provenancePresent ? 'present' : 'absent',
     assessment_kind: options.requiresSpctl ? 'launched_executable' : 'loadable_native_code',
@@ -247,7 +252,9 @@ function verifyMacosRuntimeExecutable(filePath, options) {
   const failed = result.codesign_status !== 'passed'
     || (shouldAssessSpctl && result.spctl_status !== 'passed')
     || result.quarantine_status !== 'absent'
-    || !isDeveloperIdApplicationSignature(result);
+    || !isDeveloperIdApplicationSignature(result)
+    || result.trusted_timestamp !== true
+    || result.hardened_runtime !== true;
   if (options.strict && failed) {
     const detail = [
       `Full runtime native executable is not trusted by Gatekeeper: ${filePath}`,
@@ -255,6 +262,8 @@ function verifyMacosRuntimeExecutable(filePath, options) {
       `spctl_status=${result.spctl_status}`,
       `team_identifier=${result.team_identifier ?? 'missing'}`,
       `signature=${result.signature ?? 'missing'}`,
+      `trusted_timestamp=${result.trusted_timestamp}`,
+      `hardened_runtime=${result.hardened_runtime}`,
       `quarantine_status=${result.quarantine_status}`,
       `provenance_status=${result.provenance_status}`,
       ...codesignOutputLines(codesignResult).filter((line) => line.startsWith('codesign stderr:')),
@@ -321,6 +330,8 @@ export function ensureFullRuntimeNativeTrust(runtimeRoot) {
     entry.codesign_status === 'passed'
     && entry.quarantine_status === 'absent'
     && isDeveloperIdApplicationSignature(entry)
+    && entry.trusted_timestamp === true
+    && entry.hardened_runtime === true
   ));
   const localAuthorizedUnsigned = !strict && verified.every((entry) => entry.quarantine_status === 'absent');
   return {

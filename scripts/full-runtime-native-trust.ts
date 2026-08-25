@@ -69,6 +69,8 @@ export function assertFullRuntimeNativeTrustObject(
         || !entry?.signature
         || entry.signature === 'adhoc'
         || productionSignatureKind(entry) !== 'developer_id_application'
+        || entry?.trusted_timestamp !== true
+        || entry?.hardened_runtime !== true
       ) {
         throw new Error(
           `Production Full runtime native executable does not match Team ID ${options.expectedTeamIdentifier}: `

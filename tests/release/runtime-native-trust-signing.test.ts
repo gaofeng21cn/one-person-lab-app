@@ -12,6 +12,7 @@ import {
 } from '../../scripts/macos-code-signature.ts';
 import {
   assertSignedRuntimeExecutableSmoke,
+  listFullRuntimeNativeExecutables,
   macosRuntimeCodesignArgs,
   signEmbeddedTemporalCliArchive,
   signedRuntimeExecutableSmokeArgs,
@@ -39,7 +40,7 @@ set -eu
 printf '%s\\n' "$*" >> "$OPL_TEST_CODESIGN_LOG"
 case " $* " in
   *" -dv "*)
-    printf '%s\\n' 'Identifier=io.onepersonlab.temporal' 'Format=Mach-O thin (arm64)' 'CodeDirectory v=20500 size=763 flags=0x10000(runtime) hashes=13+7 location=embedded' 'Signature size=8997' 'Authority=Developer ID Application: Example (TEAMID1234)' 'Authority=Developer ID Certification Authority' 'Authority=Apple Root CA' 'TeamIdentifier=TEAMID1234' >&2
+    printf '%s\\n' 'Identifier=io.onepersonlab.temporal' 'Format=Mach-O thin (arm64)' 'CodeDirectory v=20500 size=763 flags=0x10000(runtime) hashes=13+7 location=embedded' 'Signature size=8997' 'Authority=Developer ID Application: Example (TEAMID1234)' 'Authority=Developer ID Certification Authority' 'Authority=Apple Root CA' 'Timestamp=Aug 25, 2026 at 21:00:00' 'TeamIdentifier=TEAMID1234' 'Runtime Version=26.0.0' >&2
     ;;
 esac
 `);
@@ -92,6 +93,26 @@ test('Full runtime re-signing preserves existing executable metadata', () => {
   );
 });
 
+test('Full runtime signing includes dereferenced Python launcher aliases', () => {
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-python-runtime-'));
+  try {
+    const binRoot = path.join(runtimeRoot, 'python', 'cpython-3.12.12-macos-aarch64-none', 'bin');
+    for (const name of ['python', 'python3', 'python3.12']) {
+      writeExecutable(path.join(binRoot, name), '#!/bin/sh\n');
+    }
+    assert.deepEqual(
+      listFullRuntimeNativeExecutables(runtimeRoot).map((entry) => entry.relative_path),
+      [
+        'runtime/current/python/cpython-3.12.12-macos-aarch64-none/bin/python',
+        'runtime/current/python/cpython-3.12.12-macos-aarch64-none/bin/python3',
+        'runtime/current/python/cpython-3.12.12-macos-aarch64-none/bin/python3.12',
+      ],
+    );
+  } finally {
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
+});
+
 test('Developer ID codesign metadata uses the leaf Authority when Signature= is absent', () => {
   const details = parseMacosCodeSignatureOutput([
     'Executable=/tmp/officecli',
@@ -135,6 +156,34 @@ test('native trust rejects ad hoc and missing signature metadata', () => {
           team_identifier: 'TEAMID1234',
           signature: null,
           signature_kind: 'missing',
+          trusted_timestamp: false,
+          hardened_runtime: false,
+        }],
+      },
+      {},
+      { requireProductionTrust: true, expectedTeamIdentifier: 'TEAMID1234' },
+    ),
+    /does not match Team ID TEAMID1234/,
+  );
+});
+
+test('production native trust rejects Developer ID code without timestamp or hardened runtime', () => {
+  assert.throws(
+    () => assertFullRuntimeNativeTrustObject(
+      {
+        schema: 'opl_full_runtime_native_trust.v1',
+        status: 'passed',
+        executable_count: 1,
+        executables: [{
+          relative_path: 'runtime/current/node/bin/node',
+          codesign_status: 'passed',
+          spctl_status: 'not_required',
+          quarantine_status: 'absent',
+          team_identifier: 'TEAMID1234',
+          signature: 'Developer ID Application: Example (TEAMID1234)',
+          signature_kind: 'developer_id_application',
+          trusted_timestamp: false,
+          hardened_runtime: false,
         }],
       },
       {},
