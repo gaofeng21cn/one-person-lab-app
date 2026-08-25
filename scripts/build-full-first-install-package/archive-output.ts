@@ -172,6 +172,18 @@ export function syncRuntimePayloadToBuildRoots(runtimeRoot, manifest, guiRoot) {
   return { appPayloadRoot, shellPayloadRoot };
 }
 
+export function syncRuntimePayloadToBuiltApp(runtimeRoot, manifest, builtAppPath) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  const appPayloadRoot = path.join(
+    builtAppPath,
+    'Contents',
+    'Resources',
+    carrier.runtimeResourceDir,
+  );
+  syncRuntimePayload(runtimeRoot, manifest, appPayloadRoot);
+  return appPayloadRoot;
+}
+
 function removeBuiltDmgCandidates(guiRoot, version) {
   const outDir = resolveActiveShellPaths({ shellRoot: guiRoot }).buildOutputDir;
   for (const name of [

@@ -16,6 +16,7 @@ import {
   removeStandardGuiArtifacts,
   resolveFullDmgCompressionLevel,
   resolveFullDmgFormat,
+  syncRuntimePayloadToBuiltApp,
   syncRuntimePayloadToBuildRoots,
   withVerifiedPinnedArchive,
 } from './build-full-first-install-package/archive-output.ts';
@@ -297,7 +298,7 @@ function main() {
   materializeFullKimiCuOfflineSeed(prepared);
 
   const cacheEventsWrittenAt = monotonicSeconds();
-  const payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
+  let payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
   const payloadSyncedAt = monotonicSeconds();
   timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
   const productProfileSync = syncAppProductProfileToShell(options.guiRoot);
@@ -325,6 +326,16 @@ function main() {
   const dmgFormat = resolveFullDmgFormat();
   process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
   const builtApp = findBuiltApp(options.guiRoot);
+  if (options.skipGuiBuild) {
+    payloadRoots = {
+      ...payloadRoots,
+      builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(
+        prepared.runtimeRoot,
+        prepared.manifest,
+        builtApp,
+      ),
+    };
+  }
   if (manualLocalAppIdentity) {
     stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
   }
