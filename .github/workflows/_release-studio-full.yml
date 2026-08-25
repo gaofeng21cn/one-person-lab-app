@@ -499,7 +499,7 @@ jobs:
           fs.writeFileSync('standard-assets.json', `${JSON.stringify({ schema: 'opl_studio_release_assets.v1', repository: process.env.STUDIO_REPOSITORY || 'gaofeng21cn/opl-studio', version: process.env.STUDIO_VERSION, tag: process.env.STANDARD_RELEASE_TAG, assets }, null, 2)}\n`);
           fs.writeFileSync('standard-release-identity.json', `${JSON.stringify({ id: release.id, tag_name: release.tag_name, target_commitish: release.target_commitish, body_sha256: require('node:crypto').createHash('sha256').update(String(release.body || '')).digest('hex'), latest_assets: assets.filter((asset) => asset.name.startsWith('latest-')) }, null, 2)}\n`);
           NODE
-          curl -fsSL "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/latest" > latest-prestate.json
+          gh api "repos/$STUDIO_REPOSITORY/releases/latest" > latest-prestate.json
           jq -e --arg tag "$STANDARD_RELEASE_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' latest-prestate.json >/dev/null
 
       - name: Verify protected Apple capabilities
@@ -853,6 +853,7 @@ jobs:
 
       - name: Read back public Standard and Full bytes anonymously
         env:
+          GH_TOKEN: ${{ github.token }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
           STUDIO_VERSION: ${{ inputs.studio_version }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
@@ -860,16 +861,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          api_url="https://api.github.com/repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG"
-          latest_url="https://api.github.com/repos/$STUDIO_REPOSITORY/releases/latest"
-          curl -fsSL "$api_url" > public-release.json
-          curl -fsSL "$latest_url" > public-latest.json
+          gh api "repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG" > public-release.json
+          gh api "repos/$STUDIO_REPOSITORY/releases/latest" > public-latest.json
           jq -e --arg tag "$STUDIO_TAG" --arg sha "$STUDIO_SHA" --arg id "$STANDARD_RELEASE_ID" '.id == ($id | tonumber) and .tag_name == $tag and .target_commitish == $sha and .draft == false and .prerelease == false and .immutable != true' public-release.json >/dev/null
           jq -e --arg tag "$STUDIO_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' public-latest.json >/dev/null
           jq -e --slurpfile expected studio-full-checkpoint/standard-assets.json '([.assets[] | {name, size_bytes: .size, sha256: .digest}] | sort_by(.name)) == ($expected[0].assets | sort_by(.name))' public-release.json >/dev/null
           mkdir -p public-assets
           for name in "one-person-lab-preview-full-${STUDIO_VERSION}-mac-arm64.dmg" opl-release-manifest.json latest-mac.yml latest-arm64-mac.yml; do
             curl -fsSL "https://github.com/$STUDIO_REPOSITORY/releases/download/$STUDIO_TAG/$name" -o "public-assets/$name"
+          done
+          mkdir -p public-latest-assets
+          for name in latest-mac.yml latest-arm64-mac.yml; do
+            curl -fsSL "https://github.com/$STUDIO_REPOSITORY/releases/latest/download/$name" -o "public-latest-assets/$name"
+            cmp "public-assets/$name" "public-latest-assets/$name"
           done
           node - <<'NODE'
           const crypto = require('node:crypto');

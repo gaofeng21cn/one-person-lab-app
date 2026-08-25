@@ -82,6 +82,10 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
   }
   assert.doesNotMatch(evidence, /gh\s+release\s+(?:create|edit|upload|delete)|--clobber/);
   assert.doesNotMatch(evidence, /bundled-aioncore|aioncore_codex_only|gaofeng21cn\/aionui/i);
+  assert.doesNotMatch(evidence, /curl -fsSL "https:\/\/api\.github\.com/);
+  assert.match(evidence, /gh api "repos\/\$STUDIO_REPOSITORY\/releases\/latest"/);
+  assert.match(evidence, /releases\/latest\/download\/\$name/);
+  assert.match(evidence, /cmp "public-assets\/\$name" "public-latest-assets\/\$name"/);
 });
 
 test('Studio Full contract keeps its additive asset set explicit', () => {
