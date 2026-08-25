@@ -405,13 +405,15 @@ function offlineFirstInstallCompletenessPreserved(args: {
   boundaryAudit: Record<string, any>;
 }) {
   const entries = args.boundaryAudit.entries ?? {};
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  const boundary = args.boundaryAudit.full_package_boundary ?? {};
   return args.trimReport.required_payload_boundary?.preserved === true
-    && args.boundaryAudit.full_package_boundary?.contains_opl_full_runtime === true
-    && args.boundaryAudit.full_package_boundary?.contains_shell_runtime === true
-    && args.boundaryAudit.full_package_boundary?.aioncore_codex_carrier_present === true
-    && args.boundaryAudit.full_package_boundary?.aioncore_codex_only_projection_present === true
-    && args.boundaryAudit.full_package_boundary?.aioncore_claude_payload_absent === true
-    && args.boundaryAudit.full_package_boundary?.framework_codex_payload_absent === true
+    && boundary.contains_opl_full_runtime === true
+    && boundary.contains_shell_runtime === carrier.shellRuntimeRequired
+    && boundary.aioncore_codex_carrier_present === carrier.aioncoreRequired
+    && boundary.aioncore_codex_only_projection_present === carrier.aioncoreRequired
+    && boundary.aioncore_claude_payload_absent === true
+    && boundary.framework_codex_payload_absent === true
     && entries.app_asar?.exists === true
     && entries.electron_framework?.exists === true;
 }
