@@ -286,6 +286,7 @@ jobs:
           node --experimental-strip-types app-source/scripts/update-electron-updater-metadata.ts \
             --artifact "$dmg_path" \
             --metadata-dir studio-source/out
+          cp studio-source/out/latest-mac.yml studio-source/out/latest-arm64-mac.yml
           rm -f "${dmg_path}.blockmap"
 
       - name: Seal exact release asset manifest
