@@ -134,6 +134,7 @@ test('Stable and protected Manual Preview are isolated from daily-default Nightl
   assert.deepEqual(stable.on.workflow_dispatch.inputs.entry.options, [
     'framework_release',
     'studio_carrier_admission',
+    'studio_full_append',
   ]);
   const mutationMutex = { group: 'opl-release-bundle-global', 'cancel-in-progress': false };
   assert.equal(stable.concurrency, undefined);

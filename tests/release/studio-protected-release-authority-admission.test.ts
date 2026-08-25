@@ -116,6 +116,7 @@ test('Stable keeps Framework mutation operations closed and admits Studio throug
   assert.deepEqual(stableWorkflow.on.workflow_dispatch.inputs.entry.options, [
     'framework_release',
     'studio_carrier_admission',
+    'studio_full_append',
   ]);
   const job = stableWorkflow.jobs['studio-protected-release-admission'];
   assert.equal(job.if, "${{ inputs.entry == 'studio_carrier_admission' }}");
@@ -143,6 +144,16 @@ test('Stable keeps Framework mutation operations closed and admits Studio throug
     'standard',
     'resume_standard',
     'append_full',
+  ]);
+  const fullPolicy = releaseContract.full_first_install.studio_same_tag_append;
+  assert.equal(fullPolicy.schema, 'opl_studio_full_same_tag_append_policy.v1');
+  assert.equal(fullPolicy.workflow, '.github/workflows/_release-studio-full.yml');
+  assert.deepEqual(fullPolicy.required_identity, [
+    'studio_sha', 'studio_tree', 'studio_tag', 'studio_version',
+  ]);
+  assert.deepEqual(fullPolicy.allowed_assets, [
+    'one-person-lab-preview-full-<version>-mac-arm64.dmg',
+    'opl-release-manifest.json',
   ]);
 });
 

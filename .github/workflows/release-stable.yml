@@ -1,5 +1,5 @@
 name: OPL Stable Release Bundle
-run-name: "${{ inputs.entry == 'studio_carrier_admission' && format('OPL Stable Studio release ref:{0} run:{1}', inputs.studio_sha, github.run_id) || inputs.operation == 'standard' && format('OPL Stable standard operation:{0} authority:{1} run:{2}', inputs.operation_id, inputs.authority_id, github.run_id) || (inputs.operation == 'append_full' || inputs.operation == 'resume_standard') && format('OPL Stable {0} source:{1} run:{2}', inputs.operation, inputs.source_run_id, github.run_id) || format('OPL Stable {0} {1}', inputs.operation, github.run_id) }}"
+run-name: "${{ inputs.entry == 'studio_carrier_admission' && format('OPL Stable Studio release ref:{0} run:{1}', inputs.studio_sha, github.run_id) || inputs.entry == 'studio_full_append' && format('OPL Stable Studio Full append ref:{0} run:{1}', inputs.studio_sha, github.run_id) || inputs.operation == 'standard' && format('OPL Stable standard operation:{0} authority:{1} run:{2}', inputs.operation_id, inputs.authority_id, github.run_id) || (inputs.operation == 'append_full' || inputs.operation == 'resume_standard') && format('OPL Stable {0} source:{1} run:{2}', inputs.operation, inputs.source_run_id, github.run_id) || format('OPL Stable {0} {1}', inputs.operation, github.run_id) }}"
 
 on:
   workflow_dispatch:
@@ -12,6 +12,7 @@ on:
         options:
           - framework_release
           - studio_carrier_admission
+          - studio_full_append
       operation:
         description: New product release or same-tag Release Set completion
         required: true
@@ -81,6 +82,21 @@ on:
         required: false
         default: ''
         type: string
+      studio_version:
+        description: Exact numeric OPL Studio package version bound to the same-tag Full append
+        required: false
+        default: ''
+        type: string
+      standard_release_id:
+        description: Exact mutable Studio Standard GitHub Release ID targeted by Studio Full append
+        required: false
+        default: ''
+        type: string
+      standard_release_tag:
+        description: Exact Standard Release tag; must equal studio_tag for Studio Full append
+        required: false
+        default: ''
+        type: string
       prior_studio_artifact_run_id:
         description: Exact failed Studio run containing a reusable signed/notarized checkpoint
         required: false
@@ -118,6 +134,16 @@ on:
         type: string
       prior_full_artifact_run_id:
         description: Exact failed append_full run containing reusable unchanged Full bytes
+        required: false
+        default: ''
+        type: string
+      prior_studio_full_artifact_run_id:
+        description: Exact failed Studio Full append run containing reusable unchanged Full bytes
+        required: false
+        default: ''
+        type: string
+      operation_deadline_at:
+        description: Optional bounded Studio Full notarization deadline
         required: false
         default: ''
         type: string
@@ -263,6 +289,214 @@ jobs:
       studio_tree: ${{ inputs.studio_tree }}
       studio_tag: ${{ inputs.studio_tag }}
       prior_studio_artifact_run_id: ${{ inputs.prior_studio_artifact_run_id }}
+    secrets: inherit
+
+  studio-full-append-admission:
+    if: ${{ inputs.entry == 'studio_full_append' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-stable
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      app_ref: ${{ steps.admission.outputs.app_ref }}
+      studio_sha: ${{ steps.admission.outputs.studio_sha }}
+      studio_tree: ${{ steps.admission.outputs.studio_tree }}
+      studio_tag: ${{ steps.admission.outputs.studio_tag }}
+      studio_version: ${{ steps.admission.outputs.studio_version }}
+      framework_ref: ${{ steps.admission.outputs.framework_ref }}
+      mas_ref: ${{ steps.admission.outputs.mas_ref }}
+      mas_scholar_skills_ref: ${{ steps.admission.outputs.mas_scholar_skills_ref }}
+      mag_ref: ${{ steps.admission.outputs.mag_ref }}
+      rca_ref: ${{ steps.admission.outputs.rca_ref }}
+      meta_agent_ref: ${{ steps.admission.outputs.meta_agent_ref }}
+      bookforge_ref: ${{ steps.admission.outputs.bookforge_ref }}
+      opl_flow_ref: ${{ steps.admission.outputs.opl_flow_ref }}
+      officecli_ref: ${{ steps.admission.outputs.officecli_ref }}
+      mineru_ref: ${{ steps.admission.outputs.mineru_ref }}
+      standard_release_id: ${{ steps.admission.outputs.standard_release_id }}
+      standard_release_tag: ${{ steps.admission.outputs.standard_release_tag }}
+      operation_deadline_at: ${{ steps.admission.outputs.operation_deadline_at }}
+    steps:
+      - name: Reject mutable or mixed Studio Full append request
+        env:
+          OPERATION: ${{ inputs.operation }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_VERSION: ${{ inputs.studio_version }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          REQUESTED_APP_REF: ${{ inputs.app_ref }}
+          STANDARD_RELEASE_ID: ${{ inputs.standard_release_id }}
+          STANDARD_RELEASE_TAG: ${{ inputs.standard_release_tag }}
+          PRIOR_STUDIO_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_studio_full_artifact_run_id }}
+          RELEASE_INTENT: ${{ inputs.release_intent }}
+          PRODUCT_CHANGE_SUMMARY: ${{ inputs.product_change_summary }}
+          AUTHORITY_ID: ${{ inputs.authority_id }}
+          OPERATION_ID: ${{ inputs.operation_id }}
+          AUTHORITY_CARRIER: ${{ inputs.authority_carrier }}
+          AUTHORITY_DIGEST: ${{ inputs.authority_digest }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          INCLUDE_FULL: ${{ inputs.include_full }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
+          PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
+          PRIOR_STANDARD_ARTIFACT_RUN_ID: ${{ inputs.prior_standard_artifact_run_id }}
+          REQUESTED_OPERATION_DEADLINE_AT: ${{ inputs.operation_deadline_at }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$OPERATION" = append_full
+          test -z "$REQUESTED_APP_REF"
+          [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$STUDIO_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$STUDIO_TAG" = "v$STUDIO_VERSION"
+          test "$STANDARD_RELEASE_TAG" = "$STUDIO_TAG"
+          [[ "$STANDARD_RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
+          test -z "$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$SHELL_REF$SMOKE_HARNESS_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID$REQUESTED_OPERATION_DEADLINE_AT"
+          test "$INCLUDE_FULL" = false
+          if [ -n "$PRIOR_STUDIO_FULL_ARTIFACT_RUN_ID" ]; then
+            [[ "$PRIOR_STUDIO_FULL_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$PRIOR_STUDIO_FULL_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
+          fi
+
+      - name: Checkout exact App release authority
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: app-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact Studio source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-studio
+          ref: ${{ inputs.studio_sha }}
+          path: studio-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve exact Full refs and bind the published Standard Release
+        id: admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STUDIO_SHA: ${{ inputs.studio_sha }}
+          STUDIO_TREE: ${{ inputs.studio_tree }}
+          STUDIO_TAG: ${{ inputs.studio_tag }}
+          STUDIO_VERSION: ${{ inputs.studio_version }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          STANDARD_RELEASE_ID: ${{ inputs.standard_release_id }}
+          STANDARD_RELEASE_TAG: ${{ inputs.standard_release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C app-source rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git -C studio-source rev-parse HEAD)" = "$STUDIO_SHA"
+          test "$(git -C studio-source rev-parse 'HEAD^{tree}')" = "$STUDIO_TREE"
+          test "$(node -p "require('./studio-source/package.json').version")" = "$STUDIO_VERSION"
+          third_party="app-source/contracts/app-full-third-party-source-manifest.json"
+          test -s "$third_party"
+          resolve_main_ref() {
+            local repository="$1"
+            git ls-remote --exit-code "https://github.com/$repository.git" refs/heads/main | awk 'NR == 1 { print $1; exit }'
+          }
+          mas_ref="$(resolve_main_ref gaofeng21cn/med-autoscience)"
+          mas_scholar_skills_ref="$(resolve_main_ref gaofeng21cn/mas-scholar-skills)"
+          mag_ref="$(resolve_main_ref gaofeng21cn/med-autogrant)"
+          rca_ref="$(resolve_main_ref gaofeng21cn/redcube-ai)"
+          meta_agent_ref="$(resolve_main_ref gaofeng21cn/opl-meta-agent)"
+          bookforge_ref="$(resolve_main_ref gaofeng21cn/opl-bookforge)"
+          opl_flow_ref="$(resolve_main_ref gaofeng21cn/opl-flow)"
+          officecli_ref="$(jq -er '.sources.officecli.ref' "$third_party")"
+          mineru_ref="$(jq -er '.sources.mineru.ref' "$third_party")"
+          for ref in "$mas_ref" "$mas_scholar_skills_ref" "$mag_ref" "$rca_ref" "$meta_agent_ref" "$bookforge_ref" "$opl_flow_ref" "$officecli_ref" "$mineru_ref"; do [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; done
+          gh api "repos/gaofeng21cn/opl-studio/releases/tags/$STANDARD_RELEASE_TAG" > studio-standard-release.json
+          jq -e --arg id "$STANDARD_RELEASE_ID" --arg tag "$STANDARD_RELEASE_TAG" --arg sha "$STUDIO_SHA" '
+            (.id == ($id | tonumber)) and .tag_name == $tag and .target_commitish == $sha
+            and .draft == false and .prerelease == false and .immutable != true
+            and ([.assets[] | select(.name == "latest-mac.yml" or .name == "latest-arm64-mac.yml")] | length == 2)
+            and ([.assets[] | select(.name == "latest-mac.yml" or .name == "latest-arm64-mac.yml") | .digest] | all(test("^sha256:[0-9a-f]{64}$")))
+          ' studio-standard-release.json >/dev/null
+          operation_created_at="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)"
+          node --experimental-strip-types app-source/scripts/release-operation-deadline.ts resolve \
+            --operation append_full --started-at "$operation_created_at" --output studio-full-operation-deadline.json >/dev/null
+          jq -er .deadline_at studio-full-operation-deadline.json > /dev/null
+          {
+            echo "app_ref=$GITHUB_SHA"
+            echo "studio_sha=$STUDIO_SHA"
+            echo "studio_tree=$STUDIO_TREE"
+            echo "studio_tag=$STUDIO_TAG"
+            echo "studio_version=$STUDIO_VERSION"
+            echo "framework_ref=$FRAMEWORK_REF"
+            echo "mas_ref=$mas_ref"
+            echo "mas_scholar_skills_ref=$mas_scholar_skills_ref"
+            echo "mag_ref=$mag_ref"
+            echo "rca_ref=$rca_ref"
+            echo "meta_agent_ref=$meta_agent_ref"
+            echo "bookforge_ref=$bookforge_ref"
+            echo "opl_flow_ref=$opl_flow_ref"
+            echo "officecli_ref=$officecli_ref"
+            echo "mineru_ref=$mineru_ref"
+            echo "standard_release_id=$STANDARD_RELEASE_ID"
+            echo "standard_release_tag=$STANDARD_RELEASE_TAG"
+            echo "operation_deadline_at=$(jq -er .deadline_at studio-full-operation-deadline.json)"
+          } >> "$GITHUB_OUTPUT"
+          jq -n \
+            --arg app "$GITHUB_SHA" --arg studio "$STUDIO_SHA" --arg tree "$STUDIO_TREE" --arg tag "$STUDIO_TAG" \
+            --arg version "$STUDIO_VERSION" --arg framework "$FRAMEWORK_REF" --arg standard_release "$STANDARD_RELEASE_ID" \
+            --arg mas "$mas_ref" --arg mas_scholar_skills "$mas_scholar_skills_ref" --arg mag "$mag_ref" --arg rca "$rca_ref" \
+            --arg meta_agent "$meta_agent_ref" --arg bookforge "$bookforge_ref" --arg opl_flow "$opl_flow_ref" \
+            --arg officecli "$officecli_ref" --arg mineru "$mineru_ref" \
+            '{schema:"opl_studio_full_append_admission.v1",status:"admitted",source:{app_sha:$app,studio_sha:$studio,studio_tree:$tree,studio_tag:$tag,studio_version:$version,framework_sha:$framework},full_sources:{mas:$mas,mas_scholar_skills:$mas_scholar_skills,mag:$mag,rca:$rca,meta_agent:$meta_agent,bookforge:$bookforge,opl_flow:$opl_flow,officecli:$officecli,mineru:$mineru},standard_release:{repository:"gaofeng21cn/opl-studio",id:($standard_release|tonumber),tag:$tag},publication:{operation:"append_full",same_tag:true,standard_assets_unchanged:true,latest_unchanged:true}}' > studio-full-append-admission.json
+
+      - name: Upload immutable Studio Full append admission
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-full-append-admission-${{ github.run_id }}
+          path: |
+            studio-full-append-admission.json
+            studio-standard-release.json
+            studio-full-operation-deadline.json
+          if-no-files-found: error
+          retention-days: 30
+
+  studio-full-append:
+    if: ${{ !cancelled() && inputs.entry == 'studio_full_append' && needs.studio-full-append-admission.result == 'success' }}
+    needs: [studio-full-append-admission]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_release-studio-full.yml
+    with:
+      app_ref: ${{ needs.studio-full-append-admission.outputs.app_ref }}
+      studio_sha: ${{ needs.studio-full-append-admission.outputs.studio_sha }}
+      studio_tree: ${{ needs.studio-full-append-admission.outputs.studio_tree }}
+      studio_tag: ${{ needs.studio-full-append-admission.outputs.studio_tag }}
+      studio_version: ${{ needs.studio-full-append-admission.outputs.studio_version }}
+      framework_ref: ${{ needs.studio-full-append-admission.outputs.framework_ref }}
+      mas_ref: ${{ needs.studio-full-append-admission.outputs.mas_ref }}
+      mas_scholar_skills_ref: ${{ needs.studio-full-append-admission.outputs.mas_scholar_skills_ref }}
+      mag_ref: ${{ needs.studio-full-append-admission.outputs.mag_ref }}
+      rca_ref: ${{ needs.studio-full-append-admission.outputs.rca_ref }}
+      meta_agent_ref: ${{ needs.studio-full-append-admission.outputs.meta_agent_ref }}
+      bookforge_ref: ${{ needs.studio-full-append-admission.outputs.bookforge_ref }}
+      opl_flow_ref: ${{ needs.studio-full-append-admission.outputs.opl_flow_ref }}
+      officecli_ref: ${{ needs.studio-full-append-admission.outputs.officecli_ref }}
+      mineru_ref: ${{ needs.studio-full-append-admission.outputs.mineru_ref }}
+      standard_release_id: ${{ needs.studio-full-append-admission.outputs.standard_release_id }}
+      standard_release_tag: ${{ needs.studio-full-append-admission.outputs.standard_release_tag }}
+      prior_studio_full_artifact_run_id: ${{ inputs.prior_studio_full_artifact_run_id }}
+      operation_deadline_at: ${{ needs.studio-full-append-admission.outputs.operation_deadline_at }}
     secrets: inherit
 
   protected-operation-admission:

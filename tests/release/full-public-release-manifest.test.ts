@@ -23,6 +23,7 @@ function buildManifestFixture(t: test.TestContext, carrierId: 'aionui' | 'opl-st
     manifest: buildFullPublicReleaseManifest({
     version: '26.8.1-r5',
     updaterVersion: '26.8.1005',
+    carrier,
     artifactNames: {
       dmg: dmgName,
       manifest: 'full-package-manifest.json',
@@ -37,7 +38,7 @@ function buildManifestFixture(t: test.TestContext, carrierId: 'aionui' | 'opl-st
     runtimeNativeTrust: { status: 'passed' },
     appBundleTrimReport: null,
     packageBoundaryAudit: null,
-    precompressionGate: null,
+      precompressionGate: null,
       carrier,
     }),
     dmgPath,

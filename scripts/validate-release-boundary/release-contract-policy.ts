@@ -526,6 +526,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
   const standardDraft = releaseContract.standard_updater?.draft_refresh;
   const fullDraft = releaseContract.full_first_install?.draft_refresh;
   const fullAddon = releaseContract.full_first_install?.published_addon;
+  const studioFullAppend = releaseContract.full_first_install?.studio_same_tag_append;
   const fullAddonAssetPolicy = fullAddon?.asset_policy;
   const fullNotarizationRecovery = releaseContract.full_first_install?.production_macos_trust
     ?.unknown_submission_recovery;
@@ -636,6 +637,53 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
       'opl-release-manifest.json binds opl-release-attestation.json digest and exact Full asset name/size/digest' ||
     fullAddon?.latest_modified !== false ||
     fullAddon?.source_or_bom_change_requires_new_version !== true ||
+    studioFullAppend?.schema !== 'opl_studio_full_same_tag_append_policy.v1' ||
+    studioFullAppend?.authority_owner !== 'one-person-lab-app' ||
+    studioFullAppend?.repository !== 'gaofeng21cn/opl-studio' ||
+    studioFullAppend?.workflow !== '.github/workflows/_release-studio-full.yml' ||
+    studioFullAppend?.entry_workflow !== '.github/workflows/release-stable.yml' ||
+    studioFullAppend?.operation !== 'append_full' ||
+    studioFullAppend?.carrier_id !== 'opl-studio' ||
+    studioFullAppend?.target_release !== 'already_published_mutable_standard_release_same_tag' ||
+    studioFullAppend?.concurrency_group !== 'opl-studio-publication-global' ||
+    !sameStringSet(studioFullAppend?.required_identity, [
+      'studio_sha', 'studio_tree', 'studio_tag', 'studio_version',
+    ]) ||
+    !sameStringSet(studioFullAppend?.allowed_assets, [
+      'one-person-lab-preview-full-<version>-mac-arm64.dmg',
+      'opl-release-manifest.json',
+    ]) ||
+    studioFullAppend?.same_name_same_digest !== 'idempotent_skip' ||
+    studioFullAppend?.same_name_different_digest !== 'reject_without_mutation' ||
+    studioFullAppend?.unknown_upload_result !== 'readback_only_no_retry' ||
+    studioFullAppend?.standard_release_readback?.required !== true ||
+    studioFullAppend?.standard_release_readback?.mutable !== true ||
+    studioFullAppend?.standard_release_readback?.published !== true ||
+    studioFullAppend?.standard_release_readback?.same_tag !== true ||
+    studioFullAppend?.standard_release_readback?.updater_metadata_must_be_present_in_sealed_standard_assets !== true ||
+    !sameStringSet(studioFullAppend?.forbidden_mutations, [
+      'release_create',
+      'release_edit',
+      'tag_create',
+      'tag_update',
+      'release_notes',
+      'latest_pointer',
+      'latest-mac.yml',
+      'latest-arm64-mac.yml',
+      'standard_asset_overwrite',
+      'standard_asset_delete',
+      'full_asset_overwrite',
+      'full_asset_delete',
+    ]) ||
+    !sameStringSet(studioFullAppend?.completion_evidence, [
+      'exact_studio_full_manifest_identity',
+      'exact_full_asset_size_and_digest_readback',
+      'standard_asset_set_unchanged',
+      'release_notes_unchanged',
+      'latest_unchanged',
+      'updater_metadata_unchanged',
+      'anonymous_public_asset_readback',
+    ]) ||
     nightly?.status !== 'implemented_pending_first_publication_readback' ||
     nightly?.publication_available !== true ||
     nightly?.mutation_available !== true ||

@@ -39,6 +39,7 @@ export const releaseWorkflowPaths = [
   ".github/workflows/_release-bundle.yml",
   ".github/workflows/_release-desktop-platform-addon.yml",
   ".github/workflows/_release-full-addon.yml",
+  ".github/workflows/_release-studio-full.yml",
   ".github/workflows/_release-homebrew-full-publish.yml",
   ".github/workflows/_release-standard-publish.yml",
   ".github/workflows/build-manual.yml",
