@@ -139,17 +139,33 @@ test('DSH visual source policy is discoverable and keeps sessions primary', () =
     guiContract.ordinary_conversation.unified_context_menu.groups.map(
       (group: { id: string }) => group.id,
     ),
-    ['local_inputs', 'agent_packages', 'skills', 'session_modes', 'apps_and_connections'],
+    ['local_inputs', 'agent_packages', 'opl_capabilities', 'skills', 'session_modes', 'apps_and_connections'],
   );
   const paletteGroups = Object.fromEntries(
     guiContract.ordinary_conversation.unified_context_menu.groups.map((group: { id: string }) => [group.id, group]),
   );
   assert.deepStrictEqual(
     paletteGroups.agent_packages.surface_actions.existing_conversation,
-    [],
+    ['invoke_agent_package_for_current_turn'],
   );
   assert.equal(paletteGroups.agent_packages.existing_session_rebinding_allowed, false);
-  assert.equal(paletteGroups.agent_packages.scope, 'new_session_configuration_only');
+  assert.equal(
+    paletteGroups.agent_packages.scope,
+    'new_session_configuration_or_existing_turn_invocation',
+  );
+  assert.equal(
+    paletteGroups.agent_packages.existing_conversation_invocation_policy,
+    'invoke_selected_standard_agent_for_current_turn_without_rebinding_the_codex_thread',
+  );
+  assert.deepStrictEqual(
+    paletteGroups.opl_capabilities.surface_actions.existing_conversation,
+    ['invoke_opl_capability_for_current_turn'],
+  );
+  assert.equal(paletteGroups.opl_capabilities.existing_session_rebinding_allowed, false);
+  assert.equal(
+    paletteGroups.opl_capabilities.activation_policy,
+    'skill_injection_for_current_turn_only_no_package_activation_or_lifecycle_mutation',
+  );
   assert.deepStrictEqual(
     paletteGroups.skills.surface_actions.existing_conversation,
     ['invoke_loaded_owner_or_carrier_projected_skill'],
