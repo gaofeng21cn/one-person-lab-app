@@ -105,6 +105,18 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
   assert.match(evidence, /releases\/latest\/download\/\$name/);
   assert.match(evidence, /cmp "public-assets\/\$name" "public-latest-assets\/\$name"/);
 
+  const append = publish.steps.find((step: Record<string, any>) => step.name === 'Append exactly two Studio Full assets with CAS and no overwrite');
+  assert.match(String(append?.run), /\(\.schema == "opl_studio_full_same_tag_append_receipt\.v1"\)/);
+  assert.match(String(append?.run), /\(\(\.uploaded \| type\) == "array"\)/);
+  assert.doesNotMatch(String(append?.run), /\.uploaded \| type == "array"/);
+
+  const anonymousReadback = readback.steps.find((step: Record<string, any>) => step.name === 'Read back public Standard and Full bytes anonymously');
+  assert.match(String(anonymousReadback?.run), /\(\$expected\[0\]\.assets \| sort_by\(\.name\)\) as \$standard/);
+  assert.match(String(anonymousReadback?.run), /\(\$standard \| map\(\.name\)\) as \$standard_names/);
+  assert.match(String(anonymousReadback?.run), /select\(\.name as \$name \| \$standard_names \| index\(\$name\)\)/);
+  assert.doesNotMatch(String(anonymousReadback?.run), /select\(any\(\$standard\[\]; \.name == \.name\)\)/);
+  assert.doesNotMatch(String(anonymousReadback?.run), /\(\[\.assets\[\] \| \{name, size_bytes: \.size, sha256: \.digest\}\] \| sort_by\(\.name\)\) ==/);
+
   const notarize = build.steps.find((step: Record<string, any>) => step.name === 'Notarize and staple the final Studio Full DMG');
   assert.equal(notarize?.id, 'notarize-studio-full');
   assert.match(String(notarize?.run), /--submitted-candidate-output/);

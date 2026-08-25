@@ -874,7 +874,7 @@ jobs:
             --dmg "studio-full-checkpoint/full-output/one-person-lab-preview-full-${{ inputs.studio_version }}-mac-arm64.dmg" \
             --manifest studio-full-checkpoint/full-output/opl-release-manifest.json \
             --output studio-full-append-receipt.json
-          jq -e '.schema == "opl_studio_full_same_tag_append_receipt.v1" and .status == "complete" and .uploaded | type == "array"' studio-full-append-receipt.json >/dev/null
+          jq -e '(.schema == "opl_studio_full_same_tag_append_receipt.v1") and (.status == "complete") and ((.uploaded | type) == "array")' studio-full-append-receipt.json >/dev/null
 
       - name: Upload Studio Full append receipt
         if: ${{ always() }}
@@ -916,7 +916,14 @@ jobs:
           gh api "repos/$STUDIO_REPOSITORY/releases/latest" > public-latest.json
           jq -e --arg tag "$STUDIO_TAG" --arg sha "$STUDIO_SHA" --arg id "$STANDARD_RELEASE_ID" '.id == ($id | tonumber) and .tag_name == $tag and .target_commitish == $sha and .draft == false and .prerelease == false and .immutable != true' public-release.json >/dev/null
           jq -e --arg tag "$STUDIO_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' public-latest.json >/dev/null
-          jq -e --slurpfile expected studio-full-checkpoint/standard-assets.json '([.assets[] | {name, size_bytes: .size, sha256: .digest}] | sort_by(.name)) == ($expected[0].assets | sort_by(.name))' public-release.json >/dev/null
+          jq -e --slurpfile expected studio-full-checkpoint/standard-assets.json '
+            ($expected[0].assets | sort_by(.name)) as $standard
+            | ($standard | map(.name)) as $standard_names
+            | ([.assets[]
+                | select(.name as $name | $standard_names | index($name))
+                | {name, size_bytes: .size, sha256: .digest}]
+               | sort_by(.name)) == $standard
+          ' public-release.json >/dev/null
           mkdir -p public-assets
           for name in "one-person-lab-preview-full-${STUDIO_VERSION}-mac-arm64.dmg" opl-release-manifest.json latest-mac.yml latest-arm64-mac.yml; do
             curl -fsSL "https://github.com/$STUDIO_REPOSITORY/releases/download/$STUDIO_TAG/$name" -o "public-assets/$name"
