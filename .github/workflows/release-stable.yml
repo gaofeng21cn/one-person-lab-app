@@ -254,7 +254,7 @@ jobs:
     if: ${{ !cancelled() && inputs.entry == 'studio_carrier_admission' && needs.studio-protected-release-admission.result == 'success' }}
     needs: [studio-protected-release-admission]
     permissions:
-      contents: write
+      contents: read
       actions: read
     uses: ./.github/workflows/_release-studio.yml
     with:

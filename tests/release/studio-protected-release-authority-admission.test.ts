@@ -135,7 +135,7 @@ test('Stable keeps Framework mutation operations closed and admits Studio throug
     '${{ inputs.prior_studio_artifact_run_id }}',
   );
   assert.deepEqual(stableWorkflow.jobs['studio-protected-release'].permissions, {
-    contents: 'write',
+    contents: 'read',
     actions: 'read',
   });
 
@@ -168,7 +168,7 @@ test('Studio execution keeps build, qualification, publication, and public readb
     'cancel-in-progress': false,
   });
   assert.equal(publish.environment, 'release-stable');
-  assert.deepEqual(publish.permissions, { actions: 'read', contents: 'write' });
+  assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read' });
   assert.equal(readback.environment, undefined);
   const buildText = JSON.stringify(build);
   const publishText = JSON.stringify(publish);
@@ -177,8 +177,7 @@ test('Studio execution keeps build, qualification, publication, and public readb
   assert.doesNotMatch(buildText, /gh release (?:create|upload|edit)/);
   assert.match(publishText, /gh release create/);
   assert.match(publishText, /gh release upload/);
-  assert.match(publishText, /GH_TOKEN.*github\.token/);
-  assert.doesNotMatch(publishText, /OPL_GITHUB_RELEASE_ADMIN_TOKEN/);
+  assert.match(publishText, /GH_TOKEN.*OPL_GITHUB_RELEASE_ADMIN_TOKEN/);
   assert.doesNotMatch(publishText, /notarytool submit|--require-public-feed/);
   assert.match(readbackText, /--require-public-feed/);
   assert.doesNotMatch(readbackText, /OPL_GITHUB_RELEASE_ADMIN_TOKEN|gh release (?:create|upload|edit)/);
