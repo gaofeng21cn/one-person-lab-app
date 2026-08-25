@@ -1,0 +1,428 @@
+name: OPL Studio Preview VM Qualification
+run-name: OPL Studio Preview ${{ inputs.release_tag }} Standard and Full VM qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      verification_source_ref:
+        description: Exact current opl-studio main commit containing the VM verification harness.
+        required: true
+        type: string
+      release_id:
+        description: Exact existing opl-studio GitHub Release id.
+        required: true
+        type: string
+      release_tag:
+        description: Exact existing Preview release tag.
+        required: true
+        type: string
+      release_source_sha:
+        description: Exact opl-studio commit targeted by release_tag.
+        required: true
+        type: string
+      standard_asset_name:
+        description: Exact published Standard DMG basename.
+        required: true
+        type: string
+      standard_asset_digest:
+        description: Exact published Standard DMG sha256 digest.
+        required: true
+        type: string
+      full_asset_name:
+        description: Exact published Full DMG basename.
+        required: true
+        type: string
+      full_asset_digest:
+        description: Exact published Full DMG sha256 digest.
+        required: true
+        type: string
+      tart_source_vm:
+        description: Tart clean snapshot/base VM. Empty uses OPL_FIRST_RUN_TART_SOURCE.
+        required: false
+        default: ''
+        type: string
+      smoke_timeout_ms:
+        description: Per-page and Gateway/Codex smoke timeout.
+        required: false
+        default: '180000'
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  STUDIO_REPOSITORY: gaofeng21cn/opl-studio
+
+concurrency:
+  group: opl-studio-preview-vm-qualification
+  cancel-in-progress: false
+
+jobs:
+  validate-inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      verification_source_sha: ${{ steps.bind.outputs.verification_source_sha }}
+    steps:
+      - name: Checkout exact App qualification owner
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Bind exact Studio harness and public Release identity
+        id: bind
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFICATION_SOURCE_REF: ${{ inputs.verification_source_ref }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_SOURCE_SHA: ${{ inputs.release_source_sha }}
+          STANDARD_ASSET_NAME: ${{ inputs.standard_asset_name }}
+          STANDARD_ASSET_DIGEST: ${{ inputs.standard_asset_digest }}
+          FULL_ASSET_NAME: ${{ inputs.full_asset_name }}
+          FULL_ASSET_DIGEST: ${{ inputs.full_asset_digest }}
+          SMOKE_TIMEOUT_MS: ${{ inputs.smoke_timeout_ms }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$VERIFICATION_SOURCE_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          [[ "$RELEASE_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$STANDARD_ASSET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$FULL_ASSET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$SMOKE_TIMEOUT_MS" =~ ^[1-9][0-9]*$ ]]
+          test "$STANDARD_ASSET_NAME" != "$FULL_ASSET_NAME"
+          test "$STANDARD_ASSET_NAME" = "one-person-lab-preview-${RELEASE_TAG#v}-mac-arm64.dmg"
+          test "$FULL_ASSET_NAME" = "one-person-lab-preview-full-${RELEASE_TAG#v}-mac-arm64.dmg"
+
+          canonical_verification_sha="$(gh api "repos/$STUDIO_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          test "$canonical_verification_sha" = "$VERIFICATION_SOURCE_REF"
+          gh api "repos/$STUDIO_REPOSITORY/releases/tags/$RELEASE_TAG" > release.json
+          jq -e --argjson id "$RELEASE_ID" --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SOURCE_SHA" '
+            .id == $id and .tag_name == $tag and .target_commitish == $sha
+            and .draft == false and .prerelease == false
+          ' release.json >/dev/null
+          for binding in \
+            "$STANDARD_ASSET_NAME|$STANDARD_ASSET_DIGEST" \
+            "$FULL_ASSET_NAME|$FULL_ASSET_DIGEST"; do
+            name="${binding%%|*}"
+            digest="${binding#*|}"
+            jq -e --arg name "$name" --arg digest "$digest" '
+              [.assets[] | select(.name == $name and .state == "uploaded" and .digest == $digest)] | length == 1
+            ' release.json >/dev/null
+          done
+          echo "verification_source_sha=$VERIFICATION_SOURCE_REF" >> "$GITHUB_OUTPUT"
+
+  qualify:
+    needs: validate-inputs
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        profile: [standard, full]
+    name: Clean VM ${{ matrix.profile }}
+    runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
+    environment: release-stable
+    timeout-minutes: 75
+    permissions:
+      contents: read
+      actions: read
+    env:
+      OPL_FIRST_RUN_TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
+      OPL_FIRST_RUN_GUEST_USER: ${{ vars.OPL_FIRST_RUN_GUEST_USER }}
+      OPL_FIRST_RUN_GUEST_SSH_KEY: ${{ vars.OPL_FIRST_RUN_GUEST_SSH_KEY }}
+    steps:
+      - name: Checkout exact Studio verification harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-studio
+          ref: ${{ needs.validate-inputs.outputs.verification_source_sha }}
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            /scripts/desktop/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup exact Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Resolve and download exact public Preview DMG
+        id: asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROFILE: ${{ matrix.profile }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          STANDARD_ASSET_NAME: ${{ inputs.standard_asset_name }}
+          STANDARD_ASSET_DIGEST: ${{ inputs.standard_asset_digest }}
+          FULL_ASSET_NAME: ${{ inputs.full_asset_name }}
+          FULL_ASSET_DIGEST: ${{ inputs.full_asset_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$PROFILE" in
+            standard) asset_name="$STANDARD_ASSET_NAME"; asset_digest="$STANDARD_ASSET_DIGEST" ;;
+            full) asset_name="$FULL_ASSET_NAME"; asset_digest="$FULL_ASSET_DIGEST" ;;
+            *) exit 2 ;;
+          esac
+          mkdir -p "evidence/$PROFILE"
+          gh api "repos/$STUDIO_REPOSITORY/releases/tags/$RELEASE_TAG" > "evidence/$PROFILE/release.json"
+          dmg="evidence/$PROFILE/$asset_name"
+          gh release download "$RELEASE_TAG" \
+            --repo "$STUDIO_REPOSITORY" \
+            --pattern "$asset_name" \
+            --dir "evidence/$PROFILE"
+          test -f "$dmg"
+          actual_digest="sha256:$(shasum -a 256 "$dmg" | awk '{print $1}')"
+          test "$actual_digest" = "$asset_digest"
+          {
+            echo "asset_name=$asset_name"
+            echo "asset_digest=$asset_digest"
+            echo "dmg=$dmg"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify public DMG trust before VM installation
+        env:
+          PROFILE: ${{ matrix.profile }}
+          DMG: ${{ steps.asset.outputs.dmg }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          trust_dir="evidence/$PROFILE/trust"
+          mount_dir="$RUNNER_TEMP/opl-studio-preview-trust-$PROFILE-$GITHUB_RUN_ID"
+          mkdir -p "$trust_dir" "$mount_dir"
+          hdiutil attach -readonly -nobrowse -owners on -mountpoint "$mount_dir" "$DMG" > "$trust_dir/hdiutil-attach.txt"
+          trap 'hdiutil detach "$mount_dir" >/dev/null 2>&1 || true' EXIT
+          app="$mount_dir/One Person Lab Preview.app"
+          test -d "$app"
+          codesign -dvvv "$app" 2> "$trust_dir/codesign-details.txt"
+          codesign --verify --deep --strict --verbose=1 "$app" 2> "$trust_dir/codesign-verify.txt"
+          spctl --assess --type execute --verbose=4 "$app" > "$trust_dir/spctl.txt" 2>&1
+          xcrun stapler validate "$DMG" > "$trust_dir/stapler.txt" 2>&1
+          hdiutil detach "$mount_dir" >> "$trust_dir/hdiutil-detach.txt"
+          trap - EXIT
+
+      - name: Prepare protected Gateway account input
+        id: credentials
+        env:
+          GATEWAY_ACCOUNT_EMAIL: ${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}
+          GATEWAY_ACCOUNT_PASSWORD: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GATEWAY_ACCOUNT_EMAIL"
+          test -n "$GATEWAY_ACCOUNT_PASSWORD"
+          credential_file="$RUNNER_TEMP/opl-studio-preview-gateway-$GITHUB_RUN_ID-${{ matrix.profile }}.json"
+          umask 077
+          jq -n --arg email "$GATEWAY_ACCOUNT_EMAIL" --arg password "$GATEWAY_ACCOUNT_PASSWORD" \
+            '{email:$email,password:$password}' > "$credential_file"
+          chmod 600 "$credential_file"
+          echo "credential_file=$credential_file" >> "$GITHUB_OUTPUT"
+
+      - name: Install and exercise Preview in a clean VM
+        id: smoke
+        env:
+          PROFILE: ${{ matrix.profile }}
+          DMG: ${{ steps.asset.outputs.dmg }}
+          SOURCE_VM_INPUT: ${{ inputs.tart_source_vm }}
+          SMOKE_TIMEOUT_MS: ${{ inputs.smoke_timeout_ms }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_vm="$SOURCE_VM_INPUT"
+          if [ -z "$source_vm" ]; then source_vm="$OPL_FIRST_RUN_TART_SOURCE"; fi
+          test -n "$source_vm"
+          test -n "$OPL_FIRST_RUN_GUEST_USER"
+          test -s "$OPL_FIRST_RUN_GUEST_SSH_KEY"
+          prompt="只回复：OPL_STUDIO_${PROFILE^^}_VM_OK"
+          mkdir -p "evidence/$PROFILE/screenshots"
+          node scripts/desktop/qualify-clean-vm.mjs \
+            --dmg "$DMG" \
+            --source-vm "$source_vm" \
+            --guest-user "$OPL_FIRST_RUN_GUEST_USER" \
+            --ssh-key "$OPL_FIRST_RUN_GUEST_SSH_KEY" \
+            --carrier electron_desktop \
+            --runtime-profiles "$PROFILE" \
+            --gateway-credentials-file "${{ steps.credentials.outputs.credential_file }}" \
+            --codex-turn-prompt "$prompt" \
+            --timeout-ms "$SMOKE_TIMEOUT_MS" \
+            --screenshots-dir "evidence/$PROFILE/screenshots" \
+            --out "evidence/$PROFILE/qualification.json" \
+            --require-gateway-setup \
+            --require-codex-turn \
+            > "evidence/$PROFILE/smoke.stdout.log" \
+            2> "evidence/$PROFILE/smoke.stderr.log"
+          jq --arg profile "$PROFILE" \
+            --arg asset_name "${{ steps.asset.outputs.asset_name }}" \
+            --arg asset_digest "${{ steps.asset.outputs.asset_digest }}" \
+            --arg source_sha "${{ inputs.release_source_sha }}" \
+            --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
+              . + {app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}}
+            ' "evidence/$PROFILE/qualification.json" > "evidence/$PROFILE/qualification.bound.json"
+          mv "evidence/$PROFILE/qualification.bound.json" "evidence/$PROFILE/qualification.json"
+          jq -e --arg profile "$PROFILE" '
+            .status == "passed"
+            and .checks.install.passed == true
+            and .checks.smoke.status == "passed"
+            and .checks.smoke.hooks.gatewaySetup == "passed"
+            and .checks.smoke.hooks.codexTurn == "passed"
+            and .checks.smoke.checks.codexTurn.completed == "completed"
+            and .checks.smoke.checks.codexTurn.finalMessagePresent == true
+            and .checks.smoke.checks.codexTurn.simulated == false
+            and .checks.smoke.checks.runtime[$profile].status == "passed"
+            and .checks.smoke.checks.ui.settings.panel == true
+            and .checks.smoke.checks.ui.runtime.panel == true
+            and .checks.smoke.checks.ui.inspector.tabs == true
+          ' "evidence/$PROFILE/qualification.json" >/dev/null
+          test "$(find "evidence/$PROFILE/screenshots" -type f -name '*.png' | wc -l | tr -d ' ')" -ge 5
+
+      - name: Remove protected Gateway input
+        if: ${{ always() }}
+        env:
+          CREDENTIAL_FILE: ${{ steps.credentials.outputs.credential_file }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$CREDENTIAL_FILE" ]; then
+            case "$CREDENTIAL_FILE" in
+              "$RUNNER_TEMP"/opl-studio-preview-gateway-*.json) ;;
+              *) echo "::error::Unexpected credential path"; exit 1 ;;
+            esac
+            rm -f "$CREDENTIAL_FILE"
+            test ! -e "$CREDENTIAL_FILE"
+          fi
+
+      - name: Remove downloaded public DMG from evidence
+        if: ${{ always() }}
+        env:
+          DMG: ${{ steps.asset.outputs.dmg }}
+          PROFILE: ${{ matrix.profile }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$DMG" ]; then
+            case "$DMG" in
+              "evidence/$PROFILE/"*.dmg) ;;
+              *) echo "::error::Unexpected DMG evidence path"; exit 1 ;;
+            esac
+            rm -f "$DMG"
+            test ! -e "$DMG"
+          fi
+
+      - name: Reject protected credentials in evidence
+        id: evidence-scan
+        if: ${{ always() }}
+        env:
+          GATEWAY_ACCOUNT_EMAIL: ${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}
+          GATEWAY_ACCOUNT_PASSWORD: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const secrets = [process.env.GATEWAY_ACCOUNT_EMAIL || '', process.env.GATEWAY_ACCOUNT_PASSWORD || ''];
+          if (secrets.some((value) => !value)) throw new Error('Protected Gateway inputs are unavailable for evidence scanning.');
+          const visit = (entry) => {
+            if (!fs.existsSync(entry)) return;
+            const info = fs.lstatSync(entry);
+            if (info.isSymbolicLink()) throw new Error(`Evidence path must not be a symlink: ${entry}`);
+            if (info.isDirectory()) {
+              for (const child of fs.readdirSync(entry)) visit(path.join(entry, child));
+              return;
+            }
+            const bytes = fs.readFileSync(entry);
+            for (const secret of secrets) {
+              if (bytes.includes(Buffer.from(secret))) throw new Error(`Protected Gateway input found in evidence: ${entry}`);
+            }
+          };
+          visit('evidence');
+          NODE
+
+      - name: Upload profile qualification evidence
+        if: ${{ always() && steps.evidence-scan.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-preview-vm-${{ matrix.profile }}-${{ github.run_id }}
+          path: evidence/${{ matrix.profile }}
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  summarize:
+    if: ${{ always() }}
+    needs: [validate-inputs, qualify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Download Standard and Full VM evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: opl-studio-preview-vm-*-${{ github.run_id }}
+          path: profile-evidence
+
+      - name: Write App-owned qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t receipts < <(find profile-evidence -type f -name qualification.json -print | LC_ALL=C sort)
+          test "${#receipts[@]}" -eq 2
+          jq -s \
+            --arg run "$GITHUB_RUN_ID" \
+            --arg release_id "${{ inputs.release_id }}" \
+            --arg tag "${{ inputs.release_tag }}" \
+            --arg release_source_sha "${{ inputs.release_source_sha }}" \
+            --arg verification_source_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
+            (sort_by(.app_qualification.profile)) as $profiles
+            | {
+                schema:"opl_app_studio_preview_vm_qualification.v1",
+                status:(if ($profiles | length) == 2 and all($profiles[]; .status == "passed") then "complete" else "failed" end),
+                release_id:$release_id,
+                release_tag:$tag,
+                release_source_sha:$release_source_sha,
+                verification_source_sha:$verification_source_sha,
+                run_id:$run,
+                profiles:[$profiles[] | {
+                  profile:.app_qualification.profile,
+                  asset_name:.app_qualification.asset_name,
+                  asset_digest:.app_qualification.asset_digest,
+                  installed_version:.checks.install.version,
+                  product_identity:.checks.install.identity,
+                  runtime_status:.checks.smoke.checks.runtime[.app_qualification.profile].status,
+                  ui_status:.checks.smoke.checks.ui,
+                  gateway_status:.checks.smoke.hooks.gatewaySetup,
+                  codex_turn:{status:.checks.smoke.hooks.codexTurn,completed:.checks.smoke.checks.codexTurn.completed,final_message_present:.checks.smoke.checks.codexTurn.finalMessagePresent,simulated:.checks.smoke.checks.codexTurn.simulated}
+                }],
+                remaining:[]
+              }
+          ' "${receipts[@]}" > opl-studio-preview-vm-qualification.json
+          jq -e '
+            .status == "complete"
+            and .release_id == "${{ inputs.release_id }}"
+            and .release_source_sha == "${{ inputs.release_source_sha }}"
+            and .verification_source_sha == "${{ needs.validate-inputs.outputs.verification_source_sha }}"
+            and ([.profiles[].profile] | sort) == ["full","standard"]
+            and all(.profiles[];
+              .runtime_status == "passed"
+              and .gateway_status == "passed"
+              and .codex_turn.status == "passed"
+              and .codex_turn.completed == "completed"
+              and .codex_turn.final_message_present == true
+              and .codex_turn.simulated == false)
+          ' opl-studio-preview-vm-qualification.json >/dev/null
+
+      - name: Upload App-owned qualification receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-preview-vm-qualification-${{ github.run_id }}
+          path: opl-studio-preview-vm-qualification.json
+          if-no-files-found: error
+          retention-days: 30
