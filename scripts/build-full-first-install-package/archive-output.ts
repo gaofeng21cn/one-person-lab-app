@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { FULL_RUNTIME_RESOURCE_DIR } from '../full-first-install-package.ts';
+import { resolveFullCarrierProfile, formatCarrierTemplate } from './carrier-profile.ts';
 import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 import { appRepoRoot } from './paths.ts';
 import { assertNoExternalSymlinks, requirePath } from './filesystem.ts';
@@ -164,7 +164,8 @@ export function ensurePackagedRuntimeFilesOwnerWritable(runtimeRoot) {
 }
 
 export function syncRuntimePayloadToBuildRoots(runtimeRoot, manifest, guiRoot) {
-  const appPayloadRoot = path.join(appRepoRoot, 'packaged-runtimes', FULL_RUNTIME_RESOURCE_DIR);
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  const appPayloadRoot = path.join(appRepoRoot, 'packaged-runtimes', carrier.runtimeResourceDir);
   const shellPayloadRoot = resolveActiveShellPaths({ shellRoot: guiRoot }).packagedRuntimeRoot;
   syncRuntimePayload(runtimeRoot, manifest, appPayloadRoot);
   syncRuntimePayload(runtimeRoot, manifest, shellPayloadRoot);
@@ -260,10 +261,11 @@ function createDmgWithResourceBusyRetry(targetDmg, args) {
 }
 
 export function findBuiltApp(guiRoot) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID, contract: undefined });
   const outDir = resolveActiveShellPaths({ shellRoot: guiRoot }).buildOutputDir;
   const candidates = [
-    path.join(outDir, 'mac-arm64', 'One Person Lab.app'),
-    path.join(outDir, 'mac', 'One Person Lab.app'),
+    path.join(outDir, 'mac-arm64', carrier.appBundleName),
+    path.join(outDir, 'mac', carrier.appBundleName),
   ];
   const found = candidates.find((candidate) => fs.existsSync(candidate));
   if (!found) {
@@ -273,6 +275,7 @@ export function findBuiltApp(guiRoot) {
 }
 
 export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, version, manifest, dmgFormat = resolveFullDmgFormat()) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   removeBuiltDmgCandidates(guiRoot, version);
   ensureAppBundleAdHocCodesign(appPath, 'Full built app bundle');
   assertAppBundleLocalAuthorization(appPath, 'Full built app bundle');
@@ -280,7 +283,7 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
   const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-dmg-stage-'));
   let result = null;
   try {
-    const stagedApp = path.join(stagingRoot, 'One Person Lab.app');
+    const stagedApp = path.join(stagingRoot, carrier.appBundleName);
     run('ditto', [appPath, stagedApp]);
     const trimReport = trimFullAppBundleForDmg(stagedApp);
     const boundaryAudit = auditFullPackageBundleBoundaries(stagedApp, manifest);
@@ -297,7 +300,7 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
       'create',
       targetDmg,
       '-volname',
-      `One Person Lab ${version}`,
+      formatCarrierTemplate(carrier.dmgVolumeNameTemplate, { version }),
       '-srcfolder',
       stagingRoot,
       '-format',

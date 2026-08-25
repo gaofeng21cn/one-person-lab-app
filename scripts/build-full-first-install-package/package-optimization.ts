@@ -4,9 +4,9 @@ import path from 'node:path';
 import {
   FULL_RUNTIME_PRUNE_POLICY,
   FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS,
-  FULL_RUNTIME_RESOURCE_DIR,
 } from '../full-first-install-package.ts';
 import { directorySizeBytes } from './filesystem.ts';
+import { resolveFullCarrierProfile } from './carrier-profile.ts';
 
 const APP_BUNDLE_TRIM_REPORT_SCHEMA = 'opl_full_app_bundle_trim_report.v1';
 const PACKAGE_BOUNDARY_AUDIT_SCHEMA = 'opl_full_package_boundary_audit.v2';
@@ -104,6 +104,7 @@ function collectTrimCandidates(appPath: string) {
 }
 
 export function trimFullAppBundleForDmg(appPath: string) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const beforeBytes = directorySizeBytes(appPath);
   const candidates = collectTrimCandidates(appPath);
   for (const candidate of candidates) {
@@ -115,7 +116,7 @@ export function trimFullAppBundleForDmg(appPath: string) {
     mode: 'explicit_non_runtime_prune_only',
     app_bundle_path: appPath,
     required_payload_boundary: {
-      full_runtime_resource_dir: `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}`,
+      full_runtime_resource_dir: `Contents/Resources/${carrier.runtimeResourceDir}`,
       protected_payloads: [...PROTECTED_APP_BUNDLE_PAYLOADS],
       preserved: true,
       rule: 'never trim the declared Full offline runtime payload from the App bundle staging pass',
@@ -319,11 +320,12 @@ function auditAioncoreCodexOnlyProjection(appPath: string) {
 }
 
 export function auditFullPackageBundleBoundaries(appPath: string, manifest: Record<string, any> | null = null) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const fullRuntimeRoot = path.join(
     appPath,
     'Contents',
     'Resources',
-    FULL_RUNTIME_RESOURCE_DIR,
+    carrier.runtimeResourceDir,
     'runtime',
     'current',
   );
@@ -333,11 +335,18 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       exists: fs.existsSync(path.join(fullRuntimeRoot, ...relativePath.split('/'))),
     }),
   );
-  const aioncoreCodexOnlyProjection = auditAioncoreCodexOnlyProjection(appPath);
+  const aioncoreCodexOnlyProjection = carrier.aioncoreRequired ? auditAioncoreCodexOnlyProjection(appPath) : {
+    schema: 'opl_codex_native_carrier_audit.v1',
+    runtime_count: 0,
+    runtimes: [],
+    required_absence_checks: [],
+    projection_present: false,
+    claude_payload_absent: true,
+  };
   const entries = {
     opl_full_runtime: bundleEntry(
       appPath,
-      `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}`,
+      `Contents/Resources/${carrier.runtimeResourceDir}`,
       'gaofeng21cn/one-person-lab',
       'Full offline first-install runtime payload assembled by the App repo as consumer/packager',
     ),
@@ -378,13 +387,13 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
     full_package_boundary: {
       contains_opl_full_runtime: entries.opl_full_runtime.exists,
       contains_shell_runtime: entries.aionui_bundled_runtime.exists,
-      aioncore_codex_carrier_present: entries.aionui_bundled_runtime.exists,
-      aioncore_codex_only_projection_present: aioncoreCodexOnlyProjection.projection_present,
+      aioncore_codex_carrier_present: carrier.aioncoreRequired ? entries.aionui_bundled_runtime.exists : false,
+      aioncore_codex_only_projection_present: carrier.aioncoreRequired ? aioncoreCodexOnlyProjection.projection_present : false,
       aioncore_claude_payload_absent: aioncoreCodexOnlyProjection.claude_payload_absent,
       aioncore_codex_only_projection_audit: aioncoreCodexOnlyProjection,
       framework_codex_payload_absent: forbiddenFrameworkCodexPaths.every((entry) => !entry.exists),
       forbidden_framework_codex_paths: forbiddenFrameworkCodexPaths,
-      dedupe_policy: 'aioncore_is_the_only_codex_carrier_in_the_aionui_app_bundle',
+      dedupe_policy: carrier.aioncoreRequired ? 'aioncore_is_the_only_codex_carrier_in_the_aionui_app_bundle' : 'opl_codex_native_is_the_only_codex_carrier_in_the_studio_app_bundle',
       rule: 'Keep the bundled AionCore shell carrier and reject every Framework-managed Codex archive, wrapper, cache, or companion rg path from the Full runtime.',
     },
     entries,
@@ -396,13 +405,15 @@ function offlineFirstInstallCompletenessPreserved(args: {
   boundaryAudit: Record<string, any>;
 }) {
   const entries = args.boundaryAudit.entries ?? {};
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  const boundary = args.boundaryAudit.full_package_boundary ?? {};
   return args.trimReport.required_payload_boundary?.preserved === true
-    && args.boundaryAudit.full_package_boundary?.contains_opl_full_runtime === true
-    && args.boundaryAudit.full_package_boundary?.contains_shell_runtime === true
-    && args.boundaryAudit.full_package_boundary?.aioncore_codex_carrier_present === true
-    && args.boundaryAudit.full_package_boundary?.aioncore_codex_only_projection_present === true
-    && args.boundaryAudit.full_package_boundary?.aioncore_claude_payload_absent === true
-    && args.boundaryAudit.full_package_boundary?.framework_codex_payload_absent === true
+    && boundary.contains_opl_full_runtime === true
+    && boundary.contains_shell_runtime === carrier.shellRuntimeRequired
+    && boundary.aioncore_codex_carrier_present === carrier.aioncoreRequired
+    && boundary.aioncore_codex_only_projection_present === carrier.aioncoreRequired
+    && boundary.aioncore_claude_payload_absent === true
+    && boundary.framework_codex_payload_absent === true
     && entries.app_asar?.exists === true
     && entries.electron_framework?.exists === true;
 }
@@ -491,9 +502,10 @@ export function withFullPackageOptimization(manifest: Record<string, any>, args:
 }
 
 export function writeFullPackageManifestIntoApp(appPath: string, manifest: Record<string, any>) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const manifestRelativePaths = [
-    `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}/manifest/full-package-manifest.json`,
-    `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}/runtime/current/manifest/full-package-manifest.json`,
+    `Contents/Resources/${carrier.runtimeResourceDir}/manifest/full-package-manifest.json`,
+    `Contents/Resources/${carrier.runtimeResourceDir}/runtime/current/manifest/full-package-manifest.json`,
   ];
   const written: string[] = [];
   for (const relativePath of manifestRelativePaths) {

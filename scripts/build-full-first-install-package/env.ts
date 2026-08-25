@@ -9,6 +9,7 @@ import {
 } from '../full-first-install-package.ts';
 import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 import { appRepoRoot, workspaceRoot } from './paths.ts';
+import { resolveFullCarrierProfile } from './carrier-profile.ts';
 
 function defaultRuntimeCacheDir() {
   if (process.env.OPL_FULL_RUNTIME_CACHE_DIR?.trim()) {
@@ -143,6 +144,7 @@ function defaultOptions() {
     ...defaultToolchainOptions(),
     ...defaultRuntimeOptions(),
     ...defaultRuntimeRefs(),
+    carrierId: process.env.OPL_FULL_CARRIER_ID?.trim() || resolveFullCarrierProfile().carrierId,
   };
 }
 
@@ -188,6 +190,7 @@ const valueOptionSetters = {
   },
   'runtime-cache-dir': (parsed, value) => { parsed.runtimeCacheDir = path.resolve(value); },
   'runtime-cache-mode': (parsed, value) => { parsed.runtimeCacheMode = value; },
+  'carrier-id': (parsed, value) => { parsed.carrierId = value; },
 };
 
 const nodeOptionConfig = Object.fromEntries([

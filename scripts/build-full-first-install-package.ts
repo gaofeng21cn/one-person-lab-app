@@ -48,6 +48,7 @@ import {
 import { resolveRuntimeSources } from './build-full-first-install-package/runtime-sources.ts';
 import { prepareRuntime } from './build-full-first-install-package/staging.ts';
 import { resolveOfficeCliReleaseSource } from './build-full-first-install-package/upstream-release.ts';
+import { resolveFullCarrierProfile } from './build-full-first-install-package/carrier-profile.ts';
 import { fileSha256 } from './release-file-helpers.ts';
 import {
   deriveManualLocalAppIdentity,
@@ -173,10 +174,11 @@ export function materializeFullKimiCuOfflineSeed(prepared, input = {}) {
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
+  const carrier = resolveFullCarrierProfile({ carrierId: options.carrierId });
   assertReleaseVersionNotFuture('stable', options.version);
   assertUpdaterVersionMatchesDisplay('stable', options.version, options.updaterVersion);
   const manualLocalAppIdentity = resolveManualLocalAppIdentity(options);
-  const artifactNames = buildFullPackageArtifactNames(options.version);
+  const artifactNames = buildFullPackageArtifactNames(options.version, carrier);
   fs.mkdirSync(options.outDir, { recursive: true });
 
   for (const [label, source] of [
@@ -381,6 +383,7 @@ function main() {
     dmgName: artifactNames.dmg,
     runtimeTarName: runtimeTar ? artifactNames.runtimeTar : null,
     notarized: process.env.OPL_FULL_PACKAGE_NOTARIZED === 'true',
+    carrier,
   }), 'utf8');
   const releaseManifestPath = path.join(options.outDir, artifactNames.releaseManifest);
   writeJsonFile(releaseManifestPath, buildFullPublicReleaseManifest({
