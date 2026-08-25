@@ -7,6 +7,7 @@ import {
   FULL_RUNTIME_RESOURCE_DIR,
 } from '../full-first-install-package.ts';
 import { directorySizeBytes } from './filesystem.ts';
+import { resolveFullCarrierProfile } from './carrier-profile.ts';
 
 const APP_BUNDLE_TRIM_REPORT_SCHEMA = 'opl_full_app_bundle_trim_report.v1';
 const PACKAGE_BOUNDARY_AUDIT_SCHEMA = 'opl_full_package_boundary_audit.v2';
@@ -319,6 +320,7 @@ function auditAioncoreCodexOnlyProjection(appPath: string) {
 }
 
 export function auditFullPackageBundleBoundaries(appPath: string, manifest: Record<string, any> | null = null) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const fullRuntimeRoot = path.join(
     appPath,
     'Contents',
@@ -333,7 +335,14 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       exists: fs.existsSync(path.join(fullRuntimeRoot, ...relativePath.split('/'))),
     }),
   );
-  const aioncoreCodexOnlyProjection = auditAioncoreCodexOnlyProjection(appPath);
+  const aioncoreCodexOnlyProjection = carrier.aioncoreRequired ? auditAioncoreCodexOnlyProjection(appPath) : {
+    schema: 'opl_codex_native_carrier_audit.v1',
+    runtime_count: 0,
+    runtimes: [],
+    required_absence_checks: [],
+    projection_present: false,
+    claude_payload_absent: true,
+  };
   const entries = {
     opl_full_runtime: bundleEntry(
       appPath,
@@ -378,13 +387,13 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
     full_package_boundary: {
       contains_opl_full_runtime: entries.opl_full_runtime.exists,
       contains_shell_runtime: entries.aionui_bundled_runtime.exists,
-      aioncore_codex_carrier_present: entries.aionui_bundled_runtime.exists,
-      aioncore_codex_only_projection_present: aioncoreCodexOnlyProjection.projection_present,
+      aioncore_codex_carrier_present: carrier.aioncoreRequired ? entries.aionui_bundled_runtime.exists : false,
+      aioncore_codex_only_projection_present: carrier.aioncoreRequired ? aioncoreCodexOnlyProjection.projection_present : false,
       aioncore_claude_payload_absent: aioncoreCodexOnlyProjection.claude_payload_absent,
       aioncore_codex_only_projection_audit: aioncoreCodexOnlyProjection,
       framework_codex_payload_absent: forbiddenFrameworkCodexPaths.every((entry) => !entry.exists),
       forbidden_framework_codex_paths: forbiddenFrameworkCodexPaths,
-      dedupe_policy: 'aioncore_is_the_only_codex_carrier_in_the_aionui_app_bundle',
+      dedupe_policy: carrier.aioncoreRequired ? 'aioncore_is_the_only_codex_carrier_in_the_aionui_app_bundle' : 'opl_codex_native_is_the_only_codex_carrier_in_the_studio_app_bundle',
       rule: 'Keep the bundled AionCore shell carrier and reject every Framework-managed Codex archive, wrapper, cache, or companion rg path from the Full runtime.',
     },
     entries,

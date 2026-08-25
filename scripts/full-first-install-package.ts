@@ -6,6 +6,7 @@ import {
   formatCodexProfilePhrase,
 } from './app-product-profile.ts';
 import { readAppProductProfile } from './app-product-profile/profile-contract.ts';
+import { resolveFullCarrierProfile, formatCarrierTemplate } from './build-full-first-install-package/carrier-profile.ts';
 
 export const FULL_FIRST_INSTALL_OUTPUT_DIR = '/Users/gaofeng/Downloads/One-Person-Lab-Full-First-Install';
 export const FULL_RELEASE_OUTPUT_DIR = 'dist/opl-full-release';
@@ -218,10 +219,10 @@ function buildRuntimeFabricBundles(components: Record<string, ComponentSnapshot>
   );
 }
 
-export function buildFullPackageArtifactNames(versionInput: string) {
+export function buildFullPackageArtifactNames(versionInput: string, carrier = resolveFullCarrierProfile()) {
   const version = normalizeVersion(versionInput);
   return {
-    dmg: `One-Person-Lab-Full-${version}-mac-arm64.dmg`,
+    dmg: formatCarrierTemplate(carrier.artifactNameTemplate, { version }),
     runtimeTar: `opl-runtime-full-${version}-macos-arm64.tar.zst`,
     checksums: 'SHA256SUMS.txt',
     readme: 'README-Full-First-Install.txt',
@@ -328,15 +329,16 @@ export function classifyFullRuntimeLayerCache(input: {
   } as const;
 }
 
-export function buildFullPackageManifest(input: FullPackageManifestInput = {}) {
+export function buildFullPackageManifest(input: FullPackageManifestInput & { carrier?: ReturnType<typeof resolveFullCarrierProfile> } = {}) {
   const version = normalizeVersion(input.version);
+  const carrier = input.carrier ?? resolveFullCarrierProfile();
   const components = input.components ?? {};
   const optionalComponents = input.optionalComponents ?? {};
   const productProfile = readAppProductProfile();
 
   return {
     manifest_version: 2,
-    package_kind: 'opl_full_first_install_macos_arm64',
+    package_kind: carrier.packageKind,
     version,
     arch: 'macos-arm64',
     generated_at: input.generatedAt ?? new Date().toISOString(),
@@ -373,11 +375,11 @@ export function buildFullPackageManifest(input: FullPackageManifestInput = {}) {
     resolved_refs: input.resolvedRefs ?? {},
     runtime: {
       layout_version: 1,
-      payload_resource_dir: FULL_RUNTIME_RESOURCE_DIR,
-      install_root_template: '~/Library/Application Support/OPL/runtime/current',
-      installed_runtime_path: '~/Library/Application Support/OPL/runtime/current',
-      active_pointer_path: '~/Library/Application Support/OPL/runtime/current.json',
-      version_metadata_path: '~/Library/Application Support/OPL/runtime/current/.opl-full-runtime-installed.json',
+      payload_resource_dir: carrier.runtimeResourceDir,
+      install_root_template: carrier.runtimeInstallRootTemplate,
+      installed_runtime_path: `${carrier.runtimeInstallRootTemplate}`,
+      active_pointer_path: `${carrier.runtimeInstallRootTemplate}.json`,
+      version_metadata_path: carrier.runtimeVersionMetadataPath,
       app_uses_installed_runtime_after_first_launch: true,
       runtime_version_stored_in_metadata_only: true,
       state_policy: 'user_state_stays_outside_runtime_payload',
@@ -385,7 +387,7 @@ export function buildFullPackageManifest(input: FullPackageManifestInput = {}) {
       managed_modules_root_template: '~/Library/Application Support/OPL/state/modules',
     },
     distribution: {
-      owner_repo: 'gaofeng21cn/one-person-lab-app',
+      owner_repo: carrier.carrierId === 'opl-studio' ? 'gaofeng21cn/opl-studio' : 'gaofeng21cn/one-person-lab-app',
       channel: 'github_release_first_install',
       release_asset_role: 'first_install_recommended',
       product_profile_contract: 'contracts/app-product-profile.json',

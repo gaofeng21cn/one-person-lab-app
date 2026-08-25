@@ -11,6 +11,7 @@ import { readGitHead, readGitOriginUrl } from './git.ts';
 import { existingFileSha256, packageJsonVersion } from './hashing.ts';
 import { run } from './process.ts';
 import { collectRuntimeAssertions } from './runtime-layers.ts';
+import { resolveFullCarrierProfile } from './carrier-profile.ts';
 
 const MAS_PACKAGE_ID = 'mas';
 const MAS_SCHOLAR_SKILLS_PACKAGE_ID = 'mas-scholar-skills';
@@ -509,6 +510,7 @@ function assertDeclaredPrunedPathsAbsent(runtimeAssertions) {
 }
 
 export function writeFullRuntimeManifest(runtimeRoot, options, packagedAt, components, resolvedRefs, optionalComponents = {}, nativeTrust = undefined) {
+  const carrier = resolveFullCarrierProfile({ carrierId: options.carrierId });
   const manifestDir = path.join(runtimeRoot, 'manifest');
   const manifestPath = path.join(manifestDir, 'full-package-manifest.json');
   fs.mkdirSync(manifestDir, { recursive: true });
@@ -524,6 +526,7 @@ export function writeFullRuntimeManifest(runtimeRoot, options, packagedAt, compo
     resolvedRefs,
     runtimeAssertions,
     nativeTrust,
+    carrier,
   });
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -541,6 +544,7 @@ export function writeFullRuntimeManifest(runtimeRoot, options, packagedAt, compo
       runtimeAssertions: nextRuntimeAssertions,
       nativeTrust,
       sizeBreakdown,
+      carrier,
     });
     fs.writeFileSync(manifestPath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8');
 

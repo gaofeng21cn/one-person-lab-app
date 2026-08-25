@@ -113,10 +113,10 @@ export function resolveFullCarrierProfile(options: CarrierProfileOptions = {}): 
     || process.env.OPL_FULL_CARRIER_ID?.trim()
     || resolveShellAdapterIdentity(contract)) as FullCarrierId;
   const profile = validateProfile(readCarrierProfiles()[carrierId], carrierId);
-  if (contract.candidate_shell === 'opl-studio' && carrierId !== 'opl-studio') {
+  if (!options.carrierId && contract.candidate_shell === 'opl-studio' && carrierId !== 'opl-studio') {
     throw new Error('OPL Studio Full build must resolve the opl-studio payload carrier profile.');
   }
-  if (contract.active_shell === 'aionui' && carrierId !== 'aionui') {
+  if (!options.carrierId && contract.active_shell === 'aionui' && carrierId !== 'aionui') {
     throw new Error('AionUI Full build must resolve the aionui payload carrier profile.');
   }
   return Object.freeze({
