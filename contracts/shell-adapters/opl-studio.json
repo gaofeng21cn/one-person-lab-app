@@ -246,7 +246,7 @@
       "desktop_release_carrier_manifest": "contracts/desktop-release-carrier.json",
       "build_output_dir": "out",
       "product_profile_target": "src/generated/oplProductProfile.generated.json",
-      "packaged_runtime_root": "packaged-runtimes/opl-full-runtime",
+      "packaged_runtime_root": "packaged-runtimes/opl-studio-full-runtime",
       "packaged_runtime_validator": "scripts/validate-desktop-package.mjs",
       "release_prepare_script": "scripts/prepare-release-assets.sh",
       "release_verify_script": "scripts/verify-release-assets.sh"
