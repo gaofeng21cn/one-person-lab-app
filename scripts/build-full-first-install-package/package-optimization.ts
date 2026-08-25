@@ -4,7 +4,6 @@ import path from 'node:path';
 import {
   FULL_RUNTIME_PRUNE_POLICY,
   FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS,
-  FULL_RUNTIME_RESOURCE_DIR,
 } from '../full-first-install-package.ts';
 import { directorySizeBytes } from './filesystem.ts';
 import { resolveFullCarrierProfile } from './carrier-profile.ts';
@@ -105,6 +104,7 @@ function collectTrimCandidates(appPath: string) {
 }
 
 export function trimFullAppBundleForDmg(appPath: string) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const beforeBytes = directorySizeBytes(appPath);
   const candidates = collectTrimCandidates(appPath);
   for (const candidate of candidates) {
@@ -116,7 +116,7 @@ export function trimFullAppBundleForDmg(appPath: string) {
     mode: 'explicit_non_runtime_prune_only',
     app_bundle_path: appPath,
     required_payload_boundary: {
-      full_runtime_resource_dir: `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}`,
+      full_runtime_resource_dir: `Contents/Resources/${carrier.runtimeResourceDir}`,
       protected_payloads: [...PROTECTED_APP_BUNDLE_PAYLOADS],
       preserved: true,
       rule: 'never trim the declared Full offline runtime payload from the App bundle staging pass',
@@ -325,7 +325,7 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
     appPath,
     'Contents',
     'Resources',
-    FULL_RUNTIME_RESOURCE_DIR,
+    carrier.runtimeResourceDir,
     'runtime',
     'current',
   );
@@ -346,7 +346,7 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
   const entries = {
     opl_full_runtime: bundleEntry(
       appPath,
-      `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}`,
+      `Contents/Resources/${carrier.runtimeResourceDir}`,
       'gaofeng21cn/one-person-lab',
       'Full offline first-install runtime payload assembled by the App repo as consumer/packager',
     ),
@@ -500,9 +500,10 @@ export function withFullPackageOptimization(manifest: Record<string, any>, args:
 }
 
 export function writeFullPackageManifestIntoApp(appPath: string, manifest: Record<string, any>) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const manifestRelativePaths = [
-    `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}/manifest/full-package-manifest.json`,
-    `Contents/Resources/${FULL_RUNTIME_RESOURCE_DIR}/runtime/current/manifest/full-package-manifest.json`,
+    `Contents/Resources/${carrier.runtimeResourceDir}/manifest/full-package-manifest.json`,
+    `Contents/Resources/${carrier.runtimeResourceDir}/runtime/current/manifest/full-package-manifest.json`,
   ];
   const written: string[] = [];
   for (const relativePath of manifestRelativePaths) {

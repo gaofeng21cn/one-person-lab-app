@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { FULL_RUNTIME_RESOURCE_DIR } from '../full-first-install-package.ts';
 import { resolveFullCarrierProfile, formatCarrierTemplate } from './carrier-profile.ts';
 import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 import { appRepoRoot } from './paths.ts';
@@ -165,7 +164,8 @@ export function ensurePackagedRuntimeFilesOwnerWritable(runtimeRoot) {
 }
 
 export function syncRuntimePayloadToBuildRoots(runtimeRoot, manifest, guiRoot) {
-  const appPayloadRoot = path.join(appRepoRoot, 'packaged-runtimes', FULL_RUNTIME_RESOURCE_DIR);
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  const appPayloadRoot = path.join(appRepoRoot, 'packaged-runtimes', carrier.runtimeResourceDir);
   const shellPayloadRoot = resolveActiveShellPaths({ shellRoot: guiRoot }).packagedRuntimeRoot;
   syncRuntimePayload(runtimeRoot, manifest, appPayloadRoot);
   syncRuntimePayload(runtimeRoot, manifest, shellPayloadRoot);

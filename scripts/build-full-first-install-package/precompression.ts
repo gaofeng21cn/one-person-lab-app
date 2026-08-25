@@ -4,8 +4,8 @@ import path from 'node:path';
 
 import {
   FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS,
-  FULL_RUNTIME_RESOURCE_DIR,
 } from '../full-first-install-package.ts';
+import { resolveFullCarrierProfile } from './carrier-profile.ts';
 
 const PRECOMPRESSION_GATE_SCHEMA = 'opl_full_precompression_gate.v1';
 const FULL_GIT_SHA_PATTERN = /^[0-9a-f]{40}$/i;
@@ -313,12 +313,13 @@ function collectResolvedRefParityIssues(
 }
 
 function packagedManifestPath(builtAppPath: string) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const candidates = [
     path.join(
       builtAppPath,
       'Contents',
       'Resources',
-      FULL_RUNTIME_RESOURCE_DIR,
+      carrier.runtimeResourceDir,
       'runtime',
       'current',
       'manifest',
@@ -328,7 +329,7 @@ function packagedManifestPath(builtAppPath: string) {
       builtAppPath,
       'Contents',
       'Resources',
-      FULL_RUNTIME_RESOURCE_DIR,
+      carrier.runtimeResourceDir,
       'manifest',
       'full-package-manifest.json',
     ),
@@ -403,6 +404,8 @@ function collectFrameworkCodexAbsenceIssues(
   builtAppPath: string,
   manifest: PackagedManifest | null,
 ) {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  if (!carrier.aioncoreRequired) return [];
   const issues: GateIssue[] = [];
   const declarations = manifest?.runtime_assertions?.declared_pruned_paths ?? [];
   const declarationByPath = new Map(declarations.map((entry) => [entry.path, entry]));
@@ -410,7 +413,7 @@ function collectFrameworkCodexAbsenceIssues(
     builtAppPath,
     'Contents',
     'Resources',
-    FULL_RUNTIME_RESOURCE_DIR,
+    carrier.runtimeResourceDir,
     'runtime',
     'current',
   );
