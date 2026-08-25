@@ -104,6 +104,18 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
   assert.match(evidence, /gh api "repos\/\$STUDIO_REPOSITORY\/releases\/latest"/);
   assert.match(evidence, /releases\/latest\/download\/\$name/);
   assert.match(evidence, /cmp "public-assets\/\$name" "public-latest-assets\/\$name"/);
+
+  const notarize = build.steps.find((step: Record<string, any>) => step.name === 'Notarize and staple the final Studio Full DMG');
+  assert.equal(notarize?.id, 'notarize-studio-full');
+  assert.match(String(notarize?.run), /--submitted-candidate-output/);
+  const capture = build.steps.find((step: Record<string, any>) => step.name === 'Capture Studio Full notarization failure evidence');
+  assert.equal(capture?.if, "${{ failure() && steps.notarize-studio-full.outcome == 'failure' }}");
+  assert.match(String(capture?.run), /notarytool log/);
+  const recovery = build.steps.find((step: Record<string, any>) => step.name === 'Upload Studio Full notarization recovery evidence');
+  assert.equal(recovery?.if, "${{ failure() && steps.notarize-studio-full.outcome == 'failure' }}");
+  assert.match(String(recovery?.with?.name), /opl-studio-full-notarization-recovery/);
+  assert.match(String(recovery?.with?.path), /full-apple-notarization-receipt\.json/);
+  assert.match(String(recovery?.with?.path), /submitted-for-notarization\.dmg/);
 });
 
 test('Studio Full contract keeps its additive asset set explicit', () => {

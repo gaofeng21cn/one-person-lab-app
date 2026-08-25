@@ -514,6 +514,11 @@ test('an incomplete bounded wait emits durable typed reconcile evidence and neve
     assert.equal(value.receipt.notarization.info_poll_attempts, value.notaryInfoAttempts);
     assert.equal((value.commands.match(/notarytool info/g) ?? []).length, value.notaryInfoAttempts);
     assert.doesNotMatch(value.commands, /stapler staple/);
+    const logged = JSON.parse(value.result.stderr.trim()) as Record<string, any>;
+    assert.equal(logged.schema, 'opl_notarization_failure_log.v1');
+    assert.equal(logged.failure.code, 'notarization_submission_incomplete');
+    assert.equal(logged.notarization.id, submissionId);
+    assert.equal(logged.submitted_candidate.retained_for_reconcile, true);
   } finally {
     fs.rmSync(value.root, { recursive: true, force: true });
   }
@@ -533,6 +538,9 @@ test('a permanent notarization rejection fails closed without polling or staplin
     assert.equal((value.commands.match(/notarytool wait/g) ?? []).length, 1);
     assert.equal((value.commands.match(/notarytool info/g) ?? []).length, 1);
     assert.doesNotMatch(value.commands, /stapler staple/);
+    const logged = JSON.parse(value.result.stderr.trim()) as Record<string, any>;
+    assert.equal(logged.failure.code, 'notarization_submission_rejected');
+    assert.equal(logged.notarization.status, 'Rejected');
   } finally {
     fs.rmSync(value.root, { recursive: true, force: true });
   }

@@ -738,8 +738,33 @@ export function finalizeNotarizedDmg() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     process.stdout.write(`${JSON.stringify(finalizeNotarizedDmg(), null, 2)}\n`);
-  } catch {
-    console.error('DMG notarization finalization failed; inspect the persisted recovery evidence.');
+  } catch (error) {
+    const outputArgumentIndex = process.argv.indexOf('--output');
+    const outputPath = outputArgumentIndex >= 0 ? process.argv[outputArgumentIndex + 1] : '';
+    let persistedFailure: Record<string, unknown> | null = null;
+    if (outputPath) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(path.resolve(outputPath), 'utf8'));
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          persistedFailure = parsed as Record<string, unknown>;
+        }
+      } catch {
+        // The original error remains authoritative when recovery evidence is unavailable.
+      }
+    }
+    console.error(JSON.stringify({
+      schema: 'opl_notarization_failure_log.v1',
+      status: 'failed',
+      failure: persistedFailure?.failure ?? {
+        code: 'notarization_failure_evidence_unavailable',
+        stage: 'unknown',
+        message: error instanceof Error ? error.message : String(error),
+        retry_disposition: 'inspect_original_error',
+      },
+      notarization: persistedFailure?.notarization ?? null,
+      submitted_candidate: persistedFailure?.submitted_candidate ?? null,
+      recovery_evidence: outputPath ? path.basename(outputPath) : null,
+    }));
     process.exit(1);
   }
 }

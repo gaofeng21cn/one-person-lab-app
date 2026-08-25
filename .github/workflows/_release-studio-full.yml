@@ -622,6 +622,7 @@ jobs:
           jq -e '.schema == "opl_public_release_manifest.v1" and .carrier.carrier_id == "opl-studio" and .carrier.bundle_id == "cn.onepersonlab.opl.studio.preview" and .carrier.codex_carrier == "opl_codex_native" and .carrier.aioncore_required == false and .package_kind == "opl_studio_full_first_install_macos_arm64"' "$manifest" >/dev/null
 
       - name: Notarize and staple the final Studio Full DMG
+        id: notarize-studio-full
         env:
           appleId: ${{ secrets.APPLE_ID }}
           appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -637,11 +638,50 @@ jobs:
           NOTARY_ARGS=(
             --dmg "full-output/one-person-lab-preview-full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
             --output full-output/full-apple-notarization-receipt.json
+            --submitted-candidate-output "full-output/one-person-lab-preview-full-${OPL_RELEASE_VERSION}-mac-arm64.submitted-for-notarization.dmg"
           )
           if [ -n "$OPERATION_DEADLINE_AT" ]; then
             NOTARY_ARGS+=(--operation-deadline-at "$OPERATION_DEADLINE_AT")
           fi
           node --experimental-strip-types app-source/scripts/notarize-macos-dmg.ts "${NOTARY_ARGS[@]}"
+
+      - name: Capture Studio Full notarization failure evidence
+        if: ${{ failure() && steps.notarize-studio-full.outcome == 'failure' }}
+        env:
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          receipt=full-output/full-apple-notarization-receipt.json
+          test -s "$receipt"
+          jq '{schema, status, artifact, notarization, timestamp_signing, submitted_candidate, failure}' "$receipt"
+          submission_id="$(jq -r '.notarization.id // empty' "$receipt")"
+          submission_status="$(jq -r '.notarization.status // empty' "$receipt")"
+          if [ -n "$submission_id" ] && { [ "$submission_status" = Rejected ] || [ "$submission_status" = Invalid ]; }; then
+            if ! xcrun notarytool log "$submission_id" \
+              --apple-id "$appleId" \
+              --password "$appleIdPassword" \
+              --team-id "$teamId" \
+              > full-output/full-apple-notarization-log.json; then
+              printf '{"schema":"opl_notarization_log_fetch.v1","status":"unavailable","submission_id":"%s"}\n' \
+                "$submission_id" > full-output/full-apple-notarization-log.json
+            fi
+          fi
+
+      - name: Upload Studio Full notarization recovery evidence
+        if: ${{ failure() && steps.notarize-studio-full.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-full-notarization-recovery-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: |
+            full-output/full-apple-notarization-receipt.json
+            full-output/full-apple-notarization-log.json
+            full-output/*.submitted-for-notarization.dmg
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
 
       - name: Validate Gatekeeper and bind final Full manifest bytes
         env:
