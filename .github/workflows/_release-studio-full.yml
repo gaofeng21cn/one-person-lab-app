@@ -887,7 +887,7 @@ jobs:
 
   public-readback:
     needs: [publish-full]
-    if: ${{ needs.publish-full.result == 'success' }}
+    if: ${{ always() && needs.publish-full.result == 'success' }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:

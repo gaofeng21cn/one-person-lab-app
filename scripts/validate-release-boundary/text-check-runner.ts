@@ -587,7 +587,7 @@ function validateStudioFullAppendTopology(
     || !exactObject(publish.permissions, exactReadPermissions)
     || !exactObject(publish.concurrency, { group: 'opl-studio-publication-global', 'cancel-in-progress': false })
     || !readback
-    || readback.if !== "${{ needs.publish-full.result == 'success' }}"
+    || readback.if !== "${{ always() && needs.publish-full.result == 'success' }}"
     || !needsExactly(readback, ['publish-full'])
     || readback['runs-on'] !== 'macos-15'
     || readback.environment !== undefined

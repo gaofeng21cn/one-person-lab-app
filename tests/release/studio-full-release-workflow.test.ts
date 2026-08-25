@@ -63,6 +63,7 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
     'cancel-in-progress': false,
   });
   assert.deepEqual(readback.needs, ['publish-full']);
+  assert.equal(readback.if, "${{ always() && needs.publish-full.result == 'success' }}");
   assert.equal(readback.environment, undefined);
 
   const evidence = [build, restore, publish, readback].map(runText).join('\n');
