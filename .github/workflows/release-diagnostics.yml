@@ -536,6 +536,7 @@ jobs:
         run: |
           notary_submission_id="$(jq -r '.notarization.submission_reconcile.submission_id // "not requested"' "$RUNNER_TEMP/apple-release-credentials-preflight.json")"
           notary_status="$(jq -r '.notarization.submission_reconcile.apple_status // "not requested"' "$RUNNER_TEMP/apple-release-credentials-preflight.json")"
+          recent_submissions="$(jq -c '.notarization.recent_submissions // []' "$RUNNER_TEMP/apple-release-credentials-preflight.json")"
           {
             echo '## Apple credential diagnostic passed'
             echo
@@ -544,6 +545,7 @@ jobs:
             echo '- Notarization submission performed: false'
             echo "- Existing notarization submission: $notary_submission_id"
             echo "- Existing notarization status: $notary_status"
+            echo "- Recent notarization submissions: \`$recent_submissions\`"
             echo '- Large DMG canary requested: ${{ inputs.large_dmg_canary }}'
             echo '- Continue through release-stable.yml for publication.'
           } >> "$GITHUB_STEP_SUMMARY"

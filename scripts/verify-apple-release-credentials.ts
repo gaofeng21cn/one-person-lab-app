@@ -419,7 +419,18 @@ function parseNotaryHistory(stdout: string) {
     : Array.isArray(payload.submissions)
       ? payload.submissions
       : [];
-  return { historyCount: entries.length };
+  const recentSubmissions = entries.slice(0, 10).map((entry) => {
+    const record = entry && typeof entry === 'object' && !Array.isArray(entry)
+      ? entry as Record<string, unknown>
+      : {};
+    return {
+      id: typeof record.id === 'string' ? record.id.toLowerCase() : null,
+      status: typeof record.status === 'string' ? record.status : null,
+      created_at: typeof record.createdDate === 'string' ? record.createdDate : null,
+      name: typeof record.name === 'string' ? record.name : null,
+    };
+  });
+  return { historyCount: entries.length, recentSubmissions };
 }
 
 function parseNotarySubmissionId(value: string | undefined): string | null {
@@ -884,6 +895,7 @@ export function verifyAppleReleaseCredentials(options: VerifyOptions) {
         authentication: 'passed',
         command: 'xcrun notarytool history',
         history_count: notaryHistory.historyCount,
+        recent_submissions: notaryHistory.recentSubmissions,
         submission_performed: false,
         submission_reconcile: submissionReconcile,
       },

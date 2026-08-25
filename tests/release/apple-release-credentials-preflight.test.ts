@@ -144,7 +144,12 @@ function successfulRunner(overrides: {
       }
       return {
         status: 0,
-        stdout: overrides.notaryStdout ?? '{"history":[{"status":"Accepted"}]}',
+        stdout: overrides.notaryStdout ?? JSON.stringify({ history: [{
+          id: '5AA959AB-6FD1-45BB-83EA-E5C9ED3E78F2',
+          status: 'Accepted',
+          createdDate: '2026-08-07T12:45:30.000Z',
+          name: 'One-Person-Lab-Full.dmg',
+        }] }),
         stderr: '',
       };
     }
@@ -285,6 +290,12 @@ test('Apple credential preflight imports the P12, signs a probe, and authenticat
   assert.equal(receipt.signing.probe_codesign_strict, 'passed');
   assert.equal(receipt.notarization.authentication, 'passed');
   assert.equal(receipt.notarization.history_count, 1);
+  assert.deepEqual(receipt.notarization.recent_submissions, [{
+    id: '5aa959ab-6fd1-45bb-83ea-e5c9ed3e78f2',
+    status: 'Accepted',
+    created_at: '2026-08-07T12:45:30.000Z',
+    name: 'One-Person-Lab-Full.dmg',
+  }]);
   assert.equal(receipt.notarization.submission_performed, false);
   assert.equal(receipt.mutation.release_dispatch_performed, false);
   assert.equal(receipt.mutation.public_asset_write_performed, false);
