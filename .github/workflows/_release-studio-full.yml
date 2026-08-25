@@ -544,6 +544,7 @@ jobs:
       - name: Build the exact Studio desktop directory
         working-directory: studio-source
         env:
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           OPL_RELEASE_VERSION: ${{ inputs.studio_version }}

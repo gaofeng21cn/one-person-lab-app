@@ -69,6 +69,8 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
   assert.equal(build.steps.some((step: Record<string, any>) => step.with?.repository === 'gaofeng21cn/one-person-lab-app'), true);
   assert.equal(build.steps.some((step: Record<string, any>) => step.with?.repository === 'gaofeng21cn/opl-studio'), true);
   assert.equal(build.steps.some((step: Record<string, any>) => step.with?.repository === 'gaofeng21cn/one-person-lab'), true);
+  const desktopBuild = build.steps.find((step: Record<string, any>) => step.name === 'Build the exact Studio desktop directory');
+  assert.equal(desktopBuild?.env?.OPL_APP_REPO_ROOT, '${{ github.workspace }}/app-source');
   for (const required of [
     'scripts/verify-apple-release-credentials.ts',
     'npm --prefix app-source run release:full',
