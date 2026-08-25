@@ -189,11 +189,35 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          gh run download "$FOLLOWUP_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "opl-stable-followup-route-$source_run_id" --dir followup-route
+          mapfile -t routes < <(find followup-route -type f -name stable-followup-route.json -print | LC_ALL=C sort)
+          test "${#routes[@]}" = 1
+          jq -e '.schema == "opl_app_stable_followup_route.v1"' "${routes[0]}" >/dev/null
+          source_operation="$(jq -er '.source_operation | strings' "${routes[0]}")"
+          case "$source_operation" in
+            standard|resume_standard) ;;
+            append_full) reason_code=source_operation_append_full ;;
+            *) reason_code=source_operation_not_desktop_release_set ;;
+          esac
+          if [ "$source_operation" != standard ] && [ "$source_operation" != resume_standard ]; then
+            {
+              echo "applicable=false"
+              echo "reason_code=$reason_code"
+              echo "source_run_id=$source_run_id"
+              echo "followup_run_id=$FOLLOWUP_RUN_ID"
+              echo "operation_kind=$source_operation"
+              echo "certification_kind=$certification_kind"
+              echo "certify_macos=false"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           gh run download "$source_run_id" --repo "$GITHUB_REPOSITORY" \
             --name "opl-release-operation-admission-$source_run_id" --dir source-operation-admission
           mapfile -t admissions < <(find source-operation-admission -type f -name release-operation-admission.json -print | LC_ALL=C sort)
           test "${#admissions[@]}" = 1
           operation_kind="$(jq -er '.operation | strings' "${admissions[0]}")"
+          test "$operation_kind" = "$source_operation"
           gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/actions/runs/$FOLLOWUP_RUN_ID/artifacts?per_page=100" \
             > followup-artifacts.json

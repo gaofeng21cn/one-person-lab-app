@@ -47,7 +47,13 @@ test('non-Desktop Stable operations complete certification as not applicable', (
   assert.equal(resolve.outputs.source_run_id, '${{ steps.authority.outputs.source_run_id }}');
   assert.match(source, /source_run_not_successful/);
   assert.match(source, /source_operation_append_full/);
+  assert.match(source, /opl-stable-followup-route-\$source_run_id/);
   assert.match(source, /opl-release-operation-admission-\$source_run_id/);
+  assert.ok(
+    source.indexOf('opl-stable-followup-route-$source_run_id') <
+      source.indexOf('opl-release-operation-admission-$source_run_id'),
+    'the typed follow-up route must gate the source admission download',
+  );
   assert.doesNotMatch(source, /display_title \| startswith\("OPL Stable standard/);
   assert.match(
     source,
