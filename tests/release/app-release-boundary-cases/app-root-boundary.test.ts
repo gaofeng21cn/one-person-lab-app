@@ -76,7 +76,7 @@ test('App root boundary validator accepts the product wrapper and rejects shell-
   );
 });
 
-test('active-shell wrapper binds the display version to the canonical updater machine version', () => {
+test('active-shell wrapper binds each display channel to its canonical updater machine version', () => {
   assert.deepEqual(
     resolveOplBuildVersions({ OPL_RELEASE_VERSION: '26.8.19' }),
     { displayVersion: '26.8.19', updaterVersion: '26.8.1991' },
@@ -85,9 +85,20 @@ test('active-shell wrapper binds the display version to the canonical updater ma
     () => resolveOplBuildVersions({ OPL_RELEASE_VERSION: '26.8.19', OPL_UPDATER_VERSION: '26.8.19' }),
     /does not match 26\.8\.19; expected 26\.8\.1991/,
   );
+  assert.deepEqual(
+    resolveOplBuildVersions({ OPL_RELEASE_VERSION: '26.8.19-nightly' }),
+    { displayVersion: '26.8.19-nightly', updaterVersion: '26.8.1991-nightly.1' },
+  );
   assert.throws(
-    () => resolveOplBuildVersions({ OPL_RELEASE_VERSION: '26.8.19-nightly' }),
-    /Invalid stable App release version/,
+    () => resolveOplBuildVersions({
+      OPL_RELEASE_VERSION: '26.8.19-nightly',
+      OPL_UPDATER_VERSION: '26.8.1991',
+    }),
+    /does not match 26\.8\.19-nightly; expected 26\.8\.1991-nightly\.1/,
+  );
+  assert.deepEqual(
+    resolveOplBuildVersions({ OPL_RELEASE_VERSION: '26.8.19-preview.r1' }),
+    { displayVersion: '26.8.19-preview.r1', updaterVersion: '26.8.1991-preview.1' },
   );
 });
 

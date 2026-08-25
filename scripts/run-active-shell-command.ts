@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { assertAppRootBoundary } from './app-root-boundary.ts';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import {
+  type AppReleaseChannel,
   assertUpdaterVersionMatchesDisplay,
   resolveReleaseVersionIdentity,
 } from './release-version.ts';
@@ -32,14 +33,19 @@ export function resolveOplBuildVersions(
 ): { displayVersion: string; updaterVersion: string } {
   const displayVersion = resolveOplReleaseVersion(env);
   const explicitUpdaterVersion = env.OPL_UPDATER_VERSION?.trim();
+  const channel: AppReleaseChannel = displayVersion.includes('-nightly')
+    ? 'nightly'
+    : displayVersion.includes('-preview')
+      ? 'preview'
+      : 'stable';
 
   // The renderer displays the calendar/release identity, while Electron and
   // electron-updater must use the contract's monotonic machine identity.
-  // Derive the stable local default so the App wrapper cannot accidentally
-  // package the display date as the updater version.
+  // Derive the channel-specific local default so the App wrapper cannot
+  // accidentally package the display date as the updater version.
   const updaterVersion = explicitUpdaterVersion
-    || resolveReleaseVersionIdentity('stable', displayVersion).updaterVersion;
-  assertUpdaterVersionMatchesDisplay('stable', displayVersion, updaterVersion);
+    || resolveReleaseVersionIdentity(channel, displayVersion).updaterVersion;
+  assertUpdaterVersionMatchesDisplay(channel, displayVersion, updaterVersion);
   return { displayVersion, updaterVersion };
 }
 
