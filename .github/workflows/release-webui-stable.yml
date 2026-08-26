@@ -255,7 +255,7 @@ jobs:
             },
             qualification:.qualification_disclosure.runtime_qualification
           }' evidence/publication-record.json > evidence/carrier-receipt.json
-          jq -e '.authority.source_authority | type == "object"' evidence/publication-record.json \
+          jq -e '.authority.source_authority | select(type == "object")' evidence/publication-record.json \
             > evidence/source-authority.json
           node --experimental-strip-types scripts/webui-source-authority.ts \
             validate --input evidence/source-authority.json \

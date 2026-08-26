@@ -257,6 +257,8 @@ test('Docker WebUI workflows expose one independent Stable and Preview lane with
   const authorityRead = admissionSteps.find((step) => step.name.startsWith('Read immutable'))?.run ?? '';
   assert.match(materialize, /architecture:"multiarch"/);
   assert.match(materialize, /platforms:.image.platforms/);
+  assert.match(materialize, /\.authority\.source_authority \| select\(type == "object"\)/);
+  assert.doesNotMatch(materialize, /\.authority\.source_authority \| type == "object"/);
   assert.match(authorityRead, /select\(length == 2\)/);
   assert.match(authorityRead, /platforms:\$platforms/);
   assert.doesNotMatch(authorityRead, /select\(length == 1\)/);
