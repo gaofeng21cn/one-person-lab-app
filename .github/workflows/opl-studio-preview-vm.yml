@@ -399,6 +399,7 @@ jobs:
             and .checks.smoke.checks.ui.settings.panel == true
             and .checks.smoke.checks.ui.runtime.panel == true
             and .checks.smoke.checks.ui.inspector.tabs == true
+            and .checks.smoke.checks.ui.inspector.closed == true
           ' "evidence/$PROFILE/qualification.json" >/dev/null
           test "$(find "evidence/$PROFILE/screenshots" -type f -name '*.png' | wc -l | tr -d ' ')" -ge 5
 
@@ -651,5 +652,6 @@ jobs:
               and .codex_turn.status == "passed"
               and .codex_turn.completed == "completed"
               and .codex_turn.final_message_present == true
-              and .codex_turn.simulated == false)
+              and .codex_turn.simulated == false
+              and .ui_status.inspector.closed == true)
           ' opl-studio-preview-vm-qualification.json >/dev/null
