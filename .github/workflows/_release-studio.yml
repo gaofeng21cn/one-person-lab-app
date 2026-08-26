@@ -818,6 +818,7 @@ jobs:
 
   public-readback:
     needs: [resolve-checkpoint, publish]
+    if: ${{ always() && needs.resolve-checkpoint.result == 'success' && needs.publish.result == 'success' }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:

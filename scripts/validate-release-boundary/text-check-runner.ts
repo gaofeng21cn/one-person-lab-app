@@ -888,6 +888,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       || !exactObject(publish.concurrency, { group: 'opl-studio-publication-global', 'cancel-in-progress': false })
       || !readback
       || !needsExactly(readback, ['resolve-checkpoint', 'publish'])
+      || readback.if !== "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.publish.result == 'success' }}"
       || readback.environment !== undefined
       || readback['runs-on'] !== 'macos-15'
       || !exactObject(readback.permissions, exactReadPermissions)

@@ -208,6 +208,10 @@ test('Studio execution keeps build, qualification, publication, and public readb
   });
   assert.equal(publish.environment, 'release-stable');
   assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read' });
+  assert.equal(
+    readback.if,
+    "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.publish.result == 'success' }}",
+  );
   assert.equal(readback.environment, undefined);
   const buildText = JSON.stringify(build);
   const publishText = JSON.stringify(publish);
