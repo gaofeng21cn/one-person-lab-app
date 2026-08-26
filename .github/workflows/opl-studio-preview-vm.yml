@@ -160,6 +160,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
           sparse-checkout: |
+            /package.json
             /scripts/desktop/
           sparse-checkout-cone-mode: false
 
