@@ -195,7 +195,8 @@ jobs:
       source_cutoff_observed_at: ${{ needs.source-authority.outputs.source_cutoff_observed_at }}
 
   promote-webui-latest:
-    if: ${{ inputs.operation == 'promote' }}
+    if: ${{ always() && (inputs.operation == 'promote' || (inputs.operation == 'publish' && inputs.channel == 'stable')) && (inputs.operation != 'publish' || needs.webui-carrier.result == 'success') }}
+    needs: [source-authority, webui-carrier]
     permissions:
       contents: read
       actions: read
@@ -203,5 +204,5 @@ jobs:
     uses: ./.github/workflows/release-webui-stable.yml
     with:
       authority_mode: ${{ inputs.channel == 'stable' && 'independent_stable' || 'independent_preview' }}
-      publication_record_ref: ${{ inputs.publication_record_ref }}
-      operator_confirmation: ${{ inputs.operator_confirmation }}
+      publication_record_ref: ${{ inputs.operation == 'publish' && needs.webui-carrier.outputs.publication_record_ref || inputs.publication_record_ref }}
+      operator_confirmation: ${{ inputs.operation == 'publish' && format('move-docker-stable-and-latest:{0}', needs.source-authority.outputs.version) || inputs.operator_confirmation }}

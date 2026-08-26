@@ -155,7 +155,7 @@ test('durable WebUI Preview record binds a selector to exact immutable carrier b
   assert.equal(publication.publication_id, `docker-webui:26.7.28-preview.r1@${versionDigest}`);
   assert.equal(publication.classification.quality_status, 'preview');
   assert.equal(publication.classification.preview_kind, 'dev');
-  assert.equal(publication.image.receipt_ref, 'ghcr.io/gaofeng21cn/one-person-lab-webui:receipt-26.7.28-preview.r1');
+  assert.equal(publication.image.receipt_ref, 'ghcr.io/gaofeng21cn/one-person-lab-webui:receipt-26.7.28-preview.r1-302-1');
   assert.equal(publication.image.immutable_ref, `ghcr.io/gaofeng21cn/one-person-lab-webui@${indexDigest}`);
   assert.deepEqual(
     publication.image.platforms.map((platform: { architecture: string }) => platform.architecture),

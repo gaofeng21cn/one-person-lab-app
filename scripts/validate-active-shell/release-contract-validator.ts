@@ -1597,9 +1597,10 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
       JSON.stringify(['linux/amd64', 'linux/arm64'])
     || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.single_multi_arch_manifest_required !== true
     || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.native_runner_qualification_required !== true
-    || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.qualification_trigger !== 'manual_non_public_qualification_or_protected_publication'
+    || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.qualification_trigger !== 'stable_standard_or_manual_non_public_qualification_or_protected_repair'
     || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.included_in_pr_or_main_ci !== false
     || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.blocks_desktop_macos_arm64 !== false
+    || platformMatrix?.release_tiers?.additional_nonblocking?.container_webui?.required_for_stable_terminal !== true
     || capabilities?.['macos-arm64']?.default_enabled !== true
     || capabilities?.['macos-arm64']?.blocks_stable !== true
     || capabilities?.['linux-x64']?.default_enabled !== true
@@ -1796,12 +1797,12 @@ function validateWebuiGhcrImage(webuiImage) {
     webuiImage?.owner !== 'one-person-lab-app' ||
     webuiImage?.distribution_role !== 'preheated_webui_runtime_image_not_desktop_app_gui_shell' ||
     contract?.image_role !== 'browser_entrypoint_for_opl_on_linux_container' ||
-    contract?.platform_matrix?.release_tier !== 'additional_nonblocking' ||
+    contract?.platform_matrix?.release_tier !== 'stable_additional_required' ||
     JSON.stringify(contract?.platform_matrix?.required_platforms) !== JSON.stringify(['linux/amd64', 'linux/arm64']) ||
     contract?.platform_matrix?.runner_by_architecture?.amd64 !== 'ubuntu-24.04' ||
     contract?.platform_matrix?.runner_by_architecture?.arm64 !== 'ubuntu-24.04-arm' ||
     contract?.platform_matrix?.native_runtime_qualification_required !== true ||
-    contract?.platform_matrix?.qualification_trigger !== 'manual_non_public_qualification_or_protected_publication' ||
+    contract?.platform_matrix?.qualification_trigger !== 'stable_standard_or_manual_non_public_qualification_or_protected_repair' ||
     contract?.platform_matrix?.included_in_pr_or_main_ci !== false ||
     contract?.platform_matrix?.qemu_or_other_emulation_counts_as_runtime_qualification !== false ||
     contract?.platform_matrix?.version_tag_shape !== 'one_oci_index_with_exact_amd64_and_arm64_children' ||
@@ -1811,9 +1812,9 @@ function validateWebuiGhcrImage(webuiImage) {
     contract?.profiles?.webui_slim?.version_tag !== '<app_or_opl_version>-slim' ||
     contract?.profiles?.webui_slim?.stable_channel_allowed !== false ||
     contract?.profiles?.webui_slim?.moving_tags_allowed !== false ||
-    webuiImage?.publication_route !== 'independent_webui_lane_outside_desktop_release_bundle' ||
-    webuiImage?.desktop_release_bundle_may_publish_or_move_tags !== false ||
-    webuiImage?.current_writer_declared_by_desktop_release_contract !== false
+    webuiImage?.publication_route !== 'stable_same_cohort_additional_carrier_with_manual_repair_entry' ||
+    webuiImage?.desktop_release_bundle_may_publish_or_move_tags !== true ||
+    webuiImage?.current_writer_declared_by_desktop_release_contract !== true
   ) {
     throw new Error('Release channel must declare Docker/WebUI full and slim image profile boundaries');
   }
@@ -1859,20 +1860,26 @@ function validateWebuiGhcrImage(webuiImage) {
     contract.publish_gate
       ?.explicit_preview_latest_requires_exact_qualified_carrier_and_protected_override !== true ||
     contract.publish_gate?.forbidden_success_state !== 'metadata_only_seed_promoted_to_latest_or_stable' ||
-    webuiImage.stable_promotion?.schema !== 'opl_app_webui_stable_promotion_contract.v7' ||
+    webuiImage.stable_promotion?.schema !== 'opl_app_webui_stable_promotion_contract.v8' ||
     webuiImage.stable_promotion?.workflow !== '.github/workflows/release-webui-stable.yml' ||
-    webuiImage.stable_promotion?.trigger !== 'explicit_independent_docker_publication_or_promotion' ||
-    webuiImage.stable_promotion?.desktop_release_dependency !== false ||
-    webuiImage.stable_promotion?.desktop_release_follower_allowed !== false ||
-    webuiImage.stable_promotion?.immutable_version_required !== true ||
+    webuiImage.stable_promotion?.trigger !== 'automatic_same_cohort_stable_additional_release_or_explicit_same_version_repair' ||
+    webuiImage.stable_promotion?.desktop_release_dependency !== true ||
+    webuiImage.stable_promotion?.desktop_release_follower_allowed !== true ||
+    JSON.stringify(webuiImage.stable_promotion?.source_workflows) !== JSON.stringify([
+      '.github/workflows/release-stable.yml',
+      '.github/workflows/release-webui-development.yml',
+    ]) ||
+    webuiImage.stable_promotion?.immutable_version_required !== false ||
+    webuiImage.stable_promotion?.public_version_tag_written_last !== true ||
+    webuiImage.stable_promotion?.failed_internal_attempt_may_allocate_revision !== false ||
     webuiImage.stable_promotion?.compare_and_swap?.same_digest_is_idempotent !== true ||
-    webuiImage.stable_promotion?.compare_and_swap?.unexpected_digest !== 'conflict_without_mutation' ||
+    webuiImage.stable_promotion?.compare_and_swap?.unexpected_digest !== 'replace_once_with_fresh_prestate_and_final_readback' ||
     webuiImage.stable_promotion?.compare_and_swap?.maximum_tag_attempts !== 1 ||
-    webuiImage.stable_promotion?.compare_and_swap?.force_allowed !== false ||
+    webuiImage.stable_promotion?.compare_and_swap?.force_allowed !== true ||
     webuiImage.stable_promotion?.unknown_outcome?.retry_allowed !== false ||
     webuiImage.stable_promotion?.unknown_outcome?.bounded_read_only_reconcile_required !== true
   ) {
-    throw new Error('Docker/WebUI GHCR publishing must remain an independent, immutable, CAS-guarded product line');
+    throw new Error('Docker/WebUI GHCR publishing must remain a same-cohort Stable carrier with last-write version publication');
   }
   assertIncludesAll(
     contract.publish_gate?.must_read_back,

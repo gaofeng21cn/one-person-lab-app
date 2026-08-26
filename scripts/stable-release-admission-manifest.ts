@@ -208,7 +208,7 @@ export type StableAdmissionManifest = {
     homebrew_standard_cask_version: string;
     target_release_absent: true;
     target_tag_absent: true;
-    target_webui_tag_absent: true;
+    target_webui_tag_replaceable: true;
     target_homebrew_version_absent: true;
   };
   homebrew_policy: {
@@ -523,7 +523,6 @@ export function buildStableReleaseAdmissionManifest(
     ...publishedTags,
     ...sourceGate.ownerDraftReleaseTags,
     ...observation.tagRefs,
-    ...observation.webuiTags,
     homebrewVersion,
   ];
   const resolution = resolveStableReleaseVersion(input.baseVersion, namespaceRefs);
@@ -535,11 +534,9 @@ export function buildStableReleaseAdmissionManifest(
   const selectedVersion = resolution.version;
   const normalizedPublishedTags = publishedTags.map(normalizeVersionRef);
   const normalizedTagRefs = observation.tagRefs.map(normalizeVersionRef);
-  const normalizedWebuiTags = observation.webuiTags.map(normalizeVersionRef);
   if (
     normalizedPublishedTags.includes(selectedVersion)
     || normalizedTagRefs.includes(selectedVersion)
-    || normalizedWebuiTags.includes(selectedVersion)
     || normalizeVersionRef(homebrewVersion) === selectedVersion
   ) {
     throw new Error(`Allocated Stable version ${selectedVersion} is already occupied in a release namespace.`);
@@ -621,7 +618,7 @@ export function buildStableReleaseAdmissionManifest(
       homebrew_standard_cask_version: homebrewVersion,
       target_release_absent: true,
       target_tag_absent: true,
-      target_webui_tag_absent: true,
+      target_webui_tag_replaceable: true,
       target_homebrew_version_absent: true,
     },
     homebrew_policy: {

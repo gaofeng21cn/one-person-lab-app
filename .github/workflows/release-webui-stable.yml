@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$PUBLICATION_RECORD_REF" =~ ^ghcr\.io/[a-z0-9]+([._-][a-z0-9]+)*(\/[a-z0-9]+([._-][a-z0-9]+)*)*:receipt-[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[1-9][0-9]*|-preview\.r[1-9][0-9]*|-nightly(\.r[1-9][0-9]*)?)?$ ]] || {
+          [[ "$PUBLICATION_RECORD_REF" =~ ^ghcr\.io/[a-z0-9]+([._-][a-z0-9]+)*(\/[a-z0-9]+([._-][a-z0-9]+)*)*:receipt-[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[1-9][0-9]*|-preview\.r[1-9][0-9]*|-nightly(\.r[1-9][0-9]*)?)?-[1-9][0-9]*-[1-9][0-9]*$ ]] || {
             echo '::error::Independent Preview promotion requires one exact durable GHCR publication record reference.'
             exit 1
           }
@@ -148,6 +148,8 @@ jobs:
             echo "carrier_follower_run_id=$(jq -er .authority.publication_run_id evidence/publication-record.json)"
             echo "carrier_executor_ref=$(jq -er .authority.publication_executor_sha evidence/publication-record.json)"
             echo "carrier_follower_run_attempt=$(jq -er .authority.publication_run_attempt evidence/publication-record.json)"
+            echo "source_workflow=$(jq -er .authority.source_authority.authorization.workflow evidence/publication-record.json)"
+            echo "source_authorization=$(jq -er .authority.source_authority.authorization.source evidence/publication-record.json)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Reject noncanonical or partial promotion runs
@@ -160,6 +162,8 @@ jobs:
           OPERATOR: ${{ github.actor }}
           OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation }}
           CARRIER_FOLLOWER_RUN_ATTEMPT: ${{ steps.publication-record.outputs.carrier_follower_run_attempt || '1' }}
+          SOURCE_WORKFLOW: ${{ steps.publication-record.outputs.source_workflow }}
+          SOURCE_AUTHORIZATION: ${{ steps.publication-record.outputs.source_authorization }}
         shell: bash
         run: |
           set -euo pipefail
@@ -182,25 +186,30 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             > evidence/promotion-executor-run.json
 
-          jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" '
+          case "$SOURCE_AUTHORIZATION:$SOURCE_WORKFLOW" in
+            user_explicit_workflow_dispatch:.github/workflows/release-webui-development.yml) ;;
+            stable_standard_release:.github/workflows/release-stable.yml) ;;
+            *) echo '::error::Unsupported Docker source authority caller.'; exit 1 ;;
+          esac
+          jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" --arg path "$SOURCE_WORKFLOW" --arg promotion_run "$GITHUB_RUN_ID" '
             (.id | tostring) == $run
             and .repository.full_name == "gaofeng21cn/one-person-lab-app"
             and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .path == (
-              ".github/workflows/release-webui-development.yml"
-            )
+            and .path == $path
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == $run_attempt
             and (.head_sha == $head)
-            and .status == "completed"
-            and .conclusion == "success"
+            and (if $run == $promotion_run
+              then (.status == "in_progress" or (.status == "completed" and .conclusion == "success"))
+              else (.status == "completed" and .conclusion == "success")
+              end)
           ' evidence/carrier-follower-run.json >/dev/null
           jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" '
             [
               .jobs[]
               | select(
-                  .name == "webui-carrier / publish-immutable-carrier"
+                  .name == "webui-carrier / publish-carrier"
                   and (.run_id | tostring) == $run
                   and .status == "completed"
                   and .conclusion == "success"
@@ -214,11 +223,11 @@ jobs:
           jq -e \
               --arg run "$GITHUB_RUN_ID" \
               --arg head "$GITHUB_SHA" \
-              --arg authority_mode "$AUTHORITY_MODE" '
+              --arg authority_mode "$AUTHORITY_MODE" --arg path "$SOURCE_WORKFLOW" '
             (.id | tostring) == $run
             and .repository.full_name == "gaofeng21cn/one-person-lab-app"
             and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .path == ".github/workflows/release-webui-development.yml"
+            and .path == $path
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == 1

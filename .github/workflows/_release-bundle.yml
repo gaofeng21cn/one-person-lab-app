@@ -513,7 +513,7 @@ jobs:
           if (
             manifest.namespace?.target_release_absent !== true
             || manifest.namespace?.target_tag_absent !== true
-            || manifest.namespace?.target_webui_tag_absent !== true
+            || manifest.namespace?.target_webui_tag_replaceable !== true
             || manifest.namespace?.target_homebrew_version_absent !== true
             || !Array.isArray(manifest.active_release_runs)
             || manifest.active_release_runs.length !== 0
@@ -542,23 +542,6 @@ jobs:
           git -C app-source ls-remote --tags origin 'refs/tags/v*' > "$published_tags_txt"
           if [ "$CHANNEL" = stable ]; then
             stable_version_order_json="$RUNNER_TEMP/opl-stable-version-order-$GITHUB_RUN_ID.json"
-            registry_token="$(
-              curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
-                "https://ghcr.io/token?scope=repository:gaofeng21cn/one-person-lab-webui:pull" \
-                | jq -er .token
-            )"
-            status="$(
-              curl --silent --show-error --connect-timeout 10 --max-time 30 \
-                --output /dev/null --write-out '%{http_code}' \
-                --header "Authorization: Bearer $registry_token" \
-                --header 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
-                "https://ghcr.io/v2/gaofeng21cn/one-person-lab-webui/manifests/$version"
-            )"
-            case "$status" in
-              404) ;;
-              200) echo "::error::Public WebUI version tag $version already exists."; exit 1 ;;
-              *) echo "::error::Unable to resolve public WebUI version tag $version (HTTP $status)."; exit 1 ;;
-            esac
             node --experimental-strip-types app-executor/scripts/stable-release-version-order.ts \
               --target "$version" --published-releases-json "$published_releases_json" > "$stable_version_order_json"
           else

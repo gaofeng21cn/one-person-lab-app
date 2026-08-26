@@ -1155,6 +1155,149 @@ jobs:
       prior_standard_artifact_run_id: ${{ needs.admission.outputs.prior_standard_artifact_run_id }}
     secrets: inherit
 
+  webui-source-authority:
+    if: ${{ !cancelled() && inputs.operation == 'standard' && needs.standard.result == 'success' }}
+    needs: [stable-admission-manifest, standard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      source_run_id: ${{ steps.authority.outputs.source_run_id }}
+      source_authority_artifact_name: ${{ steps.authority.outputs.source_authority_artifact_name }}
+      source_authority_digest: ${{ steps.authority.outputs.source_authority_digest }}
+      release_bundle_digest: ${{ steps.authority.outputs.release_bundle_digest }}
+      version: ${{ steps.authority.outputs.version }}
+      app_ref: ${{ steps.authority.outputs.app_ref }}
+      shell_ref: ${{ steps.authority.outputs.shell_ref }}
+      framework_ref: ${{ steps.authority.outputs.framework_ref }}
+      source_cutoff_observed_at: ${{ steps.authority.outputs.source_cutoff_observed_at }}
+    steps:
+      - name: Checkout canonical Stable WebUI authority
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download exact published Standard checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.standard.outputs.source_artifact }}
+          run-id: ${{ needs.standard.outputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: standard-checkpoint
+
+      - name: Download same-run Stable admission
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: opl-stable-admission-${{ github.run_id }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: stable-admission
+
+      - name: Bind Docker WebUI to the exact Stable cohort
+        id: authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t bundles < <(find standard-checkpoint -type f -name bundle.json -print | LC_ALL=C sort)
+          mapfile -t admissions < <(find stable-admission -type f -name stable-release-admission-manifest.json -print | LC_ALL=C sort)
+          test "${#bundles[@]}" -eq 1
+          test "${#admissions[@]}" -eq 1
+          bundle="${bundles[0]}"
+          admission="${admissions[0]}"
+          jq -e '
+            .release.channel == "stable"
+            and .release.prerelease == false
+            and (.bundle_digest | test("^sha256:[0-9a-f]{64}$"))
+            and (.sources.app.source_commit | test("^[0-9a-f]{40}$"))
+            and (.sources.shell.source_commit | test("^[0-9a-f]{40}$"))
+            and (.sources.framework.source_commit | test("^[0-9a-f]{40}$"))
+          ' "$bundle" >/dev/null
+          version="$(jq -er .release.version "$bundle")"
+          app_ref="$(jq -er .sources.app.source_commit "$bundle")"
+          shell_ref="$(jq -er .sources.shell.source_commit "$bundle")"
+          framework_ref="$(jq -er .sources.framework.source_commit "$bundle")"
+          release_bundle_digest="$(jq -er .bundle_digest "$bundle")"
+          source_cutoff_observed_at="$(jq -er .checked_at "$admission")"
+          test "$version" = '${{ needs.stable-admission-manifest.outputs.version }}'
+          test "$app_ref" = '${{ needs.stable-admission-manifest.outputs.app_ref }}'
+          test "$shell_ref" = '${{ needs.stable-admission-manifest.outputs.shell_ref }}'
+          test "$framework_ref" = '${{ needs.stable-admission-manifest.outputs.framework_ref }}'
+          node --experimental-strip-types scripts/webui-source-authority.ts create \
+            --origin stable_standard \
+            --version "$version" \
+            --app-sha "$app_ref" \
+            --shell-sha "$shell_ref" \
+            --framework-sha "$framework_ref" \
+            --bundle-digest "$release_bundle_digest" \
+            --run-id "$GITHUB_RUN_ID" \
+            --executor-sha "$GITHUB_SHA" \
+            --output source-authority.json \
+            > source-authority-create.json
+          node --experimental-strip-types scripts/webui-source-authority.ts validate \
+            --input source-authority.json \
+            > source-authority-verification.json
+          source_authority_artifact_name="opl-webui-source-authority-${GITHUB_RUN_ID}"
+          {
+            echo "source_run_id=$GITHUB_RUN_ID"
+            echo "source_authority_artifact_name=$source_authority_artifact_name"
+            echo "source_authority_digest=$(jq -er .source_authority_digest source-authority.json)"
+            echo "release_bundle_digest=$release_bundle_digest"
+            echo "version=$version"
+            echo "app_ref=$app_ref"
+            echo "shell_ref=$shell_ref"
+            echo "framework_ref=$framework_ref"
+            echo "source_cutoff_observed_at=$source_cutoff_observed_at"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload Stable-bound WebUI source authority
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.authority.outputs.source_authority_artifact_name }}
+          path: |
+            source-authority.json
+            source-authority-create.json
+            source-authority-verification.json
+          if-no-files-found: error
+          retention-days: 90
+
+  webui-carrier:
+    if: ${{ !cancelled() && needs.webui-source-authority.result == 'success' }}
+    needs: [webui-source-authority]
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_release-webui-carrier.yml
+    with:
+      mode: execute
+      authority_mode: independent_stable
+      app_ref: ${{ needs.webui-source-authority.outputs.app_ref }}
+      shell_ref: ${{ needs.webui-source-authority.outputs.shell_ref }}
+      framework_ref: ${{ needs.webui-source-authority.outputs.framework_ref }}
+      opl_version: ${{ needs.webui-source-authority.outputs.version }}
+      release_bundle_digest: ${{ needs.webui-source-authority.outputs.release_bundle_digest }}
+      release_cohort_ref: ${{ needs.webui-source-authority.outputs.release_bundle_digest }}
+      source_artifact_run_id: ${{ needs.webui-source-authority.outputs.source_run_id }}
+      source_authority_artifact_name: ${{ needs.webui-source-authority.outputs.source_authority_artifact_name }}
+      source_cutoff_observed_at: ${{ needs.webui-source-authority.outputs.source_cutoff_observed_at }}
+    secrets: inherit
+
+  webui-promotion:
+    if: ${{ !cancelled() && needs.webui-carrier.result == 'success' }}
+    needs: [webui-source-authority, webui-carrier]
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    uses: ./.github/workflows/release-webui-stable.yml
+    with:
+      authority_mode: independent_stable
+      publication_record_ref: ${{ needs.webui-carrier.outputs.publication_record_ref }}
+      operator_confirmation: ${{ format('move-docker-stable-and-latest:{0}', needs.webui-source-authority.outputs.version) }}
+    secrets: inherit
+
   resume-standard:
     if: ${{ !cancelled() && inputs.operation == 'resume_standard' && needs.admission.result == 'success' }}
     needs: [admission]

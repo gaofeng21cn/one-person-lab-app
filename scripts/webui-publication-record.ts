@@ -102,11 +102,11 @@ function readJson(filePath: string, label: string): JsonRecord {
   return record(JSON.parse(fs.readFileSync(resolved, 'utf8')), label);
 }
 
-function publicationClassification(mode: WebuiPublicationAuthorityMode): JsonRecord {
+function publicationClassification(mode: WebuiPublicationAuthorityMode, sourceAuthority: JsonRecord): JsonRecord {
   return mode === 'independent_stable'
     ? {
         quality_status: 'stable',
-        build_trigger: 'manual',
+        build_trigger: sourceAuthority.build_trigger,
         preview_kind: null,
         quality_unchanged: true,
       }
@@ -118,8 +118,8 @@ function publicationClassification(mode: WebuiPublicationAuthorityMode): JsonRec
       };
 }
 
-function expectedPublicationWorkflow(): string {
-  return '.github/workflows/release-webui-development.yml';
+function expectedPublicationWorkflow(sourceAuthority: JsonRecord): string {
+  return text(sourceAuthority.authorization?.workflow, 'source authority publication workflow');
 }
 
 function validateCarrierReceipt(
@@ -316,14 +316,23 @@ export function createWebuiPublicationRecord(input: CreateWebuiPublicationRecord
     throw new Error('Independent Stable durable publication must use a non-Preview version.');
   }
   exact(sourceAuthority.release.version, version, 'source authority release.version');
-  exact(sourceAuthority.source_authority_digest, release.bundle_digest, 'source authority digest');
+  exact(
+    sourceAuthority.release.bundle_digest ?? sourceAuthority.source_authority_digest,
+    release.bundle_digest,
+    'source authority Release Bundle digest',
+  );
+  exact(
+    sourceAuthority.release.cohort_ref ?? sourceAuthority.source_authority_digest,
+    release.cohort_ref,
+    'source authority release cohort ref',
+  );
   exact(sourceAuthority.sources.app.source_commit, cohort.app_sha, 'source authority App SHA');
   exact(sourceAuthority.sources.shell.source_commit, cohort.shell_sha, 'source authority Shell SHA');
   exact(sourceAuthority.sources.framework.source_commit, cohort.framework_sha, 'source authority Framework SHA');
   exact(sourceAuthority.authorization.run_id, publicationRun, 'source authority publication run id');
   exact(sourceAuthority.authorization.executor_sha, publicationExecutorSha, 'source authority executor SHA');
 
-  const classification = publicationClassification(mode);
+  const classification = publicationClassification(mode, sourceAuthority);
   const disclosure = qualificationDisclosure(mode, qualification, sourceAuthority);
   const versionDigest = digest(versionReadback.digest, 'version readback.digest');
   const core = {
@@ -345,7 +354,7 @@ export function createWebuiPublicationRecord(input: CreateWebuiPublicationRecord
     image: {
       repository: imageRepository,
       version_ref: `${imageRepository}:${version}`,
-      receipt_ref: `${imageRepository}:receipt-${version}`,
+      receipt_ref: `${imageRepository}:receipt-${version}-${publicationRun}-${publicationRunAttempt}`,
       immutable_ref: `${imageRepository}@${carrier.digest}`,
       version_digest: versionDigest,
       child_digest: digest(carrier.digest, 'carrier receipt.carrier.digest'),
@@ -355,7 +364,7 @@ export function createWebuiPublicationRecord(input: CreateWebuiPublicationRecord
     },
     authority: {
       mode,
-      publication_workflow: expectedPublicationWorkflow(),
+      publication_workflow: expectedPublicationWorkflow(sourceAuthority),
       publication_run_id: publicationRun,
       publication_run_attempt: publicationRunAttempt,
       publication_executor_sha: publicationExecutorSha,

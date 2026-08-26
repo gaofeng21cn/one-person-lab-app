@@ -945,8 +945,8 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
   assert.doesNotMatch(readWorkflow('_release-bundle.yml'), /resolveStableReleaseVersion/);
   assert.match(readWorkflow('_release-bundle.yml'), /resolvePreviewReleaseVersion/);
   assert.match(readWorkflow('_release-bundle.yml'), /stableAdmissionManifestDigest/);
-  assert.match(readWorkflow('_release-bundle.yml'), /ghcr\.io\/token\?scope=repository:gaofeng21cn\/one-person-lab-webui:pull/);
-  assert.match(readWorkflow('_release-bundle.yml'), /ghcr\.io\/v2\/gaofeng21cn\/one-person-lab-webui\/manifests/);
+  assert.doesNotMatch(readWorkflow('_release-bundle.yml'), /ghcr\.io\/token\?scope=repository:gaofeng21cn\/one-person-lab-webui:pull/);
+  assert.doesNotMatch(readWorkflow('_release-bundle.yml'), /ghcr\.io\/v2\/gaofeng21cn\/one-person-lab-webui\/manifests/);
   assert.doesNotMatch(readWorkflow('_release-bundle.yml'), /PUBLISHED_WEBUI_TAGS_TXT/);
   assert.match(readWorkflow('_release-bundle.yml'), /--published-releases-json/);
 

@@ -931,9 +931,10 @@
           ],
           "single_multi_arch_manifest_required": true,
           "native_runner_qualification_required": true,
-          "qualification_trigger": "manual_non_public_qualification_or_protected_publication",
+          "qualification_trigger": "stable_standard_or_manual_non_public_qualification_or_protected_repair",
           "included_in_pr_or_main_ci": false,
-          "blocks_desktop_macos_arm64": false
+          "blocks_desktop_macos_arm64": false,
+          "required_for_stable_terminal": true
         }
       }
     },
@@ -3400,7 +3401,7 @@
       "image_role": "browser_entrypoint_for_opl_on_linux_container",
       "startup_goal": "open_webui_quickly_then_let_opl_reconcile_persisted_runtime_state",
       "platform_matrix": {
-        "release_tier": "additional_nonblocking",
+        "release_tier": "stable_additional_required",
         "required_platforms": [
           "linux/amd64",
           "linux/arm64"
@@ -3410,7 +3411,7 @@
           "arm64": "ubuntu-24.04-arm"
         },
         "native_runtime_qualification_required": true,
-        "qualification_trigger": "manual_non_public_qualification_or_protected_publication",
+        "qualification_trigger": "stable_standard_or_manual_non_public_qualification_or_protected_repair",
         "included_in_pr_or_main_ci": false,
         "qemu_or_other_emulation_counts_as_runtime_qualification": false,
         "version_tag_shape": "one_oci_index_with_exact_amd64_and_arm64_children",
@@ -3575,17 +3576,26 @@
       "rule": "WebUI GHCR cleanup must retain protected moving tags, recent stable/nightly versions, and declared rollback tags; deletion is never part of ordinary release publishing."
     },
     "stable_promotion": {
-      "schema": "opl_app_webui_stable_promotion_contract.v7",
+      "schema": "opl_app_webui_stable_promotion_contract.v8",
       "writer": "release-webui-stable.yml#promote-webui-stable",
       "workflow": ".github/workflows/release-webui-stable.yml",
-      "trigger": "explicit_independent_docker_publication_or_promotion",
-      "desktop_release_dependency": false,
-      "desktop_release_follower_allowed": false,
-      "source_workflow": ".github/workflows/release-webui-development.yml",
-      "entry_workflow": ".github/workflows/release-webui-development.yml",
-      "entry_operation": "promote",
+      "trigger": "automatic_same_cohort_stable_additional_release_or_explicit_same_version_repair",
+      "desktop_release_dependency": true,
+      "desktop_release_follower_allowed": true,
+      "source_workflows": [
+        ".github/workflows/release-stable.yml",
+        ".github/workflows/release-webui-development.yml"
+      ],
+      "entry_workflows": [
+        ".github/workflows/release-stable.yml",
+        ".github/workflows/release-webui-development.yml"
+      ],
+      "entry_operations": ["standard", "publish", "promote"],
       "protected_environment": "release-preview-publication",
-      "immutable_version_required": true,
+      "immutable_version_required": false,
+      "public_version_tag_policy": "mutable_replace_after_dual_arch_qualification_and_carrier_receipt",
+      "public_version_tag_written_last": true,
+      "failed_internal_attempt_may_allocate_revision": false,
       "moving_tags": [
         "latest",
         "stable"
@@ -3593,15 +3603,15 @@
       "compare_and_swap": {
         "expected_predecessor_source": "fresh_anonymous_prestate",
         "same_digest_is_idempotent": true,
-        "unexpected_digest": "conflict_without_mutation",
+        "unexpected_digest": "replace_once_with_fresh_prestate_and_final_readback",
         "maximum_tag_attempts": 1,
-        "force_allowed": false
+        "force_allowed": true
       },
       "unknown_outcome": {
         "retry_allowed": false,
         "bounded_read_only_reconcile_required": true
       },
-      "rule": "Docker WebUI is an independent container product line. Desktop Stable success, failure, Latest, or tag identity cannot publish or promote Docker tags."
+      "rule": "Docker WebUI is a required additional carrier of the same Stable cohort. It builds and qualifies independently, writes the public date version only after dual-architecture qualification and carrier receipt verification, then promotes Stable and Latest in the same Stable operation. A failed publication is repaired on the same version and never allocates -rN by itself."
     },
     "stable_tags": [
       "<app_or_opl_version>",
@@ -3617,10 +3627,10 @@
     "module_package_publish_allowed": false,
     "opl_flow_plugin_publish_allowed": false,
     "framework_role": "references_image_coordinate_only",
-    "rule": "WebUI GHCR image truth remains an App-owned server deployment concern outside the desktop Release Bundle. The desktop standard, resume_standard, and append_full operations cannot publish or move GHCR tags; a separately authorized WebUI lane must validate the runtime image and read back exact digests.",
-    "publication_route": "independent_webui_lane_outside_desktop_release_bundle",
-    "desktop_release_bundle_may_publish_or_move_tags": false,
-    "current_writer_declared_by_desktop_release_contract": false,
+    "rule": "WebUI GHCR image truth remains App-owned. Stable standard automatically releases the same App/Shell/Framework cohort as a required Docker carrier; the manual WebUI entry remains only for qualification, Preview, and same-version repair. Public version, Stable, and Latest must be read back together.",
+    "publication_route": "stable_same_cohort_additional_carrier_with_manual_repair_entry",
+    "desktop_release_bundle_may_publish_or_move_tags": true,
+    "current_writer_declared_by_desktop_release_contract": true,
     "independent_stable_writer_declared": true
   },
   "homebrew_tap_distribution": {

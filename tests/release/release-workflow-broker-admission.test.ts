@@ -26,9 +26,7 @@ test('Stable has one dispatch and exactly three Framework Bundle operations', ()
     'desktop_additional_platforms',
     'entry',
     'framework_ref',
-    'include_full',
     'operation',
-    'operation_deadline_at',
     'operation_id',
     'prior_full_artifact_run_id',
     'prior_standard_artifact_run_id',
@@ -46,7 +44,6 @@ test('Stable has one dispatch and exactly three Framework Bundle operations', ()
     'studio_tag',
     'studio_tree',
     'studio_version',
-    'version',
   ]);
   assert.match(source, /test "\$GITHUB_RUN_ATTEMPT" = 1/);
   assert.doesNotMatch(source, /broker|session|pre_api_admission|release_mutation_payload/i);

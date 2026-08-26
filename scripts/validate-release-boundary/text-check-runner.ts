@@ -264,6 +264,32 @@ function isAuthorizedFullAddonFollowerWriteJob(
     && hasLocalStep(job, localActionUse(stableFollowupActionPaths.fullAddon));
 }
 
+function isAuthorizedStableWebuiWriteJob(
+  workflowPath: string,
+  jobId: string,
+  job: Record<string, any>,
+): boolean {
+  if (workflowPath !== '.github/workflows/release-stable.yml') return false;
+  if (jobId === 'webui-carrier') {
+    return needsExactly(job, ['webui-source-authority'])
+      && job.uses === './.github/workflows/_release-webui-carrier.yml'
+      && job.if === "${{ !cancelled() && needs.webui-source-authority.result == 'success' }}"
+      && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
+      && job.with?.authority_mode === 'independent_stable'
+      && job.with?.mode === 'execute'
+      && job.secrets === 'inherit'
+      && !Array.isArray(job.steps);
+  }
+  return jobId === 'webui-promotion'
+    && needsExactly(job, ['webui-source-authority', 'webui-carrier'])
+    && job.uses === './.github/workflows/release-webui-stable.yml'
+    && job.if === "${{ !cancelled() && needs.webui-carrier.result == 'success' }}"
+    && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
+    && job.with?.authority_mode === 'independent_stable'
+    && job.secrets === 'inherit'
+    && !Array.isArray(job.steps);
+}
+
 function validatePreviewLatestPointerTopology(appRoot: string): number {
   const id = 'preview_latest_pointer_topology';
   const parsed = parseWorkflow(appRoot, previewLatestPointerWorkflowPath, id);
@@ -713,7 +739,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     !String(workflow['run-name'] ?? '').includes("inputs.operation == 'standard'")
     || !String(workflow['run-name'] ?? '').includes("format('OPL Stable standard operation:{0} authority:{1} run:{2}'")
     || !String(workflow['run-name'] ?? '').includes("format('OPL Stable {0} {1}', inputs.operation, github.run_id)")
-    || authorityInputs.version?.required !== false
+    || authorityInputs.version !== undefined
   ) {
     failures += reportFailure(id, 'Stable run identity must retain Standard authority binding while recovery operations remain follower-compatible');
   }
@@ -726,6 +752,9 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     'protected-operation-admission',
     'admission',
     'stable-admission-manifest',
+    'webui-source-authority',
+    'webui-carrier',
+    'webui-promotion',
     ...Object.keys(stableEntrySpecs),
   ].sort();
   if (JSON.stringify(Object.keys(jobs).sort()) !== JSON.stringify(expectedJobs)) {
@@ -741,6 +770,19 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       id,
       'Stable entry must not retain the legacy source-qualification job or receipt after protected operation admission owns the frozen source gate.',
     );
+  }
+  const webuiSourceAuthority = jobs['webui-source-authority'];
+  if (
+    !webuiSourceAuthority
+    || !needsExactly(webuiSourceAuthority, ['stable-admission-manifest', 'standard'])
+    || webuiSourceAuthority.if !== "${{ !cancelled() && inputs.operation == 'standard' && needs.standard.result == 'success' }}"
+    || !exactObject(webuiSourceAuthority.permissions, exactReadPermissions)
+    || !jobRuns(webuiSourceAuthority).includes('--origin stable_standard')
+    || !jobRuns(webuiSourceAuthority).includes('.bundle_digest')
+    || !isAuthorizedStableWebuiWriteJob('.github/workflows/release-stable.yml', 'webui-carrier', jobs['webui-carrier'])
+    || !isAuthorizedStableWebuiWriteJob('.github/workflows/release-stable.yml', 'webui-promotion', jobs['webui-promotion'])
+  ) {
+    failures += reportFailure(id, 'Stable Standard must own one exact same-cohort Docker authority, carrier, and promotion chain');
   }
   const admission = jobs.admission;
   const admissionRun = jobRuns(admission);
@@ -2641,6 +2683,9 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
         failures += validateExactActionPins(workflowPath, jobId, steps);
         continue;
       }
+      if (isAuthorizedStableWebuiWriteJob(workflowPath, jobId, job)) {
+        continue;
+      }
       if (
         workflowPath === nightlyReleaseWorkflowPath
         && jobId === 'qualify-and-publish'
@@ -2680,11 +2725,11 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
         workflowPath === webuiDevelopmentWorkflowPath
         && jobId === 'promote-webui-latest'
         && job.uses === './.github/workflows/release-webui-stable.yml'
-        && !Object.prototype.hasOwnProperty.call(job, 'needs')
+        && needsExactly(job, ['source-authority', 'webui-carrier'])
         && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
         && job.with?.authority_mode === "${{ inputs.channel == 'stable' && 'independent_stable' || 'independent_preview' }}"
-        && job.with?.publication_record_ref === '${{ inputs.publication_record_ref }}'
-        && job.with?.operator_confirmation === '${{ inputs.operator_confirmation }}'
+        && String(job.with?.publication_record_ref).includes('needs.webui-carrier.outputs.publication_record_ref')
+        && String(job.with?.operator_confirmation).includes('move-docker-stable-and-latest')
         && Object.keys(job.with ?? {}).length === 3
         && steps.length === 0
       ) {
@@ -2797,14 +2842,15 @@ export function validateIndependentWebuiPreviewTopology(appRoot: string): number
     || qualification.if !== "${{ inputs.operation == 'qualify' }}"
     || !exactObject(qualification.with, { ...expectedCarrierWith, mode: 'qualify' })
     || !promotion
-    || promotion.if !== "${{ inputs.operation == 'promote' }}"
-    || Object.prototype.hasOwnProperty.call(promotion, 'needs')
+    || !String(promotion.if).includes("inputs.operation == 'publish'")
+    || !String(promotion.if).includes("needs.webui-carrier.result == 'success'")
+    || !needsExactly(promotion, ['source-authority', 'webui-carrier'])
     || promotion.uses !== './.github/workflows/release-webui-stable.yml'
     || !exactObject(promotion.permissions, exactWebUiCompileCeilingPermissions)
     || !exactObject(promotion.with, {
       authority_mode: "${{ inputs.channel == 'stable' && 'independent_stable' || 'independent_preview' }}",
-      publication_record_ref: '${{ inputs.publication_record_ref }}',
-      operator_confirmation: '${{ inputs.operator_confirmation }}',
+      publication_record_ref: "${{ inputs.operation == 'publish' && needs.webui-carrier.outputs.publication_record_ref || inputs.publication_record_ref }}",
+      operator_confirmation: "${{ inputs.operation == 'publish' && format('move-docker-stable-and-latest:{0}', needs.source-authority.outputs.version) || inputs.operator_confirmation }}",
     })
   ) {
     failures += reportFailure(

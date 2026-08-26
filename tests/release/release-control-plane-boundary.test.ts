@@ -416,6 +416,9 @@ test('workflow topology rejects duplicate automatic owners, orphan reusables, an
   updateWorkflow(orphanRoot, 'release-webui-development.yml', (workflow) => {
     delete workflow.jobs['promote-webui-latest'];
   });
+  updateWorkflow(orphanRoot, 'release-stable.yml', (workflow) => {
+    delete workflow.jobs['webui-promotion'];
+  });
   assert.ok(withoutExpectedDiagnostics(() => validateWorkflowTopologyPolicy(orphanRoot)) > 0);
 
   const retiredRoot = fixture(t);
