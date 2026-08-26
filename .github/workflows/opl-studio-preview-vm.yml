@@ -456,7 +456,7 @@ jobs:
                   runtime_status:.checks.smoke.checks.runtime[.app_qualification.profile].status,
                   ui_status:.checks.smoke.checks.ui,
                   gateway_status:.checks.smoke.hooks.gatewaySetup,
-                  codex_turn:{status:.checks.smoke.hooks.codexTurn,completed:.checks.smoke.checks.codexTurn.completed,final_message_present:.checks.smoke.checks.codexTurn.finalMessagePresent,simulated:.checks.smoke.checks.codexTurn.simulated}
+                  codex_turn:{status:.checks.smoke.hooks.codexTurn,completed:(.checks.smoke.checks.codexTurn // {}).completed,final_message_present:(.checks.smoke.checks.codexTurn // {}).finalMessagePresent,simulated:(.checks.smoke.checks.codexTurn // {}).simulated}
                 }],
                 remaining:[]
               }
