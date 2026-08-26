@@ -24,6 +24,34 @@
     },
     "framework_headless_carrier_policy": "preserved_outside_app_bundle"
   },
+  "qualification_external_carrier": {
+    "schema": "opl_studio_external_codex_qualification_input.v1",
+    "owner": "one-person-lab-app",
+    "scope": "opl-studio-preview-clean-vm-only",
+    "package": {
+      "name": "@openai/codex",
+      "version": "0.147.0",
+      "npm_integrity": "sha512-EQLEXecAG2ptxI7UpBMo2TR/ga5596/c/OsYF/0LoUDh5JANZ7IoGqlzBEWbuEVQ76JePIbtTW/ihCkp1a7Z3w==",
+      "tarball_url": "https://registry.npmjs.org/@openai/codex/-/codex-0.147.0.tgz",
+      "tarball_sha256": "d28b4fd4bd9f07ea71083d0cc40c579595cebbd4c10bc8ca98a6d385432e7255"
+    },
+    "platform": {
+      "name": "@openai/codex",
+      "version": "0.147.0-darwin-arm64",
+      "npm_integrity": "sha512-BEUVkiOW7kLcRyrMLfAr/h9wF8sRVJyZDy6OHtVn6QGDXiv3BvAZVTY1Pu9xF7KdIdkYXbp4uayN0aDQQaAUJw==",
+      "tarball_url": "https://registry.npmjs.org/@openai/codex/-/codex-0.147.0-darwin-arm64.tgz",
+      "tarball_sha256": "493de2d788c6ff01de222307c767231c1e6c802d5dd808523550fad6d972f4d3",
+      "binary_path": "package/vendor/aarch64-apple-darwin/bin/codex",
+      "os": "darwin",
+      "cpu": "arm64"
+    },
+    "injection": {
+      "resolver_env": "OPL_CODEX_BIN",
+      "bundle_included": false,
+      "guest_preparation": "temporary_external_carrier_from_verified_platform_tarball",
+      "app_bundle_codex_forbidden": true
+    }
+  },
   "upstream_family": "OPL Studio",
   "shell_source": {
     "owner_repo": "gaofeng21cn/opl-studio",

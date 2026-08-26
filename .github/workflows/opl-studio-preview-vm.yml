@@ -65,6 +65,10 @@ jobs:
     timeout-minutes: 10
     outputs:
       verification_source_sha: ${{ steps.bind.outputs.verification_source_sha }}
+      codex_version: ${{ steps.bind.outputs.codex_version }}
+      codex_platform_version: ${{ steps.bind.outputs.codex_platform_version }}
+      codex_platform_tarball_url: ${{ steps.bind.outputs.codex_platform_tarball_url }}
+      codex_platform_tarball_sha256: ${{ steps.bind.outputs.codex_platform_tarball_sha256 }}
     steps:
       - name: Checkout exact App qualification owner
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -114,7 +118,20 @@ jobs:
               [.assets[] | select(.name == $name and .state == "uploaded" and .digest == $digest)] | length == 1
             ' release.json >/dev/null
           done
+          codex_version="$(jq -er '.qualification_external_carrier.package.version' contracts/shell-adapters/opl-studio.json)"
+          codex_platform_version="$(jq -er '.qualification_external_carrier.platform.version' contracts/shell-adapters/opl-studio.json)"
+          codex_platform_tarball_url="$(jq -er '.qualification_external_carrier.platform.tarball_url' contracts/shell-adapters/opl-studio.json)"
+          codex_platform_tarball_sha256="$(jq -er '.qualification_external_carrier.platform.tarball_sha256' contracts/shell-adapters/opl-studio.json)"
+          [[ "$codex_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          test "$codex_platform_version" = "${codex_version}-darwin-arm64"
+          [[ "$codex_platform_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?-darwin-arm64$ ]]
+          [[ "$codex_platform_tarball_url" == "https://registry.npmjs.org/@openai/codex/-/codex-${codex_platform_version}.tgz" ]]
+          [[ "$codex_platform_tarball_sha256" =~ ^[0-9a-f]{64}$ ]]
           echo "verification_source_sha=$VERIFICATION_SOURCE_REF" >> "$GITHUB_OUTPUT"
+          echo "codex_version=$codex_version" >> "$GITHUB_OUTPUT"
+          echo "codex_platform_version=$codex_platform_version" >> "$GITHUB_OUTPUT"
+          echo "codex_platform_tarball_url=$codex_platform_tarball_url" >> "$GITHUB_OUTPUT"
+          echo "codex_platform_tarball_sha256=$codex_platform_tarball_sha256" >> "$GITHUB_OUTPUT"
 
   qualify:
     needs: validate-inputs
@@ -206,6 +223,28 @@ jobs:
           hdiutil detach "$mount_dir" >> "$trust_dir/hdiutil-detach.txt"
           trap - EXIT
 
+      - name: Prepare exact external Codex carrier
+        id: codex
+        env:
+          CODEX_PLATFORM_VERSION: ${{ needs.validate-inputs.outputs.codex_platform_version }}
+          CODEX_VERSION: ${{ needs.validate-inputs.outputs.codex_version }}
+          CODEX_PLATFORM_TARBALL_URL: ${{ needs.validate-inputs.outputs.codex_platform_tarball_url }}
+          CODEX_PLATFORM_TARBALL_SHA256: ${{ needs.validate-inputs.outputs.codex_platform_tarball_sha256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex_tarball="$RUNNER_TEMP/opl-studio-preview-codex-$GITHUB_RUN_ID-${{ matrix.profile }}.tgz"
+          curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 --max-time 900 \
+            -o "$codex_tarball.part" "$CODEX_PLATFORM_TARBALL_URL"
+          actual_sha256="$(shasum -a 256 "$codex_tarball.part" | awk '{print $1}')"
+          test "$actual_sha256" = "$CODEX_PLATFORM_TARBALL_SHA256"
+          package_version="$(tar -xOf "$codex_tarball.part" package/package.json | jq -er .version)"
+          test "$package_version" = "$CODEX_PLATFORM_VERSION"
+          test "$CODEX_PLATFORM_VERSION" = "${CODEX_VERSION}-darwin-arm64"
+          tar -tzf "$codex_tarball.part" | grep -Fx 'package/vendor/aarch64-apple-darwin/bin/codex' >/dev/null
+          mv "$codex_tarball.part" "$codex_tarball"
+          echo "tarball=$codex_tarball" >> "$GITHUB_OUTPUT"
+
       - name: Prepare protected Gateway account input
         id: credentials
         env:
@@ -245,6 +284,8 @@ jobs:
             --source-vm "$source_vm" \
             --guest-user "$OPL_FIRST_RUN_GUEST_USER" \
             --ssh-key "$OPL_FIRST_RUN_GUEST_SSH_KEY" \
+            --codex-platform-package-tarball "${{ steps.codex.outputs.tarball }}" \
+            --codex-version "${{ needs.validate-inputs.outputs.codex_version }}" \
             --carrier electron_desktop \
             --runtime-profiles "$PROFILE" \
             --gateway-credentials-file "${{ steps.credentials.outputs.credential_file }}" \
@@ -294,6 +335,22 @@ jobs:
             esac
             rm -f "$CREDENTIAL_FILE"
             test ! -e "$CREDENTIAL_FILE"
+          fi
+
+      - name: Remove exact external Codex carrier input
+        if: ${{ always() }}
+        env:
+          CODEX_TARBALL: ${{ steps.codex.outputs.tarball }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$CODEX_TARBALL" ]; then
+            case "$CODEX_TARBALL" in
+              "$RUNNER_TEMP"/opl-studio-preview-codex-*.tgz) ;;
+              *) echo "::error::Unexpected Codex carrier path"; exit 1 ;;
+            esac
+            rm -f "$CODEX_TARBALL" "$CODEX_TARBALL.part"
+            test ! -e "$CODEX_TARBALL"
           fi
 
       - name: Remove downloaded public DMG from evidence

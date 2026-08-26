@@ -286,6 +286,34 @@ export type ShellAdapterContract = {
     };
     framework_headless_carrier_policy: string;
   };
+  qualification_external_carrier?: {
+    schema: 'opl_studio_external_codex_qualification_input.v1';
+    owner: 'one-person-lab-app';
+    scope: 'opl-studio-preview-clean-vm-only';
+    package: {
+      name: '@openai/codex';
+      version: string;
+      npm_integrity: string;
+      tarball_url: string;
+      tarball_sha256: string;
+    };
+    platform: {
+      name: '@openai/codex';
+      version: string;
+      npm_integrity: string;
+      tarball_url: string;
+      tarball_sha256: string;
+      binary_path: string;
+      os: 'darwin';
+      cpu: 'arm64';
+    };
+    injection: {
+      resolver_env: 'OPL_CODEX_BIN';
+      bundle_included: false;
+      guest_preparation: string;
+      app_bundle_codex_forbidden: true;
+    };
+  };
   upstream_family: string;
   release_role: string;
   candidate_stage?: string;

@@ -31,6 +31,15 @@ test('Studio Preview VM qualification requires identity, trust, pages, Gateway, 
     'codesign --verify --deep --strict',
     'spctl --assess --type execute',
     'xcrun stapler validate',
+    'contracts/shell-adapters/opl-studio.json',
+    'Prepare exact external Codex carrier',
+    'qualification_external_carrier.package.version',
+    'qualification_external_carrier.platform.version',
+    'qualification_external_carrier.platform.tarball_url',
+    'qualification_external_carrier.platform.tarball_sha256',
+    "package/vendor/aarch64-apple-darwin/bin/codex",
+    '--codex-platform-package-tarball',
+    '--codex-version',
     'scripts/desktop/qualify-clean-vm.mjs',
     '--runtime-profiles "$PROFILE"',
     '--require-gateway-setup',
@@ -51,6 +60,7 @@ test('Studio Preview VM qualification keeps release-test credentials ephemeral a
   assert.match(source, /OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD/);
   assert.match(source, /--gateway-credentials-file/);
   assert.match(source, /Remove protected Gateway input/);
+  assert.match(source, /Remove exact external Codex carrier input/);
   assert.match(source, /Remove downloaded public DMG from evidence/);
   assert.match(source, /Reject protected credentials in evidence/);
   assert.match(source, /if: \$\{\{ always\(\) && steps\.evidence-scan\.outcome == 'success' \}\}/);

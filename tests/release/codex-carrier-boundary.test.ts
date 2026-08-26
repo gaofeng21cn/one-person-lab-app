@@ -174,3 +174,21 @@ test('Native adoption cannot inherit the AionCore carrier', () => {
     /must remain independent from AionCore/,
   );
 });
+
+test('Studio clean VM qualification pins its own external Codex carrier without changing AionUI qualification', () => {
+  const native = readAdapter('contracts/shell-adapters/opl-studio.json');
+  const qualification = native.qualification_external_carrier;
+  assert.equal(qualification?.schema, 'opl_studio_external_codex_qualification_input.v1');
+  assert.equal(qualification?.owner, 'one-person-lab-app');
+  assert.equal(qualification?.scope, 'opl-studio-preview-clean-vm-only');
+  assert.equal(qualification?.package?.name, '@openai/codex');
+  assert.equal(qualification?.package?.version, '0.147.0');
+  assert.equal(qualification?.platform?.version, '0.147.0-darwin-arm64');
+  assert.equal(qualification?.platform?.binary_path, 'package/vendor/aarch64-apple-darwin/bin/codex');
+  assert.equal(qualification?.platform?.os, 'darwin');
+  assert.equal(qualification?.platform?.cpu, 'arm64');
+  assert.equal(qualification?.injection?.resolver_env, 'OPL_CODEX_BIN');
+  assert.equal(qualification?.injection?.bundle_included, false);
+  assert.equal(qualification?.injection?.app_bundle_codex_forbidden, true);
+  assert.notEqual(qualification?.package?.version, '0.144.5');
+});
