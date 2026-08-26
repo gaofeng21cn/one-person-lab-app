@@ -197,7 +197,10 @@ test('Studio execution keeps build, qualification, publication, and public readb
   assert.equal(resolve.outputs.restore_required, '${{ steps.resolve.outputs.restore_required }}');
   assert.match(JSON.stringify(resolve), /restore_required=true/);
   assert.match(JSON.stringify(resolve), /restore_required=false/);
-  assert.equal(restore.if, "${{ needs.resolve-checkpoint.outputs.restore_required == 'true' }}");
+  assert.equal(
+    restore.if,
+    "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.resolve-checkpoint.outputs.restore_required == 'true' }}",
+  );
   assert.equal(qualify.environment, undefined);
   assert.deepEqual(publish.concurrency, {
     group: 'opl-studio-publication-global',

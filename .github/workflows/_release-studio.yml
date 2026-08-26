@@ -516,7 +516,7 @@ jobs:
 
   restore-checkpoint:
     needs: resolve-checkpoint
-    if: ${{ needs.resolve-checkpoint.outputs.restore_required == 'true' }}
+    if: ${{ always() && needs.resolve-checkpoint.result == 'success' && needs.resolve-checkpoint.outputs.restore_required == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

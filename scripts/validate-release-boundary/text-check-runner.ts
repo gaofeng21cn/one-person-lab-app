@@ -875,7 +875,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       || resolve.outputs?.restore_required !== '${{ steps.resolve.outputs.restore_required }}'
       || !restore
       || !needsExactly(restore, ['resolve-checkpoint'])
-      || restore.if !== "${{ needs.resolve-checkpoint.outputs.restore_required == 'true' }}"
+      || restore.if !== "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.resolve-checkpoint.outputs.restore_required == 'true' }}"
       || !qualify
       || !needsExactly(qualify, ['resolve-checkpoint', 'restore-checkpoint'])
       || qualify.environment !== undefined
