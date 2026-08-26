@@ -190,10 +190,13 @@ jobs:
           mkdir -p "evidence/$PROFILE"
           gh api "repos/$STUDIO_REPOSITORY/releases/tags/$RELEASE_TAG" > "evidence/$PROFILE/release.json"
           dmg="evidence/$PROFILE/$asset_name"
-          gh release download "$RELEASE_TAG" \
-            --repo "$STUDIO_REPOSITORY" \
-            --pattern "$asset_name" \
-            --dir "evidence/$PROFILE"
+          asset_url="$(jq -er --arg name "$asset_name" '
+            [.assets[] | select(.name == $name)]
+            | if length == 1 then .[0].browser_download_url else error("expected exactly one matching release asset") end
+          ' "evidence/$PROFILE/release.json")"
+          curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 --max-time 900 \
+            -o "$dmg.part" "$asset_url"
+          mv "$dmg.part" "$dmg"
           test -f "$dmg"
           actual_digest="sha256:$(shasum -a 256 "$dmg" | awk '{print $1}')"
           test "$actual_digest" = "$asset_digest"
@@ -295,6 +298,7 @@ jobs:
             --timeout-ms "$SMOKE_TIMEOUT_MS" \
             --screenshots-dir "evidence/$PROFILE/screenshots" \
             --out "evidence/$PROFILE/qualification.json" \
+            --allow-actions \
             --require-gateway-setup \
             --require-codex-turn \
             > "evidence/$PROFILE/smoke.stdout.log" \
@@ -302,14 +306,6 @@ jobs:
           smoke_status=$?
           set -e
           test -s "evidence/$PROFILE/qualification.json"
-          jq --arg profile "$PROFILE" \
-            --arg asset_name "${{ steps.asset.outputs.asset_name }}" \
-            --arg asset_digest "${{ steps.asset.outputs.asset_digest }}" \
-            --arg source_sha "${{ inputs.release_source_sha }}" \
-            --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
-              . + {app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}}
-            ' "evidence/$PROFILE/qualification.json" > "evidence/$PROFILE/qualification.bound.json"
-          mv "evidence/$PROFILE/qualification.bound.json" "evidence/$PROFILE/qualification.json"
           if [ "$smoke_status" -ne 0 ]; then exit "$smoke_status"; fi
           jq -e --arg profile "$PROFILE" '
             .status == "passed"
@@ -362,18 +358,79 @@ jobs:
       - name: Remove downloaded public DMG from evidence
         if: ${{ always() }}
         env:
-          DMG: ${{ steps.asset.outputs.dmg }}
           PROFILE: ${{ matrix.profile }}
+          STANDARD_ASSET_NAME: ${{ inputs.standard_asset_name }}
+          FULL_ASSET_NAME: ${{ inputs.full_asset_name }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "$DMG" ]; then
-            case "$DMG" in
-              "evidence/$PROFILE/"*.dmg) ;;
-              *) echo "::error::Unexpected DMG evidence path"; exit 1 ;;
-            esac
-            rm -f "$DMG"
-            test ! -e "$DMG"
+          case "$PROFILE" in
+            standard) asset_name="$STANDARD_ASSET_NAME" ;;
+            full) asset_name="$FULL_ASSET_NAME" ;;
+            *) exit 2 ;;
+          esac
+          dmg="evidence/$PROFILE/$asset_name"
+          rm -f "$dmg" "$dmg.part"
+          test ! -e "$dmg"
+          test ! -e "$dmg.part"
+
+      - name: Ensure profile qualification receipt
+        if: ${{ always() }}
+        env:
+          PROFILE: ${{ matrix.profile }}
+          STANDARD_ASSET_NAME: ${{ inputs.standard_asset_name }}
+          STANDARD_ASSET_DIGEST: ${{ inputs.standard_asset_digest }}
+          FULL_ASSET_NAME: ${{ inputs.full_asset_name }}
+          FULL_ASSET_DIGEST: ${{ inputs.full_asset_digest }}
+          ASSET_OUTCOME: ${{ steps.asset.outcome }}
+          CODEX_OUTCOME: ${{ steps.codex.outcome }}
+          CREDENTIALS_OUTCOME: ${{ steps.credentials.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$PROFILE" in
+            standard) asset_name="$STANDARD_ASSET_NAME"; asset_digest="$STANDARD_ASSET_DIGEST" ;;
+            full) asset_name="$FULL_ASSET_NAME"; asset_digest="$FULL_ASSET_DIGEST" ;;
+            *) exit 2 ;;
+          esac
+          mkdir -p "evidence/$PROFILE"
+          receipt="evidence/$PROFILE/qualification.json"
+          if ! jq -e 'type == "object" and (.status | type == "string")' "$receipt" >/dev/null 2>&1; then
+            jq -n \
+              --arg profile "$PROFILE" \
+              --arg asset_name "$asset_name" \
+              --arg asset_digest "$asset_digest" \
+              --arg source_sha "${{ inputs.release_source_sha }}" \
+              --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" \
+              --arg asset_outcome "$ASSET_OUTCOME" \
+              --arg codex_outcome "$CODEX_OUTCOME" \
+              --arg credentials_outcome "$CREDENTIALS_OUTCOME" \
+              --arg smoke_outcome "$SMOKE_OUTCOME" '
+                {
+                  schema:"opl_studio_macos_clean_vm_qualification.v1",
+                  status:"failed",
+                  candidate:"opl-studio",
+                  carrier:"electron_desktop",
+                  package:{dmg:null,bundleIdentifier:"cn.onepersonlab.opl.studio.preview",productName:"One Person Lab Preview"},
+                  checks:{failure:{detail:"qualification_receipt_missing",workflow:{asset:$asset_outcome,codex:$codex_outcome,credentials:$credentials_outcome,smoke:$smoke_outcome}}},
+                  cleanVmReady:false,
+                  releaseReady:false,
+                  activeShellAdopted:false,
+                  blockers:["clean_vm_execution_incomplete","App_owner_clean_VM_release_admission_is_separate_from_Studio_candidate_qualification"],
+                  app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}
+                }
+              ' > "$receipt"
+          else
+            jq \
+              --arg profile "$PROFILE" \
+              --arg asset_name "$asset_name" \
+              --arg asset_digest "$asset_digest" \
+              --arg source_sha "${{ inputs.release_source_sha }}" \
+              --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
+                . + {app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}}
+              ' "$receipt" > "$receipt.bound"
+            mv "$receipt.bound" "$receipt"
           fi
 
       - name: Reject protected credentials in evidence
@@ -463,9 +520,23 @@ jobs:
                   gateway_status:.checks.smoke.hooks.gatewaySetup,
                   codex_turn:{status:.checks.smoke.hooks.codexTurn,completed:(.checks.smoke.checks.codexTurn // {}).completed,final_message_present:(.checks.smoke.checks.codexTurn // {}).finalMessagePresent,simulated:(.checks.smoke.checks.codexTurn // {}).simulated}
                 }],
-                remaining:[]
+                remaining:[$profiles[] | select(.status != "passed") | (.app_qualification.profile // ((.checks.smoke.checks.runtime // {}) | keys | .[0]))]
               }
           ' "${receipts[@]}" > opl-studio-preview-vm-qualification.json
+
+      - name: Upload App-owned qualification receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-preview-vm-qualification-${{ github.run_id }}
+          path: opl-studio-preview-vm-qualification.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Require complete qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
           jq -e '
             .status == "complete"
             and .release_id == "${{ inputs.release_id }}"
@@ -480,12 +551,3 @@ jobs:
               and .codex_turn.final_message_present == true
               and .codex_turn.simulated == false)
           ' opl-studio-preview-vm-qualification.json >/dev/null
-
-      - name: Upload App-owned qualification receipt
-        if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-studio-preview-vm-qualification-${{ github.run_id }}
-          path: opl-studio-preview-vm-qualification.json
-          if-no-files-found: error
-          retention-days: 30
