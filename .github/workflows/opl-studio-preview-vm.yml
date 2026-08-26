@@ -152,17 +152,31 @@ jobs:
       OPL_FIRST_RUN_GUEST_USER: ${{ vars.OPL_FIRST_RUN_GUEST_USER }}
       OPL_FIRST_RUN_GUEST_SSH_KEY: ${{ vars.OPL_FIRST_RUN_GUEST_SSH_KEY }}
     steps:
-      - name: Checkout exact Studio verification harness
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: gaofeng21cn/opl-studio
-          ref: ${{ needs.validate-inputs.outputs.verification_source_sha }}
-          persist-credentials: false
-          fetch-depth: 1
-          sparse-checkout: |
-            /package.json
-            /scripts/desktop/
-          sparse-checkout-cone-mode: false
+      - name: Download exact Studio verification harness
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROFILE: ${{ matrix.profile }}
+          VERIFICATION_SOURCE_SHA: ${{ needs.validate-inputs.outputs.verification_source_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/opl-studio-verification-$GITHUB_RUN_ID-${{ matrix.profile }}.tgz"
+          curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 --max-time 900 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "$archive.part" \
+            "https://api.github.com/repos/$STUDIO_REPOSITORY/tarball/$VERIFICATION_SOURCE_SHA"
+          mv "$archive.part" "$archive"
+          tar -tzf "$archive" > "$archive.list"
+          top="$(sed -n '1{s#/.*##;p;}' "$archive.list")"
+          test -n "$top"
+          rm -f package.json
+          rm -rf scripts/desktop "evidence/$PROFILE"
+          tar -xzf "$archive" --strip-components=1 "$top/package.json" "$top/scripts/desktop"
+          rm -f "$archive" "$archive.list"
+          test -s package.json
+          test -s scripts/desktop/qualify-clean-vm.mjs
+          test -s scripts/desktop/preview-smoke.mjs
 
       - name: Setup exact Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

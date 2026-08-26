@@ -16,8 +16,9 @@ test('Studio Preview VM qualification owns two clean public-asset profiles witho
   assert.equal(workflow.jobs.qualify.strategy['max-parallel'], 1);
   assert.deepEqual(workflow.jobs.qualify['runs-on'], ['self-hosted', 'macOS', 'ARM64', 'opl-cert-mac-tart']);
   assert.equal(workflow.jobs.qualify.environment, 'release-stable');
-  assert.equal(workflow.jobs.qualify.steps[0].with.repository, 'gaofeng21cn/opl-studio');
-  assert.equal(workflow.jobs.qualify.steps[0].with.ref, '${{ needs.validate-inputs.outputs.verification_source_sha }}');
+  assert.equal(workflow.jobs.qualify.steps[0].name, 'Download exact Studio verification harness');
+  assert.equal(workflow.jobs.qualify.steps[0].env.VERIFICATION_SOURCE_SHA, '${{ needs.validate-inputs.outputs.verification_source_sha }}');
+  assert.match(workflow.jobs.qualify.steps[0].run, /api\.github\.com\/repos\/\$STUDIO_REPOSITORY\/tarball\/\$VERIFICATION_SOURCE_SHA/);
   assert.equal(workflow.jobs.summarize.if, '${{ always() }}');
   assert.doesNotMatch(source, /contents:\s*write|packages:\s*write|gh release (?:create|upload|edit|delete)|--clobber|make_latest/);
 });
@@ -27,6 +28,9 @@ test('Studio Preview VM qualification requires identity, trust, pages, Gateway, 
     'one-person-lab-preview-${RELEASE_TAG#v}-mac-arm64.dmg',
     'one-person-lab-preview-full-${RELEASE_TAG#v}-mac-arm64.dmg',
     'git/ref/heads/main',
+    'Download exact Studio verification harness',
+    'opl-studio-verification-$GITHUB_RUN_ID-${{ matrix.profile }}.tgz',
+    'tar -xzf "$archive" --strip-components=1 "$top/package.json" "$top/scripts/desktop"',
     'browser_download_url',
     'curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 --max-time 900',
     'codesign --verify --deep --strict',
