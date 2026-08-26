@@ -2750,6 +2750,7 @@ export function validateIndependentWebuiPreviewTopology(appRoot: string): number
     release_cohort_ref: '${{ needs.source-authority.outputs.source_authority_digest }}',
     source_artifact_run_id: '${{ needs.source-authority.outputs.source_run_id }}',
     source_authority_artifact_name: '${{ needs.source-authority.outputs.source_authority_artifact_name }}',
+    source_cutoff_observed_at: '${{ needs.source-authority.outputs.source_cutoff_observed_at }}',
   };
   if (
     JSON.stringify(Object.keys(workflow.on ?? {})) !== JSON.stringify(['workflow_dispatch'])

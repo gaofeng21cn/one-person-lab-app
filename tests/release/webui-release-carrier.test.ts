@@ -748,6 +748,8 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
   assert.equal(inputs.standard_identity_sha256, undefined);
   assert.equal(inputs.source_authority_artifact_name.type, 'string');
   assert.equal(inputs.source_authority_artifact_name.required, false);
+  assert.equal(inputs.source_cutoff_observed_at.type, 'string');
+  assert.equal(inputs.source_cutoff_observed_at.required, true);
   assert.equal(inputs.failed_recovery_v8_run_id, undefined);
   assert.equal(inputs.qualified_artifact_run_id, undefined);
   assert.equal(inputs.qualified_artifact_name, undefined);
@@ -800,6 +802,8 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
   assert.doesNotMatch(source, /latest-stable|homebrew|releases\/latest/i);
 
   const buildRun = build.steps.map((step: { run?: string }) => step.run ?? '').join('\n');
+  assert.match(buildRun, /source_cutoff_observed_at='\$\{\{ inputs\.source_cutoff_observed_at \}\}'/);
+  assert.doesNotMatch(buildRun, /new Date\(\)\.toISOString\(\)/);
   assert.match(buildRun, /test "\$\(uname -m\)" = '\$\{\{ matrix\.native_machine \}\}'/);
   assert.match(buildRun, /--architecture '\$\{\{ matrix\.architecture \}\}'/);
   assert.match(buildRun, /--platform 'linux\/\$\{\{ matrix\.architecture \}\}'/);
@@ -930,9 +934,17 @@ test('manual WebUI entry separates qualification, publication, and promotion', (
   assert.equal(operation.default, 'qualify');
   assert.equal(qualification.if, "${{ inputs.operation == 'qualify' }}");
   assert.equal(qualification.with.mode, 'qualify');
+  assert.equal(
+    qualification.with.source_cutoff_observed_at,
+    '${{ needs.source-authority.outputs.source_cutoff_observed_at }}',
+  );
   assert.equal(qualification.permissions.packages, 'write');
   assert.equal(publication.if, "${{ inputs.operation == 'publish' }}");
   assert.equal(publication.with.mode, 'execute');
+  assert.equal(
+    publication.with.source_cutoff_observed_at,
+    '${{ needs.source-authority.outputs.source_cutoff_observed_at }}',
+  );
   assert.equal(publication.permissions.packages, 'write');
   assert.equal(promotion.if, "${{ inputs.operation == 'promote' }}");
   assert.match(promotion.with.authority_mode, /independent_stable/);

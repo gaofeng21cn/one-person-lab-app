@@ -47,6 +47,10 @@ on:
         type: string
         required: false
         default: ''
+      source_cutoff_observed_at:
+        description: One canonical UTC source cutoff frozen before the architecture matrix starts.
+        type: string
+        required: true
       image_repository:
         description: GHCR repository without a tag or digest.
         type: string
@@ -192,7 +196,7 @@ jobs:
             | jq -er 'select(type == "string" and startswith("https://"))')"
           curl -L --fail --silent --show-error "$codex_tarball_url" \
             --output webui-carrier/frozen-codex/codex-cli.tgz
-          source_cutoff_observed_at="$(node -e 'process.stdout.write(new Date().toISOString())')"
+          source_cutoff_observed_at='${{ inputs.source_cutoff_observed_at }}'
           node --experimental-strip-types scripts/framework-release-adapter.ts webui-build-input \
             --source-authority "webui-carrier/source-authority.json" \
             --app-root frozen-app-source \

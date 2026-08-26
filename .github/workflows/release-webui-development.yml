@@ -77,6 +77,7 @@ jobs:
       shell_ref: ${{ steps.authority.outputs.shell_ref }}
       framework_ref: ${{ steps.authority.outputs.framework_ref }}
       authority_mode: ${{ steps.authority.outputs.authority_mode }}
+      source_cutoff_observed_at: ${{ steps.authority.outputs.source_cutoff_observed_at }}
     steps:
       - name: Checkout canonical App executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -113,6 +114,7 @@ jobs:
           [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
           canonical_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
           test "$canonical_sha" = "$GITHUB_SHA"
+          source_cutoff_observed_at="$(node -e 'process.stdout.write(new Date().toISOString())')"
           node --experimental-strip-types scripts/webui-source-authority.ts \
             create \
             --version "$VERSION" \
@@ -136,6 +138,7 @@ jobs:
             echo "shell_ref=$SHELL_REF"
             echo "framework_ref=$FRAMEWORK_REF"
             echo "authority_mode=$authority_mode"
+            echo "source_cutoff_observed_at=$source_cutoff_observed_at"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload independent source authority
@@ -168,6 +171,7 @@ jobs:
       release_cohort_ref: ${{ needs.source-authority.outputs.source_authority_digest }}
       source_artifact_run_id: ${{ needs.source-authority.outputs.source_run_id }}
       source_authority_artifact_name: ${{ needs.source-authority.outputs.source_authority_artifact_name }}
+      source_cutoff_observed_at: ${{ needs.source-authority.outputs.source_cutoff_observed_at }}
 
   webui-carrier-qualification:
     if: ${{ inputs.operation == 'qualify' }}
@@ -188,6 +192,7 @@ jobs:
       release_cohort_ref: ${{ needs.source-authority.outputs.source_authority_digest }}
       source_artifact_run_id: ${{ needs.source-authority.outputs.source_run_id }}
       source_authority_artifact_name: ${{ needs.source-authority.outputs.source_authority_artifact_name }}
+      source_cutoff_observed_at: ${{ needs.source-authority.outputs.source_cutoff_observed_at }}
 
   promote-webui-latest:
     if: ${{ inputs.operation == 'promote' }}
