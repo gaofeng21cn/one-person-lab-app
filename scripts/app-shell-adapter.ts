@@ -15,6 +15,9 @@ export type ShellPathContract = {
   electron_builder_config: string;
   desktop_release_carrier_manifest?: string;
   build_output_dir: string;
+  standard_bootstrap_resource_root?: string;
+  standard_bootstrap_installer?: string;
+  standard_bootstrap_manifest?: string;
   product_profile_target: string;
   packaged_runtime_root: string;
   packaged_runtime_validator: string;

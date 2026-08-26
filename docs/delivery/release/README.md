@@ -52,7 +52,7 @@ The three Framework-backed workflow mutation operations remain exactly:
 The protected workflow separately exposes `entry=studio_carrier_admission`, a plan-only source admission for the candidate
 Studio Electron carrier. It requires an exact `gaofeng21cn/opl-studio` commit, tree and tag, runs in
 the App-owned `release-stable` environment with read-only permissions, and writes
-`opl_studio_protected_release_admission.v1`. It does not map protected secret values into the job,
+`opl_studio_protected_release_admission.v2`. It does not map protected secret values into the job,
 create a Framework release operation, submit to Apple, mutate a GitHub Release, change the active
 shell, or make Studio the active release carrier.
 

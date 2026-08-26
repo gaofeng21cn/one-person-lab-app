@@ -17,6 +17,7 @@ const identity = {
   studioSha: 'b'.repeat(40),
   studioTree: 'c'.repeat(40),
   studioTag: 'v0.1.0',
+  frameworkRef: 'd'.repeat(40),
 };
 
 function sha256(value: Buffer | string): string {
@@ -55,9 +56,17 @@ function fixture() {
   })}\n`);
   fs.writeFileSync(path.join(evidence, 'release-notes.md'), 'One Person Lab Preview 0.1.0\n');
   fs.writeFileSync(path.join(evidence, 'source-admission.json'), `${JSON.stringify({
-    schema: 'opl_studio_protected_release_admission.v1',
+    schema: 'opl_studio_protected_release_admission.v2',
     app_executor: { commit_sha: identity.appRef },
     source: { commit_sha: identity.studioSha, tree_sha: identity.studioTree, tag: identity.studioTag },
+    framework_bootstrap: {
+      framework_ref: identity.frameworkRef,
+      installer_url: `https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/${identity.frameworkRef}/install.sh`,
+      archive_url: `https://github.com/gaofeng21cn/one-person-lab/archive/${identity.frameworkRef}.tar.gz`,
+      resource_path: 'resources/opl-framework-bootstrap/opl-install.sh',
+      manifest_path: 'resources/opl-framework-bootstrap/manifest.json',
+      install_source_mode: 'archive',
+    },
   })}\n`);
   fs.writeFileSync(path.join(qualificationRoot, 'prepublication-qualification.json'), `${JSON.stringify({
     schema: 'opl_macos_desktop_distribution_qualification.v1',
@@ -77,6 +86,8 @@ test('Studio checkpoint seals and validates one exact signed and notarized byte 
   const sealed = sealStudioReleaseCheckpoint(checkpointRoot, identity);
   assert.equal(sealed.status, 'signed_notarized');
   assert.equal(sealed.files.length, 11);
+  assert.equal(sealed.schema, 'opl_studio_signed_notarized_checkpoint.v2');
+  assert.equal(sealed.framework_ref, identity.frameworkRef);
   assert.equal(validateStudioReleaseCheckpoint(checkpointRoot, identity).source.tag, identity.studioTag);
   fs.rmSync(root, { recursive: true, force: true });
 });
@@ -86,6 +97,8 @@ test('Studio qualification binds the unchanged checkpoint manifest and local tru
   sealStudioReleaseCheckpoint(checkpointRoot, identity);
   const sealed = sealStudioReleaseQualification({ ...identity, checkpointRoot, qualificationRoot });
   assert.equal(sealed.status, 'qualified');
+  assert.equal(sealed.schema, 'opl_studio_prepublication_qualification.v2');
+  assert.equal(sealed.framework_ref, identity.frameworkRef);
   assert.match(sealed.checkpoint_manifest_sha256, /^[0-9a-f]{64}$/);
   assert.equal(
     validateStudioReleaseQualification({ ...identity, checkpointRoot, qualificationRoot }).public_feed_pending,
@@ -106,6 +119,10 @@ test('Studio checkpoint rejects byte, source, and qualification drift', () => {
   assert.throws(
     () => validateStudioReleaseCheckpoint(second.checkpointRoot, { ...identity, studioTree: 'd'.repeat(40) }),
     /tree does not match/,
+  );
+  assert.throws(
+    () => validateStudioReleaseCheckpoint(second.checkpointRoot, { ...identity, frameworkRef: 'e'.repeat(40) }),
+    /Framework ref does not match/,
   );
   sealStudioReleaseQualification({ ...identity, checkpointRoot: second.checkpointRoot, qualificationRoot: second.qualificationRoot });
   fs.appendFileSync(path.join(second.qualificationRoot, 'prepublication-qualification.json'), ' ');

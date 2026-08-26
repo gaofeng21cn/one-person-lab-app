@@ -130,3 +130,29 @@ test('reusable release build passes frozen framework_ref into Standard payload m
     'node --experimental-strip-types scripts/prepare-standard-release-payload.ts',
   );
 });
+
+test('Studio release workflow checks out and materializes the exact Standard bootstrap cohort', () => {
+  const workflow = parseYaml(fs.readFileSync(
+    path.join(appRoot, '.github', 'workflows', '_release-studio.yml'),
+    'utf8',
+  )) as Record<string, any>;
+  const build = workflow.jobs['build-signed-notarized'];
+  assert.equal(workflow.on.workflow_call.inputs.framework_ref.required, true);
+  const checkout = build.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Checkout exact Framework bootstrap source',
+  );
+  assert.equal(checkout.with.repository, 'gaofeng21cn/one-person-lab');
+  assert.equal(checkout.with.ref, '${{ inputs.framework_ref }}');
+  assert.equal(checkout.with.path, 'framework-source');
+  const bind = build.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Bind exact source and numeric version identity',
+  );
+  assert.match(bind.run, /git -C framework-source rev-parse HEAD/);
+  assert.match(bind.run, /--framework-ref "\$FRAMEWORK_REF"/);
+  const materialize = build.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Materialize exact Studio Standard Framework bootstrap',
+  );
+  assert.match(materialize.run, /prepare-standard-release-payload\.ts"? studio/);
+  assert.match(materialize.run, /--framework-ref "\$FRAMEWORK_REF"/);
+  assert.match(materialize.run, /resources\/opl-framework-bootstrap\/manifest\.json/);
+});

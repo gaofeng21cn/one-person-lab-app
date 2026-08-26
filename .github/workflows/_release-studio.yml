@@ -19,6 +19,10 @@ on:
         description: Exact v-prefixed numeric SemVer tag
         required: true
         type: string
+      framework_ref:
+        description: Exact lowercase 40-character Framework SHA used for Studio Standard bootstrap
+        required: true
+        type: string
       prior_studio_artifact_run_id:
         description: Optional failed Studio run containing reusable signed, notarized, or qualified bytes
         required: false
@@ -71,6 +75,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -83,6 +88,7 @@ jobs:
           [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
           test -z '${{ inputs.prior_studio_artifact_run_id }}'
 
       - name: Checkout exact App release executor
@@ -99,6 +105,15 @@ jobs:
           repository: gaofeng21cn/opl-studio
           ref: ${{ inputs.studio_sha }}
           path: studio-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact Framework bootstrap source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab
+          ref: ${{ inputs.framework_ref }}
+          path: framework-source
           fetch-depth: 0
           persist-credentials: false
 
@@ -125,12 +140,14 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git -C app-source rev-parse HEAD)" = "$APP_REF"
           test "$(git -C studio-source rev-parse HEAD)" = "$STUDIO_SHA"
           test "$(git -C studio-source rev-parse 'HEAD^{tree}')" = "$STUDIO_TREE"
+          test "$(git -C framework-source rev-parse HEAD)" = "$FRAMEWORK_REF"
           version="$(node -p "require('./studio-source/package.json').version")"
           [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           test "$STUDIO_TAG" = "v$version"
@@ -141,7 +158,25 @@ jobs:
             --studio-sha "$STUDIO_SHA" \
             --studio-tree "$STUDIO_TREE" \
             --studio-tag "$STUDIO_TAG" \
+            --framework-ref "$FRAMEWORK_REF" \
             --output studio-release-evidence/source-admission.json
+
+      - name: Materialize exact Studio Standard Framework bootstrap
+        working-directory: studio-source
+        env:
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types "$OPL_APP_REPO_ROOT/scripts/prepare-standard-release-payload.ts" studio \
+            --target-root "$PWD" \
+            --framework-ref "$FRAMEWORK_REF" \
+            > ../studio-release-evidence/framework-bootstrap.json
+          test -x resources/opl-framework-bootstrap/opl-install.sh
+          jq -e --arg ref "$FRAMEWORK_REF" \
+            '.schema == "opl_studio_standard_framework_bootstrap.v1" and .framework_ref == $ref and (.installer_url | contains($ref)) and (.archive_url | contains($ref))' \
+            resources/opl-framework-bootstrap/manifest.json >/dev/null
 
       - name: Verify protected Apple capabilities before notarization
         env:
@@ -340,6 +375,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -362,11 +398,12 @@ jobs:
             --studio-sha "$STUDIO_SHA" \
             --studio-tree "$STUDIO_TREE" \
             --studio-tag "$STUDIO_TAG" \
+            --framework-ref "$FRAMEWORK_REF" \
             > studio-release-evidence/checkpoint-seal.json
           {
             echo "checkpoint_run_id=$GITHUB_RUN_ID"
             echo "checkpoint_app_ref=$APP_REF"
-            echo "checkpoint_artifact_name=opl-studio-signed-notarized-$STUDIO_SHA-$GITHUB_RUN_ID"
+            echo "checkpoint_artifact_name=opl-studio-signed-notarized-$STUDIO_SHA-$FRAMEWORK_REF-$GITHUB_RUN_ID"
             echo "studio_version=$STUDIO_VERSION"
           } >> "$GITHUB_OUTPUT"
 
@@ -392,7 +429,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-studio-build-evidence-${{ inputs.studio_sha }}-${{ github.run_id }}
+          name: opl-studio-build-evidence-${{ inputs.studio_sha }}-${{ inputs.framework_ref }}-${{ github.run_id }}
           path: studio-release-evidence
           if-no-files-found: warn
           retention-days: 30
@@ -429,6 +466,7 @@ jobs:
           FRESH_APP_REF: ${{ needs.build-signed-notarized.outputs.checkpoint_app_ref }}
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -449,10 +487,10 @@ jobs:
           fi
           [[ "$checkpoint_app_ref" =~ ^[0-9a-f]{40}$ ]]
           studio_version="${STUDIO_TAG#v}"
-          source_checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$source_checkpoint_run_id"
-          source_qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$source_checkpoint_run_id"
-          checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$GITHUB_RUN_ID"
-          qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$GITHUB_RUN_ID"
+          source_checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$FRAMEWORK_REF-$source_checkpoint_run_id"
+          source_qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$FRAMEWORK_REF-$source_checkpoint_run_id"
+          checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$FRAMEWORK_REF-$GITHUB_RUN_ID"
+          qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$FRAMEWORK_REF-$GITHUB_RUN_ID"
           qualification_present=false
           if [ -n "$PRIOR_RUN_ID" ]; then
             artifact_names="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$source_checkpoint_run_id/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .name')"
@@ -510,18 +548,19 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
           node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate \
             --root studio-release-checkpoint --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" \
-            --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" >/dev/null
+            --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
           if [ '${{ needs.resolve-checkpoint.outputs.qualification_present }}' = true ]; then
             node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate-qualification \
               --checkpoint-root studio-release-checkpoint \
               --qualification-root studio-release-qualification \
               --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
-              --studio-tag "$STUDIO_TAG" >/dev/null
+              --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
           fi
 
       - name: Materialize restored Studio checkpoint in the current run
@@ -583,6 +622,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
           OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
         shell: bash
         run: |
@@ -591,7 +631,7 @@ jobs:
           npm ci --ignore-scripts --prefix studio-source
           node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate \
             --root studio-release-checkpoint --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" \
-            --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" >/dev/null
+            --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
           mkdir -p studio-source/out studio-release-qualification
           cp studio-release-checkpoint/assets/* studio-source/out/
           (cd studio-source && node scripts/desktop/macos-distribution.mjs --require-release-trust)
@@ -601,7 +641,7 @@ jobs:
             --checkpoint-root studio-release-checkpoint \
             --qualification-root studio-release-qualification \
             --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
-            --studio-tag "$STUDIO_TAG" >/dev/null
+            --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
 
       - name: Upload reusable Studio qualification
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -659,6 +699,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -666,7 +707,7 @@ jobs:
             --checkpoint-root studio-release-checkpoint \
             --qualification-root studio-release-qualification \
             --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
-            --studio-tag "$STUDIO_TAG" >/dev/null
+            --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
 
       - name: Materialize exact qualified release inputs
         shell: bash
@@ -821,6 +862,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
           OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
         shell: bash
         run: |
@@ -830,7 +872,7 @@ jobs:
             --checkpoint-root studio-release-checkpoint \
             --qualification-root studio-release-qualification \
             --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
-            --studio-tag "$STUDIO_TAG" >/dev/null
+            --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
           mkdir -p studio-source/out studio-release-evidence
           cp studio-release-checkpoint/assets/* studio-source/out/
           cp studio-release-checkpoint/evidence/* studio-release-evidence/
@@ -938,6 +980,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -945,6 +988,7 @@ jobs:
             --arg app_ref "$APP_REF" \
             --arg studio_sha "$STUDIO_SHA" \
             --arg studio_tree "$STUDIO_TREE" \
+            --arg framework_ref "$FRAMEWORK_REF" \
             --arg tag "$STUDIO_TAG" \
             --arg version "$STUDIO_VERSION" \
             --slurpfile assets studio-release-evidence/release-assets.json \
@@ -952,14 +996,14 @@ jobs:
             --slurpfile dmg_notary studio-release-evidence/dmg-notarization.json \
             --slurpfile public_assets studio-release-evidence/public-asset-readback.json \
             --slurpfile public_qualification studio-release-evidence/public-release-qualification.json \
-            '{schema:"opl_studio_protected_release_receipt.v1",status:"released_and_publicly_qualified",authority_owner:"one-person-lab-app",app_executor_sha:$app_ref,source:{repository:"gaofeng21cn/opl-studio",commit_sha:$studio_sha,tree_sha:$studio_tree,tag:$tag,version:$version},assets:$assets[0].assets,notarization:{app_status:$app_notary[0].status,dmg_status:$dmg_notary[0].notarization.status},public_assets:$public_assets[0],public_feed:{qualified:$public_qualification[0].publicFeed.qualified,anonymous_download:$public_qualification[0].publicFeed.anonymousDownload},active_shell_unchanged:true,active_release_carrier:false}' \
+            '{schema:"opl_studio_protected_release_receipt.v2",status:"released_and_publicly_qualified",authority_owner:"one-person-lab-app",app_executor_sha:$app_ref,authority:{framework_ref:$framework_ref},source:{repository:"gaofeng21cn/opl-studio",commit_sha:$studio_sha,tree_sha:$studio_tree,tag:$tag,version:$version},framework_bootstrap:{framework_ref:$framework_ref,resource_path:"resources/opl-framework-bootstrap/opl-install.sh",manifest_path:"resources/opl-framework-bootstrap/manifest.json"},assets:$assets[0].assets,notarization:{app_status:$app_notary[0].status,dmg_status:$dmg_notary[0].notarization.status},public_assets:$public_assets[0],public_feed:{qualified:$public_qualification[0].publicFeed.qualified,anonymous_download:$public_qualification[0].publicFeed.anonymousDownload},active_shell_unchanged:true,active_release_carrier:false}' \
             > studio-release-evidence/terminal-release-receipt.json
 
       - name: Upload Studio public readback evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-studio-public-readback-${{ inputs.studio_sha }}-${{ github.run_id }}
+          name: opl-studio-public-readback-${{ inputs.studio_sha }}-${{ inputs.framework_ref }}-${{ github.run_id }}
           path: studio-release-evidence
           if-no-files-found: warn
           retention-days: 30

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 import { assertAppRootBoundary } from './app-root-boundary.ts';
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
 import { resolveActiveShellPaths, resolveShellAdapterIdentity } from './app-shell-adapter.ts';
@@ -20,6 +22,19 @@ export type StandardFrameworkBootstrapPin = {
   frameworkRef: string;
   installerUrl: string;
   archiveUrl: string;
+};
+
+export type StudioStandardBootstrapManifest = {
+  schema: 'opl_studio_standard_framework_bootstrap.v1';
+  framework_ref: string;
+  installer_url: string;
+  archive_url: string;
+  installer_path: string;
+  installer_sha256: string;
+  installer_size_bytes: number;
+  source: 'one-person-lab-app/scripts/prepare-standard-release-payload.ts';
+  active_shell_adopted: false;
+  aionui_standard_payload_preparation: false;
 };
 
 export function resolveStandardFrameworkBootstrapPin(
@@ -99,6 +114,45 @@ export function materializePinnedStandardBootstrapInstaller(
   return materialized;
 }
 
+function sha256Bytes(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function writeJsonAtomic(filePath: string, value: unknown): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temporaryPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  fs.renameSync(temporaryPath, filePath);
+}
+
+export function materializeStudioStandardBootstrapPayload(input: {
+  targetRoot: string;
+  frameworkPin: StandardFrameworkBootstrapPin;
+}): StudioStandardBootstrapManifest {
+  const targetRoot = path.resolve(input.targetRoot);
+  const installerSource = fs.readFileSync(appInstallerPath, 'utf8');
+  const installerPayload = materializePinnedStandardBootstrapInstaller(installerSource, input.frameworkPin);
+  const installerPath = path.join(targetRoot, 'resources', 'opl-framework-bootstrap', 'opl-install.sh');
+  const manifestPath = path.join(targetRoot, 'resources', 'opl-framework-bootstrap', 'manifest.json');
+  fs.mkdirSync(path.dirname(installerPath), { recursive: true });
+  fs.writeFileSync(installerPath, installerPayload, { mode: 0o755 });
+  fs.chmodSync(installerPath, 0o755);
+  const manifest: StudioStandardBootstrapManifest = {
+    schema: 'opl_studio_standard_framework_bootstrap.v1',
+    framework_ref: input.frameworkPin.frameworkRef,
+    installer_url: input.frameworkPin.installerUrl,
+    archive_url: input.frameworkPin.archiveUrl,
+    installer_path: 'resources/opl-framework-bootstrap/opl-install.sh',
+    installer_sha256: sha256Bytes(installerPayload),
+    installer_size_bytes: Buffer.byteLength(installerPayload),
+    source: 'one-person-lab-app/scripts/prepare-standard-release-payload.ts',
+    active_shell_adopted: false,
+    aionui_standard_payload_preparation: false,
+  };
+  writeJsonAtomic(manifestPath, manifest);
+  return manifest;
+}
+
 export function prepareStandardReleasePayload(env: NodeJS.ProcessEnv = process.env): Record<string, unknown> {
   const frameworkPin = resolveStandardFrameworkBootstrapPin(env);
   const shellPaths = resolveActiveShellPaths();
@@ -163,7 +217,33 @@ export function prepareStandardReleasePayload(env: NodeJS.ProcessEnv = process.e
 }
 
 function main(): void {
-  console.log(JSON.stringify(prepareStandardReleasePayload(), null, 2));
+  const { positionals, values } = parseArgs({
+    args: process.argv.slice(2),
+    allowPositionals: true,
+    strict: true,
+    options: {
+      'target-root': { type: 'string' },
+      'framework-ref': { type: 'string' },
+    },
+  });
+  if (positionals.length === 0) {
+    console.log(JSON.stringify(prepareStandardReleasePayload(), null, 2));
+    return;
+  }
+  if (positionals.length !== 1 || positionals[0] !== 'studio') {
+    throw new Error('Usage: prepare-standard-release-payload.ts [studio --target-root <path> --framework-ref <sha>]');
+  }
+  const targetRoot = values['target-root']?.trim();
+  const frameworkRef = values['framework-ref']?.trim();
+  if (!targetRoot || !frameworkRef) {
+    throw new Error('Studio Standard bootstrap requires --target-root and --framework-ref.');
+  }
+  const frameworkPin = resolveStandardFrameworkBootstrapPin({
+    OPL_STANDARD_PAYLOAD_RELEASE_BOUND: 'true',
+    OPL_STANDARD_PAYLOAD_FRAMEWORK_REF: frameworkRef,
+  });
+  if (!frameworkPin) throw new Error('Studio Standard bootstrap requires an exact Framework SHA.');
+  console.log(JSON.stringify(materializeStudioStandardBootstrapPayload({ targetRoot, frameworkPin }), null, 2));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

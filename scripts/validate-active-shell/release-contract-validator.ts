@@ -238,6 +238,7 @@ function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall)
     || successor?.active_shell_remains !== 'aionui'
     || successor?.active_release_carrier !== false
     || admission?.schema !== 'opl_studio_protected_release_admission_policy.v1'
+    || admission?.source_admission_receipt_schema !== 'opl_studio_protected_release_admission.v2'
     || admission?.authority_owner !== 'one-person-lab-app'
     || admission?.workflow !== '.github/workflows/release-stable.yml'
     || admission?.entry_selector !== 'studio_carrier_admission'
@@ -245,6 +246,15 @@ function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall)
     || admission?.environment !== 'release-stable'
     || admission?.repository !== 'gaofeng21cn/opl-studio'
     || admission?.carrier !== 'electron_desktop'
+    || admission?.framework_bootstrap?.schema !== 'opl_studio_standard_framework_bootstrap.v1'
+    || admission?.framework_bootstrap?.framework_ref_input !== 'framework_ref'
+    || admission?.framework_bootstrap?.installer_path !== 'resources/opl-framework-bootstrap/opl-install.sh'
+    || admission?.framework_bootstrap?.manifest_path !== 'resources/opl-framework-bootstrap/manifest.json'
+    || admission?.framework_bootstrap?.installer_url_template !== 'https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/<framework-ref>/install.sh'
+    || admission?.framework_bootstrap?.archive_url_template !== 'https://github.com/gaofeng21cn/one-person-lab/archive/<framework-ref>.tar.gz'
+    || admission?.framework_bootstrap?.install_source_mode !== 'archive'
+    || admission?.framework_bootstrap?.active_shell_adopted !== false
+    || admission?.framework_bootstrap?.aionui_standard_payload_preparation !== false
     || admission?.source_admission_is_release_ready !== false
     || admission?.active_release_carrier_after_admission !== false
     || admission?.framework_release_operation_created !== false
@@ -265,6 +275,8 @@ function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall)
     || admission?.admission_mutation_policy?.release_or_asset_mutation_allowed !== false
     || admission?.admission_mutation_policy?.deployment_allowed !== false
     || admission?.admission_mutation_policy?.publication_allowed !== false
+    || successor?.protected_release_execution?.schema !== 'opl_studio_protected_release_execution_policy.v2'
+    || successor?.protected_release_execution?.terminal_receipt_schema !== 'opl_studio_protected_release_receipt.v2'
     || studioFullAppend?.schema !== 'opl_studio_full_same_tag_append_policy.v1'
     || studioFullAppend?.authority_owner !== 'one-person-lab-app'
     || studioFullAppend?.repository !== 'gaofeng21cn/opl-studio'
@@ -301,7 +313,7 @@ function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall)
   }
   assertDeepEqualJson(
     admission.identity_inputs,
-    ['studio_sha', 'studio_tree', 'studio_tag'],
+    ['studio_sha', 'studio_tree', 'studio_tag', 'framework_ref'],
     'Studio protected release identity inputs',
   );
   assertDeepEqualJson(

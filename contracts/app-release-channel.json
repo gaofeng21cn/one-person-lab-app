@@ -17,6 +17,7 @@
     "source_contract_or_candidate_evidence_implies_release_ready": false,
     "protected_release_admission": {
       "schema": "opl_studio_protected_release_admission_policy.v1",
+      "source_admission_receipt_schema": "opl_studio_protected_release_admission.v2",
       "authority_owner": "one-person-lab-app",
       "workflow": ".github/workflows/release-stable.yml",
       "entry_selector": "studio_carrier_admission",
@@ -27,8 +28,20 @@
       "identity_inputs": [
         "studio_sha",
         "studio_tree",
-        "studio_tag"
+        "studio_tag",
+        "framework_ref"
       ],
+      "framework_bootstrap": {
+        "schema": "opl_studio_standard_framework_bootstrap.v1",
+        "framework_ref_input": "framework_ref",
+        "installer_path": "resources/opl-framework-bootstrap/opl-install.sh",
+        "manifest_path": "resources/opl-framework-bootstrap/manifest.json",
+        "installer_url_template": "https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/<framework-ref>/install.sh",
+        "archive_url_template": "https://github.com/gaofeng21cn/one-person-lab/archive/<framework-ref>.tar.gz",
+        "install_source_mode": "archive",
+        "active_shell_adopted": false,
+        "aionui_standard_payload_preparation": false
+      },
       "source_admission_is_release_ready": false,
       "active_release_carrier_after_admission": false,
       "framework_release_operation_created": false,
@@ -68,6 +81,7 @@
     },
     "protected_release_execution": {
       "schema": "opl_studio_protected_release_execution_policy.v2",
+      "terminal_receipt_schema": "opl_studio_protected_release_receipt.v2",
       "authority_owner": "one-person-lab-app",
       "entry_workflow": ".github/workflows/release-stable.yml",
       "reusable_workflow": ".github/workflows/_release-studio.yml",
@@ -84,8 +98,8 @@
       },
       "recovery": {
         "input": "prior_studio_artifact_run_id",
-        "checkpoint_schema": "opl_studio_signed_notarized_checkpoint.v1",
-        "qualification_schema": "opl_studio_prepublication_qualification.v1",
+        "checkpoint_schema": "opl_studio_signed_notarized_checkpoint.v2",
+        "qualification_schema": "opl_studio_prepublication_qualification.v2",
         "successful_checkpoint_bytes_are_reused_without_rebuild": true,
         "every_recovery_run_materializes_a_current_run_checkpoint": true,
         "same_tag_publication_repair_allowed": true,

@@ -108,7 +108,7 @@ on:
         default: ''
         type: string
       framework_ref:
-        description: Exact Framework executor SHA for resume/append and fresh Full content Framework SHA for append_full
+        description: Exact Framework executor SHA required for protected Studio Standard admission and used by resume/append lanes
         required: false
         default: ''
         type: string
@@ -191,7 +191,8 @@ jobs:
           [[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+          [[ "$REQUESTED_FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
+          test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
           if [ -n "$PRIOR_STUDIO_ARTIFACT_RUN_ID" ]; then
             [[ "$PRIOR_STUDIO_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             test "$PRIOR_STUDIO_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
@@ -230,6 +231,7 @@ jobs:
           STUDIO_SHA: ${{ inputs.studio_sha }}
           STUDIO_TREE: ${{ inputs.studio_tree }}
           STUDIO_TAG: ${{ inputs.studio_tag }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -239,13 +241,15 @@ jobs:
             --studio-sha "$STUDIO_SHA" \
             --studio-tree "$STUDIO_TREE" \
             --studio-tag "$STUDIO_TAG" \
+            --framework-ref "$FRAMEWORK_REF" \
             --output studio-protected-release-admission.json
           jq -e '
-            .schema == "opl_studio_protected_release_admission.v1"
+            .schema == "opl_studio_protected_release_admission.v2"
             and .status == "source_admitted_pending_protected_execution"
             and .source.commit_sha == env.STUDIO_SHA
             and .source.tree_sha == env.STUDIO_TREE
             and .source.tag == env.STUDIO_TAG
+            and .framework_bootstrap.framework_ref == env.FRAMEWORK_REF
             and .active_shell_unchanged == true
             and .active_release_carrier == false
             and .release_ready == false
@@ -256,7 +260,7 @@ jobs:
       - name: Upload immutable Studio protected admission receipt
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-studio-protected-release-admission-${{ inputs.studio_sha }}-${{ github.run_id }}
+          name: opl-studio-protected-release-admission-${{ inputs.studio_sha }}-${{ inputs.framework_ref }}-${{ github.run_id }}
           path: app-source/studio-protected-release-admission.json
           if-no-files-found: error
           retention-days: 30
@@ -273,6 +277,7 @@ jobs:
       studio_sha: ${{ inputs.studio_sha }}
       studio_tree: ${{ inputs.studio_tree }}
       studio_tag: ${{ inputs.studio_tag }}
+      framework_ref: ${{ inputs.framework_ref }}
       prior_studio_artifact_run_id: ${{ inputs.prior_studio_artifact_run_id }}
     secrets: inherit
 

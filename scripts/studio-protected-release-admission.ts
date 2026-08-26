@@ -19,6 +19,7 @@ type GitIdentity = {
 type PlannerInput = {
   app: GitIdentity;
   studio: GitIdentity;
+  frameworkRef: string;
   requestedTag: string;
   carrier: DesktopReleaseCarrier;
 };
@@ -37,6 +38,7 @@ function assertGitIdentity(label: string, identity: GitIdentity): void {
 export function buildStudioProtectedReleaseAdmission(input: PlannerInput) {
   assertGitIdentity('App', input.app);
   assertGitIdentity('Studio', input.studio);
+  invariant(shaPattern.test(input.frameworkRef), 'Framework ref must be an exact lowercase 40-character SHA.');
 
   const packageVersion = input.carrier.packageVersion;
   invariant(input.carrier.carrierId === 'opl-studio', 'Protected Studio admission requires the opl-studio carrier.');
@@ -59,13 +61,14 @@ export function buildStudioProtectedReleaseAdmission(input: PlannerInput) {
   const stageOrder = input.carrier.stageOrder;
 
   return {
-    schema: 'opl_studio_protected_release_admission.v1',
+    schema: 'opl_studio_protected_release_admission.v2',
     status: 'source_admitted_pending_protected_execution',
     authority: {
       owner: 'one-person-lab-app',
       workflow: '.github/workflows/release-stable.yml',
       entry_selector: 'studio_carrier_admission',
       framework_operation: null,
+      framework_ref: input.frameworkRef,
       environment: 'release-stable',
       framework_release_operation_created: false,
       second_release_owner_created: false,
@@ -86,6 +89,14 @@ export function buildStudioProtectedReleaseAdmission(input: PlannerInput) {
       artifact_name_template: input.carrier.artifactNameTemplate,
       macos_targets: input.carrier.macos.targets,
       update_feed: 'https://github.com/gaofeng21cn/opl-studio/releases/download/<exact-tag>/',
+    },
+    framework_bootstrap: {
+      framework_ref: input.frameworkRef,
+      installer_url: `https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/${input.frameworkRef}/install.sh`,
+      archive_url: `https://github.com/gaofeng21cn/one-person-lab/archive/${input.frameworkRef}.tar.gz`,
+      resource_path: 'resources/opl-framework-bootstrap/opl-install.sh',
+      manifest_path: 'resources/opl-framework-bootstrap/manifest.json',
+      install_source_mode: 'archive',
     },
     admitted_plan: {
       carrier: 'electron_desktop',
@@ -143,6 +154,7 @@ export function buildStudioProtectedReleaseAdmission(input: PlannerInput) {
         tree_sha: input.studio.treeSha,
         tag: input.requestedTag,
       },
+      framework_ref: input.frameworkRef,
       required_sequence: stageOrder.slice(1),
       admission_receipt_is_publication_authority: false,
     },
@@ -186,11 +198,12 @@ function runCli(argv: string[]): void {
       'studio-sha': { type: 'string' },
       'studio-tree': { type: 'string' },
       'studio-tag': { type: 'string' },
+      'framework-ref': { type: 'string' },
       output: { type: 'string' },
     },
   });
   invariant(positionals.length === 1 && positionals[0] === 'plan', 'Usage: studio-protected-release-admission.ts plan <options>');
-  for (const option of ['app-root', 'studio-root', 'studio-sha', 'studio-tree', 'studio-tag', 'output'] as const) {
+  for (const option of ['app-root', 'studio-root', 'studio-sha', 'studio-tree', 'studio-tag', 'framework-ref', 'output'] as const) {
     invariant(values[option], `Missing required option: --${option}`);
   }
 
@@ -208,6 +221,7 @@ function runCli(argv: string[]): void {
   const receipt = buildStudioProtectedReleaseAdmission({
     app,
     studio,
+    frameworkRef: values['framework-ref']!,
     requestedTag: values['studio-tag']!,
     carrier,
   });

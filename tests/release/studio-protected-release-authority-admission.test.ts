@@ -22,6 +22,7 @@ const studioWorkflow = parseYaml(fs.readFileSync(
   path.join(appRoot, '.github', 'workflows', '_release-studio.yml'),
   'utf8',
 ));
+const frameworkRef = 'e'.repeat(40);
 
 const studioCarrier: DesktopReleaseCarrier = {
   schema: 'opl_app_desktop_release_carrier_resolution.v1',
@@ -83,7 +84,19 @@ test('App contract keeps Studio candidate-only while defining one protected sour
   assert.equal(admission.framework_operation, null);
   assert.equal(admission.environment, 'release-stable');
   assert.equal(admission.repository, 'gaofeng21cn/opl-studio');
-  assert.deepEqual(admission.identity_inputs, ['studio_sha', 'studio_tree', 'studio_tag']);
+  assert.equal(admission.source_admission_receipt_schema, 'opl_studio_protected_release_admission.v2');
+  assert.deepEqual(admission.identity_inputs, ['studio_sha', 'studio_tree', 'studio_tag', 'framework_ref']);
+  assert.deepEqual(admission.framework_bootstrap, {
+    schema: 'opl_studio_standard_framework_bootstrap.v1',
+    framework_ref_input: 'framework_ref',
+    installer_path: 'resources/opl-framework-bootstrap/opl-install.sh',
+    manifest_path: 'resources/opl-framework-bootstrap/manifest.json',
+    installer_url_template: 'https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/<framework-ref>/install.sh',
+    archive_url_template: 'https://github.com/gaofeng21cn/one-person-lab/archive/<framework-ref>.tar.gz',
+    install_source_mode: 'archive',
+    active_shell_adopted: false,
+    aionui_standard_payload_preparation: false,
+  });
   assert.equal(admission.source_admission_is_release_ready, false);
   assert.equal(admission.active_release_carrier_after_admission, false);
   assert.equal(admission.framework_release_operation_created, false);
@@ -99,7 +112,10 @@ test('App contract keeps Studio candidate-only while defining one protected sour
     'carrier_release_qualification',
   ]);
   assert.equal(execution.schema, 'opl_studio_protected_release_execution_policy.v2');
+  assert.equal(execution.terminal_receipt_schema, 'opl_studio_protected_release_receipt.v2');
   assert.equal(execution.recovery.input, 'prior_studio_artifact_run_id');
+  assert.equal(execution.recovery.checkpoint_schema, 'opl_studio_signed_notarized_checkpoint.v2');
+  assert.equal(execution.recovery.qualification_schema, 'opl_studio_prepublication_qualification.v2');
   assert.equal(execution.recovery.successful_checkpoint_bytes_are_reused_without_rebuild, true);
   assert.equal(execution.recovery.release_failure_allocates_new_product_version, false);
   assert.equal(execution.serialization.scope, 'github_release_mutation_only');
@@ -122,9 +138,12 @@ test('Stable keeps Framework mutation operations closed and admits Studio throug
   assert.equal(job.if, "${{ inputs.entry == 'studio_carrier_admission' }}");
   assert.equal(job.environment, 'release-stable');
   assert.deepEqual(job.permissions, { contents: 'read', actions: 'read' });
+  assert.equal(stableWorkflow.on.workflow_dispatch.inputs.framework_ref.type, 'string');
 
   const source = job.steps.map((step: Record<string, unknown>) => String(step.run ?? '')).join('\n');
   assert.match(source, /studio-protected-release-admission\.ts plan/);
+  assert.match(source, /--framework-ref "\$FRAMEWORK_REF"/);
+  assert.match(source, /\.schema == "opl_studio_protected_release_admission\.v2"/);
   assert.match(source, /\.public_mutation_authorized == false/);
   assert.match(source, /\.external_mutation_attempted == false/);
   assert.doesNotMatch(source, /notarytool\s+submit|gh\s+release\s+(?:create|upload|edit|delete)|framework-release-adapter\.ts\s+github-apply/);
@@ -192,12 +211,15 @@ test('Studio execution keeps build, qualification, publication, and public readb
   assert.doesNotMatch(publishText, /notarytool submit|--require-public-feed/);
   assert.match(readbackText, /--require-public-feed/);
   assert.doesNotMatch(readbackText, /OPL_GITHUB_RELEASE_ADMIN_TOKEN|gh release (?:create|upload|edit)/);
+  assert.match(buildText, /opl-studio-build-evidence-\$\{\{ inputs\.studio_sha \}\}-\$\{\{ inputs\.framework_ref \}\}/);
+  assert.match(readbackText, /opl-studio-public-readback-\$\{\{ inputs\.studio_sha \}\}-\$\{\{ inputs\.framework_ref \}\}/);
 });
 
 test('planner binds exact App and Studio identities without authorizing release mutation', () => {
   const receipt = buildStudioProtectedReleaseAdmission({
     app: { commitSha: 'a'.repeat(40), treeSha: 'b'.repeat(40) },
     studio: { commitSha: 'c'.repeat(40), treeSha: 'd'.repeat(40) },
+    frameworkRef,
     requestedTag: 'v0.1.0',
     carrier: studioCarrier,
   });
@@ -205,10 +227,14 @@ test('planner binds exact App and Studio identities without authorizing release 
   assert.equal(receipt.status, 'source_admitted_pending_protected_execution');
   assert.equal(receipt.authority.entry_selector, 'studio_carrier_admission');
   assert.equal(receipt.authority.framework_operation, null);
+  assert.equal(receipt.authority.framework_ref, frameworkRef);
   assert.equal(receipt.source.repository, 'gaofeng21cn/opl-studio');
   assert.equal(receipt.source.commit_sha, 'c'.repeat(40));
   assert.equal(receipt.source.tree_sha, 'd'.repeat(40));
   assert.equal(receipt.source.tag, 'v0.1.0');
+  assert.equal(receipt.framework_bootstrap.framework_ref, frameworkRef);
+  assert.equal(receipt.framework_bootstrap.resource_path, 'resources/opl-framework-bootstrap/opl-install.sh');
+  assert.equal(receipt.framework_bootstrap.manifest_path, 'resources/opl-framework-bootstrap/manifest.json');
   assert.equal(receipt.active_shell_unchanged, true);
   assert.equal(receipt.active_release_carrier, false);
   assert.equal(receipt.release_ready, false);
@@ -228,6 +254,7 @@ test('planner fails closed on tag, repository, trust, or qualification drift', (
   const base = {
     app: { commitSha: 'a'.repeat(40), treeSha: 'b'.repeat(40) },
     studio: { commitSha: 'c'.repeat(40), treeSha: 'd'.repeat(40) },
+    frameworkRef,
     requestedTag: 'v0.1.0',
     carrier: studioCarrier,
   };
@@ -303,6 +330,7 @@ test('CLI rejects an observed Studio tree that differs from the protected reques
     '--studio-sha', studioSha,
     '--studio-tree', 'f'.repeat(40),
     '--studio-tag', 'v0.1.0',
+    '--framework-ref', frameworkRef,
     '--output', output,
   ], { cwd: appRoot, encoding: 'utf8' });
 
