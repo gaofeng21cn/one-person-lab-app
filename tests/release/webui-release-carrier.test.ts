@@ -241,12 +241,12 @@ function carrierFixture(root: string, overrides: {
     );
   }
   const registryReadbackPath = writeJson(root, 'registry-readback.json', {
-    schema: 'opl_app_webui_registry_readback.v2',
+    schema: 'opl_app_webui_registry_readback.v3',
     status: 'passed',
     ref: `ghcr.io/gaofeng21cn/one-person-lab-webui@${imageDigest}`,
     digest: imageDigest,
-    version_tag: 'ghcr.io/gaofeng21cn/one-person-lab-webui:26.7.23',
-    version_tag_digest: imageDigest,
+    candidate_ref: 'ghcr.io/gaofeng21cn/one-person-lab-webui:candidate-26.7.23-123-1',
+    candidate_digest: imageDigest,
     size_bytes: 246912,
     platforms: (['amd64', 'arm64'] as const).map((architecture) => ({
       os: 'linux',
@@ -727,12 +727,12 @@ test('WebUI carrier accepts one immutable independent Preview version', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
-test('reusable WebUI workflow builds independently and gates immutable publication on runtime qualification', () => {
+test('reusable WebUI workflow qualifies both architectures before the public version write', () => {
   const source = fs.readFileSync(workflowPath, 'utf8');
   const workflow = YAML.parse(source);
   const inputs = workflow.on.workflow_call.inputs;
   const build = workflow.jobs['build-and-qualify'];
-  const publish = workflow.jobs['publish-immutable-carrier'];
+  const publish = workflow.jobs['publish-carrier'];
   assert.equal(workflow.concurrency, undefined);
   assert.equal(build.concurrency, undefined);
   assert.deepEqual(publish.concurrency, {
@@ -911,10 +911,11 @@ test('reusable WebUI workflow builds independently and gates immutable publicati
   assert.match(publishRun, /preexisting_idempotent/);
   assert.match(publishRun, /reconciled_after_unknown_write/);
   assert.match(publishRun, /exact native linux\/amd64 and linux\/arm64 children/);
-  assert.match(publishRun, /imagetools create --tag "\$version_tag" "\$\{image_refs\[@\]\}"/);
-  assert.match(publishRun, /Could not safely distinguish an absent version tag from a registry read failure/);
-  assert.match(publishRun, /bounded read-only reconcile did not prove a readable target/);
-  assert.equal(publishRun.match(/imagetools create --tag/g)?.length, 1);
+  assert.match(publishRun, /imagetools create --tag "\$candidate_index_tag" "\$\{image_refs\[@\]\}"/);
+  assert.match(publishRun, /imagetools create --tag "\$version_tag" "\$target_ref"/);
+  assert.match(publishRun, /Could not safely distinguish an absent candidate from a registry read failure/);
+  assert.match(publishRun, /Public version-tag result is unknown and read-only reconcile did not prove a readable target/);
+  assert.equal(publishRun.match(/imagetools create --tag/g)?.length, 2);
   assert.doesNotMatch(publishRun, /test "\$readback_digest" = "\$digest"/);
   assert.match(publishRun, /write-carrier-receipt/);
   assert.match(publishRun, /verify-carrier-receipt/);
@@ -946,21 +947,26 @@ test('manual WebUI entry separates qualification, publication, and promotion', (
     '${{ needs.source-authority.outputs.source_cutoff_observed_at }}',
   );
   assert.equal(publication.permissions.packages, 'write');
-  assert.equal(promotion.if, "${{ inputs.operation == 'promote' }}");
+  assert.match(promotion.if, /inputs\.operation == 'publish'/);
+  assert.match(promotion.if, /needs\.webui-carrier\.result == 'success'/);
+  assert.deepEqual(promotion.needs, ['source-authority', 'webui-carrier']);
   assert.match(promotion.with.authority_mode, /independent_stable/);
   assert.equal(promotion.permissions.packages, 'write');
 });
 
-test('WebUI carrier publishes one idempotent durable receipt sidecar only after exact immutable tag readback', () => {
+test('WebUI carrier writes the public version only after the receipt and then seals a run-scoped record', () => {
   const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
   const build = workflow.jobs['build-and-qualify'];
-  const publish = workflow.jobs['publish-immutable-carrier'];
+  const publish = workflow.jobs['publish-carrier'];
   const publishRun = publish.steps.map((step: { run?: string }) => step.run ?? '').join('\n');
   const sidecarIndex = publish.steps.findIndex(
-    (step: { name?: string }) => step.name === 'Publish immutable durable carrier receipt sidecar',
+    (step: { name?: string }) => step.name === 'Publish run-scoped durable carrier receipt sidecar',
   );
   const receiptIndex = publish.steps.findIndex(
     (step: { name?: string }) => step.name === 'Write and verify exact carrier receipt',
+  );
+  const versionIndex = publish.steps.findIndex(
+    (step: { name?: string }) => step.name === 'Publish or replace the public version tag after qualification and receipt',
   );
   const sidecar = publish.steps[sidecarIndex];
   const stage = publish.steps.find(
@@ -975,7 +981,7 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
 
   assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read', packages: 'write' });
   assert.equal(build.permissions.actions, 'read');
-  assert.ok(receiptIndex >= 0 && receiptIndex < sidecarIndex);
+  assert.ok(receiptIndex >= 0 && receiptIndex < versionIndex && versionIndex < sidecarIndex);
   assert.equal(setupOras.uses, 'oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d');
   assert.equal(downloadSourceAuthority.if, undefined);
   assert.equal(downloadSourceAuthority.uses, 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c');
@@ -988,10 +994,10 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
   assert.ok(versionDescriptorIndex >= 0);
   assert.ok(versionDescriptorIndex < sidecar.run.indexOf('webui-publication-record.ts'));
   assert.match(publishRun, /opl_app_webui_descriptor_readback\.v1/);
-  assert.match(publishRun, /exact immutable version tag authority is required before durable sidecar publication/);
+  assert.match(publishRun, /Public version tag does not resolve to the qualified candidate digest/);
 
   assert.match(sidecar.run, /application\/vnd\.onepersonlab\.webui\.publication-record\.v1\+json/);
-  assert.match(sidecar.run, /receipt-\$\{\{ inputs\.opl_version \}\}/);
+  assert.match(sidecar.run, /receipt-\$\{\{ inputs\.opl_version \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/);
   assert.match(sidecar.run, /webui-publication-record\.ts \\\n\s+create/);
   assert.match(sidecar.run, /--carrier-receipt webui-carrier\/carrier-receipt\.json/);
   assert.match(sidecar.run, /--version-readback webui-carrier\/version-descriptor-readback\.json/);
@@ -1008,7 +1014,7 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
     (step: { name?: string }) => step.name === 'Validate exact GHCR repository before registry mutation',
   );
   const registryPublishIndex = publish.steps.findIndex(
-    (step: { name?: string }) => step.name === 'Publish qualified candidate and CAS immutable version tag',
+    (step: { name?: string }) => step.name === 'Publish and read back the qualified run-scoped candidate',
   );
   assert.ok(repositoryValidationIndex >= 0 && repositoryValidationIndex < registryPublishIndex);
   assert.match(publish.steps[repositoryValidationIndex].run, /validate-repository/);
@@ -1051,7 +1057,7 @@ test('WebUI carrier publishes one idempotent durable receipt sidecar only after 
 
 test('WebUI version tag authority accepts only exact linux/amd64 and linux/arm64 children', () => {
   const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
-  const publish = workflow.jobs['publish-immutable-carrier'];
+  const publish = workflow.jobs['publish-carrier'];
   const publishRun = publish.steps.map((step: { run?: string }) => step.run ?? '').join('\n');
   const validator = extractHeredoc(publishRun, 'VERSION_TAG_AUTHORITY_NODE');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-version-tag-authority-'));

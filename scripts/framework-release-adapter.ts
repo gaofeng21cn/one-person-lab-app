@@ -761,13 +761,15 @@ function buildWebuiBuildInputFromSourceAuthority(values: AdapterOptionValues): J
     throw new Error('WebUI source cutoff observed_at must be a canonical UTC timestamp with milliseconds.');
   }
   const sourceAuthorityDigest = authority.source_authority_digest;
+  const releaseBundleDigest = authority.release.bundle_digest ?? sourceAuthorityDigest;
+  const releaseCohortRef = authority.release.cohort_ref ?? sourceAuthorityDigest;
   const architecture = webuiArchitecture(values);
   return {
     schema: 'opl_app_webui_build_input.v1',
     release: {
       version: authority.release.version,
-      bundle_digest: sourceAuthorityDigest,
-      cohort_ref: sourceAuthorityDigest,
+      bundle_digest: releaseBundleDigest,
+      cohort_ref: releaseCohortRef,
     },
     source_cutoff: {
       observed_at: observedAt,

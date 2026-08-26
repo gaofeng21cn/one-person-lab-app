@@ -29,7 +29,7 @@
       "enum": ["stable", "preview"]
     },
     "build_trigger": {
-      "const": "manual"
+      "enum": ["manual", "automated"]
     },
     "preview_kind": {
       "enum": ["dev", null]
@@ -45,7 +45,9 @@
         "tag": {
           "type": "string",
           "pattern": "^[0-9]{2}\\.(?:[1-9]|1[0-2])\\.(?:[1-9]|[12][0-9]|3[01])(?:-r[1-9][0-9]*|-preview\\.r[1-9][0-9]*)?$"
-        }
+        },
+        "bundle_digest": { "$ref": "#/$defs/digest" },
+        "cohort_ref": { "$ref": "#/$defs/digest" }
       },
       "additionalProperties": false
     },
@@ -63,8 +65,13 @@
       "type": "object",
       "required": ["source", "workflow", "run_id", "run_attempt", "executor_sha"],
       "properties": {
-        "source": { "const": "user_explicit_workflow_dispatch" },
-        "workflow": { "const": ".github/workflows/release-webui-development.yml" },
+        "source": { "enum": ["user_explicit_workflow_dispatch", "stable_standard_release"] },
+        "workflow": {
+          "enum": [
+            ".github/workflows/release-webui-development.yml",
+            ".github/workflows/release-stable.yml"
+          ]
+        },
         "run_id": { "type": "string", "pattern": "^[1-9][0-9]*$" },
         "run_attempt": { "const": 1 },
         "executor_sha": { "$ref": "#/$defs/sha" }

@@ -20,6 +20,23 @@ const sourceRepos = {
   framework: 'gaofeng21cn/one-person-lab',
 } as const;
 
+export type WebuiSourceAuthorityOrigin = 'manual_webui' | 'stable_standard';
+
+function originContract(origin: WebuiSourceAuthorityOrigin) {
+  if (origin === 'stable_standard') {
+    return {
+      buildTrigger: 'automated',
+      source: 'stable_standard_release',
+      workflow: '.github/workflows/release-stable.yml',
+    } as const;
+  }
+  return {
+    buildTrigger: 'manual',
+    source: 'user_explicit_workflow_dispatch',
+    workflow: '.github/workflows/release-webui-development.yml',
+  } as const;
+}
+
 function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -67,6 +84,8 @@ function authorityCore(input: {
   frameworkSha: string;
   runId: string;
   executorSha: string;
+  origin?: WebuiSourceAuthorityOrigin;
+  bundleDigest?: string;
 }): JsonRecord {
   const preview = previewVersionPattern.test(input.version);
   if (!preview && !stableVersionPattern.test(input.version)) {
@@ -77,25 +96,34 @@ function authorityCore(input: {
   const frameworkSha = sha(input.frameworkSha, 'Framework source SHA');
   const executorSha = sha(input.executorSha, 'Workflow executor SHA');
   const run = runId(input.runId, 'Workflow run id');
+  const origin = input.origin ?? 'manual_webui';
+  const contract = originContract(origin);
+  const release = {
+    version: input.version,
+    tag: input.version,
+    ...(origin === 'stable_standard'
+      ? {
+          bundle_digest: digest(input.bundleDigest, 'Stable Release Bundle digest'),
+          cohort_ref: digest(input.bundleDigest, 'Stable Release Bundle cohort ref'),
+        }
+      : {}),
+  };
   return {
     schema: 'opl_app_webui_source_authority.v1',
     status: 'admitted',
     carrier: 'container_webui',
     quality_status: preview ? 'preview' : 'stable',
-    build_trigger: 'manual',
+    build_trigger: contract.buildTrigger,
     preview_kind: preview ? 'dev' : null,
-    release: {
-      version: input.version,
-      tag: input.version,
-    },
+    release,
     sources: {
       app: { repo: sourceRepos.app, source_commit: appSha },
       shell: { repo: sourceRepos.shell, source_commit: shellSha },
       framework: { repo: sourceRepos.framework, source_commit: frameworkSha },
     },
     authorization: {
-      source: 'user_explicit_workflow_dispatch',
-      workflow: '.github/workflows/release-webui-development.yml',
+      source: contract.source,
+      workflow: contract.workflow,
       run_id: run,
       run_attempt: 1,
       executor_sha: executorSha,
@@ -110,6 +138,8 @@ export function createWebuiSourceAuthority(input: {
   frameworkSha: string;
   runId: string;
   executorSha: string;
+  origin?: WebuiSourceAuthorityOrigin;
+  bundleDigest?: string;
 }): JsonRecord {
   const core = authorityCore(input);
   return {
@@ -120,13 +150,22 @@ export function createWebuiSourceAuthority(input: {
 
 export function validateWebuiSourceAuthority(value: unknown): JsonRecord {
   const authority = record(value, 'WebUI source authority');
+  const authorization = record(authority.authorization, 'authorization');
+  const origin: WebuiSourceAuthorityOrigin = authorization.source === 'stable_standard_release'
+    ? 'stable_standard'
+    : 'manual_webui';
+  const release = record(authority.release, 'release');
   const expected = createWebuiSourceAuthority({
-    version: text(record(authority.release, 'release').version, 'release.version'),
+    version: text(release.version, 'release.version'),
     appSha: text(record(record(authority.sources, 'sources').app, 'sources.app').source_commit, 'sources.app.source_commit'),
     shellSha: text(record(record(authority.sources, 'sources').shell, 'sources.shell').source_commit, 'sources.shell.source_commit'),
     frameworkSha: text(record(record(authority.sources, 'sources').framework, 'sources.framework').source_commit, 'sources.framework.source_commit'),
-    runId: text(record(authority.authorization, 'authorization').run_id, 'authorization.run_id'),
-    executorSha: text(record(authority.authorization, 'authorization').executor_sha, 'authorization.executor_sha'),
+    runId: text(authorization.run_id, 'authorization.run_id'),
+    executorSha: text(authorization.executor_sha, 'authorization.executor_sha'),
+    origin,
+    bundleDigest: origin === 'stable_standard'
+      ? text(release.bundle_digest, 'release.bundle_digest')
+      : undefined,
   });
   if (canonicalJson(authority) !== canonicalJson(expected)) {
     throw new Error('WebUI source authority does not match its exact canonical digest-bound shape.');
@@ -161,6 +200,8 @@ function main(argv: string[]): void {
       'framework-sha': { type: 'string' },
       'run-id': { type: 'string' },
       'executor-sha': { type: 'string' },
+      origin: { type: 'string' },
+      'bundle-digest': { type: 'string' },
       input: { type: 'string' },
       output: { type: 'string' },
     },
@@ -173,6 +214,8 @@ function main(argv: string[]): void {
       frameworkSha: required(values['framework-sha'], 'framework-sha'),
       runId: required(values['run-id'], 'run-id'),
       executorSha: required(values['executor-sha'], 'executor-sha'),
+      origin: (values.origin?.trim() || 'manual_webui') as WebuiSourceAuthorityOrigin,
+      bundleDigest: values['bundle-digest']?.trim(),
     });
     const output = path.resolve(required(values.output, 'output'));
     fs.mkdirSync(path.dirname(output), { recursive: true });

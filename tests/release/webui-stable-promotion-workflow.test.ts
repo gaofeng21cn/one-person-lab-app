@@ -161,7 +161,7 @@ function fixture(mode: 'independent_stable' | 'independent_preview') {
     id: 501,
     run_id: Number(carrierRunId),
     run_url: `https://api.github.com/repos/gaofeng21cn/one-person-lab-app/actions/runs/${carrierRunId}`,
-    name: 'webui-carrier / publish-immutable-carrier',
+    name: 'webui-carrier / publish-carrier',
     status: 'completed',
     conclusion: 'success',
     run_attempt: 1,

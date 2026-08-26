@@ -267,10 +267,10 @@ test('the remote Canary is a thin read-only contract check with no reusable rele
     "${{ inputs.mode == 'execute' || inputs.mode == 'qualify' }}",
   );
   assert.equal(
-    webui.jobs['publish-immutable-carrier'].if,
+    webui.jobs['publish-carrier'].if,
     "${{ always() && inputs.mode == 'execute' && needs.build-and-qualify.result == 'success' }}",
   );
-  assert.deepEqual(webui.jobs['publish-immutable-carrier'].permissions, {
+  assert.deepEqual(webui.jobs['publish-carrier'].permissions, {
     actions: 'read',
     contents: 'read',
     packages: 'write',

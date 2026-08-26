@@ -89,11 +89,21 @@ function operatorAuthorization(
   releaseVersion: string,
   operator: unknown,
   confirmation: unknown,
+  sourceAuthority: JsonRecord,
 ): JsonRecord {
   const label = mode === 'independent_stable' ? 'independent Stable' : 'independent Preview';
   const expected = mode === 'independent_stable'
     ? `move-docker-stable-and-latest:${releaseVersion}`
     : `move-docker-latest:${releaseVersion}`;
+  if (sourceAuthority.authorization?.source === 'stable_standard_release') {
+    exact(mode, 'independent_stable', 'automated Stable follower authority mode');
+    return {
+      schema: 'opl_app_webui_latest_operator_authorization.v1',
+      source: 'stable_standard_same_run_follower',
+      actor: githubActor(operator, 'Stable follower actor'),
+      confirmation_digest: confirmationDigest(expected),
+    };
+  }
   const value = text(confirmation, `${label} operator confirmation`);
   exact(
     value,
@@ -143,13 +153,15 @@ function validateCarrierFollowerRun(
   runId: string,
   carrierExecutorAppSha: string,
   expectedRunAttempt: number,
+  sourceAuthority: JsonRecord,
+  sameRunPromotion: boolean,
 ): void {
   exact(String(run.id), runId, 'carrier follower run.id');
   exact(run.repository?.full_name, appRepository, 'carrier follower run.repository');
   exact(run.head_repository?.full_name, appRepository, 'carrier follower run.head_repository');
   exact(
     run.path,
-    '.github/workflows/release-webui-development.yml',
+    sourceAuthority.authorization.workflow,
     'carrier follower run.path',
   );
   exact(
@@ -159,8 +171,15 @@ function validateCarrierFollowerRun(
   );
   exact(run.head_branch, 'main', 'carrier follower run.head_branch');
   const status = text(run.status, 'carrier follower run.status');
-  exact(status, 'completed', 'independent Docker carrier run.status');
-  exact(run.conclusion, 'success', 'independent Docker carrier run.conclusion');
+  if (sameRunPromotion) {
+    if (!['in_progress', 'completed'].includes(status)) {
+      throw new Error('same-run Docker carrier run.status must be in_progress or completed.');
+    }
+    if (status === 'completed') exact(run.conclusion, 'success', 'same-run Docker carrier run.conclusion');
+  } else {
+    exact(status, 'completed', 'independent Docker carrier run.status');
+    exact(run.conclusion, 'success', 'independent Docker carrier run.conclusion');
+  }
   exact(run.run_attempt, expectedRunAttempt, 'carrier follower run.run_attempt');
   exact(
     sha(run.head_sha, 'carrier follower run.head_sha'),
@@ -182,7 +201,7 @@ function validateCarrierFollowerJob(
     `https://api.github.com/repos/${appRepository}/actions/runs/${followerRunId}`,
     'carrier follower job.run_url',
   );
-  exact(job.name, 'webui-carrier / publish-immutable-carrier', 'carrier follower job.name');
+  exact(job.name, 'webui-carrier / publish-carrier', 'carrier follower job.name');
   exact(job.status, 'completed', 'carrier follower job.status');
   exact(job.conclusion, 'success', 'carrier follower job.conclusion');
   exact(job.run_attempt, expectedRunAttempt, 'carrier follower job.run_attempt');
@@ -198,8 +217,9 @@ function validatePromotionExecutorRun(
   runId: string,
   promotionAppSha: string,
   carrierFollowerRunId: string,
+  sourceAuthority: JsonRecord,
 ): string {
-  const callerWorkflow = '.github/workflows/release-webui-development.yml';
+  const callerWorkflow = text(sourceAuthority.authorization.workflow, 'source authority workflow');
   exact(String(run.id), runId, 'promotion executor run.id');
   exact(run.repository?.full_name, appRepository, 'promotion executor run.repository');
   exact(run.head_repository?.full_name, appRepository, 'promotion executor run.head_repository');
@@ -215,11 +235,6 @@ function validatePromotionExecutorRun(
   }
   exact(run.run_attempt, 1, 'promotion executor run.run_attempt');
   exact(sha(run.head_sha, 'promotion executor run.head_sha'), promotionAppSha, 'promotion executor run.head_sha');
-  if (runId === carrierFollowerRunId) {
-    throw new Error(
-      'Independent immutable publication cannot also execute moving-tag promotion.',
-    );
-  }
   return callerWorkflow;
 }
 
@@ -287,13 +302,13 @@ function validateIndependentSourceAuthority(
   exact(authority.authorization.executor_sha, carrierExecutorAppSha, 'source authority authorization.executor_sha');
   exact(authority.release.version, release.version, 'source authority release.version');
   exact(
-    authority.source_authority_digest,
+    authority.release.bundle_digest ?? authority.source_authority_digest,
     release.bundle_digest,
     'source authority digest and carrier release.bundle_digest',
   );
   exact(
     release.cohort_ref,
-    authority.source_authority_digest,
+    authority.release.cohort_ref ?? authority.source_authority_digest,
     'carrier release.cohort_ref and source authority digest',
   );
   exact(authority.sources.app.source_commit, cohort.app_sha, 'source authority App SHA');
@@ -436,12 +451,6 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
         input.carrierFollowerRunId,
         carrierExecutorAppSha,
       );
-  const latestOperatorAuthorization = operatorAuthorization(
-    mode,
-    release.version,
-    input.operator,
-    input.operatorConfirmation,
-  );
   const sourceAuthority = validateIndependentSourceAuthority(
         durablePublication!.sourceAuthority,
         input.publicationRecordPath!,
@@ -450,12 +459,21 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
         input.carrierFollowerRunId,
         carrierExecutorAppSha,
       );
+  const latestOperatorAuthorization = operatorAuthorization(
+    mode,
+    release.version,
+    input.operator,
+    input.operatorConfirmation,
+    sourceAuthority,
+  );
   const carrierRunAttempt = durablePublication.publicationRunAttempt;
   validateCarrierFollowerRun(
     input.carrierFollowerRun,
     input.carrierFollowerRunId,
     carrierExecutorAppSha,
     carrierRunAttempt,
+    sourceAuthority,
+    input.carrierFollowerRunId === input.promotionExecutorRunId,
   );
   validateCarrierFollowerJob(
     input.carrierFollowerJob,
@@ -468,6 +486,7 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
     input.promotionExecutorRunId,
     promotionAppSha,
     input.carrierFollowerRunId,
+    sourceAuthority,
   );
 
   const immutable = descriptor(input.immutableReadback, carrier.ref, 'immutable readback');
@@ -528,14 +547,14 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
     classification: mode === 'independent_preview'
       ? {
           quality_status: 'preview',
-          build_trigger: 'manual',
+          build_trigger: sourceAuthority.build_trigger,
           preview_kind: 'dev',
           quality_unchanged: true,
           non_stable_notice: true,
         }
       : {
           quality_status: 'stable',
-          build_trigger: 'manual',
+          build_trigger: sourceAuthority.build_trigger,
           preview_kind: null,
           quality_unchanged: true,
           non_stable_notice: false,
@@ -549,7 +568,7 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
       carrier_job_id: input.carrierFollowerJob.id,
       carrier_job_name: input.carrierFollowerJob.name,
       app_head_sha: carrierExecutorAppSha,
-      workflow: '.github/workflows/release-webui-development.yml',
+      workflow: sourceAuthority.authorization.workflow,
     },
     promotion_executor: {
       app_repository: appRepository,
@@ -636,6 +655,7 @@ function validateWebuiStablePromotionAdmission(value: unknown): JsonRecord {
       : mode === 'independent_preview'
         ? `move-docker-latest:${text(release.version, 'admission.release.version')}`
         : '',
+    record(admission.source_authority, 'admission.source_authority'),
   );
   if (mode === 'independent_preview' || mode === 'independent_stable') {
     const authorization = record(admission.operator_authorization, 'admission.operator_authorization');

@@ -531,17 +531,20 @@ function validateRegistryReadback(
   const readback = record(raw, 'registry readback');
   exactKeys(
     readback,
-    ['schema', 'status', 'ref', 'digest', 'version_tag', 'version_tag_digest', 'size_bytes', 'platforms'],
+    ['schema', 'status', 'ref', 'digest', 'candidate_ref', 'candidate_digest', 'size_bytes', 'platforms'],
     'registry readback',
   );
-  exactString(readback.schema, 'opl_app_webui_registry_readback.v2', 'registry readback.schema');
+  exactString(readback.schema, 'opl_app_webui_registry_readback.v3', 'registry readback.schema');
   exactString(readback.status, 'passed', 'registry readback.status');
   exactString(readback.ref, imageRef, 'registry readback.ref');
   const imageDigest = immutableImageDigest(imageRef);
   exactString(readback.digest, imageDigest, 'registry readback.digest');
   const repository = imageRef.slice(0, imageRef.lastIndexOf('@'));
-  exactString(readback.version_tag, `${repository}:${version}`, 'registry readback.version_tag');
-  exactString(readback.version_tag_digest, imageDigest, 'registry readback.version_tag_digest');
+  const candidateRef = stringValue(readback.candidate_ref, 'registry readback.candidate_ref');
+  if (!candidateRef.startsWith(`${repository}:candidate-${version}-`)) {
+    fail('registry readback.candidate_ref must be the run-scoped candidate for the release version');
+  }
+  exactString(readback.candidate_digest, imageDigest, 'registry readback.candidate_digest');
   positiveInteger(readback.size_bytes, 'registry readback.size_bytes');
   if (!Array.isArray(readback.platforms) || readback.platforms.length !== requiredArchitectures.length) {
     fail('registry readback.platforms must contain exactly amd64 and arm64');

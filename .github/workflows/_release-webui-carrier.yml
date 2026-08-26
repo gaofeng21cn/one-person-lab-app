@@ -58,10 +58,13 @@ on:
     outputs:
       carrier_artifact_name:
         description: Artifact containing the exact carrier receipt and frozen build input.
-        value: ${{ jobs.publish-immutable-carrier.outputs.carrier_artifact_name }}
+        value: ${{ jobs.publish-carrier.outputs.carrier_artifact_name }}
       image_ref:
         description: Immutable OCI digest reference read back after publication.
-        value: ${{ jobs.publish-immutable-carrier.outputs.image_ref }}
+        value: ${{ jobs.publish-carrier.outputs.image_ref }}
+      publication_record_ref:
+        description: Run-scoped durable GHCR publication-record reference.
+        value: ${{ jobs.publish-carrier.outputs.publication_record_ref }}
 
 permissions:
   contents: read
@@ -184,7 +187,8 @@ jobs:
             validate --input "$source_authority" \
             > webui-carrier/source-authority-verification.json
           cp "$source_authority" webui-carrier/source-authority.json
-          test "$(jq -er .source_authority_digest webui-carrier/source-authority.json)" = '${{ inputs.release_bundle_digest }}'
+          test "$(jq -er '.release.bundle_digest // .source_authority_digest' webui-carrier/source-authority.json)" = '${{ inputs.release_bundle_digest }}'
+          test "$(jq -er '.release.cohort_ref // .source_authority_digest' webui-carrier/source-authority.json)" = '${{ inputs.release_cohort_ref }}'
           test "$(jq -er .release.version webui-carrier/source-authority.json)" = '${{ inputs.opl_version }}'
           mkdir -p webui-carrier/frozen-codex
           oras manifest fetch \
@@ -490,7 +494,7 @@ jobs:
           compression-level: 0
           retention-days: 7
 
-  publish-immutable-carrier:
+  publish-carrier:
     if: ${{ always() && inputs.mode == 'execute' && needs.build-and-qualify.result == 'success' }}
     needs: build-and-qualify
     runs-on: ubuntu-latest
@@ -505,7 +509,8 @@ jobs:
       packages: write
     outputs:
       carrier_artifact_name: ${{ steps.receipt.outputs.carrier_artifact_name }}
-      image_ref: ${{ steps.publish.outputs.image_ref }}
+      image_ref: ${{ steps.candidate.outputs.image_ref }}
+      publication_record_ref: ${{ steps.publication-record.outputs.publication_record_ref }}
     steps:
       - name: Checkout canonical publication executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -560,12 +565,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish qualified candidate and CAS immutable version tag
-        id: publish
+      - name: Publish and read back the qualified run-scoped candidate
+        id: candidate
         shell: bash
         run: |
           set -euo pipefail
-          version_tag='${{ inputs.image_repository }}:${{ inputs.opl_version }}'
+          candidate_index_tag='${{ inputs.image_repository }}:candidate-${{ inputs.opl_version }}-${{ github.run_id }}-${{ github.run_attempt }}'
           : > webui-carrier/candidate-tag-readback.txt
           for architecture in amd64 arm64; do
             root="webui-platforms/$architecture"
@@ -615,6 +620,7 @@ jobs:
           ]);
           const allowedOutcomes = new Set([
             'created',
+            'updated',
             'preexisting_idempotent',
             'reconciled_after_unknown_write',
           ]);
@@ -691,15 +697,16 @@ jobs:
           fs.writeFileSync(outputPath, `${JSON.stringify(receipt)}\n`);
           VERSION_TAG_AUTHORITY_NODE
 
-          verify_version_tag_authority() {
-            local outcome="$1"
-            local human_readback="$2"
-            local raw_readback="$3"
-            local receipt="$4"
-            if ! docker buildx imagetools inspect --raw "$version_tag" >"$raw_readback"; then
+          verify_descriptor_authority() {
+            local tag="$1"
+            local outcome="$2"
+            local human_readback="$3"
+            local raw_readback="$4"
+            local receipt="$5"
+            if ! docker buildx imagetools inspect --raw "$tag" >"$raw_readback"; then
               return 1
             fi
-            if ! node "$authority_validator" "$raw_readback" webui-carrier/expected-platforms.json "$version_tag" "$outcome" "$receipt"; then
+            if ! node "$authority_validator" "$raw_readback" webui-carrier/expected-platforms.json "$tag" "$outcome" "$receipt"; then
               return 1
             fi
             local reported_digest
@@ -709,16 +716,16 @@ jobs:
             test -n "$reported_digest" && test "$reported_digest" = "$verified_digest"
           }
 
-          inspect_output="$RUNNER_TEMP/version-tag-inspect.txt"
-          if docker buildx imagetools inspect "$version_tag" >"$inspect_output" 2>&1; then
-            cp "$inspect_output" webui-carrier/version-tag-readback.txt
-            if ! verify_version_tag_authority \
+          inspect_output="$RUNNER_TEMP/candidate-index-inspect.txt"
+          if docker buildx imagetools inspect "$candidate_index_tag" >"$inspect_output" 2>&1; then
+            cp "$inspect_output" webui-carrier/candidate-index-readback.txt
+            if ! verify_descriptor_authority "$candidate_index_tag" \
               preexisting_idempotent \
-              webui-carrier/version-tag-readback.txt \
-              webui-carrier/version-tag-manifest.json \
-              webui-carrier/version-tag-authority.json; then
+              webui-carrier/candidate-index-readback.txt \
+              webui-carrier/candidate-index-manifest.json \
+              webui-carrier/candidate-index-authority.json; then
               cat "$inspect_output" >&2
-              echo '::error::Immutable WebUI version tag does not prove exact native linux/amd64 and linux/arm64 children.'
+              echo '::error::Run-scoped candidate does not prove exact native linux/amd64 and linux/arm64 children.'
               exit 1
             fi
           elif grep -Eqi 'not found|manifest unknown|no such manifest' "$inspect_output"; then
@@ -727,93 +734,57 @@ jobs:
               "$(jq -er 'select(.platform.architecture == "amd64") | .ref' webui-platforms/amd64/registry-readback.json)"
               "$(jq -er 'select(.platform.architecture == "arm64") | .ref' webui-platforms/arm64/registry-readback.json)"
             )
-            if ! docker buildx imagetools create --tag "$version_tag" "${image_refs[@]}" \
-              > webui-carrier/version-tag-create.txt 2>&1; then
+            if ! docker buildx imagetools create --tag "$candidate_index_tag" "${image_refs[@]}" \
+              > webui-carrier/candidate-index-create.txt 2>&1; then
               outcome=reconciled_after_unknown_write
             fi
-            if ! docker buildx imagetools inspect "$version_tag" \
-              > webui-carrier/version-tag-readback.txt 2>&1; then
+            if ! docker buildx imagetools inspect "$candidate_index_tag" \
+              > webui-carrier/candidate-index-readback.txt 2>&1; then
               if [ "$outcome" = reconciled_after_unknown_write ]; then
-                cat webui-carrier/version-tag-create.txt >&2
+                cat webui-carrier/candidate-index-create.txt >&2
               fi
-              cat webui-carrier/version-tag-readback.txt >&2
-              echo '::error::Version tag write result is unknown and bounded read-only reconcile did not prove a readable target.'
+              cat webui-carrier/candidate-index-readback.txt >&2
+              echo '::error::Candidate write result is unknown and bounded read-only reconcile did not prove a readable target.'
               exit 1
             fi
-            if ! verify_version_tag_authority \
+            if ! verify_descriptor_authority "$candidate_index_tag" \
               "$outcome" \
-              webui-carrier/version-tag-readback.txt \
-              webui-carrier/version-tag-manifest.json \
-              webui-carrier/version-tag-authority.json; then
+              webui-carrier/candidate-index-readback.txt \
+              webui-carrier/candidate-index-manifest.json \
+              webui-carrier/candidate-index-authority.json; then
               if [ "$outcome" = reconciled_after_unknown_write ]; then
-                cat webui-carrier/version-tag-create.txt >&2
+                cat webui-carrier/candidate-index-create.txt >&2
               fi
-              cat webui-carrier/version-tag-readback.txt >&2
-              echo '::error::Version tag readback did not prove exact native linux/amd64 and linux/arm64 children.'
+              cat webui-carrier/candidate-index-readback.txt >&2
+              echo '::error::Candidate readback did not prove exact native linux/amd64 and linux/arm64 children.'
               exit 1
             fi
           else
             cat "$inspect_output" >&2
-            echo '::error::Could not safely distinguish an absent version tag from a registry read failure.'
+            echo '::error::Could not safely distinguish an absent candidate from a registry read failure.'
             exit 1
           fi
 
-          index_digest="$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('webui-carrier/version-tag-authority.json')).top_level.digest)")"
+          index_digest="$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('webui-carrier/candidate-index-authority.json')).top_level.digest)")"
           image_ref='${{ inputs.image_repository }}'@"$index_digest"
           docker buildx imagetools inspect "$image_ref" > webui-carrier/immutable-readback.txt
-          OPL_IMAGE_REF="$image_ref" OPL_IMAGE_DIGEST="$index_digest" OPL_VERSION_TAG="$version_tag" node --input-type=module <<'NODE'
+          OPL_IMAGE_REF="$image_ref" OPL_IMAGE_DIGEST="$index_digest" OPL_CANDIDATE_REF="$candidate_index_tag" node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          const authority = JSON.parse(fs.readFileSync('webui-carrier/version-tag-authority.json', 'utf8'));
+          const authority = JSON.parse(fs.readFileSync('webui-carrier/candidate-index-authority.json', 'utf8'));
           const expected = JSON.parse(fs.readFileSync('webui-carrier/expected-platforms.json', 'utf8'));
-          const raw = fs.readFileSync('webui-carrier/version-tag-manifest.json');
+          const raw = fs.readFileSync('webui-carrier/candidate-index-manifest.json');
           const payload = {
-            schema: 'opl_app_webui_registry_readback.v2',
+            schema: 'opl_app_webui_registry_readback.v3',
             status: 'passed',
             ref: process.env.OPL_IMAGE_REF,
             digest: process.env.OPL_IMAGE_DIGEST,
-            version_tag: process.env.OPL_VERSION_TAG,
-            version_tag_digest: process.env.OPL_IMAGE_DIGEST,
+            candidate_ref: process.env.OPL_CANDIDATE_REF,
+            candidate_digest: process.env.OPL_IMAGE_DIGEST,
             size_bytes: raw.byteLength,
             platforms: expected,
           };
-          if (authority.top_level.digest !== process.env.OPL_IMAGE_DIGEST) throw new Error('version authority digest drift');
+          if (authority.top_level.digest !== process.env.OPL_IMAGE_DIGEST) throw new Error('candidate authority digest drift');
           fs.writeFileSync('webui-carrier/registry-readback.json', `${JSON.stringify(payload)}\n`);
-          NODE
-          OPL_IMAGE_DIGEST="$index_digest" OPL_VERSION_TAG="$version_tag" node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-
-          const digestPattern = /^sha256:[0-9a-f]{64}$/;
-          const authority = JSON.parse(fs.readFileSync('webui-carrier/version-tag-authority.json', 'utf8'));
-          if (
-            authority?.schema !== 'opl_app_webui_version_tag_authority.v1'
-            || authority?.status !== 'passed'
-            || authority?.version_tag !== process.env.OPL_VERSION_TAG
-            || authority?.top_level?.digest !== process.env.OPL_IMAGE_DIGEST
-            || authority?.top_level?.manifest_count !== 2
-            || JSON.stringify(authority?.children?.map((child) => `${child.platform.os}/${child.platform.architecture}`)) !==
-              JSON.stringify(['linux/amd64', 'linux/arm64'])
-            || !digestPattern.test(authority?.top_level?.digest ?? '')
-            || ![
-              'application/vnd.oci.image.index.v1+json',
-              'application/vnd.docker.distribution.manifest.list.v2+json',
-            ].includes(authority?.top_level?.media_type)
-          ) {
-            throw new Error('exact immutable version tag authority is required before durable sidecar publication');
-          }
-          fs.writeFileSync('webui-carrier/version-descriptor-readback.json', `${JSON.stringify({
-            schema: 'opl_app_webui_descriptor_readback.v1',
-            status: 'present',
-            ref: process.env.OPL_VERSION_TAG,
-            digest: authority.top_level.digest,
-            child_digest: authority.top_level.digest,
-            manifest_count: authority.top_level.manifest_count,
-            media_type: authority.top_level.media_type,
-            platforms: authority.children.map((child) => ({
-              os: child.platform.os,
-              architecture: child.platform.architecture,
-              digest: child.digest,
-            })),
-          })}\n`);
           NODE
           printf 'image_ref=%s\n' "$image_ref" >> "$GITHUB_OUTPUT"
 
@@ -826,7 +797,7 @@ jobs:
             write-carrier-receipt \
             --platform-evidence-root webui-platforms \
             --registry-readback webui-carrier/registry-readback.json \
-            --image-ref '${{ steps.publish.outputs.image_ref }}' \
+            --image-ref '${{ steps.candidate.outputs.image_ref }}' \
             --output webui-carrier/carrier-receipt.json \
             > webui-carrier/carrier-receipt-write.json
           node --experimental-strip-types scripts/release-webui-carrier.ts \
@@ -834,7 +805,7 @@ jobs:
             --platform-evidence-root webui-platforms \
             --receipt webui-carrier/carrier-receipt.json \
             --registry-readback webui-carrier/registry-readback.json \
-            --image-ref '${{ steps.publish.outputs.image_ref }}' \
+            --image-ref '${{ steps.candidate.outputs.image_ref }}' \
             --expected-version '${{ inputs.opl_version }}' \
             --expected-bundle-digest '${{ inputs.release_bundle_digest }}' \
             --expected-cohort-ref '${{ inputs.release_cohort_ref }}' \
@@ -847,20 +818,96 @@ jobs:
             node --experimental-strip-types scripts/webui-source-authority.ts \
               validate --input webui-carrier/source-authority.json \
               > webui-carrier/source-authority-final-verification.json
-            test "$(jq -er .source_authority_digest webui-carrier/source-authority.json)" = \
+            test "$(jq -er '.release.bundle_digest // .source_authority_digest' webui-carrier/source-authority.json)" = \
               "$(jq -er .release.bundle_digest webui-carrier/carrier-receipt.json)"
-            test "$(jq -er .source_authority_digest webui-carrier/source-authority.json)" = \
+            test "$(jq -er '.release.cohort_ref // .source_authority_digest' webui-carrier/source-authority.json)" = \
               "$(jq -er .release.cohort_ref webui-carrier/carrier-receipt.json)"
           fi
           carrier_artifact_name="webui-carrier-${{ inputs.opl_version }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           printf 'carrier_artifact_name=%s\n' "$carrier_artifact_name" >> "$GITHUB_OUTPUT"
 
-      - name: Publish immutable durable carrier receipt sidecar
+      - name: Publish or replace the public version tag after qualification and receipt
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version_tag='${{ inputs.image_repository }}:${{ inputs.opl_version }}'
+          target_ref='${{ steps.candidate.outputs.image_ref }}'
+          target_digest="${target_ref##*@}"
+          inspect_output="$RUNNER_TEMP/public-version-prestate.txt"
+          mutation_required=true
+          if docker buildx imagetools inspect "$version_tag" >"$inspect_output" 2>&1; then
+            cp "$inspect_output" webui-carrier/version-tag-prestate.txt
+            previous_digest="$(awk '$1 == "Digest:" { print $2; exit }' "$inspect_output")"
+            test -n "$previous_digest"
+            if [ "$previous_digest" = "$target_digest" ]; then
+              outcome=preexisting_idempotent
+              mutation_required=false
+            else
+              outcome=updated
+            fi
+          elif grep -Eqi 'not found|manifest unknown|no such manifest' "$inspect_output"; then
+            outcome=created
+            cp "$inspect_output" webui-carrier/version-tag-prestate.txt
+          else
+            cat "$inspect_output" >&2
+            echo '::error::Could not safely resolve the public version-tag prestate.'
+            exit 1
+          fi
+
+          if [ "$mutation_required" = true ]; then
+            if ! docker buildx imagetools create --tag "$version_tag" "$target_ref" \
+              > webui-carrier/version-tag-write.txt 2>&1; then
+              outcome=reconciled_after_unknown_write
+            fi
+          fi
+          if ! docker buildx imagetools inspect "$version_tag" \
+            > webui-carrier/version-tag-readback.txt 2>&1; then
+            test "$outcome" != reconciled_after_unknown_write || cat webui-carrier/version-tag-write.txt >&2
+            cat webui-carrier/version-tag-readback.txt >&2
+            echo '::error::Public version-tag result is unknown and read-only reconcile did not prove a readable target.'
+            exit 1
+          fi
+          docker buildx imagetools inspect --raw "$version_tag" > webui-carrier/version-tag-manifest.json
+          node "$RUNNER_TEMP/verify-version-tag-authority.mjs" \
+            webui-carrier/version-tag-manifest.json \
+            webui-carrier/expected-platforms.json \
+            "$version_tag" \
+            "$outcome" \
+            webui-carrier/version-tag-authority.json
+          observed_digest="$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('webui-carrier/version-tag-authority.json')).top_level.digest)")"
+          reported_digest="$(awk '$1 == "Digest:" { print $2; exit }' webui-carrier/version-tag-readback.txt)"
+          test "$observed_digest" = "$reported_digest"
+          test "$observed_digest" = "$target_digest" || {
+            echo '::error::Public version tag does not resolve to the qualified candidate digest.'
+            exit 1
+          }
+          OPL_VERSION_TAG="$version_tag" OPL_IMAGE_DIGEST="$observed_digest" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const authority = JSON.parse(fs.readFileSync('webui-carrier/version-tag-authority.json', 'utf8'));
+          fs.writeFileSync('webui-carrier/version-descriptor-readback.json', `${JSON.stringify({
+            schema: 'opl_app_webui_descriptor_readback.v1',
+            status: 'present',
+            ref: process.env.OPL_VERSION_TAG,
+            digest: process.env.OPL_IMAGE_DIGEST,
+            child_digest: process.env.OPL_IMAGE_DIGEST,
+            manifest_count: authority.top_level.manifest_count,
+            media_type: authority.top_level.media_type,
+            platforms: authority.children.map((child) => ({
+              os: child.platform.os,
+              architecture: child.platform.architecture,
+              digest: child.digest,
+            })),
+          })}\n`);
+          NODE
+
+      - name: Publish run-scoped durable carrier receipt sidecar
+        id: publication-record
         shell: bash
         run: |
           set -euo pipefail
           readonly artifact_media_type='application/vnd.onepersonlab.webui.publication-record.v1+json'
-          readonly receipt_ref='${{ inputs.image_repository }}:receipt-${{ inputs.opl_version }}'
+          readonly receipt_ref='${{ inputs.image_repository }}:receipt-${{ inputs.opl_version }}-${{ github.run_id }}-${{ github.run_attempt }}'
           readonly sidecar_root="$RUNNER_TEMP/webui-publication-record-sidecar"
           readonly record_path="$sidecar_root/webui-publication-record.json"
           readonly pull_root="$sidecar_root/pulled"
@@ -1005,6 +1052,7 @@ jobs:
           else
             write_reconcile_evidence not_required "$publication_outcome"
           fi
+          printf 'publication_record_ref=%s\n' "$receipt_ref" >> "$GITHUB_OUTPUT"
 
       - name: Stage exact carrier receipt evidence
         shell: bash
@@ -1015,6 +1063,9 @@ jobs:
           for file in \
             carrier-receipt.json \
             carrier-receipt-verification.json \
+            candidate-index-authority.json \
+            candidate-index-manifest.json \
+            candidate-index-readback.txt \
             candidate-tag-readback.txt \
             expected-platforms.json \
             image-repository-validation.json \
@@ -1023,6 +1074,7 @@ jobs:
             version-tag-authority.json \
             version-descriptor-readback.json \
             version-tag-manifest.json \
+            version-tag-prestate.txt \
             version-tag-readback.txt; do
             test -f "webui-carrier/$file"
             cp "webui-carrier/$file" "carrier-artifact/$file"
@@ -1065,7 +1117,7 @@ jobs:
             done
           fi
 
-      - name: Upload immutable carrier receipt
+      - name: Upload exact carrier receipt
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ steps.receipt.outputs.carrier_artifact_name }}

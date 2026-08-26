@@ -254,7 +254,7 @@ function observation(overrides: Partial<StableAdmissionObservation> = {}): Stabl
   };
 }
 
-test('single Stable admission manifest allocates the first unused cross-namespace revision', () => {
+test('single Stable admission manifest ignores replaceable WebUI carrier tags when allocating the product version', () => {
   const manifest = buildStableReleaseAdmissionManifest(input(), observation());
   assert.equal(manifest.status, 'passed');
   assert.deepEqual(manifest.intent, {
@@ -267,10 +267,10 @@ test('single Stable admission manifest allocates the first unused cross-namespac
     shell_sha: shellRef,
     framework_sha: frameworkRef,
   });
-  assert.equal(manifest.version.display, '26.7.25-r1');
-  assert.equal(manifest.version.updater, '26.7.2501');
-  assert.equal(manifest.version.tag, 'v26.7.25-r1');
-  assert.deepEqual(manifest.allocator.observed_same_day_versions, ['26.7.25']);
+  assert.equal(manifest.version.display, '26.7.25');
+  assert.equal(manifest.version.updater, '26.7.2500');
+  assert.equal(manifest.version.tag, 'v26.7.25');
+  assert.deepEqual(manifest.allocator.observed_same_day_versions, []);
   assert.deepEqual(manifest.namespace.webui_tags, ['26.7.25']);
   assert.equal(manifest.apple_credentials.required_secret_count, 6);
   assert.equal(manifest.source_gate.producer_run_id, admissionRunId);
@@ -561,7 +561,7 @@ test('admission rejects Homebrew policy drift before Standard dispatch', () => {
   );
 });
 
-test('admission rejects a stale base version and an occupied allocated namespace', () => {
+test('admission rejects a stale base version while replaceable WebUI tags do not consume revisions', () => {
   assert.throws(
     () => buildStableReleaseAdmissionManifest(
       { ...input(), baseVersion: '26.7.24' },
@@ -583,10 +583,9 @@ test('admission rejects a stale base version and an occupied allocated namespace
       '26.7.25-r9',
     ],
   });
-  assert.throws(
-    () => buildStableReleaseAdmissionManifest(input(), fullyOccupied),
-    /revisions stop at r9/,
-  );
+  const manifest = buildStableReleaseAdmissionManifest(input(), fullyOccupied);
+  assert.equal(manifest.version.display, '26.7.25');
+  assert.equal(manifest.namespace.target_webui_tag_replaceable, true);
 });
 
 test('GitHub lookup failures and non-JSON responses fail closed', () => {
