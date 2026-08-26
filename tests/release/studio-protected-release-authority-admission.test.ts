@@ -187,11 +187,17 @@ test('Studio execution keeps build, qualification, publication, and public readb
     'public-readback',
   ]);
   const build = studioWorkflow.jobs['build-signed-notarized'];
+  const resolve = studioWorkflow.jobs['resolve-checkpoint'];
+  const restore = studioWorkflow.jobs['restore-checkpoint'];
   const qualify = studioWorkflow.jobs['qualify-checkpoint'];
   const publish = studioWorkflow.jobs.publish;
   const readback = studioWorkflow.jobs['public-readback'];
   assert.equal(build.if, "${{ inputs.prior_studio_artifact_run_id == '' }}");
   assert.equal(build.environment, 'release-stable');
+  assert.equal(resolve.outputs.restore_required, '${{ steps.resolve.outputs.restore_required }}');
+  assert.match(JSON.stringify(resolve), /restore_required=true/);
+  assert.match(JSON.stringify(resolve), /restore_required=false/);
+  assert.equal(restore.if, "${{ needs.resolve-checkpoint.outputs.restore_required == 'true' }}");
   assert.equal(qualify.environment, undefined);
   assert.deepEqual(publish.concurrency, {
     group: 'opl-studio-publication-global',

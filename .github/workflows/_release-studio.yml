@@ -450,6 +450,7 @@ jobs:
       checkpoint_artifact_name: ${{ steps.resolve.outputs.checkpoint_artifact_name }}
       qualification_artifact_name: ${{ steps.resolve.outputs.qualification_artifact_name }}
       qualification_present: ${{ steps.resolve.outputs.qualification_present }}
+      restore_required: ${{ steps.resolve.outputs.restore_required }}
       studio_version: ${{ steps.resolve.outputs.studio_version }}
     steps:
       - name: Checkout canonical Studio release executor
@@ -492,7 +493,9 @@ jobs:
           checkpoint_artifact_name="opl-studio-signed-notarized-$STUDIO_SHA-$FRAMEWORK_REF-$GITHUB_RUN_ID"
           qualification_artifact_name="opl-studio-qualified-$STUDIO_SHA-$FRAMEWORK_REF-$GITHUB_RUN_ID"
           qualification_present=false
+          restore_required=false
           if [ -n "$PRIOR_RUN_ID" ]; then
+            restore_required=true
             artifact_names="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$source_checkpoint_run_id/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .name')"
             test "$(grep -Fxc "$source_checkpoint_artifact_name" <<< "$artifact_names")" -eq 1
             if [ "$(grep -Fxc "$source_qualification_artifact_name" <<< "$artifact_names")" -eq 1 ]; then
@@ -507,12 +510,13 @@ jobs:
             echo "checkpoint_artifact_name=$checkpoint_artifact_name"
             echo "qualification_artifact_name=$qualification_artifact_name"
             echo "qualification_present=$qualification_present"
+            echo "restore_required=$restore_required"
             echo "studio_version=$studio_version"
           } >> "$GITHUB_OUTPUT"
 
   restore-checkpoint:
     needs: resolve-checkpoint
-    if: ${{ inputs.prior_studio_artifact_run_id != '' }}
+    if: ${{ needs.resolve-checkpoint.outputs.restore_required == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

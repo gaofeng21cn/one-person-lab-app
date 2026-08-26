@@ -872,9 +872,10 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       || build['runs-on'] !== 'macos-15'
       || !resolve
       || !needsExactly(resolve, ['build-signed-notarized'])
+      || resolve.outputs?.restore_required !== '${{ steps.resolve.outputs.restore_required }}'
       || !restore
       || !needsExactly(restore, ['resolve-checkpoint'])
-      || restore.if !== "${{ inputs.prior_studio_artifact_run_id != '' }}"
+      || restore.if !== "${{ needs.resolve-checkpoint.outputs.restore_required == 'true' }}"
       || !qualify
       || !needsExactly(qualify, ['resolve-checkpoint', 'restore-checkpoint'])
       || qualify.environment !== undefined
