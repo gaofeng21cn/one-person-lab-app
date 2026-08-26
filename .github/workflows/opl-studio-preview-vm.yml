@@ -280,6 +280,7 @@ jobs:
           test -s "$OPL_FIRST_RUN_GUEST_SSH_KEY"
           prompt="只回复：OPL_STUDIO_${PROFILE^^}_VM_OK"
           mkdir -p "evidence/$PROFILE/screenshots"
+          set +e
           node scripts/desktop/qualify-clean-vm.mjs \
             --dmg "$DMG" \
             --source-vm "$source_vm" \
@@ -298,6 +299,9 @@ jobs:
             --require-codex-turn \
             > "evidence/$PROFILE/smoke.stdout.log" \
             2> "evidence/$PROFILE/smoke.stderr.log"
+          smoke_status=$?
+          set -e
+          test -s "evidence/$PROFILE/qualification.json"
           jq --arg profile "$PROFILE" \
             --arg asset_name "${{ steps.asset.outputs.asset_name }}" \
             --arg asset_digest "${{ steps.asset.outputs.asset_digest }}" \
@@ -306,6 +310,7 @@ jobs:
               . + {app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}}
             ' "evidence/$PROFILE/qualification.json" > "evidence/$PROFILE/qualification.bound.json"
           mv "evidence/$PROFILE/qualification.bound.json" "evidence/$PROFILE/qualification.json"
+          if [ "$smoke_status" -ne 0 ]; then exit "$smoke_status"; fi
           jq -e --arg profile "$PROFILE" '
             .status == "passed"
             and .checks.install.passed == true
@@ -438,7 +443,7 @@ jobs:
             --arg tag "${{ inputs.release_tag }}" \
             --arg release_source_sha "${{ inputs.release_source_sha }}" \
             --arg verification_source_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
-            (sort_by(.app_qualification.profile)) as $profiles
+            (sort_by(.app_qualification.profile // ((.checks.smoke.checks.runtime // {}) | keys | .[0]))) as $profiles
             | {
                 schema:"opl_app_studio_preview_vm_qualification.v1",
                 status:(if ($profiles | length) == 2 and all($profiles[]; .status == "passed") then "complete" else "failed" end),
@@ -447,13 +452,13 @@ jobs:
                 release_source_sha:$release_source_sha,
                 verification_source_sha:$verification_source_sha,
                 run_id:$run,
-                profiles:[$profiles[] | {
-                  profile:.app_qualification.profile,
+                profiles:[$profiles[] | (.app_qualification.profile // ((.checks.smoke.checks.runtime // {}) | keys | .[0])) as $profile | {
+                  profile:$profile,
                   asset_name:.app_qualification.asset_name,
                   asset_digest:.app_qualification.asset_digest,
                   installed_version:.checks.install.version,
                   product_identity:.checks.install.identity,
-                  runtime_status:.checks.smoke.checks.runtime[.app_qualification.profile].status,
+                  runtime_status:(.checks.smoke.checks.runtime // {})[$profile].status,
                   ui_status:.checks.smoke.checks.ui,
                   gateway_status:.checks.smoke.hooks.gatewaySetup,
                   codex_turn:{status:.checks.smoke.hooks.codexTurn,completed:(.checks.smoke.checks.codexTurn // {}).completed,final_message_present:(.checks.smoke.checks.codexTurn // {}).finalMessagePresent,simulated:(.checks.smoke.checks.codexTurn // {}).simulated}
