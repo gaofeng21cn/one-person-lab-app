@@ -145,6 +145,58 @@
       "active_shell_after_release": "aionui",
       "active_release_carrier_after_release": false,
       "rule": "A successful Studio preview release makes only the dedicated Studio package and updater feed current. Build, qualification and public readback remain independently recoverable; only the exact GitHub Release mutation is serialized. A publication repair reuses the same checkpoint and tag and never creates a product version merely because the release mechanism failed. It does not adopt Studio as the active App shell or replace the Framework Stable release carrier."
+    },
+    "public_clean_vm_qualification": {
+      "schema": "opl_app_studio_preview_vm_qualification_policy.v1",
+      "authority_owner": "one-person-lab-app",
+      "workflow": ".github/workflows/opl-studio-preview-vm.yml",
+      "receipt_schema": "opl_app_studio_preview_vm_qualification.v1",
+      "profiles": [
+        "standard",
+        "full"
+      ],
+      "public_asset_identity": [
+        "release_id",
+        "release_tag",
+        "release_source_sha",
+        "asset_name",
+        "asset_digest"
+      ],
+      "framework_identity": {
+        "input": "framework_ref",
+        "format": "exact_lowercase_40_character_sha",
+        "published_cohort_readback": "opl-release-manifest.json#manifest.resolved_refs.opl_framework.resolved_commit",
+        "standard_guest_preparation": "runner_checks_out_the_exact_Framework_commit_and_injects_a_local_source_archive",
+        "standard_installer_execution": "packaged_Studio_bootstrap_runs_with_OPL_SOURCE_ARCHIVE_URL_file_and_OPL_FRAMEWORK_SOURCE_COMMIT",
+        "standard_installed_identity_readback": "~/.opl/one-person-lab/.opl-framework-installed-source-identity.json",
+        "full_guest_preparation": "none_uses_the_exact_Framework_runtime_already_inside_the_published_Full_DMG",
+        "anonymous_mutable_GitHub_source_download_allowed": false,
+        "framework_payload_added_to_standard_bundle": false
+      },
+      "codex_identity": {
+        "carrier": "exact_external_verified_platform_tarball",
+        "injection": "OPL_CODEX_BIN",
+        "app_bundle_codex_allowed": false,
+        "full_runtime_codex_allowed": false
+      },
+      "download_policy": {
+        "source": "exact_Release_asset_URL",
+        "resume_partial_download": true,
+        "final_size_and_sha256_required": true,
+        "large_full_asset_must_not_rely_on_one_nonresumable_short_transfer": true
+      },
+      "terminal_requirements": [
+        "Standard_and_Full_profile_status_passed",
+        "signed_notarized_and_stapled_public_DMG_trust_passed",
+        "runtime_profile_passed",
+        "Gateway_model_access_action_executed",
+        "real_non_simulated_Codex_turn_completed_with_final_message",
+        "Settings_Runtime_and_task_inspector_UI_passed",
+        "at_least_five_screenshots_per_profile"
+      ],
+      "mutation_policy": "read_only_public_asset_qualification_no_release_or_asset_mutation",
+      "active_shell_after_qualification": "aionui",
+      "active_release_carrier_after_qualification": false
     }
   },
   "desktop_release_kernel": {

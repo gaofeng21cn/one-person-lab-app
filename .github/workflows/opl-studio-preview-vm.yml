@@ -20,6 +20,10 @@ on:
         description: Exact opl-studio commit targeted by release_tag.
         required: true
         type: string
+      framework_ref:
+        description: Exact Framework SHA bound to the published Standard and Full cohort.
+        required: true
+        type: string
       standard_asset_name:
         description: Exact published Standard DMG basename.
         required: true
@@ -65,6 +69,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       verification_source_sha: ${{ steps.bind.outputs.verification_source_sha }}
+      framework_ref: ${{ steps.bind.outputs.framework_ref }}
       codex_version: ${{ steps.bind.outputs.codex_version }}
       codex_platform_version: ${{ steps.bind.outputs.codex_platform_version }}
       codex_platform_tarball_url: ${{ steps.bind.outputs.codex_platform_tarball_url }}
@@ -83,6 +88,7 @@ jobs:
           RELEASE_ID: ${{ inputs.release_id }}
           RELEASE_TAG: ${{ inputs.release_tag }}
           RELEASE_SOURCE_SHA: ${{ inputs.release_source_sha }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
           STANDARD_ASSET_NAME: ${{ inputs.standard_asset_name }}
           STANDARD_ASSET_DIGEST: ${{ inputs.standard_asset_digest }}
           FULL_ASSET_NAME: ${{ inputs.full_asset_name }}
@@ -95,6 +101,7 @@ jobs:
           [[ "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
           [[ "$RELEASE_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STANDARD_ASSET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$FULL_ASSET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$SMOKE_TIMEOUT_MS" =~ ^[1-9][0-9]*$ ]]
@@ -118,6 +125,16 @@ jobs:
               [.assets[] | select(.name == $name and .state == "uploaded" and .digest == $digest)] | length == 1
             ' release.json >/dev/null
           done
+          manifest_asset_id="$(jq -er '
+            [.assets[] | select(.name == "opl-release-manifest.json" and .state == "uploaded")]
+            | if length == 1 then .[0].id else error("expected exactly one published Full manifest") end
+          ' release.json)"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/$STUDIO_REPOSITORY/releases/assets/$manifest_asset_id" > full-release-manifest.json
+          jq -e --arg framework "$FRAMEWORK_REF" '
+            .manifest.resolved_refs.opl_framework.requested_ref == $framework
+            and .manifest.resolved_refs.opl_framework.resolved_commit == $framework
+          ' full-release-manifest.json >/dev/null
           codex_version="$(jq -er '.qualification_external_carrier.package.version' contracts/shell-adapters/opl-studio.json)"
           codex_platform_version="$(jq -er '.qualification_external_carrier.platform.version' contracts/shell-adapters/opl-studio.json)"
           codex_platform_tarball_url="$(jq -er '.qualification_external_carrier.platform.tarball_url' contracts/shell-adapters/opl-studio.json)"
@@ -127,11 +144,14 @@ jobs:
           [[ "$codex_platform_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?-darwin-arm64$ ]]
           [[ "$codex_platform_tarball_url" == "https://registry.npmjs.org/@openai/codex/-/codex-${codex_platform_version}.tgz" ]]
           [[ "$codex_platform_tarball_sha256" =~ ^[0-9a-f]{64}$ ]]
-          echo "verification_source_sha=$VERIFICATION_SOURCE_REF" >> "$GITHUB_OUTPUT"
-          echo "codex_version=$codex_version" >> "$GITHUB_OUTPUT"
-          echo "codex_platform_version=$codex_platform_version" >> "$GITHUB_OUTPUT"
-          echo "codex_platform_tarball_url=$codex_platform_tarball_url" >> "$GITHUB_OUTPUT"
-          echo "codex_platform_tarball_sha256=$codex_platform_tarball_sha256" >> "$GITHUB_OUTPUT"
+          {
+            echo "verification_source_sha=$VERIFICATION_SOURCE_REF"
+            echo "framework_ref=$FRAMEWORK_REF"
+            echo "codex_version=$codex_version"
+            echo "codex_platform_version=$codex_platform_version"
+            echo "codex_platform_tarball_url=$codex_platform_tarball_url"
+            echo "codex_platform_tarball_sha256=$codex_platform_tarball_sha256"
+          } >> "$GITHUB_OUTPUT"
 
   qualify:
     needs: validate-inputs
@@ -143,7 +163,7 @@ jobs:
     name: Clean VM ${{ matrix.profile }}
     runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
     environment: release-stable
-    timeout-minutes: 75
+    timeout-minutes: 120
     permissions:
       contents: read
       actions: read
@@ -183,6 +203,30 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Checkout exact Framework bootstrap source
+        if: ${{ matrix.profile == 'standard' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab
+          ref: ${{ needs.validate-inputs.outputs.framework_ref }}
+          path: .opl-vm-source-checkouts/framework
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare exact Framework bootstrap input
+        id: framework
+        if: ${{ matrix.profile == 'standard' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$GITHUB_WORKSPACE/.opl-vm-source-checkouts/framework"
+          expected_ref="${{ needs.validate-inputs.outputs.framework_ref }}"
+          test "$(git -C "$source_root" rev-parse HEAD)" = "$expected_ref"
+          archive="$RUNNER_TEMP/opl-studio-preview-framework-$GITHUB_RUN_ID-${{ matrix.profile }}.tar.gz"
+          git -C "$source_root" archive --format=tar.gz --prefix=one-person-lab/ HEAD -o "$archive"
+          test -s "$archive"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
       - name: Resolve and download exact public Preview DMG
         id: asset
         env:
@@ -204,12 +248,24 @@ jobs:
           mkdir -p "evidence/$PROFILE"
           gh api "repos/$STUDIO_REPOSITORY/releases/tags/$RELEASE_TAG" > "evidence/$PROFILE/release.json"
           dmg="evidence/$PROFILE/$asset_name"
-          asset_url="$(jq -er --arg name "$asset_name" '
+          read -r asset_url asset_size < <(jq -er --arg name "$asset_name" '
             [.assets[] | select(.name == $name)]
-            | if length == 1 then .[0].browser_download_url else error("expected exactly one matching release asset") end
-          ' "evidence/$PROFILE/release.json")"
-          curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 --max-time 900 \
-            -o "$dmg.part" "$asset_url"
+            | if length == 1 then [.[0].browser_download_url, (.[0].size | tostring)] | @tsv else error("expected exactly one matching release asset") end
+          ' "evidence/$PROFILE/release.json")
+          download_status=1
+          for attempt in $(seq 1 6); do
+            if curl --http1.1 -fsSL --continue-at - --connect-timeout 30 --max-time 900 \
+              -o "$dmg.part" "$asset_url"; then
+              download_status=0
+              break
+            fi
+            partial_bytes="$(stat -f %z "$dmg.part" 2>/dev/null || echo 0)"
+            echo "::warning::Preview asset download attempt $attempt stopped after $partial_bytes of $asset_size bytes; resuming the same exact asset."
+            retry_delay=$((attempt < 4 ? attempt * 3 : 12))
+            sleep "$retry_delay"
+          done
+          test "$download_status" -eq 0
+          test "$(stat -f %z "$dmg.part")" = "$asset_size"
           mv "$dmg.part" "$dmg"
           test -f "$dmg"
           actual_digest="sha256:$(shasum -a 256 "$dmg" | awk '{print $1}')"
@@ -297,6 +353,14 @@ jobs:
           test -s "$OPL_FIRST_RUN_GUEST_SSH_KEY"
           prompt="只回复：OPL_STUDIO_${PROFILE^^}_VM_OK"
           mkdir -p "evidence/$PROFILE/screenshots"
+          framework_args=()
+          if [ "$PROFILE" = "standard" ]; then
+            test -s "${{ steps.framework.outputs.archive }}"
+            framework_args+=(
+              --framework-source-archive "${{ steps.framework.outputs.archive }}"
+              --framework-ref "${{ needs.validate-inputs.outputs.framework_ref }}"
+            )
+          fi
           set +e
           node scripts/desktop/qualify-clean-vm.mjs \
             --dmg "$DMG" \
@@ -312,6 +376,7 @@ jobs:
             --timeout-ms "$SMOKE_TIMEOUT_MS" \
             --screenshots-dir "evidence/$PROFILE/screenshots" \
             --out "evidence/$PROFILE/qualification.json" \
+            "${framework_args[@]}" \
             --allow-actions \
             --require-gateway-setup \
             --require-codex-turn \
@@ -369,6 +434,22 @@ jobs:
             test ! -e "$CODEX_TARBALL"
           fi
 
+      - name: Remove exact Framework archive input
+        if: ${{ always() }}
+        env:
+          FRAMEWORK_ARCHIVE: ${{ steps.framework.outputs.archive }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$FRAMEWORK_ARCHIVE" ]; then
+            case "$FRAMEWORK_ARCHIVE" in
+              "$RUNNER_TEMP"/opl-studio-preview-framework-*.tar.gz) ;;
+              *) echo "::error::Unexpected Framework archive path"; exit 1 ;;
+            esac
+            rm -f "$FRAMEWORK_ARCHIVE"
+            test ! -e "$FRAMEWORK_ARCHIVE"
+          fi
+
       - name: Remove downloaded public DMG from evidence
         if: ${{ always() }}
         env:
@@ -417,6 +498,7 @@ jobs:
               --arg asset_digest "$asset_digest" \
               --arg source_sha "${{ inputs.release_source_sha }}" \
               --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" \
+              --arg framework_ref "${{ needs.validate-inputs.outputs.framework_ref }}" \
               --arg asset_outcome "$ASSET_OUTCOME" \
               --arg codex_outcome "$CODEX_OUTCOME" \
               --arg credentials_outcome "$CREDENTIALS_OUTCOME" \
@@ -432,7 +514,7 @@ jobs:
                   releaseReady:false,
                   activeShellAdopted:false,
                   blockers:["clean_vm_execution_incomplete","App_owner_clean_VM_release_admission_is_separate_from_Studio_candidate_qualification"],
-                  app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}
+                  app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha,framework_ref:$framework_ref}
                 }
               ' > "$receipt"
           else
@@ -441,8 +523,9 @@ jobs:
               --arg asset_name "$asset_name" \
               --arg asset_digest "$asset_digest" \
               --arg source_sha "${{ inputs.release_source_sha }}" \
-              --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
-                . + {app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha}}
+              --arg verification_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" \
+              --arg framework_ref "${{ needs.validate-inputs.outputs.framework_ref }}" '
+                . + {app_qualification:{profile:$profile,asset_name:$asset_name,asset_digest:$asset_digest,release_source_sha:$source_sha,verification_source_sha:$verification_sha,framework_ref:$framework_ref}}
               ' "$receipt" > "$receipt.bound"
             mv "$receipt.bound" "$receipt"
           fi
@@ -513,7 +596,8 @@ jobs:
             --arg release_id "${{ inputs.release_id }}" \
             --arg tag "${{ inputs.release_tag }}" \
             --arg release_source_sha "${{ inputs.release_source_sha }}" \
-            --arg verification_source_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" '
+            --arg verification_source_sha "${{ needs.validate-inputs.outputs.verification_source_sha }}" \
+            --arg framework_ref "${{ needs.validate-inputs.outputs.framework_ref }}" '
             (sort_by(.app_qualification.profile // ((.checks.smoke.checks.runtime // {}) | keys | .[0]))) as $profiles
             | {
                 schema:"opl_app_studio_preview_vm_qualification.v1",
@@ -522,6 +606,7 @@ jobs:
                 release_tag:$tag,
                 release_source_sha:$release_source_sha,
                 verification_source_sha:$verification_source_sha,
+                framework_ref:$framework_ref,
                 run_id:$run,
                 profiles:[$profiles[] | (.app_qualification.profile // ((.checks.smoke.checks.runtime // {}) | keys | .[0])) as $profile | {
                   profile:$profile,
@@ -529,6 +614,7 @@ jobs:
                   asset_digest:.app_qualification.asset_digest,
                   installed_version:.checks.install.version,
                   product_identity:.checks.install.identity,
+                  framework_status:.checks.framework,
                   runtime_status:(.checks.smoke.checks.runtime // {})[$profile].status,
                   ui_status:.checks.smoke.checks.ui,
                   gateway_status:.checks.smoke.hooks.gatewaySetup,
@@ -556,9 +642,11 @@ jobs:
             and .release_id == "${{ inputs.release_id }}"
             and .release_source_sha == "${{ inputs.release_source_sha }}"
             and .verification_source_sha == "${{ needs.validate-inputs.outputs.verification_source_sha }}"
+            and .framework_ref == "${{ needs.validate-inputs.outputs.framework_ref }}"
             and ([.profiles[].profile] | sort) == ["full","standard"]
             and all(.profiles[];
               .runtime_status == "passed"
+              and (.profile != "standard" or (.framework_status.status == "passed" and .framework_status.installedIdentity.framework_sha == "${{ needs.validate-inputs.outputs.framework_ref }}"))
               and .gateway_status == "passed"
               and .codex_turn.status == "passed"
               and .codex_turn.completed == "completed"
