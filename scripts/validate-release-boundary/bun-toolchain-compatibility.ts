@@ -53,6 +53,13 @@ function shellLockfileVersion(shellRoot: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+function shellDockerfileBunVersion(shellRoot: string): string {
+  const dockerfilePath = path.join(shellRoot, 'Dockerfile');
+  if (!fs.existsSync(dockerfilePath)) return '';
+  const dockerfile = fs.readFileSync(dockerfilePath, 'utf8');
+  return dockerfile.match(/^ARG OPL_WEBUI_BUN_VERSION=(\d+\.\d+\.\d+)$/m)?.[1] ?? '';
+}
+
 export function collectBunToolchainCompatibilityViolations(
   appRoot: string,
   shellRoot = resolveActiveShellPaths().shellRoot,
@@ -74,6 +81,10 @@ export function collectBunToolchainCompatibilityViolations(
       ? null
       : (minimumBunVersionByLockfile.get(lockfileVersion) ?? null);
   const callers = [
+    {
+      id: 'webui-dockerfile',
+      version: shellDockerfileBunVersion(shellRoot),
+    },
     {
       id: 'setup-active-shell-deps',
       version: stepBunVersion(
