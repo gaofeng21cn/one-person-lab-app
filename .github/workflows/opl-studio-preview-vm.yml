@@ -44,7 +44,7 @@ on:
       smoke_timeout_ms:
         description: Per-page and Gateway/Codex smoke timeout.
         required: false
-        default: '180000'
+        default: '600000'
         type: string
 
 permissions:

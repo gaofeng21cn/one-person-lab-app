@@ -16,6 +16,7 @@ test('Studio Preview VM qualification owns two clean public-asset profiles witho
   assert.equal(workflow.jobs.qualify.strategy['max-parallel'], 1);
   assert.deepEqual(workflow.jobs.qualify['runs-on'], ['self-hosted', 'macOS', 'ARM64', 'opl-cert-mac-tart']);
   assert.equal(workflow.jobs.qualify.environment, 'release-stable');
+  assert.equal(workflow.on.workflow_dispatch.inputs.smoke_timeout_ms.default, '600000');
   assert.equal(workflow.jobs.qualify.steps[0].name, 'Download exact Studio verification harness');
   assert.equal(workflow.jobs.qualify.steps[0].env.VERIFICATION_SOURCE_SHA, '${{ needs.validate-inputs.outputs.verification_source_sha }}');
   assert.match(workflow.jobs.qualify.steps[0].run, /api\.github\.com\/repos\/\$STUDIO_REPOSITORY\/tarball\/\$VERIFICATION_SOURCE_SHA/);
