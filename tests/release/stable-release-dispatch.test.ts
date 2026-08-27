@@ -103,6 +103,15 @@ test('a new product version requires the prior Standard publication, not optiona
   );
 });
 
+test('Stable workflow imports the canonical Latest Standard completeness guard', () => {
+  const workflow = fs.readFileSync(path.join(appRoot, '.github/workflows/release-stable.yml'), 'utf8');
+  assert.match(
+    workflow,
+    /import \{ assertLatestStandardReleaseComplete \} from '\.\/app-executor\/scripts\/stable-release-dispatch\.ts';/,
+  );
+  assert.doesNotMatch(workflow, /assertLatestReleaseSetComplete/);
+});
+
 test('Full checkpoint requalification preserves the tag and accepts one optional harness', () => {
   const plan = buildAppendFullPlan({
     attemptId: 'append-full-20260824-aabbccdd',
