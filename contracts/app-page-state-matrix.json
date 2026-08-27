@@ -376,10 +376,20 @@
           "all_search": "explicit_canonical_historical_search_never_default_rail",
           "project_affinity_presentation": "recorded_cwd_preserved_explicit_project_id_wins_non_managed_scratch_cwd_auto_groups_managed_user_documents_codex_and_user_codex_worktrees_unbound_with_inline_managed_worktree_indicator",
           "managed_worktree_row_indicator": {
-            "source": "canonical_recorded_cwd_under_user_codex_worktrees",
-            "presentation": "inline_branch_icon_with_localized_tooltip_and_accessible_name",
+            "source": "canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees",
+            "presentation": "inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name",
+            "glyph_source": "icon_park_branch_compatibility_glyph",
             "changes_project_affinity": false,
             "mutation_action": "none"
+          },
+          "missing_workspace_continuity": {
+            "identity_and_history": "preserved_from_canonical_thread_directory",
+            "runtime_workspace": "backend_provided_temporary_workspace_with_canonical_cwd_readback",
+            "original_workspace": "preserved_as_cleaned_fact",
+            "conversation": "continues_with_enabled_composer",
+            "status": "localized_workspace_directory_cleaned_below_timeline",
+            "refresh": "one_thread_row_remains_visible",
+            "directory_picker": "forbidden"
           },
           "visible_id_consumers": [
             "default_rail",
@@ -440,7 +450,8 @@
         "default rail contains every canonically unarchived thread returned by the App Server directory",
         "Running now uses the same Codex Desktop runtime task-status authority or explicitly reports unavailable",
         "Archived is an independent canonical archived directory and All/Search is an explicit historical entry",
-        "managed user Documents Codex and user .codex/worktrees workspaces preserve recorded cwd while rendering as projectless without leaf-directory Project groups; Codex worktree rows show a read-only localized BranchOne indicator",
+        "managed user Documents Codex and user .codex/worktrees workspaces preserve recorded cwd while rendering as projectless without leaf-directory Project groups; Codex worktree rows show a read-only localized standard Git branch indicator",
+        "a canonical conversation whose recorded workspace directory was cleaned remains visible and usable after automatic temporary-workspace fallback, shows a localized cleaned-directory status below the timeline, and never opens a directory picker",
         "non-managed-scratch canonical recorded cwd auto-loads a directory group and new-session cwd shortcut without creating explicit project affinity or mutating registered workspaces",
         "advanced work surfaces closed by default with no third column",
         "runtime/task progress available from Runtime page, not Home activity grid",

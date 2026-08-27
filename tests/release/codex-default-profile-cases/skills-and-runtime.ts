@@ -106,7 +106,7 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
       'do_not_render_assistant_backend_or_generic_message_icons_for_ordinary_conversations',
     status_exception_policy: 'render_only_real_cron_or_generation_status_when_present',
     collapsed_row_policy: 'compact_identity_glyph_allowed_when_title_is_hidden',
-    managed_worktree_policy: 'preserve_localized_branch_indicator_as_non_leading_metadata',
+    managed_worktree_policy: 'preserve_localized_standard_git_branch_indicator_as_non_leading_metadata',
     typography: {
       title_font_size_px: 13,
       title_font_weight: 400,
@@ -143,12 +143,30 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
     projectless_adoption_eligibility:
       'explicit_project_id_absent_and_canonical_thread_read_confirms_project_id_absent_independent_of_recorded_cwd',
     managed_worktree_row_indicator: {
-      source: 'canonical_recorded_cwd_under_user_codex_worktrees',
-      presentation: 'inline_branch_icon_with_localized_tooltip_and_accessible_name',
+      source: 'canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees',
+      presentation: 'inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name',
+      glyph_source: 'icon_park_branch_compatibility_glyph',
       explicit_project_affinity_behavior: 'preserve_indicator_while_project_id_remains_grouping_authority',
       changes_project_affinity: false,
       mutation_action: 'none',
     },
+  });
+  assert.deepEqual(surfaces.missing_workspace_continuity, {
+    authority: 'canonical_thread_identity_and_history_are_independent_of_workspace_directory_lifecycle',
+    trigger: 'canonical_recorded_cwd_unavailable_during_local_projection_materialization',
+    materialization: 'create_rebuildable_local_projection_with_backend_provided_temporary_workspace',
+    runtime_transition: 'retarget_canonical_thread_cwd_to_temporary_workspace_with_exact_readback',
+    recorded_fact: 'preserve_original_cwd_as_canonical_recorded_workspace_with_workspace_unavailable_true',
+    conversation_behavior: 'history_remains_visible_and_composer_remains_enabled',
+    status_presentation: 'localized_workspace_directory_cleaned_status_below_timeline',
+    refresh_behavior: 'canonical_directory_refresh_preserves_one_thread_row_and_cleaned_workspace_metadata',
+    project_affinity_behavior: 'no_automatic_project_affinity_assignment_or_workspace_picker',
+    forbidden: [
+      'automatic_directory_selection_modal',
+      'thread_removal_because_recorded_cwd_is_unavailable',
+      'read_only_downgrade',
+      'silent_project_affinity_mutation',
+    ],
   });
   assert.equal(
     threadDirectoryPolicy.directory_group_policy_authority,
@@ -207,10 +225,20 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
     project_affinity_presentation:
       'recorded_cwd_preserved_explicit_project_id_wins_non_managed_scratch_cwd_auto_groups_managed_user_documents_codex_and_user_codex_worktrees_unbound_with_inline_managed_worktree_indicator',
     managed_worktree_row_indicator: {
-      source: 'canonical_recorded_cwd_under_user_codex_worktrees',
-      presentation: 'inline_branch_icon_with_localized_tooltip_and_accessible_name',
+      source: 'canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees',
+      presentation: 'inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name',
+      glyph_source: 'icon_park_branch_compatibility_glyph',
       changes_project_affinity: false,
       mutation_action: 'none',
+    },
+    missing_workspace_continuity: {
+      identity_and_history: 'preserved_from_canonical_thread_directory',
+      runtime_workspace: 'backend_provided_temporary_workspace_with_canonical_cwd_readback',
+      original_workspace: 'preserved_as_cleaned_fact',
+      conversation: 'continues_with_enabled_composer',
+      status: 'localized_workspace_directory_cleaned_below_timeline',
+      refresh: 'one_thread_row_remains_visible',
+      directory_picker: 'forbidden',
     },
     visible_id_consumers: ['default_rail', 'archived', 'pinned', 'workspace_groups', 'timeline'],
     fixed_count_acceptance_allowed: false,
