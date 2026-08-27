@@ -568,8 +568,8 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/releases/latest" > latest-release.json
           node --experimental-strip-types --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import { assertLatestReleaseSetComplete } from './app-executor/scripts/stable-release-dispatch.ts';
-          assertLatestReleaseSetComplete(JSON.parse(fs.readFileSync('latest-release.json', 'utf8')));
+          import { assertLatestStandardReleaseComplete } from './app-executor/scripts/stable-release-dispatch.ts';
+          assertLatestStandardReleaseComplete(JSON.parse(fs.readFileSync('latest-release.json', 'utf8')));
           NODE
 
       - name: Decode and verify pre-issued Stable authority before dependency installation
