@@ -592,7 +592,7 @@ function attemptId(operation: string, runtime: Runtime): string {
   return `${operation}-${timestamp}-${runtime.randomBytes(4).toString('hex')}`;
 }
 
-function sourceGate(
+export function sourceGate(
   runtime: Runtime,
   appSha: string,
   shellSha: string,
@@ -612,6 +612,8 @@ function sourceGate(
         '--app-ref', appSha,
         '--shell-ref', shellSha,
         '--framework-ref', frameworkSha,
+        '--require-shell-format', 'true',
+        '--run-shell-tests', 'true',
         '--output', output,
       ],
       30 * 60_000,
