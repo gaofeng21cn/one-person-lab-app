@@ -79,7 +79,12 @@ test('automatic routing does not couple independent follower outcomes', () => {
 
 test('admission binds the exact published mutable Stable source without requiring Latest', () => {
   const admit = workflow.jobs.admit;
+  const sourceStep = admit.steps.find((step: Record<string, any>) => step.name === 'Validate successful Stable source run');
   assert.equal(admit.if, "${{ needs.route.outputs.desktop_platforms == 'true' }}");
+  assert.equal(
+    sourceStep.env.SOURCE_HEAD_SHA,
+    "${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}",
+  );
   assert.match(source, /opl-release-operation-admission-\$SOURCE_RUN_ID/);
   assert.match(source, /opl-release-standard-checkpoint-\$SOURCE_RUN_ID/);
   assert.match(source, /opl-release-standard-operation-checkpoint-\$SOURCE_RUN_ID/);
@@ -118,7 +123,7 @@ test('aggregate manifest is the last platform append and no Desktop lane owns Fu
 
 test('Desktop receipt reports the selected platform set without becoming a Standard gate', () => {
   const receipt = workflow.jobs.receipt;
-  assert.equal(receipt.if, "${{ always() && needs.admit.result != 'skipped' }}");
+  assert.equal(receipt.if, "${{ always() && needs.admit.result == 'success' }}");
   assert.deepEqual(receipt.needs, ['admit', 'reconcile-desktop-platforms']);
   assert.match(source, /opl_app_stable_desktop_followup\.v1/);
   assert.match(source, /platform_reconcile:\$result/);

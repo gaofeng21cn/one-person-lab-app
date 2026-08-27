@@ -246,7 +246,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ needs.route.outputs.source_run_id }}
-          SOURCE_HEAD_SHA: ''
+          SOURCE_HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
           REQUESTED_PLATFORM: ${{ github.event_name == 'workflow_dispatch' && inputs.desktop_platform || '' }}
         shell: bash
         run: |
@@ -396,7 +396,7 @@ jobs:
     secrets: inherit
 
   receipt:
-    if: ${{ always() && needs.admit.result != 'skipped' }}
+    if: ${{ always() && needs.admit.result == 'success' }}
     needs: [admit, reconcile-desktop-platforms]
     runs-on: ubuntu-latest
     steps:
