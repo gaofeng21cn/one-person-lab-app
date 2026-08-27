@@ -34,8 +34,15 @@
       "managed_install_path": "/Applications/KimiCU.app",
       "mcp_server_id": "kimi-cu",
       "mcp_command": "/Applications/KimiCU.app/Contents/MacOS/kimi-cu",
-      "mcp_args": ["mcp"],
+      "mcp_args": ["mcp", "-s", "user"],
       "managed_codex_home_registration": true,
+      "local_agent_backend": {
+        "agent_id": "codex",
+        "source": "app_bundled_codex_cli",
+        "detection_evidence": "managed_codex_home_mcp_registration",
+        "registration_must_precede_kimi_cu_panel_launch": true,
+        "control_panel_must_detect_configured_backend": true
+      },
       "default_install": true,
       "default_register": true,
       "default_enabled": true,

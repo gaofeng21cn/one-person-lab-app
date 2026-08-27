@@ -32,7 +32,8 @@
       "xpc-ping",
       "doctor",
       "initialize",
-      "tools/list"
+      "tools/list",
+      "tools/call:list_apps"
     ],
     "required_permission_states": [
       "installed_registered_enabled_permission_required_not_ready",
@@ -51,6 +52,19 @@
       "permission",
       "ready"
     ],
+    "local_agent_backend_acceptance": {
+      "agent_id": "codex",
+      "source": "app_bundled_codex_cli",
+      "registration_before_kimi_cu_panel_launch": true,
+      "control_panel_no_supported_agent_state_allowed": false
+    },
+    "stable_release_acceptance": {
+      "accessibility": "granted",
+      "screen_recording": "granted",
+      "ready": true,
+      "mcp_functional_probe": "tools/call:list_apps=passed",
+      "codex_backend_detected": true
+    },
     "current_source_linked_host_evidence": {
       "status": "passed",
       "evidence_class": "current_source_linked_host_only",
@@ -1337,7 +1351,8 @@
         "both carriers install the same version, Bundle ID, signing Team ID, target path, MCP command, MCP args, and required tool set",
         "both carriers register and enable KimiCU by default in the OPL-managed Codex configuration",
         "missing Accessibility or Screen Recording permission reports installed, registered, and enabled with permission_required and ready=false",
-        "granted permissions plus service, XPC, MCP initialize, and tools/list health report ready=true",
+        "granted permissions plus service, XPC, MCP initialize, tools/list, and tools/call list_apps report ready=true",
+        "the App-bundled Codex backend is registered before the KimiCU panel opens and the panel does not report that no supported local Agent exists",
         "Full does not own a second Computer Use provider list, version list, MCP registration, or behavior"
       ]
     },
