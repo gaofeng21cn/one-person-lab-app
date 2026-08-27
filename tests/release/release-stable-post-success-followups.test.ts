@@ -109,6 +109,14 @@ test('Linux and Windows build and append independently with only public mutation
   assert.equal(append.environment, 'release-stable');
   assert.equal(append.concurrency.group, 'opl-release-bundle-global');
   assert.deepEqual(append.permissions, { contents: 'write', actions: 'read' });
+  const install = append.steps.find(
+    (step: Record<string, any>) => step.name === 'Install App release tooling dependencies',
+  );
+  const installIndex = platformSource.indexOf('name: Install App release tooling dependencies');
+  const materializeIndex = platformSource.indexOf('name: Materialize one exact Desktop platform append');
+  assert.equal(install.run, 'npm ci --ignore-scripts --no-audit --no-fund');
+  assert.notEqual(installIndex, -1);
+  assert.ok(installIndex < materializeIndex);
   assert.match(platformSource, /--platform-manifest desktop-platform-manifest\.json/);
   assert.match(platformSource, /opl_app_desktop_platform_manifest\.v1/);
   assert.match(platformSource, /opl-stable-desktop-append-\$\{\{ inputs\.source_run_id \}\}-\$\{\{ inputs\.platform_id \}\}/);
