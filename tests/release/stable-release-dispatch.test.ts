@@ -14,6 +14,7 @@ import {
   selectCheckpointArtifact,
   selectQualifiedStandardCheckpointArtifact,
   selectReusableFullCheckpointArtifact,
+  sourceGate,
   workflowDispatchArgs,
 } from '../../scripts/stable-release-dispatch.ts';
 import {
@@ -33,6 +34,30 @@ test('Stable dispatch binds the existing critical control bytes without duplicat
     assert.equal(fs.statSync(path.join(appRoot, relativePath)).isFile(), true);
     assert.match(digest, /^sha256:[0-9a-f]{64}$/);
   }
+});
+
+test('Stable dispatch executes the required active Shell source gates before authority issuance', () => {
+  let commandArgs: string[] = [];
+  const report = { schema: 'source-gate-fixture', status: 'passed' };
+  const result = sourceGate({
+    runner(command, args) {
+      assert.equal(command, process.execPath);
+      commandArgs = args;
+      const outputIndex = args.indexOf('--output');
+      assert.notEqual(outputIndex, -1);
+      fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify(report));
+      return { status: 0, stdout: '', stderr: '' };
+    },
+    now: () => new Date('2026-08-27T00:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, appSha, shellSha, frameworkSha, 'opl-desktop-stable-release');
+
+  assert.deepEqual(result, report);
+  assert.deepEqual(
+    commandArgs.slice(commandArgs.indexOf('--require-shell-format'), commandArgs.indexOf('--output')),
+    ['--require-shell-format', 'true', '--run-shell-tests', 'true'],
+  );
 });
 
 test('checkpoint selection prefers the deepest exact non-expired checkpoint', () => {
