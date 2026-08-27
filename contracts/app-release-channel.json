@@ -483,10 +483,14 @@
       "standard_clean_vm_requires_network_materialization": true,
       "full_clean_vm_requires_offline_materialization": true,
       "both_require_mcp_initialize_and_tools_list": true,
+      "both_require_mcp_tools_call_list_apps": true,
       "both_require_permission_status_readback": true,
       "both_require_identity_and_state_readback": true,
       "permission_prompt_completion_may_be_manual": true,
-      "permission_not_granted_expected_state": "installed_registered_enabled_permission_required_not_ready"
+      "permission_not_granted_expected_state": "installed_registered_enabled_permission_required_not_ready",
+      "stable_publication_requires_accessibility_and_screen_recording_granted": true,
+      "stable_publication_requires_ready": true,
+      "stable_publication_requires_codex_backend_detected": true
     },
     "browser_provider": {
       "schema": "opl_app_browser_provider_distribution.v1",

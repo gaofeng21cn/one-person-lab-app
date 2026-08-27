@@ -54,7 +54,7 @@ test('Computer Use has one pinned KimiCU identity across all App contracts', () 
       team_id: '2J9472RW75',
       target_install_path: '/Applications/KimiCU.app',
       executable: '/Applications/KimiCU.app/Contents/MacOS/kimi-cu',
-      mcp_args: ['mcp'],
+      mcp_args: ['mcp', '-s', 'user'],
       required_tools: [
         'list_apps',
         'get_app_state',
@@ -79,6 +79,13 @@ test('Computer Use has one pinned KimiCU identity across all App contracts', () 
   assert.equal(qualification.computer_use_qualification.provider_id, identity.provider_id);
   assert.equal(profile.computer_use.desktop_default_provider, identity.provider_id);
   assert.equal(settings.managed_computer_use.provider_identity_ref, provider.provider_identity_ref);
+  assert.deepEqual(provider.local_agent_backend, {
+    agent_id: 'codex',
+    source: 'app_bundled_codex_cli',
+    detection_evidence: 'managed_codex_home_mcp_registration',
+    registration_must_precede_kimi_cu_panel_launch: true,
+    control_panel_must_detect_configured_backend: true,
+  });
 });
 
 test('Standard and Full use different materialization sources but the same installed behavior', () => {
@@ -167,9 +174,27 @@ test('Computer Use product qualification is deterministic while AI UI review rem
     /installation, registration, enablement, MCP handshake, tools, permissions state, and health are deterministic/,
   );
   assert.equal(distribution.release_qualification.both_require_mcp_initialize_and_tools_list, true);
+  assert.equal(distribution.release_qualification.both_require_mcp_tools_call_list_apps, true);
   assert.equal(distribution.release_qualification.both_require_permission_status_readback, true);
+  assert.equal(distribution.release_qualification.stable_publication_requires_accessibility_and_screen_recording_granted, true);
+  assert.equal(distribution.release_qualification.stable_publication_requires_ready, true);
+  assert.equal(distribution.release_qualification.stable_publication_requires_codex_backend_detected, true);
   assert.deepEqual(identity.health.permission_status_args, ['doctor']);
+  assert.deepEqual(identity.health.mcp_handshake, ['initialize', 'tools/list', 'tools/call:list_apps']);
   assert.equal(distribution.release_qualification.permission_prompt_completion_may_be_manual, true);
+  assert.deepEqual(computerUseQualification.local_agent_backend_acceptance, {
+    agent_id: 'codex',
+    source: 'app_bundled_codex_cli',
+    registration_before_kimi_cu_panel_launch: true,
+    control_panel_no_supported_agent_state_allowed: false,
+  });
+  assert.deepEqual(computerUseQualification.stable_release_acceptance, {
+    accessibility: 'granted',
+    screen_recording: 'granted',
+    ready: true,
+    mcp_functional_probe: 'tools/call:list_apps=passed',
+    codex_backend_detected: true,
+  });
 });
 
 test('next Stable release must qualify packaged Computer Use on both publication tracks', () => {
