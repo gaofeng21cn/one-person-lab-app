@@ -20,6 +20,39 @@
     "active_release_shell": "aionui",
     "candidate_or_contract_evidence_implies_active_adoption_or_release_ready": false
   },
+  "docker_webui_workspace_file_policy": {
+    "schema": "opl_app_docker_webui_workspace_file_policy.v1",
+    "carrier": "docker_webui",
+    "managed_workspace_root_source": "OPL_WORKSPACE_ROOT",
+    "managed_workspace_root": "/projects",
+    "temporary_upload_root": "/tmp",
+    "persistent_project_root": "/projects",
+    "aioncore_source_policy": "official_release_assets_only_without_opl_source_patch_fork_or_private_release",
+    "project_explorer_resolution": {
+      "required_sequence": [
+        "read_conversation_project_id",
+        "read_same_user_domain_project",
+        "read_project_explorer_workspace_pe_id",
+        "copy_uploaded_file_to_target_pe_id",
+        "fresh_project_explorer_read"
+      ],
+      "same_user_domain_required": true,
+      "stale_binding_definition": "conversation_project_id_is_nonempty_but_no_project_with_the_same_project_id_and_user_id_exists",
+      "stale_binding_recovery": {
+        "owner": "opl_aion_shell_web_host_startup_compatibility",
+        "scope": "only_conversations_whose_extra_workspace_exactly_matches_the_managed_workspace_root",
+        "mutation": "set_conversation_project_id_and_folder_id_to_null",
+        "transactional": true,
+        "idempotent": true,
+        "message_mutation_allowed": false,
+        "project_mutation_allowed": false,
+        "other_workspace_mutation_allowed": false,
+        "post_repair_binding_owner": "official_aioncore_lazy_project_binding",
+        "post_repair_shell_requirement": "fresh_conversation_read_before_project_resolution"
+      }
+    },
+    "completion_boundary": "source_contract_and_local_tests_do_not_imply_a_new_webui_image_or_remote_workspace_acceptance"
+  },
   "computer_use_policy": {
     "schema": "opl_app_computer_use_policy.v1",
     "product_status": "default_managed_capability",
