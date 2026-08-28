@@ -1156,8 +1156,8 @@ jobs:
     secrets: inherit
 
   webui-source-authority:
-    if: ${{ !cancelled() && inputs.operation == 'standard' && needs.standard.result == 'success' }}
-    needs: [stable-admission-manifest, standard]
+    if: ${{ always() && !cancelled() && needs.admission.result == 'success' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}
+    needs: [admission, stable-admission-manifest, standard, resume-standard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1182,12 +1182,13 @@ jobs:
       - name: Download exact published Standard checkpoint
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ needs.standard.outputs.source_artifact }}
-          run-id: ${{ needs.standard.outputs.source_run_id }}
+          name: ${{ inputs.operation == 'standard' && needs.standard.outputs.source_artifact || needs.admission.outputs.source_artifact }}
+          run-id: ${{ inputs.operation == 'standard' && needs.standard.outputs.source_run_id || needs.admission.outputs.source_run_id }}
           github-token: ${{ github.token }}
           path: standard-checkpoint
 
       - name: Download same-run Stable admission
+        if: ${{ inputs.operation == 'standard' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: opl-stable-admission-${{ github.run_id }}
@@ -1197,15 +1198,15 @@ jobs:
 
       - name: Bind Docker WebUI to the exact Stable cohort
         id: authority
+        env:
+          OPERATION: ${{ inputs.operation }}
+          RESUME_SOURCE_CUTOFF_OBSERVED_AT: ${{ needs.admission.outputs.operation_started_at }}
         shell: bash
         run: |
           set -euo pipefail
           mapfile -t bundles < <(find standard-checkpoint -type f -name bundle.json -print | LC_ALL=C sort)
-          mapfile -t admissions < <(find stable-admission -type f -name stable-release-admission-manifest.json -print | LC_ALL=C sort)
           test "${#bundles[@]}" -eq 1
-          test "${#admissions[@]}" -eq 1
           bundle="${bundles[0]}"
-          admission="${admissions[0]}"
           jq -e '
             .release.channel == "stable"
             and .release.prerelease == false
@@ -1219,11 +1220,19 @@ jobs:
           shell_ref="$(jq -er .sources.shell.source_commit "$bundle")"
           framework_ref="$(jq -er .sources.framework.source_commit "$bundle")"
           release_bundle_digest="$(jq -er .bundle_digest "$bundle")"
-          source_cutoff_observed_at="$(jq -er .checked_at "$admission")"
-          test "$version" = '${{ needs.stable-admission-manifest.outputs.version }}'
-          test "$app_ref" = '${{ needs.stable-admission-manifest.outputs.app_ref }}'
-          test "$shell_ref" = '${{ needs.stable-admission-manifest.outputs.shell_ref }}'
-          test "$framework_ref" = '${{ needs.stable-admission-manifest.outputs.framework_ref }}'
+          if [ "$OPERATION" = standard ]; then
+            mapfile -t admissions < <(find stable-admission -type f -name stable-release-admission-manifest.json -print | LC_ALL=C sort)
+            test "${#admissions[@]}" -eq 1
+            source_cutoff_observed_at="$(jq -er .checked_at "${admissions[0]}")"
+            test "$version" = '${{ needs.stable-admission-manifest.outputs.version }}'
+            test "$app_ref" = '${{ needs.stable-admission-manifest.outputs.app_ref }}'
+            test "$shell_ref" = '${{ needs.stable-admission-manifest.outputs.shell_ref }}'
+            test "$framework_ref" = '${{ needs.stable-admission-manifest.outputs.framework_ref }}'
+          else
+            test "$OPERATION" = resume_standard
+            source_cutoff_observed_at="$RESUME_SOURCE_CUTOFF_OBSERVED_AT"
+            test -n "$source_cutoff_observed_at"
+          fi
           node --experimental-strip-types scripts/webui-source-authority.ts create \
             --origin stable_standard \
             --version "$version" \

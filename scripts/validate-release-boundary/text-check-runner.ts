@@ -772,13 +772,25 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     );
   }
   const webuiSourceAuthority = jobs['webui-source-authority'];
+  const webuiSourceAuthorityRun = jobRuns(webuiSourceAuthority);
+  const webuiCheckpointDownload = webuiSourceAuthority?.steps?.find(
+    (step: Record<string, any>) => step.name === 'Download exact published Standard checkpoint',
+  );
+  const webuiAdmissionDownload = webuiSourceAuthority?.steps?.find(
+    (step: Record<string, any>) => step.name === 'Download same-run Stable admission',
+  );
   if (
     !webuiSourceAuthority
-    || !needsExactly(webuiSourceAuthority, ['stable-admission-manifest', 'standard'])
-    || webuiSourceAuthority.if !== "${{ !cancelled() && inputs.operation == 'standard' && needs.standard.result == 'success' }}"
+    || !needsExactly(webuiSourceAuthority, ['admission', 'stable-admission-manifest', 'standard', 'resume-standard'])
+    || webuiSourceAuthority.if !== "${{ always() && !cancelled() && needs.admission.result == 'success' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}"
     || !exactObject(webuiSourceAuthority.permissions, exactReadPermissions)
-    || !jobRuns(webuiSourceAuthority).includes('--origin stable_standard')
-    || !jobRuns(webuiSourceAuthority).includes('.bundle_digest')
+    || webuiCheckpointDownload?.with?.name !== "${{ inputs.operation == 'standard' && needs.standard.outputs.source_artifact || needs.admission.outputs.source_artifact }}"
+    || webuiCheckpointDownload?.with?.['run-id'] !== "${{ inputs.operation == 'standard' && needs.standard.outputs.source_run_id || needs.admission.outputs.source_run_id }}"
+    || webuiAdmissionDownload?.if !== "${{ inputs.operation == 'standard' }}"
+    || !webuiSourceAuthorityRun.includes('--origin stable_standard')
+    || !webuiSourceAuthorityRun.includes('.bundle_digest')
+    || !webuiSourceAuthorityRun.includes('test "$OPERATION" = resume_standard')
+    || !webuiSourceAuthorityRun.includes('source_cutoff_observed_at="$RESUME_SOURCE_CUTOFF_OBSERVED_AT"')
     || !isAuthorizedStableWebuiWriteJob('.github/workflows/release-stable.yml', 'webui-carrier', jobs['webui-carrier'])
     || !isAuthorizedStableWebuiWriteJob('.github/workflows/release-stable.yml', 'webui-promotion', jobs['webui-promotion'])
   ) {

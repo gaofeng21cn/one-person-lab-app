@@ -3594,7 +3594,7 @@
         ".github/workflows/release-stable.yml",
         ".github/workflows/release-webui-development.yml"
       ],
-      "entry_operations": ["standard", "publish", "promote"],
+      "entry_operations": ["standard", "resume_standard", "publish", "promote"],
       "protected_environment": "release-preview-publication",
       "immutable_version_required": false,
       "public_version_tag_policy": "mutable_replace_after_dual_arch_qualification_and_carrier_receipt",

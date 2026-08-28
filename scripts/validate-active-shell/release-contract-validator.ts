@@ -1869,6 +1869,12 @@ function validateWebuiGhcrImage(webuiImage) {
       '.github/workflows/release-stable.yml',
       '.github/workflows/release-webui-development.yml',
     ]) ||
+    JSON.stringify(webuiImage.stable_promotion?.entry_operations) !== JSON.stringify([
+      'standard',
+      'resume_standard',
+      'publish',
+      'promote',
+    ]) ||
     webuiImage.stable_promotion?.immutable_version_required !== false ||
     webuiImage.stable_promotion?.public_version_tag_written_last !== true ||
     webuiImage.stable_promotion?.failed_internal_attempt_may_allocate_revision !== false ||
