@@ -214,7 +214,7 @@ GUI contract 与 Settings Control Plane 拥有。
 | 账户与模型 > 账户与访问 | 登录 OPL Gateway 或配置手工 API Key；账户连接时查看脱敏身份、余额、Token/实际成本、专用 Key 状态和数据新鲜度。 | Framework Gateway account projection/secret bridge；密码不进入 App state 或 generic action。 |
 | 账户与模型 > 模型 | 查看模型访问来源、默认模型、推理偏好与 Codex CLI 版本，不复制 Gateway 账户和凭据控制。 | Framework model access projection、App model/reasoning preference。 |
 | 连接与部署 > 资源与连接 | 查看真实存在的本机访问、WebUI 和外部连接 refs；内置 OPL Gateway 不在这里重复。Hosted Workspace、Fabric/HPC、Console 仅在稳定 owner/backend 存在时出现。 | Framework/Connect refs；X0-03/X0-04 owner routes 条件启用，App 不拥有资源 truth。 |
-| 工作区 > 工作目录 | Desktop 查看、切换、验证 Framework logical workspace root；standalone WebUI 只读显示实际 owner 投影，Docker WebUI 只读显示 `/projects`；任何 WebUI 都不执行 `workspace_root_set` 或修改宿主 bind。 | Framework workspace state/action、carrier policy。 |
+| 工作区 > 工作目录 | Desktop 查看、切换、验证 Framework logical workspace root；standalone WebUI 只读显示实际 owner 投影；Docker WebUI 将只读 deployment root `/projects` 作为持久目录 catalog，并允许新 Conversation 创建或选择其下的顶层工作目录。任何 WebUI 都不执行 `workspace_root_set` 或修改宿主 bind；AionCore 继续拥有 Folder/Project 绑定。 | App Docker WebUI workspace contract、Framework workspace state/action、carrier policy。 |
 | 工作区 > 数据与存储 | 查看空间、数据分类、preview、安全 cleanup，以及 Docker `/projects`、`/data` 与可选 `/recovery` 的只读部署位置。 | App-owned storage lifecycle、Framework/host projections。 |
 | 智能体与能力 > 智能体 | 管理可运行 Agent Packages、presence依赖、独立静默更新、Home shortcuts 与 lifecycle。 | Native platform lifecycle + Framework discovery/status/action adapter；Official Profile只用于first install/restore。 |
 | 智能体与能力 > 能力 | 动态查看 Package暴露的 Skill/Tool/Plugin/MCP/producer/view capability；不维护App allowlist。 | Package/native discovery + user presentation preference。 |

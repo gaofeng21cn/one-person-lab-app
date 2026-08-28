@@ -528,7 +528,10 @@ Storage adds one read-only deployment-location summary:
   project and task artifacts. `OPL_PROJECTS_DIR=/projects` and
   `OPL_WORKSPACE_ROOT=/projects` make this the deployment-managed logical
   workspace root. Working Directory shows `/projects` read-only and cannot
-  change the host source path;
+  change the host source path. Docker WebUI may create and select user working
+  directories directly below this catalog root, for example
+  `/projects/project-a` and `/projects/project-b`; this does not mutate the
+  deployment bind;
 - the required host **data** directory binds to `/data`; it contains App data,
   Framework state, Codex Home and session records, and logs including
   `/data/logs`. Settings cannot change or split this bind;
@@ -539,6 +542,21 @@ Storage adds one read-only deployment-location summary:
 Changing either host source directory belongs to `compose.yaml` or the
 installer. Settings exposes no mount editor, environment mutation, generic
 Docker prune, or volume-rewire control.
+
+Docker WebUI treats `/projects` as one persistent workspace catalog, not as a
+Cloud-owned Project database. Home/New Conversation can list, create, and
+select the catalog root or one direct child. The exact selected runtime path is
+written to `Conversation.extra.workspace`; AionCore then owns user-domain
+Folder/Project creation or reuse. Multiple Conversations may reuse one working
+directory, while an existing Conversation keeps its original binding when the
+user changes the default selection. Upload and Project Explorer actions are
+scoped to the current Conversation's bound directory.
+
+The first delivery excludes rename, delete, move, and cross-directory migration.
+Paths are canonicalized and confined to `/projects`; parent traversal, absolute
+path injection, and symlink escape are rejected. Cloud, Fabric, Console, and
+Instance neither create AionCore `project_id` values nor maintain a parallel
+directory catalog.
 
 ### Preferences
 

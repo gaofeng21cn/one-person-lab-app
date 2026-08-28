@@ -21,13 +21,52 @@
     "candidate_or_contract_evidence_implies_active_adoption_or_release_ready": false
   },
   "docker_webui_workspace_file_policy": {
-    "schema": "opl_app_docker_webui_workspace_file_policy.v1",
+    "schema": "opl_app_docker_webui_workspace_file_policy.v2",
     "carrier": "docker_webui",
     "managed_workspace_root_source": "OPL_WORKSPACE_ROOT",
     "managed_workspace_root": "/projects",
     "temporary_upload_root": "/tmp",
     "persistent_project_root": "/projects",
     "aioncore_source_policy": "official_release_assets_only_without_opl_source_patch_fork_or_private_release",
+    "workspace_catalog": {
+      "owner": "one_person_lab_app",
+      "catalog_root": "/projects",
+      "deployment_managed_root_mutation_allowed": false,
+      "user_managed_top_level_directories": true,
+      "initial_operations": [
+        "create",
+        "list",
+        "select",
+        "bind_new_conversation"
+      ],
+      "initial_destructive_operations_allowed": false,
+      "path_policy": {
+        "canonical_path_required": true,
+        "must_be_catalog_root_or_direct_child": true,
+        "parent_traversal_allowed": false,
+        "absolute_path_injection_allowed": false,
+        "symlink_escape_allowed": false
+      },
+      "conversation_binding": {
+        "source": "conversation_extra_workspace",
+        "exact_runtime_path_required": true,
+        "immutable_after_conversation_creation": true,
+        "same_working_directory_reusable_by_multiple_conversations": true,
+        "aioncore_project_binding_owner": "official_aioncore_user_domain_project_binding",
+        "cloud_or_instance_project_crud_allowed": false
+      },
+      "project_mapping": {
+        "one_working_directory_maps_to_one_user_domain_project": true,
+        "example": {
+          "/projects/project-a": "P1",
+          "/projects/project-b": "P2",
+          "/projects/project-c": "P3"
+        }
+      },
+      "current_conversation_upload_target": "bound_working_directory",
+      "project_explorer_scope": "current_conversation_bound_project_workspace_root",
+      "legacy_root_conversation_compatibility": "/projects"
+    },
     "project_explorer_resolution": {
       "required_sequence": [
         "read_conversation_project_id",

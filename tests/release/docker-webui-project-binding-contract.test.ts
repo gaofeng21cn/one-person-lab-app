@@ -47,3 +47,40 @@ test("Docker WebUI repairs only stale managed-workspace project bindings before 
     "source_contract_and_local_tests_do_not_imply_a_new_webui_image_or_remote_workspace_acceptance",
   );
 });
+
+test("Docker WebUI exposes multiple persistent working directories without creating a second Project SSOT", () => {
+  const gui = readJson("contracts/app-gui-product-contract.json");
+  const policy = gui.docker_webui_workspace_file_policy;
+  const catalog = policy.workspace_catalog;
+
+  assert.equal(policy.schema, "opl_app_docker_webui_workspace_file_policy.v2");
+  assert.equal(catalog.owner, "one_person_lab_app");
+  assert.equal(catalog.catalog_root, "/projects");
+  assert.equal(catalog.deployment_managed_root_mutation_allowed, false);
+  assert.equal(catalog.user_managed_top_level_directories, true);
+  assert.deepEqual(catalog.initial_operations, ["create", "list", "select", "bind_new_conversation"]);
+  assert.equal(catalog.initial_destructive_operations_allowed, false);
+  assert.deepEqual(catalog.path_policy, {
+    canonical_path_required: true,
+    must_be_catalog_root_or_direct_child: true,
+    parent_traversal_allowed: false,
+    absolute_path_injection_allowed: false,
+    symlink_escape_allowed: false,
+  });
+  assert.deepEqual(catalog.conversation_binding, {
+    source: "conversation_extra_workspace",
+    exact_runtime_path_required: true,
+    immutable_after_conversation_creation: true,
+    same_working_directory_reusable_by_multiple_conversations: true,
+    aioncore_project_binding_owner: "official_aioncore_user_domain_project_binding",
+    cloud_or_instance_project_crud_allowed: false,
+  });
+  assert.deepEqual(catalog.project_mapping.example, {
+    "/projects/project-a": "P1",
+    "/projects/project-b": "P2",
+    "/projects/project-c": "P3",
+  });
+  assert.equal(catalog.current_conversation_upload_target, "bound_working_directory");
+  assert.equal(catalog.project_explorer_scope, "current_conversation_bound_project_workspace_root");
+  assert.equal(catalog.legacy_root_conversation_compatibility, "/projects");
+});
