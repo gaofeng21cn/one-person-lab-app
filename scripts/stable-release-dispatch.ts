@@ -450,21 +450,21 @@ export function buildAppendFullPlan(input: {
       'prior_full_artifact_run_id',
     );
   }
-  if (input.smokeHarnessSha) {
+  if (input.smokeHarnessSha || input.verificationAppSha) {
     const checkpointRecovery = input.sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
       || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
     if (!input.priorFullArtifactRunId && !checkpointRecovery) {
-      throw new Error('smoke_harness_ref requires a reusable Full checkpoint.');
+      throw new Error('verification harness refs require a reusable Full checkpoint.');
     }
-    workflowInputs.smoke_harness_ref = sha(input.smokeHarnessSha, 'smoke_harness_ref');
-  }
-  if (input.verificationAppSha) {
-    const checkpointRecovery = input.sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
-      || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
-    if (!input.priorFullArtifactRunId && !checkpointRecovery) {
-      throw new Error('verification_app_ref requires a reusable Full checkpoint.');
-    }
-    workflowInputs.verification_app_ref = sha(input.verificationAppSha, 'verification_app_ref');
+    const smokeHarnessRef = input.smokeHarnessSha
+      ? sha(input.smokeHarnessSha, 'smoke_harness_ref')
+      : null;
+    const verificationAppRef = input.verificationAppSha
+      ? sha(input.verificationAppSha, 'verification_app_ref')
+      : null;
+    workflowInputs.smoke_harness_ref = verificationAppRef
+      ? JSON.stringify({ app_ref: verificationAppRef, shell_ref: smokeHarnessRef })
+      : smokeHarnessRef!;
   }
   return {
     schema: 'opl_app_stable_dispatch_plan.v1',
@@ -478,8 +478,8 @@ export function buildAppendFullPlan(input: {
       requested_run_id: input.recoveryRunId ?? input.priorFullArtifactRunId ?? null,
       artifact_producer_run_id: input.artifactProducerRunId ?? null,
       qualification_run_id: input.qualificationRunId ?? null,
-      smoke_harness_ref: workflowInputs.smoke_harness_ref ?? null,
-      verification_app_ref: workflowInputs.verification_app_ref ?? null,
+      smoke_harness_ref: input.smokeHarnessSha ? sha(input.smokeHarnessSha, 'smoke_harness_ref') : null,
+      verification_app_ref: input.verificationAppSha ? sha(input.verificationAppSha, 'verification_app_ref') : null,
     },
     cohort: {
       app_sha: workflowInputs.app_ref,

@@ -277,8 +277,8 @@ test('append_full preserves the Standard checkpoint while binding a fresh Full c
   const append = controller.jobs['append-full'].with;
 
   assert.equal(controller.on.workflow_dispatch.inputs.app_ref.required, false);
+  assert.ok(Object.keys(controller.on.workflow_dispatch.inputs).length <= 25);
   assert.equal(controllerAdmission.env.REQUESTED_APP_REF, '${{ inputs.app_ref }}');
-  assert.equal(controllerAdmission.env.REQUESTED_VERIFICATION_APP_REF, '${{ inputs.verification_app_ref }}');
   assert.match(controllerAdmissionRun, /APP_REF="\$REQUESTED_APP_REF"/);
   assert.match(controllerAdmissionRun, /FRAMEWORK_SOURCE_REF="\$FRAMEWORK_EXECUTOR_REF"/);
   assert.equal(append.source_run_id, '${{ needs.admission.outputs.source_run_id }}');

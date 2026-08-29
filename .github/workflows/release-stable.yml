@@ -103,12 +103,7 @@ on:
         default: ''
         type: string
       smoke_harness_ref:
-        description: Exact opl-aion-shell verification ref used only when requalifying unchanged Full checkpoint bytes
-        required: false
-        default: ''
-        type: string
-      verification_app_ref:
-        description: Exact App verification ref used only when requalifying unchanged Full checkpoint bytes
+        description: Exact Shell verification SHA or strict App/Shell verification-ref JSON used only for unchanged Full checkpoint bytes
         required: false
         default: ''
         type: string
@@ -801,7 +796,6 @@ jobs:
           INCLUDE_FULL: 'false'
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
           REQUESTED_SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
-          REQUESTED_VERIFICATION_APP_REF: ${{ inputs.verification_app_ref }}
           REQUESTED_FRAMEWORK_REF: ${{ inputs.framework_ref }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
@@ -826,8 +820,26 @@ jobs:
           APP_REF="$executor_sha"
           VERSION="$REQUESTED_VERSION"
           SHELL_REF="$REQUESTED_SHELL_REF"
-          SMOKE_HARNESS_REF="$REQUESTED_SMOKE_HARNESS_REF"
-          VERIFICATION_APP_REF="$REQUESTED_VERIFICATION_APP_REF"
+          SMOKE_HARNESS_REF=''
+          VERIFICATION_APP_REF=''
+          if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
+            if [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]; then
+              SMOKE_HARNESS_REF="$REQUESTED_SMOKE_HARNESS_REF"
+            else
+              jq -e '
+                type == "object"
+                and (keys | sort) == ["app_ref", "shell_ref"]
+                and ((.app_ref == null) or (.app_ref | type == "string" and test("^[0-9a-f]{40}$")))
+                and ((.shell_ref == null) or (.shell_ref | type == "string" and test("^[0-9a-f]{40}$")))
+                and ((.app_ref != null) or (.shell_ref != null))
+              ' <<<"$REQUESTED_SMOKE_HARNESS_REF" >/dev/null || {
+                echo "::error::smoke_harness_ref must be an exact Shell SHA or strict App/Shell verification-ref JSON."
+                exit 1
+              }
+              VERIFICATION_APP_REF="$(jq -r '.app_ref // ""' <<<"$REQUESTED_SMOKE_HARNESS_REF")"
+              SMOKE_HARNESS_REF="$(jq -r '.shell_ref // ""' <<<"$REQUESTED_SMOKE_HARNESS_REF")"
+            fi
+          fi
           FRAMEWORK_SOURCE_REF=''
           FRAMEWORK_EXECUTOR_REF=''
           case "$OPERATION" in
@@ -837,7 +849,7 @@ jobs:
                 echo "::error::A new product release requires a user-visible product change summary."
                 exit 1
               }
-              test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_VERIFICATION_APP_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
+              test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
                 echo "::error::A new Standard Bundle accepts no external source artifact."
                 exit 1
               }
@@ -893,7 +905,7 @@ jobs:
                 FRAMEWORK_SOURCE_REF="$FRAMEWORK_EXECUTOR_REF"
               fi
               if [ "$OPERATION" = resume_standard ]; then
-                test -z "$PRIOR_FULL_ARTIFACT_RUN_ID$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_VERIFICATION_APP_REF" || {
+                test -z "$PRIOR_FULL_ARTIFACT_RUN_ID$SMOKE_HARNESS_REF$VERIFICATION_APP_REF" || {
                   echo "::error::Only append_full may reuse an exact prior Full artifact run."
                   exit 1
                 }
@@ -903,27 +915,27 @@ jobs:
                   exit 1
                 }
                 test "$PRIOR_FULL_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
-                if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
-                  [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                if [ -n "$SMOKE_HARNESS_REF" ]; then
+                  [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
                     echo "::error::append_full recovery smoke_harness_ref must be an exact lowercase Shell SHA."
                     exit 1
                   }
                 fi
-                if [ -n "$REQUESTED_VERIFICATION_APP_REF" ]; then
-                  [[ "$REQUESTED_VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                if [ -n "$VERIFICATION_APP_REF" ]; then
+                  [[ "$VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]] || {
                     echo "::error::append_full recovery verification_app_ref must be an exact lowercase App SHA."
                     exit 1
                   }
                 fi
-              elif [ -n "$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_VERIFICATION_APP_REF" ]; then
-                if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
-                  [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
+              elif [ -n "$SMOKE_HARNESS_REF$VERIFICATION_APP_REF" ]; then
+                if [ -n "$SMOKE_HARNESS_REF" ]; then
+                  [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
                     echo "::error::append_full recovery smoke_harness_ref must be an exact lowercase Shell SHA."
                     exit 1
                   }
                 fi
-                if [ -n "$REQUESTED_VERIFICATION_APP_REF" ]; then
-                  [[ "$REQUESTED_VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                if [ -n "$VERIFICATION_APP_REF" ]; then
+                  [[ "$VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]] || {
                     echo "::error::append_full recovery verification_app_ref must be an exact lowercase App SHA."
                     exit 1
                   }

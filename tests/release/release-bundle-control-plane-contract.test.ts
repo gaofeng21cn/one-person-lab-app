@@ -546,8 +546,7 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.deepEqual(full.successor_trigger.manual_reconcile_inputs, [
     "source_run_id",
     "operation",
-    "verification_app_ref_optional",
-    "smoke_harness_ref_optional",
+    "verification_harness_refs_optional",
   ]);
   assert.equal(full.successor_trigger.failed_run_identity_inputs_allowed, false);
   assert.equal(

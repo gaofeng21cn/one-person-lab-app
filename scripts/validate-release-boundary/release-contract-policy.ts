@@ -578,8 +578,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     !sameStringSet(fullAddon?.successor_trigger?.manual_reconcile_inputs, [
       'source_run_id',
       'operation',
-      'verification_app_ref_optional',
-      'smoke_harness_ref_optional',
+      'verification_harness_refs_optional',
     ]) ||
     fullAddon?.successor_trigger?.failed_run_identity_inputs_allowed !== false ||
     fullAddon?.successor_trigger?.completion_boundary !==

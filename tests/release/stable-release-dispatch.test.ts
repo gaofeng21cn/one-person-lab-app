@@ -134,8 +134,11 @@ test('Full checkpoint requalification preserves the tag and accepts exact option
   });
   assert.equal(plan.version_policy, 'preserve_source_tag');
   assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
-  assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
-  assert.equal(plan.workflow_inputs.verification_app_ref, '5'.repeat(40));
+  assert.equal(plan.workflow_inputs.smoke_harness_ref, JSON.stringify({
+    app_ref: '5'.repeat(40),
+    shell_ref: '4'.repeat(40),
+  }));
+  assert.equal('verification_app_ref' in plan.workflow_inputs, false);
   assert.equal(plan.recovery.verification_app_ref, '5'.repeat(40));
   assert.equal('version' in plan.workflow_inputs, false);
   assert.throws(() => buildAppendFullPlan({
@@ -146,7 +149,7 @@ test('Full checkpoint requalification preserves the tag and accepts exact option
     shellSha,
     frameworkSha,
     smokeHarnessSha: '4'.repeat(40),
-  }), /reusable Full checkpoint/);
+  }), /verification harness refs require a reusable Full checkpoint/);
   assert.throws(() => buildAppendFullPlan({
     attemptId: 'append-full-20260824-aabbccdd',
     sourceRunId: '32617588213',
@@ -155,7 +158,7 @@ test('Full checkpoint requalification preserves the tag and accepts exact option
     shellSha,
     frameworkSha,
     verificationAppSha: '5'.repeat(40),
-  }), /verification_app_ref requires a reusable Full checkpoint/);
+  }), /verification harness refs require a reusable Full checkpoint/);
 });
 
 test('Full target-state reconciliation follows checkpoint retries back to one Standard source', () => {

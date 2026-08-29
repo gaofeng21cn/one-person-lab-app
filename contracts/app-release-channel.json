@@ -4317,8 +4317,7 @@
         "manual_reconcile_inputs": [
           "source_run_id",
           "operation",
-          "verification_app_ref_optional",
-          "smoke_harness_ref_optional"
+          "verification_harness_refs_optional"
         ],
         "failed_run_identity_inputs_allowed": false,
         "completion_boundary": "owner_run_identified_without_waiting_for_full_completion",
