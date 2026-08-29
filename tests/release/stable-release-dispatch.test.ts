@@ -9,11 +9,14 @@ import {
   buildAppendFullPlan,
   buildPublishQualifiedStandardPlan,
   dispatchOnce,
+  fullCheckpointMatchesRequestedCohort,
   reachableAppendFullRuns,
+  reconcileAppendFullCheckpointCohort,
   reconcileAppendFullTarget,
   selectCheckpointArtifact,
   selectQualifiedStandardCheckpointArtifact,
   selectReusableFullCheckpointArtifact,
+  selectReusableStandardCheckpointArtifact,
   sourceGate,
   workflowDispatchArgs,
 } from '../../scripts/stable-release-dispatch.ts';
@@ -94,6 +97,59 @@ test('qualified Standard publication selects only the exact qualification checkp
     () => selectQualifiedStandardCheckpointArtifact([], '123'),
     /exactly one qualified Standard checkpoint/,
   );
+});
+
+test('Full checkpoint reuse requires an exact content cohort and otherwise returns to Standard', () => {
+  const checkpointTarget = {
+    state: 'dispatch_required' as const,
+    root_source_run_id: '100',
+    owner_run_id: null,
+    source_run_id: '102',
+    source_artifact: 'opl-release-full-checkpoint-102',
+  };
+  const checkpointCohort = {
+    schema: 'opl_app_build_artifact_cohort.v2',
+    build: { kind: 'full' },
+    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
+  };
+  const rootArtifacts = [
+    { id: 1, name: 'opl-release-standard-operation-checkpoint-100', expired: false },
+  ];
+  assert.equal(fullCheckpointMatchesRequestedCohort(checkpointCohort, {
+    appSha, shellSha, frameworkSha,
+  }), true);
+  assert.deepEqual(reconcileAppendFullCheckpointCohort({
+    target: checkpointTarget,
+    rootArtifacts,
+    checkpointCohort,
+    appSha,
+    shellSha,
+    frameworkSha,
+  }), checkpointTarget);
+
+  const currentFrameworkSha = '4'.repeat(40);
+  assert.equal(fullCheckpointMatchesRequestedCohort(checkpointCohort, {
+    appSha, shellSha, frameworkSha: currentFrameworkSha,
+  }), false);
+  assert.deepEqual(reconcileAppendFullCheckpointCohort({
+    target: checkpointTarget,
+    rootArtifacts,
+    checkpointCohort,
+    appSha,
+    shellSha,
+    frameworkSha: currentFrameworkSha,
+  }), {
+    state: 'dispatch_required',
+    root_source_run_id: '100',
+    owner_run_id: null,
+    source_run_id: '100',
+    source_artifact: 'opl-release-standard-operation-checkpoint-100',
+  });
+  assert.equal(selectReusableStandardCheckpointArtifact(rootArtifacts, '100'), rootArtifacts[0]!.name);
+  assert.throws(() => fullCheckpointMatchesRequestedCohort({
+    ...checkpointCohort,
+    schema: 'unknown',
+  }, { appSha, shellSha, frameworkSha }), /schema is invalid/);
 });
 
 test('a new product version requires the prior Standard publication, not optional followers', () => {

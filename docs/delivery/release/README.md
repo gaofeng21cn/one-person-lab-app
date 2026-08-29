@@ -38,8 +38,9 @@ Omit `--execute` for a read-only plan. The command never accepts a version: only
 `new-product-release` may ask the workflow to allocate one, and it requires an explicit nonempty
 user-visible product change summary. `publish-qualified-standard` and `append-full` preserve the
 source checkpoint tag. For Full, `append-full` follows the complete recovery chain, binds a published or active owner when one
-exists, otherwise reuses the newest non-expired Full checkpoint before falling back to the original
-Standard checkpoint. An exact `--smoke-harness-ref <sha>` may requalify unchanged Full checkpoint
+exists, otherwise reuses the newest non-expired Full checkpoint whose App, Shell and Framework content
+SHAs exactly match the requested Full cohort. A mismatch falls back to the original Standard checkpoint
+and builds new Full bytes. An exact `--smoke-harness-ref <sha>` may requalify unchanged Full checkpoint
 bytes without rebuilding them. One controller attempt makes at most one workflow mutation. If the
 dispatch result is unknown, the controller performs read-only reconciliation and never retries it.
 

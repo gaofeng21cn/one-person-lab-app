@@ -435,7 +435,7 @@ test('Full macOS publication is self-identified, same-tag additive, recoverable,
   );
   assert.equal(
     follower.automatic_checkpoint_reuse,
-    'latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain',
+    'latest_nonexpired_full_or_append_operation_checkpoint_with_exact_full_content_cohort_in_the_standard_recovery_chain',
   );
   assert.equal(follower.one_active_owner_per_recovery_chain, true);
 });

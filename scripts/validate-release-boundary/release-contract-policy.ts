@@ -567,7 +567,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     JSON.stringify(fullAddon?.successor_trigger?.owner_resolution_order) !== JSON.stringify([
       'published_owner',
       'active_owner',
-      'latest_reusable_full_checkpoint',
+      'latest_reusable_full_checkpoint_with_exact_full_content_cohort',
       'original_standard_checkpoint',
     ]) ||
     fullAddon?.successor_trigger?.operation_kind_source !==
@@ -2585,7 +2585,7 @@ export function validateReleasePlatformMatrix(
     || follower?.failure_receipt_required !== true
     || follower?.recovery !== 'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
     || follower?.automatic_checkpoint_reuse !==
-      'latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain'
+      'latest_nonexpired_full_or_append_operation_checkpoint_with_exact_full_content_cohort_in_the_standard_recovery_chain'
     || follower?.one_active_owner_per_recovery_chain !== true
   ) {
     console.error('FAIL release_platform_matrix: Full macOS follower must remain same-tag, mutable-target CAS-bound, durable, and non-blocking');

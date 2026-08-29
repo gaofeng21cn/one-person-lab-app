@@ -230,6 +230,106 @@ export function selectQualifiedStandardCheckpointArtifact(
   return matches[0]!.name;
 }
 
+export function selectReusableStandardCheckpointArtifact(
+  artifacts: WorkflowArtifact[],
+  sourceRunId: string,
+): string {
+  const id = runId(sourceRunId, 'source_run_id');
+  for (const expected of [
+    `opl-release-standard-operation-checkpoint-${id}`,
+    `opl-release-standard-checkpoint-${id}`,
+  ]) {
+    const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
+    if (matches.length > 1) {
+      throw new Error(`Run ${id} exposes multiple reusable ${expected} artifacts.`);
+    }
+    if (matches.length === 1) return expected;
+  }
+  throw new Error(`Run ${id} exposes no reusable Standard checkpoint.`);
+}
+
+function isFullCheckpointArtifact(sourceArtifact: string, sourceRunId: string): boolean {
+  return sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
+    || sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
+}
+
+export function fullCheckpointMatchesRequestedCohort(
+  value: unknown,
+  requested: { appSha: string; shellSha: string; frameworkSha: string },
+): boolean {
+  const manifest = record(value, 'Full checkpoint build cohort');
+  if (manifest.schema !== 'opl_app_build_artifact_cohort.v2') {
+    throw new Error('Full checkpoint build cohort schema is invalid.');
+  }
+  const build = record(manifest.build, 'Full checkpoint build identity');
+  if (build.kind !== 'full') throw new Error('Full checkpoint build cohort is not a Full artifact.');
+  const cohort = record(manifest.cohort, 'Full checkpoint content cohort');
+  const actual = {
+    appSha: sha(cohort.app_sha, 'Full checkpoint app_sha'),
+    shellSha: sha(cohort.shell_sha, 'Full checkpoint shell_sha'),
+    frameworkSha: sha(cohort.framework_sha, 'Full checkpoint framework_sha'),
+  };
+  return actual.appSha === sha(requested.appSha, 'requested app_sha')
+    && actual.shellSha === sha(requested.shellSha, 'requested shell_sha')
+    && actual.frameworkSha === sha(requested.frameworkSha, 'requested framework_sha');
+}
+
+export function reconcileAppendFullCheckpointCohort(input: {
+  target: AppendFullTargetState;
+  rootArtifacts: WorkflowArtifact[];
+  checkpointCohort: unknown;
+  appSha: string;
+  shellSha: string;
+  frameworkSha: string;
+}): AppendFullTargetState {
+  if (input.target.state !== 'dispatch_required') return input.target;
+  if (!isFullCheckpointArtifact(input.target.source_artifact, input.target.source_run_id)) {
+    return input.target;
+  }
+  if (fullCheckpointMatchesRequestedCohort(input.checkpointCohort, input)) return input.target;
+  const rootSourceRunId = input.target.root_source_run_id;
+  return {
+    state: 'dispatch_required',
+    root_source_run_id: rootSourceRunId,
+    owner_run_id: null,
+    source_run_id: rootSourceRunId,
+    source_artifact: selectReusableStandardCheckpointArtifact(input.rootArtifacts, rootSourceRunId),
+  };
+}
+
+function readFullCheckpointCohort(
+  runtime: Runtime,
+  repository: string,
+  sourceRunId: string,
+  artifacts: WorkflowArtifact[],
+): unknown {
+  const matches = artifacts.filter((artifact) => (
+    !artifact.expired
+    && /^opl-full-first-install-dmg-.+-mac-arm64-cohort$/.test(artifact.name)
+  ));
+  if (matches.length !== 1) {
+    throw new Error(`Run ${sourceRunId} must expose exactly one reusable Full build cohort; found ${matches.length}.`);
+  }
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-checkpoint-cohort-'));
+  try {
+    runRequired(
+      runtime,
+      'gh',
+      [
+        'run', 'download', sourceRunId,
+        '--repo', repository,
+        '--name', matches[0]!.name,
+        '--dir', tempRoot,
+      ],
+      2 * 60_000,
+      `Download Full build cohort for run ${sourceRunId}`,
+    );
+    return readJsonFile(path.join(tempRoot, 'opl-build-cohort.json'));
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
 function normalizedOwnerRun(value: unknown): OwnerWorkflowRun | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const run = value as JsonRecord;
@@ -888,12 +988,33 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     for (const artifactRunId of artifactRunIds) {
       artifactsByRunId[artifactRunId] = workflowArtifacts(runtime, repository, artifactRunId);
     }
-    const target = reconcileAppendFullTarget({
+    const appSha = values['app-ref'] ? sha(values['app-ref'], 'app_ref') : executorSha;
+    const shellSha = values['shell-ref'] ? sha(values['shell-ref'], 'shell_ref') : wireSha(runtime, shellRemote);
+    const frameworkSha = values['framework-ref']
+      ? sha(values['framework-ref'], 'framework_ref')
+      : wireSha(runtime, frameworkRemote);
+    let target = reconcileAppendFullTarget({
       runs: observation.runs,
       rootSourceRunId,
       artifactsByRunId,
       workflow,
     });
+    if (target.state === 'dispatch_required'
+      && isFullCheckpointArtifact(target.source_artifact, target.source_run_id)) {
+      target = reconcileAppendFullCheckpointCohort({
+        target,
+        rootArtifacts: artifactsByRunId[rootSourceRunId] ?? [],
+        checkpointCohort: readFullCheckpointCohort(
+          runtime,
+          repository,
+          target.source_run_id,
+          artifactsByRunId[target.source_run_id] ?? [],
+        ),
+        appSha,
+        shellSha,
+        frameworkSha,
+      });
+    }
     const appendAttemptId = attemptId('append-full', runtime);
     if (target.state !== 'dispatch_required') {
       const ownerRun = observation.runs
@@ -928,11 +1049,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       attemptId: appendAttemptId,
       sourceRunId,
       sourceArtifact,
-      appSha: values['app-ref'] ? sha(values['app-ref'], 'app_ref') : executorSha,
-      shellSha: values['shell-ref'] ? sha(values['shell-ref'], 'shell_ref') : wireSha(runtime, shellRemote),
-      frameworkSha: values['framework-ref']
-        ? sha(values['framework-ref'], 'framework_ref')
-        : wireSha(runtime, frameworkRemote),
+      appSha,
+      shellSha,
+      frameworkSha,
       smokeHarnessSha: values['smoke-harness-ref'],
       verificationAppSha: values['verification-app-ref'],
       recoveryRunId: isFullRecovery ? sourceRunId : rootSourceRunId,

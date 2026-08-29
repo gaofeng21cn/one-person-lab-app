@@ -1740,7 +1740,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.full_macos_additive_follower?.recovery !==
       'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
     || platformMatrix?.full_macos_additive_follower?.automatic_checkpoint_reuse !==
-      'latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain'
+      'latest_nonexpired_full_or_append_operation_checkpoint_with_exact_full_content_cohort_in_the_standard_recovery_chain'
     || platformMatrix?.full_macos_additive_follower?.one_active_owner_per_recovery_chain !== true
   ) {
     throw new Error('Release platform matrix must keep only macOS ARM64 Stable-blocking while platform followers and the same-tag Full module remain non-blocking');

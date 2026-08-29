@@ -533,7 +533,7 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.deepEqual(full.successor_trigger.owner_resolution_order, [
     "published_owner",
     "active_owner",
-    "latest_reusable_full_checkpoint",
+    "latest_reusable_full_checkpoint_with_exact_full_content_cohort",
     "original_standard_checkpoint",
   ]);
   assert.equal(

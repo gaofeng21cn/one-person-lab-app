@@ -1385,7 +1385,7 @@
       "blocks_latest_activation": false,
       "failure_receipt_required": true,
       "recovery": "target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs",
-      "automatic_checkpoint_reuse": "latest_nonexpired_full_or_append_operation_checkpoint_in_the_standard_recovery_chain",
+      "automatic_checkpoint_reuse": "latest_nonexpired_full_or_append_operation_checkpoint_with_exact_full_content_cohort_in_the_standard_recovery_chain",
       "one_active_owner_per_recovery_chain": true
     }
   },
@@ -4305,7 +4305,7 @@
         "owner_resolution_order": [
           "published_owner",
           "active_owner",
-          "latest_reusable_full_checkpoint",
+          "latest_reusable_full_checkpoint_with_exact_full_content_cohort",
           "original_standard_checkpoint"
         ],
         "operation_kind_source": "opl-release-operation-admission-<source-run-id>/release-operation-admission.json",
