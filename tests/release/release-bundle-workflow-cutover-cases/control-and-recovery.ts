@@ -281,6 +281,14 @@ test('append_full preserves the Standard checkpoint while binding a fresh Full c
   assert.equal(controllerAdmission.env.REQUESTED_APP_REF, '${{ inputs.app_ref }}');
   assert.match(controllerAdmissionRun, /APP_REF="\$REQUESTED_APP_REF"/);
   assert.match(controllerAdmissionRun, /FRAMEWORK_SOURCE_REF="\$FRAMEWORK_EXECUTOR_REF"/);
+  assert.match(
+    controllerAdmissionRun,
+    /"opl-release-append-full-operation-checkpoint-v2-\$SOURCE_RUN_ID"/,
+  );
+  assert.doesNotMatch(
+    controllerAdmissionRun,
+    /"opl-release-append-full-operation-checkpoint-\$SOURCE_RUN_ID"/,
+  );
   assert.equal(append.source_run_id, '${{ needs.admission.outputs.source_run_id }}');
   assert.equal(append.source_artifact, '${{ needs.admission.outputs.source_artifact }}');
   assert.equal(append.full_content_app_ref, '${{ needs.admission.outputs.app_ref }}');

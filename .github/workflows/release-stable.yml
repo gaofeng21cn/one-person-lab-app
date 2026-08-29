@@ -941,7 +941,7 @@ jobs:
                   }
                 fi
                 case "$SOURCE_ARTIFACT" in
-                  "opl-release-full-checkpoint-$SOURCE_RUN_ID"|"opl-release-append-full-operation-checkpoint-$SOURCE_RUN_ID") ;;
+                  "opl-release-full-checkpoint-$SOURCE_RUN_ID"|"opl-release-append-full-operation-checkpoint-v2-$SOURCE_RUN_ID") ;;
                   *)
                     echo "::error::verification harness refs require an exact reusable Full checkpoint."
                     exit 1

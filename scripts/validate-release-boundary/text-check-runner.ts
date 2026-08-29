@@ -809,6 +809,15 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
   if (workflowMutationCommandPattern.test(admissionRun)) {
     failures += reportFailure(id, 'admission must remain mutation-free');
   }
+  if (
+    !admissionRun.includes('"opl-release-append-full-operation-checkpoint-v2-$SOURCE_RUN_ID"')
+    || admissionRun.includes('"opl-release-append-full-operation-checkpoint-$SOURCE_RUN_ID"')
+  ) {
+    failures += reportFailure(
+      id,
+      'Stable admission must accept only the current v2 portable Full operation checkpoint for harness recovery',
+    );
+  }
   for (const binding of [
     'test "$GITHUB_RUN_ATTEMPT" = 1',
     'actions/runs/$GITHUB_RUN_ID" --jq .created_at',
