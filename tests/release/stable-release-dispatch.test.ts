@@ -120,7 +120,7 @@ test('Stable workflow imports the canonical Latest Standard completeness guard',
   assert.doesNotMatch(workflow, /assertLatestReleaseSetComplete/);
 });
 
-test('Full checkpoint requalification preserves the tag and accepts one optional harness', () => {
+test('Full checkpoint requalification preserves the tag and accepts exact optional harness refs', () => {
   const plan = buildAppendFullPlan({
     attemptId: 'append-full-20260824-aabbccdd',
     sourceRunId: '32665218996',
@@ -129,11 +129,14 @@ test('Full checkpoint requalification preserves the tag and accepts one optional
     shellSha,
     frameworkSha,
     smokeHarnessSha: '4'.repeat(40),
+    verificationAppSha: '5'.repeat(40),
     recoveryRunId: '32665218996',
   });
   assert.equal(plan.version_policy, 'preserve_source_tag');
   assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
   assert.equal(plan.workflow_inputs.smoke_harness_ref, '4'.repeat(40));
+  assert.equal(plan.workflow_inputs.verification_app_ref, '5'.repeat(40));
+  assert.equal(plan.recovery.verification_app_ref, '5'.repeat(40));
   assert.equal('version' in plan.workflow_inputs, false);
   assert.throws(() => buildAppendFullPlan({
     attemptId: 'append-full-20260824-aabbccdd',
@@ -144,6 +147,15 @@ test('Full checkpoint requalification preserves the tag and accepts one optional
     frameworkSha,
     smokeHarnessSha: '4'.repeat(40),
   }), /reusable Full checkpoint/);
+  assert.throws(() => buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '32617588213',
+    sourceArtifact: 'opl-release-standard-checkpoint-32617588213',
+    appSha,
+    shellSha,
+    frameworkSha,
+    verificationAppSha: '5'.repeat(40),
+  }), /verification_app_ref requires a reusable Full checkpoint/);
 });
 
 test('Full target-state reconciliation follows checkpoint retries back to one Standard source', () => {

@@ -4,8 +4,8 @@ import { pathToFileURL } from 'node:url';
 
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 10_000;
-const REQUEST_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 250;
+const REQUEST_ATTEMPTS = 5;
+const RETRY_DELAY_MS = 2_000;
 
 type VerifyOptions = {
   emailFile: string;
@@ -13,6 +13,7 @@ type VerifyOptions = {
   outputPath?: string;
   controlBaseUrl?: string;
   allowInsecureLocalhost?: boolean;
+  retryDelayMs?: number;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -93,6 +94,7 @@ async function requestJson(
   baseUrl: string,
   route: string,
   options: { method?: 'GET' | 'POST'; token?: string; body?: JsonRecord } = {},
+  retryDelayMs = RETRY_DELAY_MS,
 ): Promise<JsonRecord> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt += 1) {
@@ -105,7 +107,7 @@ async function requestJson(
         || (error instanceof DOMException && error.name === 'AbortError');
       if (!retryable) throw error;
       if (attempt === REQUEST_ATTEMPTS) break;
-      await delay(RETRY_DELAY_MS * attempt);
+      await delay(retryDelayMs * attempt);
     }
   }
   throw new Error(
@@ -181,14 +183,19 @@ export async function verifyReleaseGatewayTestAccount(
     const session = await requestJson(baseUrl, '/auth/login', {
       method: 'POST',
       body: { email, password },
-    });
+    }, options.retryDelayMs);
     accessToken = nonEmptyText(session.access_token ?? session.accessToken ?? session.token);
     refreshToken = nonEmptyText(session.refresh_token ?? session.refreshToken);
     if (!accessToken || !refreshToken) {
       throw new Error('Gateway release-test account login did not return a persistent session.');
     }
 
-    const profileEnvelope = await requestJson(baseUrl, '/user/profile', { token: accessToken });
+    const profileEnvelope = await requestJson(
+      baseUrl,
+      '/user/profile',
+      { token: accessToken },
+      options.retryDelayMs,
+    );
     const profile = Object.keys(record(profileEnvelope.user)).length > 0
       ? record(profileEnvelope.user)
       : profileEnvelope;
@@ -238,7 +245,7 @@ export async function verifyReleaseGatewayTestAccount(
         method: 'POST',
         token: accessToken,
         body: { refresh_token: refreshToken },
-      }).catch(() => undefined);
+      }, options.retryDelayMs).catch(() => undefined);
     }
   }
 }

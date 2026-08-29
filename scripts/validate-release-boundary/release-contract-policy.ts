@@ -578,6 +578,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     !sameStringSet(fullAddon?.successor_trigger?.manual_reconcile_inputs, [
       'source_run_id',
       'operation',
+      'verification_app_ref_optional',
       'smoke_harness_ref_optional',
     ]) ||
     fullAddon?.successor_trigger?.failed_run_identity_inputs_allowed !== false ||
@@ -1837,6 +1838,7 @@ export function validateReleaseAccelerationPolicy(
     operations?.full_recovery_identity_roles?.source_checkpoint_run_id !== 'portable_framework_checkpoint_owner' ||
     operations?.full_recovery_identity_roles?.artifact_producer_run_id !== 'full_cohort_actions_run_id' ||
     operations?.full_recovery_identity_roles?.qualification_run_id !== 'failed_qualification_receipt_run_id' ||
+    operations?.full_recovery_identity_roles?.verification_app_ref !== 'qualification_scope_proof_app_head_sha_or_explicit_exact_override' ||
     operations?.full_recovery_identity_roles?.smoke_harness_ref !== 'qualification_scope_proof_shell_head_sha_or_explicit_exact_override' ||
     operations?.full_recovery_identity_roles?.roles_must_not_be_inferred_as_equal !== true ||
     standardOperation?.source !== 'new_framework_bundle' ||

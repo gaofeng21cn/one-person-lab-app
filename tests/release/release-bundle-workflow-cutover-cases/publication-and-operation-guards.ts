@@ -455,6 +455,10 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   assert.equal(fullAddon.jobs['full-clean-vm-qualification'].with.diagnostic_scope, 'release_gate');
   assert.equal(fullAddon.jobs['full-clean-vm-qualification'].with.package_profile, 'full');
   assert.equal(
+    fullAddon.jobs['full-clean-vm-qualification'].with.verification_app_ref,
+    '${{ inputs.verification_app_ref || inputs.full_content_app_ref }}',
+  );
+  assert.equal(
     fullAddon.jobs['full-clean-vm-qualification'].with.smoke_harness_ref,
     '${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}',
   );

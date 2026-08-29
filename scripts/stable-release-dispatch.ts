@@ -74,6 +74,7 @@ export type StableDispatchPlan = {
     artifact_producer_run_id: string | null;
     qualification_run_id: string | null;
     smoke_harness_ref: string | null;
+    verification_app_ref: string | null;
   };
   cohort: {
     app_sha: string;
@@ -431,6 +432,7 @@ export function buildAppendFullPlan(input: {
   artifactProducerRunId?: string;
   qualificationRunId?: string;
   smokeHarnessSha?: string;
+  verificationAppSha?: string;
   recoveryRunId?: string;
 }): StableDispatchPlan {
   const sourceRunId = runId(input.sourceRunId, 'source_run_id');
@@ -456,6 +458,14 @@ export function buildAppendFullPlan(input: {
     }
     workflowInputs.smoke_harness_ref = sha(input.smokeHarnessSha, 'smoke_harness_ref');
   }
+  if (input.verificationAppSha) {
+    const checkpointRecovery = input.sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
+      || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
+    if (!input.priorFullArtifactRunId && !checkpointRecovery) {
+      throw new Error('verification_app_ref requires a reusable Full checkpoint.');
+    }
+    workflowInputs.verification_app_ref = sha(input.verificationAppSha, 'verification_app_ref');
+  }
   return {
     schema: 'opl_app_stable_dispatch_plan.v1',
     status: 'ready',
@@ -469,6 +479,7 @@ export function buildAppendFullPlan(input: {
       artifact_producer_run_id: input.artifactProducerRunId ?? null,
       qualification_run_id: input.qualificationRunId ?? null,
       smoke_harness_ref: workflowInputs.smoke_harness_ref ?? null,
+      verification_app_ref: workflowInputs.verification_app_ref ?? null,
     },
     cohort: {
       app_sha: workflowInputs.app_ref,
@@ -504,6 +515,7 @@ export function buildPublishQualifiedStandardPlan(input: {
       artifact_producer_run_id: null,
       qualification_run_id: null,
       smoke_harness_ref: null,
+      verification_app_ref: null,
     },
     cohort: null,
     authority: null,
@@ -709,6 +721,7 @@ function buildStandardPlan(input: {
       artifact_producer_run_id: null,
       qualification_run_id: null,
       smoke_harness_ref: null,
+      verification_app_ref: null,
     },
     cohort: authority.cohort,
     authority: {
@@ -797,7 +810,7 @@ function usage(): never {
   process.stderr.write(`Usage:
   npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--execute]
   npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
-  npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--smoke-harness-ref <sha>] [--execute]
+  npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--smoke-harness-ref <sha>] [--verification-app-ref <sha>] [--execute]
 
 Only new-product-release may allocate a tag, and it requires an explicit product-change summary. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
 `);
@@ -820,6 +833,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       'shell-ref': { type: 'string' },
       'framework-ref': { type: 'string' },
       'smoke-harness-ref': { type: 'string' },
+      'verification-app-ref': { type: 'string' },
       'desktop-additional-platforms': { type: 'string' },
       'product-change-summary': { type: 'string' },
       output: { type: 'string' },
@@ -920,6 +934,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
         ? sha(values['framework-ref'], 'framework_ref')
         : wireSha(runtime, frameworkRemote),
       smokeHarnessSha: values['smoke-harness-ref'],
+      verificationAppSha: values['verification-app-ref'],
       recoveryRunId: isFullRecovery ? sourceRunId : rootSourceRunId,
     });
   } else {

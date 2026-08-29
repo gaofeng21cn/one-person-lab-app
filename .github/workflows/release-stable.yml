@@ -107,6 +107,11 @@ on:
         required: false
         default: ''
         type: string
+      verification_app_ref:
+        description: Exact App verification ref used only when requalifying unchanged Full checkpoint bytes
+        required: false
+        default: ''
+        type: string
       framework_ref:
         description: Exact Framework executor SHA required for protected Studio Standard admission and used by resume/append lanes
         required: false
@@ -765,6 +770,7 @@ jobs:
       app_ref: ${{ steps.admission.outputs.app_ref }}
       shell_ref: ${{ steps.admission.outputs.shell_ref }}
       smoke_harness_ref: ${{ steps.admission.outputs.smoke_harness_ref }}
+      verification_app_ref: ${{ steps.admission.outputs.verification_app_ref }}
       framework_ref: ${{ steps.admission.outputs.framework_ref }}
       framework_executor_ref: ${{ steps.admission.outputs.framework_executor_ref }}
       source_run_id: ${{ steps.admission.outputs.source_run_id }}
@@ -795,6 +801,7 @@ jobs:
           INCLUDE_FULL: 'false'
           REQUESTED_SHELL_REF: ${{ inputs.shell_ref }}
           REQUESTED_SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
+          REQUESTED_VERIFICATION_APP_REF: ${{ inputs.verification_app_ref }}
           REQUESTED_FRAMEWORK_REF: ${{ inputs.framework_ref }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
@@ -820,6 +827,7 @@ jobs:
           VERSION="$REQUESTED_VERSION"
           SHELL_REF="$REQUESTED_SHELL_REF"
           SMOKE_HARNESS_REF="$REQUESTED_SMOKE_HARNESS_REF"
+          VERIFICATION_APP_REF="$REQUESTED_VERIFICATION_APP_REF"
           FRAMEWORK_SOURCE_REF=''
           FRAMEWORK_EXECUTOR_REF=''
           case "$OPERATION" in
@@ -829,7 +837,7 @@ jobs:
                 echo "::error::A new product release requires a user-visible product change summary."
                 exit 1
               }
-              test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
+              test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_VERIFICATION_APP_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
                 echo "::error::A new Standard Bundle accepts no external source artifact."
                 exit 1
               }
@@ -885,7 +893,7 @@ jobs:
                 FRAMEWORK_SOURCE_REF="$FRAMEWORK_EXECUTOR_REF"
               fi
               if [ "$OPERATION" = resume_standard ]; then
-                test -z "$PRIOR_FULL_ARTIFACT_RUN_ID$REQUESTED_SMOKE_HARNESS_REF" || {
+                test -z "$PRIOR_FULL_ARTIFACT_RUN_ID$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_VERIFICATION_APP_REF" || {
                   echo "::error::Only append_full may reuse an exact prior Full artifact run."
                   exit 1
                 }
@@ -901,15 +909,29 @@ jobs:
                     exit 1
                   }
                 fi
-              elif [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
-                [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
-                  echo "::error::append_full recovery smoke_harness_ref must be an exact lowercase Shell SHA."
-                  exit 1
-                }
+                if [ -n "$REQUESTED_VERIFICATION_APP_REF" ]; then
+                  [[ "$REQUESTED_VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                    echo "::error::append_full recovery verification_app_ref must be an exact lowercase App SHA."
+                    exit 1
+                  }
+                fi
+              elif [ -n "$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_VERIFICATION_APP_REF" ]; then
+                if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
+                  [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                    echo "::error::append_full recovery smoke_harness_ref must be an exact lowercase Shell SHA."
+                    exit 1
+                  }
+                fi
+                if [ -n "$REQUESTED_VERIFICATION_APP_REF" ]; then
+                  [[ "$REQUESTED_VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]] || {
+                    echo "::error::append_full recovery verification_app_ref must be an exact lowercase App SHA."
+                    exit 1
+                  }
+                fi
                 case "$SOURCE_ARTIFACT" in
                   "opl-release-full-checkpoint-$SOURCE_RUN_ID"|"opl-release-append-full-operation-checkpoint-$SOURCE_RUN_ID") ;;
                   *)
-                    echo "::error::smoke_harness_ref requires an exact reusable Full checkpoint."
+                    echo "::error::verification harness refs require an exact reusable Full checkpoint."
                     exit 1
                     ;;
                 esac
@@ -934,6 +956,7 @@ jobs:
             echo "app_ref=$APP_REF"
             echo "shell_ref=$SHELL_REF"
             echo "smoke_harness_ref=$SMOKE_HARNESS_REF"
+            echo "verification_app_ref=$VERIFICATION_APP_REF"
             echo "framework_ref=$FRAMEWORK_SOURCE_REF"
             echo "framework_executor_ref=$FRAMEWORK_EXECUTOR_REF"
             echo "source_run_id=$SOURCE_RUN_ID"
@@ -1343,6 +1366,7 @@ jobs:
       framework_executor_ref: ${{ needs.admission.outputs.framework_executor_ref }}
       prior_full_artifact_run_id: ${{ needs.admission.outputs.prior_full_artifact_run_id }}
       smoke_harness_ref: ${{ needs.admission.outputs.smoke_harness_ref }}
+      verification_app_ref: ${{ needs.admission.outputs.verification_app_ref }}
       operation_started_at: ${{ needs.admission.outputs.operation_started_at }}
       operation_deadline_at: ${{ needs.admission.outputs.operation_deadline_at }}
     secrets: inherit

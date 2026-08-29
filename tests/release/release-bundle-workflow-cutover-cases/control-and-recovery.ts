@@ -278,11 +278,13 @@ test('append_full preserves the Standard checkpoint while binding a fresh Full c
 
   assert.equal(controller.on.workflow_dispatch.inputs.app_ref.required, false);
   assert.equal(controllerAdmission.env.REQUESTED_APP_REF, '${{ inputs.app_ref }}');
+  assert.equal(controllerAdmission.env.REQUESTED_VERIFICATION_APP_REF, '${{ inputs.verification_app_ref }}');
   assert.match(controllerAdmissionRun, /APP_REF="\$REQUESTED_APP_REF"/);
   assert.match(controllerAdmissionRun, /FRAMEWORK_SOURCE_REF="\$FRAMEWORK_EXECUTOR_REF"/);
   assert.equal(append.source_run_id, '${{ needs.admission.outputs.source_run_id }}');
   assert.equal(append.source_artifact, '${{ needs.admission.outputs.source_artifact }}');
   assert.equal(append.full_content_app_ref, '${{ needs.admission.outputs.app_ref }}');
+  assert.equal(append.verification_app_ref, '${{ needs.admission.outputs.verification_app_ref }}');
   assert.equal(append.full_content_shell_ref, '${{ needs.admission.outputs.shell_ref }}');
   assert.equal(append.full_content_framework_ref, '${{ needs.admission.outputs.framework_ref }}');
   assert.equal(controller.jobs['resume-standard'].with.full_content_app_ref, undefined);
@@ -783,7 +785,7 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.equal(cleanVmQualification.with.diagnostic_scope, 'release_gate');
   assert.equal(
     cleanVmQualification.with.verification_app_ref,
-    '${{ inputs.full_content_app_ref }}',
+    '${{ inputs.verification_app_ref || inputs.full_content_app_ref }}',
   );
   assert.equal(
     cleanVmQualification.with.smoke_harness_ref,

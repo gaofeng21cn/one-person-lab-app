@@ -23,12 +23,14 @@ test('qualification harness scope allows a paired VM smoke mechanics subset', ()
     'scripts/validate-release-boundary/release-checks.ts',
     'scripts/validate-release-boundary/text-check-runner.ts',
     'scripts/validate-shell-candidates/candidate-contract.ts',
+    'scripts/verify-release-gateway-test-account.ts',
     'tests/release/app-release-boundary-cases/gui-delivery-topology-contract.test.ts',
     'tests/release/qualification-harness-scope.test.ts',
     'tests/release/release-bundle-workflow-cutover-cases/control-and-recovery.ts',
     'tests/release/release-bundle-workflow-cutover-cases/publication-and-operation-guards.ts',
     'tests/release/release-bundle-workflow-cutover-cases/target-and-protected-evidence.ts',
     'tests/release/release-bundle-workflow-cutover-cases/vm-and-reconcile.ts',
+    'tests/release/release-gateway-test-account.test.ts',
     'tests/release/release-stable-post-success-followups.test.ts',
   ];
   const proof = buildQualificationHarnessScopeProof({

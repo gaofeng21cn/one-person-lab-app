@@ -47,6 +47,11 @@ on:
         required: false
         default: ''
         type: string
+      verification_app_ref:
+        description: Exact App verification ref for unchanged Full checkpoint requalification; empty uses the frozen product App ref
+        required: false
+        default: ''
+        type: string
       operation_started_at:
         description: Full append operation start
         required: false
@@ -121,6 +126,7 @@ jobs:
           FRAMEWORK_EXECUTOR_REF: ${{ inputs.framework_executor_ref }}
           PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
           SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
+          VERIFICATION_APP_REF: ${{ inputs.verification_app_ref }}
           OPERATION_STARTED_AT: ${{ inputs.operation_started_at }}
           OPERATION_DEADLINE_AT: ${{ inputs.operation_deadline_at }}
         shell: bash
@@ -144,11 +150,15 @@ jobs:
             if [ -n "$SMOKE_HARNESS_REF" ]; then
               [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
             fi
-          elif [ -n "$SMOKE_HARNESS_REF" ]; then
-            [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
+            if [ -n "$VERIFICATION_APP_REF" ]; then
+              [[ "$VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]]
+            fi
+          elif [ -n "$SMOKE_HARNESS_REF$VERIFICATION_APP_REF" ]; then
+            if [ -n "$SMOKE_HARNESS_REF" ]; then [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]; fi
+            if [ -n "$VERIFICATION_APP_REF" ]; then [[ "$VERIFICATION_APP_REF" =~ ^[0-9a-f]{40}$ ]]; fi
             case '${{ inputs.source_artifact }}' in
               "opl-release-full-checkpoint-${{ inputs.source_run_id }}"|"opl-release-append-full-operation-checkpoint-v2-${{ inputs.source_run_id }}") ;;
-              *) echo "::error::smoke_harness_ref requires an exact reusable Full checkpoint."; exit 1 ;;
+              *) echo "::error::verification harness refs require an exact reusable Full checkpoint."; exit 1 ;;
             esac
           fi
           mkdir -p release-failure-evidence
@@ -1293,7 +1303,7 @@ jobs:
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.restore-standard.outputs.bundle_digest }}
       artifact_app_ref: ${{ inputs.full_content_app_ref }}
-      verification_app_ref: ${{ inputs.full_content_app_ref }}
+      verification_app_ref: ${{ inputs.verification_app_ref || inputs.full_content_app_ref }}
       shell_ref: ${{ inputs.full_content_shell_ref }}
       smoke_harness_ref: ${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}
       framework_ref: ${{ inputs.full_content_framework_ref }}

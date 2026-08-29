@@ -546,6 +546,7 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.deepEqual(full.successor_trigger.manual_reconcile_inputs, [
     "source_run_id",
     "operation",
+    "verification_app_ref_optional",
     "smoke_harness_ref_optional",
   ]);
   assert.equal(full.successor_trigger.failed_run_identity_inputs_allowed, false);
@@ -624,6 +625,10 @@ test("operation safety is explicit in the machine contract", () => {
     resume_standard: "forbidden_preserve_source_checkpoint_tag",
     append_full: "forbidden_preserve_source_checkpoint_tag",
   });
+  assert.equal(
+    control.operation_control.full_recovery_identity_roles.verification_app_ref,
+    "qualification_scope_proof_app_head_sha_or_explicit_exact_override",
+  );
   assert.equal(
     control.operation_control.full_recovery_identity_roles.roles_must_not_be_inferred_as_equal,
     true,

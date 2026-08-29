@@ -90,6 +90,7 @@ test('release Gateway preflight accepts only the active zero-balance user and em
         outputPath: fixture.outputPath,
         controlBaseUrl: baseUrl,
         allowInsecureLocalhost: true,
+        retryDelayMs: 1,
       });
       assert.deepEqual(receipt.account_policy, {
         role: 'user',
@@ -133,6 +134,7 @@ test('release Gateway preflight retries a transient transport failure without we
         outputPath: fixture.outputPath,
         controlBaseUrl: baseUrl,
         allowInsecureLocalhost: true,
+        retryDelayMs: 1,
       });
       assert.equal(receipt.status, 'passed');
       assert.deepEqual(calls, [
@@ -164,16 +166,19 @@ test('release Gateway preflight reports the transport cause after bounded retrie
           outputPath: fixture.outputPath,
           controlBaseUrl: baseUrl,
           allowInsecureLocalhost: true,
+          retryDelayMs: 1,
         }),
-        /request failed after 3 attempts: fetch failed/,
+        /request failed after 5 attempts: fetch failed/,
       );
       assert.deepEqual(calls, [
         'POST /auth/login',
         'POST /auth/login',
         'POST /auth/login',
+        'POST /auth/login',
+        'POST /auth/login',
       ]);
       assert.equal(fs.existsSync(fixture.outputPath), false);
-    }, { disconnectLoginAttempts: 3 });
+    }, { disconnectLoginAttempts: 5 });
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
   }
@@ -195,6 +200,7 @@ test('release Gateway preflight retries a transient HTTP failure', async () => {
         outputPath: fixture.outputPath,
         controlBaseUrl: baseUrl,
         allowInsecureLocalhost: true,
+        retryDelayMs: 1,
       });
       assert.equal(receipt.status, 'passed');
       assert.deepEqual(calls, [
@@ -232,6 +238,7 @@ for (const [name, profile, expected] of [
             outputPath: fixture.outputPath,
             controlBaseUrl: baseUrl,
             allowInsecureLocalhost: true,
+            retryDelayMs: 1,
           }),
           expected,
         );
