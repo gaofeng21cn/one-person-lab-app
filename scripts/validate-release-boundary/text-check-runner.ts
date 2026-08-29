@@ -1427,6 +1427,27 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       exactReadPermissions,
     );
   }
+  const restoreStandard = fullJobs['restore-standard'];
+  const restoreStandardRuns = jobRuns(restoreStandard);
+  const originalFullCohortDownload = fullJobs['materialize-full-build']?.steps?.find(
+    (step: Record<string, unknown>) => step.name === 'Download original Full build cohort identity',
+  );
+  if (
+    restoreStandard?.outputs?.full_artifact_producer_run_id
+      !== '${{ steps.operation.outputs.full_artifact_producer_run_id }}'
+    || !restoreStandardRuns.includes('opl_release_bundle_executor_receipt.v1')
+    || !restoreStandardRuns.includes('.bundle_digest == $bundle')
+    || !restoreStandardRuns.includes('.track == "full"')
+    || !restoreStandardRuns.includes('.release_operation == "append_full"')
+    || !restoreStandardRuns.includes('A completed Full build checkpoint must contain its executor receipt')
+    || originalFullCohortDownload?.with?.['run-id']
+      !== '${{ needs.restore-standard.outputs.full_artifact_producer_run_id }}'
+  ) {
+    failures += reportFailure(
+      id,
+      'Full checkpoint recovery must derive the original artifact producer run from its Bundle-bound build receipt',
+    );
+  }
   if (fullJobs['full-qualification']) {
     const fullQualification = fullJobs['full-qualification'];
     const qualificationRuns = jobRuns(fullQualification);

@@ -735,6 +735,24 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     'opl-release-append-full-operation-checkpoint-v2-${{ github.run_id }}',
   );
   assert.match(String(operationCheckpoint.with.path), /standard-identity-receipt\.json/);
+  assert.equal(
+    full.jobs['restore-standard'].outputs.full_artifact_producer_run_id,
+    '${{ steps.operation.outputs.full_artifact_producer_run_id }}',
+  );
+  const operation = workflowStep(
+    '_release-full-addon.yml',
+    'restore-standard',
+    'Reconcile imported outcome and admit same-tag Full control',
+  );
+  const operationRun = String(operation.run ?? '');
+  assert.match(operationRun, /opl_release_bundle_executor_receipt\.v1/);
+  assert.match(operationRun, /\.bundle_digest == \$bundle/);
+  assert.match(operationRun, /\.track == "full"/);
+  assert.match(operationRun, /\.release_operation == "append_full"/);
+  assert.match(operationRun, /capture\("\^gha-\(\?<run>\[1-9\]\[0-9\]\*\)-full-build\$"\)/);
+  assert.match(operationRun, /github-actions:" \+ \$repository \+ "\/runs\/" \+ \$run \+ "\/full-build"/);
+  assert.match(operationRun, /A completed Full build checkpoint must contain its executor receipt/);
+  assert.match(operationRun, /full_artifact_producer_run_id=\$full_artifact_producer_run_id/);
   assert.match(String(full.jobs['full-build'].if), /standard_qualified/);
   assert.match(String(full.jobs['materialize-full-build'].if), /full_built/);
   assert.match(String(full.jobs['full-qualification'].if), /standard_qualified/);
@@ -823,6 +841,22 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     full.jobs['materialize-full-build'].outputs.artifact_producer_run_id,
     '${{ steps.full_source.outputs.artifact_producer_run_id }}',
   );
+  const originalCohortDownload = workflowStep(
+    '_release-full-addon.yml',
+    'materialize-full-build',
+    'Download original Full build cohort identity',
+  );
+  assert.equal(
+    originalCohortDownload.with['run-id'],
+    '${{ needs.restore-standard.outputs.full_artifact_producer_run_id }}',
+  );
+  const fullSource = workflowStep(
+    '_release-full-addon.yml',
+    'materialize-full-build',
+    'Resolve exact Full MAS source',
+  );
+  assert.match(String(fullSource.run ?? ''), /receipt_producer_run_id='\$\{\{ needs\.restore-standard\.outputs\.full_artifact_producer_run_id \}\}'/);
+  assert.match(String(fullSource.run ?? ''), /test "\$artifact_producer_run_id" = "\$receipt_producer_run_id"/);
   assert.equal(
     cleanVmQualification.with.release_artifact_run_id,
     '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}',

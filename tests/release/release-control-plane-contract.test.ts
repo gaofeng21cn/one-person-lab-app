@@ -278,6 +278,7 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
     source_checkpoint_run_id: 'portable_framework_checkpoint_owner',
     artifact_producer_run_id: 'full_cohort_actions_run_id',
     qualification_run_id: 'failed_qualification_receipt_run_id',
+    verification_app_ref: 'qualification_scope_proof_app_head_sha_or_explicit_exact_override',
     smoke_harness_ref: 'qualification_scope_proof_shell_head_sha_or_explicit_exact_override',
     roles_must_not_be_inferred_as_equal: true,
   });

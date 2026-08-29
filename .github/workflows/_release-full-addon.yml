@@ -212,6 +212,7 @@ jobs:
       transport_run_id: ${{ steps.identity.outputs.transport_run_id }}
       source_run_id: ${{ steps.operation.outputs.source_run_id }}
       source_artifact: ${{ steps.operation.outputs.source_artifact }}
+      full_artifact_producer_run_id: ${{ steps.operation.outputs.full_artifact_producer_run_id }}
       operation_id: ${{ steps.operation.outputs.operation_id }}
       operation_started_at: ${{ steps.operation.outputs.operation_started_at }}
       operation_deadline_at: ${{ steps.operation.outputs.operation_deadline_at }}
@@ -501,15 +502,43 @@ jobs:
           test -f "$original_standard_receipt" && test ! -L "$original_standard_receipt"
           cp "$original_standard_receipt" standard-build-receipt.json
           full_build_receipts=()
+          full_artifact_producer_run_id=
           while IFS= read -r receipt; do
             full_build_receipts+=("$receipt")
           done < <(find checkpoint-identity-bootstrap -type f -name full-build-receipt.json -print | LC_ALL=C sort)
           case "${#full_build_receipts[@]}" in
-            0) ;;
+            0)
+              case '${{ steps.checkpoint.outputs.completed_stage }}' in
+                full_built|full_qualified)
+                  echo "::error::A completed Full build checkpoint must contain its executor receipt."
+                  exit 1
+                  ;;
+              esac
+              ;;
             1)
               original_full_receipt="${full_build_receipts[0]}"
               test -f "$original_full_receipt" && test ! -L "$original_full_receipt"
               cp "$original_full_receipt" full-build-receipt.json
+              full_artifact_producer_run_id="$(
+                jq -er \
+                  --arg bundle "$BUNDLE_DIGEST" \
+                  --arg operation_id "$operation_id" \
+                  --arg repository "$GITHUB_REPOSITORY" '
+                    (.attempt_id | capture("^gha-(?<run>[1-9][0-9]*)-full-build$").run) as $run
+                    | select(
+                        .surface_kind == "opl_release_bundle_executor_receipt.v1"
+                        and .operation == "build"
+                        and .executor == "remote"
+                        and .bundle_digest == $bundle
+                        and .track == "full"
+                        and .outcome == "complete"
+                        and .release_operation == "append_full"
+                        and .operation_id == $operation_id
+                        and .remote_target == ("github-actions:" + $repository + "/runs/" + $run + "/full-build")
+                      )
+                    | $run
+                  ' "$original_full_receipt"
+              )"
               ;;
             *)
               echo "::error::Checkpoint must contain at most one Full build receipt; found ${#full_build_receipts[@]}."
@@ -519,6 +548,7 @@ jobs:
           {
             echo "source_run_id=$GITHUB_RUN_ID"
             echo "source_artifact=opl-release-append-full-operation-checkpoint-v2-${GITHUB_RUN_ID}"
+            echo "full_artifact_producer_run_id=$full_artifact_producer_run_id"
             echo "operation_id=$operation_id"
             echo "operation_started_at=$operation_started_at"
             echo "operation_deadline_at=$operation_deadline_at"
@@ -1114,29 +1144,33 @@ jobs:
               and .evidence.apple_notarization_receipt.final_stapled_dmg_sha256 == ($dmg_sha | sub("^sha256:"; ""))
             ' "$manifest" >/dev/null
 
+      - name: Download original Full build cohort identity
+        if: ${{ inputs.prior_full_artifact_run_id == '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
+          run-id: ${{ needs.restore-standard.outputs.full_artifact_producer_run_id }}
+          github-token: ${{ github.token }}
+          path: full-cohort
+
       - name: Resolve exact Full MAS source
         id: full_source
         shell: bash
         run: |
           set -euo pipefail
           mas_ref="$(jq -er '.manifest.resolved_refs.mas.resolved_commit | select(type == "string" and test("^[0-9a-f]{40}$"))' full-output/opl-release-manifest.json)"
-          artifact_producer_run_id='${{ needs.restore-standard.outputs.source_run_id }}'
-          if [ -f full-cohort/opl-build-cohort.json ]; then
-            artifact_producer_run_id="$(jq -er '.actions.run_id | select(type == "string" and test("^[1-9][0-9]*$"))' full-cohort/opl-build-cohort.json)"
+          artifact_producer_run_id="$(jq -er '.actions.run_id | select(type == "string" and test("^[1-9][0-9]*$"))' full-cohort/opl-build-cohort.json)"
+          receipt_producer_run_id='${{ needs.restore-standard.outputs.full_artifact_producer_run_id }}'
+          if [ -n "$receipt_producer_run_id" ]; then
+            test "$artifact_producer_run_id" = "$receipt_producer_run_id" || {
+              echo "::error::Full build receipt and cohort identify different artifact producer runs."
+              exit 1
+            }
           fi
           {
             echo "mas_ref=$mas_ref"
             echo "artifact_producer_run_id=$artifact_producer_run_id"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Download original Full build cohort identity
-        if: ${{ inputs.prior_full_artifact_run_id == '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
-          run-id: ${{ needs.restore-standard.outputs.source_run_id }}
-          github-token: ${{ github.token }}
-          path: full-cohort
 
       - name: Upload materialized Full package artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
