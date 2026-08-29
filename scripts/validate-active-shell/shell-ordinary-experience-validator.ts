@@ -1318,7 +1318,10 @@ function validateSendFailureDraftPreservation(shellPaths) {
       'export const mergeFailedSendContent',
       'export const mergeFailedSendDraft',
       'currentContent.startsWith(`${failedContent}\\n\\n`)',
-      'new Set([...failedFiles.filter(Boolean), ...currentDraft.uploadFile.filter(Boolean)])',
+      'const restored = splitChatFileRefs(failedFiles)',
+      'mergeFileSelectionItems(restored.atPath, currentDraft.atPath)',
+      'new Set([...restored.uploadFiles.filter(Boolean), ...currentDraft.uploadFile.filter(Boolean)])',
+      'atPath,',
     ],
     'Active shell failed-send draft merge helper',
   );
