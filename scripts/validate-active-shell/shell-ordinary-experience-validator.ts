@@ -1351,7 +1351,7 @@ function validateSendFailureDraftPreservation(shellPaths) {
     shellPaths,
     'packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpInitialMessage.ts',
     [
-      'restoreFailedSend: (input: string, files: string[]) => void',
+      'restoreFailedSend: (input: string, files: ChatFileRef[]) => void',
       'restoreFailedSend(input, files)',
     ],
     'Active shell ACP initial-message draft restoration',
