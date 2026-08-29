@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url';
 
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 250;
 
 type VerifyOptions = {
   emailFile: string;
@@ -14,6 +16,8 @@ type VerifyOptions = {
 };
 
 type JsonRecord = Record<string, unknown>;
+
+class RetryableGatewayRequestError extends Error {}
 
 export type GatewayReleaseTestAccountReceipt = {
   schema: 'opl_release_gateway_test_account_qualification.v1';
@@ -43,6 +47,17 @@ function unwrap(value: unknown): JsonRecord {
 
 function nonEmptyText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function requestErrorSummary(error: unknown): string {
+  const message = error instanceof Error ? error.message : 'unknown transport failure';
+  const cause = error instanceof Error ? record(error.cause) : {};
+  const code = nonEmptyText(cause.code);
+  return code ? `${message} (${code})` : message;
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function readCredentialFile(filePath: string, label: string): string {
@@ -79,6 +94,30 @@ async function requestJson(
   route: string,
   options: { method?: 'GET' | 'POST'; token?: string; body?: JsonRecord } = {},
 ): Promise<JsonRecord> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt += 1) {
+    try {
+      return await requestJsonOnce(baseUrl, route, options);
+    } catch (error) {
+      lastError = error;
+      const retryable = error instanceof RetryableGatewayRequestError
+        || (error instanceof TypeError && error.message === 'fetch failed')
+        || (error instanceof DOMException && error.name === 'AbortError');
+      if (!retryable) throw error;
+      if (attempt === REQUEST_ATTEMPTS) break;
+      await delay(RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw new Error(
+    `Gateway release-test account request failed after ${REQUEST_ATTEMPTS} attempts: ${requestErrorSummary(lastError)}`,
+  );
+}
+
+async function requestJsonOnce(
+  baseUrl: string,
+  route: string,
+  options: { method?: 'GET' | 'POST'; token?: string; body?: JsonRecord } = {},
+): Promise<JsonRecord> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
@@ -102,6 +141,9 @@ async function requestJson(
       throw new Error('Gateway release-test account response is too large.');
     }
     if (!response.ok) {
+      if ([408, 425, 429, 500, 502, 503, 504].includes(response.status)) {
+        throw new RetryableGatewayRequestError(`Gateway returned HTTP ${response.status}.`);
+      }
       throw new Error(`Gateway release-test account request failed with HTTP ${response.status}.`);
     }
     let parsed: unknown;

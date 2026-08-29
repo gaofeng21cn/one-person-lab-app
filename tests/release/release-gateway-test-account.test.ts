@@ -15,12 +15,29 @@ type Profile = {
   balance: number;
 };
 
-async function withGateway(profile: Profile, run: (baseUrl: string, calls: string[]) => Promise<void>) {
+async function withGateway(
+  profile: Profile,
+  run: (baseUrl: string, calls: string[]) => Promise<void>,
+  options: { disconnectLoginAttempts?: number; unavailableLoginAttempts?: number } = {},
+) {
   const calls: string[] = [];
+  let disconnectedLoginAttempts = 0;
+  let unavailableLoginAttempts = 0;
   const server = http.createServer((request, response) => {
     calls.push(`${request.method} ${request.url}`);
     response.setHeader('content-type', 'application/json');
     if (request.method === 'POST' && request.url === '/auth/login') {
+      if (disconnectedLoginAttempts < (options.disconnectLoginAttempts ?? 0)) {
+        disconnectedLoginAttempts += 1;
+        request.socket.destroy();
+        return;
+      }
+      if (unavailableLoginAttempts < (options.unavailableLoginAttempts ?? 0)) {
+        unavailableLoginAttempts += 1;
+        response.statusCode = 503;
+        response.end(JSON.stringify({ error: 'temporarily unavailable' }));
+        return;
+      }
       response.end(JSON.stringify({ data: { access_token: 'access-secret', refresh_token: 'refresh-secret' } }));
       return;
     }
@@ -95,6 +112,98 @@ test('release Gateway preflight accepts only the active zero-balance user and em
         '42',
       ]) assert.doesNotMatch(serialized, new RegExp(forbidden));
     });
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('release Gateway preflight retries a transient transport failure without weakening account checks', async () => {
+  const fixture = credentialFixture();
+  try {
+    await withGateway({
+      id: 42,
+      email: 'release-test@example.invalid',
+      role: 'user',
+      status: 'active',
+      balance: 0,
+    }, async (baseUrl, calls) => {
+      const receipt = await verifyReleaseGatewayTestAccount({
+        emailFile: fixture.emailFile,
+        passwordFile: fixture.passwordFile,
+        outputPath: fixture.outputPath,
+        controlBaseUrl: baseUrl,
+        allowInsecureLocalhost: true,
+      });
+      assert.equal(receipt.status, 'passed');
+      assert.deepEqual(calls, [
+        'POST /auth/login',
+        'POST /auth/login',
+        'GET /user/profile',
+        'POST /auth/logout',
+      ]);
+    }, { disconnectLoginAttempts: 1 });
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('release Gateway preflight reports the transport cause after bounded retries', async () => {
+  const fixture = credentialFixture();
+  try {
+    await withGateway({
+      id: 42,
+      email: 'release-test@example.invalid',
+      role: 'user',
+      status: 'active',
+      balance: 0,
+    }, async (baseUrl, calls) => {
+      await assert.rejects(
+        verifyReleaseGatewayTestAccount({
+          emailFile: fixture.emailFile,
+          passwordFile: fixture.passwordFile,
+          outputPath: fixture.outputPath,
+          controlBaseUrl: baseUrl,
+          allowInsecureLocalhost: true,
+        }),
+        /request failed after 3 attempts: fetch failed/,
+      );
+      assert.deepEqual(calls, [
+        'POST /auth/login',
+        'POST /auth/login',
+        'POST /auth/login',
+      ]);
+      assert.equal(fs.existsSync(fixture.outputPath), false);
+    }, { disconnectLoginAttempts: 3 });
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('release Gateway preflight retries a transient HTTP failure', async () => {
+  const fixture = credentialFixture();
+  try {
+    await withGateway({
+      id: 42,
+      email: 'release-test@example.invalid',
+      role: 'user',
+      status: 'active',
+      balance: 0,
+    }, async (baseUrl, calls) => {
+      const receipt = await verifyReleaseGatewayTestAccount({
+        emailFile: fixture.emailFile,
+        passwordFile: fixture.passwordFile,
+        outputPath: fixture.outputPath,
+        controlBaseUrl: baseUrl,
+        allowInsecureLocalhost: true,
+      });
+      assert.equal(receipt.status, 'passed');
+      assert.deepEqual(calls, [
+        'POST /auth/login',
+        'POST /auth/login',
+        'GET /user/profile',
+        'POST /auth/logout',
+      ]);
+    }, { unavailableLoginAttempts: 1 });
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
   }
