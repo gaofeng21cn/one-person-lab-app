@@ -64,7 +64,7 @@ test('checkpoint selection prefers the deepest exact non-expired checkpoint', ()
   assert.equal(selectCheckpointArtifact([
     { id: 1, name: 'opl-release-standard-operation-checkpoint-123', expired: false },
     { id: 2, name: 'opl-release-full-checkpoint-123', expired: false },
-    { id: 3, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
+    { id: 3, name: 'opl-release-append-full-operation-checkpoint-v2-123', expired: false },
   ], '123'), 'opl-release-full-checkpoint-123');
   assert.equal(selectReusableFullCheckpointArtifact([
     { id: 1, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
@@ -72,7 +72,15 @@ test('checkpoint selection prefers the deepest exact non-expired checkpoint', ()
   ], '123'), 'opl-release-full-checkpoint-123');
   assert.equal(selectReusableFullCheckpointArtifact([
     { id: 1, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
-  ], '123'), 'opl-release-append-full-operation-checkpoint-123');
+    { id: 2, name: 'opl-release-append-full-operation-checkpoint-v2-123', expired: false },
+  ], '123'), 'opl-release-append-full-operation-checkpoint-v2-123');
+  assert.equal(selectReusableFullCheckpointArtifact([
+    { id: 1, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
+  ], '123'), null);
+  assert.equal(selectCheckpointArtifact([
+    { id: 1, name: 'opl-release-append-full-operation-checkpoint-123', expired: false },
+    { id: 2, name: 'opl-release-standard-checkpoint-123', expired: false },
+  ], '123'), 'opl-release-standard-checkpoint-123');
   assert.equal(selectReusableFullCheckpointArtifact([], '123'), null);
   assert.throws(() => selectCheckpointArtifact([], '123'), /no reusable Standard or Full checkpoint/);
 });
@@ -116,7 +124,7 @@ test('Full checkpoint requalification preserves the tag and accepts one optional
   const plan = buildAppendFullPlan({
     attemptId: 'append-full-20260824-aabbccdd',
     sourceRunId: '32665218996',
-    sourceArtifact: 'opl-release-full-checkpoint-32665218996',
+    sourceArtifact: 'opl-release-append-full-operation-checkpoint-v2-32665218996',
     appSha,
     shellSha,
     frameworkSha,
@@ -162,14 +170,28 @@ test('Full target-state reconciliation follows checkpoint retries back to one St
     artifactsByRunId: {
       100: [{ id: 1, name: 'opl-release-standard-checkpoint-100', expired: false }],
       101: [{ id: 2, name: 'opl-release-full-checkpoint-101', expired: false }],
-      102: [{ id: 3, name: 'opl-release-append-full-operation-checkpoint-102', expired: false }],
+      102: [{ id: 3, name: 'opl-release-append-full-operation-checkpoint-v2-102', expired: false }],
     },
   }), {
     state: 'dispatch_required',
     root_source_run_id: '100',
     owner_run_id: null,
     source_run_id: '102',
-    source_artifact: 'opl-release-append-full-operation-checkpoint-102',
+    source_artifact: 'opl-release-append-full-operation-checkpoint-v2-102',
+  });
+  assert.deepEqual(reconcileAppendFullTarget({
+    runs: [owner(101, 100, 'completed', 'failure')],
+    rootSourceRunId: '100',
+    artifactsByRunId: {
+      100: [{ id: 1, name: 'opl-release-standard-checkpoint-100', expired: false }],
+      101: [{ id: 2, name: 'opl-release-append-full-operation-checkpoint-101', expired: false }],
+    },
+  }), {
+    state: 'dispatch_required',
+    root_source_run_id: '100',
+    owner_run_id: null,
+    source_run_id: '100',
+    source_artifact: 'opl-release-standard-checkpoint-100',
   });
 
   const active = owner(103, 102, 'in_progress', null);

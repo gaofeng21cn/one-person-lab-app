@@ -184,7 +184,7 @@ export function selectCheckpointArtifact(artifacts: WorkflowArtifact[], sourceRu
   const id = runId(sourceRunId, 'source_run_id');
   const preferredNames = [
     `opl-release-full-checkpoint-${id}`,
-    `opl-release-append-full-operation-checkpoint-${id}`,
+    `opl-release-append-full-operation-checkpoint-v2-${id}`,
     `opl-release-standard-operation-checkpoint-${id}`,
     `opl-release-standard-checkpoint-${id}`,
   ];
@@ -205,7 +205,7 @@ export function selectReusableFullCheckpointArtifact(
   const id = runId(sourceRunId, 'source_run_id');
   for (const expected of [
     `opl-release-full-checkpoint-${id}`,
-    `opl-release-append-full-operation-checkpoint-${id}`,
+    `opl-release-append-full-operation-checkpoint-v2-${id}`,
   ]) {
     const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
     if (matches.length > 1) {
@@ -450,7 +450,7 @@ export function buildAppendFullPlan(input: {
   }
   if (input.smokeHarnessSha) {
     const checkpointRecovery = input.sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
-      || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-${sourceRunId}`;
+      || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
     if (!input.priorFullArtifactRunId && !checkpointRecovery) {
       throw new Error('smoke_harness_ref requires a reusable Full checkpoint.');
     }
@@ -909,7 +909,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     const sourceRunId = target.source_run_id;
     const sourceArtifact = target.source_artifact;
     const isFullRecovery = sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
-      || sourceArtifact === `opl-release-append-full-operation-checkpoint-${sourceRunId}`;
+      || sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
     plan = buildAppendFullPlan({
       attemptId: appendAttemptId,
       sourceRunId,

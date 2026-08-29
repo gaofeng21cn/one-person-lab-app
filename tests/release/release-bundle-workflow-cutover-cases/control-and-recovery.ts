@@ -723,6 +723,16 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.equal(sidecar.env.STANDARD_RUN_ID, '${{ steps.identity.outputs.standard_run_id }}');
   assert.match(String(sidecar.run ?? ''), /standard_run_id="\$STANDARD_RUN_ID"/);
   assert.doesNotMatch(String(sidecar.run ?? ''), /standard-identity-receipt\.json/);
+  const operationCheckpoint = workflowStep(
+    '_release-full-addon.yml',
+    'restore-standard',
+    'Upload independent Full operation checkpoint',
+  );
+  assert.equal(
+    operationCheckpoint.with.name,
+    'opl-release-append-full-operation-checkpoint-v2-${{ github.run_id }}',
+  );
+  assert.match(String(operationCheckpoint.with.path), /standard-identity-receipt\.json/);
   assert.match(String(full.jobs['full-build'].if), /standard_qualified/);
   assert.match(String(full.jobs['materialize-full-build'].if), /full_built/);
   assert.match(String(full.jobs['full-qualification'].if), /standard_qualified/);

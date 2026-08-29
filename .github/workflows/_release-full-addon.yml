@@ -147,7 +147,7 @@ jobs:
           elif [ -n "$SMOKE_HARNESS_REF" ]; then
             [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
             case '${{ inputs.source_artifact }}' in
-              "opl-release-full-checkpoint-${{ inputs.source_run_id }}"|"opl-release-append-full-operation-checkpoint-${{ inputs.source_run_id }}") ;;
+              "opl-release-full-checkpoint-${{ inputs.source_run_id }}"|"opl-release-append-full-operation-checkpoint-v2-${{ inputs.source_run_id }}") ;;
               *) echo "::error::smoke_harness_ref requires an exact reusable Full checkpoint."; exit 1 ;;
             esac
           fi
@@ -508,7 +508,7 @@ jobs:
           esac
           {
             echo "source_run_id=$GITHUB_RUN_ID"
-            echo "source_artifact=opl-release-append-full-operation-checkpoint-${GITHUB_RUN_ID}"
+            echo "source_artifact=opl-release-append-full-operation-checkpoint-v2-${GITHUB_RUN_ID}"
             echo "operation_id=$operation_id"
             echo "operation_started_at=$operation_started_at"
             echo "operation_deadline_at=$operation_deadline_at"
@@ -756,9 +756,10 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-release-append-full-operation-checkpoint-${{ github.run_id }}
+          name: opl-release-append-full-operation-checkpoint-v2-${{ github.run_id }}
           path: |
             append-full-operation-checkpoint
+            checkpoint-identity-bootstrap/**/standard-identity-receipt.json
             checkpoint-identity-bootstrap/**/standard-clean-vm-qualification-receipt.json
             checkpoint-identity-bootstrap/**/standard-clean-vm-qualification-receipt.sha256
             standard-build-receipt.json
