@@ -1634,7 +1634,13 @@ function validateSessionFirstDirectoryImplementation(shellPaths) {
   assertShellTextIncludesAll(
     shellPaths,
     'packages/desktop/src/renderer/pages/guid/hooks/useGuidSend.ts',
-    ['const initialFiles = Array.from(new Set(files))', 'default_files: initialFiles', 'files: initialFiles.length > 0'],
+    [
+      'const seenFileRefs = new Set<string>()',
+      'const key = chatFileRefKey(file)',
+      'const initialFilePaths = initialFiles.map(chatFileRefPath)',
+      'default_files: initialFilePaths',
+      'files: initialFiles.length > 0',
+    ],
     'Active shell explicit current-session input projection',
   );
   assertShellTextIncludesAll(
