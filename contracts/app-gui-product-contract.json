@@ -28,6 +28,32 @@
     "temporary_upload_root": "/tmp",
     "persistent_project_root": "/projects",
     "aioncore_source_policy": "official_release_assets_only_without_opl_source_patch_fork_or_private_release",
+    "chat_attachment_transport": {
+      "request_contract_owner": "official_aioncore_chat_file_ref",
+      "request_field": "files",
+      "request_shape": "source_tagged_chat_file_ref_array",
+      "legacy_string_array_allowed": false,
+      "renderer_file_marker_injection_allowed": false,
+      "source_classification": {
+        "browser_upload_paste_or_drop": "upload_ref_with_path_returned_by_post_api_fs_upload",
+        "backend_machine_file_picker": "local_ref_with_user_selected_absolute_path",
+        "project_explorer_file": "project_ref_with_workspace_pe_id_and_relative_path"
+      },
+      "send_surfaces": [
+        "guid_initial_message",
+        "acp_conversation",
+        "aionrs_conversation",
+        "conversation_command_queue",
+        "failed_send_restore"
+      ],
+      "failure_policy": "reject_the_send_atomically_and_restore_prompt_and_source_tagged_attachments_without_persisting_or_replaying_legacy_string_refs",
+      "acceptance": {
+        "browser_upload_response": "http_200_with_managed_upload_path",
+        "message_request": "files_are_source_tagged_and_the_message_endpoint_accepts_the_request_without_invalid_json",
+        "conversation_readback": "the_user_message_and_attachment_are_visible_after_refresh",
+        "agent_readback": "the_selected_file_or_image_is_readable_by_the_selected_agent"
+      }
+    },
     "project_explorer_resolution": {
       "required_sequence": [
         "read_conversation_project_id",
