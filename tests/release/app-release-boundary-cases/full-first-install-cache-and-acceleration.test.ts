@@ -95,7 +95,7 @@ test("Full workflow provisions the frozen Python through uv on macOS arm64", () 
   assert.doesNotMatch(workflow, /actions\/setup-python@/);
   assert.match(
     workflow,
-    /astral-sh\/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d[\s\S]*version: '0\.11\.29'[\s\S]*uv python install --managed-python "\$EXPECTED_PYTHON_VERSION"[\s\S]*python_executable="\$\(uv python find --managed-python "\$EXPECTED_PYTHON_VERSION"\)"[\s\S]*uv pip install --python "\$toolchain_root\/bin\/python" --no-deps "uv==\$EXPECTED_UV_VERSION"[\s\S]*OPL_FULL_PYTHON_BIN=\$python_executable/,
+    /astral-sh\/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d[\s\S]*version: '0\.11\.29'[\s\S]*download-from-astral-mirror: false[\s\S]*uv python install --managed-python "\$EXPECTED_PYTHON_VERSION"[\s\S]*python_executable="\$\(uv python find --managed-python "\$EXPECTED_PYTHON_VERSION"\)"[\s\S]*uv pip install --python "\$toolchain_root\/bin\/python" --no-deps "uv==\$EXPECTED_UV_VERSION"[\s\S]*OPL_FULL_PYTHON_BIN=\$python_executable/,
   );
   assert.equal(sourceManifest.toolchain.python.version, "3.12.12");
   assert.equal(sourceManifest.toolchain.python.source, "uv-managed CPython standalone release");
