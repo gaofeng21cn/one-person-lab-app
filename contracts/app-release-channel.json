@@ -3843,7 +3843,7 @@
         "release_set_manifest_digest"
       ]
     },
-    "full_first_install_policy": "the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, release body, Latest, and updater metadata remain unchanged",
+    "full_first_install_policy": "the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. After exact Full asset readback, append_full idempotently updates the same Release body with the Full download URL, digest, size, and manifest so publication is visible to users. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, Latest, and updater metadata remain unchanged",
     "codex_temporal_policy": {
       "compatibility_mode": "minimum_version_plus_capability_smoke",
       "prefer_valid_newer_system_tool": true,
@@ -4336,8 +4336,9 @@
         "base_release_asset_append_allowed": true,
         "base_release_asset_overwrite_or_delete_allowed": false,
         "latest_mutation_allowed": false,
-        "release_notes_mutation_allowed": false,
-        "publication_sequence": "inspect_exact_mutable_standard_cas_upload_missing_full_assets_readback"
+        "release_notes_mutation_allowed": true,
+        "release_notes_mutation_scope": "idempotent_full_availability_section_after_exact_full_asset_readback",
+        "publication_sequence": "inspect_exact_mutable_standard_cas_upload_missing_full_assets_readback_patch_full_availability_readback"
       },
       "target_standard_reference": {
         "required_fields": [
@@ -4352,7 +4353,8 @@
         "cas_timing": [
           "before_full_build",
           "immediately_before_same_tag_append",
-          "after_each_asset_upload"
+          "after_each_asset_upload",
+          "after_full_availability_notes_patch"
         ],
         "cross_component_compatibility_gate_allowed": false,
         "base_assets_overwrite_or_delete_allowed": false,
@@ -4375,11 +4377,13 @@
       "same_name_different_digest": "reject_without_mutation",
       "standard_assets_modified": false,
       "updater_metadata_modified": false,
-      "release_notes_modified": false,
+      "release_notes_modified": true,
+      "release_notes_visibility": "full_download_url_digest_size_and_manifest_required_after_exact_asset_readback",
       "latest_modified": false,
       "download_discovery": {
         "release_url": "https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/<standard-tag>",
         "asset_url": "https://github.com/gaofeng21cn/one-person-lab-app/releases/download/<standard-tag>/<asset-name>",
+        "release_body_section": "Full first-install",
         "durable_receipt": "opl_homebrew_full_follower_handoff.v1"
       },
       "attestation_binding": "opl-release-manifest.json binds opl-release-attestation.json digest and exact Full asset name/size/digest",

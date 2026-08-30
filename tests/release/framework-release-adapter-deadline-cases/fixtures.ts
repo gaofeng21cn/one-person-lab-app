@@ -8,6 +8,7 @@ import {
   activateLatest,
   applyPublishPlan,
   buildExecutorReceipt,
+  fullAddonPublicReleaseBody,
   fullAddonIdentity,
   inspectRelease,
   type GitHubAdapterRuntime,
@@ -35,6 +36,7 @@ export {
   activateLatest,
   applyPublishPlan,
   buildExecutorReceipt,
+  fullAddonPublicReleaseBody,
   fullAddonIdentity,
   inspectRelease,
   bindStableOperationAuthority,
@@ -776,7 +778,7 @@ export function writeFullUploadActions(root: string, standardAttestation: Asset)
       },
       latest_modified: false,
       updater_metadata_modified: false,
-      release_notes_modified: false,
+      release_notes_modified: true,
       release_executor: {
         app_sha: executorCommit,
         notarizer_path: 'scripts/notarize-macos-dmg.ts',
@@ -883,6 +885,7 @@ export function fullPublicationRuntime(
   const calls: string[][] = [];
   const mutationInputs: string[] = [];
   const remoteAssets: Asset[] = [...files.standardAssets, ...(options.additionalAssets ?? [])];
+  let remoteBody = notes;
   const response = () => ({
     id: 12345,
     tag_name: addon.tag,
@@ -892,7 +895,7 @@ export function fullPublicationRuntime(
     target_commitish: remoteAssets.length > files.standardAssets.length && options.targetDriftAfterFirstUpload
       ? options.targetDriftAfterFirstUpload
       : sourceCommit,
-    body: notes,
+    body: remoteBody,
     immutable: false,
     assets: remoteAssets.map((asset) => ({
       name: asset.name,
@@ -902,7 +905,7 @@ export function fullPublicationRuntime(
   });
   const runtime: GitHubAdapterRuntime = {
     now: () => deadlineMs - 90_000,
-    run(_command, args) {
+    run(_command, args, commandOptions) {
       calls.push(args);
       if (args[0] === 'api' && args[1] === `repos/${repo}/releases/tags/${addon.tag}`) return success(response());
       if (args[0] === 'api' && args[1] === `repos/${repo}/releases/12345`) {
@@ -913,6 +916,21 @@ export function fullPublicationRuntime(
         assert.ok(uploaded, `unexpected upload ${args[3]}`);
         remoteAssets.push(uploaded);
         return success();
+      }
+      if (
+        args[0] === 'api'
+        && args[1] === '--method'
+        && args[2] === 'PATCH'
+        && args[3] === `repos/${repo}/releases/12345`
+        && args[4] === '--input'
+        && args[5] === '-'
+      ) {
+        const input = String(commandOptions?.input ?? '');
+        const payload = JSON.parse(input);
+        assert.equal(typeof payload.body, 'string');
+        remoteBody = payload.body;
+        mutationInputs.push(input);
+        return success(response());
       }
       throw new Error(`Unexpected gh call: ${args.join(' ')}`);
     },

@@ -36,6 +36,7 @@ type GitHubMutation =
   | 'tag_reserve'
   | 'release_create'
   | 'asset_upload'
+  | 'release_notes_patch'
   | 'release_publish'
   | 'latest_patch';
 
@@ -62,6 +63,12 @@ const staleIndependentFullGuidance =
   'Use a Full release when you need bundled runtime, Office, and document-intake payloads on a fresh machine.';
 const sameStableFullAddonGuidance =
   'The Full DMG is appended later to this same Stable release for fresh-machine installation with bundled runtime, Office, and document-intake payloads.';
+const sameStableFullAvailableGuidance =
+  'The Full DMG is available on this Stable release for fresh-machine installation with bundled runtime, Office, and document-intake payloads.';
+const sameStableFullAddonGuidanceZh =
+  '完成验证后，Full DMG 会追加到同一个 Stable Release，用于在新机器上安装内置运行时、Office 和文档导入能力的完整版本。';
+const sameStableFullAvailableGuidanceZh =
+  'Full DMG 已追加到同一个 Stable Release，可用于在新机器上安装内置运行时、Office 和文档导入能力的完整版本。';
 export const githubApplyRequiredOptionNames = [
   'bundle',
   'plan',
@@ -131,6 +138,40 @@ export function projectPublicReleaseBody(markdown: string, releaseName: string):
 function bundlePublicReleaseBody(bundle: JsonRecord): string {
   const releaseName = `One Person Lab v${bundle.release?.version}`;
   return projectPublicReleaseBody(String(bundle.prepared_notes?.markdown ?? ''), releaseName);
+}
+
+export function fullAddonPublicReleaseBody(bundle: JsonRecord, addon: JsonRecord): string {
+  const repository = String(bundle.sources?.app?.repo ?? '');
+  const tag = String(addon.tag ?? '');
+  const artifact = addon.artifact as JsonRecord | undefined;
+  const manifest = addon.manifest as JsonRecord | undefined;
+  if (
+    !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)
+    || !/^v[0-9A-Za-z.-]+$/.test(tag)
+    || !releaseAssetNamePattern.test(String(artifact?.name ?? ''))
+    || !digestPattern.test(String(artifact?.sha256 ?? ''))
+    || !Number.isSafeInteger(artifact?.size_bytes)
+    || Number(artifact?.size_bytes) <= 0
+    || manifest?.name !== 'opl-release-manifest.json'
+    || !digestPattern.test(String(manifest?.sha256 ?? ''))
+  ) {
+    throw new Error('Full release discovery requires one exact same-tag artifact and manifest identity.');
+  }
+  const downloadBase = `https://github.com/${repository}/releases/download/${tag}`;
+  const fullSection = [
+    '## Full first-install',
+    '',
+    'The qualified Full package is now available as an add-on to this Stable release.',
+    '',
+    `- [Download Full DMG for macOS arm64](${downloadBase}/${encodeURIComponent(String(artifact.name))})`,
+    `- SHA-256: \`${artifact.sha256}\``,
+    `- Size: ${artifact.size_bytes} bytes`,
+    `- [Full release manifest](${downloadBase}/opl-release-manifest.json)`,
+  ].join('\n');
+  const standardBody = bundlePublicReleaseBody(bundle)
+    .replaceAll(sameStableFullAddonGuidance, sameStableFullAvailableGuidance)
+    .replaceAll(sameStableFullAddonGuidanceZh, sameStableFullAvailableGuidanceZh);
+  return `${fullSection}\n\n${standardBody}`;
 }
 
 function regularFileBytes(filePath: string, label: string): Buffer {
@@ -330,7 +371,7 @@ function fullManifestReleaseIdentity(
     || targetStandard?.standard_asset_overwrite_or_delete_allowed !== false
     || carrierContext?.latest_modified !== false
     || carrierContext?.updater_metadata_modified !== false
-    || carrierContext?.release_notes_modified !== false
+    || carrierContext?.release_notes_modified !== true
     || carrierContext?.standard_attestation?.name !== standardAttestation.name
     || carrierContext?.standard_attestation?.sha256 !== standardAttestation.sha256
     || carrierContext?.standard_attestation?.size_bytes !== standardAttestation.size_bytes
@@ -2065,7 +2106,11 @@ function assertReleaseAssetSet(
   }
 }
 
-function assertMutableStandardIdentity(inspection: JsonRecord, bundle: JsonRecord, addon: JsonRecord): void {
+function mutableStandardIdentityState(
+  inspection: JsonRecord,
+  bundle: JsonRecord,
+  addon: JsonRecord,
+): 'standard_notes' | 'full_visible' {
   const target = addon.target_standard_release as JsonRecord;
   if (
     inspection.release?.exists !== true
@@ -2076,10 +2121,13 @@ function assertMutableStandardIdentity(inspection: JsonRecord, bundle: JsonRecor
     || inspection.release?.immutable !== false
     || inspection.release?.target_commitish !== target.target_commitish
     || inspection.release?.name !== `One Person Lab v${bundle.release?.version}`
-    || inspection.release?.body_sha256 !== sha256Bytes(bundlePublicReleaseBody(bundle))
   ) {
     throw new Error('Full append target is not the exact published mutable Standard Release.');
   }
+  const bodySha256 = String(inspection.release?.body_sha256 ?? '');
+  if (bodySha256 === sha256Bytes(bundlePublicReleaseBody(bundle))) return 'standard_notes';
+  if (bodySha256 === sha256Bytes(fullAddonPublicReleaseBody(bundle, addon))) return 'full_visible';
+  throw new Error('Full append target has unrecognized Release notes.');
 }
 
 function assertSameTagFullAssetPolicy(
@@ -2389,13 +2437,17 @@ function applyFullAddonPlan(input: {
       };
     }
     try {
-      assertMutableStandardIdentity(observation.observation, input.bundle, addon);
+      const notesState = mutableStandardIdentityState(observation.observation, input.bundle, addon);
       assertSameTagFullAssetPolicy(observation.observation, addon, input.uploadActions, false);
       const missing = input.uploadActions
         .filter((action) => !observation.observation.assets.some(
           (asset: JsonRecord) => asset.name === action.name,
         ))
         .map((action) => action.name);
+      if (notesState === 'full_visible' && missing.length > 0) {
+        throw new Error('Full availability notes cannot precede the exact Full asset set.');
+      }
+      const releaseNotesUpdateRequired = notesState !== 'full_visible';
       return {
         surface_kind: 'opl_app_github_same_tag_full_reconcile.v1',
         status: 'reconcile_only',
@@ -2405,8 +2457,9 @@ function applyFullAddonPlan(input: {
         mutation_attempted: false,
         retry_disposition: 'read_only_reconcile_only_no_retry',
         reconciliation: {
-          classification: missing.length === 0 ? 'complete' : 'incomplete',
+          classification: missing.length === 0 && !releaseNotesUpdateRequired ? 'complete' : 'incomplete',
           missing_full_assets: missing,
+          release_notes_update_required: releaseNotesUpdateRequired,
           observation: observation.observation,
         },
         addon,
@@ -2433,8 +2486,14 @@ function applyFullAddonPlan(input: {
   if (preexisting.status !== 'complete') {
     throw new Error('Full append requires a complete read-only inspection of the exact Standard Release.');
   }
-  assertMutableStandardIdentity(preexisting.observation, input.bundle, addon);
+  const preexistingNotesState = mutableStandardIdentityState(preexisting.observation, input.bundle, addon);
   assertSameTagFullAssetPolicy(preexisting.observation, addon, input.uploadActions, false);
+  const preexistingMissing = input.uploadActions.filter((action) => !preexisting.observation.assets.some(
+    (asset: JsonRecord) => asset.name === action.name,
+  ));
+  if (preexistingNotesState === 'full_visible' && preexistingMissing.length > 0) {
+    throw new Error('Full availability notes cannot precede the exact Full asset set.');
+  }
   if (input.mutationMode === 'rehearsal') {
     return {
       surface_kind: 'opl_app_github_publication_rehearsal.v1',
@@ -2454,6 +2513,8 @@ function applyFullAddonPlan(input: {
         sha256: action.sha256,
       })),
       preexisting_release: preexisting.observation.release,
+      release_notes_patch_required: preexistingNotesState !== 'full_visible',
+      release_notes_sha256: digestRef(sha256Bytes(fullAddonPublicReleaseBody(input.bundle, addon))),
       addon,
       forbidden_mutations: ['tag_reserve', 'release_create', 'release_publish', 'latest_patch'],
     };
@@ -2463,8 +2524,14 @@ function applyFullAddonPlan(input: {
   const releaseId = Number(addon.target_standard_release.release_id);
   for (const action of input.uploadActions) {
     const before = inspectReleaseById(repo, tag, releaseId, input.runtime);
-    assertMutableStandardIdentity(before, input.bundle, addon);
+    const notesState = mutableStandardIdentityState(before, input.bundle, addon);
     assertSameTagFullAssetPolicy(before, addon, input.uploadActions, false);
+    const missingBefore = input.uploadActions.filter((candidate) => !before.assets.some(
+      (asset: JsonRecord) => asset.name === candidate.name,
+    ));
+    if (notesState === 'full_visible' && missingBefore.length > 0) {
+      throw new Error('Full availability notes cannot precede the exact Full asset set.');
+    }
     const current = before.assets.find((asset: JsonRecord) => asset.name === action.name);
     if (current) continue;
     const attempt = runGitHubMutation({
@@ -2506,7 +2573,7 @@ function applyFullAddonPlan(input: {
     }
     const after = reconciliation.observation;
     try {
-      assertMutableStandardIdentity(after, input.bundle, addon);
+      mutableStandardIdentityState(after, input.bundle, addon);
       assertSameTagFullAssetPolicy(after, addon, input.uploadActions, false);
     } catch (error) {
       return unknownAfterAcceptedMutation({
@@ -2540,9 +2607,74 @@ function applyFullAddonPlan(input: {
       reason: `GitHub accepted ${action.name} append but did not expose the exact digest.`,
     });
   }
-  const finalInspection = inspectReleaseById(repo, tag, releaseId, input.runtime);
-  assertMutableStandardIdentity(finalInspection, input.bundle, addon);
+  let finalInspection = inspectReleaseById(repo, tag, releaseId, input.runtime);
+  const notesState = mutableStandardIdentityState(finalInspection, input.bundle, addon);
   assertSameTagFullAssetPolicy(finalInspection, addon, input.uploadActions, true);
+  let releaseNotesPatchApplied = false;
+  if (notesState !== 'full_visible') {
+    const desiredBody = fullAddonPublicReleaseBody(input.bundle, addon);
+    const remoteTarget = `github-release:${repo}@${tag}`;
+    const attempt = runGitHubMutation({
+      mutation: 'release_notes_patch',
+      attemptId: mutationAttemptId(
+        input.admission.attemptId,
+        'release_notes_patch',
+        remoteTarget,
+        digestRef(sha256Bytes(desiredBody)),
+      ),
+      remoteTarget,
+      args: ['api', '--method', 'PATCH', `repos/${repo}/releases/${releaseId}`, '--input', '-'],
+      body: JSON.stringify({ body: desiredBody }),
+      operationDeadlineAt: input.operationDeadlineAt,
+      runtime: input.runtime,
+    });
+    if (attempt.status !== 'accepted') {
+      return stoppedMutation({
+        attempt,
+        repo,
+        tag,
+        uploaded,
+        unresolvedAsset: 'release-notes',
+        reconciliation: inspectReleaseByIdForReconcile(repo, tag, releaseId, input.runtime),
+      });
+    }
+    const reconciliation = inspectReleaseByIdForReconcile(repo, tag, releaseId, input.runtime);
+    if (reconciliation.status !== 'complete') {
+      return unknownAfterAcceptedMutation({
+        mutation: 'release_notes_patch',
+        operationDeadlineAt: input.operationDeadlineAt,
+        attemptEvidence: attempt.evidence,
+        repo,
+        tag,
+        uploaded,
+        unresolvedAsset: 'release-notes',
+        reconciliation,
+        reason: 'GitHub accepted the Full availability notes patch but exact readback failed.',
+      });
+    }
+    finalInspection = reconciliation.observation;
+    try {
+      if (mutableStandardIdentityState(finalInspection, input.bundle, addon) !== 'full_visible') {
+        throw new Error('Full availability notes digest did not match.');
+      }
+      assertSameTagFullAssetPolicy(finalInspection, addon, input.uploadActions, true);
+    } catch (error) {
+      return unknownAfterAcceptedMutation({
+        mutation: 'release_notes_patch',
+        operationDeadlineAt: input.operationDeadlineAt,
+        attemptEvidence: attempt.evidence,
+        repo,
+        tag,
+        uploaded,
+        unresolvedAsset: 'release-notes',
+        reconciliation,
+        reason: `GitHub accepted the Full availability notes patch but public identity changed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
+    releaseNotesPatchApplied = true;
+  }
   return {
     surface_kind: 'opl_app_github_same_tag_full_append_result.v1',
     status: 'complete',
@@ -2556,7 +2688,9 @@ function applyFullAddonPlan(input: {
       asset_download_base_url: `https://github.com/${repo}/releases/download/${tag}`,
     },
     standard_assets_modified: false,
-    release_notes_modified: false,
+    release_notes_modified: true,
+    release_notes_patch_applied: releaseNotesPatchApplied,
+    release_notes_sha256: digestRef(sha256Bytes(fullAddonPublicReleaseBody(input.bundle, addon))),
     latest_modified: false,
     updater_metadata_modified: false,
   };

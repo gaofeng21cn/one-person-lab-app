@@ -4,6 +4,7 @@ import {
   fs,
   path,
   applyPublishPlan,
+  fullAddonPublicReleaseBody,
   fullAddonIdentity,
   inspectRelease,
   repo,
@@ -102,7 +103,7 @@ test('append_full rejects a mismatched executor identity before GitHub', () => {
   assert.equal(calls, 0);
 });
 
-test('append_full uploads only the two missing same-tag assets without PATCH or tag creation', () => {
+test('append_full uploads the two missing same-tag assets then publishes visible Full notes', () => {
   const files = fixture([], 'append_full');
   const simulated = fullPublicationRuntime(files);
 
@@ -127,11 +128,40 @@ test('append_full uploads only the two missing same-tag assets without PATCH or 
     simulated.calls.filter((args) => args[0] === 'release' && args[1] === 'upload').length,
     2,
   );
-  assert.equal(simulated.calls.filter((args) => args.includes('PATCH')).length, 0);
+  assert.equal(simulated.calls.filter((args) => args.includes('PATCH')).length, 1);
+  assert.equal(simulated.mutationInputs.length, 1);
+  assert.match(simulated.mutationInputs[0], /Full first-install/);
+  assert.match(simulated.mutationInputs[0], new RegExp(`One-Person-Lab-Full-${version}-mac-arm64\\.dmg`));
+  assert.match(simulated.mutationInputs[0], new RegExp(files.uploadActions[0].sha256));
   assert.equal(simulated.calls.some((args) => isTagRefCreateFor(args, repo)), false);
   assert.equal(simulated.calls.some((args) => args[3] === `repos/${repo}/releases`), false);
   assert.equal(result.standard_assets_modified, false);
+  assert.equal(result.release_notes_modified, true);
+  assert.equal(result.release_notes_patch_applied, true);
   assert.equal(result.latest_modified, false);
+});
+
+test('append_full release visibility is idempotent after exact assets and notes are public', () => {
+  const files = fixture([], 'append_full');
+  const simulated = fullPublicationRuntime(files);
+  const input = {
+    ...mutationAdmission('append_full', 'full'),
+    bundle: files.bundlePath,
+    plan: files.planPath,
+    'standard-attestation': files.standardAttestationPath,
+    'operation-deadline-at': deadlineAt,
+  };
+
+  const first = applyPublishPlan(input, simulated.runtime);
+  const second = applyPublishPlan(input, simulated.runtime);
+
+  assert.equal(first.status, 'complete');
+  assert.equal(first.release_notes_patch_applied, true);
+  assert.equal(second.status, 'complete');
+  assert.equal(second.release_notes_patch_applied, false);
+  assert.deepEqual(second.uploaded, []);
+  assert.equal(simulated.calls.filter((args) => args[0] === 'release' && args[1] === 'upload').length, 2);
+  assert.equal(simulated.calls.filter((args) => args.includes('PATCH')).length, 1);
 });
 
 test('append_full keeps additive Standard follower assets observational and exact', () => {
@@ -231,6 +261,9 @@ test('append_full identity fails closed without its own manifest before GitHub i
 
 test('an exact same-tag Full append is idempotent with zero mutation', () => {
   const files = fixture([], 'append_full');
+  const bundle = JSON.parse(fs.readFileSync(files.bundlePath, 'utf8'));
+  const addon = fullAddonIdentity(bundle, files.uploadActions, files.standardAttestationPath);
+  const fullBody = fullAddonPublicReleaseBody(bundle, addon);
   const calls: string[][] = [];
   const runtime: GitHubAdapterRuntime = {
     now: () => deadlineMs - 60_000,
@@ -240,7 +273,10 @@ test('an exact same-tag Full append is idempotent with zero mutation', () => {
         args[1] === `repos/${repo}/releases/tags/${tag}`
         || args[1] === `repos/${repo}/releases/12345`
       )) {
-        return success(releaseResponse([...files.standardAssets, ...files.uploadActions], { immutable: false }));
+        return success(releaseResponse(
+          [...files.standardAssets, ...files.uploadActions],
+          { immutable: false, body: fullBody },
+        ));
       }
       throw new Error(`Unexpected gh call: ${args.join(' ')}`);
     },
@@ -269,6 +305,9 @@ test('append_full reconcile_only performs bounded inspection and classifies comp
     plan.release_bundle_publish.status = 'reconcile_only';
     fs.writeFileSync(files.planPath, `${JSON.stringify(plan)}\n`);
     const calls: string[][] = [];
+    const bundle = JSON.parse(fs.readFileSync(files.bundlePath, 'utf8'));
+    const addon = fullAddonIdentity(bundle, files.uploadActions, files.standardAttestationPath);
+    const fullBody = fullAddonPublicReleaseBody(bundle, addon);
     const runtime: GitHubAdapterRuntime = {
       now: () => deadlineMs - 60_000,
       run(_command, args) {
@@ -280,7 +319,10 @@ test('append_full reconcile_only performs bounded inspection and classifies comp
         const assets = expected === 'complete'
           ? [...standardAssets, ...files.uploadActions]
           : standardAssets;
-        return success(releaseResponse(assets, { immutable: false }));
+        return success(releaseResponse(assets, {
+          immutable: false,
+          body: expected === 'complete' ? fullBody : notes,
+        }));
       },
     };
     const result = applyPublishPlan({

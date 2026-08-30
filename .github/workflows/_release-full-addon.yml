@@ -1475,7 +1475,7 @@ jobs:
                 }
               | .carrier_context.latest_modified = false
               | .carrier_context.updater_metadata_modified = false
-              | .carrier_context.release_notes_modified = false
+              | .carrier_context.release_notes_modified = true
             ' full-assets/opl-release-manifest.json > full-assets/opl-release-manifest.same-tag.json
           mv full-assets/opl-release-manifest.same-tag.json full-assets/opl-release-manifest.json
           bundle='${{ steps.checkpoint.outputs.bundle_path }}'
@@ -1799,7 +1799,7 @@ jobs:
             and .carrier_context.target_standard_release.standard_asset_overwrite_or_delete_allowed == false
             and .carrier_context.latest_modified == false
             and .carrier_context.updater_metadata_modified == false
-            and .carrier_context.release_notes_modified == false
+            and .carrier_context.release_notes_modified == true
             and .carrier_context.full_content_sources == {
               role: "observational_build_provenance_only",
               may_gate_install_or_runtime: false,

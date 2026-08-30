@@ -597,9 +597,11 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     fullAddon?.carrier_identity?.base_release_asset_append_allowed !== true ||
     fullAddon?.carrier_identity?.base_release_asset_overwrite_or_delete_allowed !== false ||
     fullAddon?.carrier_identity?.latest_mutation_allowed !== false ||
-    fullAddon?.carrier_identity?.release_notes_mutation_allowed !== false ||
+    fullAddon?.carrier_identity?.release_notes_mutation_allowed !== true ||
+    fullAddon?.carrier_identity?.release_notes_mutation_scope !==
+      'idempotent_full_availability_section_after_exact_full_asset_readback' ||
     fullAddon?.carrier_identity?.publication_sequence !==
-      'inspect_exact_mutable_standard_cas_upload_missing_full_assets_readback' ||
+      'inspect_exact_mutable_standard_cas_upload_missing_full_assets_readback_patch_full_availability_readback' ||
     !sameStringSet(fullAddonAssetPolicy?.required_assets, [
       'One-Person-Lab-Full-<version>-mac-arm64.dmg',
       'opl-release-manifest.json',
@@ -615,7 +617,9 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
     fullAddon?.same_name_different_digest !== 'reject_without_mutation' ||
     fullAddon?.standard_assets_modified !== false ||
     fullAddon?.updater_metadata_modified !== false ||
-    fullAddon?.release_notes_modified !== false ||
+    fullAddon?.release_notes_modified !== true ||
+    fullAddon?.release_notes_visibility !==
+      'full_download_url_digest_size_and_manifest_required_after_exact_asset_readback' ||
     !sameStringSet(fullAddon?.target_standard_reference?.required_fields, [
       'repository',
       'release_id',
@@ -629,6 +633,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
       'before_full_build',
       'immediately_before_same_tag_append',
       'after_each_asset_upload',
+      'after_full_availability_notes_patch',
     ]) ||
     fullAddon?.target_standard_reference?.cross_component_compatibility_gate_allowed !== false ||
     fullAddon?.target_standard_reference?.base_assets_overwrite_or_delete_allowed !== false ||
@@ -2223,12 +2228,12 @@ export function validateReleaseAccelerationPolicy(
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.concurrency_scope !== 'source_run_id' ||
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.workflow_rerun_allowed !== false ||
     homebrew?.tap_update_policy?.full?.desired_state_reconciliation?.append_full_redispatch_allowed !== false ||
-    homebrew?.full_first_install_policy !== 'the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, release body, Latest, and updater metadata remain unchanged' ||
+    homebrew?.full_first_install_policy !== 'the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. After exact Full asset readback, append_full idempotently updates the same Release body with the Full download URL, digest, size, and manifest so publication is visible to users. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, Latest, and updater metadata remain unchanged' ||
     !sameStringSet(homebrew?.opl_packages_boundary?.allowed_homebrew_casks, [
       'one-person-lab', 'one-person-lab-nightly', 'one-person-lab-full',
     ])
   ) {
-    console.error('FAIL release_homebrew_distribution: Nightly and Full must use digest-bound followers; Full must consume the same-tag mutable Standard append without changing Standard assets, Latest, or updater state');
+    console.error('FAIL release_homebrew_distribution: Nightly and Full must use digest-bound followers; Full must expose exact same-tag download metadata after asset readback without changing Standard assets, Latest, or updater state');
     failures += 1;
   }
   const readiness = evaluateReleaseBrokerAuthorityReadiness(brokerAuthority);

@@ -577,7 +577,11 @@ test("append_full is a checkpoint capability and not a Standard Latest requireme
   assert.equal(full.target_standard_reference.target_immutable_required, false);
   assert.equal(full.target_standard_reference.base_assets_overwrite_or_delete_allowed, false);
   assert.equal(full.target_standard_reference.cross_component_compatibility_gate_allowed, false);
-  assert.equal(full.release_notes_modified, false);
+  assert.equal(full.release_notes_modified, true);
+  assert.equal(
+    full.release_notes_visibility,
+    "full_download_url_digest_size_and_manifest_required_after_exact_asset_readback",
+  );
   assert.equal(full.latest_modified, false);
   assert.ok(!control.publication.stable.latest_requires.includes("append_full"));
   assert.deepEqual(release.homebrew_tap_distribution.full_casks, ["one-person-lab-full"]);
