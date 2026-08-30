@@ -577,6 +577,21 @@
           "docker_webui"
         ],
         "current_aionui_release_evidence_may_close_successor_entry": false,
+        "preview_oci_admission": {
+          "schema": "opl_studio_cloud_workspace_image_handoff.v1",
+          "schema_ref": "contracts/opl-studio-cloud-workspace-image-handoff.schema.json",
+          "validator": "scripts/validate-studio-cloud-handoff.ts",
+          "repository": "ghcr.io/gaofeng21cn/opl-studio-webui",
+          "workflow_identity": "https://github.com/gaofeng21cn/opl-studio/.github/workflows/studio-webui-preview.yml@refs/heads/main",
+          "oidc_issuer": "https://token.actions.githubusercontent.com",
+          "required_platforms": ["linux/amd64", "linux/arm64"],
+          "immutable_tags": ["v<studio_version>", "sha-<studio_sha>"],
+          "channel_tag": "preview",
+          "forbidden_tags": ["stable", "latest"],
+          "cloud_activation_owner": "opl-cloud",
+          "active_shell_adopted": false,
+          "release_ready": false
+        },
         "entries": {
           "electron_desktop": {
             "source_refs": [
@@ -652,7 +667,11 @@
               "Dockerfile",
               "docker-compose.distribution.yaml",
               "scripts/oci/manage.mjs",
-              "scripts/oci/build-plan.mjs"
+              "scripts/oci/build-plan.mjs",
+              "scripts/oci/handoff.mjs",
+              "scripts/webui-host/webui-auth.mjs",
+              "scripts/webui-host/staged-inputs.mjs",
+              ".github/workflows/studio-webui-preview.yml"
             ],
             "package_artifact_kind": "local_oci_smoke_receipt",
             "qualification_commands": [
@@ -797,7 +816,7 @@
           "tools_native_registry",
           "host_webserver",
           "host_plugin_inventory",
-          "frontend_static_web_only",
+          "frontend_static_primitive_behind_studio_auth_routes",
           "client_modules_web_only"
         ],
         "studio_plugins": [

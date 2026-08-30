@@ -85,6 +85,21 @@ export type OPLStudioCarrierEvidenceContract = {
   bridge_abi: 'opl_app_host_bridge.v1';
   required_entries: OPLStudioCarrierId[];
   current_aionui_release_evidence_may_close_successor_entry: false;
+  preview_oci_admission: {
+    schema: 'opl_studio_cloud_workspace_image_handoff.v1';
+    schema_ref: 'contracts/opl-studio-cloud-workspace-image-handoff.schema.json';
+    validator: 'scripts/validate-studio-cloud-handoff.ts';
+    repository: 'ghcr.io/gaofeng21cn/opl-studio-webui';
+    workflow_identity: string;
+    oidc_issuer: 'https://token.actions.githubusercontent.com';
+    required_platforms: Array<'linux/amd64' | 'linux/arm64'>;
+    immutable_tags: ['v<studio_version>', 'sha-<studio_sha>'];
+    channel_tag: 'preview';
+    forbidden_tags: ['stable', 'latest'];
+    cloud_activation_owner: 'opl-cloud';
+    active_shell_adopted: false;
+    release_ready: false;
+  };
   entries: Record<OPLStudioCarrierId, OPLStudioCarrierEvidenceExpectation>;
 };
 

@@ -157,7 +157,7 @@ export type AppDeliveryTopology = {
     product_name: 'One Person Lab';
     role: 'containerized_shared_host_core_and_webui';
     technical_evaluation_candidate: 'opl-studio';
-    implementation_status: 'successor_oci_source_implemented_install_update_release_admission_open';
+    implementation_status: 'successor_oci_preview_admission_implemented_cloud_activation_open';
     mainline_implementation_assigned: false;
     host_technology: 'shared_node_host_core';
     transport: 'http_sse';
@@ -180,8 +180,9 @@ export type AppDeliveryTopology = {
       arm64: 'ubuntu-24.04-arm';
       emulation_allowed_as_runtime_qualification: false;
     };
-    signature_verification_implemented: false;
-    security_admission_complete: false;
+    signature_verification_implemented: true;
+    security_admission_complete: true;
+    preview_release_admission_implemented: true;
     release_admission_complete: false;
     existing_aionui_container_counts_as_successor_implementation: false;
     electron_in_container_allowed: false;
@@ -192,6 +193,7 @@ export type AppDeliveryTopology = {
     codex_state_volume_required: true;
     multi_tenant_claim_allowed: false;
     security_admission_ref: string;
+    preview_admission_ref: string;
     release_contract_ref: string;
   };
   mobile: {

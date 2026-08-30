@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.dev/contracts/opl-studio-cloud-workspace-image-handoff.schema.json",
+  "title": "OPL Studio Cloud Workspace Image Handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "image", "source", "runtime", "container", "supply_chain", "rollback", "adoption"],
+  "properties": {
+    "schema": { "const": "opl_studio_cloud_workspace_image_handoff.v1" },
+    "status": { "const": "preview_image_qualified" },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "index_ref", "index_digest", "child_manifests", "immutable_tags", "channel_tag", "forbidden_tags"],
+      "properties": {
+        "repository": { "const": "ghcr.io/gaofeng21cn/opl-studio-webui" },
+        "index_ref": { "pattern": "^ghcr\\.io/gaofeng21cn/opl-studio-webui@sha256:[0-9a-f]{64}$" },
+        "index_digest": { "$ref": "#/$defs/digest" },
+        "child_manifests": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["platform", "digest"],
+            "properties": {
+              "platform": { "enum": ["linux/amd64", "linux/arm64"] },
+              "digest": { "$ref": "#/$defs/digest" }
+            }
+          }
+        },
+        "immutable_tags": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "string" } },
+        "channel_tag": { "const": "preview" },
+        "forbidden_tags": { "const": ["stable", "latest"] }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["studio_ref", "app_ref", "framework_ref", "dsh_ref"],
+      "properties": {
+        "studio_ref": { "$ref": "#/$defs/sha" },
+        "app_ref": { "$ref": "#/$defs/sha" },
+        "framework_ref": { "$ref": "#/$defs/sha" },
+        "dsh_ref": { "$ref": "#/$defs/sha" }
+      }
+    },
+    "runtime": { "type": "object" },
+    "container": { "type": "object" },
+    "supply_chain": { "type": "object" },
+    "rollback": { "type": "object" },
+    "adoption": { "type": "object" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+  }
+}

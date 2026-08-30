@@ -118,6 +118,10 @@
         "host_adapter": "Dockerfile + docker-compose.distribution.yaml",
         "distribution_manager": "scripts/oci/manage.mjs",
         "multi_arch_plan": "scripts/oci/build-plan.mjs",
+        "preview_workflow": ".github/workflows/studio-webui-preview.yml",
+        "handoff_generator": "scripts/oci/handoff.mjs",
+        "handoff_schema": "contracts/opl-studio-cloud-workspace-image-handoff.schema.json",
+        "registry": "ghcr.io/gaofeng21cn/opl-studio-webui",
         "update_adapter": "scripts/oci/manage.mjs"
       }
     },
@@ -139,7 +143,7 @@
       "tools_native_registry",
       "host_webserver",
       "host_plugin_inventory",
-      "frontend_static_web_only",
+      "frontend_static_primitive_behind_studio_auth_routes",
       "client_modules_web_only"
     ],
     "studio_plugins": [

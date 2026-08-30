@@ -95,11 +95,14 @@ App contracts 将 Studio Application Host 标为
 - Framework state/action/auth/channel bridge；
 - shared renderer/Host core across Electron and HTTP/SSE；
 - three-carrier candidate evidence generator；
+- authenticated Cloud-shaped WebUI、native `amd64`/`arm64` Preview OCI workflow、
+  Cosign verification 与 `opl_studio_cloud_workspace_image_handoff.v1` admission；
 - App/Framework/Studio/AionUI Client conformance gate。
 
-这些是 source/candidate 能力，不是 release 声明。App carrier evidence contract 仍把 distribution
-wiring、update command wiring、签名、公证、public feed、multi-arch qualification 和 release
-admission 分别列为未完成或未证明状态。
+本地三 carrier manifest 仍只证明 candidate build，不是 release 声明。公开 OCI Preview 使用独立
+handoff：App 只接纳 `ghcr.io/gaofeng21cn/opl-studio-webui` 的 immutable index/child digests、
+双原生架构、BuildKit SPDX/max provenance 和固定 GitHub OIDC workflow identity。该 admission
+不改变 Desktop distribution wiring、App Stable、active shell 或 Cloud activation 状态。
 
 ## Three-Carrier Candidate Evidence
 
@@ -113,6 +116,12 @@ Studio `npm run package` 不再只构建 Electron `.app`，而是按 App contrac
 该命令要求 Studio tracked source 已提交且在运行前后保持 clean，以便 manifest 绑定 exact
 `source_commit`。它从当前 App checkout 读取 `carrier_evidence_contract`，不会在 Studio 复制另一份
 carrier authority。生成物是 ignored local evidence；它不授权发布或 active-shell 切换。
+
+独立 WebUI Preview publication 由 Studio 的
+`.github/workflows/studio-webui-preview.yml` 持有，只允许 `v<Studio version>`、`sha-<Studio SHA>`
+和验收后移动的 `preview` 标签，禁止 `stable/latest`。App 使用
+`npm run validate:candidate:studio:cloud-handoff -- <handoff.json>` 验证交付给 OPL Cloud 的 ABI；
+Cloud owner 后续激活与真实 Workspace smoke 不属于 Studio/App source admission。
 
 ## Upstream DSH Policy
 

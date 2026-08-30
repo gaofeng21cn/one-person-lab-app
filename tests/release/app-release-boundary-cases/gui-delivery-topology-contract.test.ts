@@ -68,7 +68,10 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
     arm64: 'ubuntu-24.04-arm',
     emulation_allowed_as_runtime_qualification: false,
   });
-  assert.equal(profile.delivery_topology.docker_webui.signature_verification_implemented, false);
+  assert.equal(profile.delivery_topology.docker_webui.signature_verification_implemented, true);
+  assert.equal(profile.delivery_topology.docker_webui.security_admission_complete, true);
+  assert.equal(profile.delivery_topology.docker_webui.preview_release_admission_implemented, true);
+  assert.equal(profile.delivery_topology.docker_webui.release_admission_complete, false);
   assert.equal(profile.delivery_topology.docker_webui.same_renderer_host_core_and_bridge_abi_required, true);
   assert.equal(profile.delivery_topology.docker_webui.existing_aionui_container_counts_as_successor_implementation, false);
   assert.equal(profile.delivery_topology.successor_product.product_development_required, true);
@@ -146,6 +149,21 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
   assert.equal(studio.carrier_evidence_contract.candidate_only, true);
   assert.equal(studio.carrier_evidence_contract.release_authority, false);
   assert.equal(studio.carrier_evidence_contract.current_aionui_release_evidence_may_close_successor_entry, false);
+  assert.deepEqual(studio.carrier_evidence_contract.preview_oci_admission, {
+    schema: 'opl_studio_cloud_workspace_image_handoff.v1',
+    schema_ref: 'contracts/opl-studio-cloud-workspace-image-handoff.schema.json',
+    validator: 'scripts/validate-studio-cloud-handoff.ts',
+    repository: 'ghcr.io/gaofeng21cn/opl-studio-webui',
+    workflow_identity: 'https://github.com/gaofeng21cn/opl-studio/.github/workflows/studio-webui-preview.yml@refs/heads/main',
+    oidc_issuer: 'https://token.actions.githubusercontent.com',
+    required_platforms: ['linux/amd64', 'linux/arm64'],
+    immutable_tags: ['v<studio_version>', 'sha-<studio_sha>'],
+    channel_tag: 'preview',
+    forbidden_tags: ['stable', 'latest'],
+    cloud_activation_owner: 'opl-cloud',
+    active_shell_adopted: false,
+    release_ready: false,
+  });
   assert.deepEqual(
     studio.carrier_evidence_contract.entries.electron_desktop.qualification_commands,
     [

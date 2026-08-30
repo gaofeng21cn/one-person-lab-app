@@ -511,24 +511,24 @@ fresh readback, while historical bytes stay read-compatible. Its exact boundary 
 `docs/delivery/distribution-and-install-ssot.md`. Scheduled validation uses the
 separate non-user Canary lane.
 
-The `opl-studio` route is candidate-structure and non-live product
-surface first: candidate registration, adapter contract, independent external
-checkout, state/action bridge, basic UI modules, artifact preview tabs,
-provenance drawer, starter forms, confirmation/interview cards, desktop/WebUI
-same renderer, source visual smoke, package manifest when claimed, docs/runbook,
-then later live evidence. K-Dense and OpenClaudeScience / Claude Science
+The `opl-studio` route remains a foreground candidate with an independent
+Preview channel: candidate registration, adapter contract, shared Desktop/WebUI
+renderer and Host core, authenticated Cloud WebUI, local three-carrier evidence,
+and an App-validated immutable OCI handoff. The OCI admission permits only the
+dedicated Studio Preview repository and fixed signing identity; it does not make
+Studio the active shell, mark App release readiness, or activate an OPL Cloud
+Workspace. K-Dense and OpenClaudeScience / Claude Science
 lessons are intake material only: delivery experience, project sandbox,
 file/preview/result delivery, structured forms, shared renderer, and
 task/provenance framing can be adopted or adapted; external runtime/agent
 authority, Pi/DeepAgents/LangGraph-like runtimes, provider/backend marketplaces,
 and domain truth ownership are watch-only or rejected.
 
-The closeable current slice is the non-live candidate product surface. It does
-not include Live Evidence, packaged GUI acceptance, clean VM proof,
-same-cohort user-path evidence, owner acceptance, active-shell adoption, or
-release-ready proof. Candidate source/WebUI validation, source visual smoke, and
-candidate package evidence must stay tied to the exact candidate cohort before
-any stronger technical claim is made.
+The closeable current slice includes candidate source and an independently
+signed Studio WebUI Preview OCI handoff. It does not include Cloud activation,
+App Stable adoption, clean VM Desktop proof, owner acceptance, or App
+release-ready proof. Candidate and Preview evidence must stay tied to the exact
+Studio/App/Framework/DSH cohort before any stronger claim is made.
 
 The current candidate read is technical verification only. Candidate smoke,
 manifests, package evidence, shell roadmaps, upstream GUI defaults, and external

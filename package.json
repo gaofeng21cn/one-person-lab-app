@@ -58,6 +58,7 @@
     "validate:runtime-route": "node --experimental-strip-types scripts/validate-runtime-route.ts",
     "validate:windows-platform-factory": "node --experimental-strip-types scripts/validate-windows-platform-factory.ts",
     "validate:candidate:studio": "npm run validate:shell-candidates -- --candidate opl-studio",
+    "validate:candidate:studio:cloud-handoff": "node --experimental-strip-types scripts/validate-studio-cloud-handoff.ts",
     "validate:shell-convergence": "npm run validate:gui-design-system && npm run validate:active-shell -- --quick && npm run validate:shell-candidates",
     "package:candidate:studio": "OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/shell-adapters/opl-studio.json npm run package",
     "validate:gui-shell": "node --experimental-strip-types scripts/validate-active-shell.ts && node --experimental-strip-types scripts/prepare-standard-release-payload.ts && node --experimental-strip-types scripts/run-active-shell-command.ts bun run package",
