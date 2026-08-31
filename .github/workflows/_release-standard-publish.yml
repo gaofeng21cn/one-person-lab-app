@@ -793,6 +793,38 @@ jobs:
             echo "transport_run_id=$transport_run_id"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Validate deterministic Standard publication input before GitHub mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          checkpoint_dir='${{ steps.checkpoint.outputs.checkpoint_dir }}'
+          standard_assets="$checkpoint_dir/tracks/standard/assets.json"
+          component_manifest="$checkpoint_dir/tracks/standard/assets/opl-app-component-manifest.json"
+          assets_dir="$checkpoint_dir/tracks/standard/assets"
+          test -f "$standard_assets" && test ! -L "$standard_assets"
+          test -f "$component_manifest" && test ! -L "$component_manifest"
+          node --experimental-strip-types app-source/scripts/validate-standard-publication-input.ts \
+            --bundle '${{ steps.identity.outputs.bundle_digest }}' \
+            --publication-channel '${{ steps.identity.outputs.channel }}' \
+            --candidate-display-version '${{ steps.identity.outputs.version }}' \
+            --candidate-updater-version '${{ steps.identity.outputs.updater_version }}' \
+            --app-sha '${{ steps.identity.outputs.app_ref }}' \
+            --shell-sha '${{ steps.identity.outputs.shell_ref }}' \
+            --framework-sha '${{ steps.identity.outputs.framework_source_ref }}' \
+            --standard-assets "$standard_assets" \
+            --component-manifest "$component_manifest" \
+            --assets-dir "$assets_dir" \
+            --output standard-pre-publication-admission.json
+          test "$(jq -r .status standard-pre-publication-admission.json)" = passed
+
+      - name: Upload immutable pre-publication admission receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-release-standard-pre-publication-admission-${{ github.run_id }}
+          path: standard-pre-publication-admission.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Persist typed checkpoint restore failure
         if: ${{ failure() }}
         shell: bash
@@ -823,56 +855,27 @@ jobs:
       contents: read
       actions: read
     steps:
-      - name: Checkout canonical App validator
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { ref: '${{ github.sha }}', path: app-source }
-
-      - name: Restore Standard checkpoint
-        id: checkpoint
-        uses: ./app-source/.github/actions/restore-release-checkpoint
+      - name: Download independent pre-publication admission receipt
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          framework-executor-ref: ${{ needs.restore.outputs.framework_executor_ref }}
-          source-run-id: ${{ needs.restore.outputs.source_run_id }}
-          source-artifact: ${{ needs.restore.outputs.source_artifact }}
-          github-token: ${{ github.token }}
+          name: opl-release-standard-pre-publication-admission-${{ github.run_id }}
+          path: pre-publication-admission
 
-      - name: Validate deterministic Standard publication input before GitHub mutation
+      - name: Verify independent pre-publication admission receipt
         shell: bash
         run: |
           set -euo pipefail
-          checkpoint_dir='${{ steps.checkpoint.outputs.checkpoint_dir }}'
-          standard_assets="$checkpoint_dir/tracks/standard/assets.json"
-          component_manifest="$checkpoint_dir/tracks/standard/assets/opl-app-component-manifest.json"
-          assets_dir="$checkpoint_dir/tracks/standard/assets"
-          test -f "$standard_assets" && test ! -L "$standard_assets"
-          test -f "$component_manifest" && test ! -L "$component_manifest"
-          node --experimental-strip-types app-source/scripts/validate-standard-publication-input.ts \
-            --bundle '${{ needs.restore.outputs.bundle_digest }}' \
-            --publication-channel '${{ needs.restore.outputs.channel }}' \
-            --candidate-display-version '${{ needs.restore.outputs.version }}' \
-            --candidate-updater-version '${{ needs.restore.outputs.updater_version }}' \
-            --app-sha '${{ needs.restore.outputs.app_ref }}' \
-            --shell-sha '${{ needs.restore.outputs.shell_ref }}' \
-            --framework-sha '${{ needs.restore.outputs.framework_source_ref }}' \
-            --standard-assets "$standard_assets" \
-            --component-manifest "$component_manifest" \
-            --assets-dir "$assets_dir" \
-            --output standard-pre-publication-admission.json
-          test "$(jq -r .status standard-pre-publication-admission.json)" = passed
-
-      - name: Upload immutable pre-publication admission receipt
-        if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-release-standard-pre-publication-admission-${{ github.run_id }}
-          path: standard-pre-publication-admission.json
-          if-no-files-found: error
-          retention-days: 30
+          receipts=()
+          while IFS= read -r receipt; do receipts+=("$receipt"); done < <(
+            find pre-publication-admission -type f -name standard-pre-publication-admission.json -print | LC_ALL=C sort
+          )
+          test "${#receipts[@]}" = 1
+          jq -e '.status == "passed"' "${receipts[0]}" >/dev/null
 
   publish-standard-nonlatest:
     if: ${{ needs.restore.result == 'success' && needs.pre-publication-admission.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 50
     environment: ${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}
     needs: [restore, pre-publication-admission]
     steps:
@@ -908,14 +911,14 @@ jobs:
           source-artifact: ${{ needs.restore.outputs.source_artifact }}
           github-token: ${{ github.token }}
 
-      - name: Download exact immutable carrier source
+      - name: Bind immutable carrier source from restored checkpoint
         if: ${{ needs.restore.outputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: ${{ needs.restore.outputs.source_artifact }}
-          run-id: ${{ needs.restore.outputs.source_run_id }}
-          github-token: ${{ github.token }}
-          path: immutable-carrier-input
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d imported-checkpoint
+          mkdir -p immutable-carrier-input
+          cp -a imported-checkpoint/. immutable-carrier-input/
 
       - name: Resolve immutable Stable control executor
         if: ${{ needs.restore.outputs.channel == 'stable' }}
@@ -1412,7 +1415,411 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Read back exact remote Standard digests
+        if: ${{ needs.restore.outputs.channel == 'stable' }}
+        id: remote-digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE_DIGEST: ${{ needs.restore.outputs.bundle_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle='${{ steps.checkpoint.outputs.bundle_path }}'
+          store='${{ steps.checkpoint.outputs.store_dir }}'
+          operation_id='${{ needs.restore.outputs.operation_id }}'
+          operation_args=(
+            --operation '${{ needs.restore.outputs.release_operation }}'
+            --operation-id "$operation_id"
+            --operation-started-at '${{ needs.restore.outputs.operation_started_at }}'
+            --operation-deadline-at '${{ needs.restore.outputs.operation_deadline_at }}'
+          )
+          remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
+          framework-executor/bin/opl release operation admit \
+            --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
+            --store "$store" --json > operation-admit.json
+          node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts github-inspect \
+            --repo "$GITHUB_REPOSITORY" --tag '${{ needs.restore.outputs.tag }}' --output remote.json
+          record=stable-operation-publication-record.json
+          attestation=opl-release-attestation.json
+          sidecar_actions=standard-publication-upload-actions.json
+          test -f "$record" && test ! -L "$record"
+          test -f "$attestation" && test ! -L "$attestation"
+          test -f "$sidecar_actions" && test ! -L "$sidecar_actions"
+          attestation_size="$(wc -c < "$attestation" | tr -d ' ')"
+          attestation_sha="sha256:$(shasum -a 256 "$attestation" | awk '{print $1}')"
+          jq -e \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg tag '${{ needs.restore.outputs.tag }}' \
+            --arg bundle "$BUNDLE_DIGEST" '
+              .schema == "opl_app_release_attestation.v1"
+              and .status == "passed"
+              and .release.repository == $repository
+              and .release.tag == $tag
+              and .release.bundle_digest == $bundle
+              and .protection.github_native_immutable == false
+              and .protection.retroactive_lock_claimed == false
+            ' "$attestation" >/dev/null
+          jq -S . "$record" > expected-publication-record.canonical.json
+          jq -S .publication_record "$attestation" > attested-publication-record.canonical.json
+          cmp expected-publication-record.canonical.json attested-publication-record.canonical.json
+          jq -e '
+            [.upload_actions[]
+              | select(.name == "install-docker-webui.sh" or .name == "install-docker-webui.ps1")
+              | {name, digest: .sha256, size_bytes}]
+            | (length == 2)
+              and ((map(.name) | sort) == ["install-docker-webui.ps1", "install-docker-webui.sh"])
+              and all(.[];
+                (.digest | test("^sha256:[0-9a-f]{64}$"))
+                and (.size_bytes > 0)
+                and ((.size_bytes | floor) == .size_bytes))
+          ' "$sidecar_actions" >/dev/null
+          jq \
+            --null-input \
+            --slurpfile plan "$record" \
+            --slurpfile sidecars "$sidecar_actions" \
+            --arg sha "$attestation_sha" \
+            --argjson size "$attestation_size" \
+            '{
+              assets: (
+                (($plan[0].publication_intent.payload_assets
+                  // ($plan[0].release_bundle_publish.receipt.details.upload_actions // []))
+                  | map({name: .name, digest: (.digest // .sha256), size_bytes: .size_bytes}))
+                + [{name: "opl-release-attestation.json", digest: $sha, size_bytes: $size}]
+                + ($sidecars[0].upload_actions
+                  | map(select(.name == "install-docker-webui.sh" or .name == "install-docker-webui.ps1"))
+                  | map({name, digest: .sha256, size_bytes}))
+              )
+            }' > expected-mutable-standard-assets.json
+          jq -e \
+            --slurpfile expected expected-mutable-standard-assets.json '
+              .release.exists == true
+              and .release.draft == false
+              and .release.prerelease == false
+              and .release.immutable == false
+              and ([.assets[].name] | index("stable-operation-publication-record.json") | not)
+              and ([.assets[].name] | index("standard-gatekeeper-launch-policy.json") | not)
+              and ([.assets[].name] | index("standard-apple-notarization-receipt.json") | not)
+              and ((.assets | map({name, digest: .sha256, size_bytes}) | sort_by(.name))
+                == ($expected[0].assets | sort_by(.name)))
+            ' remote.json >/dev/null
+          cp remote.json mutable-standard-terminal.json
+          node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts executor-receipt \
+            --operation remote_inspect --executor remote --attempt-id "gha-${GITHUB_RUN_ID}-standard-readback" \
+            --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
+            --remote-target "$remote_target" --publication-scope track_assets \
+            --bundle "$bundle" --track standard --outcome complete \
+            --inspection remote.json --output remote.receipt.json
+          framework-executor/bin/opl release publish \
+            --bundle "$BUNDLE_DIGEST" --executor-receipt remote.receipt.json \
+            "${operation_args[@]}" \
+            --store "$store" --json > publication.json
+          test "$(jq -r .release_bundle_publish.status publication.json)" = complete
+          framework-executor/bin/opl release status \
+            --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
+          jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
+            bundle-status.json >/dev/null
+          dmg_name='One-Person-Lab-${{ needs.restore.outputs.version }}-mac-arm64.dmg'
+          component_manifest_name=opl-app-component-manifest.json
+          jq -n \
+            --slurpfile remote remote.json \
+            --slurpfile publication_record "$record" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow '.github/workflows/release-stable.yml' \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg executor_head_sha "$GITHUB_SHA" \
+            --arg operation '${{ needs.restore.outputs.release_operation }}' \
+            --arg source_run_id '${{ needs.restore.outputs.source_run_id }}' \
+            --arg source_artifact '${{ needs.restore.outputs.source_artifact }}' \
+            --arg version '${{ needs.restore.outputs.version }}' \
+            --arg updater_version '${{ needs.restore.outputs.updater_version }}' \
+            --arg tag '${{ needs.restore.outputs.tag }}' \
+            --arg bundle_digest "$BUNDLE_DIGEST" \
+            --arg app_sha '${{ needs.restore.outputs.app_ref }}' \
+            --arg shell_sha '${{ needs.restore.outputs.shell_ref }}' \
+            --arg framework_sha '${{ needs.restore.outputs.framework_source_ref }}' \
+            --arg dmg_name "$dmg_name" \
+            --arg component_manifest_name "$component_manifest_name" '
+              ($remote[0].assets | map(select(.name == $dmg_name))) as $dmg
+              | ($remote[0].assets | map(select(.name == $component_manifest_name))) as $manifest
+              | if ($dmg | length) != 1 or ($manifest | length) != 1 then
+                  error("Stable Homebrew handoff requires one exact Standard DMG and component manifest")
+                else {
+                  schema: "opl_homebrew_standard_follower_handoff.v1",
+                  status: "ready",
+                  authority: {
+                    repository: $repository,
+                    workflow: $workflow,
+                    run_id: $run_id,
+                    run_attempt: 1,
+                    executor_head_sha: $executor_head_sha
+                  },
+                  source: {
+                    operation: $operation,
+                    checkpoint_run_id: $source_run_id,
+                    checkpoint_artifact: $source_artifact
+                  },
+                  release: {
+                    version: $version,
+                    updater_version: $updater_version,
+                    tag: $tag,
+                    id: $remote[0].release.id,
+                    target_commitish: $remote[0].release.target_commitish,
+                    mutable_same_tag_release_set: true
+                  },
+                  cohort: {
+                    app_sha: $app_sha,
+                    shell_sha: $shell_sha,
+                    framework_sha: $framework_sha
+                  },
+                  publication: {
+                    bundle_digest: $bundle_digest,
+                    publication_record_digest: $publication_record[0].publication_record_digest,
+                    remote_digest_readback: "passed"
+                  },
+                  standard_dmg: $dmg[0],
+                  component_manifest: $manifest[0],
+                  homebrew: {
+                    role: "non_blocking_follower",
+                    target: "Casks/one-person-lab.rb",
+                    exact_current_cask_sha256_cas_required: true,
+                    same_tag_replacement_allowed: true,
+                    core_release_or_latest_blocking: false
+                  }
+                } end
+            ' > homebrew-standard-handoff.json
+
+      - name: Upload remote digest proof
+        if: ${{ always() && needs.restore.outputs.channel == 'stable' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-release-standard-remote-verify-${{ github.run_id }}
+          path: |
+            remote.json
+            mutable-standard-terminal.json
+            expected-mutable-standard-assets.json
+            expected-publication-record.canonical.json
+            attested-publication-record.canonical.json
+            operation-admit.json
+            publication.json
+            bundle-status.json
+            homebrew-standard-handoff.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Materialize unique Standard build receipt for portable recovery
+        if: ${{ needs.restore.outputs.channel == 'stable' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          standard_build_receipts=()
+          while IFS= read -r standard_build_receipt; do
+            standard_build_receipts+=("$standard_build_receipt")
+          done < <(
+            find imported-checkpoint -type f -name standard-build-receipt.json -print | LC_ALL=C sort
+          )
+          if [ "${#standard_build_receipts[@]}" -ne 1 ]; then
+            echo "::error::Source artifact must contain exactly one App-owned standard-build-receipt.json; found ${#standard_build_receipts[@]}."
+            exit 1
+          fi
+          cp "${standard_build_receipts[0]}" standard-build-receipt.json
+          cmp "${standard_build_receipts[0]}" standard-build-receipt.json
+
+      - name: Activate Latest after exact remote parity
+        if: ${{ needs.restore.outputs.channel == 'stable' }}
+        id: activate-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE_DIGEST: ${{ needs.restore.outputs.bundle_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-failure-evidence
+          exec > >(tee release-failure-evidence/stdout.txt) 2> >(tee release-failure-evidence/stderr.txt >&2)
+          printf '%s\0' "$BUNDLE_DIGEST" '${{ needs.restore.outputs.tag }}' '${{ needs.restore.outputs.operation_deadline_at }}' \
+            | shasum -a 256 | awk '{print "sha256:"$1}' > release-failure-evidence/input-digest.txt
+          node --experimental-strip-types app-executor/scripts/release-operation-deadline.ts check \
+            --operation '${{ needs.restore.outputs.release_operation }}' \
+            --started-at '${{ needs.restore.outputs.operation_started_at }}' \
+            --deadline-at '${{ needs.restore.outputs.operation_deadline_at }}'
+          bundle='${{ steps.checkpoint.outputs.bundle_path }}'
+          store='${{ steps.checkpoint.outputs.store_dir }}'
+          operation_id='${{ needs.restore.outputs.operation_id }}'
+          operation_args=(
+            --operation '${{ needs.restore.outputs.release_operation }}'
+            --operation-id "$operation_id"
+            --operation-started-at '${{ needs.restore.outputs.operation_started_at }}'
+            --operation-deadline-at '${{ needs.restore.outputs.operation_deadline_at }}'
+          )
+          github_remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
+          latest_remote_target="github-latest:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
+          framework-executor/bin/opl release operation admit \
+            --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
+            --store "$store" --json > latest-operation-admit.json
+          node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts github-inspect \
+            --repo "$GITHUB_REPOSITORY" --tag '${{ needs.restore.outputs.tag }}' --output remote.json
+          node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts executor-receipt \
+            --operation remote_inspect --executor remote --attempt-id "gha-${GITHUB_RUN_ID}-latest" \
+            --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
+            --remote-target "$github_remote_target" --publication-scope track_assets \
+            --bundle "$bundle" --track standard --outcome complete \
+            --inspection remote.json --output remote.receipt.json
+          framework-executor/bin/opl release publish \
+            --bundle "$BUNDLE_DIGEST" --executor-receipt remote.receipt.json \
+            "${operation_args[@]}" \
+            --store "$store" --json > publication.json
+          framework-executor/bin/opl release status \
+            --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
+          jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
+            bundle-status.json >/dev/null
+          component_manifest='${{ steps.checkpoint.outputs.checkpoint_dir }}/tracks/standard/assets/opl-app-component-manifest.json'
+          test -s "$component_manifest" && test ! -L "$component_manifest"
+          cp "$component_manifest" latest-component-manifest.json
+          cmp "$component_manifest" latest-component-manifest.json
+          admission_args=(
+            --bundle "$BUNDLE_DIGEST"
+            --publication-channel '${{ needs.restore.outputs.channel }}'
+            --candidate-display-version '${{ needs.restore.outputs.version }}'
+            --candidate-updater-version '${{ needs.restore.outputs.updater_version }}'
+            --app-sha '${{ needs.restore.outputs.app_ref }}'
+            --shell-sha '${{ needs.restore.outputs.shell_ref }}'
+            --framework-sha '${{ needs.restore.outputs.framework_source_ref }}'
+            --standard-assets '${{ steps.checkpoint.outputs.checkpoint_dir }}/tracks/standard/assets.json'
+            --component-manifest latest-component-manifest.json
+            --expected-current-latest-tag '${{ needs.restore.outputs.previous_latest_tag }}'
+            --output standard-latest-admission.json
+          )
+          node --experimental-strip-types app-executor/scripts/validate-standard-latest-admission.ts "${admission_args[@]}"
+          test "$(jq -r .latest_activation_admitted standard-latest-admission.json)" = true
+          node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts github-activate-latest \
+            --bundle "$bundle" --status bundle-status.json \
+            --latest-admission standard-latest-admission.json \
+            --publication-channel '${{ needs.restore.outputs.channel }}' \
+            --operation '${{ needs.restore.outputs.release_operation }}' --track standard --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --operation-id "$operation_id" --attempt-id "gha-${GITHUB_RUN_ID}-latest-activation" \
+            --operation-started-at '${{ needs.restore.outputs.operation_started_at }}' \
+            --operation-deadline-at '${{ needs.restore.outputs.operation_deadline_at }}' \
+            --output latest-result.json
+          latest_status="$(jq -er .status latest-result.json)"
+          case "$latest_status" in
+            complete|idempotent)
+              node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts executor-receipt \
+                --operation remote_inspect --executor remote --attempt-id "gha-${GITHUB_RUN_ID}-latest-complete" \
+                --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
+                --remote-target "$latest_remote_target" --publication-scope external_target \
+                --bundle "$bundle" --track standard --outcome complete \
+                --output latest-framework.receipt.json
+              framework-executor/bin/opl release publish \
+                --bundle "$BUNDLE_DIGEST" --executor-receipt latest-framework.receipt.json \
+                "${operation_args[@]}" --store "$store" --json > latest-framework-result.json
+              test "$(jq -r .release_bundle_publish.status latest-framework-result.json)" = complete
+              ;;
+            outcome_unknown)
+              latest_unknown_attempt="$(jq -er '.mutation_attempt_id | strings | select(length > 0)' latest-result.json)"
+              latest_unknown_target="$(jq -er '.remote_target | strings | select(length > 0)' latest-result.json)"
+              test "$latest_unknown_target" = "$latest_remote_target"
+              node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts executor-receipt \
+                --operation remote_inspect --executor remote --attempt-id "$latest_unknown_attempt" \
+                --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
+                --remote-target "$latest_unknown_target" --publication-scope external_target \
+                --bundle "$bundle" --track standard --outcome unknown \
+                --output latest-unknown.receipt.json
+              framework-executor/bin/opl release publish \
+                --bundle "$BUNDLE_DIGEST" --executor-receipt latest-unknown.receipt.json \
+                "${operation_args[@]}" --store "$store" --json > latest-unknown-persisted.json
+              test "$(jq -r .release_bundle_publish.status latest-unknown-persisted.json)" = reconcile_only
+              framework-executor/bin/opl release checkpoint export \
+                --bundle "$BUNDLE_DIGEST" --output latest-unknown-checkpoint \
+                --store "$store" --json > latest-unknown-checkpoint-export.json
+              framework-executor/bin/opl release status \
+                --bundle "$BUNDLE_DIGEST" --store "$store" --json > latest-reconcile-status.json
+              test "$(jq -r '.release_bundle_status.active_unknown_markers | length' latest-reconcile-status.json)" -eq 1
+              latest_reconcile_outcome=unknown
+              if observed_latest="$(timeout --foreground --signal=TERM --kill-after=5s 30s \
+                gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" \
+                && [ "$observed_latest" = '${{ needs.restore.outputs.tag }}' ]; then
+                latest_reconcile_outcome=complete
+              fi
+              node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts executor-receipt \
+                --operation remote_inspect --executor remote --attempt-id "gha-${GITHUB_RUN_ID}-latest-reconcile" \
+                --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
+                --remote-target "$latest_unknown_target" --prior-attempt-id "$latest_unknown_attempt" \
+                --publication-scope external_target --bundle "$bundle" --track standard \
+                --outcome "$latest_reconcile_outcome" --output latest-reconcile.receipt.json
+              framework-executor/bin/opl release reconcile \
+                --bundle "$BUNDLE_DIGEST" --executor-receipt latest-reconcile.receipt.json \
+                "${operation_args[@]}" --store "$store" --json > latest-framework-result.json
+              test "$(jq -r .release_bundle_reconcile.status latest-framework-result.json)" = complete || {
+                echo "::error::Latest activation was not conclusively read back; no retry was attempted."
+                exit 1
+              }
+              ;;
+            *)
+              echo "::error::Latest activation was not conclusively read back; no retry was attempted."
+              exit 1
+              ;;
+          esac
+          framework_terminal_status="$(
+            jq -er '.release_bundle_publish.status // .release_bundle_reconcile.status' \
+              latest-framework-result.json
+          )"
+          test "$framework_terminal_status" = complete
+
+      - name: Persist typed Latest activation failure
+        if: ${{ failure() && needs.restore.outputs.channel == 'stable' && steps.activate-latest.outcome == 'failure' }}
+        shell: bash
+        run: |
+          mkdir -p release-failure-evidence
+          latest_status="$(jq -r '.status // empty' latest-result.json 2>/dev/null || true)"
+          retry_disposition=start_new_admitted_operation_no_framework_reconcile
+          framework_reconcile_authorized=false
+          case "$latest_status" in
+            deadline_elapsed)
+              retry_disposition=bounded_read_only_inspect_only_no_second_patch_no_framework_reconcile
+              ;;
+            outcome_unknown)
+              if [ "$(jq -r '.release_bundle_status.active_unknown_markers | length' latest-reconcile-status.json 2>/dev/null || true)" = 1 ]; then
+                retry_disposition=resume_from_portable_checkpoint_status_then_exact_reconcile_no_second_patch
+                framework_reconcile_authorized=true
+              else
+                retry_disposition=bounded_read_only_latest_readback_only_no_second_patch_no_framework_reconcile
+              fi
+              ;;
+          esac
+          jq -n --arg bundle '${{ needs.restore.outputs.bundle_digest }}' --arg tag '${{ needs.restore.outputs.tag }}' \
+            --arg adapter_status "$latest_status" --arg retry_disposition "$retry_disposition" \
+            --argjson framework_reconcile_authorized "$framework_reconcile_authorized" \
+            --arg resume_source_run_id "$GITHUB_RUN_ID" \
+            --arg resume_source_artifact "opl-release-activation-${GITHUB_RUN_ID}" \
+            --arg input_digest "$(cat release-failure-evidence/input-digest.txt)" \
+            '{schema:"opl_release_mutation_failure_receipt.v1",status:"failed",mutation:"github_latest_activation",bundle_digest:$bundle,tag:$tag,input_digest:$input_digest,adapter_status:($adapter_status|select(length>0)? // null),framework_reconcile_authorized:$framework_reconcile_authorized,retry_disposition:$retry_disposition,resume_source_run_id:(if $framework_reconcile_authorized then $resume_source_run_id else null end),resume_source_artifact:(if $framework_reconcile_authorized then $resume_source_artifact else null end)}' \
+            > release-failure-evidence/latest-activation-failure.json
+
+      - name: Upload Latest activation receipt
+        if: ${{ always() && needs.restore.outputs.channel == 'stable' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-release-activation-${{ github.run_id }}
+          path: |
+            bundle-status.json
+            standard-latest-admission.json
+            latest-component-manifest.json
+            latest-result.json
+            latest-operation-admit.json
+            latest-framework.receipt.json
+            latest-framework-result.json
+            latest-unknown.receipt.json
+            latest-unknown-persisted.json
+            latest-unknown-checkpoint-export.json
+            latest-unknown-checkpoint
+            standard-build-receipt.json
+            latest-reconcile-status.json
+            latest-reconcile.receipt.json
+            release-failure-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
   remote-digest-verify:
+    if: ${{ needs.restore.result == 'success' && needs.publish-standard-nonlatest.result == 'success' && needs.restore.outputs.channel != 'stable' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [restore, publish-standard-nonlatest]
@@ -1664,10 +2071,10 @@ jobs:
           retention-days: 30
 
   activate-latest:
-    if: ${{ needs.restore.result == 'success' && needs.remote-digest-verify.result == 'success' }}
+    if: ${{ needs.restore.result == 'success' && needs.remote-digest-verify.result == 'success' && needs.restore.outputs.channel != 'stable' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: ${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview-latest' }}
+    environment: release-preview-latest
     needs: [restore, remote-digest-verify]
     steps:
       - name: Reject partial rerun before Latest mutation

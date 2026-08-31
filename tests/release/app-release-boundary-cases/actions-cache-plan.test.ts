@@ -344,3 +344,35 @@ test('Full cache-only builder returns before payload sync and DMG construction',
   assert.match(source.slice(cacheOnlyBranch, payloadSync), /fs\.rmSync\(prepared\.stagingRoot/);
   assert.match(source.slice(cacheOnlyBranch, payloadSync), /status: 'runtime_cache_warmed'/);
 });
+
+test('reusable Electron/Bun cache restore and save consume the shared admission step', () => {
+  const reusable = parseYaml(
+    fs.readFileSync(path.join(appRoot, '.github', 'workflows', '_build-reusable.yml'), 'utf8'),
+  ) as Record<string, any>;
+  const steps = reusable.jobs.build.steps as Array<Record<string, any>>;
+  const step = (name: string) => steps.find((entry) => entry.name === name);
+  const admission = step('Admit Electron/Bun cache');
+
+  assert.equal(admission?.id, 'cache-admission');
+  assert.equal(admission?.env?.SHELL_REF, '${{ inputs.shell_ref }}');
+  assert.equal(admission?.env?.FRAMEWORK_REF, '${{ inputs.framework_ref }}');
+  assert.equal(admission?.env?.CACHE_ROLE, '${{ inputs.cache_role }}');
+  assert.equal(admission?.env?.RELEASE_BUNDLE_DIGEST, '${{ inputs.release_bundle_digest }}');
+  assert.equal(admission?.env?.RELEASE_COHORT_REF, '${{ inputs.release_cohort_ref }}');
+  assert.equal(
+    step('Restore Electron artifacts cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' }}",
+  );
+  assert.equal(
+    step('Restore Bun install cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' }}",
+  );
+  assert.equal(
+    step('Save Electron artifacts cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}",
+  );
+  assert.equal(
+    step('Save Bun install cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}",
+  );
+});

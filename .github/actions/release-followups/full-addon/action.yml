@@ -11,6 +11,13 @@ inputs:
   github_token:
     description: GitHub token used for exact run and artifact readback.
     required: true
+outputs:
+  owner_run_id:
+    description: Exact Full owner run retained by this root follow-up operation.
+    value: ${{ steps.owner.outputs.owner_run_id }}
+  state:
+    description: Desired-state reconciliation result for the Full owner run.
+    value: ${{ steps.owner.outputs.state }}
 runs:
   using: composite
   steps:
@@ -120,10 +127,35 @@ runs:
           [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
           args+=(--smoke-harness-ref "$SMOKE_HARNESS_REF")
         fi
+        set +e
         node --experimental-strip-types scripts/stable-release-dispatch.ts "${args[@]}"
+        dispatch_status=$?
+        set -e
+        test -f stable-full-reconcile.json
         state="$(jq -er .status stable-full-reconcile.json)"
-        case "$state" in published|owner_identified|dispatched) ;; *) exit 1 ;; esac
-        owner_run_id="$(jq -er '.owner_run.id | tostring | select(test("^[1-9][0-9]*$"))' stable-full-reconcile.json)"
+        case "$state" in
+          published|owner_identified|dispatched)
+            test "$dispatch_status" -eq 0
+            ;;
+          outcome_unknown)
+            test "$dispatch_status" -ne 0
+            test "$(jq -er '.mutation_invocation_count' stable-full-reconcile.json)" = 1
+            test "$(jq -er '.mutation_retry_count' stable-full-reconcile.json)" = 0
+            test "$(jq -er '.read_only_reconcile_only' stable-full-reconcile.json)" = true
+            test "$(jq -er '.redispatch_allowed' stable-full-reconcile.json)" = false
+            test "$(jq -er '.human_redispatch_allowed' stable-full-reconcile.json)" = false
+            test "$(jq -er '.owner_run == null' stable-full-reconcile.json)" = true
+            ;;
+          *)
+            exit 1
+            ;;
+        esac
+        owner_run_id="$(jq -r 'if (.owner_run.id | type) == "number" then (.owner_run.id | tostring) else empty end' stable-full-reconcile.json)"
+        if [ "$state" = outcome_unknown ]; then
+          test -z "$owner_run_id"
+        else
+          [[ "$owner_run_id" =~ ^[1-9][0-9]*$ ]]
+        fi
         mutation_count="$(jq -er '.mutation_invocation_count | select(. == 0 or . == 1)' stable-full-reconcile.json)"
         resolved_source_run_id="$(jq -r '.plan.source.run_id // empty' stable-full-reconcile.json)"
         resolved_source_artifact="$(jq -r '.plan.source.artifact // empty' stable-full-reconcile.json)"
@@ -152,7 +184,21 @@ runs:
           --arg source "$SOURCE_RUN_ID" --arg artifact "$SOURCE_ARTIFACT" --arg tag "$RELEASE_TAG" \
           --arg resolved_source "$RESOLVED_SOURCE_RUN_ID" --arg resolved_artifact "$RESOLVED_SOURCE_ARTIFACT" \
           --argjson mutations "$MUTATION_COUNT" '
-            {schema:"opl_app_full_addon_follower.v1",status:$state,root_source_run_id:$source,source_run_id:(if $resolved_source == "" then $source else $resolved_source end),source_artifact:(if $resolved_artifact == "" then $artifact else $resolved_artifact end),release_tag:$tag,owner_run_id:$owner,mutation_invocation_count:$mutations,waits_for_owner_completion:false,remaining:(if $state == "published" then [] else ["full_addon"] end)}
+            {
+              schema:"opl_app_full_addon_follower.v1",
+              status:$state,
+              root_source_run_id:$source,
+              source_run_id:(if $resolved_source == "" then $source else $resolved_source end),
+              source_artifact:(if $resolved_artifact == "" then $artifact else $resolved_artifact end),
+              release_tag:$tag,
+              owner_run_id:(if $owner == "" then null else $owner end),
+              owner_locked:($owner | test("^[1-9][0-9]*$")),
+              mutation_invocation_count:$mutations,
+              redispatch_allowed:false,
+              human_redispatch_allowed:false,
+              waits_for_owner_completion:false,
+              remaining:(if $state == "published" then [] else ["full_addon"] end)
+            }
           ' > full-addon-follower.json
 
     - name: Upload Full follower handoff

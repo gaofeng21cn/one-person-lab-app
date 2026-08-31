@@ -228,4 +228,7 @@ jobs:
       require_macos_gatekeeper: ${{ needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
+      cache_role: ${{ inputs.invocation_mode == 'stable_release_set_build' && 'stable_desktop_additional' || '' }}
+      release_bundle_digest: ${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}
+      release_cohort_ref: ${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}
     secrets: inherit

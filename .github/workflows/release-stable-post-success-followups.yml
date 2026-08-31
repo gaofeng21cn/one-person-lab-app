@@ -146,6 +146,9 @@ jobs:
     permissions:
       contents: read
       actions: write
+    outputs:
+      owner_run_id: ${{ steps.full.outputs.owner_run_id }}
+      state: ${{ steps.full.outputs.state }}
     steps:
       - name: Checkout canonical Full follower
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -154,6 +157,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - uses: ./.github/actions/release-followups/full-addon
+        id: full
         with:
           source_run_id: ${{ needs.route.outputs.source_run_id }}
           smoke_harness_ref: ${{ inputs.smoke_harness_ref || '' }}

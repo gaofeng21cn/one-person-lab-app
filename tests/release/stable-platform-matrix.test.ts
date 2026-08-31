@@ -469,6 +469,11 @@ test('additional Desktop platform publication is an independent protected post-s
   assert.equal(build.with.platform_policy, 'stable_desktop_additional');
   assert.equal(build.with.platform_ids, '${{ format(\'["{0}"]\', inputs.platform_id) }}');
   assert.equal(build.with.opl_updater_version, '${{ inputs.updater_version }}');
+  assert.equal(
+    build.with.skip_code_quality,
+    '${{ needs.verify-standard-quality.outputs.skip_code_quality }}',
+  );
+  assert.deepEqual(build.needs, ['verify-standard-quality']);
   assert.equal(build.concurrency, undefined);
   assert.equal(append.environment, 'release-stable');
   assert.deepEqual(append.concurrency, {
@@ -495,6 +500,19 @@ test('additional Desktop platform publication is an independent protected post-s
   assert.equal(
     manual.jobs['build-pipeline'].with.require_macos_gatekeeper,
     "${{ needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}",
+  );
+  assert.equal(manual.jobs['build-pipeline'].with.operation, undefined);
+  assert.equal(
+    manual.jobs['build-pipeline'].with.cache_role,
+    "${{ inputs.invocation_mode == 'stable_release_set_build' && 'stable_desktop_additional' || '' }}",
+  );
+  assert.equal(
+    manual.jobs['build-pipeline'].with.release_bundle_digest,
+    "${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}",
+  );
+  assert.equal(
+    manual.jobs['build-pipeline'].with.release_cohort_ref,
+    "${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}",
   );
   assert.equal(manual.jobs['publish-selected-platforms'], undefined);
   assert.equal(manual.on.workflow_dispatch.inputs.publication_mode, undefined);

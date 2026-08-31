@@ -95,6 +95,28 @@ test('append_full exports exact qualification-bound handoff without mutating Hom
   assert.doesNotMatch(source, /OPL_HOMEBREW_TAP_TOKEN|update-homebrew-tap|git\b[^\n]*\bpush\b/);
 });
 
+test('Full owner chain calls Homebrew Full reusable after publication', () => {
+  const full = parse('_release-full-addon.yml');
+  const publish = full.jobs['publish-full'];
+  const homebrew = full.jobs['publish-homebrew-full'];
+  assert.equal(
+    publish.outputs.handoff_base64,
+    '${{ steps.homebrew-handoff.outputs.handoff_base64 }}',
+  );
+  assert.equal(
+    publish.outputs.handoff_sha256,
+    '${{ steps.homebrew-handoff.outputs.handoff_sha256 }}',
+  );
+  assert.equal(homebrew.if, "${{ always() && needs.publish-full.result == 'success' }}");
+  assert.deepEqual(homebrew.needs, ['publish-full']);
+  assert.equal(homebrew.uses, './.github/workflows/_release-homebrew-full-publish.yml');
+  assert.equal(homebrew.with.authority_run_id, '${{ github.run_id }}');
+  assert.equal(homebrew.with.handoff_base64, '${{ needs.publish-full.outputs.handoff_base64 }}');
+  assert.equal(homebrew.with.handoff_sha256, '${{ needs.publish-full.outputs.handoff_sha256 }}');
+  assert.deepEqual(homebrew.permissions, { contents: 'read', actions: 'read' });
+  assert.doesNotMatch(read('_release-full-addon.yml'), /workflow_run:[\s\S]*homebrew/);
+});
+
 test('Full Homebrew follower permits automatic delivery or source-bound reconciliation', () => {
   const source = fs.readFileSync(path.join(process.cwd(), '.github/actions/release-followups/homebrew-full-handoff/action.yml'), 'utf8');
   const workflow = parse('release-stable-post-success-followups.yml');

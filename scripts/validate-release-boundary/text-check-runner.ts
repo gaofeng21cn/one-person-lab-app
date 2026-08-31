@@ -18,6 +18,11 @@ const exactWebUiCompileCeilingPermissions = {
   packages: 'write',
 } as const;
 const exactStableStandardPermissions = { contents: 'write', actions: 'read' } as const;
+const exactStableStandardBundlePermissions = {
+  contents: 'write',
+  actions: 'read',
+  packages: 'read',
+} as const;
 const manualPreviewWorkflowPath = '.github/workflows/release-manual-preview.yml';
 const manualFullPreviewWorkflowPath = '.github/workflows/release-manual-full-preview.yml';
 const manualFullPreviewMutationJob = 'mutate';
@@ -273,10 +278,11 @@ function isAuthorizedStableWebuiWriteJob(
   if (jobId === 'webui-carrier') {
     return needsExactly(job, ['webui-source-authority'])
       && job.uses === './.github/workflows/_release-webui-carrier.yml'
-      && job.if === "${{ !cancelled() && needs.webui-source-authority.result == 'success' }}"
+      && job.if === "${{ !cancelled() && needs.webui-source-authority.result == 'success' && (inputs.operation == 'resume_standard' || needs.webui-source-authority.outputs.qualification_status == 'passed') }}"
       && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
       && job.with?.authority_mode === 'independent_stable'
-      && job.with?.mode === 'execute'
+      && job.with?.mode === "${{ inputs.operation == 'resume_standard' && 'execute' || 'publish-prequalified' }}"
+      && job.with?.qualified_artifact_run_id === '${{ github.run_id }}'
       && job.secrets === 'inherit'
       && !Array.isArray(job.steps);
   }
@@ -408,7 +414,7 @@ const stableEntrySpecs = {
       stable_operation_control_artifact: 'opl-stable-operation-control-${{ github.run_id }}',
       stable_operation_control_digest: '${{ needs.protected-operation-admission.outputs.control_digest }}',
     },
-    permissions: exactStableStandardPermissions,
+    permissions: exactStableStandardBundlePermissions,
   },
   'resume-standard': {
     operation: 'resume_standard',
@@ -1120,7 +1126,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       failures += reportFailure(
         id,
         jobId === 'standard'
-          ? 'standard permissions must be exactly contents:write/actions:read without packages:write'
+          ? 'standard permissions must be exactly contents:write/actions:read/packages:read without packages:write'
           : `${jobId} permissions must be exactly contents:write/actions:read without packages:write`,
       );
     }
@@ -1183,8 +1189,16 @@ function validateReusablePermissionInheritance(
       }
       continue;
     }
-    if (!exactObject(job.permissions, exactReadPermissions)) {
-      failures += reportFailure(id, `${name}:${jobId} must explicitly downgrade to contents:read/actions:read`);
+    const expectedPermissions = name === 'bundle' && jobId === 'webui-qualify'
+      ? { contents: 'read', actions: 'read', packages: 'read' }
+      : exactReadPermissions;
+    if (!exactObject(job.permissions, expectedPermissions)) {
+      failures += reportFailure(
+        id,
+        jobId === 'webui-qualify'
+          ? `${name}:${jobId} must remain packages:read for qualify-only`
+          : `${name}:${jobId} must explicitly downgrade to contents:read/actions:read`,
+      );
     }
   }
   return failures;
@@ -1228,8 +1242,11 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'resolve-platform-matrix',
     'admission',
     'freeze',
+    'webui-source-authority',
+    'webui-qualify',
     'standard-build',
     'seal-standard-identity',
+    'full-candidate',
     'standard-clean-vm-qualification',
     'checkpoint-standard',
     'publish-standard',
@@ -1258,6 +1275,71 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     }
   }
   failures += validateReusableCall(id, bundleJobs, 'standard-build', './.github/workflows/_build-reusable.yml');
+  failures += validateReusableCall(
+    id,
+    bundleJobs,
+    'webui-qualify',
+    './.github/workflows/_release-webui-carrier.yml',
+    { contents: 'read', actions: 'read', packages: 'read' },
+  );
+  failures += validateReusableCall(
+    id,
+    bundleJobs,
+    'full-candidate',
+    './.github/workflows/full-first-install-release.yml',
+    exactReadPermissions,
+  );
+  const webuiQualify = bundleJobs['webui-qualify'];
+  if (
+    !webuiQualify
+    || webuiQualify.with?.mode !== 'qualify-only'
+    || webuiQualify.with?.authority_mode !== 'independent_stable'
+    || webuiQualify['continue-on-error'] !== undefined
+    || !needsExactly(webuiQualify, ['freeze', 'webui-source-authority'])
+    || webuiQualify.secrets !== 'inherit'
+  ) {
+    failures += reportFailure(id, 'webui-qualify must run qualify-only after freeze without GHCR write');
+  }
+  const webuiBuilder = parseWorkflow(appRoot, '.github/workflows/_release-webui-carrier.yml', id);
+  const webuiBuild = webuiBuilder?.workflow?.jobs?.['build-and-qualify'];
+  const webuiReceipt = webuiBuilder?.workflow?.jobs?.['qualify-receipt'];
+  if (
+    !webuiBuild
+    || webuiBuild['continue-on-error'] !== "${{ inputs.mode == 'qualify-only' }}"
+    || !webuiReceipt
+    || webuiReceipt.if !== "${{ always() && inputs.mode == 'qualify-only' }}"
+    || !needsExactly(webuiReceipt, ['build-and-qualify'])
+  ) {
+    failures += reportFailure(
+      id,
+      'qualify-only WebUI isolation must continue-on-error on the inner builder and emit an explicit receipt',
+    );
+  }
+  const fullCandidate = bundleJobs['full-candidate'];
+  if (
+    !fullCandidate
+    || fullCandidate.with?.candidate_only !== true
+    || fullCandidate.with?.upload_full_package_artifact !== true
+    || fullCandidate.with?.target_standard_release_id
+    || fullCandidate['continue-on-error'] !== undefined
+    || !needsExactly(fullCandidate, ['freeze', 'seal-standard-identity'])
+    || fullCandidate.secrets !== 'inherit'
+  ) {
+    failures += reportFailure(id, 'full-candidate must build signed bytes after Standard identity without public Release mutation');
+  }
+  const candidateBuilder = parseWorkflow(appRoot, '.github/workflows/full-first-install-release.yml', id);
+  const candidateJob = candidateBuilder?.workflow?.jobs?.['full-first-install'];
+  if (
+    !candidateJob
+    || candidateJob['continue-on-error'] !== '${{ inputs.candidate_only }}'
+    || candidateJob['runs-on'] !== 'macos-latest'
+    || Array.isArray(candidateJob.steps) === false
+  ) {
+    failures += reportFailure(
+      id,
+      'candidate-only Full isolation must continue-on-error on the regular inner builder, not the reusable caller',
+    );
+  }
   const sealStandardIdentity = bundleJobs['seal-standard-identity'];
   if (
     !sealStandardIdentity
@@ -1384,6 +1466,10 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   }
   if (
     !needsExactly(standardJobs['activate-latest'], ['restore', 'remote-digest-verify'])
+    || !String(standardJobs['activate-latest']?.if ?? '').includes("needs.restore.outputs.channel != 'stable'")
+    || !String(standardJobs['remote-digest-verify']?.if ?? '').includes("needs.restore.outputs.channel != 'stable'")
+    || !jobEvidenceText(standardJobs['publish-standard-nonlatest']).includes('Read back exact remote Standard digests')
+    || !jobEvidenceText(standardJobs['publish-standard-nonlatest']).includes('Activate Latest after exact remote parity')
     || !jobRuns(standardJobs['remote-digest-verify']).includes('homebrew-standard-handoff.json')
     || /OPL_HOMEBREW_TAP_TOKEN|git -C tap-source push/.test(standard.text)
   ) {
@@ -1395,8 +1481,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   const expectedStandardMutationEnvironments = {
     'publish-standard-nonlatest':
       "${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}",
-    'activate-latest':
-      "${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview-latest' }}",
+    'activate-latest': 'release-preview-latest',
   };
   for (const [jobId, expectedEnvironment] of Object.entries(expectedStandardMutationEnvironments)) {
     const job = standardJobs[jobId];
@@ -1419,13 +1504,27 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'full-clean-vm-qualification',
     'checkpoint-full',
     'publish-full',
+    'publish-homebrew-full',
   ]) {
     if (!fullJobs[jobId]) failures += reportFailure(id, `_release-full-addon.yml is missing ${jobId}`);
   }
-  for (const retiredJobId of ['publish-homebrew-full', 'homebrew-full-vm', 'homebrew-full-readback']) {
+  for (const retiredJobId of ['homebrew-full-vm', 'homebrew-full-readback']) {
     if (fullJobs[retiredJobId]) {
       failures += reportFailure(id, `_release-full-addon.yml must not retain ${retiredJobId}`);
     }
+  }
+  failures += validateReusableCall(
+    id,
+    fullJobs,
+    'publish-homebrew-full',
+    './.github/workflows/_release-homebrew-full-publish.yml',
+    exactReadPermissions,
+  );
+  if (
+    !needsExactly(fullJobs['publish-homebrew-full'], ['publish-full'])
+    || fullJobs['publish-homebrew-full']?.secrets !== 'inherit'
+  ) {
+    failures += reportFailure(id, 'Full owner must publish Homebrew Full through the existing reusable after publish-full');
   }
   if (fullJobs['full-build']) {
     failures += validateReusableCall(
@@ -1534,7 +1633,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   if (standardUpdaterOrLatest(full.text)) {
     failures += reportFailure(id, 'append_full must not qualify Standard updater or activate Latest');
   }
-  if (/publish-homebrew-full|update-homebrew-tap|OPL_HOMEBREW_TAP_TOKEN|tap-source|Casks\/one-person-lab\.rb|git\b[^\n]*\bpush\b/.test(full.text)) {
+  if (/update-homebrew-tap|OPL_HOMEBREW_TAP_TOKEN|tap-source|Casks\/one-person-lab\.rb|git\b[^\n]*\bpush\b/.test(full.text)) {
     failures += reportFailure(id, 'append_full must not directly mutate Homebrew or touch the Standard Cask');
   }
   for (const required of [
@@ -1824,7 +1923,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
     JSON.stringify(Object.keys(desktopPlatformAddon.workflow.on ?? {})) !== JSON.stringify(['workflow_call'])
     || !exactObject(desktopPlatformAddon.workflow.permissions, exactReadPermissions)
     || JSON.stringify(Object.keys(desktopAddonJobs)) !== JSON.stringify([
-      'build-platform', 'append-platform', 'receipt',
+      'verify-standard-quality', 'build-platform', 'append-platform', 'receipt',
     ])
     || desktopBuild?.uses !== './.github/workflows/build-manual.yml'
     || desktopBuild?.concurrency !== undefined

@@ -8,12 +8,15 @@ import {
   assertLatestStandardReleaseComplete,
   buildAppendFullPlan,
   buildPublishQualifiedStandardPlan,
+  appendFullOwnersFromCurrentMutation,
+  completeAppendFullDispatch,
   dispatchOnce,
   fullCheckpointMatchesRequestedCohort,
   reachableAppendFullRuns,
   reconcileAppendFullCheckpointCohort,
   reconcileAppendFullTarget,
   selectCheckpointArtifact,
+  selectPriorFullCandidateRunId,
   selectQualifiedStandardCheckpointArtifact,
   selectReusableFullCheckpointArtifact,
   selectReusableStandardCheckpointArtifact,
@@ -217,6 +220,38 @@ test('Full checkpoint requalification preserves the tag and accepts exact option
   }), /verification harness refs require a reusable Full checkpoint/);
 });
 
+test('append_full consumes only a successful exact-cohort Full candidate receipt', () => {
+  const root = '32617588213';
+  const receipt = { id: 1, name: `opl-full-candidate-receipt-${root}`, expired: false };
+  const pack = { id: 2, name: 'opl-full-first-install-26.8.31-mac-arm64', expired: false };
+  const cohort = { id: 3, name: 'opl-full-first-install-dmg-26.8.31-mac-arm64-cohort', expired: false };
+  const dmgOnly = { id: 4, name: 'opl-full-first-install-dmg-26.8.31-mac-arm64', expired: false };
+  assert.equal(selectPriorFullCandidateRunId([receipt, pack, cohort], root), root);
+  assert.equal(selectPriorFullCandidateRunId([receipt, pack], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([receipt, pack, { ...cohort, expired: true }], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([receipt, cohort], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([receipt, dmgOnly, cohort], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([receipt], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([pack], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([{ ...receipt, expired: true }, pack, cohort], root), undefined);
+  assert.equal(selectPriorFullCandidateRunId([], root), undefined);
+});
+
+test('append_full consumes an exact Standard Full candidate through prior_full_artifact_run_id', () => {
+  const plan = buildAppendFullPlan({
+    attemptId: 'append-full-20260831-aabbccdd',
+    sourceRunId: '32617588213',
+    sourceArtifact: 'opl-release-standard-checkpoint-32617588213',
+    appSha,
+    shellSha,
+    frameworkSha,
+    priorFullArtifactRunId: '32617588213',
+  });
+  assert.equal(plan.workflow_inputs.prior_full_artifact_run_id, '32617588213');
+  assert.equal(plan.workflow_inputs.operation, 'append_full');
+  assert.equal(plan.version_policy, 'preserve_source_tag');
+});
+
 test('Full target-state reconciliation follows checkpoint retries back to one Standard source', () => {
   const owner = (id: number, source: number, status: string, conclusion: string | null) => ({
     id,
@@ -350,6 +385,226 @@ test('an unknown dispatch result performs one mutation and read-only reconciliat
   assert.equal(result.read_only_reconcile_only, true);
   assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'workflow').length, 1);
   assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'api').length, 6);
+});
+
+function appendFullOwnerRun(
+  id: number,
+  sourceRunId: string,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    path: '.github/workflows/release-stable.yml',
+    status: 'in_progress',
+    conclusion: null,
+    event: 'workflow_dispatch',
+    head_branch: 'main',
+    head_sha: appSha,
+    run_attempt: 1,
+    created_at: '2026-08-24T00:00:08Z',
+    display_title: `OPL Stable append_full source:${sourceRunId} run:${id}`,
+    ...overrides,
+  };
+}
+
+function staleFailedAppendFullOwner(id: number, sourceRunId: string) {
+  return appendFullOwnerRun(id, sourceRunId, {
+    status: 'completed',
+    conclusion: 'failure',
+    created_at: '2026-08-23T23:00:00Z',
+  });
+}
+
+function ownerRunsPayload(runs: unknown[]) {
+  return JSON.stringify([{ total_count: runs.length, workflow_runs: runs }]);
+}
+
+test('delayed Full owner identification never issues a second mutation', async () => {
+  const commands: Array<{ command: string; args: string[] }> = [];
+  let apiReads = 0;
+  const plan = buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '10',
+    sourceArtifact: 'opl-release-standard-checkpoint-10',
+    appSha,
+    shellSha,
+    frameworkSha,
+  });
+  const result = await completeAppendFullDispatch({
+    runner(command, args) {
+      commands.push({ command, args });
+      if (command === 'gh' && args[0] === 'workflow') {
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      apiReads += 1;
+      const runs = apiReads >= 8 ? [appendFullOwnerRun(99, '10')] : [];
+      return { status: 0, stdout: ownerRunsPayload(runs), stderr: '' };
+    },
+    now: () => new Date('2026-08-24T00:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, 'gaofeng21cn/one-person-lab-app', '.github/workflows/release-stable.yml', appSha, plan, '10', 6);
+
+  assert.equal(result.status, 'owner_identified');
+  assert.equal(result.owner_run?.id, 99);
+  assert.equal(result.mutation_invocation_count, 1);
+  assert.equal(result.mutation_retry_count, 0);
+  assert.equal(result.redispatch_allowed, false);
+  assert.equal(result.human_redispatch_allowed, false);
+  assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'workflow').length, 1);
+});
+
+test('unidentified Full owner after one mutation remains typed unknown without a second mutation', async () => {
+  const commands: Array<{ command: string; args: string[] }> = [];
+  const plan = buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '10',
+    sourceArtifact: 'opl-release-standard-checkpoint-10',
+    appSha,
+    shellSha,
+    frameworkSha,
+  });
+  const result = await completeAppendFullDispatch({
+    runner(command, args) {
+      commands.push({ command, args });
+      if (command === 'gh' && args[0] === 'workflow') {
+        return { status: 1, stdout: '', stderr: 'transport outcome unknown' };
+      }
+      return { status: 0, stdout: ownerRunsPayload([]), stderr: '' };
+    },
+    now: () => new Date('2026-08-24T00:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, 'gaofeng21cn/one-person-lab-app', '.github/workflows/release-stable.yml', appSha, plan, '10', 4);
+
+  assert.equal(result.status, 'outcome_unknown');
+  assert.equal(result.owner_run, null);
+  assert.equal(result.mutation_invocation_count, 1);
+  assert.equal(result.mutation_retry_count, 0);
+  assert.equal(result.redispatch_allowed, false);
+  assert.equal(result.human_redispatch_allowed, false);
+  assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'workflow').length, 1);
+});
+
+test('delayed Full owner identification ignores a stale failed reachable run until the new owner appears', async () => {
+  const commands: Array<{ command: string; args: string[] }> = [];
+  let apiReads = 0;
+  const plan = buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '10',
+    sourceArtifact: 'opl-release-standard-checkpoint-10',
+    appSha,
+    shellSha,
+    frameworkSha,
+  });
+  const stale = staleFailedAppendFullOwner(50, '10');
+  const result = await completeAppendFullDispatch({
+    runner(command, args) {
+      commands.push({ command, args });
+      if (command === 'gh' && args[0] === 'workflow') {
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      apiReads += 1;
+      const runs = apiReads >= 10 ? [stale, appendFullOwnerRun(99, '10')] : [stale];
+      return { status: 0, stdout: ownerRunsPayload(runs), stderr: '' };
+    },
+    now: () => new Date('2026-08-24T00:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, 'gaofeng21cn/one-person-lab-app', '.github/workflows/release-stable.yml', appSha, plan, '10', 6);
+
+  assert.equal(result.status, 'owner_identified');
+  assert.equal(result.owner_run?.id, 99);
+  assert.equal(result.operation_started_at, '2026-08-24T00:00:00.000Z');
+  assert.equal(result.mutation_invocation_count, 1);
+  assert.equal(result.mutation_retry_count, 0);
+  assert.equal(result.redispatch_allowed, false);
+  assert.equal(result.human_redispatch_allowed, false);
+  assert.ok(apiReads >= 10);
+  assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'workflow').length, 1);
+});
+
+test('stale failed reachable Full owner alone remains outcome_unknown after one mutation', async () => {
+  const commands: Array<{ command: string; args: string[] }> = [];
+  const plan = buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '10',
+    sourceArtifact: 'opl-release-standard-checkpoint-10',
+    appSha,
+    shellSha,
+    frameworkSha,
+  });
+  const result = await completeAppendFullDispatch({
+    runner(command, args) {
+      commands.push({ command, args });
+      if (command === 'gh' && args[0] === 'workflow') {
+        return { status: 1, stdout: '', stderr: 'transport outcome unknown' };
+      }
+      return {
+        status: 0,
+        stdout: ownerRunsPayload([staleFailedAppendFullOwner(50, '10')]),
+        stderr: '',
+      };
+    },
+    now: () => new Date('2026-08-24T00:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, 'gaofeng21cn/one-person-lab-app', '.github/workflows/release-stable.yml', appSha, plan, '10', 4);
+
+  assert.equal(result.status, 'outcome_unknown');
+  assert.equal(result.owner_run, null);
+  assert.equal(result.operation_started_at, '2026-08-24T00:00:00.000Z');
+  assert.equal(result.mutation_invocation_count, 1);
+  assert.equal(result.mutation_retry_count, 0);
+  assert.equal(result.redispatch_allowed, false);
+  assert.equal(result.human_redispatch_allowed, false);
+  assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'workflow').length, 1);
+});
+
+test('Full mutation owner window accepts same-second GitHub created_at and still excludes earlier stale runs', async () => {
+  const workflow = '.github/workflows/release-stable.yml';
+  const startedAt = '2026-08-24T00:00:08.500Z';
+  const sameSecond = appendFullOwnerRun(99, '10', { created_at: '2026-08-24T00:00:08Z' });
+  const stale = staleFailedAppendFullOwner(50, '10');
+  assert.deepEqual(
+    appendFullOwnersFromCurrentMutation({
+      runs: [stale, sameSecond],
+      rootSourceRunId: '10',
+      workflow,
+      headSha: appSha,
+      operationStartedAt: startedAt,
+    }).map((owner) => owner.id),
+    [99],
+  );
+
+  const plan = buildAppendFullPlan({
+    attemptId: 'append-full-20260824-aabbccdd',
+    sourceRunId: '10',
+    sourceArtifact: 'opl-release-standard-checkpoint-10',
+    appSha,
+    shellSha,
+    frameworkSha,
+  });
+  let apiReads = 0;
+  const result = await completeAppendFullDispatch({
+    runner(command, args) {
+      if (command === 'gh' && args[0] === 'workflow') {
+        return { status: 1, stdout: '', stderr: 'transport outcome unknown' };
+      }
+      apiReads += 1;
+      const runs = apiReads >= 8 ? [stale, sameSecond] : [stale];
+      return { status: 0, stdout: ownerRunsPayload(runs), stderr: '' };
+    },
+    now: () => new Date(startedAt),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, 'gaofeng21cn/one-person-lab-app', workflow, appSha, plan, '10', 4);
+
+  assert.equal(result.status, 'owner_identified');
+  assert.equal(result.owner_run?.id, 99);
+  assert.equal(result.operation_started_at, startedAt);
+  assert.equal(result.mutation_invocation_count, 1);
+  assert.equal(result.redispatch_allowed, false);
 });
 
 test('active owner detection blocks only the canonical Stable workflow writer', () => {

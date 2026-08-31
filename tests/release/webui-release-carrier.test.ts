@@ -751,16 +751,22 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
   assert.equal(inputs.source_cutoff_observed_at.type, 'string');
   assert.equal(inputs.source_cutoff_observed_at.required, true);
   assert.equal(inputs.failed_recovery_v8_run_id, undefined);
-  assert.equal(inputs.qualified_artifact_run_id, undefined);
+  assert.equal(inputs.qualified_artifact_run_id.required, false);
+  assert.equal(inputs.qualified_run_attempt.default, '1');
   assert.equal(inputs.qualified_artifact_name, undefined);
   assert.equal(inputs.frozen_codex_artifact_name, undefined);
   assert.equal(inputs.frozen_build_input_json, undefined);
   assert.equal(build.needs, undefined, 'WebUI build must not depend on Desktop');
-  assert.equal(build.if, "${{ inputs.mode == 'execute' || inputs.mode == 'qualify' }}");
-  assert.equal(publish.needs, 'build-and-qualify');
+  assert.equal(build.if, "${{ inputs.mode == 'execute' || inputs.mode == 'qualify' || inputs.mode == 'qualify-only' }}");
+  assert.equal(build['continue-on-error'], "${{ inputs.mode == 'qualify-only' }}");
+  const qualifyReceipt = workflow.jobs['qualify-receipt'];
+  assert.equal(qualifyReceipt.if, "${{ always() && inputs.mode == 'qualify-only' }}");
+  assert.deepEqual(qualifyReceipt.needs, ['build-and-qualify']);
+  assert.equal(workflow.on.workflow_call.outputs.qualification_status.value, '${{ jobs.qualify-receipt.outputs.status }}');
+  assert.deepEqual(publish.needs, ['build-and-qualify']);
   assert.equal(
     publish.if,
-    "${{ always() && inputs.mode == 'execute' && needs.build-and-qualify.result == 'success' }}",
+    "${{ always() && ((inputs.mode == 'execute' && needs.build-and-qualify.result == 'success') || (inputs.mode == 'publish-prequalified' && inputs.qualified_artifact_run_id != '')) }}",
   );
   assert.equal(
     publish.environment,
@@ -792,9 +798,12 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
     );
     assert.equal(
       qualifiedDownload.with.name,
-      `webui-qualified-${'${{ inputs.opl_version }}'}-${'${{ github.run_id }}'}-${'${{ github.run_attempt }}'}-${architecture}`,
+      `webui-qualified-\${{ inputs.opl_version }}-\${{ inputs.mode == 'publish-prequalified' && inputs.qualified_artifact_run_id || github.run_id }}-\${{ inputs.mode == 'publish-prequalified' && inputs.qualified_run_attempt || github.run_attempt }}-${architecture}`,
     );
-    assert.equal(qualifiedDownload.with['run-id'], '${{ github.run_id }}');
+    assert.equal(
+      qualifiedDownload.with['run-id'],
+      "${{ inputs.mode == 'publish-prequalified' && inputs.qualified_artifact_run_id || github.run_id }}",
+    );
     assert.equal(qualifiedDownload.with['github-token'], '${{ github.token }}');
     assert.equal(qualifiedDownload.with.path, `webui-platforms/${architecture}`);
   }
@@ -1018,6 +1027,19 @@ test('WebUI carrier writes the public version only after the receipt and then se
   );
   assert.ok(repositoryValidationIndex >= 0 && repositoryValidationIndex < registryPublishIndex);
   assert.match(publish.steps[repositoryValidationIndex].run, /validate-repository/);
+  const rejectRebuild = publish.steps.find(
+    (step: { name?: string }) => step.name === 'Reject rebuild during prequalified publication',
+  );
+  assert.equal(rejectRebuild.if, "${{ inputs.mode == 'publish-prequalified' }}");
+  assert.match(rejectRebuild.run, /needs\.build-and-qualify\.result.*skipped/);
+  const downloadAmd64 = publish.steps.find(
+    (step: { name?: string }) => step.name === 'Download exact qualified amd64 image evidence',
+  );
+  assert.match(
+    downloadAmd64.with.name,
+    /qualified_artifact_run_id/,
+  );
+  assert.match(downloadAmd64.with['run-id'], /qualified_artifact_run_id/);
 
   assert.match(sidecar.run, /oras manifest fetch --descriptor "\$receipt_ref"/);
   assert.match(sidecar.run, /publication_outcome=preexisting_idempotent/);

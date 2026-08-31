@@ -16,12 +16,16 @@ import {
 test('append_full delegates Full Homebrew without mutating Standard publication surfaces', () => {
   const full = parseWorkflow('_release-full-addon.yml');
   const source = readWorkflow('_release-full-addon.yml');
-  for (const retiredJob of ['publish-homebrew-full', 'homebrew-full-vm', 'homebrew-full-readback']) {
+  for (const retiredJob of ['homebrew-full-vm', 'homebrew-full-readback']) {
     assert.equal(full.jobs[retiredJob], undefined, retiredJob);
   }
+  assert.equal(
+    full.jobs['publish-homebrew-full'].uses,
+    './.github/workflows/_release-homebrew-full-publish.yml',
+  );
   assert.doesNotMatch(
     source,
-    /publish-homebrew-full|update-homebrew-tap|OPL_HOMEBREW_TAP_TOKEN|tap-source|Casks\/one-person-lab\.rb|git\b[^\n]*\bpush\b/,
+    /update-homebrew-tap|OPL_HOMEBREW_TAP_TOKEN|tap-source|Casks\/one-person-lab\.rb|git\b[^\n]*\bpush\b/,
   );
   assert.match(source, /opl_homebrew_full_follower_handoff\.v1/);
   assert.match(source, /completed_stage:"full_qualified"/);
@@ -214,13 +218,37 @@ test('Stable Standard publication binds one Desktop carrier without a retired Na
     ['admission', 'freeze', 'seal-standard-identity', 'standard-clean-vm-qualification'],
   );
   assert.deepEqual(workflow.jobs['publish-standard'].needs, ['freeze', 'checkpoint-standard']);
+  assert.equal(workflow.jobs['full-candidate']['continue-on-error'], undefined);
+  assert.equal(workflow.jobs['webui-qualify']['continue-on-error'], undefined);
+  assert.equal(workflow.jobs['checkpoint-standard'].needs.includes('full-candidate'), false);
+  assert.equal(workflow.jobs['publish-standard'].needs.includes('full-candidate'), false);
+  assert.equal(workflow.jobs['checkpoint-standard'].needs.includes('webui-qualify'), false);
+  assert.equal(workflow.jobs['publish-standard'].needs.includes('webui-qualify'), false);
+  const fullFirstInstall = parseWorkflow('full-first-install-release.yml').jobs['full-first-install'];
+  assert.equal(fullFirstInstall['continue-on-error'], '${{ inputs.candidate_only }}');
+  assert.equal(fullFirstInstall['runs-on'], 'macos-latest');
+  assert.equal(Array.isArray(fullFirstInstall.steps), true);
+  assert.match(readWorkflow('_release-full-addon.yml'), /opl_app_full_candidate\.v1/);
+  assert.match(readWorkflow('_release-full-addon.yml'), /candidate_only == true/);
+  assert.match(readWorkflow('_release-full-addon.yml'), /github_release_mutated == false/);
+  assert.equal(workflow.jobs['webui-qualify'].with.mode, 'qualify-only');
+  assert.deepEqual(workflow.jobs['webui-qualify'].needs, ['freeze', 'webui-source-authority']);
+  assert.deepEqual(workflow.jobs['webui-qualify'].permissions, {
+    actions: 'read',
+    contents: 'read',
+    packages: 'read',
+  });
+  assert.equal(workflow.jobs['full-candidate'].with.candidate_only, true);
+  assert.deepEqual(workflow.jobs['full-candidate'].needs, ['freeze', 'seal-standard-identity']);
+  assert.equal(workflow.jobs['full-candidate'].with.target_standard_release_id, undefined);
+  assert.doesNotMatch(source, /gh release (?:create|edit|upload|delete)/);
   assert.equal(workflow.jobs['prepare-native-webui'], undefined);
   assert.equal(workflow.jobs['prepare-native-webui-macos'], undefined);
   assert.equal(workflow.jobs['publish-native-webui'], undefined);
   assert.equal(workflow.jobs['publish-native-webui-macos'], undefined);
   assert.equal(Object.hasOwn(workflow.jobs['publish-standard'].with, 'qualified_native_artifact_name'), false);
   assert.equal(Object.hasOwn(workflow.jobs['publish-standard'].with, 'qualified_native_macos_artifact_name'), false);
-  assert.match(standardSource, /Download exact immutable carrier source/);
+  assert.match(standardSource, /Bind immutable carrier source from restored checkpoint/);
   assert.match(standardSource, /Bind consumed Stable operation control into the immutable carrier/);
   assert.match(standardSource, /cp -a "\$control_source_dir" stable-operation-control/);
   assert.doesNotMatch(standardSource, /native-qualified|native-release|qualified_native_|release-native-webui-carrier/);
@@ -350,7 +378,7 @@ test('Standard moving pointers require exact Desktop readback and a protected cl
     1,
     'only the historical checkpoint compatibility reader may inspect a legacy WebUI track',
   );
-  assert.equal((source.match(/\.release_bundle_status\.tracks\.standard\.reconcile_required == false/g) ?? []).length, 2);
+  assert.equal((source.match(/\.release_bundle_status\.tracks\.standard\.reconcile_required == false/g) ?? []).length, 4);
   assert.doesNotMatch(source, /opl-webui-carrier\.json/);
   assert.doesNotMatch(source, /oras tag[^\n]+stable|docker buildx imagetools create[^\n]+stable/);
 });

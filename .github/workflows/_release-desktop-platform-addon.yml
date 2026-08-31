@@ -52,7 +52,164 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  verify-standard-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      skip_code_quality: ${{ steps.verify.outputs.skip_code_quality }}
+    steps:
+      - name: Resolve Standard checkpoint artifact
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          jq -e --arg run "$SOURCE_RUN_ID" '
+            (.id | tostring) == $run
+            and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .path == ".github/workflows/release-stable.yml"
+            and .event == "workflow_dispatch"
+            and .head_branch == "main"
+            and .run_attempt == 1
+            and .status == "completed"
+            and .conclusion == "success"
+          ' source-run.json >/dev/null
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "opl-release-operation-admission-$SOURCE_RUN_ID" --dir operation-admission
+          mapfile -t admissions < <(find operation-admission -type f -name release-operation-admission.json -print | LC_ALL=C sort)
+          test "${#admissions[@]}" = 1
+          operation_kind="$(jq -er '.operation | strings' "${admissions[0]}")"
+          case "$operation_kind" in
+            standard) artifact="opl-release-standard-checkpoint-$SOURCE_RUN_ID" ;;
+            resume_standard) artifact="opl-release-standard-operation-checkpoint-$SOURCE_RUN_ID" ;;
+            *) echo "::error::Desktop add-on requires a successful Standard publication, got $operation_kind."; exit 1 ;;
+          esac
+          echo "source_artifact=$artifact" >> "$GITHUB_OUTPUT"
+          echo "operation_kind=$operation_kind" >> "$GITHUB_OUTPUT"
+
+      - name: Download exact Standard checkpoint
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ steps.source.outputs.source_artifact }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: standard-checkpoint
+
+      - name: Verify exact Standard cohort identity
+        id: verify
+        env:
+          OPERATION_KIND: ${{ steps.source.outputs.operation_kind }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_BUNDLE_DIGEST: ${{ inputs.source_bundle_digest }}
+          APP_REF: ${{ inputs.app_ref }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          skip_code_quality=false
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SOURCE_BUNDLE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$APP_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SHELL_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
+          mapfile -t checkpoints < <(find standard-checkpoint -type f -name checkpoint.json -print | LC_ALL=C sort)
+          mapfile -t bundles < <(find standard-checkpoint -type f -name bundle.json -print | LC_ALL=C sort)
+          mapfile -t controls < <(find standard-checkpoint -type f -name stable-operation-control.json -print | LC_ALL=C sort)
+          mapfile -t identities < <(find standard-checkpoint -type f -name standard-identity-receipt.json -print | LC_ALL=C sort)
+          test "${#checkpoints[@]}" = 1
+          test "${#bundles[@]}" = 1
+          test "${#controls[@]}" = 1
+          test "${#identities[@]}" = 1
+          identity="${identities[0]}"
+          test -s "$identity" && test ! -L "$identity"
+          case "$(jq -er .checkpoint_stage "${checkpoints[0]}")" in standard_built|standard_qualified) ;; *) exit 1 ;; esac
+          jq -e --arg digest "$SOURCE_BUNDLE_DIGEST" --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" '
+            .release.channel == "stable"
+            and .release.prerelease == false
+            and (.bundle_digest == $digest)
+            and (.sources.app.source_commit == $app)
+            and (.sources.shell.source_commit == $shell)
+            and (.sources.framework.source_commit == $framework)
+          ' "${bundles[0]}" >/dev/null
+          test "$(jq -er .cohort.app_sha "${controls[0]}")" = "$APP_REF"
+          test "$(jq -er .cohort.shell_sha "${controls[0]}")" = "$SHELL_REF"
+          test "$(jq -er .cohort.framework_sha "${controls[0]}")" = "$FRAMEWORK_REF"
+          jq -e --arg digest "$SOURCE_BUNDLE_DIGEST" \
+            --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" '
+              .schema == "opl_standard_release_identity_receipt.v2"
+              and .status == "passed"
+              and .source.run_attempt == 1
+              and .release.bundle_digest == $digest
+              and .cohort == {
+                app_sha: $app,
+                shell_sha: $shell,
+                framework_sha: $framework
+              }
+            ' "$identity" >/dev/null
+          producer_run_id="$(jq -er '.source.run_id | strings | select(test("^[1-9][0-9]*$"))' "$identity")"
+          case "$OPERATION_KIND" in
+            standard)
+              test "$producer_run_id" = "$SOURCE_RUN_ID"
+              ;;
+            resume_standard)
+              mapfile -t qualifications < <(find standard-checkpoint -type f -name standard-clean-vm-qualification-receipt.json -print | LC_ALL=C sort)
+              mapfile -t builds < <(find standard-checkpoint -type f -name standard-build-receipt.json -print | LC_ALL=C sort)
+              test "${#qualifications[@]}" = 1
+              test "${#builds[@]}" = 1
+              qualification="${qualifications[0]}"
+              build="${builds[0]}"
+              test -s "$qualification" && test ! -L "$qualification"
+              test -s "$build" && test ! -L "$build"
+              jq -e --arg producer "$producer_run_id" --arg digest "$SOURCE_BUNDLE_DIGEST" \
+                --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" '
+                  .schema == "opl_app_artifact_qualification_receipt.v1"
+                  and .status == "passed"
+                  and .package_profile == "standard"
+                  and .release_cohort_ref == $digest
+                  and .qualification.source_artifact_run_id == $producer
+                  and .qualification.source_artifact_name == ("opl-release-standard-vm-bound-" + $producer)
+                  and .qualification.result == "passed"
+                  and .cohort == {
+                    app_sha: $app,
+                    shell_sha: $shell,
+                    framework_sha: $framework
+                  }
+                ' "$qualification" >/dev/null
+              jq -e --arg producer "$producer_run_id" '
+                .surface_kind == "opl_release_bundle_executor_receipt.v1"
+                and .track == "standard"
+                and .outcome == "complete"
+                and (.remote_target | test("/runs/" + $producer + "/"))
+              ' "$build" >/dev/null
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
+          observed_identity_sha256="sha256:$(shasum -a 256 "$identity" | awk '{print $1}')"
+          sidecar="${identity}.sha256"
+          if [ -f "$sidecar" ]; then
+            test ! -L "$sidecar"
+            test "$(tr -d '[:space:]' < "$sidecar")" = "$observed_identity_sha256"
+          fi
+          expected_identity_sha256="$(jq -r '.standard_identity_sha256 // empty' "${checkpoints[0]}")"
+          if [ -n "$expected_identity_sha256" ]; then
+            test "$expected_identity_sha256" = "$observed_identity_sha256"
+          fi
+          skip_code_quality=true
+          echo "skip_code_quality=$skip_code_quality" >> "$GITHUB_OUTPUT"
+
   build-platform:
+    needs: [verify-standard-quality]
     permissions:
       contents: read
       actions: read
@@ -63,6 +220,7 @@ jobs:
       app_ref: ${{ inputs.app_ref }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
+      skip_code_quality: ${{ needs.verify-standard-quality.outputs.skip_code_quality }}
       opl_release_version: ${{ inputs.version }}
       opl_updater_version: ${{ inputs.updater_version }}
       source_run_id: ${{ inputs.source_run_id }}

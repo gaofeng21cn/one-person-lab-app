@@ -1,4 +1,4 @@
-import { appRoot, assert, fs, os, path, test } from './helpers.ts';
+import { appRoot, assert, fs, os, path, spawnSync, test } from './helpers.ts';
 import { parse as parseYaml } from 'yaml';
 import {
   collectActionsCachePolicyViolations,
@@ -22,8 +22,60 @@ test('repository Actions caches satisfy the reusable cache policy', () => {
   assert.deepEqual(collectActionsCachePolicyViolations(appRoot), []);
 });
 
+const reusableCacheAdmission = "${{ steps.cache-admission.outputs.admitted == 'true' }}";
+const exactAppSha = 'a'.repeat(40);
+const exactShellSha = 'c'.repeat(40);
+const exactFrameworkSha = 'd'.repeat(40);
+const exactBundleDigest = `sha256:${'b'.repeat(64)}`;
+
+function reusableBuildSteps(): Array<Record<string, any>> {
+  const buildWorkflow = parseYaml(
+    fs.readFileSync(path.join(appRoot, '.github', 'workflows', '_build-reusable.yml'), 'utf8'),
+  ) as Record<string, any>;
+  return buildWorkflow.jobs.build.steps as Array<Record<string, any>>;
+}
+
+function reusableCacheAdmissionStep(): Record<string, any> {
+  const step = reusableBuildSteps().find((entry) => entry.name === 'Admit Electron/Bun cache');
+  assert.equal(step?.id, 'cache-admission');
+  assert.equal(typeof step?.run, 'string');
+  return step!;
+}
+
+function admittedByReusableCacheStep(overrides: Record<string, string>): boolean {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-cache-admission-'));
+  const output = path.join(root, 'github-output');
+  fs.writeFileSync(output, '');
+  try {
+    const result = spawnSync('bash', ['-c', String(reusableCacheAdmissionStep().run)], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        EVENT_NAME: '',
+        REPOSITORY: 'gaofeng21cn/one-person-lab-app',
+        REF: 'refs/heads/main',
+        FORK: 'false',
+        OPERATION: '',
+        CACHE_ROLE: '',
+        APP_REF: '',
+        SHELL_REF: '',
+        FRAMEWORK_REF: '',
+        RELEASE_COHORT_REF: '',
+        RELEASE_BUNDLE_DIGEST: '',
+        ...overrides,
+        GITHUB_OUTPUT: output,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const admitted = fs.readFileSync(output, 'utf8').split('\n').find((line) => line.startsWith('admitted='));
+    assert.ok(admitted === 'admitted=true' || admitted === 'admitted=false');
+    return admitted === 'admitted=true';
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
 test('shared dependency caches are restored only for direct main pushes', () => {
-  const mainPushGuard = "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}";
   const activeShellMainPushGuard =
     "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.install-dependencies == 'true' }}";
   const activeShellAction = parseYaml(
@@ -37,19 +89,77 @@ test('shared dependency caches are restored only for direct main pushes', () => 
     activeShellSteps.find((step) => step.name === 'Restore Bun install cache')?.if,
     activeShellMainPushGuard,
   );
+});
 
-  const buildWorkflow = parseYaml(
-    fs.readFileSync(path.join(appRoot, '.github', 'workflows', '_build-reusable.yml'), 'utf8'),
-  ) as Record<string, any>;
-  const buildSteps = buildWorkflow.jobs.build.steps as Array<Record<string, any>>;
+test('reusable Electron/Bun caches share one admission output and main-only miss saves', () => {
+  const steps = reusableBuildSteps();
+  const env = reusableCacheAdmissionStep().env as Record<string, string>;
+  assert.equal(env.REPOSITORY, '${{ github.repository }}');
+  assert.equal(env.APP_REF, '${{ inputs.ref }}');
+  assert.equal(env.SHELL_REF, '${{ inputs.shell_ref }}');
+  assert.equal(env.FRAMEWORK_REF, '${{ inputs.framework_ref }}');
+  assert.equal(env.OPERATION, '${{ inputs.operation }}');
+  assert.equal(env.CACHE_ROLE, '${{ inputs.cache_role }}');
+  assert.equal(env.RELEASE_BUNDLE_DIGEST, '${{ inputs.release_bundle_digest }}');
+  assert.equal(env.RELEASE_COHORT_REF, '${{ inputs.release_cohort_ref }}');
+  assert.equal(steps.find((step) => step.name === 'Restore Electron artifacts cache')?.if, reusableCacheAdmission);
+  assert.equal(steps.find((step) => step.name === 'Restore Bun install cache')?.if, reusableCacheAdmission);
   assert.equal(
-    buildSteps.find((step) => step.name === 'Restore Electron artifacts cache')?.if,
-    mainPushGuard,
+    steps.find((step) => step.name === 'Save Electron artifacts cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}",
   );
   assert.equal(
-    buildSteps.find((step) => step.name === 'Restore Bun install cache')?.if,
-    mainPushGuard,
+    steps.find((step) => step.name === 'Save Bun install cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}",
   );
+});
+
+test('reusable Electron/Bun cache admission executes the workflow script', () => {
+  const standard = {
+    EVENT_NAME: 'workflow_dispatch',
+    OPERATION: 'standard',
+    APP_REF: exactAppSha,
+    SHELL_REF: exactShellSha,
+    FRAMEWORK_REF: exactFrameworkSha,
+    RELEASE_BUNDLE_DIGEST: exactBundleDigest,
+    RELEASE_COHORT_REF: exactBundleDigest,
+  };
+  const desktop = {
+    EVENT_NAME: 'workflow_call',
+    CACHE_ROLE: 'stable_desktop_additional',
+    APP_REF: exactAppSha,
+    SHELL_REF: exactShellSha,
+    FRAMEWORK_REF: exactFrameworkSha,
+    RELEASE_BUNDLE_DIGEST: exactBundleDigest,
+    RELEASE_COHORT_REF: exactBundleDigest,
+  };
+  const cases: Array<[string, Record<string, string>, boolean]> = [
+    ['canonical main push', { EVENT_NAME: 'push' }, true],
+    ['standard workflow_dispatch', standard, true],
+    ['standard workflow_call', { ...standard, EVENT_NAME: 'workflow_call' }, true],
+    ['standard workflow_run', { ...standard, EVENT_NAME: 'workflow_run' }, true],
+    ['desktop additional cache role', desktop, true],
+    ['pull request', { ...standard, EVENT_NAME: 'pull_request' }, false],
+    ['fork push', { EVENT_NAME: 'push', FORK: 'true' }, false],
+    ['unknown repository', { ...standard, REPOSITORY: 'untrusted/fork' }, false],
+    ['empty ref', { EVENT_NAME: 'push', REF: '' }, false],
+    ['unknown ref', { EVENT_NAME: 'push', REF: 'refs/heads/feature/cache' }, false],
+    ['append_full', { ...standard, OPERATION: 'append_full' }, false],
+    ['empty app sha', { ...standard, APP_REF: '' }, false],
+    ['non-sha app ref', { ...standard, APP_REF: 'main' }, false],
+    ['uppercase app sha', { ...standard, APP_REF: 'A'.repeat(40) }, false],
+    ['empty shell sha', { ...standard, SHELL_REF: '' }, false],
+    ['empty framework sha', { ...standard, FRAMEWORK_REF: '' }, false],
+    ['invalid bundle digest', { ...standard, RELEASE_BUNDLE_DIGEST: exactAppSha, RELEASE_COHORT_REF: exactAppSha }, false],
+    ['cohort digest mismatch', { ...standard, RELEASE_COHORT_REF: `sha256:${'e'.repeat(64)}` }, false],
+    ['empty cohort ref', { ...standard, RELEASE_COHORT_REF: '' }, false],
+    ['unknown caller with shas', { ...desktop, CACHE_ROLE: '' }, false],
+    ['unknown cache role', { ...desktop, CACHE_ROLE: 'manual' }, false],
+    ['desktop pull request', { ...desktop, EVENT_NAME: 'pull_request' }, false],
+  ];
+  for (const [name, env, expected] of cases) {
+    assert.equal(admittedByReusableCacheStep(env), expected, name);
+  }
 });
 
 test('first-run Codex install seed uses full content identity and direct-main-push miss saves', () => {

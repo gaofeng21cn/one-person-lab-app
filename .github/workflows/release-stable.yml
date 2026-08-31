@@ -1169,6 +1169,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      packages: read
     uses: ./.github/workflows/_release-bundle.yml
     with:
       operation: standard
@@ -1208,6 +1209,7 @@ jobs:
       shell_ref: ${{ steps.authority.outputs.shell_ref }}
       framework_ref: ${{ steps.authority.outputs.framework_ref }}
       source_cutoff_observed_at: ${{ steps.authority.outputs.source_cutoff_observed_at }}
+      qualification_status: ${{ steps.authority.outputs.qualification_status }}
     steps:
       - name: Checkout canonical Stable WebUI authority
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1221,6 +1223,15 @@ jobs:
           run-id: ${{ inputs.operation == 'standard' && needs.standard.outputs.source_run_id || needs.admission.outputs.source_run_id }}
           github-token: ${{ github.token }}
           path: standard-checkpoint
+
+      - name: Download freeze-bound WebUI source authority
+        if: ${{ inputs.operation == 'standard' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: opl-webui-source-authority-${{ github.run_id }}
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          path: freeze-webui-authority
 
       - name: Download same-run Stable admission
         if: ${{ inputs.operation == 'standard' }}
@@ -1258,31 +1269,52 @@ jobs:
           if [ "$OPERATION" = standard ]; then
             mapfile -t admissions < <(find stable-admission -type f -name stable-release-admission-manifest.json -print | LC_ALL=C sort)
             test "${#admissions[@]}" -eq 1
-            source_cutoff_observed_at="$(jq -er .checked_at "${admissions[0]}")"
+            source_cutoff_observed_at='${{ needs.standard.outputs.webui_source_cutoff_observed_at }}'
+            test -n "$source_cutoff_observed_at"
             test "$version" = '${{ needs.stable-admission-manifest.outputs.version }}'
             test "$app_ref" = '${{ needs.stable-admission-manifest.outputs.app_ref }}'
             test "$shell_ref" = '${{ needs.stable-admission-manifest.outputs.shell_ref }}'
             test "$framework_ref" = '${{ needs.stable-admission-manifest.outputs.framework_ref }}'
+            mapfile -t authorities < <(find freeze-webui-authority -type f -name source-authority.json -print | LC_ALL=C sort)
+            test "${#authorities[@]}" -eq 1
+            cp "${authorities[0]}" source-authority.json
+            jq -e --arg version "$version" --arg app "$app_ref" --arg shell "$shell_ref" \
+              --arg framework "$framework_ref" --arg bundle "$release_bundle_digest" --arg run "$GITHUB_RUN_ID" '
+                .release.version == $version
+                and .sources.app.source_commit == $app
+                and .sources.shell.source_commit == $shell
+                and .sources.framework.source_commit == $framework
+                and .release.bundle_digest == $bundle
+                and .authorization.run_id == $run
+              ' source-authority.json >/dev/null
+            node --experimental-strip-types scripts/webui-source-authority.ts validate \
+              --input source-authority.json \
+              > source-authority-verification.json
           else
             test "$OPERATION" = resume_standard
             source_cutoff_observed_at="$RESUME_SOURCE_CUTOFF_OBSERVED_AT"
             test -n "$source_cutoff_observed_at"
+            node --experimental-strip-types scripts/webui-source-authority.ts create \
+              --origin stable_standard \
+              --version "$version" \
+              --app-sha "$app_ref" \
+              --shell-sha "$shell_ref" \
+              --framework-sha "$framework_ref" \
+              --bundle-digest "$release_bundle_digest" \
+              --run-id "$GITHUB_RUN_ID" \
+              --executor-sha "$GITHUB_SHA" \
+              --output source-authority.json \
+              > source-authority-create.json
+            node --experimental-strip-types scripts/webui-source-authority.ts validate \
+              --input source-authority.json \
+              > source-authority-verification.json
           fi
-          node --experimental-strip-types scripts/webui-source-authority.ts create \
-            --origin stable_standard \
-            --version "$version" \
-            --app-sha "$app_ref" \
-            --shell-sha "$shell_ref" \
-            --framework-sha "$framework_ref" \
-            --bundle-digest "$release_bundle_digest" \
-            --run-id "$GITHUB_RUN_ID" \
-            --executor-sha "$GITHUB_SHA" \
-            --output source-authority.json \
-            > source-authority-create.json
-          node --experimental-strip-types scripts/webui-source-authority.ts validate \
-            --input source-authority.json \
-            > source-authority-verification.json
           source_authority_artifact_name="opl-webui-source-authority-${GITHUB_RUN_ID}"
+          if [ "$OPERATION" = standard ]; then
+            qualification_status='${{ needs.standard.outputs.webui_qualification_status }}'
+          else
+            qualification_status=execute
+          fi
           {
             echo "source_run_id=$GITHUB_RUN_ID"
             echo "source_authority_artifact_name=$source_authority_artifact_name"
@@ -1293,9 +1325,11 @@ jobs:
             echo "shell_ref=$shell_ref"
             echo "framework_ref=$framework_ref"
             echo "source_cutoff_observed_at=$source_cutoff_observed_at"
+            echo "qualification_status=$qualification_status"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload Stable-bound WebUI source authority
+        if: ${{ inputs.operation == 'resume_standard' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ steps.authority.outputs.source_authority_artifact_name }}
@@ -1307,7 +1341,7 @@ jobs:
           retention-days: 90
 
   webui-carrier:
-    if: ${{ !cancelled() && needs.webui-source-authority.result == 'success' }}
+    if: ${{ !cancelled() && needs.webui-source-authority.result == 'success' && (inputs.operation == 'resume_standard' || needs.webui-source-authority.outputs.qualification_status == 'passed') }}
     needs: [webui-source-authority]
     permissions:
       actions: read
@@ -1315,7 +1349,7 @@ jobs:
       packages: write
     uses: ./.github/workflows/_release-webui-carrier.yml
     with:
-      mode: execute
+      mode: ${{ inputs.operation == 'resume_standard' && 'execute' || 'publish-prequalified' }}
       authority_mode: independent_stable
       app_ref: ${{ needs.webui-source-authority.outputs.app_ref }}
       shell_ref: ${{ needs.webui-source-authority.outputs.shell_ref }}
@@ -1326,6 +1360,8 @@ jobs:
       source_artifact_run_id: ${{ needs.webui-source-authority.outputs.source_run_id }}
       source_authority_artifact_name: ${{ needs.webui-source-authority.outputs.source_authority_artifact_name }}
       source_cutoff_observed_at: ${{ needs.webui-source-authority.outputs.source_cutoff_observed_at }}
+      qualified_artifact_run_id: ${{ github.run_id }}
+      qualified_run_attempt: '1'
     secrets: inherit
 
   webui-promotion:

@@ -38,6 +38,11 @@ on:
         required: false
         default: false
         type: boolean
+      candidate_only:
+        description: Build, sign, and notarize exact Full bytes without GitHub Release or Homebrew mutation
+        required: false
+        default: false
+        type: boolean
       full_dmg_compression_level:
         description: zlib level for the Full DMG when full_dmg_format is UDZO.
         required: false
@@ -111,6 +116,7 @@ jobs:
     name: Build App-owned Full first-install DMG
     runs-on: macos-latest
     timeout-minutes: ${{ inputs.operation == 'append_full' && 130 || 90 }}
+    continue-on-error: ${{ inputs.candidate_only }}
     environment: release-stable
     permissions:
       contents: read
@@ -142,15 +148,26 @@ jobs:
           const deadline = Date.parse('${{ inputs.operation_deadline_at }}');
           if (!Number.isFinite(started) || !Number.isFinite(deadline) || Date.now() >= deadline) process.exit(1);
           NODE
-          if [ "$status" = passed ] && [ '${{ inputs.operation }}' != append_full ]; then status=failed; reason=operation_invalid; fi
+          if [ "$status" = passed ] && [ '${{ inputs.candidate_only }}' = true ]; then
+            if [ '${{ inputs.operation }}' != standard ]; then status=failed; reason=operation_invalid; fi
+            if [ -n '${{ inputs.target_standard_release_id }}${{ inputs.target_standard_release_tag }}${{ inputs.target_standard_target_commitish }}' ]; then
+              status=failed
+              reason=candidate_only_forbids_public_release_identity
+            fi
+          elif [ "$status" = passed ] && [ '${{ inputs.operation }}' != append_full ]; then
+            status=failed
+            reason=operation_invalid
+          fi
           if [ "$status" = passed ] && ! [[ '${{ inputs.release_bundle_digest }}' =~ ^sha256:[0-9a-f]{64}$ ]]; then status=failed; reason=bundle_digest_invalid; fi
           if [ "$status" = passed ] && [ '${{ inputs.release_bundle_digest }}' = sha256:91d5ea069757fca6bb9aa2280615dc952caeff55b6b4bc13e08e40df32378f49 ]; then status=failed; reason=bundle_permanently_rejected; fi
           if [ "$status" = passed ] && ! [[ '${{ inputs.artifact_app_sha }}' =~ ^[0-9a-f]{40}$ ]]; then status=failed; reason=app_sha_invalid; fi
           if [ "$status" = passed ] && ! [[ '${{ inputs.shell_ref }}' =~ ^[0-9a-f]{40}$ ]]; then status=failed; reason=shell_sha_invalid; fi
           if [ "$status" = passed ] && ! [[ '${{ inputs.framework_ref }}' =~ ^[0-9a-f]{40}$ ]]; then status=failed; reason=framework_sha_invalid; fi
-          if [ "$status" = passed ] && ! [[ '${{ inputs.target_standard_release_id }}' =~ ^[1-9][0-9]*$ ]]; then status=failed; reason=standard_release_id_invalid; fi
-          if [ "$status" = passed ] && [ '${{ inputs.target_standard_release_tag }}' != "v${{ inputs.opl_version }}" ]; then status=failed; reason=standard_release_tag_invalid; fi
-          if [ "$status" = passed ] && ! [[ '${{ inputs.target_standard_target_commitish }}' =~ ^[0-9a-f]{40}$ ]]; then status=failed; reason=standard_release_target_invalid; fi
+          if [ "$status" = passed ] && [ '${{ inputs.candidate_only }}' != true ]; then
+            if ! [[ '${{ inputs.target_standard_release_id }}' =~ ^[1-9][0-9]*$ ]]; then status=failed; reason=standard_release_id_invalid; fi
+            if [ '${{ inputs.target_standard_release_tag }}' != "v${{ inputs.opl_version }}" ]; then status=failed; reason=standard_release_tag_invalid; fi
+            if ! [[ '${{ inputs.target_standard_target_commitish }}' =~ ^[0-9a-f]{40}$ ]]; then status=failed; reason=standard_release_target_invalid; fi
+          fi
           jq -n --arg status "$status" --arg reason "$reason" --arg operation '${{ inputs.operation }}' --arg input_digest "$input_digest" \
             '{schema:"opl_release_nested_admission_receipt.v1",status:$status,reason:$reason,operation:$operation,input_digest:$input_digest,evidence:{stdout:"stdout.txt",stderr:"stderr.txt"},run_id:env.GITHUB_RUN_ID,run_attempt:env.GITHUB_RUN_ATTEMPT}' \
             > "$RUNNER_TEMP/opl-full-admission/admission.json"
@@ -177,7 +194,7 @@ jobs:
           IDENTITY: ${{ secrets.IDENTITY }}
         run: |
           set -euo pipefail
-          production_release="${{ inputs.operation == 'append_full' && inputs.upload_full_package_artifact }}"
+          production_release="${{ (inputs.operation == 'append_full' || inputs.candidate_only) && inputs.upload_full_package_artifact }}"
           missing=()
           for secret_name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD APPLE_ID APPLE_ID_PASSWORD TEAM_ID IDENTITY; do
             if [ -z "${!secret_name:-}" ]; then
@@ -207,7 +224,7 @@ jobs:
           ref: ${{ inputs.artifact_app_sha || github.sha }}
 
       - name: Checkout canonical Full release executor
-        if: ${{ inputs.operation == 'append_full' }}
+        if: ${{ inputs.operation == 'append_full' || inputs.candidate_only }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: release-executor
@@ -237,9 +254,15 @@ jobs:
           [[ '${{ inputs.shell_ref }}' =~ ^[0-9a-f]{40}$ ]] || { echo "::error::shell_ref must be the exact frozen Shell SHA."; exit 1; }
           [[ '${{ inputs.framework_ref }}' =~ ^[0-9a-f]{40}$ ]] || { echo "::error::framework_ref must be the exact frozen Framework SHA."; exit 1; }
           test '${{ inputs.release_cohort_ref }}' = '${{ inputs.release_bundle_digest }}' || { echo "::error::release_cohort_ref must equal the Bundle digest."; exit 1; }
-          [[ '${{ inputs.target_standard_release_id }}' =~ ^[1-9][0-9]*$ ]] || { echo "::error::target_standard_release_id must be an exact positive GitHub Release ID."; exit 1; }
-          test '${{ inputs.target_standard_release_tag }}' = "v${{ inputs.opl_version }}" || { echo "::error::target_standard_release_tag must bind the Full carrier version."; exit 1; }
-          [[ '${{ inputs.target_standard_target_commitish }}' =~ ^[0-9a-f]{40}$ ]] || { echo "::error::target_standard_target_commitish must be an exact lowercase SHA."; exit 1; }
+          if [ '${{ inputs.candidate_only }}' = true ]; then
+            test -z '${{ inputs.target_standard_release_id }}'
+            test -z '${{ inputs.target_standard_release_tag }}'
+            test -z '${{ inputs.target_standard_target_commitish }}'
+          else
+            [[ '${{ inputs.target_standard_release_id }}' =~ ^[1-9][0-9]*$ ]] || { echo "::error::target_standard_release_id must be an exact positive GitHub Release ID."; exit 1; }
+            test '${{ inputs.target_standard_release_tag }}' = "v${{ inputs.opl_version }}" || { echo "::error::target_standard_release_tag must bind the Full carrier version."; exit 1; }
+            [[ '${{ inputs.target_standard_target_commitish }}' =~ ^[0-9a-f]{40}$ ]] || { echo "::error::target_standard_target_commitish must be an exact lowercase SHA."; exit 1; }
+          fi
           test "$(git -C "$GITHUB_WORKSPACE/release-executor" rev-parse HEAD)" = "$GITHUB_SHA" || { echo "::error::Full release executor checkout is not the active canonical workflow SHA."; exit 1; }
           test -f "$GITHUB_WORKSPACE/release-executor/scripts/notarize-macos-dmg.ts"
           test ! -L "$GITHUB_WORKSPACE/release-executor/scripts/notarize-macos-dmg.ts"
@@ -864,7 +887,7 @@ jobs:
           IDENTITY: ${{ secrets.IDENTITY }}
         run: |
           set -euo pipefail
-          production_release="${{ inputs.operation == 'append_full' && inputs.upload_full_package_artifact }}"
+          production_release="${{ (inputs.operation == 'append_full' || inputs.candidate_only) && inputs.upload_full_package_artifact }}"
           requires_distributable_assets="${{ inputs.upload_full_package_artifact }}"
           echo "OPL_FULL_DISTRIBUTABLE_ASSETS=$requires_distributable_assets" >> "$GITHUB_ENV"
           echo "OPL_MAC_STRICT_SIGNING_CHECKS=false" >> "$GITHUB_ENV"
@@ -1156,7 +1179,7 @@ jobs:
             node -e 'const fs = require("node:fs"); const appPath = process.argv[1]; const runtimeTrust = JSON.parse(fs.readFileSync("one-person-lab-app/dist/opl-full-release/full-runtime-native-trust.json", "utf8")); const notarization = JSON.parse(fs.readFileSync("one-person-lab-app/dist/opl-full-release/full-apple-notarization-receipt.json", "utf8")); fs.writeFileSync("one-person-lab-app/dist/opl-full-release/full-gatekeeper-launch-policy.json", `${JSON.stringify({ schema: "opl_gatekeeper_launch_policy.v1", package_kind: "app_full_first_install", distribution_mode: "developer_id_notarized", app_path: appPath, team_identifier: notarization.team_identifier, codesign_status: "passed", spctl_status: "passed", dmg_codesign_status: "passed", dmg_spctl_status: "passed", stapler_validate_status: "passed", notarization_status: notarization.notarization.status, notarization_receipt_sha256: require("node:crypto").createHash("sha256").update(fs.readFileSync("one-person-lab-app/dist/opl-full-release/full-apple-notarization-receipt.json")).digest("hex"), runtime_native_trust_status: runtimeTrust.status, runtime_native_executable_count: runtimeTrust.executable_count, local_authorization_required: false, quarantine_removal_required: false }, null, 2)}\n`);' "$mounted_app_path"
             node -e 'const fs = require("node:fs"); const file = "one-person-lab-app/dist/opl-full-release/README-Full-First-Install.txt"; const text = fs.readFileSync(file, "utf8"); const next = text.replace(/Signing and notarization:.*(?:\n|$)/, "Signing and notarization: this package has completed Developer ID signing, Apple notarization, stapling, and Gatekeeper checks.\n"); fs.writeFileSync(file, next);'
           else
-            if [ '${{ inputs.operation }}' = append_full ]; then
+            if [ '${{ inputs.operation }}' = append_full ] || [ '${{ inputs.candidate_only }}' = true ]; then
               echo "::error::Production Full verification cannot fall back to local authorization."
               exit 1
             fi
@@ -1170,7 +1193,7 @@ jobs:
               --runtime-native-trust one-person-lab-app/dist/opl-full-release/full-runtime-native-trust.json \
               --output one-person-lab-app/dist/opl-full-release/full-local-authorization-policy.json
           fi
-          node - "$OPL_RELEASE_VERSION" "$dmg_path" one-person-lab-app/dist/opl-full-release \
+          CANDIDATE_ONLY='${{ inputs.candidate_only }}' node - "$OPL_RELEASE_VERSION" "$dmg_path" one-person-lab-app/dist/opl-full-release \
             '${{ inputs.target_standard_release_id }}' '${{ inputs.target_standard_release_tag }}' \
             '${{ inputs.target_standard_target_commitish }}' '${{ github.sha }}' \
             '${{ inputs.artifact_app_sha }}' '${{ inputs.shell_ref }}' '${{ inputs.framework_ref }}' <<'NODE'
@@ -1180,6 +1203,7 @@ jobs:
           const version = process.argv[2];
           const dmgPath = process.argv[3];
           const outDir = process.argv[4];
+          const candidateOnly = process.env.CANDIDATE_ONLY === 'true';
           const targetStandardReleaseId = Number(process.argv[5]);
           const targetStandardReleaseTag = process.argv[6];
           const targetStandardTargetCommitish = process.argv[7];
@@ -1197,8 +1221,8 @@ jobs:
             release_version: version,
             primary_install_asset: fullDmgName,
             carrier_context: {
-              publication_model: 'same_tag_mutable_standard_addon',
-              target_standard_release: {
+              publication_model: candidateOnly ? 'release_bound_candidate_only' : 'same_tag_mutable_standard_addon',
+              target_standard_release: candidateOnly ? null : {
                 repository: 'gaofeng21cn/one-person-lab-app',
                 release_id: targetStandardReleaseId,
                 tag: targetStandardReleaseTag,
@@ -1220,7 +1244,7 @@ jobs:
               },
               differences: {
                 executor_app_differs_from_full_content_app: releaseExecutorAppSha !== fullContentAppSha,
-                full_content_app_differs_from_target_standard: fullContentAppSha !== targetStandardTargetCommitish,
+                full_content_app_differs_from_target_standard: candidateOnly ? false : fullContentAppSha !== targetStandardTargetCommitish,
               },
             },
             assets: [
@@ -1735,6 +1759,70 @@ jobs:
             --release-cohort-ref "${{ inputs.release_cohort_ref }}"
           cp "$RUNNER_TEMP/opl-build-cohort.json" one-person-lab-app/dist/opl-full-release/opl-build-cohort.json
           cp "$RUNNER_TEMP/opl-full-toolchain-observation-receipt.json" one-person-lab-app/dist/opl-full-release/opl-full-toolchain-observation-receipt.json
+
+      - name: Seal candidate-only Full receipt without public mutation
+        if: ${{ success() && inputs.candidate_only && steps.full_package_build.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z '${{ inputs.target_standard_release_id }}'
+          test -z '${{ inputs.target_standard_release_tag }}'
+          test -z '${{ inputs.target_standard_target_commitish }}'
+          jq -e '.carrier_context.publication_model == "release_bound_candidate_only"
+            and .carrier_context.target_standard_release == null' \
+            one-person-lab-app/dist/opl-full-release/opl-release-manifest.json >/dev/null
+          jq -n --arg run_id "$GITHUB_RUN_ID" --arg version "${{ env.OPL_RELEASE_VERSION }}" \
+            --arg bundle '${{ inputs.release_bundle_digest }}' \
+            '{
+              schema:"opl_app_full_candidate.v1",
+              status:"built",
+              candidate_only:true,
+              github_release_mutated:false,
+              homebrew_mutated:false,
+              run_id:$run_id,
+              run_attempt:env.GITHUB_RUN_ATTEMPT,
+              version:$version,
+              bundle_digest:$bundle
+            }' > one-person-lab-app/dist/opl-full-release/full-candidate-receipt.json
+
+      - name: Upload candidate-only Full receipt
+        if: ${{ success() && inputs.candidate_only && steps.full_package_build.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-full-candidate-receipt-${{ github.run_id }}
+          path: one-person-lab-app/dist/opl-full-release/full-candidate-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Record candidate-only Full failure without blocking Standard
+        if: ${{ failure() && inputs.candidate_only }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p one-person-lab-app/dist/opl-full-release
+          jq -n --arg run_id "$GITHUB_RUN_ID" --arg version "${{ env.OPL_RELEASE_VERSION }}" \
+            --arg bundle '${{ inputs.release_bundle_digest }}' \
+            '{
+              schema:"opl_app_full_candidate.v1",
+              status:"failed",
+              candidate_only:true,
+              github_release_mutated:false,
+              homebrew_mutated:false,
+              compensation_required:true,
+              run_id:$run_id,
+              run_attempt:env.GITHUB_RUN_ATTEMPT,
+              version:$version,
+              bundle_digest:$bundle
+            }' > one-person-lab-app/dist/opl-full-release/full-candidate-receipt.json
+
+      - name: Upload candidate-only Full failure receipt
+        if: ${{ failure() && inputs.candidate_only }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-full-candidate-receipt-${{ github.run_id }}
+          path: one-person-lab-app/dist/opl-full-release/full-candidate-receipt.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload Full package workflow artifact
         if: ${{ success() && steps.full_package_build.outcome == 'success' && !inputs.cache_only && inputs.operation != 'append_full' && inputs.upload_full_package_artifact }}

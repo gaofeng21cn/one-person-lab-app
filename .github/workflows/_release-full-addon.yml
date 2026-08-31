@@ -953,6 +953,7 @@ jobs:
 
       - name: Download exact failed qualification receipt
         if: ${{ inputs.prior_full_artifact_run_id != '' }}
+        continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: opl-qualification-attempt-full-${{ inputs.prior_full_artifact_run_id }}
@@ -975,27 +976,56 @@ jobs:
         run: |
           set -euo pipefail
           run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID")"
-          jq -e \
-            --arg repository "$GITHUB_REPOSITORY" \
-            --arg run_id "$PRIOR_RUN_ID" '
-              (.id | tostring) == $run_id
-              and .event == "workflow_dispatch"
-              and .head_branch == "main"
-              and .run_attempt == 1
-              and .status == "completed"
-              and (.conclusion == "failure" or .conclusion == "cancelled")
-              and .path == ".github/workflows/release-stable.yml"
-              and .repository.full_name == $repository
-            ' <<<"$run_json" >/dev/null
-
           dmg="full-output/One-Person-Lab-Full-${VERSION}-mac-arm64.dmg"
           manifest=full-output/opl-release-manifest.json
           cohort=full-cohort/opl-build-cohort.json
           qualification=prior-qualification/qualification-attempt-receipt.json
           notarization=full-output/full-apple-notarization-receipt.json
-          for file in "$dmg" "$manifest" "$cohort" "$qualification" "$notarization"; do
-            test -f "$file" && test ! -L "$file"
-          done
+          candidate_receipt=full-output/full-candidate-receipt.json
+          if [ -f "$candidate_receipt" ] && [ ! -L "$candidate_receipt" ]; then
+            jq -e \
+              --arg repository "$GITHUB_REPOSITORY" \
+              --arg run_id "$PRIOR_RUN_ID" '
+                (.id | tostring) == $run_id
+                and .event == "workflow_dispatch"
+                and .head_branch == "main"
+                and .run_attempt == 1
+                and .status == "completed"
+                and .conclusion == "success"
+                and .path == ".github/workflows/release-stable.yml"
+                and .repository.full_name == $repository
+              ' <<<"$run_json" >/dev/null
+            jq -e --arg run_id "$PRIOR_RUN_ID" --arg bundle "$BUNDLE_DIGEST" --arg version "$VERSION" '
+              .schema == "opl_app_full_candidate.v1"
+              and .status == "built"
+              and .candidate_only == true
+              and .github_release_mutated == false
+              and .homebrew_mutated == false
+              and .run_id == $run_id
+              and .version == $version
+              and .bundle_digest == $bundle
+            ' "$candidate_receipt" >/dev/null
+            for file in "$dmg" "$manifest" "$cohort" "$notarization"; do
+              test -f "$file" && test ! -L "$file"
+            done
+            qualification=""
+          else
+            jq -e \
+              --arg repository "$GITHUB_REPOSITORY" \
+              --arg run_id "$PRIOR_RUN_ID" '
+                (.id | tostring) == $run_id
+                and .event == "workflow_dispatch"
+                and .head_branch == "main"
+                and .run_attempt == 1
+                and .status == "completed"
+                and (.conclusion == "failure" or .conclusion == "cancelled")
+                and .path == ".github/workflows/release-stable.yml"
+                and .repository.full_name == $repository
+              ' <<<"$run_json" >/dev/null
+            for file in "$dmg" "$manifest" "$cohort" "$qualification" "$notarization"; do
+              test -f "$file" && test ! -L "$file"
+            done
+          fi
           dmg_sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
           dmg_size="$(wc -c < "$dmg" | tr -d ' ')"
           cohort_sha="$(shasum -a 256 "$cohort" | awk '{print $1}')"
@@ -1026,6 +1056,7 @@ jobs:
           semantic_digest="$(jq -er .digests.compiled_expectation_semantic_sha256 "$cohort")"
           probe_digest="$(jq -er .digests.compiled_expectation_probe_sha256 "$cohort")"
           qualification_input_digest="$(jq -er .digests.qualification_input_manifest_sha256 "$cohort")"
+          if [ -n "$qualification" ]; then
           jq -e \
             --arg bundle "$BUNDLE_DIGEST" \
             --arg app "$APP_REF" \
@@ -1112,6 +1143,7 @@ jobs:
               and .evidence.scope_proof.forbidden_app_paths == []
               and .evidence.scope_proof.forbidden_shell_paths == []
             ' "$qualification" >/dev/null
+          fi
 
           jq -e \
             --arg dmg_name "$(basename "$dmg")" \
@@ -1676,6 +1708,9 @@ jobs:
       group: opl-release-bundle-global
       cancel-in-progress: false
     needs: [restore-standard, checkpoint-full, provenance]
+    outputs:
+      handoff_base64: ${{ steps.homebrew-handoff.outputs.handoff_base64 }}
+      handoff_sha256: ${{ steps.homebrew-handoff.outputs.handoff_sha256 }}
     steps:
       - name: Reject partial rerun before Full GitHub mutation
         shell: bash
@@ -2047,6 +2082,21 @@ jobs:
             '{schema:"opl_app_full_append_boundary_receipt.v1",status:"passed",operation:"append_full",carrier:{kind:"same_standard_release_assets",versioning:"same_standard_tag",standard_tag:$standard_tag,manifest_sha256:$manifest_sha,standard_attestation_sha256:$standard_attestation_sha,target_standard:{release_id:$target_standard_release_id,tag:$target_standard_release_tag,target_commitish:$target_standard_target_commitish,immutable:false,full_asset_append_allowed:true,standard_asset_overwrite_or_delete_allowed:false}},standard_assets_modified:false,prepared_notes_modified:false,standard_updater_metadata_modified:false,homebrew_modified:false,latest_modified:false}' \
             > append-full-boundary.json
 
+      - name: Export owner-controlled Homebrew Full handoff
+        id: homebrew-handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s homebrew-full-handoff.json && test ! -L homebrew-full-handoff.json
+          handoff_sha="sha256:$(shasum -a 256 homebrew-full-handoff.json | awk '{print $1}')"
+          [[ "$handoff_sha" =~ ^sha256:[0-9a-f]{64}$ ]]
+          handoff_base64="$(base64 < homebrew-full-handoff.json | tr -d '\n')"
+          test -n "$handoff_base64"
+          {
+            echo "handoff_sha256=$handoff_sha"
+            echo "handoff_base64=$handoff_base64"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Persist typed Full publication failure
         if: ${{ failure() }}
         shell: bash
@@ -2102,3 +2152,16 @@ jobs:
             release-failure-evidence
           if-no-files-found: warn
           retention-days: 30
+
+  publish-homebrew-full:
+    if: ${{ always() && needs.publish-full.result == 'success' }}
+    needs: [publish-full]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_release-homebrew-full-publish.yml
+    with:
+      authority_run_id: ${{ github.run_id }}
+      handoff_base64: ${{ needs.publish-full.outputs.handoff_base64 }}
+      handoff_sha256: ${{ needs.publish-full.outputs.handoff_sha256 }}
+    secrets: inherit

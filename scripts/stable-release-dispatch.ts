@@ -11,6 +11,8 @@ import { parseArgs } from 'node:util';
 import {
   buildPostDispatchReconcile,
   buildPreNonceDispatchGuard,
+  createdAtClockSkewMs,
+  defaultIdentityWindowMs,
   readOwnerWorkflowRuns,
   type CommandResult,
   type CommandRunner,
@@ -33,6 +35,8 @@ const frameworkRemote = 'https://github.com/gaofeng21cn/one-person-lab.git';
 const shaPattern = /^[0-9a-f]{40}$/;
 const runIdPattern = /^[1-9][0-9]*$/;
 const activeRunStatuses = new Set(['queued', 'in_progress', 'waiting', 'pending']);
+export const appendFullOwnerIdentifyAttempts = 12;
+export const appendFullOwnerIdentifyWaitMs = 5_000;
 
 export type StableDispatchOperation = 'standard' | 'resume_standard' | 'append_full';
 
@@ -521,6 +525,21 @@ function latestRelease(runtime: Runtime, repository: string): unknown {
   ));
 }
 
+const fullCandidatePackageName = /^opl-full-first-install-(?!dmg-).+-mac-arm64$/;
+const fullCandidateCohortName = /^opl-full-first-install-dmg-.+-mac-arm64-cohort$/;
+
+export function selectPriorFullCandidateRunId(
+  artifacts: readonly WorkflowArtifact[],
+  rootSourceRunId: string,
+): string | undefined {
+  const root = runId(rootSourceRunId, 'root_source_run_id');
+  const live = artifacts.filter((artifact) => !artifact.expired);
+  const hasReceipt = live.some((artifact) => artifact.name === `opl-full-candidate-receipt-${root}`);
+  const hasPackage = live.some((artifact) => fullCandidatePackageName.test(artifact.name));
+  const hasCohort = live.some((artifact) => fullCandidateCohortName.test(artifact.name));
+  return hasReceipt && hasPackage && hasCohort ? root : undefined;
+}
+
 export function buildAppendFullPlan(input: {
   attemptId: string;
   sourceRunId: string;
@@ -877,6 +896,7 @@ export async function dispatchOnce(
     version_policy: plan.version_policy,
     mutation_invocation_count: 1,
     mutation_retry_count: 0,
+    operation_started_at: operationStartedAt,
     dispatch_transport: {
       exit_status: dispatch.status,
       error: dispatch.status === 0 && !dispatch.error ? null : commandDetail(dispatch),
@@ -889,6 +909,136 @@ export async function dispatchOnce(
       cohort: plan.cohort,
       authority: plan.authority,
     },
+  };
+}
+
+export function appendFullOwnersFromCurrentMutation(input: {
+  runs: unknown[];
+  rootSourceRunId: string;
+  workflow: string;
+  headSha: string;
+  operationStartedAt: string;
+}): OwnerWorkflowRun[] {
+  const startedAt = Date.parse(input.operationStartedAt);
+  if (!Number.isFinite(startedAt)) {
+    throw new Error('operation_started_at must be a valid timestamp.');
+  }
+  const headSha = sha(input.headSha, 'head_sha');
+  return reachableAppendFullRuns(input.runs, input.rootSourceRunId, input.workflow).filter((owner) => {
+    const createdAt = Date.parse(owner.created_at);
+    return Number.isFinite(createdAt)
+      && createdAt >= startedAt - createdAtClockSkewMs
+      && createdAt <= startedAt + defaultIdentityWindowMs
+      && owner.head_sha.toLowerCase() === headSha;
+  });
+}
+
+export async function identifyAppendFullOwnerAfterMutation(input: {
+  runtime: Runtime;
+  workflow: string;
+  rootSourceRunId: string;
+  headSha: string;
+  operationStartedAt: string;
+  maxAttempts?: number;
+}): Promise<{
+  status: 'owner_identified' | 'outcome_unknown';
+  owner_run: OwnerWorkflowRun | null;
+  attempts: number;
+  mutation_invocation_count: 1;
+  mutation_retry_count: 0;
+  redispatch_allowed: false;
+  human_redispatch_allowed: false;
+}> {
+  const root = runId(input.rootSourceRunId, 'root_source_run_id');
+  const maxAttempts = input.maxAttempts ?? appendFullOwnerIdentifyAttempts;
+  let attempts = 0;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    attempts = attempt;
+    const observation = readOwnerWorkflowRuns({
+      workflow: input.workflow,
+      maxAttempts: 1,
+      runner: input.runtime.runner,
+      cwd: appRoot,
+    });
+    if (observation.status === 'ok') {
+      const mutationOwners = appendFullOwnersFromCurrentMutation({
+        runs: observation.runs,
+        rootSourceRunId: root,
+        workflow: input.workflow,
+        headSha: input.headSha,
+        operationStartedAt: input.operationStartedAt,
+      });
+      const active = mutationOwners.filter((owner) => activeRunStatuses.has(owner.status));
+      if (active.length > 1) {
+        throw new Error(
+          `Multiple active Full owners exist for Standard source ${root}: ${active.map((run) => run.id).join(', ')}.`,
+        );
+      }
+      const owner = active[0] ?? (mutationOwners.length === 1 ? mutationOwners[0] : undefined);
+      if (owner) {
+        return {
+          status: 'owner_identified',
+          owner_run: owner,
+          attempts,
+          mutation_invocation_count: 1,
+          mutation_retry_count: 0,
+          redispatch_allowed: false,
+          human_redispatch_allowed: false,
+        };
+      }
+    }
+    if (attempt < maxAttempts) await input.runtime.wait(appendFullOwnerIdentifyWaitMs);
+  }
+  return {
+    status: 'outcome_unknown',
+    owner_run: null,
+    attempts,
+    mutation_invocation_count: 1,
+    mutation_retry_count: 0,
+    redispatch_allowed: false,
+    human_redispatch_allowed: false,
+  };
+}
+
+export async function completeAppendFullDispatch(
+  runtime: Runtime,
+  repository: string,
+  workflow: string,
+  executorSha: string,
+  plan: StableDispatchPlan,
+  rootSourceRunId: string,
+  maxIdentifyAttempts?: number,
+) {
+  const dispatched = await dispatchOnce(runtime, repository, workflow, executorSha, plan);
+  if (dispatched.status !== 'outcome_unknown') {
+    return {
+      ...dispatched,
+      redispatch_allowed: false,
+      human_redispatch_allowed: false,
+    };
+  }
+  const identified = await identifyAppendFullOwnerAfterMutation({
+    runtime,
+    workflow,
+    rootSourceRunId,
+    headSha: executorSha,
+    operationStartedAt: dispatched.operation_started_at,
+    maxAttempts: maxIdentifyAttempts,
+  });
+  if (identified.status === 'owner_identified') {
+    return {
+      ...dispatched,
+      status: 'owner_identified' as const,
+      owner_run: identified.owner_run,
+      read_only_reconcile_only: true,
+      redispatch_allowed: false,
+      human_redispatch_allowed: false,
+    };
+  }
+  return {
+    ...dispatched,
+    redispatch_allowed: false,
+    human_redispatch_allowed: false,
   };
 }
 
@@ -1052,6 +1202,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       appSha,
       shellSha,
       frameworkSha,
+      priorFullArtifactRunId: isFullRecovery
+        ? undefined
+        : selectPriorFullCandidateRunId(artifactsByRunId[rootSourceRunId] ?? [], rootSourceRunId),
       smokeHarnessSha: values['smoke-harness-ref'],
       verificationAppSha: values['verification-app-ref'],
       recoveryRunId: isFullRecovery ? sourceRunId : rootSourceRunId,
@@ -1073,6 +1226,19 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
   }
 
   if (plan.operation !== 'standard') assertNoConflictingActiveRun(runtime, workflow, plan);
+  if (command === 'append-full') {
+    const result = await completeAppendFullDispatch(
+      runtime,
+      repository,
+      workflow,
+      executorSha,
+      plan,
+      runId(values['source-run-id'], 'source_run_id'),
+    );
+    writeJson(values.output, result);
+    if (result.status !== 'dispatched' && result.status !== 'owner_identified') process.exitCode = 2;
+    return;
+  }
   const result = await dispatchOnce(runtime, repository, workflow, executorSha, plan);
   writeJson(values.output, result);
   if (result.status !== 'dispatched') process.exitCode = 2;

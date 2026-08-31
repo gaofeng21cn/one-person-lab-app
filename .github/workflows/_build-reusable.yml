@@ -75,6 +75,10 @@ on:
         description: Immutable outer operation deadline; never recomputed here.
         type: string
         default: ''
+      cache_role:
+        description: Main-owned cache admission role. Empty except audited Desktop additional callers.
+        type: string
+        default: ''
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -524,9 +528,55 @@ jobs:
           python-version: '3.12'
 
       # Restore Electron/Electron-Builder caches before any build-related install
+      - name: Admit Electron/Bun cache
+        id: cache-admission
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          FORK: ${{ github.event.repository.fork }}
+          OPERATION: ${{ inputs.operation }}
+          CACHE_ROLE: ${{ inputs.cache_role }}
+          APP_REF: ${{ inputs.ref }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          RELEASE_BUNDLE_DIGEST: ${{ inputs.release_bundle_digest }}
+          RELEASE_COHORT_REF: ${{ inputs.release_cohort_ref }}
+        run: |
+          set -euo pipefail
+          admitted=false
+          if [ "$EVENT_NAME" = pull_request ] \
+            || [ "$REPOSITORY" != gaofeng21cn/one-person-lab-app ] \
+            || [ "$FORK" = true ] \
+            || [ -z "$REF" ] \
+            || [ "$REF" != refs/heads/main ]; then
+            admitted=false
+          elif [ "$EVENT_NAME" = push ]; then
+            admitted=true
+          elif [[ "$EVENT_NAME" =~ ^(workflow_call|workflow_dispatch|workflow_run)$ ]] \
+            && [ "$OPERATION" = standard ] \
+            && [[ "$APP_REF" =~ ^[0-9a-f]{40}$ ]] \
+            && [[ "$SHELL_REF" =~ ^[0-9a-f]{40}$ ]] \
+            && [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]] \
+            && [[ "$RELEASE_BUNDLE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            && [ "$RELEASE_COHORT_REF" = "$RELEASE_BUNDLE_DIGEST" ]; then
+            admitted=true
+          elif [[ "$EVENT_NAME" =~ ^(workflow_call|workflow_dispatch|workflow_run)$ ]] \
+            && [ "$CACHE_ROLE" = stable_desktop_additional ] \
+            && [[ "$APP_REF" =~ ^[0-9a-f]{40}$ ]] \
+            && [[ "$SHELL_REF" =~ ^[0-9a-f]{40}$ ]] \
+            && [[ "$FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]] \
+            && [[ "$RELEASE_BUNDLE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            && [ "$RELEASE_COHORT_REF" = "$RELEASE_BUNDLE_DIGEST" ]; then
+            admitted=true
+          fi
+          echo "admitted=$admitted" >> "$GITHUB_OUTPUT"
+
       - name: Restore Electron artifacts cache
         id: electron-cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -542,7 +592,7 @@ jobs:
 
       - name: Restore Bun install cache
         id: bun-cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
@@ -1203,7 +1253,7 @@ jobs:
         run: bun run validate:opl-package
 
       - name: Save Electron artifacts cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -1215,7 +1265,7 @@ jobs:
           key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
 
       - name: Save Bun install cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache

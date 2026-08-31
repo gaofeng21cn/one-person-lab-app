@@ -45,16 +45,24 @@ test('successful Standard routes independent additive lanes', () => {
   });
 });
 
-test('successful Full append routes only Homebrew Full plus observation', () => {
+test('successful Full append is observation-only because Homebrew Full is owner-chained', () => {
   const route = routeCompletedStableRun(stableRun('OPL Stable append_full source:1 run:424242'));
   assert.deepEqual(route.lanes, {
     observe: true,
     full_addon: false,
     homebrew_standard: false,
-    homebrew_full: true,
+    homebrew_full: false,
     desktop_platforms: false,
     repair_additive: false,
   });
+});
+
+test('successful Standard still routes Homebrew Standard and Desktop when Full add-on is later skipped', () => {
+  const route = routeCompletedStableRun(stableRun('OPL Stable standard operation:x authority:y run:424242'));
+  assert.equal(route.lanes.homebrew_standard, true);
+  assert.equal(route.lanes.desktop_platforms, true);
+  assert.equal(route.lanes.full_addon, true);
+  assert.equal(route.source_conclusion, 'success');
 });
 
 test('failed and unknown Stable runs remain observation-only', () => {

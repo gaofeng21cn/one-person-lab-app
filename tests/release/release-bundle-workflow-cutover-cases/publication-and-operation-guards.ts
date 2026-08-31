@@ -51,7 +51,7 @@ test('mutation unknown states persist evidence and only use bounded read-only re
     assert.match(source, /outcome_unknown[\s\S]*--outcome unknown[\s\S]*opl release publish[\s\S]*opl release status[\s\S]*opl release reconcile/);
     assert.match(source, /deadline_elapsed[\s\S]*reconcile is not authorized without a persisted unknown outcome/);
   }
-  assert.equal((standardSource.match(/framework-release-adapter\.ts github-activate-latest/g) ?? []).length, 1);
+  assert.equal((standardSource.match(/framework-release-adapter\.ts github-activate-latest/g) ?? []).length, 2);
   assert.match(standardSource, /case "\$latest_status" in[\s\S]*complete\|idempotent/);
   assert.match(standardSource, /Latest activation was not conclusively read back; no retry was attempted/);
   assert.match(readWorkflow('_release-standard-publish.yml'), /fresh_bounded_read_only_inspect_then_framework_reconcile/);
@@ -94,6 +94,44 @@ test('Full publication declares the Stable channel and same-tag CAS boundary at 
   assert.match(String(publish.run), /--standard-attestation "\$standard_attestation"/);
   assert.doesNotMatch(String(publish.run), /adjunct|gh release create|--create/);
   assert.doesNotMatch(String(publish.run), /scripts\/publish-release\.ts/);
+});
+
+test('Stable Standard mutation restores once then publishes, readbacks, and activates Latest', () => {
+  const workflow = parseWorkflow('_release-standard-publish.yml');
+  const publish = workflow.jobs['publish-standard-nonlatest'];
+  const readback = workflow.jobs['remote-digest-verify'];
+  const latest = workflow.jobs['activate-latest'];
+  assert.equal(
+    publish.environment,
+    "${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}",
+  );
+  assert.equal(
+    publish.steps.filter((step: { uses?: string }) => String(step.uses ?? '').includes('restore-release-checkpoint')).length,
+    1,
+  );
+  assert.equal(
+    publish.steps.find((step: { name?: string }) => step.name === 'Read back exact remote Standard digests')?.if,
+    "${{ needs.restore.outputs.channel == 'stable' }}",
+  );
+  assert.equal(
+    publish.steps.find((step: { name?: string }) => step.name === 'Activate Latest after exact remote parity')?.if,
+    "${{ needs.restore.outputs.channel == 'stable' }}",
+  );
+  assert.match(String(readback.if), /needs\.restore\.outputs\.channel != 'stable'/);
+  assert.match(String(latest.if), /needs\.restore\.outputs\.channel != 'stable'/);
+  assert.equal(latest.environment, 'release-preview-latest');
+  assert.equal(readback.environment, undefined);
+  assert.deepEqual(readback.permissions, { contents: 'read', actions: 'read' });
+  assert.equal(
+    readback.steps.filter((step: { uses?: string }) => String(step.uses ?? '').includes('restore-release-checkpoint')).length,
+    1,
+  );
+  assert.equal(
+    latest.steps.filter((step: { uses?: string }) => String(step.uses ?? '').includes('restore-release-checkpoint')).length,
+    1,
+  );
+  assert.doesNotMatch(readWorkflow('_release-standard-publish.yml'), /needs\.restore\.outputs\.shell_sha\b/);
+  assert.match(readWorkflow('_release-standard-publish.yml'), /needs\.restore\.outputs\.shell_ref/);
 });
 
 test('Stable Standard publication uses the Contents-write workflow credential', () => {
@@ -264,11 +302,16 @@ test('the remote Canary is a thin read-only contract check with no reusable rele
   assert.equal(webui.jobs['startup-canary'], undefined);
   assert.equal(
     webui.jobs['build-and-qualify'].if,
-    "${{ inputs.mode == 'execute' || inputs.mode == 'qualify' }}",
+    "${{ inputs.mode == 'execute' || inputs.mode == 'qualify' || inputs.mode == 'qualify-only' }}",
   );
   assert.equal(
+    webui.jobs['build-and-qualify']['continue-on-error'],
+    "${{ inputs.mode == 'qualify-only' }}",
+  );
+  assert.equal(webui.jobs['qualify-receipt'].if, "${{ always() && inputs.mode == 'qualify-only' }}");
+  assert.equal(
     webui.jobs['publish-carrier'].if,
-    "${{ always() && inputs.mode == 'execute' && needs.build-and-qualify.result == 'success' }}",
+    "${{ always() && ((inputs.mode == 'execute' && needs.build-and-qualify.result == 'success') || (inputs.mode == 'publish-prequalified' && inputs.qualified_artifact_run_id != '')) }}",
   );
   assert.deepEqual(webui.jobs['publish-carrier'].permissions, {
     actions: 'read',
@@ -344,6 +387,9 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   assert.equal(bundle.jobs['standard-build'].with.require_macos_gatekeeper, true);
   assert.equal(bundle.jobs['standard-build'].secrets, 'inherit');
   assert.equal(bundle.jobs['standard-clean-vm-qualification'].secrets, 'inherit');
+  assert.equal(bundle.jobs['full-candidate'].secrets, 'inherit');
+  assert.equal(bundle.jobs['full-candidate'].with.candidate_only, true);
+  assert.equal(bundle.jobs['webui-qualify'].with.mode, 'qualify-only');
   assert.equal(bundle.jobs['standard-clean-vm-qualification'].with.diagnostic_scope, 'release_gate');
   assert.equal(bundle.jobs['standard-clean-vm-qualification'].with.package_profile, 'standard');
   assert.deepEqual(bundle.jobs['standard-build'].permissions, {
@@ -463,7 +509,11 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     '${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}',
   );
   assert.equal(fullBuild.jobs['full-first-install']['runs-on'], 'macos-latest');
+  assert.equal(fullBuild.jobs['full-first-install']['continue-on-error'], '${{ inputs.candidate_only }}');
   assert.equal(fullBuild.jobs['full-first-install'].environment, 'release-stable');
+  assert.ok(fullBuild.jobs['full-first-install'].steps.some(
+    (step: Record<string, unknown>) => step.name === 'Record candidate-only Full failure without blocking Standard',
+  ));
   assert.equal(fullBuild.jobs['full-finalizer']['runs-on'], 'macos-latest');
   assert.equal(fullBuild.jobs['full-finalizer'].needs, 'full-first-install');
   assert.equal(fullBuild.jobs['full-finalizer'].environment, 'release-stable');
@@ -478,7 +528,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
   assert.match(
     String(credentialGate.run),
-    /production_release="\$\{\{ inputs\.operation == 'append_full' && inputs\.upload_full_package_artifact \}\}"/,
+    /production_release="\$\{\{ \(inputs\.operation == 'append_full' \|\| inputs\.candidate_only\) && inputs\.upload_full_package_artifact \}\}"/,
   );
   assert.match(String(credentialGate.run), /Production Full assets require Developer ID signing and Apple notarization/);
   assert.match(String(credentialGate.run), /Development-only Full build has no Apple credentials/);
@@ -593,9 +643,14 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
   assert.doesNotMatch(fullBuildSource, /independent_immutable_adjunct_linked_to_existing_standard/);
   assert.equal(
+    (fullBuildSource.match(/publication_model: candidateOnly \? 'release_bound_candidate_only' : 'same_tag_mutable_standard_addon'/g) ?? []).length,
+    1,
+    'candidate-only Full build must not bind a public Standard Release',
+  );
+  assert.equal(
     (fullBuildSource.match(/publication_model: 'same_tag_mutable_standard_addon'/g) ?? []).length,
-    2,
-    'both Full manifest producers must bind the same-tag mutable Standard model directly',
+    1,
+    'append_full finalizer must still bind the same-tag mutable Standard model directly',
   );
   assert.equal(
     (fullBuildSource.match(/standard_asset_overwrite_or_delete_allowed: false/g) ?? []).length,

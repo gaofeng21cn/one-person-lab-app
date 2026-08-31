@@ -115,6 +115,15 @@ on:
       standard_identity_sha256:
         description: Unique signed Standard artifact identity digest
         value: ${{ jobs.checkpoint-standard.outputs.standard_identity_sha256 }}
+      webui_source_authority_artifact_name:
+        description: Exact freeze-bound WebUI source-authority artifact for later prequalified publication
+        value: ${{ jobs.webui-source-authority.outputs.source_authority_artifact_name }}
+      webui_source_cutoff_observed_at:
+        description: Exact source cutoff frozen into the WebUI candidate authority
+        value: ${{ jobs.webui-source-authority.outputs.source_cutoff_observed_at }}
+      webui_qualification_status:
+        description: passed or failed for freeze-bound qualify-only; empty when WebUI qualify is skipped
+        value: ${{ jobs.webui-qualify.outputs.qualification_status }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -797,6 +806,88 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  webui-source-authority:
+    if: ${{ inputs.channel == 'stable' && needs.freeze.result == 'success' }}
+    needs: [freeze]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      source_authority_artifact_name: ${{ steps.authority.outputs.source_authority_artifact_name }}
+      source_cutoff_observed_at: ${{ steps.authority.outputs.source_cutoff_observed_at }}
+    steps:
+      - name: Checkout canonical WebUI authority executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Bind Docker WebUI to the exact frozen Stable cohort
+        id: authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ needs.freeze.outputs.version }}'
+          app_ref='${{ needs.freeze.outputs.app_sha }}'
+          shell_ref='${{ needs.freeze.outputs.shell_sha }}'
+          framework_ref='${{ needs.freeze.outputs.framework_sha }}'
+          release_bundle_digest='${{ needs.freeze.outputs.bundle_digest }}'
+          source_cutoff_observed_at='${{ needs.freeze.outputs.operation_started_at }}'
+          test -n "$source_cutoff_observed_at"
+          node --experimental-strip-types scripts/webui-source-authority.ts create \
+            --origin stable_standard \
+            --version "$version" \
+            --app-sha "$app_ref" \
+            --shell-sha "$shell_ref" \
+            --framework-sha "$framework_ref" \
+            --bundle-digest "$release_bundle_digest" \
+            --run-id "$GITHUB_RUN_ID" \
+            --executor-sha "$GITHUB_SHA" \
+            --output source-authority.json \
+            > source-authority-create.json
+          node --experimental-strip-types scripts/webui-source-authority.ts validate \
+            --input source-authority.json \
+            > source-authority-verification.json
+          source_authority_artifact_name="opl-webui-source-authority-${GITHUB_RUN_ID}"
+          {
+            echo "source_authority_artifact_name=$source_authority_artifact_name"
+            echo "source_cutoff_observed_at=$source_cutoff_observed_at"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload freeze-bound WebUI source authority
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.authority.outputs.source_authority_artifact_name }}
+          path: |
+            source-authority.json
+            source-authority-create.json
+            source-authority-verification.json
+          if-no-files-found: error
+          retention-days: 90
+
+  webui-qualify:
+    if: ${{ inputs.channel == 'stable' && needs.webui-source-authority.result == 'success' }}
+    needs: [freeze, webui-source-authority]
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    uses: ./.github/workflows/_release-webui-carrier.yml
+    with:
+      mode: qualify-only
+      authority_mode: independent_stable
+      app_ref: ${{ needs.freeze.outputs.app_sha }}
+      shell_ref: ${{ needs.freeze.outputs.shell_sha }}
+      framework_ref: ${{ needs.freeze.outputs.framework_sha }}
+      opl_version: ${{ needs.freeze.outputs.version }}
+      release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}
+      release_cohort_ref: ${{ needs.freeze.outputs.bundle_digest }}
+      source_artifact_run_id: ${{ github.run_id }}
+      source_authority_artifact_name: ${{ needs.webui-source-authority.outputs.source_authority_artifact_name }}
+      source_cutoff_observed_at: ${{ needs.webui-source-authority.outputs.source_cutoff_observed_at }}
+    secrets: inherit
+
   standard-build:
     if: ${{ inputs.prior_standard_artifact_run_id == '' }}
     needs: [freeze, resolve-platform-matrix]
@@ -1303,6 +1394,28 @@ jobs:
           path: standard-cohort
           if-no-files-found: error
           retention-days: 30
+
+  full-candidate:
+    if: ${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}
+    needs: [freeze, seal-standard-identity]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/full-first-install-release.yml
+    with:
+      opl_version: ${{ needs.freeze.outputs.version }}
+      opl_updater_version: ${{ needs.freeze.outputs.updater_version }}
+      framework_ref: ${{ needs.freeze.outputs.framework_sha }}
+      shell_ref: ${{ needs.freeze.outputs.shell_sha }}
+      upload_full_package_artifact: true
+      candidate_only: true
+      release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}
+      release_cohort_ref: ${{ needs.freeze.outputs.bundle_digest }}
+      artifact_app_sha: ${{ needs.freeze.outputs.app_sha }}
+      operation: ${{ inputs.operation }}
+      operation_started_at: ${{ needs.freeze.outputs.operation_started_at }}
+      operation_deadline_at: ${{ needs.freeze.outputs.operation_deadline_at }}
+    secrets: inherit
 
   standard-clean-vm-qualification:
     if: ${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}

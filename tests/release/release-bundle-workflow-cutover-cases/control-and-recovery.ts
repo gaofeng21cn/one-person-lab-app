@@ -216,6 +216,32 @@ test('every release-bound low-level admission rejects missing, invalid, or perma
   ]) {
     assert.equal(workflowStep(workflow, job, step).if, "${{ inputs.operation != '' }}");
   }
+
+  const candidateOnly = runAdmissionGate(
+    'full-first-install-release.yml',
+    'full-first-install',
+    'Admit one-shot release-bound Full build',
+    {
+      ...baseInputs,
+      operation: 'standard',
+      candidate_only: 'true',
+      target_standard_release_id: '',
+      target_standard_release_tag: '',
+      target_standard_target_commitish: '',
+    },
+  );
+  assert.equal(candidateOnly.status, 0, candidateOnly.stderr);
+  const candidateWithRelease = runAdmissionGate(
+    'full-first-install-release.yml',
+    'full-first-install',
+    'Admit one-shot release-bound Full build',
+    {
+      ...baseInputs,
+      operation: 'standard',
+      candidate_only: 'true',
+    },
+  );
+  assert.notEqual(candidateWithRelease.status, 0, 'candidate-only accepted a public Release identity');
 });
 
 test('the live control plane is split into Standard build, Standard publish, and additive Full workflows', () => {
@@ -233,8 +259,11 @@ test('the live control plane is split into Standard build, Standard publish, and
     'resolve-platform-matrix',
     'admission',
     'freeze',
+    'webui-source-authority',
+    'webui-qualify',
     'standard-build',
     'seal-standard-identity',
+    'full-candidate',
     'standard-clean-vm-qualification',
     'checkpoint-standard',
     'publish-standard',
@@ -257,6 +286,8 @@ test('the live control plane is split into Standard build, Standard publish, and
     for (const [jobId, job] of Object.entries(workflow.jobs) as Array<[string, Record<string, any>]>) {
       if (inheritedMutationJobs.has(jobId)) {
         assert.equal(job.permissions, undefined, `${jobId} must inherit the caller permission ceiling`);
+      } else if (jobId === 'webui-qualify') {
+        assert.deepEqual(job.permissions, { actions: 'read', contents: 'read', packages: 'read' }, `${jobId} must stay packages:read`);
       } else {
         assert.deepEqual(job.permissions, { contents: 'read', actions: 'read' }, `${jobId} must be read-only`);
       }
@@ -957,7 +988,7 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
   assert.equal(standard.jobs['homebrew-standard-readback'], undefined);
   assert.equal(
     latest.if,
-    "${{ needs.restore.result == 'success' && needs.remote-digest-verify.result == 'success' }}",
+    "${{ needs.restore.result == 'success' && needs.remote-digest-verify.result == 'success' && needs.restore.outputs.channel != 'stable' }}",
   );
   assert.deepEqual(latest.needs, ['restore', 'remote-digest-verify']);
   const full = parseWorkflow('_release-full-addon.yml');

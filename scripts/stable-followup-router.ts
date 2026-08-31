@@ -110,7 +110,7 @@ export function routeCompletedStableRun(value: unknown): StableFollowupRoute {
       observe: true,
       full_addon: standardPublication,
       homebrew_standard: standardPublication,
-      homebrew_full: successful && sourceOperation === 'append_full',
+      homebrew_full: false,
       desktop_platforms: standardPublication,
       repair_additive: false,
     },
