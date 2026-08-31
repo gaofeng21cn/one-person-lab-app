@@ -95,7 +95,7 @@ export type OPLStudioCarrierEvidenceContract = {
     required_platforms: Array<'linux/amd64' | 'linux/arm64'>;
     immutable_tags: ['v<studio_version>', 'sha-<studio_sha>'];
     channel_tag: 'preview';
-    forbidden_tags: ['stable', 'latest'];
+    forbidden_tags: ['stable'];
     cloud_activation_owner: 'opl-cloud';
     active_shell_adopted: false;
     release_ready: false;

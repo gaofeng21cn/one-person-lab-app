@@ -17,7 +17,7 @@ function fixture(): any {
       ],
       immutable_tags: ['v0.1.5', `sha-${studioRef}`],
       channel_tag: 'preview',
-      forbidden_tags: ['stable', 'latest'],
+      forbidden_tags: ['stable'],
     },
     source: { studio_ref: studioRef, app_ref: '2'.repeat(40), framework_ref: '3'.repeat(40), dsh_ref: '4'.repeat(40) },
     runtime: {

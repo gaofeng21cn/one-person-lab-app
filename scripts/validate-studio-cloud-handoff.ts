@@ -42,7 +42,7 @@ export function validateStudioCloudHandoff(value: any): void {
   equal(value?.image?.immutable_tags, [`v${value?.image?.immutable_tags?.[0]?.slice(1)}`, `sha-${studioRef}`], 'immutable tags');
   if (!/^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(value.image.immutable_tags[0])) throw new Error('version tag must be numeric SemVer');
   equal(value?.image?.channel_tag, 'preview', 'channel tag');
-  equal(value?.image?.forbidden_tags, ['stable', 'latest'], 'forbidden tags');
+  equal(value?.image?.forbidden_tags, ['stable'], 'forbidden tags');
   equal(value?.runtime, {
     endpoint: 'http:3000',
     health_path: '/healthz',

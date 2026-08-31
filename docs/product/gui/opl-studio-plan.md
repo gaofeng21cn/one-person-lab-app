@@ -119,7 +119,8 @@ carrier authority。生成物是 ignored local evidence；它不授权发布或 
 
 独立 WebUI Preview publication 由 Studio 的
 `.github/workflows/studio-webui-preview.yml` 持有，只允许 `v<Studio version>`、`sha-<Studio SHA>`
-和验收后移动的 `preview` 标签，禁止 `stable/latest`。App 使用
+以及验收后同步移动的 `preview`、`latest` 标签，禁止 `stable`。`latest` 只表示最新合格
+Preview，不表示 Stable 质量或 active-shell adoption。App 使用
 `npm run validate:candidate:studio:cloud-handoff -- <handoff.json>` 验证交付给 OPL Cloud 的 ABI；
 Cloud owner 后续激活与真实 Workspace smoke 不属于 Studio/App source admission。
 
