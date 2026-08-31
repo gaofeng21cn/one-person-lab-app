@@ -25,6 +25,8 @@ test('restore action executes with the caller-bound Framework SHA while preservi
   );
   assert.equal(action.inputs['allow-reconcile-required'].required, false);
   assert.equal(action.inputs['allow-reconcile-required'].default, 'false');
+  assert.equal(action.inputs['local-checkpoint-dir'].required, false);
+  assert.equal(action.inputs['local-checkpoint-dir'].default, '');
   assert.deepEqual(Object.keys(action.outputs).sort(), [
     'active_unknown_marker_count',
     'app_ref',
@@ -52,16 +54,22 @@ test('restore action executes with the caller-bound Framework SHA while preservi
     'version',
   ]);
   const downloadIndex = steps.findIndex((candidate) => candidate.name === 'Download exact portable checkpoint');
+  const localBindIndex = steps.findIndex((candidate) => candidate.name === 'Bind local portable checkpoint');
   const bindingIndex = steps.findIndex((candidate) => candidate.name === 'Resolve the opaque checkpoint transport');
   const checkoutIndex = steps.findIndex((candidate) => candidate.name === 'Checkout exact Framework checkpoint executor');
   const installIndex = steps.findIndex((candidate) => candidate.name === 'Install Framework runtime dependencies');
   const importIndex = steps.findIndex((candidate) => candidate.name === 'Verify and import portable checkpoint');
   assert.ok(
-    downloadIndex < bindingIndex
+    downloadIndex < localBindIndex
+      && localBindIndex < bindingIndex
       && bindingIndex < checkoutIndex
       && checkoutIndex < installIndex
       && installIndex < importIndex,
   );
+  assert.equal(step('Download exact portable checkpoint').if, "${{ inputs.local-checkpoint-dir == '' }}");
+  assert.equal(step('Bind local portable checkpoint').if, "${{ inputs.local-checkpoint-dir != '' }}");
+  assert.match(String(step('Bind local portable checkpoint').run), /ln -s/);
+  assert.match(String(step('Resolve the opaque checkpoint transport').run), /find -L imported-checkpoint/);
 
   const binding = String(step('Resolve the opaque checkpoint transport').run);
   assert.doesNotMatch(binding, /\.sources\.framework\.source_commit/);

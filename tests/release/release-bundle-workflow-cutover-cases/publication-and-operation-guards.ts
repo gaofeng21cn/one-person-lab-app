@@ -98,6 +98,7 @@ test('Full publication declares the Stable channel and same-tag CAS boundary at 
 
 test('Stable Standard mutation restores once then publishes, readbacks, and activates Latest', () => {
   const workflow = parseWorkflow('_release-standard-publish.yml');
+  const restore = workflow.jobs.restore;
   const publish = workflow.jobs['publish-standard-nonlatest'];
   const readback = workflow.jobs['remote-digest-verify'];
   const latest = workflow.jobs['activate-latest'];
@@ -105,9 +106,18 @@ test('Stable Standard mutation restores once then publishes, readbacks, and acti
     publish.environment,
     "${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}",
   );
+  const restoreCheckpoint = restore.steps.find(
+    (step: { uses?: string }) => String(step.uses ?? '').includes('restore-release-checkpoint'),
+  );
+  assert.equal(restoreCheckpoint?.with?.['local-checkpoint-dir'], 'checkpoint-identity-bootstrap');
   assert.equal(
     publish.steps.filter((step: { uses?: string }) => String(step.uses ?? '').includes('restore-release-checkpoint')).length,
     1,
+  );
+  assert.equal(
+    publish.steps.find((step: { uses?: string }) => String(step.uses ?? '').includes('restore-release-checkpoint'))
+      ?.with?.['local-checkpoint-dir'],
+    undefined,
   );
   assert.equal(
     publish.steps.find((step: { name?: string }) => step.name === 'Read back exact remote Standard digests')?.if,
@@ -508,6 +518,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     fullAddon.jobs['full-clean-vm-qualification'].with.smoke_harness_ref,
     '${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}',
   );
+  assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_format.default, 'ULFO');
   assert.equal(fullBuild.jobs['full-first-install']['runs-on'], 'macos-latest');
   assert.equal(fullBuild.jobs['full-first-install']['continue-on-error'], '${{ inputs.candidate_only }}');
   assert.equal(fullBuild.jobs['full-first-install'].environment, 'release-stable');

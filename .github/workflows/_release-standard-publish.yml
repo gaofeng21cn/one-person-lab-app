@@ -395,6 +395,7 @@ jobs:
           source-artifact: ${{ inputs.source_artifact }}
           github-token: ${{ github.token }}
           allow-reconcile-required: 'true'
+          local-checkpoint-dir: checkpoint-identity-bootstrap
 
       - name: Require an immutable, non-rejected checkpoint import
         env:

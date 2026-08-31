@@ -335,7 +335,7 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
 }
 
 export function resolveFullDmgFormat() {
-  const format = (process.env.OPL_FULL_DMG_FORMAT || 'ULMO').toUpperCase();
+  const format = (process.env.OPL_FULL_DMG_FORMAT || 'ULFO').toUpperCase();
   if (!['UDZO', 'ULFO', 'ULMO'].includes(format)) {
     throw new Error(`Unsupported Full DMG format: ${format}. Expected UDZO, ULFO, or ULMO.`);
   }

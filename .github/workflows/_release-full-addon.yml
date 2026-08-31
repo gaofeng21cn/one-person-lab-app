@@ -266,6 +266,7 @@ jobs:
           source-artifact: ${{ inputs.source_artifact }}
           github-token: ${{ github.token }}
           allow-reconcile-required: 'true'
+          local-checkpoint-dir: checkpoint-identity-bootstrap
 
       - name: Require a verified Standard checkpoint and fresh Full eligibility
         env:

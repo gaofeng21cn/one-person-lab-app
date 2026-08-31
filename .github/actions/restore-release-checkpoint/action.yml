@@ -18,6 +18,10 @@ inputs:
     description: Permit one imported unknown marker only for a caller that immediately performs exact read-only reconcile
     required: false
     default: 'false'
+  local-checkpoint-dir:
+    description: Existing unpacked checkpoint directory in this job; when set, skip artifact download
+    required: false
+    default: ''
 
 outputs:
   checkpoint_dir:
@@ -95,12 +99,26 @@ runs:
         echo "evidence_dir=$evidence_dir" >> "$GITHUB_OUTPUT"
 
     - name: Download exact portable checkpoint
+      if: ${{ inputs.local-checkpoint-dir == '' }}
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
         name: ${{ inputs.source-artifact }}
         path: imported-checkpoint
         run-id: ${{ inputs.source-run-id }}
         github-token: ${{ inputs.github-token }}
+
+    - name: Bind local portable checkpoint
+      if: ${{ inputs.local-checkpoint-dir != '' }}
+      shell: bash
+      env:
+        LOCAL_CHECKPOINT_DIR: ${{ inputs.local-checkpoint-dir }}
+      run: |
+        set -euo pipefail
+        test -d "$LOCAL_CHECKPOINT_DIR"
+        test ! -L "$LOCAL_CHECKPOINT_DIR"
+        mkdir -p imported-checkpoint
+        # Reuse the already-downloaded tree; do not copy the portable checkpoint again.
+        ln -s "$(cd "$LOCAL_CHECKPOINT_DIR" && pwd)" imported-checkpoint/local
 
     - name: Resolve the opaque checkpoint transport
       id: binding
@@ -116,7 +134,7 @@ runs:
         checkpoints=()
         while IFS= read -r checkpoint; do
           checkpoints+=("$checkpoint")
-        done < <(find imported-checkpoint -type f -name checkpoint.json -print)
+        done < <(find -L imported-checkpoint -type f -name checkpoint.json -print)
         [ "${#checkpoints[@]}" -eq 1 ] || {
           echo "::error::Artifact $SOURCE_ARTIFACT must contain exactly one portable checkpoint.json."
           exit 1
@@ -128,7 +146,7 @@ runs:
           exit 1
         }
 
-        find imported-checkpoint -type f -print0 \
+        find -L imported-checkpoint -type f -print0 \
           | sort -z \
           | while IFS= read -r -d '' input_file; do
               jq -cn \

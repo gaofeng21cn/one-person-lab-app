@@ -252,10 +252,10 @@ separate: crossing the review threshold records `requires_review`; only an
 explicit hard limit records a release-blocking compressed-DMG failure.
 `npm run release:full:size -- --markdown` prints the same component and layer
 breakdown plus manifest size hotspots for local review and is appended to the
-Full GitHub Actions summary. Stable Full release builds use ULMO by default for
-the App-owned DMG path; set `OPL_FULL_DMG_FORMAT=UDZO` and
-`OPL_FULL_DMG_COMPRESSION_LEVEL=<1-9>` only for an explicit legacy diagnostic
-override.
+Full GitHub Actions summary. Stable Full release builds use ULFO by default for
+the App-owned DMG path; set `OPL_FULL_DMG_FORMAT=ULMO` for maximum compression,
+or `UDZO` and `OPL_FULL_DMG_COMPRESSION_LEVEL=<1-9>` only for an explicit
+legacy diagnostic override.
 The `750000000`-byte Full DMG threshold is a review trigger, not permission to
 remove required offline first-install payloads. The v26.6.21 measured contract
 record shows a `1121919153`-byte Full DMG, a `440471386`-byte standard DMG, and
