@@ -224,6 +224,13 @@ export function selectReusableFullCheckpointArtifact(
   return null;
 }
 
+function reusableFullBuildCohorts(artifacts: WorkflowArtifact[]): WorkflowArtifact[] {
+  return artifacts.filter((artifact) => (
+    !artifact.expired
+    && /^opl-full-first-install-dmg-.+-mac-arm64-cohort$/.test(artifact.name)
+  ));
+}
+
 export function selectQualifiedStandardCheckpointArtifact(
   artifacts: WorkflowArtifact[],
   sourceRunId: string,
@@ -310,10 +317,7 @@ function readFullCheckpointCohort(
   sourceRunId: string,
   artifacts: WorkflowArtifact[],
 ): unknown {
-  const matches = artifacts.filter((artifact) => (
-    !artifact.expired
-    && /^opl-full-first-install-dmg-.+-mac-arm64-cohort$/.test(artifact.name)
-  ));
+  const matches = reusableFullBuildCohorts(artifacts);
   if (matches.length !== 1) {
     throw new Error(`Run ${sourceRunId} must expose exactly one reusable Full build cohort; found ${matches.length}.`);
   }
@@ -472,11 +476,19 @@ export function reconcileAppendFullTarget(input: {
 
   for (const owner of [...owners].sort((left, right) => right.id - left.id)) {
     if (owner.status !== 'completed' || owner.conclusion === 'success') continue;
+    const ownerArtifacts = [...(input.artifactsByRunId[String(owner.id)] ?? [])];
     const checkpoint = selectReusableFullCheckpointArtifact(
-      [...(input.artifactsByRunId[String(owner.id)] ?? [])],
+      ownerArtifacts,
       String(owner.id),
     );
     if (checkpoint) {
+      const fullBuildCohorts = reusableFullBuildCohorts(ownerArtifacts);
+      if (fullBuildCohorts.length > 1) {
+        throw new Error(
+          `Run ${owner.id} must expose at most one reusable Full build cohort; found ${fullBuildCohorts.length}.`,
+        );
+      }
+      if (fullBuildCohorts.length === 0) continue;
       return {
         state: 'dispatch_required',
         root_source_run_id: root,

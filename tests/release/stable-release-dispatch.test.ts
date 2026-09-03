@@ -372,7 +372,10 @@ test('Full target-state reconciliation follows checkpoint retries back to one St
     artifactsByRunId: {
       100: [{ id: 1, name: 'opl-release-standard-checkpoint-100', expired: false }],
       101: [{ id: 2, name: 'opl-release-full-checkpoint-101', expired: false }],
-      102: [{ id: 3, name: 'opl-release-append-full-operation-checkpoint-v2-102', expired: false }],
+      102: [
+        { id: 3, name: 'opl-release-append-full-operation-checkpoint-v2-102', expired: false },
+        { id: 4, name: 'opl-full-first-install-dmg-26.9.3-mac-arm64-cohort', expired: false },
+      ],
     },
   }), {
     state: 'dispatch_required',
@@ -386,7 +389,7 @@ test('Full target-state reconciliation follows checkpoint retries back to one St
     rootSourceRunId: '100',
     artifactsByRunId: {
       100: [{ id: 1, name: 'opl-release-standard-checkpoint-100', expired: false }],
-      101: [{ id: 2, name: 'opl-release-append-full-operation-checkpoint-101', expired: false }],
+      101: [{ id: 2, name: 'opl-release-append-full-operation-checkpoint-v2-101', expired: false }],
     },
   }), {
     state: 'dispatch_required',
