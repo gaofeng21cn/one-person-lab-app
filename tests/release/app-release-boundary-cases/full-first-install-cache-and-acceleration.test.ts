@@ -158,6 +158,39 @@ test("Full Shell build skips the redundant inner App notarization without weaken
   }
 });
 
+test("Full Shell build preserves pre-signed runtime binaries instead of signing them twice", async (context) => {
+  const { withShellFullRuntimeSigningExcluded } = await import(
+    "../../../scripts/build-full-first-install-package.ts"
+  );
+  const shellRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-shell-signing-"));
+  const configDir = path.join(shellRoot, "packages", "desktop");
+  const configPath = path.join(configDir, "electron-builder.yml");
+  const originalConfig = [
+    "appId: cn.onepersonlab.opl",
+    "mac:",
+    "  hardenedRuntime: true",
+    "  signIgnore:",
+    "    - /Contents/Resources/already-owned(?:/|$)",
+    "",
+  ].join("\n");
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.writeFileSync(configPath, originalConfig);
+  context.after(() => fs.rmSync(shellRoot, { recursive: true, force: true }));
+
+  assert.throws(
+    () => withShellFullRuntimeSigningExcluded(shellRoot, () => {
+      const effective = parseYaml(fs.readFileSync(configPath, "utf8")) as Record<string, any>;
+      assert.deepEqual(effective.mac.signIgnore, [
+        "/Contents/Resources/already-owned(?:/|$)",
+        "/Contents/Resources/opl-full-runtime(?:/|$)",
+      ]);
+      throw new Error("test build failure");
+    }),
+    /test build failure/,
+  );
+  assert.equal(fs.readFileSync(configPath, "utf8"), originalConfig);
+});
+
 test("Full workflow delegates Codex to the Shell AionCore carrier without a Framework install", () => {
   const workflow = fs.readFileSync(
     path.join(appRoot, ".github/workflows/full-first-install-release.yml"),

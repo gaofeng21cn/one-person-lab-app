@@ -2,8 +2,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseDocument as parseYamlDocument } from 'yaml';
 
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
+import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import {
   buildFullFirstInstallReadme,
   buildFullPackageArtifactNames,
@@ -63,6 +65,7 @@ import {
 const MANUAL_LOCAL_BUILD_ID_ENV = 'OPL_MANUAL_LOCAL_BUILD_ID';
 const MANUAL_LOCAL_SOURCE_PROVENANCE_ENV = 'OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256';
 const MANUAL_LOCAL_SOURCE_LOCK_ENV = 'OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256';
+const FULL_RUNTIME_SIGN_IGNORE_PATTERN = '/Contents/Resources/opl-full-runtime(?:/|$)';
 
 export function assertFullCarrierReleaseVersions(carrier, version, updaterVersion) {
   if (carrier.versionPolicy === 'stable_calendar') {
@@ -184,6 +187,39 @@ export function shellBuildEnvironmentWithoutRedundantNotarization(env = process.
     delete shellBuildEnv[name];
   }
   return shellBuildEnv;
+}
+
+export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
+  const configPath = resolveActiveShellPaths({ shellRoot: guiRoot }).electronBuilderConfigPath;
+  const originalConfig = fs.readFileSync(configPath, 'utf8');
+  const document = parseYamlDocument(originalConfig);
+  if (document.errors.length > 0) {
+    throw new Error(`Unable to parse Shell electron-builder config: ${document.errors[0].message}`);
+  }
+
+  const existingNode = document.getIn(['mac', 'signIgnore']);
+  const existing = existingNode && typeof existingNode.toJSON === 'function'
+    ? existingNode.toJSON()
+    : existingNode;
+  const patterns = existing == null
+    ? []
+    : Array.isArray(existing)
+      ? existing
+      : [existing];
+  if (!patterns.every((pattern) => typeof pattern === 'string')) {
+    throw new Error('Shell electron-builder mac.signIgnore must be a string or string array.');
+  }
+  if (!patterns.includes(FULL_RUNTIME_SIGN_IGNORE_PATTERN)) {
+    patterns.push(FULL_RUNTIME_SIGN_IGNORE_PATTERN);
+  }
+  document.setIn(['mac', 'signIgnore'], patterns);
+
+  fs.writeFileSync(configPath, document.toString(), 'utf8');
+  try {
+    return build();
+  } finally {
+    fs.writeFileSync(configPath, originalConfig, 'utf8');
+  }
 }
 
 export function materializeFullKimiCuOfflineSeed(prepared, input = {}) {
@@ -309,14 +345,16 @@ function main() {
     if (options.reuseGuiViteOutput) {
       shellBuildArgs.push('--skip-vite');
     }
-    run('npm', shellBuildArgs, {
-      cwd: options.guiRoot,
-      env: {
-        ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
-        OPL_RELEASE_VERSION: options.version,
-        OPL_UPDATER_VERSION: options.updaterVersion,
-        OPL_REQUIRE_FULL_RUNTIME: '1',
-      },
+    withShellFullRuntimeSigningExcluded(options.guiRoot, () => {
+      run('npm', shellBuildArgs, {
+        cwd: options.guiRoot,
+        env: {
+          ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
+          OPL_RELEASE_VERSION: options.version,
+          OPL_UPDATER_VERSION: options.updaterVersion,
+          OPL_REQUIRE_FULL_RUNTIME: '1',
+        },
+      });
     });
     timings.shell_build = durationSeconds(shellBuildStartedAt, monotonicSeconds());
   } else {
