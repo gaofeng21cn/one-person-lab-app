@@ -85,8 +85,10 @@ test('Stable recovery validates frozen product source in an isolated worktree wh
         return { status: 0, stdout: `${'9'.repeat(40)}\n`, stderr: '' };
       }
       if (command === 'git') return { status: 0, stdout: '', stderr: '' };
-      const outputIndex = args.indexOf('--output');
-      fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({ schema: 'source-gate-fixture', status: 'passed' }));
+      if (command === process.execPath) {
+        const outputIndex = args.indexOf('--output');
+        fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({ schema: 'source-gate-fixture', status: 'passed' }));
+      }
       return { status: 0, stdout: '', stderr: '' };
     },
     now: () => new Date('2026-09-03T09:00:00.000Z'),
