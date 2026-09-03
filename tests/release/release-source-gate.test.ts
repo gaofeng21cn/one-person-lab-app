@@ -359,7 +359,7 @@ function runner(overrides: Record<string, { status: number; stdout?: string; std
     }
     if (
       command === process.execPath
-      && args.join(' ') === '--experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 2'
+      && args.join(' ') === '--experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 1'
       && commandOptions.cwd === repoRoot
     ) {
       return { status: 0, stdout: 'active shell tests ok\n', stderr: '' };
@@ -886,7 +886,7 @@ test('release source gate blocks pre-admission when required shell node/dom test
   assert.equal(requiredGate?.required, true);
   assert.equal(
     requiredGate?.command,
-    'node --experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 2',
+    'node --experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 1',
   );
   assert.equal(requiredGate?.cwd, repoRoot);
   assert.equal(requiredGate?.executed, false);
@@ -1011,7 +1011,7 @@ test('release source gate fails active shell node/dom regressions before expensi
   const report = buildReleaseSourceGateReport(
     options({ runShellTests: true }),
     runner({
-      [`${repoRoot} $ ${process.execPath} --experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 2`]: {
+      [`${repoRoot} $ ${process.execPath} --experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 1`]: {
         status: 1,
         stdout: 'dom chunk 10/12 failed\n',
         stderr: "TypeError: Cannot read properties of undefined (reading 'configureCodexInvoke')\n",
