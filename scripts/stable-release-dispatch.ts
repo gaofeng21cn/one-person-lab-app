@@ -756,7 +756,7 @@ export function sourceGate(
   }
 }
 
-function buildStandardPlan(input: {
+export function buildStandardPlan(input: {
   runtime: Runtime;
   workflow: string;
   appSha: string;
@@ -764,6 +764,7 @@ function buildStandardPlan(input: {
   frameworkSha: string;
   desktopAdditionalPlatforms: string[];
   productChangeSummary: string;
+  priorStandardArtifactRunId?: string;
 }): StableDispatchPlan {
   const objectiveFingerprint = 'opl-desktop-stable-release';
   const criticalBlobs = stableOperationCriticalBlobs(appRoot);
@@ -818,26 +819,33 @@ function buildStandardPlan(input: {
     sourceGate: report,
     preNonceGuard: guard,
   });
+  const priorStandardArtifactRunId = input.priorStandardArtifactRunId
+    ? runId(input.priorStandardArtifactRunId, 'prior_standard_artifact_run_id')
+    : null;
+  const workflowInputs: Record<string, string> = {
+    operation: 'standard',
+    release_intent: 'new_product',
+    product_change_summary: text(input.productChangeSummary, 'product_change_summary'),
+    authority_id: authority.authority_id,
+    operation_id: authority.operation_id,
+    authority_carrier: encodeStableOperationAuthorityCarrier(authority),
+    authority_digest: authority.authority_digest,
+    desktop_additional_platforms: JSON.stringify(authority.desktop_additional_platforms),
+  };
+  if (priorStandardArtifactRunId) {
+    workflowInputs.prior_standard_artifact_run_id = priorStandardArtifactRunId;
+  }
   return {
     schema: 'opl_app_stable_dispatch_plan.v1',
     status: 'ready',
     operation: 'standard',
     attempt_id: attemptId('standard', input.runtime),
-    version_policy: 'explicit_new_product_release',
-    workflow_inputs: {
-      operation: 'standard',
-      release_intent: 'new_product',
-      product_change_summary: text(input.productChangeSummary, 'product_change_summary'),
-      authority_id: authority.authority_id,
-      operation_id: authority.operation_id,
-      authority_carrier: encodeStableOperationAuthorityCarrier(authority),
-      authority_digest: authority.authority_digest,
-      desktop_additional_platforms: JSON.stringify(authority.desktop_additional_platforms),
-    },
+    version_policy: priorStandardArtifactRunId ? 'preserve_source_tag' : 'explicit_new_product_release',
+    workflow_inputs: workflowInputs,
     source: { run_id: null, artifact: null },
     recovery: {
-      requested_run_id: null,
-      artifact_producer_run_id: null,
+      requested_run_id: priorStandardArtifactRunId,
+      artifact_producer_run_id: priorStandardArtifactRunId,
       qualification_run_id: null,
       smoke_harness_ref: null,
       verification_app_ref: null,
@@ -1058,11 +1066,11 @@ function parsePlatforms(value: string | undefined): string[] {
 
 function usage(): never {
   process.stderr.write(`Usage:
-  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--execute]
+  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--reuse-standard-run-id <failed-run>] [--execute]
   npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
   npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--smoke-harness-ref <sha>] [--verification-app-ref <sha>] [--execute]
 
-Only new-product-release may allocate a tag, and it requires an explicit product-change summary. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
+Only new-product-release may allocate a tag, and it requires an explicit product-change summary. When --reuse-standard-run-id is present, it continues that failed same-version operation with its already signed and notarized Standard bytes. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
 `);
   process.exit(2);
 }
@@ -1078,6 +1086,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       repo: { type: 'string', default: defaultRepository },
       workflow: { type: 'string', default: defaultWorkflow },
       'run-id': { type: 'string' },
+      'reuse-standard-run-id': { type: 'string' },
       'source-run-id': { type: 'string' },
       'app-ref': { type: 'string' },
       'shell-ref': { type: 'string' },
@@ -1096,6 +1105,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
 
   if (command === 'new-product-release') {
     assertLatestStandardReleaseComplete(latestRelease(runtime, repository));
+    const priorStandardArtifactRunId = values['reuse-standard-run-id']
+      ? runId(values['reuse-standard-run-id'], 'reuse_standard_run_id')
+      : undefined;
     const appSha = values['app-ref'] ? sha(values['app-ref'], 'app_ref') : executorSha;
     const shellSha = values['shell-ref'] ? sha(values['shell-ref'], 'shell_ref') : wireSha(runtime, shellRemote);
     const frameworkSha = values['framework-ref']
@@ -1109,6 +1121,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       frameworkSha,
       desktopAdditionalPlatforms: parsePlatforms(values['desktop-additional-platforms']),
       productChangeSummary: text(values['product-change-summary'], 'product_change_summary'),
+      priorStandardArtifactRunId,
     });
   } else if (command === 'publish-qualified-standard') {
     const sourceRunId = runId(values['run-id'], 'run_id');

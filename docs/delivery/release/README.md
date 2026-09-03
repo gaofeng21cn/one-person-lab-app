@@ -29,14 +29,16 @@ fill its Stable inputs manually or rerun it from the GitHub UI.
 The controller exposes these commands:
 
 ```bash
-npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> --execute
+npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--reuse-standard-run-id <failed-run>] --execute
 npm run release:stable-dispatch -- publish-qualified-standard --run-id <standard-run> --execute
 npm run release:stable-dispatch -- append-full --source-run-id <checkpoint-run> --execute
 ```
 
 Omit `--execute` for a read-only plan. The command never accepts a version: only
 `new-product-release` may ask the workflow to allocate one, and it requires an explicit nonempty
-user-visible product change summary. `publish-qualified-standard` and `append-full` preserve the
+user-visible product change summary. `--reuse-standard-run-id` continues the same unpublicized Stable
+version with the failed run's already signed and notarized Standard bytes, while a new workflow
+operation may contain release-path fixes. `publish-qualified-standard` and `append-full` preserve the
 source checkpoint tag. For Full, `append-full` follows the complete recovery chain, binds a published or active owner when one
 exists, otherwise reuses the newest non-expired Full checkpoint whose App, Shell and Framework content
 SHAs exactly match the requested Full cohort. A mismatch falls back to the original Standard checkpoint

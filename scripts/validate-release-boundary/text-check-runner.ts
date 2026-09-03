@@ -1322,10 +1322,11 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     || fullCandidate.with?.upload_full_package_artifact !== true
     || fullCandidate.with?.target_standard_release_id
     || fullCandidate['continue-on-error'] !== undefined
+    || fullCandidate.if !== "${{ always() && inputs.include_full && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}"
     || !needsExactly(fullCandidate, ['freeze', 'seal-standard-identity'])
     || fullCandidate.secrets !== 'inherit'
   ) {
-    failures += reportFailure(id, 'full-candidate must build signed bytes after Standard identity without public Release mutation');
+    failures += reportFailure(id, 'legacy full-candidate must run only when explicitly requested and build signed bytes after Standard identity without public Release mutation');
   }
   const candidateBuilder = parseWorkflow(appRoot, '.github/workflows/full-first-install-release.yml', id);
   const candidateJob = candidateBuilder?.workflow?.jobs?.['full-first-install'];

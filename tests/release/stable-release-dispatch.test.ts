@@ -8,6 +8,7 @@ import {
   assertLatestStandardReleaseComplete,
   buildAppendFullPlan,
   buildPublishQualifiedStandardPlan,
+  buildStandardPlan,
   appendFullOwnersFromCurrentMutation,
   completeAppendFullDispatch,
   dispatchOnce,
@@ -64,6 +65,58 @@ test('Stable dispatch executes the required active Shell source gates before aut
     commandArgs.slice(commandArgs.indexOf('--require-shell-format'), commandArgs.indexOf('--output')),
     ['--require-shell-format', 'true', '--run-shell-tests', 'true'],
   );
+});
+
+test('Standard recovery preserves the failed source tag and binds its signed artifact run', () => {
+  const runtime = {
+    runner(command: string, args: string[]) {
+      if (command === process.execPath) {
+        const outputIndex = args.indexOf('--output');
+        fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({
+          schema: 'opl_app_release_source_gate.v1',
+          status: 'passed',
+          operation_fingerprint: 'opl-desktop-stable-release',
+          typed_blocker: null,
+          admission: {
+            status: 'passed',
+            immutable_cohort: {
+              app_sha: appSha,
+              shell_sha: shellSha,
+              framework_sha: frameworkSha,
+            },
+          },
+          checks: [{ id: 'app_frozen_commit_reachable', status: 'passed' }],
+        }));
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      if (command === 'gh' && args.join(' ') === 'api user --jq .login') {
+        return { status: 0, stdout: 'gaofeng21cn\n', stderr: '' };
+      }
+      if (command === 'gh') {
+        return { status: 0, stdout: JSON.stringify([{ total_count: 0, workflow_runs: [] }]), stderr: '' };
+      }
+      return { status: 0, stdout: '', stderr: '' };
+    },
+    now: () => new Date('2026-09-03T09:00:00.000Z'),
+    randomBytes: (size: number) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  };
+  const plan = buildStandardPlan({
+    runtime,
+    workflow: '.github/workflows/release-stable.yml',
+    appSha,
+    shellSha,
+    frameworkSha,
+    desktopAdditionalPlatforms: ['linux-x64', 'windows-x64'],
+    productChangeSummary: 'Continue the same Stable release after fixture repair.',
+    priorStandardArtifactRunId: '33728918457',
+  });
+
+  assert.equal(plan.operation, 'standard');
+  assert.equal(plan.version_policy, 'preserve_source_tag');
+  assert.equal(plan.workflow_inputs.prior_standard_artifact_run_id, '33728918457');
+  assert.equal(plan.recovery.requested_run_id, '33728918457');
+  assert.equal(plan.recovery.artifact_producer_run_id, '33728918457');
 });
 
 test('checkpoint selection prefers the deepest exact non-expired checkpoint', () => {

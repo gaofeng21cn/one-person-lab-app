@@ -1283,8 +1283,6 @@ jobs:
             --arg artifact "opl-release-standard-vm-bound-${PRIOR_RUN_ID}" \
             --arg dmg_sha "${dmg_sha256#sha256:}" '
               .schema == "opl_app_qualification_attempt_receipt.v1"
-              and .status == "incomplete"
-              and .retry.disposition == "terminal_blocked"
               and .identity.release_cohort_ref == $bundle
               and .identity.artifact_kind == "standard"
               and .identity.package_profile == "standard"
@@ -1293,11 +1291,31 @@ jobs:
               and .identity.source_artifact_run_id == $run_id
               and .identity.source_artifact_name == $artifact
               and .artifact.sha256 == $dmg_sha
-              and .outcomes.validate_inputs == "failure"
-              and .outcomes.clean_vm == "skipped"
               and .evidence.strict_qualification_receipt_path == null
               and .evidence.smoke_summary_path == null
-              and .evidence.critical_diagnostics_path == null
+              and (
+                (
+                  .status == "incomplete"
+                  and .retry.disposition == "terminal_blocked"
+                  and .outcomes.validate_inputs == "failure"
+                  and .outcomes.clean_vm == "skipped"
+                  and .evidence.critical_diagnostics_path == null
+                )
+                or
+                (
+                  .status == "failed"
+                  and .failure_taxonomy == "fixture"
+                  and .retry.disposition == "same_artifact_retry_allowed"
+                  and .outcomes.validate_inputs == "success"
+                  and .outcomes.clean_vm == "failure"
+                  and (.evidence.critical_diagnostics_path | type == "string" and length > 0)
+                  and .evidence.scope_proof.classification == "same_as_artifact_cohort"
+                  and .evidence.scope_proof.artifact_semantic_digest == .evidence.scope_proof.verification_semantic_digest
+                  and .evidence.scope_proof.artifact_probe_digest == .evidence.scope_proof.verification_probe_digest
+                  and .evidence.scope_proof.forbidden_app_paths == []
+                  and .evidence.scope_proof.forbidden_shell_paths == []
+                )
+              )
             ' "$qualification_attempt" >/dev/null
 
           node --experimental-strip-types app-source/scripts/generate-frozen-universal-installer.ts \
@@ -1396,7 +1414,7 @@ jobs:
           retention-days: 30
 
   full-candidate:
-    if: ${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}
+    if: ${{ always() && inputs.include_full && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}
     needs: [freeze, seal-standard-identity]
     permissions:
       contents: read

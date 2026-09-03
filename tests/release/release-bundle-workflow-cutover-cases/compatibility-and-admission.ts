@@ -219,6 +219,10 @@ test('Stable Standard publication binds one Desktop carrier without a retired Na
   );
   assert.deepEqual(workflow.jobs['publish-standard'].needs, ['freeze', 'checkpoint-standard']);
   assert.equal(workflow.jobs['full-candidate']['continue-on-error'], undefined);
+  assert.equal(
+    workflow.jobs['full-candidate'].if,
+    "${{ always() && inputs.include_full && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}",
+  );
   assert.equal(workflow.jobs['webui-qualify']['continue-on-error'], undefined);
   assert.equal(workflow.jobs['checkpoint-standard'].needs.includes('full-candidate'), false);
   assert.equal(workflow.jobs['publish-standard'].needs.includes('full-candidate'), false);
