@@ -2,7 +2,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseDocument as parseYamlDocument } from 'yaml';
 
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
@@ -192,29 +191,21 @@ export function shellBuildEnvironmentWithoutRedundantNotarization(env = process.
 export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
   const configPath = resolveActiveShellPaths({ shellRoot: guiRoot }).electronBuilderConfigPath;
   const originalConfig = fs.readFileSync(configPath, 'utf8');
-  const document = parseYamlDocument(originalConfig);
-  if (document.errors.length > 0) {
-    throw new Error(`Unable to parse Shell electron-builder config: ${document.errors[0].message}`);
+  const newline = originalConfig.includes('\r\n') ? '\r\n' : '\n';
+  const macHeaders = [...originalConfig.matchAll(/^mac:[ \t]*(?:#[^\r\n]*)?(?:\r?\n|$)/gm)];
+  if (macHeaders.length !== 1) {
+    throw new Error(`Shell electron-builder config must contain exactly one top-level mac block; found ${macHeaders.length}.`);
   }
+  const macStart = macHeaders[0].index + macHeaders[0][0].length;
+  const nextTopLevel = originalConfig.slice(macStart).search(/^[^ \t\r\n#][^:\r\n]*:/m);
+  const macEnd = nextTopLevel === -1 ? originalConfig.length : macStart + nextTopLevel;
+  if (/^[ \t]+signIgnore\s*:/m.test(originalConfig.slice(macStart, macEnd))) {
+    throw new Error('Shell electron-builder config already defines mac.signIgnore; merge it in the Shell owner before releasing.');
+  }
+  const signIgnore = `${macHeaders[0][0].endsWith(newline) ? '' : newline}  signIgnore:${newline}    - ${FULL_RUNTIME_SIGN_IGNORE_PATTERN}${newline}`;
+  const releaseConfig = `${originalConfig.slice(0, macStart)}${signIgnore}${originalConfig.slice(macStart)}`;
 
-  const existingNode = document.getIn(['mac', 'signIgnore']);
-  const existing = existingNode && typeof existingNode.toJSON === 'function'
-    ? existingNode.toJSON()
-    : existingNode;
-  const patterns = existing == null
-    ? []
-    : Array.isArray(existing)
-      ? existing
-      : [existing];
-  if (!patterns.every((pattern) => typeof pattern === 'string')) {
-    throw new Error('Shell electron-builder mac.signIgnore must be a string or string array.');
-  }
-  if (!patterns.includes(FULL_RUNTIME_SIGN_IGNORE_PATTERN)) {
-    patterns.push(FULL_RUNTIME_SIGN_IGNORE_PATTERN);
-  }
-  document.setIn(['mac', 'signIgnore'], patterns);
-
-  fs.writeFileSync(configPath, document.toString(), 'utf8');
+  fs.writeFileSync(configPath, releaseConfig, 'utf8');
   try {
     return build();
   } finally {

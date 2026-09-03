@@ -169,8 +169,8 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
     "appId: cn.onepersonlab.opl",
     "mac:",
     "  hardenedRuntime: true",
-    "  signIgnore:",
-    "    - /Contents/Resources/already-owned(?:/|$)",
+    "linux:",
+    "  target: deb",
     "",
   ].join("\n");
   fs.mkdirSync(configDir, { recursive: true });
@@ -181,9 +181,10 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
     () => withShellFullRuntimeSigningExcluded(shellRoot, () => {
       const effective = parseYaml(fs.readFileSync(configPath, "utf8")) as Record<string, any>;
       assert.deepEqual(effective.mac.signIgnore, [
-        "/Contents/Resources/already-owned(?:/|$)",
         "/Contents/Resources/opl-full-runtime(?:/|$)",
       ]);
+      assert.equal(effective.mac.hardenedRuntime, true);
+      assert.equal(effective.linux.target, "deb");
       throw new Error("test build failure");
     }),
     /test build failure/,
