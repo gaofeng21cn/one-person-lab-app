@@ -471,7 +471,7 @@ test('additional Desktop platform publication is an independent protected post-s
   assert.equal(build.with.opl_updater_version, '${{ inputs.updater_version }}');
   assert.equal(
     build.with.skip_code_quality,
-    '${{ needs.verify-standard-quality.outputs.skip_code_quality }}',
+    '${{ fromJSON(needs.verify-standard-quality.outputs.skip_code_quality) }}',
   );
   assert.deepEqual(build.needs, ['verify-standard-quality']);
   assert.equal(build.concurrency, undefined);

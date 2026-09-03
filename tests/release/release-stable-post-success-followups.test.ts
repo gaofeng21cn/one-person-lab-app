@@ -114,7 +114,7 @@ test('Linux and Windows build and append independently with only public mutation
   assert.deepEqual(platformWorkflow.jobs['build-platform'].needs, ['verify-standard-quality']);
   assert.equal(
     platformWorkflow.jobs['build-platform'].with.skip_code_quality,
-    '${{ needs.verify-standard-quality.outputs.skip_code_quality }}',
+    '${{ fromJSON(needs.verify-standard-quality.outputs.skip_code_quality) }}',
   );
   assert.match(platformWorkflow.jobs['build-platform'].with.platform_ids, /inputs\.platform_id/);
   const append = platformWorkflow.jobs['append-platform'];

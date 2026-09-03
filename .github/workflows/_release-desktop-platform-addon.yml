@@ -220,7 +220,7 @@ jobs:
       app_ref: ${{ inputs.app_ref }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
-      skip_code_quality: ${{ needs.verify-standard-quality.outputs.skip_code_quality }}
+      skip_code_quality: ${{ fromJSON(needs.verify-standard-quality.outputs.skip_code_quality) }}
       opl_release_version: ${{ inputs.version }}
       opl_updater_version: ${{ inputs.updater_version }}
       source_run_id: ${{ inputs.source_run_id }}
