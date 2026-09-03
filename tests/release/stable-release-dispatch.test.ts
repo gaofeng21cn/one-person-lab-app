@@ -48,6 +48,9 @@ test('Stable dispatch executes the required active Shell source gates before aut
   const report = { schema: 'source-gate-fixture', status: 'passed' };
   const result = sourceGate({
     runner(command, args) {
+      if (command === 'git' && args.join(' ') === 'rev-parse HEAD') {
+        return { status: 0, stdout: `${appSha}\n`, stderr: '' };
+      }
       assert.equal(command, process.execPath);
       commandArgs = args;
       const outputIndex = args.indexOf('--output');
@@ -63,13 +66,51 @@ test('Stable dispatch executes the required active Shell source gates before aut
   assert.deepEqual(result, report);
   assert.deepEqual(
     commandArgs.slice(commandArgs.indexOf('--require-shell-format'), commandArgs.indexOf('--output')),
-    ['--require-shell-format', 'true', '--run-shell-tests', 'true'],
+    [
+      '--require-shell-format', 'true',
+      '--run-shell-tests', 'true',
+      '--repo-root', appRoot,
+      '--shell-root', path.join(appRoot, 'shells', 'aionui'),
+      '--framework-root', path.resolve(appRoot, '..', 'one-person-lab'),
+    ],
   );
+});
+
+test('Stable recovery validates frozen product source in an isolated worktree while keeping the current executor', () => {
+  const commands: Array<{ command: string; args: string[] }> = [];
+  const result = sourceGate({
+    runner(command, args) {
+      commands.push({ command, args });
+      if (command === 'git' && args.join(' ') === 'rev-parse HEAD') {
+        return { status: 0, stdout: `${'9'.repeat(40)}\n`, stderr: '' };
+      }
+      if (command === 'git') return { status: 0, stdout: '', stderr: '' };
+      const outputIndex = args.indexOf('--output');
+      fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({ schema: 'source-gate-fixture', status: 'passed' }));
+      return { status: 0, stdout: '', stderr: '' };
+    },
+    now: () => new Date('2026-09-03T09:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, appSha, shellSha, frameworkSha, 'opl-desktop-stable-release');
+
+  assert.deepEqual(result, { schema: 'source-gate-fixture', status: 'passed' });
+  const add = commands.find(({ command, args }) => command === 'git' && args.slice(0, 3).join(' ') === 'worktree add --detach');
+  assert.ok(add);
+  assert.equal(add.args.at(-1), appSha);
+  assert.ok(commands.some(({ command, args }) => command === 'npm' && args.join(' ') === 'ci --ignore-scripts'));
+  const sourceGateCommand = commands.find(({ command }) => command === process.execPath);
+  assert.ok(sourceGateCommand);
+  assert.notEqual(sourceGateCommand.args[sourceGateCommand.args.indexOf('--repo-root') + 1], appRoot);
+  assert.ok(commands.some(({ command, args }) => command === 'git' && args.slice(0, 3).join(' ') === 'worktree remove --force'));
 });
 
 test('Standard recovery preserves the failed source tag and binds its signed artifact run', () => {
   const runtime = {
     runner(command: string, args: string[]) {
+      if (command === 'git' && args.join(' ') === 'rev-parse HEAD') {
+        return { status: 0, stdout: `${appSha}\n`, stderr: '' };
+      }
       if (command === process.execPath) {
         const outputIndex = args.indexOf('--output');
         fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({

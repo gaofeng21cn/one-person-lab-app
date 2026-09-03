@@ -28,6 +28,8 @@ import {
 type JsonRecord = Record<string, unknown>;
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const shellRoot = path.join(appRoot, 'shells', 'aionui');
+const frameworkRoot = path.resolve(appRoot, '..', 'one-person-lab');
 const defaultRepository = 'gaofeng21cn/one-person-lab-app';
 const defaultWorkflow = '.github/workflows/release-stable.yml';
 const shellRemote = 'https://github.com/gaofeng21cn/opl-aion-shell.git';
@@ -158,8 +160,9 @@ function runRequired(
   args: string[],
   timeoutMs: number,
   label: string,
+  cwd = appRoot,
 ): string {
-  const result = runtime.runner(command, args, { cwd: appRoot, timeoutMs });
+  const result = runtime.runner(command, args, { cwd, timeoutMs });
   if (result.status !== 0 || result.error) {
     throw new Error(`${label} failed: ${commandDetail(result) || `exit ${String(result.status)}`}`);
   }
@@ -731,7 +734,35 @@ export function sourceGate(
   objectiveFingerprint: string,
 ): unknown {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-stable-source-gate-'));
+  const currentAppSha = sha(runRequired(
+    runtime,
+    'git',
+    ['rev-parse', 'HEAD'],
+    30_000,
+    'Resolve current App executor',
+  ), 'current App executor');
+  const isolatedAppRoot = path.join(tempRoot, 'app-source');
+  const sourceRoot = currentAppSha === sha(appSha, 'app_ref') ? appRoot : isolatedAppRoot;
+  let isolatedWorktreeCreated = false;
   try {
+    if (sourceRoot === isolatedAppRoot) {
+      runRequired(
+        runtime,
+        'git',
+        ['worktree', 'add', '--detach', isolatedAppRoot, appSha],
+        2 * 60_000,
+        'Materialize frozen App product cohort',
+      );
+      isolatedWorktreeCreated = true;
+      runRequired(
+        runtime,
+        'npm',
+        ['ci', '--ignore-scripts'],
+        5 * 60_000,
+        'Install frozen App source-gate dependencies',
+        isolatedAppRoot,
+      );
+    }
     const output = path.join(tempRoot, 'source-gate.json');
     runRequired(
       runtime,
@@ -745,6 +776,9 @@ export function sourceGate(
         '--framework-ref', frameworkSha,
         '--require-shell-format', 'true',
         '--run-shell-tests', 'true',
+        '--repo-root', sourceRoot,
+        '--shell-root', shellRoot,
+        '--framework-root', frameworkRoot,
         '--output', output,
       ],
       30 * 60_000,
@@ -752,6 +786,13 @@ export function sourceGate(
     );
     return readJsonFile(output);
   } finally {
+    if (isolatedWorktreeCreated) {
+      runtime.runner(
+        'git',
+        ['worktree', 'remove', '--force', isolatedAppRoot],
+        { cwd: appRoot, timeoutMs: 2 * 60_000 },
+      );
+    }
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
