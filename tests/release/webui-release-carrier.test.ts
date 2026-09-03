@@ -772,8 +772,7 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
     publish.environment,
     "${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}",
   );
-  assert.equal(publish.permissions.packages, 'write');
-  assert.equal(publish.permissions.actions, 'read');
+  assert.equal(publish.permissions, undefined);
   assert.equal(build.permissions.actions, 'read');
   assert.equal(build.permissions.packages, 'read');
   assert.equal(build['runs-on'], '${{ matrix.runner }}');
@@ -988,7 +987,7 @@ test('WebUI carrier writes the public version only after the receipt and then se
     (step: { name?: string }) => step.name === 'Download exact independent WebUI source authority',
   );
 
-  assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read', packages: 'write' });
+  assert.equal(publish.permissions, undefined);
   assert.equal(build.permissions.actions, 'read');
   assert.ok(receiptIndex >= 0 && receiptIndex < versionIndex && versionIndex < sidecarIndex);
   assert.equal(setupOras.uses, 'oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d');
@@ -1018,7 +1017,7 @@ test('WebUI carrier writes the public version only after the receipt and then se
   assert.match(sidecar.run, /--source-authority "\$source_authority_path"/);
   assert.match(sidecar.run, /source_authority_path='webui-carrier\/source-authority\.json'/);
   assert.match(sidecar.run, /test -f "\$source_authority_path" && test ! -L "\$source_authority_path"/);
-  assert.deepEqual(publish.permissions, { actions: 'read', contents: 'read', packages: 'write' });
+  assert.equal(publish.permissions, undefined);
   const repositoryValidationIndex = publish.steps.findIndex(
     (step: { name?: string }) => step.name === 'Validate exact GHCR repository before registry mutation',
   );

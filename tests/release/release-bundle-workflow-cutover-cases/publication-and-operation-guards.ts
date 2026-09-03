@@ -308,7 +308,7 @@ test('the remote Canary is a thin read-only contract check with no reusable rele
     assert.equal(workflow.jobs['startup-canary'], undefined, `${name} retains a dead Canary job`);
   }
   const webui = parseWorkflow('_release-webui-carrier.yml');
-  assert.deepEqual(webui.permissions, { contents: 'read' });
+  assert.equal(webui.permissions, undefined);
   assert.equal(webui.jobs['startup-canary'], undefined);
   assert.equal(
     webui.jobs['build-and-qualify'].if,
@@ -323,11 +323,7 @@ test('the remote Canary is a thin read-only contract check with no reusable rele
     webui.jobs['publish-carrier'].if,
     "${{ always() && ((inputs.mode == 'execute' && needs.build-and-qualify.result == 'success') || (inputs.mode == 'publish-prequalified' && inputs.qualified_artifact_run_id != '')) }}",
   );
-  assert.deepEqual(webui.jobs['publish-carrier'].permissions, {
-    actions: 'read',
-    contents: 'read',
-    packages: 'write',
-  });
+  assert.equal(webui.jobs['publish-carrier'].permissions, undefined);
 });
 
 test('release-bound nested workflows inherit one operation and absolute deadline', () => {

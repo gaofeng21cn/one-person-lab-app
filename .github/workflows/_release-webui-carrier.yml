@@ -79,9 +79,6 @@ on:
         description: passed or failed for qualify-only; empty for other modes.
         value: ${{ jobs.qualify-receipt.outputs.status }}
 
-permissions:
-  contents: read
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -570,10 +567,6 @@ jobs:
       group: opl-webui-independent-publication-global
       cancel-in-progress: false
     environment: ${{ inputs.authority_mode == 'independent_preview' && 'release-preview-publication' || 'release-stable' }}
-    permissions:
-      actions: read
-      contents: read
-      packages: write
     outputs:
       carrier_artifact_name: ${{ steps.receipt.outputs.carrier_artifact_name }}
       image_ref: ${{ steps.candidate.outputs.image_ref }}
