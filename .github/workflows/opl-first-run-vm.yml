@@ -21,8 +21,13 @@ on:
         required: false
         type: string
       release_artifact_run_id:
-        description: 'GitHub Actions run id that owns release_artifact_name. Empty means the caller workflow run.'
+        description: 'GitHub Actions run id that owns the DMG or cohort artifact. Empty means the caller workflow run.'
         required: false
+        type: string
+      release_cohort_artifact_name:
+        description: 'Exact cohort artifact for a published DMG, downloaded from release_artifact_run_id without replacing the public DMG source.'
+        required: false
+        default: ''
         type: string
       published_artifact_name:
         description: 'Exact already-published DMG asset name for post-publication optional certification.'
@@ -437,8 +442,15 @@ jobs:
           RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
           PUBLISHED_ARTIFACT_NAME: ${{ inputs.published_artifact_name }}
           PUBLISHED_ARTIFACT_DIGEST: ${{ inputs.published_artifact_digest }}
+          RELEASE_COHORT_ARTIFACT_NAME: ${{ inputs.release_cohort_artifact_name }}
+          RELEASE_ARTIFACT_RUN_ID: ${{ inputs.release_artifact_run_id }}
         run: |
           set -euo pipefail
+          if [ -n "$RELEASE_COHORT_ARTIFACT_NAME" ]; then
+            test -z "$RELEASE_ARTIFACT_NAME" || { echo "::error::A published DMG cohort must not override the build artifact cohort."; exit 1; }
+            [[ "$RELEASE_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]] || { echo "::error::A published DMG cohort requires an exact source run id."; exit 1; }
+            test -n "$RELEASE_TAG_INPUT" || { echo "::error::A published DMG cohort requires an exact release tag."; exit 1; }
+          fi
           profile="$PACKAGE_PROFILE"
           if [ -z "$profile" ]; then
             if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
@@ -1297,6 +1309,16 @@ jobs:
           github-token: ${{ github.token }}
           path: artifacts/release-cohort
 
+      - name: Download published DMG cohort identity
+        if: ${{ inputs.release_cohort_artifact_name != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        timeout-minutes: 10
+        with:
+          name: ${{ inputs.release_cohort_artifact_name }}
+          run-id: ${{ inputs.release_artifact_run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts/release-cohort
+
       - name: Download pre-publication Homebrew Cask
         if: ${{ inputs.homebrew_candidate_artifact != '' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -1659,7 +1681,7 @@ jobs:
           write_admission passed ''
 
       - name: Verify downloaded DMG exact bytes against build cohort
-        if: ${{ inputs.release_artifact_name != '' }}
+        if: ${{ inputs.release_artifact_name != '' || inputs.release_cohort_artifact_name != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -2293,7 +2315,7 @@ jobs:
           test ! -e "$credential_dir"
 
       - name: Reject protected credentials in release evidence
-        if: ${{ always() && needs.validate-vm-inputs.outputs.diagnostic_scope == 'release_gate' && (needs.validate-vm-inputs.outputs.package_profile == 'standard' || needs.validate-vm-inputs.outputs.package_profile == 'full') }}
+        if: ${{ always() && steps.gateway_credentials.outcome != 'skipped' && needs.validate-vm-inputs.outputs.diagnostic_scope == 'release_gate' && (needs.validate-vm-inputs.outputs.package_profile == 'standard' || needs.validate-vm-inputs.outputs.package_profile == 'full') }}
         shell: bash
         env:
           GATEWAY_ACCOUNT_PASSWORD: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}

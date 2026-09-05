@@ -322,8 +322,11 @@ jobs:
       contents: read
       actions: read
     uses: ./.github/workflows/opl-first-run-vm.yml
+    secrets: inherit
     with:
       release_tag: ${{ needs.resolve-sample.outputs.tag }}
+      release_cohort_artifact_name: nightly-macos-arm64-dmg-cohort
+      release_artifact_run_id: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
       artifact_app_ref: ${{ needs.resolve-sample.outputs.app_ref }}
       shell_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
       smoke_harness_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
