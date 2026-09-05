@@ -82,6 +82,28 @@ test("published cohort admission rejects ambiguous artifact sources and unbound 
   }
 });
 
+test("sampled VM recovery pins a repair harness without changing published product refs", () => {
+  const follower = parseYaml(fs.readFileSync(
+    path.join(process.cwd(), ".github/workflows/release-nightly-followups.yml"), "utf8",
+  ));
+  const caller = follower.jobs["sampled-standard-vm"].with;
+  assert.equal(caller.smoke_harness_ref, "${{ inputs.smoke_harness_ref || needs.resolve-sample.outputs.shell_ref }}");
+  assert.equal(caller.shell_ref, "${{ needs.resolve-sample.outputs.shell_ref }}");
+  assert.equal(caller.artifact_app_ref, "${{ needs.resolve-sample.outputs.app_ref }}");
+  const step = follower.jobs["resolve-sample"].steps[0];
+  assert.equal(step.env.SMOKE_HARNESS_REF, "${{ inputs.smoke_harness_ref }}");
+  const admission = step.run.split('gh api "repos/')[0];
+  for (const [ref, valid] of [["", true], ["a".repeat(40), true], ["main", false], ["abcd", false]] as const) {
+    const result = spawnSync("bash", ["-c", admission], {
+      encoding: "utf8", env: {
+        ...process.env, GITHUB_RUN_ATTEMPT: "1", GITHUB_EVENT_NAME: "workflow_dispatch",
+        GITHUB_REF: "refs/heads/main", SOURCE_RUN_ID: "33921116172", SMOKE_HARNESS_REF: ref,
+      },
+    });
+    assert.equal(result.status === 0, valid, result.stderr || result.stdout);
+  }
+});
+
 test("credential scanning skips unused credentials but remains fail-closed once preparation ran", () => {
   const scan = workflow.jobs["clean-vm-first-run"].steps.find(
     (step: any) => step.name === "Reject protected credentials in release evidence",

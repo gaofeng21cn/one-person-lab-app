@@ -2284,12 +2284,14 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     || JSON.stringify(followup.workflow.on?.workflow_run?.workflows) !==
       JSON.stringify(['OPL Standard Nightly Release'])
     || JSON.stringify(followup.workflow.on?.workflow_run?.types) !== JSON.stringify(['completed'])
-    || JSON.stringify(Object.keys(followupInputs)) !== JSON.stringify(['operation', 'source_run_id'])
+    || JSON.stringify(Object.keys(followupInputs)) !== JSON.stringify(['operation', 'source_run_id', 'smoke_harness_ref'])
     || JSON.stringify(followupInputs.operation?.options) !== JSON.stringify([
       'reconcile_homebrew', 'run_sampled_vm',
     ])
     || followupInputs.source_run_id?.required !== true
     || followupInputs.source_run_id?.type !== 'string'
+    || followupInputs.smoke_harness_ref?.required !== false
+    || followupInputs.smoke_harness_ref?.type !== 'string'
     || !exactObject(followup.workflow.permissions, exactReadPermissions)
     || followup.workflow.concurrency !== undefined
     || JSON.stringify(Object.keys(followupJobs)) !== JSON.stringify([

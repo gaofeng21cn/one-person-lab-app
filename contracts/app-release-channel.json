@@ -5717,14 +5717,14 @@
     "vm_local_authorization_policy": {
       "artifact": "artifacts/gatekeeper-launch-policy.json",
       "quarantine_clear_command": "xattr -dr com.apple.quarantine <installed_app>",
-      "codesign_gate": "diagnostic_only_failed_allowed_unsigned",
+      "codesign_gate": "blocking_for_full_or_gatekeeper_required_diagnostic_for_unsigned_standard",
       "spctl_gate": "diagnostic_only_rejected_allowed_unsigned",
       "allowed_local_authorization_statuses": [
         "passed",
         "rejected_allowed_unsigned",
         "failed_allowed_unsigned"
       ],
-      "rule": "Stable first-run VM smokes must clear quarantine after install, record codesign and spctl diagnostics before launch, and continue when codesign or spctl rejects the unsigned locally authorized App."
+      "rule": "Standard first-run VM smokes that explicitly do not require Gatekeeper, including unsigned Nightly samples, must clear quarantine after install and retain codesign and spctl failures as diagnostics before attempting real launch. Full smokes and every Gatekeeper-required production smoke must pass deep codesign verification; Gatekeeper-required smokes must also pass spctl and must not clear quarantine. Missing or unknown runtime profiles cannot opt into unsigned Standard behavior."
     },
     "settings_page_readiness_policy": {
       "required_signals": [

@@ -23,6 +23,10 @@ on:
         description: Exact completed Nightly source run.
         required: true
         type: string
+      smoke_harness_ref:
+        description: Optional exact Shell commit for sampled-VM harness repair; does not change the published App or product Shell cohort.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -257,12 +261,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
           FORCE_SAMPLE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then test "$GITHUB_REF" = refs/heads/main; fi
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          if [ -n "$SMOKE_HARNESS_REF" ]; then
+            [[ "$SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::smoke_harness_ref must be an exact Shell commit."; exit 1; }
+          fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
           jq -e --arg run "$SOURCE_RUN_ID" '
             (.id | tostring) == $run
@@ -329,7 +337,7 @@ jobs:
       release_artifact_run_id: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
       artifact_app_ref: ${{ needs.resolve-sample.outputs.app_ref }}
       shell_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
-      smoke_harness_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
+      smoke_harness_ref: ${{ inputs.smoke_harness_ref || needs.resolve-sample.outputs.shell_ref }}
       framework_ref: ${{ needs.resolve-sample.outputs.framework_ref }}
       package_profile: standard
       diagnostic_scope: release_gate
