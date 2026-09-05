@@ -30,9 +30,9 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
 8. 已固定模型从目录消失时保留为“不可用的固定选择”，直到用户恢复 Auto 或选择
    可用模型；不得静默改回另一个模型。
 
-因此，如果未来 Codex CLI 将 GPT-6 标记为 `isDefault`，即使它位于后续分页、App 尚未
-发布包含 GPT-6 名称的新版静态列表，Auto 也必须选择 GPT-6，并使用 CLI 为它声明的
-最高推理档。
+当前产品默认模型为 `gpt-6-astra`，推理强度为 `max`。后续若 Codex CLI 将新模型标记为
+`isDefault`，且没有可用的 Flow 推荐，即使新模型位于后续分页、尚未进入 App 静态列表，
+自动模式也必须识别它，并使用 CLI 为它声明的最高推理档。
 
 ## 已知列表的角色
 
@@ -57,10 +57,10 @@ catalog unavailable 处理，不能把首屏结果冒充完整目录。
 | App product profile | 定义 Auto 算法、已知覆盖、fallback 和持久化语义。 | Flow policy 文件、CLI 实时目录、provider readiness、用户凭证。 |
 | Codex CLI | 通过 `model/list` 提供 `isDefault` 和 `supportedReasoningEfforts`。 | App fallback、用户选择持久化、GUI 文案。 |
 | AionUI / Native / 其它 Shell | 读取 product profile 和 CLI 目录，解析并展示 Auto，保存 mode 或 fixed override。 | 私有 allowlist、私有模型排序、私有 fallback。 |
-| OPL Framework 安装器 | 从同一 product profile 生成首次安装默认配置。 | 另一份默认模型/推理策略。 |
+| OPL Framework 安装器 | 从 Flow 策略生成首次安装默认配置。 | 另一份默认模型/推理策略。 |
 
-安装初始化的 `gpt-5.6-sol + max` 是“目录不可用或首次生成配置”的 seed，不代表用户
-进入 Auto 后永远固定在 5.6。Shell 当前解析出的具体模型也只是运行时结果，不得回写
+安装初始化的 `gpt-6-astra + max` 是目录不可用或首次生成配置时的初始值，不代表用户
+进入自动模式后永远固定在 GPT-6 Astra。Shell 当前解析出的具体模型也只是运行时结果，不得回写
 成新的 App product truth。
 
 ## 维护默认模型
@@ -91,7 +91,7 @@ bunx tsc --noEmit
 
 # one-person-lab
 npm run codex:export-default-profile -- \
-  --app-product-profile /absolute/path/to/one-person-lab-app/contracts/app-product-profile.json
+  --workflow-policy /absolute/path/to/opl-flow/contracts/workflow-policy.json
 npm run test:fresh-install
 
 # opl-studio
@@ -100,8 +100,9 @@ npm run validate:candidate
 
 `scripts/app-product-profile.ts` 把 App profile 同步到 active AionUI checkout；Shell 只提交
 `oplProductProfile.generated.json` 及其必要 consumer/test 变化。Native 在 build/validation 时
-直接读取 App profile，不维护副本。Framework 只提交 exporter 生成的
-`contracts/opl-framework/codex-default-profile.json`。
+直接读取 App profile，不维护副本。Framework 的安装默认值来自 Flow 策略，只提交生成器产出的
+`contracts/opl-framework/codex-default-profile.json`；更新整个产品默认值时，应同步修改 Flow 推荐，
+不能只更新 App 的兜底值。
 
 若新推理档只是 Codex CLI 未来新增的非空字符串，消费者不得扩展本地 enum/allowlist；
 运行时 Auto 会直接使用 CLI 广告的最后一个支持档位。只有要改变已知模型的产品默认、

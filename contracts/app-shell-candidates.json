@@ -893,7 +893,7 @@
         "dsh_product_runtime_authority_adopted": false,
         "minimum_bar": "pinned_dsh_application_host_tools_mcp_codex_native_framework_bridge_and_direct_gui_source_reuse_with_declared_authorities",
         "model_policy_source": "contracts/app-product-profile.json#gui.home.codex_model_display_options",
-        "default_model": "gpt-5.6-sol",
+        "default_model": "gpt-6-astra",
         "default_reasoning_effort": "max",
         "required_surfaces": [
           "persistent_project_rail",

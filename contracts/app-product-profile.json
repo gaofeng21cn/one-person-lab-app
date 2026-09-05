@@ -790,7 +790,7 @@
     "existing_provider_name_policy": "preserve_existing_provider_name_no_migration",
     "base_url": "https://gateway.medopl.com/v1",
     "executor": "codex_cli",
-    "model": "gpt-5.6-sol",
+    "model": "gpt-6-astra",
     "reasoning_effort": "max",
     "applies_after": "codex_openai_api_key_configured",
     "authority": "app_session_default_only"
@@ -827,7 +827,7 @@
       "codex_model_list_visible": true,
       "codex_model_policy": "codex_cli_latest_strongest_model_selector_visible",
       "codex_model_auto_option_visible": true,
-      "codex_default_model": "gpt-5.6-sol",
+      "codex_default_model": "gpt-6-astra",
       "codex_default_reasoning_effort": "max",
       "codex_default_permission_mode": "full-access",
       "permission_mode_selector_visible": true,
@@ -897,8 +897,8 @@
       "conversation_backend_selector_visible": false,
       "conversation_model_selector_visible": true,
       "conversation_permission_mode_selector_visible": true,
-      "codex_home_model_status_label": "5.6 Sol",
-      "codex_home_model_status_label_en": "5.6 Sol",
+      "codex_home_model_status_label": "6 Astra",
+      "codex_home_model_status_label_en": "6 Astra",
       "codex_precise_model_display_policy": "friendly_model_with_discoverable_model_and_reasoning_summary_rows",
       "home_layout": {
         "default_mode": "composer_first_chat_canvas",
@@ -1095,7 +1095,7 @@
           "label_en": "Auto (recommended)",
           "description_zh": "跟随 Codex CLI 当前默认模型与 App 推理策略",
           "description_en": "Follows the current Codex CLI default model and App reasoning policy",
-          "catalog_unavailable_fallback_model": "gpt-5.6-sol",
+          "catalog_unavailable_fallback_model": "gpt-6-astra",
           "catalog_unavailable_fallback_reasoning_effort": "max",
           "follows_latest_strongest": true
         },
@@ -1129,6 +1129,11 @@
         },
         "user_reasoning_effort_options": ["low", "medium", "high", "xhigh", "max", "ultra"],
         "visible_models": [
+          {
+            "id": "gpt-6-astra",
+            "label_zh": "6 Astra",
+            "label_en": "6 Astra"
+          },
           {
             "id": "gpt-5.6-sol",
             "label_zh": "5.6 Sol",
@@ -1774,7 +1779,7 @@
     }
   },
   "codex": {
-    "default_model": "gpt-5.6-sol",
+    "default_model": "gpt-6-astra",
     "default_model_description": "System Codex default model when configured",
     "default_reasoning_effort": "max",
     "app_runtime_home": {
@@ -1800,7 +1805,7 @@
       ],
       "app_fallback_role": "configured_default_is_used_only_when_flow_projection_is_absent_invalid_or_unavailable_and_catalog_cannot_resolve",
       "configured_default": {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6-astra",
         "reasoning_effort": "max"
       },
       "configured_default_role": "app_fallback_not_flow_recommendation_authority",
@@ -1818,6 +1823,7 @@
       "catalog_hidden_model_policy": "exclude_hidden_models_from_auto_and_fixed_options",
       "frontier_model_preference_order_role": "known_model_fallback_and_fixed_option_preference_not_allowlist",
       "frontier_model_preference_order": [
+        "gpt-6-astra",
         "gpt-5.6-sol",
         "gpt-5.6-terra",
         "gpt-5.6-luna",
@@ -1827,13 +1833,14 @@
         "gpt-5.2"
       ],
       "known_model_reasoning_effort_overrides": {
-        "gpt-5.6-sol": "max"
+        "gpt-5.6-sol": "max",
+        "gpt-6-astra": "max"
       },
       "unknown_default_model_policy": "accept_catalog_default_even_when_not_in_frontier_model_preference_order",
       "unknown_model_reasoning_effort_policy": "highest_supported_reasoning_effort_from_catalog",
       "catalog_without_default_policy": "first_available_known_model_then_first_catalog_model",
       "catalog_unavailable_fallback": {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6-astra",
         "reasoning_effort": "max"
       },
       "persistence_policy": {

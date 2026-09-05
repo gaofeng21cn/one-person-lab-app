@@ -192,6 +192,7 @@ export function assertHomeComposerStateContract(value: unknown, label: string): 
   }
 }
 const expectedCodexVisibleModels = [
+  { id: 'gpt-6-astra', label_zh: '6 Astra', label_en: '6 Astra' },
   { id: 'gpt-5.6-sol', label_zh: '5.6 Sol', label_en: '5.6 Sol' },
   { id: 'gpt-5.6-terra', label_zh: '5.6 Terra', label_en: '5.6 Terra' },
   { id: 'gpt-5.6-luna', label_zh: '5.6 Luna', label_en: '5.6 Luna' },
@@ -353,7 +354,7 @@ export function assertAppProductProfileHomeCodexPolicy(
 ): void {
   const home = profile.gui?.home;
   assertHomeCodexFixedExecutorFields(profile, home, label);
-  assertHomeCodexEnglishStatusLabel(home, label, options);
+  assertHomeCodexEnglishStatusLabel(profile, home, label, options);
   assertHomeCodexAutoSelectionPolicy(profile, home, label, options);
 }
 
@@ -379,7 +380,10 @@ function assertHomeCodexFixedExecutorFields(
       { actual: home?.conversation_backend_selector_visible, expected: false },
       { actual: home?.conversation_model_selector_visible, expected: true },
       { actual: home?.conversation_permission_mode_selector_visible, expected: true },
-      { actual: home?.codex_home_model_status_label, expected: '5.6 Sol' },
+      {
+        actual: home?.codex_home_model_status_label,
+        expected: home?.codex_model_display_options?.visible_models?.find((model) => model.id === profile.codex?.default_model)?.label_zh,
+      },
       {
         actual: home?.codex_precise_model_display_policy,
         expected: 'friendly_model_with_discoverable_model_and_reasoning_summary_rows',
@@ -584,12 +588,14 @@ export function assertAppProductProfileSettingsVisualSystem(
 }
 
 function assertHomeCodexEnglishStatusLabel(
+  profile: ProductProfileLike,
   home: HomeLike,
   label: string,
   options: HomePolicyOptions,
 ): void {
-  if (options.requireEnglishStatusLabel && home?.codex_home_model_status_label_en !== '5.6 Sol') {
-    throw new Error(`${label} GUI home must expose the English 5.6 Sol status label without repeated reasoning`);
+  const modelLabel = home?.codex_model_display_options?.visible_models?.find((model) => model.id === profile.codex?.default_model)?.label_en;
+  if (options.requireEnglishStatusLabel && home?.codex_home_model_status_label_en !== modelLabel) {
+    throw new Error(`${label} GUI home must expose the configured model's English status label without repeated reasoning`);
   }
 }
 

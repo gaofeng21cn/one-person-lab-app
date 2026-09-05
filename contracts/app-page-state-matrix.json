@@ -112,10 +112,10 @@
         "codex_model_list_visible": true,
         "codex_model_policy": "codex_cli_latest_strongest_model_selector_visible",
         "codex_model_auto_option_visible": true,
-        "codex_default_model": "gpt-5.6-sol",
+        "codex_default_model": "gpt-6-astra",
         "codex_default_reasoning_effort": "max",
-        "codex_default_display_label": "5.6 Sol",
-        "codex_default_model_display_value": "5.6 Sol",
+        "codex_default_display_label": "6 Astra",
+        "codex_default_model_display_value": "6 Astra",
         "codex_model_status_display_policy": "single_session_configuration_menu_with_model_reasoning_and_reset_summary_rows",
         "codex_precise_model_display_policy": "friendly_model_with_discoverable_model_and_reasoning_summary_rows",
         "codex_model_menu_root_rows": [
