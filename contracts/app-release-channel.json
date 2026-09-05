@@ -1461,6 +1461,12 @@
       "explicit_api_key_file_role": "optional_manual_override_only",
       "connected_provider_diagnostic": {
         "trigger": "codex_ai_self_check_requested",
+        "vm_scope": "bounded_connectivity_and_prompt_probe_not_full_ai_inspection",
+        "vm_prompt_policy": "Acknowledge one fixed JSON probe without tools, filesystem inspection, repairs, or installation verdicts; preserve the prompt as evidence for semantic review.",
+        "vm_timeout_ms_max": 30000,
+        "insufficient_balance_response": "structured_INSUFFICIENT_BALANCE_confirms_provider_reachable_but_not_model_generation",
+        "generic_403_authentication_network_and_timeout_errors": "not_connectivity_success",
+        "complex_ai_self_check_completion_required": false,
         "credential_source": "developer_host_codex_selected_provider",
         "config_path_resolution": "OPL_FIRST_RUN_HOST_CODEX_CONFIG_or_CODEX_HOME_config_toml_or_home_dot_codex_config_toml",
         "required_selected_provider_fields": [

@@ -374,12 +374,15 @@ for Codex CLI detection, App-managed `opl-flow` context expectation, user
 `AGENTS.md` policy, built-in route receipts, and skill/plugin visibility without
 calling an external LLM. App-managed `opl-flow` is injected as localized,
 session-scoped preset context; it must not write or overwrite workspace
-`AGENTS.md`. With `--codex-ai-self-check`, the guest smoke then asks Codex CLI
-to read the target installed OPL working mode and deterministic evidence, and
-writes `codex-ai-self-check-summary.json` as non-blocking AI-first diagnostic
-evidence. Default mode is read-only `diagnose`; it verifies intended behavior
-and recommends next actions without replacing deterministic initialization or
-the VM gate. The workflow writes a preflight summary
+`AGENTS.md`. With `--codex-ai-self-check`, the default read-only `diagnose` mode
+sends a minimal JSON acknowledgement prompt through the packaged Codex CLI,
+without tools, filesystem inspection, repairs, or a complex installation audit.
+It preserves the prompt for semantic review and bounds the probe to 30 seconds.
+The non-blocking `codex-ai-self-check-summary.json` separates provider reachability
+from model completion: an exact structured `INSUFFICIENT_BALANCE` response proves
+the former only. Generic 403, authentication, network and timeout failures do not
+count as connectivity success. Explicit manual `fix` mode retains the broader
+inspection; VM gates do not use it. The workflow writes a preflight summary
 with runner labels, source VM, guest user, package/runtime profile, DMG path,
 display, Codex package preflight path, Codex tarball path, Codex npm cache dir,
 and artifact output before executing the smoke. The VM artifact includes
