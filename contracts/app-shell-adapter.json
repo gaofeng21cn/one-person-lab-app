@@ -35,7 +35,7 @@
           "package": "@openai/codex",
           "version_and_digest_source": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli",
           "authority": "official_npm_platform_package",
-          "aioncore_compatibility_source": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.verified_by_aioncore"
+          "aioncore_compatibility_source": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.opl_verified_aioncore_version"
         },
         "packaged_projection": {
           "owner": "gaofeng21cn/opl-aion-shell",

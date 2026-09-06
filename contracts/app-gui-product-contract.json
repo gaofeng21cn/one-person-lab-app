@@ -3009,6 +3009,7 @@
         "check": "opl update check --json",
         "plan": "opl update plan --json",
         "apply_eligible_updates": "opl update apply --json",
+        "activate_verified_pending_runtime": "opl update activate --json",
         "bootstrap_missing_opl_base": "opl-install.sh --headless --skip-packages",
         "update_opl_app": "standard_updater_or_carrier_host_update_route",
         "install_opl_package": "opl packages install ... --json",

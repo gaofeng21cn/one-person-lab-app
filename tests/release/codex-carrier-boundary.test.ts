@@ -51,7 +51,7 @@ test('AionUI composes the AionCore Node export with one official Codex carrier',
     version_and_digest_source: 'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli',
     authority: 'official_npm_platform_package',
     aioncore_compatibility_source:
-      'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.verified_by_aioncore',
+      'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.opl_verified_aioncore_version',
   });
   assert.equal(target?.packaged_projection.schema, 'opl_aioncore_managed_resources_projection.v1');
   assert.deepEqual(target?.packaged_projection.included_cli_names, ['codex']);

@@ -737,7 +737,7 @@ export function validateCodexExecutableContract(contract: ShellAdapterContract):
         'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli' ||
       target?.codex_carrier?.authority !== 'official_npm_platform_package' ||
       target?.codex_carrier?.aioncore_compatibility_source !==
-        'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.verified_by_aioncore' ||
+        'contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.opl_verified_aioncore_version' ||
       target?.packaged_projection?.owner !== 'gaofeng21cn/opl-aion-shell' ||
       target?.packaged_projection?.schema !== 'opl_aioncore_managed_resources_projection.v1' ||
       target?.packaged_projection?.authority_path !==

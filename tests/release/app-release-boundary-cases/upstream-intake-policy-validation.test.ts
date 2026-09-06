@@ -132,7 +132,7 @@ function stableCurrentnessReceipt() {
         version: '0.146.0',
         binary_sha256: 'ae1d3ffe6d48aec6a4dc3f50e7eb8e0d11962485a6a9406c5a7012139383da02',
         carrier: 'opl_app_official_npm_platform_package',
-        verified_by_aioncore: 'v0.1.70',
+        opl_verified_aioncore_version: 'v0.1.70',
       },
     },
     policy: {
@@ -373,7 +373,7 @@ test('AionUI current exact versions come from the receipt while v0.1.44 remains 
 
   const futureReceipt = stableCurrentnessReceipt();
   futureReceipt.managed_runtime.aioncore.version = 'v0.1.51';
-  futureReceipt.managed_runtime.codex_cli.verified_by_aioncore = 'v0.1.51';
+  futureReceipt.managed_runtime.codex_cli.opl_verified_aioncore_version = 'v0.1.51';
   assert.doesNotThrow(() => validateContract(contract, {
     readJsonFile: () => ({ aioncoreVersion: 'v0.1.51' }),
     readShellReceipt: () => futureReceipt,
@@ -381,7 +381,7 @@ test('AionUI current exact versions come from the receipt while v0.1.44 remains 
 
   const belowMinimumReceipt = stableCurrentnessReceipt();
   belowMinimumReceipt.managed_runtime.aioncore.version = 'v0.1.43';
-  belowMinimumReceipt.managed_runtime.codex_cli.verified_by_aioncore = 'v0.1.43';
+  belowMinimumReceipt.managed_runtime.codex_cli.opl_verified_aioncore_version = 'v0.1.43';
   assert.throws(() => validateContract(contract, {
     readJsonFile: () => ({ aioncoreVersion: 'v0.1.43' }),
     readShellReceipt: () => belowMinimumReceipt,

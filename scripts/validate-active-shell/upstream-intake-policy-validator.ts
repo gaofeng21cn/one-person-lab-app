@@ -710,7 +710,7 @@ function validateStableCurrentnessReceipt(contract, shellPaths, options, isGitAn
   assertSha256(codexCli.binary_sha256, 'AionUI receipt managed Codex CLI binary');
   if (
     codexCli.carrier !== 'opl_app_official_npm_platform_package' ||
-    codexCli.verified_by_aioncore !== aionCore.version
+    codexCli.opl_verified_aioncore_version !== aionCore.version
   ) {
     throw new Error('AionUI receipt managed Codex CLI must bind the OPL official package carrier and AionCore compatibility');
   }
