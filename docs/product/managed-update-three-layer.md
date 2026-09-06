@@ -40,6 +40,16 @@ The current ordinary App may remain fixed to Codex CLI. That product choice
 does not make Codex Plugin Manager the OPL Package authority or require a user
 facing executor selector during this migration.
 
+Studio Preview implements desktop maintenance through the same Framework update commands.
+It activates verified pending generations before starting its persistent Codex App Server,
+then checks eligible installed components daily. Package refresh runs under an idle lease;
+new Codex requests wait until refresh completes. Busy or failed runs retry after five minutes.
+App updates download silently and install on normal exit or an explicit idle restart.
+Existing managed Framework updates survive later App starts, while an older bootstrap
+without `opl update activate --json` receives a one-time compatible bootstrap upgrade.
+External Temporal Server, global tools, developer checkouts and user-managed Packages keep
+their existing lifecycle owners. Temporal SDK versions follow the verified Framework cohort.
+
 ## 1. Distribution And First Install
 
 Standard updater, signed installer/DMG, Homebrew, Docker/WebUI, headless

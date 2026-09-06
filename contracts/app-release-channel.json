@@ -6633,6 +6633,7 @@
         "check": "opl update check --json",
         "plan": "opl update plan --json",
         "apply_eligible_updates": "opl update apply --json",
+        "activate_verified_pending_runtime": "opl update activate --json",
         "bootstrap_missing_opl_base": "opl-install.sh --headless --skip-packages",
         "update_opl_app": "standard_updater_or_carrier_host_update_route",
         "install_opl_package": "opl packages install ... --json",
@@ -6687,6 +6688,7 @@
         "package_plan_eligibility": "available_during_check_and_plan_before_apply",
         "package_currentness": "unknown_until_native_owner_check_not_inferred_from_callability",
         "background_base_policy": "stage_only_without_pending_activation_or_temporal_restart",
+        "startup_pending_activation": "opl update activate --json before App Server start with a new OPL_APP_PROCESS_INSTANCE_ID; verify pending bytes and protocol, retain the previous generation on failure",
         "package_success_gate": "fresh_native_presence_and_required_entrypoints",
         "recovery_policy": "persist_failure_retry_and_restart_guidance_and_recheck_when_online_or_visible"
       },
