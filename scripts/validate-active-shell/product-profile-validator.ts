@@ -720,10 +720,13 @@ function validateHomeAssistantDefaults(profile) {
     JSON.stringify(iconPolicy?.icon_text_action_geometry) !==
       JSON.stringify({
         icon_size_px: 16,
-        icon_slot_px: 20,
+        icon_slot_px: 16,
         icon_color: 'currentColor',
         icon_background: 'transparent_none',
-        icon_label_gap_px: 8,
+        icon_label_gap_px: 4,
+        source: 'pinned_dsh_Button.module.css',
+        normal_typography: 'var(--dsw-font-s-14)',
+        compact_typography: 'var(--dsw-font-xxs-12)',
         alignment: 'icon_slot_and_label_share_one_vertical_centerline',
         contrast_policy: 'button_foreground_color_applies_to_icon_and_label_together',
         disabled_policy: 'apply_disabled_opacity_to_the_whole_control_never_hide_only_the_icon',

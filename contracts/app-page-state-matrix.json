@@ -378,7 +378,7 @@
           "managed_worktree_row_indicator": {
             "source": "canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees",
             "presentation": "inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name",
-            "glyph_source": "icon_park_branch_compatibility_glyph",
+            "glyph_source": "pinned_deepseek_harness_branch_outline16",
             "changes_project_affinity": false,
             "mutation_action": "none"
           },

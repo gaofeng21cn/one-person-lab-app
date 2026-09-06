@@ -1,6 +1,7 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+import { productProfilePath } from './validation-config.ts';
 import {
   assertShellTextIncludesAll,
   assertTextDoesNotMatch,
@@ -555,7 +556,6 @@ const productProfileDefaultsExpected = [
   '"codex_model_list_visible": true',
   '"codex_model_policy": "codex_cli_latest_strongest_model_selector_visible"',
   '"codex_model_auto_option_visible": true',
-  '"codex_home_model_status_label": "5.6 Sol"',
   '"codex_precise_model_display_policy": "friendly_model_with_discoverable_model_and_reasoning_summary_rows"',
   '"button_label_policy": "resolved_model_compact_label_with_selected_reasoning_effort_no_auto_prefix"',
   '"default_active_shortcut": null',
@@ -809,19 +809,15 @@ function validateGuidAgentSelection(shellPaths) {
 
 function assertProductProfileFrontierModelPreferenceOrder(productProfileJson) {
   const actual = productProfileJson?.codex?.auto_model_policy?.frontier_model_preference_order;
-  const expected = [
-    'gpt-5.6-sol',
-    'gpt-5.6-terra',
-    'gpt-5.6-luna',
-    'gpt-5.5',
-    'gpt-5.4',
-    'gpt-5.4-mini',
-    'gpt-5.2',
-  ];
+  const appProfile = JSON.parse(readFileSync(productProfilePath, 'utf8'));
+  const expected = appProfile.codex.auto_model_policy.frontier_model_preference_order;
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(
       `Active shell product profile must carry App Codex known frontier_model_preference_order=${JSON.stringify(expected)}`,
     );
+  }
+  if (productProfileJson?.gui?.home?.codex_home_model_status_label !== appProfile.gui.home.codex_home_model_status_label) {
+    throw new Error('Active shell model status label must match the current App product profile');
   }
 }
 
@@ -894,9 +890,12 @@ function validateProductProfileDefaults(shellPaths) {
     (group: { id?: unknown }) => group.id === 'agent_packages',
   );
   if (
-    agentPaletteGroup?.scope !== 'new_session_configuration_only' ||
+    agentPaletteGroup?.scope !== 'new_session_configuration_or_existing_turn_invocation' ||
     agentPaletteGroup?.existing_session_rebinding_allowed !== false ||
-    JSON.stringify(agentPaletteGroup?.surface_actions?.existing_conversation) !== '[]'
+    agentPaletteGroup?.existing_conversation_invocation_policy !==
+      'invoke_selected_standard_agent_for_current_turn_without_rebinding_the_codex_thread' ||
+    JSON.stringify(agentPaletteGroup?.surface_actions?.existing_conversation) !==
+      JSON.stringify(['invoke_agent_package_for_current_turn'])
   ) {
     throw new Error('Active shell product profile must not expose existing-conversation Agent rebinding');
   }
@@ -1226,7 +1225,7 @@ function validateCodexModelControls(shellPaths, dshVisualSourceImplemented) {
   assertShellTextIncludesAll(
     shellPaths,
     'packages/desktop/src/renderer/components/opl/OplRefreshIconButton.tsx',
-    ["Refresh } from '@icon-park/react'", "theme='outline'", "fill='currentColor'", 'aria-label={label}', '<Tooltip content={label}>'],
+    ["OplIcon } from './OplVisualProvider'", "name='refreshSmall'", 'aria-label={label}', '<Tooltip content={label}>'],
     'Active shell OPL refresh icon button',
   );
   for (const settingsSurface of [

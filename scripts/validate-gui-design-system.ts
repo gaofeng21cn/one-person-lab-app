@@ -1785,6 +1785,7 @@ export function validateGuiDesignSystem(root = defaultRoot): GuiDesignSystemVali
     JSON.stringify(visualTypography) !==
       JSON.stringify({
         ui_font_stack: 'var(--dsw-font-family)',
+        control_font_policy: 'inherit_the_pinned_dsh_font_family_or_explicit_user_preference',
         app_chrome: 'var(--dsw-font-xs-13)_or_var(--dsw-font-xs-strong-13)',
         conversation: 'var(--dsw-font-markdown-base)',
         body: 'var(--dsw-font-s-14)',

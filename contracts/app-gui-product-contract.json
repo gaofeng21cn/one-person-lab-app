@@ -703,7 +703,7 @@
             "managed_worktree_row_indicator": {
               "source": "canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees",
               "presentation": "inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name",
-              "glyph_source": "icon_park_branch_compatibility_glyph",
+              "glyph_source": "pinned_deepseek_harness_branch_outline16",
               "explicit_project_affinity_behavior": "preserve_indicator_while_project_id_remains_grouping_authority",
               "changes_project_affinity": false,
               "mutation_action": "none"
@@ -752,7 +752,8 @@
             "source": "pinned_deepseek_harness_history_row_visual_cohort",
             "expanded_row_leading_content": "none",
             "leading_icon_policy": "do_not_render_assistant_backend_or_generic_message_icons_for_ordinary_conversations",
-            "status_exception_policy": "render_only_real_cron_or_generation_status_when_present",
+            "status_exception_policy": "render_only_real_cron_generation_or_pending_confirmation_status_when_present",
+            "pending_confirmation_policy": "real_permission_or_question_takes_visual_priority_over_generation_without_changing_canonical_task_status",
             "collapsed_row_policy": "compact_identity_glyph_allowed_when_title_is_hidden",
             "managed_worktree_policy": "preserve_localized_standard_git_branch_indicator_as_non_leading_metadata",
             "typography": {
@@ -1454,6 +1455,7 @@
       "composer_elevation": "single_outline_with_restrained_shadow",
       "typography": {
         "ui_font_stack": "var(--dsw-font-family)",
+        "control_font_policy": "inherit_the_pinned_dsh_font_family_or_explicit_user_preference",
         "app_chrome": "var(--dsw-font-xs-13)_or_var(--dsw-font-xs-strong-13)",
         "conversation": "var(--dsw-font-markdown-base)",
         "body": "var(--dsw-font-s-14)",
@@ -3362,13 +3364,24 @@
     "settings_icon_geometry": "stable_16px_slot_1_5_to_1_75px_visual_stroke_no_colored_tile_or_letter_avatar",
     "icon_text_action_geometry": {
       "icon_size_px": 16,
-      "icon_slot_px": 20,
+      "icon_slot_px": 16,
       "icon_color": "currentColor",
       "icon_background": "transparent_none",
-      "icon_label_gap_px": 8,
+      "icon_label_gap_px": 4,
+      "source": "pinned_dsh_Button.module.css",
+      "normal_typography": "var(--dsw-font-s-14)",
+      "compact_typography": "var(--dsw-font-xxs-12)",
       "alignment": "icon_slot_and_label_share_one_vertical_centerline",
       "contrast_policy": "button_foreground_color_applies_to_icon_and_label_together",
       "disabled_policy": "apply_disabled_opacity_to_the_whole_control_never_hide_only_the_icon"
+    },
+    "settings_navigation_geometry": {
+      "source": "pinned_dsh_Menu.module.css_dense_item",
+      "icon_slot_px": 16,
+      "icon_label_gap_px": 8,
+      "typography": "var(--dsw-font-s-14)",
+      "min_height_px": 34,
+      "radius_px": 10
     },
     "upstream_fork_body_bulk_icon_rewrite": "forbidden",
     "refresh_actions": "icon_only_with_tooltip_and_accessible_name",

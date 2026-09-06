@@ -676,6 +676,9 @@ export type AppProductProfile = {
           icon_color: string;
           icon_background: string;
           icon_label_gap_px: number;
+          source: string;
+          normal_typography: string;
+          compact_typography: string;
           alignment: string;
           contrast_policy: string;
           disabled_policy: string;

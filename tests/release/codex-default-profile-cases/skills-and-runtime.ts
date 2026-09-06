@@ -104,7 +104,8 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
     expanded_row_leading_content: 'none',
     leading_icon_policy:
       'do_not_render_assistant_backend_or_generic_message_icons_for_ordinary_conversations',
-    status_exception_policy: 'render_only_real_cron_or_generation_status_when_present',
+    status_exception_policy: 'render_only_real_cron_generation_or_pending_confirmation_status_when_present',
+    pending_confirmation_policy: 'real_permission_or_question_takes_visual_priority_over_generation_without_changing_canonical_task_status',
     collapsed_row_policy: 'compact_identity_glyph_allowed_when_title_is_hidden',
     managed_worktree_policy: 'preserve_localized_standard_git_branch_indicator_as_non_leading_metadata',
     typography: {
@@ -145,7 +146,7 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
     managed_worktree_row_indicator: {
       source: 'canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees',
       presentation: 'inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name',
-      glyph_source: 'icon_park_branch_compatibility_glyph',
+      glyph_source: 'pinned_deepseek_harness_branch_outline16',
       explicit_project_affinity_behavior: 'preserve_indicator_while_project_id_remains_grouping_authority',
       changes_project_affinity: false,
       mutation_action: 'none',
@@ -227,7 +228,7 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
     managed_worktree_row_indicator: {
       source: 'canonical_runtime_or_preserved_cleaned_recorded_cwd_under_user_codex_worktrees',
       presentation: 'inline_standard_git_branch_icon_with_localized_tooltip_and_accessible_name',
-      glyph_source: 'icon_park_branch_compatibility_glyph',
+      glyph_source: 'pinned_deepseek_harness_branch_outline16',
       changes_project_affinity: false,
       mutation_action: 'none',
     },

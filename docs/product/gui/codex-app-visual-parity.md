@@ -12,6 +12,11 @@ Pixel baseline: `opl-app-approved-visual-baseline-v1` (App-owned, approval pendi
 
 ## 结论
 
+2026-09-06 的用户选择以统一、成熟的视觉体系为目标：AionUI 主线继续直接复用
+固定 DSH cohort 的字体、图标和 Button/Menu 几何。Codex 保留工作流参考，不再
+额外定义一套仿 Codex 的视觉数值。Arco 继续承担控件行为，迁移遗漏通过既有
+OPL adapter 补齐；用户显式字体偏好继续生效。
+
 OPL App 的普通图标、theme token 与 visual primitive geometry 以固定 DeepSeek Harness
 visual cohort 为 active source。One Person Lab 品牌、OPL 原生 Agent Package/Settings 能力、
 条件 X0-01 Runtime route 及其必要状态继续由 App 拥有；AionUI 不引入 DSH runtime 或完整 renderer。
@@ -131,9 +136,11 @@ conversation 的真实多状态、zh-CN/en-US 全矩阵、同尺寸 reference/ca
   confirmation 可以使用一层 bounded group，禁止 ordinary configuration/status/action 的边框墙；
 - `账户与访问` 的断开动作属于 account identity row，放在显示名、邮箱与连接状态的 trailing
   位置；禁止作为脱离对象的页脚或页面最右侧动作；
-- `数据与存储` 及所有同类 icon + text action 使用 16px icon、20px 稳定 slot、8px gap、
+- `数据与存储` 及所有同类 icon + text action 复用 DSH Button 的 16px icon、16px 稳定 slot、4px gap、
   `currentColor` 和透明 icon background。按钮前景色同时控制图标与文字，不能让图标底色或
   独立 opacity 把图标遮没；
+- Settings navigation 复用 DSH dense Menu 的 16px icon slot、8px gap、14/22 regular、
+  34px 最小高度与 10px radius；不沿用另一套加粗文字和放大的图标容器；
 - 全 Settings component audit 覆盖 light/dark、desktop/narrow，以及 default、hover、focus、
   disabled、loading、error。检查 nested borders、icon contrast、baseline、换行、横向溢出和
   交互时 geometry shift；单张截图或 source DOM 不能单独结案。

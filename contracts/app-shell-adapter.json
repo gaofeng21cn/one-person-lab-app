@@ -519,6 +519,28 @@
   "upstream_intake": {
     "schema_version": 1,
     "classification_policy": "classify_every_required_capability_and_dependency_before_app_release",
+    "webui_session_compatibility": {
+      "authority": "official_aioncore_cookie_session",
+      "refresh_endpoint": "/api/auth/refresh",
+      "refresh_policy": "browser_only_singleflight_on_http_401_or_realtime_auth_expiration",
+      "request_replay_limit": 1,
+      "credential_endpoint_replay_allowed": false,
+      "failed_refresh_policy": "stop_auth_reconnect_until_login",
+      "reconnect_policy": "bounded_backoff_not_bypassed_by_emit_or_subscribe_reset_only_after_stable_connection",
+      "desktop_local_mode_refresh_allowed": false
+    },
+    "conversation_notification_compatibility": {
+      "preference": "system.notificationEnabled",
+      "events": ["turn_completed", "permission_requested", "question_requested"],
+      "desktop_visibility": "only_when_main_window_is_unfocused_with_main_process_recheck",
+      "browser_visibility": "only_when_hidden_and_notification_permission_already_granted",
+      "payload": "localized_event_and_conversation_title_max_20_characters",
+      "conversation_body_command_and_question_content_allowed": false,
+      "click_action": "focus_existing_window_and_open_exact_conversation",
+      "deduplication": "per_conversation_request_or_turn",
+      "waiting_state": "pending_confirmation_events_and_backend_recovery_clear_on_resolution_or_turn_terminal",
+      "canonical_task_status_override_allowed": false
+    },
     "stable_currentness_receipt": {
       "path": "contracts/aionui-upstream-intake.json",
       "schema": "opl_aionui_upstream_intake.v2",
