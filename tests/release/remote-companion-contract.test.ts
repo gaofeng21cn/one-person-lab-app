@@ -72,8 +72,8 @@ test('OPL Link selects Ably plus Workers and D1 while keeping implementation gap
 
   assert.equal(policy.implementation_status.legacy_tencent_ios_adapter_source_present, true);
   assert.equal(policy.implementation_status.legacy_stack_conforms_to_selected_architecture, false);
-  assert.equal(policy.implementation_status.ably_adapter_source_implemented, false);
-  assert.equal(policy.implementation_status.cloudflare_worker_source_implemented, false);
+  assert.equal(policy.implementation_status.ably_adapter_source_implemented, true);
+  assert.equal(policy.implementation_status.cloudflare_worker_source_implemented, true);
   assert.equal(policy.implementation_status.testflight_carrier_build_evidence_exists, true);
   assert.equal(policy.implementation_status.testflight_product_qualification_completed, false);
   assert.equal(policy.implementation_status.release_ready_claim_allowed, false);

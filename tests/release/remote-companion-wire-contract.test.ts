@@ -93,7 +93,7 @@ test('OPL Link wire contract has one serverless control plane and encrypted tran
     source: 'opl-link/release-cohort.json',
     product_contract_ref: 'contracts/app-remote-companion.json#transport.release_cohort_lock',
     owner: 'opl-link/service',
-    source_status: 'planned_validation_cohort_owner_source_not_currently_integrated',
+    source_status: 'source_integrated_validation_placeholder_not_live_qualified',
     metadata_match_required_before_pairing: true,
     match_fields: ['environment', 'cohort_id', 'protocol_version', 'provider', 'service_origin', 'config_digest'],
     config_summary_match_required: true,
@@ -205,7 +205,7 @@ test('OPL Link wire contract has one serverless control plane and encrypted tran
   assert.match(wire.control_plane_http.tokens.ios_claim_token, /active_device_credential_after_activation/);
   assert.match(wire.control_plane_http.tokens.active_device_credential, /without_minting_a_second_bearer/);
   assert.equal(wire.provider_transport.selected_target, 'ably');
-  assert.equal(wire.provider_transport.implementation_status, 'target_not_implemented_or_live_verified');
+  assert.equal(wire.provider_transport.implementation_status, 'source_implemented_not_live_verified');
   assert.deepEqual(wire.provider_transport.credential_wire.public_core_fields, [
     'transport_provider',
     'transport_credential',

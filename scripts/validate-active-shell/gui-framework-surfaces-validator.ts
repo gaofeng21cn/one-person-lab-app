@@ -326,7 +326,7 @@ export function validatePackageAppContributionsProductContract(contract) {
         },
         single_active_provider_path_per_renderer_required: true,
       },
-      migration_state: 'target_contract_landed_connector_package_and_worker_d1_ably_source_not_implemented',
+      migration_state: 'source_baseline_frozen_caller_cutover_and_live_qualification_pending',
       runtime_status: 'target_projection_contract_only_service_connector_ios_shell_network_apns_and_testflight_qualification_unverified',
       command_input_source: 'validated_remote_companion_access_action_inputs',
       command_resolution: 'resolve_fixed_action_id_against_the_same_current_descriptor_then_dispatch_only_the_declared_closed_input_shape',

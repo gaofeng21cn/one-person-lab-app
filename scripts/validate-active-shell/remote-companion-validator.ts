@@ -48,7 +48,7 @@ export function validateRemoteCompanionContract(policy: Record<string, any>): vo
   if (
     policy?.schema !== 'opl_app_remote_companion.v4' ||
     policy.owner !== 'one-person-lab-app' ||
-    policy.state !== 'approved_serverless_validation_architecture_implementation_and_live_qualification_pending'
+    policy.state !== 'frozen_source_baseline_live_qualification_pending'
   ) {
     throw new Error('OPL Link contract identity or target state is invalid');
   }
@@ -261,7 +261,7 @@ export function validateRemoteCompanionContract(policy: Record<string, any>): vo
   if (
     cohort?.source !== 'opl-link/release-cohort.json' ||
     cohort.owner !== 'opl-link/service' ||
-    cohort.source_status !== 'planned_validation_cohort_owner_source_not_currently_integrated' ||
+    cohort.source_status !== 'source_integrated_validation_placeholder_not_live_qualified' ||
     cohort.environment !== 'validation' ||
     cohort.cohort_id !== 'ably-validation-20260819' ||
     cohort.protocol_version !== 'opl_remote_transport.v1' ||
@@ -275,7 +275,7 @@ export function validateRemoteCompanionContract(policy: Record<string, any>): vo
       JSON.stringify(['environment', 'cohort_id', 'protocol_version', 'provider', 'service_origin', 'config_summary']) ||
     cohort.metadata_match_required_before_pairing !== true ||
     cohort.mismatch_policy !== 'fail_closed_before_claim_or_transport_connection' ||
-    cohort.runtime_enforcement_status !== 'opl-link_service_worker_d1_not_implemented_or_live_qualified'
+    cohort.runtime_enforcement_status !== 'source_implemented_not_live_verified'
   ) {
     throw new Error('OPL Link validation release cohort lock identity or fail-closed policy is invalid');
   }
@@ -413,9 +413,9 @@ export function validateRemoteCompanionContract(policy: Record<string, any>): vo
     status.legacy_tencent_desktop_adapter_source_present !== true ||
     status.legacy_go_sqlite_service_source_present !== true ||
     status.legacy_stack_conforms_to_selected_architecture !== false ||
-    status.ably_adapter_source_implemented !== false ||
-    status.cloudflare_worker_source_implemented !== false ||
-    status.cloudflare_d1_schema_implemented !== false ||
+    status.ably_adapter_source_implemented !== true ||
+    status.cloudflare_worker_source_implemented !== true ||
+    status.cloudflare_d1_schema_implemented !== true ||
     status.mainland_china_selection_probe_completed !== false ||
     status.testflight_carrier_build_evidence_exists !== true ||
     status.testflight_product_qualification_completed !== false ||

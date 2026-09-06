@@ -1,7 +1,7 @@
 {
   "schema": "opl_app_remote_companion_wire.v2",
   "owner": "one-person-lab-app",
-  "state": "approved_serverless_target_wire_implementation_pending",
+  "state": "frozen_source_baseline_live_qualification_pending",
   "protocol_version": "opl_remote_transport.v1",
   "contract_boundary": "This contract owns the target cross-repository OPL Link control-plane HTTP and encrypted transport wire shape. It selects Ably plus Cloudflare Workers and D1 as the current target without claiming that iOS, desktop, service, provider, network, APNs, or TestFlight qualification is complete. OPL Cloud, a user-managed server, Cloudflare Tunnel, and provider history are not runtime or release authorities.",
   "service_owner": "opl-link/service",
@@ -99,7 +99,7 @@
       "source": "opl-link/release-cohort.json",
       "product_contract_ref": "contracts/app-remote-companion.json#transport.release_cohort_lock",
       "owner": "opl-link/service",
-      "source_status": "planned_validation_cohort_owner_source_not_currently_integrated",
+      "source_status": "source_integrated_validation_placeholder_not_live_qualified",
       "metadata_match_required_before_pairing": true,
       "match_fields": [
         "environment",
@@ -559,7 +559,7 @@
   "provider_transport": {
     "selected_target": "ably",
     "selected_plan": "free",
-    "implementation_status": "target_not_implemented_or_live_verified",
+    "implementation_status": "source_implemented_not_live_verified",
     "credential_wire": {
       "public_core_fields": [
         "transport_provider",

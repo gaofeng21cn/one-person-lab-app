@@ -45,12 +45,15 @@ promoted into release-ready or family production-ready proof.
 ### OPL Link Conversation Baseline
 
 OPL Link 的当前产品 SSOT 是 [`product/opl-link.md`](product/opl-link.md) 与
-`contracts/app-remote-companion.json`。目标路线已经改为 Ably Free + Cloudflare Workers Free +
+`contracts/app-remote-companion.json`。2026-09-06 起产品保留、开发冻结，只有用户明确手动重启才继续；
+不自动登录、部署、探针、提醒或发布。分阶段重启入口为
+[Link delivery plan](https://github.com/gaofeng21cn/opl-link/blob/main/docs/delivery-plan.md)。
+目标路线保留 Ably Free + Cloudflare Workers Free +
 D1 Free：Ably 负责实时密文和通用推送，Worker/D1 负责邀请、配对、短期 scoped JWT、设备授权与
 撤销；OPL Cloud、TKE、Cloudflare Tunnel、本机常驻 Service 和 Tencent provider seat 都不是运行或
 发布前置。当前 validation release-cohort contract 冻结了 D1 admission hard limit 20、warning
 threshold 15；它是 cohort 配置，不是 Ably/Tencent seat 或 TestFlight capacity。Ably realtime、Worker endpoint 与 APNs 尚未通过移动、联通、电信和 Wi-Fi 选择探针，
-因此该目标不能表述为已实现或已可用；探针失败后才允许通过明确 decision 切换单一腾讯 cohort，
+因此源码已实现不能表述为目标已可用；探针失败后才允许通过明确 decision 切换单一腾讯 cohort，
 不双写、不自动 fallback。
 
 配对前必须匹配 owner `opl-link/service` 的 `release-cohort.json` metadata、完整 `config_summary`
@@ -58,7 +61,7 @@ threshold 15；它是 cohort 配置，不是 Ably/Tencent seat 或 TestFlight ca
 公共 credential wire 只传递 `transport_provider`、opaque `transport_credential`、`key_epoch`、
 `credential_expires_at` 与 `push_recipient_id`，由 selected provider adapter 解码；App、Shell、
 Framework 和 Codex core 不解析 provider-specific credential fields。
-当前 App 合同只冻结这一 validation lock，不能把未吸收的 integration candidate、未部署 Worker/D1、
+当前 App 合同区分已吸收源码与占位 validation lock，不能把未部署 Worker/D1、
 未验证 Ably/APNs 或未 qualification 的 TestFlight carrier 说成当前可用实现。
 
 App-owned `remote_companion_access` view contract、八态配对投影、六个固定配对/设备动作和
@@ -67,10 +70,13 @@ transient-secret boundary 已落在 App schema、GUI、profile、page-state 与 
 live network、APNs 或 TestFlight qualification 已完成。OPL Link 不复用 Weixin/AionCore 的
 `channel_access` 语义，也不能因 view type 不同被过滤。
 
-iOS conversation-first UI、E2EE、旧 Tencent adapters、Go/SQLite Service 和一份 TestFlight carrier
-build 均已有源码或载体证据，但后三者与目标架构不一致。现有 TestFlight build 对 OPL Link 核心
+iOS conversation-first UI、E2EE、Ably 双端 adapter、Connector Package、Worker/D1 及 provider-neutral
+wire 已有源码；Host/bridge 有历史集成证据，真实 caller 切换与旧栈清理仍未完成。
+旧 Tencent adapters、Go/SQLite Service 和旧 TestFlight carrier build 与目标架构不一致。现有 TestFlight build 对 OPL Link 核心
 可用性没有验收意义，只证明编译、签名与上传。后续必须先完成网络探针和真实 Worker/D1 + Ably
 纵向链路，再补功能面，最后才进入实机、APNs、三网与 TestFlight qualification。
+重启前还需关闭消息额度预算、静默 push 节流、撤销信号丢失与无人轮询回收的设计缺口；
+20/15 是验证容量上限，不代表免费额度足以支持持续满载。冻结期间保留这些缺口，不用源码测试冒充关闭。
 
 ### Computer Use Implementation Ledger
 

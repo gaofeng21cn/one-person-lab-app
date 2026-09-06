@@ -68,7 +68,7 @@ test('channel settings admit exactly one provider route per renderer', () => {
       target_package_id === 'opl-link-desktop-connector',
   );
   assert.equal(link.connector_kind, 'remote_companion_connector');
-  assert.equal(link.target_package_implemented, false);
+  assert.equal(link.target_package_implemented, true);
   assert.equal(link.legacy_shell_connector_migration_required, true);
 });
 
@@ -84,6 +84,6 @@ test('OPL Link keeps product ownership while its desktop connector moves to OPL 
   assert.equal(connector.runtime_host_owner, 'one-person-lab-framework');
   assert.match(connector.cordis_host_policy, /single_framework_host/);
   assert.match(connector.product_boundary, /ios_app_and_opl_link_service_remain_independent/);
-  assert.equal(remote.implementation_status.desktop_connector_target_package_implemented, false);
+  assert.equal(remote.implementation_status.desktop_connector_target_package_implemented, true);
   assert.equal(remote.implementation_status.legacy_shell_connector_migration_required, true);
 });

@@ -2,8 +2,8 @@
   "schema": "opl_app_remote_companion.v4",
   "owner": "one-person-lab-app",
   "purpose": "app_owned_opl_link_product_security_delivery_and_transport_selection_contract",
-  "state": "approved_serverless_validation_architecture_implementation_and_live_qualification_pending",
-  "contract_boundary": "This contract defines the OPL Link product, cross-surface behavior, security boundary, target service topology, provider selection gate, and delivery evidence boundary. The exact cross-repository control-plane HTTP and encrypted transport shape is owned by contracts/app-remote-companion-wire.json. It does not claim that the selected target is implemented, deployed, reachable, qualified, or released.",
+  "state": "frozen_source_baseline_live_qualification_pending",
+  "contract_boundary": "This contract defines the OPL Link product, cross-surface behavior, security boundary, target service topology, provider selection gate, and delivery evidence boundary. The exact cross-repository control-plane HTTP and encrypted transport shape is owned by contracts/app-remote-companion-wire.json. Source implementation is present; it does not prove deployment, reachability, caller cutover, qualification, or release. Development is frozen until an explicit user restart.",
   "service_boundary": {
     "owner": "opl-link/service",
     "repository": "opl-link",
@@ -289,7 +289,7 @@
     "release_cohort_lock": {
       "source": "opl-link/release-cohort.json",
       "owner": "opl-link/service",
-      "source_status": "planned_validation_cohort_owner_source_not_currently_integrated",
+      "source_status": "source_integrated_validation_placeholder_not_live_qualified",
       "environment": "validation",
       "cohort_id": "ably-validation-20260819",
       "protocol_version": "opl_remote_transport.v1",
@@ -328,7 +328,7 @@
       ],
       "metadata_match_required_before_pairing": true,
       "mismatch_policy": "fail_closed_before_claim_or_transport_connection",
-      "runtime_enforcement_status": "opl-link_service_worker_d1_not_implemented_or_live_qualified"
+      "runtime_enforcement_status": "source_implemented_not_live_verified"
     },
     "usage_guardrails": {
       "provider": "ably",
@@ -604,16 +604,16 @@
     "ios_repository_initialized": true,
     "conversation_first_ios_source_implemented": true,
     "desktop_conversation_projection_source_implemented": true,
-    "desktop_connector_target_package_implemented": false,
+    "desktop_connector_target_package_implemented": true,
     "legacy_shell_connector_migration_required": true,
     "legacy_tencent_ios_adapter_source_present": true,
     "legacy_tencent_desktop_adapter_source_present": true,
     "legacy_go_sqlite_service_source_present": true,
     "legacy_stack_conforms_to_selected_architecture": false,
-    "ably_adapter_source_implemented": false,
-    "cloudflare_worker_source_implemented": false,
-    "cloudflare_d1_schema_implemented": false,
-    "target_wire_source_implemented_across_ios_desktop_and_service": false,
+    "ably_adapter_source_implemented": true,
+    "cloudflare_worker_source_implemented": true,
+    "cloudflare_d1_schema_implemented": true,
+    "target_wire_source_implemented_across_ios_desktop_and_service": true,
     "mainland_china_selection_probe_completed": false,
     "worker_d1_deployed_and_read_back": false,
     "real_cross_device_pair_verified": false,
@@ -625,6 +625,14 @@
     "release_ready_claim_allowed": false
   },
   "delivery_governance": {
+    "execution_policy": {
+      "status": "frozen_pending_manual_restart",
+      "decided_on": "2026-09-06",
+      "product_retained": true,
+      "resume_trigger": "explicit_user_request",
+      "automatic_resume": false,
+      "implementation_plan_ref": "https://github.com/gaofeng21cn/opl-link/blob/main/docs/delivery-plan.md"
+    },
     "required_order": [
       "run_selected_provider_and_control_plane_mainland_network_probe",
       "implement_and_prove_one_minimum_real_vertical_pair_token_message_and_revoke_path",
