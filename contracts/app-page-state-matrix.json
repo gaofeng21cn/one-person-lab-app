@@ -1884,6 +1884,7 @@
       "ordinary_cockpit_surface_budget_ref": "contracts/app-gui-product-contract.json#ordinary_cockpit_surface_budget",
       "software_lifecycle_ref": "contracts/app-release-channel.json#managed_update_plane.software_lifecycle",
       "carrier_reconciliation_ref": "contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation",
+      "background_recovery_policy_ref": "contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation.framework_execution.recovery_policy",
       "module_maintenance_entry": {
         "label_en": "OPL Packages",
         "label_zh": "OPL 能力包",

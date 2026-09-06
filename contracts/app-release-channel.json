@@ -2842,6 +2842,15 @@
   "active_shell": "aionui",
   "shell_root": "shells/aionui",
   "standard_updater": {
+    "background_checks": {
+      "startup_delay_ms": 3000,
+      "interval_ms": 21600000,
+      "failure_retry_ms": 1800000,
+      "max_failure_retries": 3,
+      "resume_policy": "check_when_due_without_parallel_download",
+      "activation_policy": "install_on_user_quit_or_explicit_restart",
+      "force_restart_running_tasks": false
+    },
     "candidate_selection": {
       "schema": "opl_app_updater_candidate_selection.v1",
       "updater_version_field": "updaterVersion",
@@ -6674,7 +6683,12 @@
         },
         "single_writer_required": true,
         "terminal_readback_required": true,
-        "lifecycle_receipt_required_when_apply_executed": true
+        "lifecycle_receipt_required_when_apply_executed": true,
+        "package_plan_eligibility": "available_during_check_and_plan_before_apply",
+        "package_currentness": "unknown_until_native_owner_check_not_inferred_from_callability",
+        "background_base_policy": "stage_only_without_pending_activation_or_temporal_restart",
+        "package_success_gate": "fresh_native_presence_and_required_entrypoints",
+        "recovery_policy": "persist_failure_retry_and_restart_guidance_and_recheck_when_online_or_visible"
       },
       "app_role": "request_framework_reconciliation_and_project_terminal_readback_and_apply_receipts_only",
       "app_direct_base_or_package_mutation_allowed": false,

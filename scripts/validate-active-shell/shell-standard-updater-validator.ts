@@ -92,9 +92,9 @@ export function validateCarrierNeutralManagedUpdateSources(sources) {
       "result = await invokeRead('status')",
       'lastFailure = resultErrorMessage(result)',
       '...(lastFailure ? {} : { lastReconciledCarrierCheckpoint: currentCarrierCheckpoint() })',
-      'snapshot.lastReconciledCarrierCheckpoint === currentCarrierCheckpoint()',
-      "? 'app_startup_after_core_ready'",
-      ": 'app_carrier_changed'",
+      'lastAttemptedCarrierCheckpoint !== currentCarrierCheckpoint()',
+      "window.addEventListener('online', resumeWhenDue)",
+      "document.addEventListener('visibilitychange', resumeWhenDue)",
     ],
     'Active shell carrier-neutral managed update scheduler',
   );

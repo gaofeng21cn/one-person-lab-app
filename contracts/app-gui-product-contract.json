@@ -3104,6 +3104,7 @@
         "opl-runtime.run-managed-update-rollback"
       ],
       "background_scheduler_required": "startup_daily_and_manual_check_with_lock_and_backoff",
+      "background_recovery_policy_ref": "contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation.framework_execution.recovery_policy",
       "forbidden_shell_behaviors": [
         "read_artifact_body",
         "read_or_write_domain_truth",

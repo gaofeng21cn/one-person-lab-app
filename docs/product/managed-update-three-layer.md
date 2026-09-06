@@ -124,6 +124,24 @@ under advanced owner diagnostics rather than becoming App state machines.
 
 ## Silent Update Rules
 
+Background maintenance obtains executable eligibility from the read-only
+Framework plan. Native carriers that cannot check upstream freshness without
+refreshing their managed snapshot report `currentness_not_checked`; their
+eligible installed Packages may still receive an idempotent native update.
+Callability alone never proves that an upstream update check succeeded.
+
+Base background work stages verified runtime generations and leaves activation,
+Temporal service/Worker changes, and seed application to the next App startup.
+The App updater checks every six hours and retries failures at thirty-minute
+intervals up to three times. Resume checks run only when due. No background
+update forces a running App to restart. Managed maintenance retains failure,
+retry, and restart guidance across renderer reloads and resumes due checks when
+the network returns or the window becomes visible.
+
+Package update success requires fresh native presence and required entrypoint
+readback. A successful install command followed by unavailable or uncallable
+readback remains a failure, isolated from unrelated Packages.
+
 - Update only Packages that are currently installed.
 - Never install an Official Profile root merely because it is absent.
 - For a root the user explicitly selects for install, update, or repair, locally
