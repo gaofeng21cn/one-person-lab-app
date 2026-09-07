@@ -1,7 +1,7 @@
 {
   "status": "macos_app_install_slides_ready",
   "generator": "marp_pdf_plus_officecli_static_slides",
-  "generator_version": "@marp-team/marp-cli v4.4.0 (w/ @marp-team/marp-core v4.4.0); OfficeCLI 1.0.144",
+  "generator_version": "@marp-team/marp-cli v4.4.0 (w/ @marp-team/marp-core v4.4.0); OfficeCLI 1.0.147",
   "source_model": "qmd_body_manifest_metadata_to_marp_pdf_rendered_pages_and_officecli_pptx",
   "download_url": "https://github.com/gaofeng21cn/one-person-lab-app/releases/latest",
   "recommended_first_install_asset": "One-Person-Lab-Full-<version>-mac-arm64.dmg",
@@ -130,7 +130,7 @@
   "pptx_roundtrip_pages": 8,
   "pptx_generation": {
     "generator": "officecli",
-    "generator_version": "1.0.144",
+    "generator_version": "1.0.147",
     "source": "marp_pdf_rendered_png_pages",
     "slides": 8,
     "pictures": 8,

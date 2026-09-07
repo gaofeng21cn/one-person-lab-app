@@ -14,14 +14,14 @@
   "pdf_engine": "xelatex",
   "pdf_engine_reason": "Quarto 1.9.38 Typst Book route currently fails in the default orange-book template on local smoke; xelatex remains the stable Chinese PDF engine until the OPL Typst template is hardened.",
   "pdf_layout": "quarto_portrait_ebook",
-  "pdf_pages": 9,
+  "pdf_pages": 8,
   "pdf_page_size_pts": {
     "width": 595.28,
     "height": 841.89
   },
-  "rendered_pages": 9,
+  "rendered_pages": 8,
   "rendered_dir": "tmp/quarto-guides/macos-app-install/rendered",
-  "html_bytes": 2737019,
+  "html_bytes": 2736554,
   "screenshot_assets": [
     {
       "role": "download_release",
@@ -149,35 +149,6 @@
       "note": "The four entries are current owner-projected examples, not an App-maintained fixed Package list."
     }
   ],
-  "required_terms": [
-    "One Person Lab App 首次安装图文教程",
-    "macOS App",
-    "安装 One Person Lab",
-    "Apple Silicon",
-    "完成首次检查",
-    "登录或确认模型访问",
-    "开始第一项工作",
-    "后续调整与更新",
-    "登录并继续",
-    "设为模型访问方式",
-    "API Key",
-    "重新检测已有配置",
-    "gateway.medopl.com",
-    "https://gateway.medopl.com/v1",
-    "oplgateway",
-    "无需手工填写 Base URL",
-    "不会隐式迁移",
-    "Homebrew Cask",
-    "open -a",
-    "Full DMG",
-    "直连 OpenAI",
-    "quarantine",
-    "设置 -> 账户与访问",
-    "设置 -> 模型",
-    "设置 -> 工作区",
-    "检查更新"
-  ],
-  "required_terms_status": "present",
   "unresolved_templates_status": "absent",
-  "forbidden_phrases_status": "absent"
+  "secret_scan_status": "passed"
 }
