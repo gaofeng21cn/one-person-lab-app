@@ -50,18 +50,13 @@ App 启动后可直接跳到第 3 步。教程只保留 Latest 入口，不展�
 - Standard 选择 `One-Person-Lab-<版本>-mac-arm64.dmg`，安装过程中需要联网下载模块，网络要求更高。
 - Full 不是独立更新频道，安装后的 App 更新仍走 Standard 更新路径。
 
-从已审阅的 source checkout 开发或恢复时可以运行仓库内的 `./install.sh`。普通安装
-不要从可变 `main` 分支下载后直接执行；需要终端入口时，从 Latest Release 下载唯一
-公开 installer `opl-install.sh`。它会先解析并绑定当前精确 Release：
+需要终端安装入口时，按照[安装指南的公开安装器步骤](https://github.com/gaofeng21cn/one-person-lab-app/blob/main/docs/delivery/install/README.zh-CN.md#latest-公共安装器)先下载并校验 `opl-install.sh`，再运行：
 
 ```bash
-curl -fLO https://github.com/gaofeng21cn/one-person-lab-app/releases/latest/download/opl-install.sh
-chmod 0755 opl-install.sh
 ./opl-install.sh --stable-macos-install --full --yes
 ```
 
-该 installer 会在挂载 DMG 或替换 App 前校验所选 Release 的 component manifest、installer 与
-DMG 的摘要。
+该安装器会在挂载 DMG 或替换 App 前校验所选 Release 与 DMG 的身份和摘要。
 
 ## 2. 手工安装 DMG（可选）
 
@@ -102,9 +97,8 @@ DMG 的摘要。
 
 ## 5. 开始第一项工作
 
-进入主界面后，可以直接描述目标，也可以选择当前安装的 Package 动态提供的工作入口。8.22 界面中的
-当前入口包括“开展科研工作”“开展基金申请工作”“制作视觉交付物”和“构建与迭代智能体”；后续安装、
-启用或移除 Package 时，首页会随 Framework 的实时投影变化，不维护固定入口清单。本教程以科研任务为例。
+进入主界面后，可以直接描述目标，也可以选择当前安装的 Package 提供的工作入口。安装、
+启用或移除 Package 后，首页随可用能力变化。本教程以科研任务为例；截图中的入口仅作操作示意。
 
 ![在主界面描述目标或选择当前 Package 提供的工作入口](screenshots/05-opl-ready-dynamic-entries.png){width=96% fig-align="center"}
 

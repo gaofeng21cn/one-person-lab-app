@@ -26,7 +26,7 @@ is already released; those remain separate App/Shell gates.
 OPL App is the long-term user-facing host and total entry point. It owns:
 
 - chat, navigation, page state, and standard view rendering;
-- Package contribution discovery and projection;
+- rendering Framework-discovered and validated Package contributions;
 - user review and confirmation surfaces;
 - App-level acceptance and accessibility behavior.
 

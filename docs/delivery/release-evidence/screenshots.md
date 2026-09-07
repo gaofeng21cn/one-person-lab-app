@@ -26,7 +26,8 @@ screenshot paths are:
 `screenshots/runtime.png` is a conditional artifact. It is required only when
 the evidence request declares `runtime_route_evidence_requested`, for example
 with `--require-conditional runtime_screenshot` or the equivalent environment
-setting. Ordinary Stable evidence does not require an X0-01 Runtime pixel.
+setting. This evidence-bundle conditional does not change the core Runtime
+product requirement or the release route's own qualification contract.
 When present, this image can close only the Pixel axis for the exact bound
 source/package cohort; it does not prove Source, Install, or Release.
 

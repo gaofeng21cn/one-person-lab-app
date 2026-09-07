@@ -16,7 +16,7 @@ Canonical source and machine files:
 - [`../../../guides/windows-app-install/guide.qmd`](../../../guides/windows-app-install/guide.qmd):
   long-form Windows x64 install and configuration guide.
 - [`source/windows-app-install.quarto.json`](source/windows-app-install.quarto.json):
-  stable Latest Release entry, output, required-term, and safety-boundary manifest.
+  stable Latest Release entry, output paths, and rendering manifest.
 - `generated/windows-app-install.md`: generated Markdown snapshot, recreated by
   `npm run docs:windows-guide` and ignored by Git.
 - `verification/windows-app-install-verification.json`: generated HTML/PDF

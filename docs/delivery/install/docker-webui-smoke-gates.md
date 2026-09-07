@@ -18,14 +18,12 @@ artifacts only.
 
 ## Stable Gate Policy
 
-The stable release hard blockers cover the App-owned Docker/WebUI delivery
-surface:
+The standalone installer smoke uses this required environment:
 
 - `clean_linux_vm`: a clean Linux VM runs `install-docker-webui.sh --yes`.
 
 Windows Docker Desktop/WSL2 is a Windows/Docker host concern. The following
-gates remain valuable diagnostics, but they are not stable release hard
-blockers:
+gates provide additional host and data-preservation diagnostics:
 
 - `clean_windows_vm`: a clean Windows VM runs `install-docker-webui.ps1 -Yes`.
 - `existing_docker`: a host with Docker already working reruns the installer
@@ -240,58 +238,18 @@ shared Framework updater. It does not prove that GHCR `latest` is current, that
 a new WebUI image has been published, or that the host Installation Carrier has
 been refreshed.
 
-## Desktop Release Import
+## Standalone workflow
 
-The desktop release workflow has an explicit import gate for clean VM evidence:
-`docker-webui-clean-vm-evidence`. It runs the clean Linux gate on the same
-GitHub-hosted Ubuntu clean VM job when no Linux artifact is supplied, then
-downloads optional same-run artifacts named by these dispatch inputs:
+[`docker-webui-clean-vm.yml`](../../../.github/workflows/docker-webui-clean-vm.yml)
+is a manual diagnostic producer with read-only repository permissions. Choose
+`platform=linux` on a clean hosted Ubuntu runner, or `platform=windows` on a
+disposable self-hosted Windows machine with Docker Desktop and WSL 2. Bind an
+exact image digest when accepting a particular publication.
 
-- `docker_webui_clean_linux_evidence_artifact`
-- `docker_webui_clean_windows_evidence_artifact`
-
-The Linux input is optional. When it is empty, the workflow runs:
-
-```bash
-npm run smoke:docker-webui:linux-clean-vm -- \
-  --artifacts docker-webui-clean-vm-evidence/clean-linux-vm-generated \
-  --health-timeout 180 \
-  --json
-```
-
-and validates the generated `docker-webui-smoke-gate-result.json` as
-`artifact_name: same_job_ubuntu_clean_vm_generated`. Supplying
-`docker_webui_clean_linux_evidence_artifact` overrides this default and imports
-that artifact instead.
-
-For preflight or rerun without the whole desktop release flow, dispatch
-`.github/workflows/docker-webui-clean-vm.yml` with `platform=linux`. It uploads
-`docker-webui-clean-linux-vm-evidence` by default; pass that artifact name to
-`docker_webui_clean_linux_evidence_artifact` when the desktop release should
-reuse the preflight result instead of generating Linux evidence in-job.
-
-The Windows input is still required for a clean Windows gate because a hosted
-Windows runner is not Docker Desktop + WSL 2 clean-machine evidence. Each named
-artifact can provide either a completed
-`docker-webui-smoke-gate-result.json`, or for Windows the raw
-`windows-smoke-evidence.json` plus `diagnostics/` and
-`api-key-flow-evidence.json`, or a `.zip` archive containing those files. The
-workflow imports raw or zipped Windows evidence through the existing smoke gate
-runner.
-
-The workflow uploads `docker-webui-clean-vm-evidence-<version>` with:
-
-- `docker-webui-clean-vm-evidence-validation.json`
-- `clean_linux_vm-validation-summary.json`
-- `clean_windows_vm-validation-summary.json`
-
-If the Linux generated or imported artifact cannot validate as `status=passed`,
-or if the Windows dispatch input is empty or invalid, the workflow writes a
-typed blocker summary and the release readiness admission job does not run. The
-missing artifact blocker codes are:
-
-- `missing_clean_linux_vm_docker_webui_evidence_artifact`
-- `missing_clean_windows_vm_docker_webui_evidence_artifact`
+The workflow uploads its platform evidence and validation result. There is no
+Desktop Stable evidence-import job or Docker gate in the primary macOS release.
+Independent Docker publication and promotion use the qualification described in
+the [release guide](../release/README.md).
 
 ## Gate Result Readback
 
@@ -299,7 +257,7 @@ missing artifact blocker codes are:
 `opl_docker_webui_smoke_gate_result.v1`. Reviewers must verify these fields
 before accepting an artifact:
 
-- `gate` and `gate_id` identify one of the four required gates.
+- `gate` and `gate_id` identify the requested environment.
 - `status` is `passed`, `typed_blocker`, or `failed`.
 - `typed_blocker` is present as `null` for non-blocked results and as a
   structured owner route for `typed_blocker` results.
@@ -387,13 +345,7 @@ That workflow runs the same PowerShell installer with `-EvidenceDir` and
 `-EvidenceArchive`, imports the archive through
 `scripts/docker-webui-smoke-gate.ts --gate clean_windows_vm --evidence`, and
 uploads the raw evidence, zip archive, imported gate result, and validation
-summary. Pass the uploaded artifact name to the desktop release workflow as
-`docker_webui_clean_windows_evidence_artifact`.
-
-For desktop release trains with `publish_docker_webui=true` and
-`run_vm_smoke=true`, this artifact name is optional diagnostic input. Docker/WebUI
-release readiness is blocked by Docker build, GHCR publish, and clean Linux
-Docker runtime smoke; it is not blocked by missing clean Windows VM evidence.
+summary. Its result proves only the selected diagnostic environment.
 
 ### Clean Windows Runner Bootstrap
 
@@ -413,12 +365,9 @@ docker-webui-clean-vm
 ```
 
 When a self-hosted runner is not available, the same evidence can be collected
-manually in a disposable VMware Fusion VM. The 2026-06-30 local route selected
-VMware Fusion 26H1 plus the official Windows 11 25H2 x64 Chinese Simplified ISO
-because VirtualBox could boot Windows but could not make Docker Desktop's WSL 2
-Linux engine healthy on this host. That route is only a producer path; it is not
-pass evidence until the host imports the VM artifact and validates a
-`clean_windows_vm` gate result.
+manually in a disposable Windows VM that supports Docker Desktop's WSL 2
+backend. A booted VM alone is not pass evidence: import its artifact and
+validate the `clean_windows_vm` result.
 
 Guest PowerShell command inside the clean Windows VM:
 
@@ -476,7 +425,7 @@ Bootstrap checklist for the VM operator:
    ```
 
 7. If the workflow uploads `docker-webui-clean-windows-vm-evidence`, download
-   and validate the result before using it in the desktop release workflow:
+   and validate the result:
 
    ```bash
    gh run download <run-id> \
@@ -489,9 +438,7 @@ Bootstrap checklist for the VM operator:
      --json
    ```
 
-8. Pass `docker-webui-clean-windows-vm-evidence` to the desktop release workflow
-   as `docker_webui_clean_windows_evidence_artifact`.
-9. After evidence is collected, remove or stop the self-hosted runner and delete
+8. After evidence is collected, remove or stop the self-hosted runner and delete
    the disposable VM if it was created only for this gate.
 
 If the dispatch uploads `docker-webui-clean-windows-vm-runner-blocker` instead,
@@ -511,8 +458,7 @@ placeholder that could be mistaken for pass evidence.
 
 `-EvidenceArchive` packages the complete evidence directory into one uploadable
 zip after the manifest, diagnostics, and access receipt exist. It requires
-`-EvidenceDir`, and the release workflow can import either the raw directory
-artifact or this zip artifact.
+`-EvidenceDir`; the standalone importer accepts either the raw directory or zip.
 
 ## Diagnostic Directory
 
@@ -603,30 +549,13 @@ dumps, compose files, diagnostics, API key flow receipts, or artifact manifests.
 
 ## Completion Boundary
 
-A gate can be marked `passed` only when the command ran in the required
-environment and the diagnostic validator passed. A gate that reports
-`typed_blocker` is an explicit next-owner route, not a release-ready claim.
+Accept only a structurally valid `docker-webui-smoke-gate-result.json` with
+`status=passed`, no typed blocker, and the required host, HTTP, container,
+compose, data-preservation, credential-transport and secret-scan evidence.
+For old data, compare the pre/post inventory; a new empty directory is not
+preservation proof. Screenshots and logs support the result but cannot replace it.
 
-Completion for a gate can be marked `100%` only when the uploaded artifact for
-that exact gate has all of the following fresh evidence:
-
-- `docker-webui-smoke-gate-result.json` validates against
-  `opl_docker_webui_smoke_gate_result.v1`.
-- `status=passed` for the gate, with no typed blocker.
-- The artifact was produced on the required host class for that gate; local
-  macOS or developer-host blockers cannot count as clean Linux/Windows VM
-  proof.
-- `diagnostics_validation.status=passed`.
-- `health.status=passed` with a captured URL and HTTP status.
-- `compose.status=present`.
-- Container/image evidence is present from Docker readback.
-- `data_preservation.status=passed`; for the old-data gate, the summary must
-  show pre/post data inventory preservation rather than a newly-created-only
-  data directory.
-- `api_key_flow.status=passed`, `api_key_flow.stdin_transport=true`, and the
-  receipt path points to `api-key-flow-evidence.json`.
-- `secret_scan.status=passed` and no forbidden secret markers are reported.
-
-If any item is missing, mark that gate `partial` or `blocked` with the typed
-blocker owner route. Passing docs, contract tests, a local typed blocker, or a
-diagnostic directory without a valid gate result cannot justify `100%`.
+A local developer host cannot prove a clean VM. A transport receipt cannot prove
+real provider access. A passed installer diagnostic cannot authorize Docker
+publication, Desktop Stable or domain readiness. Keep failures and missing
+environments explicit in the typed result.

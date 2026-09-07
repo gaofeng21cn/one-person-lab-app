@@ -2,14 +2,12 @@
 
 Owner: `one-person-lab-app`
 Purpose: `focused_first_run_setup_workspace`
-State: `current_experience_with_target_package_migration`
+State: `active`
 Machine boundary: 本文定义 App 首启产品体验；机器真相归
 `contracts/app-gui-product-contract.json`、`contracts/app-page-state-matrix.json`、
 `contracts/app-first-run-test-matrix.json`、Framework initialize 输出、active shell source、
-focused tests 与用户路径截图。Official Profile 的 App contracts、first-install /
-explicit-Restore consumer 与 source helper 已实现；canonical main、隔离 carrier、
-clean-user installed/callable readback 仍分别属于 E2、E3、E4，task branch 或 focused
-test 不能表示产品迁移完成。
+focused tests 与用户路径截图。Official Profile 的安装结果以 configured carrier 的
+clean-user installed/callable readback 为准；本文只定义首启体验，不维护迁移完成度。
 
 ## 背景
 
@@ -17,7 +15,7 @@ test 不能表示产品迁移完成。
 它能展示状态，但更像运行状态面板，不像面向首次使用者的设置流程。用户需要先解释多个重复信号，
 才能找到真正要完成的模型访问配置。
 
-2026-07-10 已批准的目标，是把首启改成一个专注但不阻断的三步设置工作台。首启流程内隐藏普通产品导航，
+首启是一个专注但不阻断的三步设置工作台。首启流程内隐藏普通产品导航，
 但检查中、需要操作和错误状态都保留显式“进入 OPL”动作；用户可以先进入 `/guid`，以后再继续设置。
 配置完成后仍在原位显示完成态，并由用户主动进入正常 App shell。
 
@@ -71,7 +69,7 @@ test 不能表示产品迁移完成。
   Manager、Git 或其它 carrier。
 - 首次安装完成状态必须来自 configured carrier 的 installed/callable fresh
   aggregation，不能来自 OPL lock、payload、receipt 或下载成功。该 installed
-  outcome 仍需 canonical E3/E4 验收。
+  outcome 仍需对应 carrier 的安装用户路径验收。
 
 ## 桌面布局
 
@@ -197,7 +195,7 @@ API Key 输入保留可见字段标签、密码显隐、安全说明和 renderer
 
 - App 合同和 page-state matrix 校验通过。
 - first-run test matrix 覆盖专注模式、三步栏、无百分比、Desktop/WebUI 账户默认、API Key 兼容、系统默认 Codex 重检与 WebUI runtime proxy 边界。
-- 目标 Package 迁移还必须覆盖：Standard/Full 同一 Official Profile、所有 roots
+- Package 首启路径还必须覆盖：Standard/Full 同一 Official Profile、所有 roots
   自动安装、MAS required capability 自动补齐、单 root 失败局部化、Codex Core
   可用后进入 App、用户卸载跨重启/日更保持、显式 Restore 恢复。
 - active shell DOM 测试覆盖 initialize pending、Gateway 账户登录、唯一分组完成设置、模型访问绑定、共享首页缓存刷新、API Key 配置、已有 Codex 重检、密码生命周期、WebUI 边界、完成态、技术详情，以及未就绪/后台请求期间始终可用的纯导航入口。

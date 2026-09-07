@@ -2,12 +2,12 @@
 
 Owner: `one-person-lab-app`
 Purpose: `settings_control_center_product_authority`
-State: `active_current_with_target_package_migration`
+State: `active`
 Machine boundary: 本文解释 Settings 的产品职责与信息架构。机器真相归
 `contracts/app-settings-control-plane.json`、App GUI/page-state contracts、validators、
 Shell source/tests 与 installed evidence；本文不拥有 Framework runtime 或 domain truth。
-Package/Capability 简化部分为 `target/planned`；当前 contracts/source 的
-resolver、lock、payload、receipt、materialization 和 rollback 字段仍是兼容真相。
+Package/Capability 页面只消费动态 owner projection；退役的 resolver、lock、payload、
+materialization 或 rollback 镜像不构成文档要求。
 Machine contract: `contracts/app-settings-control-plane.json`
 GUI product contract: `contracts/app-gui-product-contract.json#settings_navigation`
 Page-state contract: `contracts/app-page-state-matrix.json#pages`
@@ -60,10 +60,8 @@ Successor Settings completion is action-based:
 - a status without an available action remains read-only and names its owner route; it never becomes an inert
   toggle, optimistic success or shell-owned fallback.
 
-The first Native closure slice is Appearance/language and model/effort presentation, followed by Gateway
-account actions, Agent select/start and lifecycle, and separate App/Base/Packages update apply/restart. The
-second slice adds connections, notifications, storage maintenance and diagnostic export. This ordering does
-not weaken the current AionUI contract while it remains the active release shell.
+Studio implementation and adoption are tracked through its current adapter and
+[product boundary](opl-studio-plan.md); this page does not maintain a second candidate work plan.
 
 ## Startup Performance Boundary
 
@@ -192,8 +190,8 @@ and a path shown in diagnostics is not a second path configuration.
 
 ## Visual Contract
 
-Settings keeps the OPL information architecture while using the Codex quiet
-control-center visual grammar: a single reading lane, white bounded groups,
+Settings keeps the OPL information architecture while using the current DSH visual
+source and App visual-system rules: a single reading lane, unframed sections,
 flat internal rows, monochrome utility icons, and color reserved for typed
 status or brand actions. It does not turn complex OPL controls into a page-wide
 list wall or nested cards.
@@ -208,8 +206,7 @@ list wall or nested cards.
 - Preferences exposes System, Light, and Dark only; the CSS theme gallery and
   custom editor are hidden, while legacy theme data is preserved but inactive;
 - the governed OPL visual baseline remains active in all three appearance modes;
-- maximum radius is 8 px, spacing follows 12 / 16 / 24 px, and letter spacing is
-  0;
+- primitive geometry comes from the pinned DSH cohort and App visual-system contract;
 - raw diagnostics stay out of ordinary pages and open only through an explicit
   Diagnostics action.
 - Settings 侧栏第一行在搜索框上方提供“返回应用 / Back to app”；展开态显示图标与文字，
@@ -306,9 +303,6 @@ It no longer owns or renders the App log-directory control.
 
 ### Agents
 
-The following is the `target/planned` product surface. During migration the
-current directory/status/action contract remains a compatibility reader.
-
 Agents is a compact installed/discoverable list for Agent and workflow Packages.
 It renders Framework entries projected as `standard_agent` or
 `workflow_profile`; it does not parse registry entries, manifests, checkouts,
@@ -317,10 +311,10 @@ Standard Agents and Agent workflows are separate catalog sections. Skills,
 Plugins, connection applications, managed companions, and capability Packages
 remain visible under Capabilities rather than being mixed into this list.
 
-The current App Official Profile is also the first-install product requirement:
-its desired roots contain five OPL standard Agents, MAG, MAS, OBF, OMA, and RCA.
-All five must be discoverable, installed, enabled, callable, and launchable after
-the first-install flow completes. This fixed installation outcome is not a
+The App Official Profile owns the desired first-install roots. Its current root
+identities are read from the machine profile rather than copied into this page.
+Required roots must have fresh discoverable, installed, enabled, callable and
+launchable outcomes after first install. This installation intent is not a
 Settings or Framework registry. App owns the Official Profile intent; Framework
 still owns dynamic `standard_agent` membership, directory rows, status and
 actions. A future Framework-projected Agent can therefore appear without an App
@@ -582,14 +576,13 @@ Settings exposes exactly one bilingual item-level search input,
 the owner carrier route, and focus the declared anchor. Duplicate Settings
 search inputs are forbidden.
 
-Settings preserves OPL IA inside the Codex quiet visual baseline:
+Settings preserves OPL IA inside the current App visual baseline:
 
-- one quiet bounded section answers one user question and contains flat rows;
+- one unframed section answers one user question and contains flat rows; bounded groups are reserved for repeated entities and confirmation;
 - no nested cards, page-wide list wall, or floating dashboard sections;
 - two to four first-viewport groups where the page density supports them;
 - a single desktop reading lane and mobile stack;
-- 20 px monochrome icon slots, compact type, 8 px maximum radius, 12/16/24 spacing, and 0
-  letter spacing;
+- pinned DSH monochrome icons and primitive geometry, compact type, and 0 letter spacing;
 - normal, warning, error, and action use muted, orange, red, and brand
   semantics;
 - one selected sidebar item and at most one page primary action;
@@ -644,9 +637,9 @@ also requires:
 - seven primary groups, all ten carrier routes reachable through their declared
   second-level destinations, About as the only secondary page, and every redirect;
 - Gateway single ownership and Resources filtering;
-- Agents Chinese/source/OMA defaults and Developer Mode effective-state
+- owner-localized Agent descriptions, invariant brand names and Developer Mode effective-state
   readback;
-- non-empty Flow-managed capability projection, third-party naming, and
+- truthful dynamic capability projection including its empty state, third-party naming, and
   AionUI-native ownership routing;
 - visible managed Codex/Temporal currentness and external-install guidance;
 - persisted Storage snapshot, freshness, background event, manual refresh, and

@@ -1,9 +1,9 @@
 # OPL App GUI 视觉系统
 
 Owner: `one-person-lab-app`
-Purpose: `app_gui_visual_and_interaction_system`
+Purpose: `app_gui_visual_system`
 State: `active_design_target`
-Machine boundary: 本文定义人读视觉与交互基准。具体 token、组件和响应式实现由
+Machine boundary: 本文定义人读视觉基准。交互流程归交互细则，具体 token、组件和响应式实现由
 shell source 承接；机器可读产品状态、模型策略、page-state 和 release gate 仍归
 现有 contracts、validators、tests 与 evidence。
 
@@ -27,8 +27,8 @@ OPL App 在基准上保留以下产品例外：
 
 - App icon、窗口/metadata identity 和发布资产继续使用 One Person Lab App；普通导航栏与
   移动端标题栏只显示文字 `One Person Lab`，不搭配 logo，也不要求深浅主题变体资产。
-- 普通工作入口使用 OPL purpose language。默认顺序为科研、演示、基金、元智能体；写书默认关闭，
-  但继续作为可在 Settings → Agents & Capabilities 中开启并排序的入口。
+- 普通工作入口使用 owner-localized purpose language。可见性和排序读取动态 Package projection
+  与用户偏好，本文不维护固定 Agent 名单或默认顺序。
 - Executor、模型策略和当前默认值由 `contracts/app-product-profile.json` 决定；本文
   不复制 model/reasoning 值或模型 allowlist。
 - Runtime、Home capability starters、Settings → Agents / Capabilities、first-run、receipts 和 action refs 使用
@@ -72,13 +72,13 @@ App-owned baseline 是 pixel authority。当前 carrier 的差异和证据状态
   和当前 selection；关闭后不改变业务数据。
 - Conversation chrome、timeline 和 composer 使用同一水平节奏。宽屏增加外侧留白，不无限拉宽
   正文或把 composer 缩成小卡片。
-- Home、Settings 是普通全宽页面/主布局；X0-01 Runtime 仅在显式启用时使用同一全宽规则。
+- Home、Settings 与核心 Runtime 是普通全宽页面/主布局。
   不把整个 section 包成悬浮 card。
 - Home 的提示、智能体快捷入口和 composer 共享靠近窗口底部的单一 reading lane；提示使用
   modest heading，不形成 hero，也不把智能体入口放大成全宽分类导航。
 - Home starter 使用 content-sized 紧凑入口；容器不写死四列或五列、不显示连续 chevron，按当前
-  可见入口数量居中并响应式换行。包的运行就绪状态可以在发送时给 typed guidance，但不得让可见
-  智能体在选择阶段失去交互。
+  可见入口数量居中并响应式换行。`ready/degraded` 可选择；`package_unavailable` 提供原因与恢复动作，
+  不用样式掩盖真实不可调用状态。
 - 新 session 的 initial cwd 由 composer 上方、与输入 surface 相接的独立 context bar 表达；未选时显示
   可操作的“选择项目目录”control，而不是“无项目”状态行。它不是装饰卡片，也不进入左下角 `+` palette。
   当前 active adapter 不显示 Local/Worktree、starting branch 或 managed lifecycle；未来新增必须先修改
@@ -86,17 +86,8 @@ App-owned baseline 是 pixel authority。当前 carrier 的差异和证据状态
 
 ## Typography
 
-默认使用平台原生 UI 字体栈：
-
-```text
--apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif
-```
-
-代码、命令、路径、receipt 和固定宽度技术值使用：
-
-```text
-"SFMono-Regular", "JetBrains Mono", ui-monospace, monospace
-```
+普通 chrome 的字体栈和字号来自 pinned DSH theme tokens；用户显式字体偏好继续生效。
+代码、命令、路径和技术值使用同一主题定义的 monospace 栈，不另建组件私有字体策略。
 
 推荐层级：
 
@@ -105,7 +96,7 @@ App-owned baseline 是 pixel authority。当前 carrier 的差异和证据状态
 | `title` | `20/28`, weight `600` | 页面标题、空状态主标题。 |
 | `section` | `16/24`, weight `600` | Settings section、drawer 标题。 |
 | `conversation` | `15/22`, weight `400` | 用户与 assistant 正文。 |
-| `body` | `14/20`, weight `400` | 普通 UI、列表摘要。 |
+| `body` | `var(--dsw-font-s-14)` | 普通 UI、列表摘要。 |
 | `label` | `13/18`, weight `500` | 按钮、tabs、field labels。 |
 | `meta` | `12/18`, weight `400` | 时间、状态、refs 摘要。 |
 | `code` | `12/18`, weight `400` | 命令、路径和 receipt。 |
@@ -164,7 +155,7 @@ Dark target：
 
 使用 4px 基准：`4 / 8 / 12 / 16 / 24 / 32 / 48`。
 
-- Inline icon/text gap：`6-8px`。
+- Button icon/text gap 使用 DSH Button 的 `4px`；其它布局间距读取所属 primitive。
 - Compact row vertical padding：`6-8px`。
 - 普通 control height：`32-36px`。
 - Settings row 或 message event 内边距：`12-16px`。
@@ -218,8 +209,8 @@ Composer 是底部唯一主 command surface：
 - Home 桌面参考几何固定为 composer 最大宽度 `736px`、最小高度 `98px`、圆角 `22px`；
   new-session context bar 高 `52px`、水平内缩 `12px`、与 composer 重叠 `13px`，未选时仍保留可操作的
   项目目录入口，选中后显示目录并提供清除动作。
-- 桌面默认高度至少 `104px`，textarea 可见高度至少 `64px`；按内容增长到合理上限后
-  内部滚动。
+- Textarea 与底部控件分别使用 DSH `--dsw-font-base-16` 与 `--dsw-font-xxs-12` 系列 token；
+  按内容增长到合理上限后内部滚动，不用旧像素值覆盖主题。
 - Composer 浮于底部或贴近底部安全距，不能与窗口边缘、bottom panel 或系统 safe area
   相撞。
 - 只保留一层 visible surface。外部 bridge/adapter container 必须透明。
@@ -246,13 +237,13 @@ Composer 是底部唯一主 command surface：
 ## Project / Conversation Rail
 
 - 宽桌面默认可见，宽度在 `280-340px` 内可调，窄窗口改 drawer。
-- Active AionUI 顶部固定 New task、运行状态、Scheduled tasks、Archived；Runtime 不因此进入 Native/default-release gate。capability starter
+- Active AionUI 顶部固定 New task、运行状态、Scheduled tasks、Archived；Runtime 按当前核心能力合同验收。capability starter
   属于 Home，package/capability 管理属于 Settings。Sites/Chat 没有 OPL 对应能力时不显示。
 - 中段优先按显式 Project-affinity metadata 组织 canonical sessions；无显式 affinity 的普通 recorded cwd 可生成
   只读目录组，`~/Documents/Codex/**` 与 `~/.codex/worktrees/<id>/**` managed scratch 则保持 projectless，避免按
-  叶目录生成同名 Project。分组不拥有 session、context 或 artifact。只有无 canonical `projectId` 且
-  `thread/read` 再确认缺失的 Projectless row 可经
-  typed affinity assignment 与 exact projectId/recorded-cwd-unchanged readback 一次归入一个目录组；
+  叶目录生成同名 Project。分组不拥有 session、context 或 artifact。尚无显式 UI affinity 的
+  Projectless row 在回读 exact canonical thread identity 后，可以版本化 UI metadata 一次归入目录组；
+  不能把 Shell DTO 的 project 字段当成 App Server authority，recorded cwd 保持不变；
   已绑定 row 不任意换组。Recorded cwd、命令或 turn
   的实际 `pwd` 变化不移动 canonical-thread row，也不复制 row/history 或按标题/workspace 去重。
   `.codex/worktrees/<id>/**` 的 Codex row 在标题尾部显示固定 15px 的低权重 BranchOne 标志；使用本地化
@@ -351,7 +342,7 @@ Loading 不用无限旋转器代替进度。可获得阶段或 elapsed time 时�
 说明为什么不可用。
 
 Home package starter 的状态不得只靠颜色：只渲染 installed + Home-visible 条目；
-`ready/degraded` 可选择并使用 quiet fill 与 check indicator，`package_unavailable` 显示原因和
+`ready/degraded` 可选择并使用 quiet fill 与 `aria-pressed`，不额外添加 selection glyph；`package_unavailable` 显示原因和
 恢复动作但不强制可选；`activating` 保持稳定尺寸并显示明确进行中状态，`blocked` 保留输入、
 普通 Codex fallback 与修复入口但不得继续 launch。
 
@@ -404,8 +395,8 @@ Home package starter 的状态不得只靠颜色：只渲染 installed + Home-vi
 1. 宽桌面：persistent project rail、单一 timeline、composer、Environment details closed。
 2. Environment/details open：右上浮层不遮挡关键内容，close/focus/scroll 正常。
 3. 窄桌面/WebUI：rail 与 Environment/details 以 drawer/overlay 实际可见，不是 hidden DOM。
-4. Home、conversation、Settings、first-run 的 light/dark 与中英文；仅当 X0-01 Runtime route
-   被本 cohort 显式启用时，才把 Runtime 纳入该 route 自身的视觉 QA。
+4. Home、conversation、Runtime、Settings、first-run 的 light/dark 与中英文；按受影响 route
+   和当前 App scene contract 确定本轮视觉 QA 范围。
 5. Composer 的单层 surface、稳定尺寸、model/reasoning controls、send/stop states。
 6. 参考观察对照观察时最新可验证的官方 ChatGPT Codex macOS，并记录精确 receipt；稳定像素
    比较只对 OPL App 自有、经人工批准的 baseline 执行，同时明确记录 OPL branding exception。

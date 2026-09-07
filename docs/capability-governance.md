@@ -7,7 +7,7 @@ Machine boundary: 本文定义 App 消费能力图的目标边界。当前 contr
 仍含 Flow 来源/版本提示、Framework resolver/lock/receipt/payload 等兼容字段；
 这些字段必须按
 [`active/opl-package-platform-composition-migration.md`](active/opl-package-platform-composition-migration.md)
-双读迁移，不是长期 authority，也不证明安装、currentness 或 release readiness。
+执行 successor cutover 和旧消费者删除，不是长期 authority，也不证明安装、currentness 或 release readiness。
 
 ## 结论
 
@@ -80,14 +80,13 @@ Package descriptor、Flow policy 或 Full seed。模型访问配置与 Package c
 App 模型选择优先级固定为：
 
 ```text
-用户显式选择
-> 已安装 OPL Flow recommendation
-> fresh Codex live default
-> Flow 不可用时的 App fallback
+由 App profile 的 codex.auto_model_policy 解析 Auto 或用户固定选择
 ```
 
-App 负责展示 live catalog 和提交用户选择；受控配置 mutation 走现有 owner action，
-不另建 Package receipt 或 reconciliation 状态机。
+具体优先级、分页目录、固定选择和 fallback 只由
+[Codex Auto](product/gui/codex-auto-model-policy.md) 及其 App profile 持有。
+App 展示 live catalog；受控配置 mutation 走现有 owner action，不另建 Package receipt
+或 reconciliation 状态机。
 
 ## 验收
 

@@ -2,17 +2,10 @@
 
 Owner: `one-person-lab-app`
 Purpose: `managed_update_three_layer_product_model`
-State: `target_planned`
-Machine boundary: 本文定义目标产品分层。当前 contracts/source 仍包含
-Framework resolver、lock、payload、receipt、materialization 和 rollback
-兼容面；在迁移计划完成前，它们是 current implementation truth，但不是目标。
-本文不证明 currentness、安装完成或 release readiness。
-Execution boundary: 本文自身不授权 contracts/source/tests、carrier state 或 public
-release mutation。Phase 2 已获用户批准并执行中，但其 work packages、owner surfaces、
-回退和批准边界只以
-[`../active/opl-package-platform-composition-migration.md`](../active/opl-package-platform-composition-migration.md)
-为准；该批准不包含 Package GHCR/tag、Stable/Latest、WebUI promotion、真实用户
-managed state 或其他 public mutation。
+State: `active_reference`
+Machine boundary: This document defines the product maintenance model. Current
+contracts, native carrier actions and fresh readback determine executable state;
+this reference does not prove installed currentness or release readiness.
 
 OPL App presents one consistent maintenance experience while delegating each
 software object's mechanics to its existing platform. “Unified management”
@@ -33,22 +26,17 @@ Package, carrier, and executor are separate concerns:
 ```text
 OPL Package = executor-neutral identity + capabilities + dependencies
 Carrier     = Codex Plugin Manager / Git / OS package manager / local platform
-Executor    = Codex CLI / Claude Code / Hermes Agent / future executor
+Executor    = Codex CLI / another explicitly configured executor
 ```
 
 The current ordinary App may remain fixed to Codex CLI. That product choice
 does not make Codex Plugin Manager the OPL Package authority or require a user
 facing executor selector during this migration.
 
-Studio Preview implements desktop maintenance through the same Framework update commands.
-It activates verified pending generations before starting its persistent Codex App Server,
-then checks eligible installed components daily. Package refresh runs under an idle lease;
-new Codex requests wait until refresh completes. Busy or failed runs retry after five minutes.
-App updates download silently and install on normal exit or an explicit idle restart.
-Existing managed Framework updates survive later App starts, while an older bootstrap
-without `opl update activate --json` receives a one-time compatible bootstrap upgrade.
-External Temporal Server, global tools, developer checkouts and user-managed Packages keep
-their existing lifecycle owners. Temporal SDK versions follow the verified Framework cohort.
+Shell-specific maintenance scheduling and activation are implemented against
+the same Framework update interface. The
+[Studio plan](gui/opl-studio-plan.md) owns candidate adoption requirements;
+the Shell source and installed evidence determine its actual behavior.
 
 ## 1. Distribution And First Install
 
@@ -181,5 +169,5 @@ complete-Package fresh readback, presence checks, aggregation, and thin
 actions. Agent Packages own business task/view descriptors. Shell only renders
 and invokes projected actions.
 
-Implementation and deletion order is tracked in
+Unverified integration and installed outcomes are tracked in
 [`../active/opl-package-platform-composition-migration.md`](../active/opl-package-platform-composition-migration.md).

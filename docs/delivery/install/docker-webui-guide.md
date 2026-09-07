@@ -35,8 +35,6 @@ Markdown, or smoke gate runbook.
   [`../../guides/docker-webui-install/guide.qmd`](../../guides/docker-webui-install/guide.qmd)
 - Delivery manifest, generated-output lifecycle, and verification:
   [`../user-guides/docker-webui-install/README.md`](../user-guides/docker-webui-install/README.md)
-- Latest public user guide:
-  [`../../site/latest/docker-webui-install/docker-webui-install.html`](../../site/latest/docker-webui-install/docker-webui-install.html)
 - Latest HTML:
   [`../../site/latest/docker-webui-install/docker-webui-install.html`](../../site/latest/docker-webui-install/docker-webui-install.html)
 - Latest detailed PDF:
@@ -44,14 +42,15 @@ Markdown, or smoke gate runbook.
 
 ## Operator Boundary
 
-The beginner path is: one-click installer, browser WebUI, Access key entry in
-the WebUI, runtime proxy smoke through stdin transport, startup diagnostics
-when needed, and preserved host `OnePersonLab/data` /
-`OnePersonLab/projects` mounts.
+The beginner path is: installer, browser WebUI, account login or API key entry
+in the WebUI, and first-run setup. Host `OnePersonLab/data` and
+`OnePersonLab/projects` remain persistent across image updates. Credential
+transport and runtime qualification belong to the smoke runbook, not the
+user's installation steps.
 
 Do not duplicate the generated guide content here. Update the Quarto body source
 `../../guides/docker-webui-install/guide.qmd` for guide text, update the delivery
-JSON manifest only for commands, output paths, required terms, and release gates,
+JSON manifest only for commands, output paths and rendering inputs,
 update `../../guides/docker-webui-install/screenshots.manifest.json` for
 screenshot provenance, and run `npm run docs:docker-webui-guide` instead.
 

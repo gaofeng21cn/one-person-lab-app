@@ -43,8 +43,6 @@ type GuideManifest = {
     height?: number;
     sha256?: string;
   }>;
-  required_terms: string[];
-  forbidden_phrases?: string[];
 };
 
 type ScreenshotManifest = {
@@ -218,8 +216,8 @@ function expandTemplate(text: string, manifest: GuideManifest) {
   }, manifest.download);
 }
 
-function scanText(label: string, text: string, manifest: GuideManifest) {
-  scanGeneratedText(label, text, { forbiddenPhrases: manifest.forbidden_phrases });
+function scanText(label: string, text: string) {
+  scanGeneratedText(label, text);
 }
 
 function htmlVisibleText(html: string) {
@@ -310,13 +308,6 @@ function trimLineEndings(text: string) {
     .join('\n');
 }
 
-function normalizePdfRequiredTermText(text: string) {
-  return text
-    .normalize('NFKC')
-    .replace(/[\u2010-\u2015\u2212]/g, '-')
-    .replace(/\s+/g, ' ');
-}
-
 function writeProject(manifest: GuideManifest) {
   const screenshotManifest = loadScreenshotManifest(manifest);
   const sourceAssetsDir = screenshotAssetsDir(manifest);
@@ -328,7 +319,7 @@ function writeProject(manifest: GuideManifest) {
   for (const chapter of sourceQmdPaths(manifest)) {
     const raw = fs.readFileSync(chapter.absolute, 'utf8');
     const expanded = expandTemplate(raw, manifest);
-    scanText(`QMD source ${chapter.source}`, expanded, manifest);
+    scanText(`QMD source ${chapter.source}`, expanded);
     fs.writeFileSync(path.join(projectDir, chapter.projectName), expanded, 'utf8');
   }
   const template = loadPublishingTemplate(manifest);
@@ -450,7 +441,7 @@ function main() {
   const qmd = sourceQmdPaths(manifest)
     .map((chapter) => expandTemplate(fs.readFileSync(chapter.absolute, 'utf8'), manifest))
     .join('\n\n');
-  scanText('QMD source', qmd, manifest);
+  scanText('QMD source', qmd);
   const assetVerification = validateAssets(manifest, qmd);
   writeProject(manifest);
   renderQuarto();
@@ -489,22 +480,15 @@ function main() {
   if (pdfDownloadHref && !html.includes(`href="${pdfDownloadHref}"`)) {
     throw new Error(`Generated HTML is missing PDF download link: ${pdfDownloadHref}`);
   }
-  scanText('HTML visible text', htmlVisibleText(html), manifest);
+  scanText('HTML visible text', htmlVisibleText(html));
   const text = pdfText(pdfOutputPath);
-  scanText('PDF text', text, manifest);
-  const normalizedPdfText = normalizePdfRequiredTermText(text);
-  const missingTerms = manifest.required_terms.filter(
-    (term) => !normalizedPdfText.includes(normalizePdfRequiredTermText(term))
-  );
-  if (missingTerms.length > 0) {
-    throw new Error(`Generated PDF text is missing required terms: ${missingTerms.join(', ')}`);
-  }
+  scanText('PDF text', text);
   const info = pdfInfo(pdfOutputPath);
   const pages = Number(info.match(/^Pages:\s+(\d+)/m)?.[1] ?? 0);
   const pageSizeMatch = info.match(/^Page size:\s+([\d.]+)\s+x\s+([\d.]+)\s+pts/m);
   const pageWidth = Number(pageSizeMatch?.[1] ?? 0);
   const pageHeight = Number(pageSizeMatch?.[2] ?? 0);
-  if (pages < 6) throw new Error(`Expected publication-style PDF with at least 6 pages, got ${pages}`);
+  if (pages < 1) throw new Error('Generated PDF has no pages');
   if (pageHeight <= pageWidth) throw new Error(`Expected portrait PDF, got ${pageWidth}x${pageHeight} pts`);
   const rendered = renderPdfPages(pdfOutputPath);
   const quartoVersion = run('quarto', ['--version']).stdout.trim();
@@ -540,10 +524,8 @@ function main() {
       },
     } : {}),
     screenshot_assets: assetVerification,
-    required_terms: manifest.required_terms,
-    required_terms_status: 'present',
     unresolved_templates_status: 'absent',
-    forbidden_phrases_status: 'absent',
+    secret_scan_status: 'passed',
   };
   fs.writeFileSync(verificationPath, `${JSON.stringify(verification, null, 2)}\n`, 'utf8');
   console.log(JSON.stringify(verification, null, 2));

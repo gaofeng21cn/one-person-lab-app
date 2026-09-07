@@ -25,8 +25,9 @@ fork-local 产品逻辑。
   database；本机 launch selection 与正式 release-shell adoption 是两条独立路径。
 
 “不降级”只保护已进入 OPL App contracts、ordinary routes 或正式用户路径的能力。
-AionUI fork 中存在但未被 OPL 采纳的 Team、provider/backend、任意 skills/MCP、Sites/Chat
-等产品面可以在 profile/route adapter 层隐藏或拒绝；不要为保持上游功能数量扩大 OPL IA。
+AionUI Team 和 provider/backend marketplace 按明确 product policy 处理；用户/第三方
+Skills/MCP 从 owner/native discovery 继承，仅受用户可见性偏好与明确 Team/internal negative
+policy 约束。缺少 App 清单项本身不是删除能力的授权。
 
 ## Contract-first 顺序
 
@@ -60,12 +61,12 @@ contract/实现收敛 lane 处理。
 | Product profile consumer | 读取 generated App profile，提供品牌、默认模型、purpose、locale 和 feature flags。 | 硬编码模型 allowlist、provider policy 或 shell-local default。 |
 | State bridge | 把 App state readback 规范化为 renderer 可消费 envelope。 | 从本地组件状态推断 runtime/domain readiness。 |
 | Action bridge | 执行 App-owned action，并返回 dry-run/result/receipt。 | 直接调用 domain CLI、绕过 confirmation 或自建 mutation kernel。 |
-| Package launch adapter | 把 owner projection 归一为 `ready / degraded / package_unavailable`；只在 exact projected action 存在时 JIT activation，填充其 `required_payload_fields`，并校验 Package identity 的 presence/callability、入口及被要求的 safe target。 | 增加跨 Package 版本 gate、从 installed flag 推断可用、从 manifest 推断 action payload、把 optional activation receipt/binding/closure 当硬门槛，或在 `package_unavailable` 后仍创建/发送 conversation。 |
-| Thread directory adapter | Rail 投影 App Server canonical thread directory/actions；显式 `projectId` 是 Project 分组 authority，无显式 affinity 的普通 recorded cwd 只生成不写回 identity 的只读目录组，`~/Documents/Codex/**` 与 `~/.codex/worktrees/<id>/**` managed scratch 保持 projectless；命中 `.codex/worktrees` 的 Codex row 只显示本地化 BranchOne 标志。List/read/start/resume/fork/archive/restore/settings-update 与 affinity assignment 复用一个 adapter。 | 用 Shell DB 拥有 history、从 recorded cwd 推断 affinity、让 rebuildable cache 覆盖 canonical explicit affinity、把 managed scratch 叶目录渲染为 Project、把目录分组当 session owner、把 worktree 标志变成可点击动作、挂载独立 coordination 页面、第二 JSON-RPC client、audit/idempotency、dynamic tools或cross-host控制面。 |
+| Package launch adapter | 把 owner projection 归一为 `ready / degraded / package_unavailable`，消费 exact projected action 与 `required_payload_fields`，校验 presence/callability、入口和所需 safe target。普通 create/send 或 turn invocation 不执行 Package activation；真实 stage activation 由 Framework 执行。 | 增加跨 Package 版本 gate、从 installed flag 推断可用、从 manifest 推断 action payload、把 optional receipt/binding/closure 当硬门槛，或在 `package_unavailable` 后仍创建/发送所选 Agent conversation。 |
+| Thread directory adapter | Rail 投影 canonical thread directory/actions；Project affinity 来自 canonical-thread-keyed versioned UI metadata。普通 recorded cwd 只提供未绑定时的只读目录分组，managed scratch 保持 projectless。所有线程读取与动作复用同一 App Server adapter。 | Shell DB 拥有 history、从 cwd 推断 affinity、把本地 DTO 当成上游 Project authority、让 managed scratch 叶目录成为 Project、第二 client 或私有 coordination layer。 |
 | Projectless local-input adapter | 让 attachment、file/directory picker、paste/drop、`/open` 在无 workspace 时继续进入 Codex 原生权限路径。 | 因缺 project 禁用输入、把 workspace membership 当授权、复制第二套 path permission model。 |
 | Artifact ref adapter | 当前 session 显式 attachment、可见 conversation result 或用户选择的合法绝对本地路径解析为现有 Preview target，保持只读和 fail-closed。 | 复制 artifact body、新建 renderer/store、隐式 workspace ref、路径穿越、非法 scheme、自动静默读取或猜测未知格式。 |
 | Capability palette adapter | Composer `+` 始终先打开与 composer 等宽、可搜索、分组、可滚动且 viewport-bounded 的 palette；条目显示稳定 icon slot、名称和可用说明。按 Home/new-session 与 existing conversation 分别消费真实 file/folder picker、动态 installed Package/capability projection、当前 surface 用户可见偏好、真实连接及 adapter-reported nonduplicate mode；Agent 不在既有会话重绑。 | 空 catalog 时直接打开文件选择器；220px attachment 小菜单冒充 palette；复制第二套 App Package/Skill 目录；把 permission/access 重复成 mode；伪造 Plugin/Chrome/目标/计划/provider/backend/team/raw MCP。 |
-| Session Project-affinity adapter | Home/new-session context bar 的工作目录动作只设置初始 cwd；rail 只允许无 canonical `projectId` 且 `thread/read` 再确认缺失的 session 通过拖动或键盘等价动作一次归口。Shell 在现有单一 adapter 上调用 typed affinity assignment，以 assignment、`thread/read.projectId` exact readback 和 recorded cwd 不变为提交点，随后才写本地 `canonical_project_id + custom_workspace=true` projection 并移动 row；失败保持 projectless 且对话可用。Conversation Environment 只读显示 recorded workspace 与 live Git inspection；recorded cwd、turn cwd、shell `pwd`、显式输入和 writable roots 不创建或阻止 affinity。 | 把 cwd 放进 `+` palette、`bound(A) -> bound(B)` 任意重绑、从 recorded/turn/command `pwd` 推断 Project、要求 Project 覆盖显式输入、修改 writable roots、先改本地分组再验证、第二 App Server client、独立 adoption service、pending 状态机、无真实 adapter 的 Local/Worktree/branch、managed Worktree/Handoff、receipt/rollback ledger 或 `workspace_handoff` metadata。 |
+| Session Project-affinity adapter | Context bar 只设置新任务 initial cwd；rail 对未绑定 UI affinity 的 session 提供一次性归口。先回读 exact canonical thread identity，再按该 ID 写入版本化 UI metadata；recorded cwd 不变，失败保持 projectless。Environment 只读显示执行环境。 | 伪造 App Server Project 字段或 assignment RPC、任意 bound-to-bound 重绑、修改 writable roots、从 turn cwd 推断 affinity、第二 client/adoption service、私有 pending/receipt/rollback 或 managed Worktree/Handoff。 |
 | Review adapter | 在现有 Files/Changes diff surface补 uncommitted/base branch/commit/custom、inline/detached、PR context、stage/commit/push；`gh` 缺失明确 unavailable。协议缺失时显示 truthful unavailable。 | 恢复 equal-weight Review tab、复制 diff/Git store、创建本地 annotation store、伪造行级成功。 |
 | Route adapter | 把 legacy/upstream route 映射到 App-owned page。 | 让 compatibility route 重新成为 ordinary navigation。 |
 | Settings slot | 从 Control Plane registry 渲染 ordinary/secondary pages。 | 复制一套 shell-owned Settings IA。 |
@@ -75,52 +76,18 @@ contract/实现收敛 lane 处理。
 只有在现有 primitive 无法表达 App contract 时才新增 shell-local component。新增组件
 应围绕一个明确 slot 或 page-state，而不是创建未来可能使用的 framework。
 
-## Active Delivery Topology
+## Host 与 Carrier 接入
 
-`contracts/app-product-profile.json#delivery_topology` 是 successor 正式目标的唯一机器 SSOT；
-`release_roles.current` 与 `contracts/app-release-channel.json` 单独持有当前 AionUI 发布事实：
+Host scope、DSH plugin composition 和三种 delivery transport 的架构定义见
+[Application Host composition](deepseek-harness-composition-plan.md)，App 产品/adoption
+边界见 [Studio 产品边界](opl-studio-plan.md)。实现以
+`contracts/app-product-profile.json#delivery_topology` 与当前 adapter 为准：
+carrier 只改变平台接入，不复制产品 IA、Host business logic 或 session store。
 
-- App 批准一套 DSH-derived React renderer 和一套 shared Node host core。不得为 carrier 建第二套
-  产品 IA、状态模型、host business logic 或 session store，也不得把 AionUI/AionCore 变成 successor
-  运行时依赖。
-- Electron 是 macOS、Windows、Linux 的薄桌面 carrier，只拥有 window、preload IPC、OS integration、
-  package/sign 和桌面 updater adapter；Node host core 统一拥有 Codex App Server、OPL bridge、thread/turn
-  transport 和 typed events。
-- standalone headless WebUI 与 Docker WebUI 通过 HTTP/SSE 使用同一 host core 和 renderer，均不运行
-  Electron/AionCore。旧 `install.sh --headless` 继续是 Base-only，不能静默改义；新 WebUI service 使用
-  独立显式 runtime form / entry。当前 Desktop `--webui` 和 AionUI Docker 也不算 successor 实现证据。
-- 三类 carrier 暴露同一 `opl_app_host_bridge.v1` 语义。Windows 的 Node/Codex 物理位置由 platform
-  execution adapter 与后续实机证据决定，不预设 native 或 WSL。任一平台支持仍需独立 package、sign、
-  update、install 和 runtime admission，目标合同与 source build 都不能提前宣称支持。
-- 移动端使用原生 iOS **OPL Link**。它是 bounded remote projection，不复用完整
-  responsive renderer，也不通过 Capacitor 包装 WebUI；iOS 不能成为第二 runtime、第二 history store
-  或第二 action authority。
-- Desktop/WebUI carrier 仍共享同一 host core 和 renderer，但旧 LAN WebUI 登录不能成为 Companion
-  的公网 fallback。桌面 connector 与 iOS 通过 App-owned `remote_companion_access` view 与
-  `opl_remote_transport.v1` 消费单一 provider adapter；`opl_remote_transport.v1` 只保留为内部 wire
-  alias，产品模型使用 conversation/thread。当前目标是 Ably Free + Cloudflare Workers/D1，腾讯 IM
-  只在大陆选择探针失败后经明确 decision 切换单一 cohort。所有业务动作仍回到 desktop canonical
-  App action bridge；Weixin/AionCore 继续走 `channel_access`。
-
-外部项目只能帮助验证这一分层或提供 bounded component technique。OpenChamber 的 Electron +
-Web server/Docker 组合可作为桌面/WebUI 拓扑证据；其 PWA/Capacitor 路线、OpenCode runtime、
-session store、server control plane 和 provider semantics 不进入 OPL。AionUI/AionCore 也不是目标
-runtime 或 renderer dependency；仅在单独 reuse decision 后把必要技术改写到 OPL-owned source。
-
-### Remote Companion 实现边界
-
-- Shell 只实现一个 `RemoteTransport` adapter：将 owner-projected conversation reads/events 与 allowlisted App
-  actions 映射到加密 envelope，不复制 Codex App Server 或维护私有 thread truth。
-- Pairing UI 只显示邀请、容量、一次性 QR、相同确认码、activation、设备和撤销。Worker/D1
-  持有 pair admission、短期 scoped JWT、设备授权、token renewal denial、revoke 与 push
-  registration；Shell 不在本地分配或推断。QR、capability token、device credential、pair key、
-  对话正文与 workspace path 不得写日志。
-- Transport unavailable 只降级 Companion；桌面工作台保持可用，也不自动改走 LAN WebUI。
-- `request_id` 去重、key epoch/sequence、回前台 canonical refresh 和 high-impact approval desktop-only
-  是实现门槛，不是 renderer 自选策略。
-- 当前 Shell 的 Tencent credential/adapter source 是待迁移 `active_gap`，不能作为目标 provider
-  或 release-ready 证据。产品协议、owner 边界和当前缺口见 [`../opl-link.md`](../opl-link.md)；
-  App 合同通过不能替代 Worker/D1、Ably、Shell/iOS 实现与真实运行证据。
+原生 iOS OPL Link 是 bounded remote projection；协议、provider、pairing、授权与撤销
+只维护在 [OPL Link](../opl-link.md) 和 `contracts/app-remote-companion.json`。
+Shell 用唯一 remote transport 映射 owner-projected conversation reads/events/actions，
+不创建第二线程状态或以 LAN WebUI 代替缺失 transport。
 
 ## 多 GUI 运行边界
 
@@ -131,9 +98,8 @@ runtime 或 renderer dependency；仅在单独 reuse decision 后把必要技术
   launcher 不得改写 active adapter、release role 或 updater channel。
 - 每个 shell 保持独立 bundle id、checkout、lockfile、依赖树和 GUI user-data root；不要
   为复用而共享 `node_modules`、SQLite、localStorage 或 renderer store。
-- 两个 shell 最终都必须通过 App command-resolution policy 取得 OPL/Codex executable。
-  App launcher 已为 Native Candidate 注入显式 executable identity；Native 直接打开 bundle
-  与 active AionUI parity 仍是 current deviation，不能声明 same-runtime parity。
+- 两个 shell 都必须通过 App command-resolution policy 取得 OPL/Codex executable。
+  Launcher、直接打开 bundle 与 installed process 分别回读身份，不从单个路径外推 same-runtime parity。
 - Runtime readback 至少绑定 OPL/Codex path、version 和 cohort ref。Shell-local cache 不得
   覆盖 resolver readback，也不得把缺失 readback 改写成 ready。
 - Codex Core/App Server 拥有 thread history 和 opaque thread id。两个 shell 最终都从
@@ -144,8 +110,8 @@ runtime 或 renderer dependency；仅在单独 reuse decision 后把必要技术
   Side-by-side install 或 sequential switching
   不能替代该行为证据。
 
-统一 launcher 已实现本机 launch selection；Runtime resolver 只完成 launcher-started Native
-范围，conversation continuity 仍是 target contract。局部实现不得提升为双 shell parity。
+本机 launch selection、runtime identity 与 conversation continuity 分别验收。
+当前状态从 [Shell conformance](shell-conformance-matrix.md) 的 owner 入口读取，局部实现不提升为双 Shell parity。
 
 ## AionUI 最小定制阶梯
 
@@ -202,7 +168,7 @@ domain-ready 或 release-ready。
 | --- | --- | --- |
 | Runtime | Agent/Project scope、Work Item status、running/elapsed、Stage/Attempt、Token、archive/restore | provider/platform repair、updates、module health、raw diagnostics、artifact provenance、release controls |
 | Settings Maintenance | provider/platform repair、Temporal/worker readiness、托管依赖、软件更新、raw diagnostics、State Index、operator drilldown、logs、command refs、safe-action catalog | Work Item lifecycle 或论文进度 |
-| Settings Agents | Agent Package 目录、安装/激活/更新/修复、开发来源、Home visibility | Skills/Plugins/Flow、Gateway 或资源连接 |
+| Settings Agents | Agent Package 目录、安装/更新/修复、开发来源、Home visibility | Stage activation、Skills/Plugins/Flow、Gateway 或资源连接 |
 | Settings Capabilities | Skills、Plugins、OPL Flow、MCP、图像与语音能力 | Agent Package lifecycle、Gateway 或资源连接 |
 | Inspector | task/conversation artifact provenance、preview、lineage refs | artifact authority 或 Runtime status |
 | Release tooling | 同 cohort 的完整 evidence bundle | 普通用户 Runtime UI |
@@ -216,9 +182,8 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 实现要求：
 
 - 先从 App state/action catalog 取得可用 action 和 disabled reason。
-- Runtime 只能调用任务 archive/restore；next action/owner 在 Runtime 中是只读语义。
-  其他 action 必须由 Environment、Capabilities、Advanced、Inspector、conversation
-  或 release tooling 的合同明确授权。
+- Runtime 只调用当前 Runtime contract 声明的动作；typed views 按 contribution/action ABI
+  派发，不能从字段名推导可写权限。其他页面的动作仍由各自合同授权。
 - 高风险或状态改变动作先 dry-run/preview，再 confirmation，再 execute。
 - UI 明确显示 what changes、what does not change、receipt/recovery ref 和 refresh 行为。
 - Result receipt 是动作事实，不代表 runtime、domain、artifact 或 release readiness。
@@ -349,38 +314,11 @@ command 和可见状态 anchor。
 
 ## 最小验收
 
-一个 shell adapter 至少需要证明：
+实现验收证明三个边界：App contract/profile 被当前 consumer 正确读取；state/action/thread
+仍由唯一 owner 提供；用户路径在成功、失败与恢复状态下可实际执行。新建 source adapter
+只在现有 primitive 无法表达当前合同且有真实 caller 时成立。
 
-- App product profile 被读取，模型策略没有 shell-local 分叉；
-- ordinary state/action 只通过 App bridge；
-- local launch selection 不修改 release adoption，shell bundle/user-data identity 保持隔离；
-- 当前 executor route 和 Package carrier adapter 有 fresh readback；PATH-only deviation 不被包装成 parity；
-- conversation directory/history 以 App Server thread authority 为准，不创建 shell-owned
-  canonical thread store；
-- rename/archive/restore/delete 使用 App Server methods，pin 仅 Shell metadata，local reset 不冒充
-  App Server history reset；
-- Projectless attachment/file/directory/paste/drop/`/open` 不被 workspace gate 禁用；
-- Home/chat-first、timeline、composer、rail 和 Environment/details 行为符合对应 target 或被明确
-  标成 current deviation；
-- 用户触发的 thread list/read/start/resume/fork/archive/restore 使用一个 App Server adapter；
-- protocol/target failure返回真实错误，普通 conversation 继续走现有 ACP；
-- 当前 session 显式 attachment、可见 conversation result 与用户选择的合法绝对本地路径只在安全解析后
-  进入现有 Preview；隐式 workspace ref、traversal、非法 scheme、自动静默读取失败时保留原 ref 且不打开空 preview；
-- Home/new-session 独立 context bar 只设置初始 cwd；`+` 只承载显式输入与真实可选能力；Conversation Environment 保持只读并复用
-  `gitWorkspace.inspect` 展示可用的 branch/changes/refs；projectless adoption 是独立、单向的 rail action，
-  必须验证 canonical `projectId` 缺失、单一 canonical directory 和一次性 transition；recorded cwd、turn/command
-  `pwd` 不是 eligibility 前提，也不参与 reclassification。Shell 必须在既有 adapter 内完成 typed affinity assignment、
-  exact `thread/read.projectId` 和 recorded-cwd-unchanged readback后才提交本地 projection 和移动 row，
-  不能恢复通用 cwd transaction，也不能修改 writable roots；
-- Shell 中不存在 `ensureManagedWorktree`、`WorkspaceHandoffControl`、`workspace_handoff` metadata、handoff
-  receipt 或 rollback ledger；
-- Review 复用 Files/Changes diff surface，覆盖四类 target、inline/detached、五个 sections、PR
-  context/stage/commit/push，并在 `gh` 缺失时明确 unavailable；Last turn复用既有message store且
-  不新增状态源，line-level comments在typed Codex protocol缺失时必须保持 unavailable；
-- Settings 从 Control Plane registry/slots 渲染，legacy routes 只 redirect；
-- Home 只从动态 directory 渲染已安装且 Home 可见的 Package starter；已卸载 Package 留在 Settings
-  discovery/Restore，不保留强制入口。`ready`/`degraded` 条目可选择，`package_unavailable` 条目保留
-  typed 原因和恢复动作但不强制可选；选择后只有明确 identity presence/callability、入口、安全目标或
-  权限失败才局部阻止所选 Package；
-- 普通 UI 不拥有 runtime/domain/artifact/release truth；
-- focused behavior、visual pixels 和 package/release claim 使用匹配层级的证据。
+运行本次受影响的 focused checks 和 adapter 要求的 App gate；视觉改动追加对应 scene
+evidence，安装或发布任务另取 exact package/runtime readback。按
+[Shell conformance](shell-conformance-matrix.md) 逐轴报告，缺失证据保持未验证。
+具体用户行为只维护在 [交互细则](ideal-interaction-spec.md)，不在实现指南复制一份验收清单。

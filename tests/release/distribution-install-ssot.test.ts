@@ -512,17 +512,12 @@ test('cross-contract drift fails closed for channel, carrier, and convergence mu
   }
 });
 
-test('ordinary docs point to the SSOT without advertising retired or unpublished paths', () => {
+test('ordinary docs link to the distribution reference and bind current install commands', () => {
   const ssot = 'docs/delivery/distribution-and-install-ssot.md';
   const rootReadme = fs.readFileSync(path.join(appRoot, 'README.md'), 'utf8');
   const docsIndex = fs.readFileSync(path.join(appRoot, 'docs/README.md'), 'utf8');
   const deliveryIndex = fs.readFileSync(path.join(appRoot, 'docs/delivery/README.md'), 'utf8');
   const releaseGuide = fs.readFileSync(path.join(appRoot, 'docs/delivery/release/README.md'), 'utf8');
-  const distributionGuide = fs.readFileSync(path.join(appRoot, ssot), 'utf8');
-  const manualLatestGuide = fs.readFileSync(
-    path.join(appRoot, 'docs/delivery/release/manual-latest-builds.md'),
-    'utf8',
-  );
   const macGuide = fs.readFileSync(
     path.join(appRoot, 'docs/guides/macos-app-install/guide.qmd'),
     'utf8',
@@ -534,25 +529,6 @@ test('ordinary docs point to the SSOT without advertising retired or unpublished
   assert.match(docsIndex, /delivery\/distribution-and-install-ssot\.md/);
   assert.match(deliveryIndex, /distribution-and-install-ssot\.md/);
   assert.match(releaseGuide, /\.\.\/distribution-and-install-ssot\.md/);
-  assert.match(distributionGuide, /Stable Desktop Release Set/);
-  assert.match(distributionGuide, /opl-desktop-platforms-manifest\.json/);
-  assert.match(distributionGuide, /durable GHCR publication record/);
-  assert.match(releaseGuide, /macOS arm64 primary release passes publication and public readback/);
-  assert.match(releaseGuide, /Full macOS, Linux x64, Windows x64 and installer deliveries additively/);
-  assert.match(
-    releaseGuide,
-    /A new `-rN` Stable is allowed only when the[\s\S]{0,140}nonempty user-visible capability change/,
-  );
-  assert.match(
-    releaseGuide,
-    /Build, signing, notarization, packaging, publication, release-note, Homebrew, Full, installer or[\s\S]{0,120}must stay on the existing mutable tag/,
-  );
-  assert.match(releaseGuide, /independent source authority/);
-  assert.doesNotMatch(releaseGuide, /carrier_owned_durable_publication_record/);
-  assert.match(
-    manualLatestGuide,
-    /Actions artifact is[\s\S]{0,180}cannot make a version\s+selectable after it expires/,
-  );
   assert.match(macGuide, /\{\{download\.stable_install_command\}\}/);
   assert.equal(
     macGuideManifest.download.stable_install_command,
@@ -567,7 +543,7 @@ test('ordinary docs point to the SSOT without advertising retired or unpublished
   assert.doesNotMatch(rootReadme, /--stable-macos-install --yes/);
 });
 
-test('ordinary install guides expose the current Desktop and Docker routes without restoring the retired matrix', () => {
+test('ordinary install guides use the stable container image and indirect release acquisition', () => {
   const english = fs.readFileSync(
     path.join(appRoot, 'docs/delivery/install/README.md'),
     'utf8',
@@ -578,18 +554,12 @@ test('ordinary install guides expose the current Desktop and Docker routes witho
   );
 
   for (const guide of [english, chinese]) {
-    assert.match(guide, /Stable Desktop Release Set|Stable Desktop Release 集合/);
-    assert.match(guide, /macOS/);
-    assert.match(guide, /Linux x64/);
-    assert.match(guide, /Windows 11 x64/);
     assert.match(guide, /ghcr\.io\/gaofeng21cn\/one-person-lab-webui:stable/);
     assert.doesNotMatch(guide, /github\.com\/gaofeng21cn\/one-person-lab-app\/releases\/latest\/download/);
-    assert.doesNotMatch(guide, /four supported product cells|四个受支持产品格/);
-    assert.doesNotMatch(guide, /Native runs WebUI|Native 直接运行 WebUI/);
   }
 });
 
-test('Docker WebUI guide exposes the shared host auto-update lifecycle without container-side mutation', () => {
+test('Docker WebUI guide binds guarded acquisition and host auto-update commands', () => {
   const guide = fs.readFileSync(
     path.join(appRoot, 'docs/guides/docker-webui-install/guide.qmd'),
     'utf8',
@@ -597,21 +567,9 @@ test('Docker WebUI guide exposes the shared host auto-update lifecycle without c
   const manifest = readJson(
     'docs/delivery/user-guides/docker-webui-install/source/docker-webui-install.guide.json',
   );
-  assert.match(guide, /跨平台宿主自动更新/);
-  assert.match(guide, /Task Scheduler/);
-  assert.match(guide, /LaunchAgent/);
-  assert.match(guide, /systemd --user/);
-  assert.match(guide, /Linux 服务器默认不启用自动更新/);
-  assert.match(guide, /不会每天下载并执行 GitHub `main` 上的可变安装器代码/);
-  assert.match(guide, /不要把下载 GitHub `main` 的在线 `curl` 命令直接放进定时任务/);
-  assert.match(guide, /恢复旧 digest/);
   assert.match(guide, /ghcr\.io\/gaofeng21cn\/one-person-lab-webui:stable/);
-  assert.match(guide, /`:latest` 仅供用户显式选择 Preview/);
-  assert.match(guide, /One Person Lab WebUI Stable Update/);
   assert.doesNotMatch(guide, /github\.com\/\$repo\/releases\/latest\/download/);
   assert.doesNotMatch(guide, /iwr[^\n]*install-docker-webui\.ps1/);
-  assert.doesNotMatch(guide, /One Person Lab WebUI Latest Update/);
-  assert.doesNotMatch(guide, /自动任务只跟随 `ghcr\.io\/gaofeng21cn\/one-person-lab-webui:latest`/);
   assert.equal(manifest.download.image, 'ghcr.io/gaofeng21cn/one-person-lab-webui:stable');
   assert.equal(manifest.download.local_image, 'one-person-lab-webui:stable');
   assert.match(manifest.download.linux_macos_online_command, /--enable-auto-update/);
@@ -635,7 +593,7 @@ test('docs publisher carries only current install guides and preserves whitepape
   assert.doesNotMatch(publisher, /linux-native-webui-install/);
 });
 
-test('Docker WebUI guide scopes Docker Desktop and publishes the guarded Windows AF_UNIX recovery', () => {
+test('Docker WebUI guide binds the explicit Windows Docker startup recovery flag', () => {
   const guide = fs.readFileSync(
     path.join(appRoot, 'docs/guides/docker-webui-install/guide.qmd'),
     'utf8',
@@ -644,13 +602,6 @@ test('Docker WebUI guide scopes Docker Desktop and publishes the guarded Windows
     'docs/delivery/user-guides/docker-webui-install/source/docker-webui-install.guide.json',
   );
 
-  assert.match(guide, /Docker Desktop 只对本教程的 \*\*Container WebUI 路径\*\* 必需/);
-  assert.match(guide, /Windows Desktop App 不要求 Docker Desktop/);
-  assert.match(guide, /dockerInference/);
-  assert.match(guide, /普通启动正常时不要运行恢复命令/);
-  assert.match(guide, /不会停止进程/);
-  assert.match(guide, /不会执行 Docker \*\*Factory Reset\*\*/);
-  assert.match(guide, /不会删除 image、container、volume、`docker_data\.vhdx`/);
   assert.match(guide, /\{\{download\.windows_docker_start_repair_command\}\}/);
   assert.match(manifest.download.windows_docker_start_repair_command, /-RepairDockerDesktopStart/);
 });

@@ -4,7 +4,7 @@ Validation run ID: `20260724-v0-local-vm-host-preflight`
 State: `guest_readback_complete`
 Lane: `validation_only_non_binding`
 Date: `2026-07-24`
-Plan: [`../../../architecture/windows-wsl2-execution-validation-plan.md`](../../../architecture/windows-wsl2-execution-validation-plan.md)
+Archive context: [Early Windows WSL2 experiments](README.md).
 
 ## Scope
 

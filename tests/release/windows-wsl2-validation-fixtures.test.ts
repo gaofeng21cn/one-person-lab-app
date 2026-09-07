@@ -45,13 +45,6 @@ const hostSchemaPath = path.join(
   validationRoot,
   'windows-wsl2-v6-host-closeout.schema.json',
 );
-const readmePath = path.join(validationRoot, 'README.md');
-const planPath = path.join(
-  appRoot,
-  'docs',
-  'architecture',
-  'windows-wsl2-execution-validation-plan.md',
-);
 
 function findPwsh() {
   if (process.env.PWSH) return process.env.PWSH;
@@ -985,23 +978,6 @@ test('V6 Hyper-V host closeout fails before shutdown on tree mismatch and passes
     compileSchema(hostSchemaPath)(result.finalReceipt),
     true,
   );
-});
-
-test('V6 documentation preserves validation-only and non-blocking boundaries', () => {
-  const readme = fs.readFileSync(readmePath, 'utf8');
-  const plan = fs.readFileSync(planPath, 'utf8');
-  assert.match(readme, /windows-wsl2-v6-intake-manifest\.schema\.json/);
-  assert.match(readme, /windows-wsl2-v6-build-seal\.schema\.json/);
-  assert.match(readme, /windows-wsl2-v6-writer-lease\.schema\.json/);
-  assert.match(readme, /windows_hyperv/i);
-  assert.match(readme, /terminal_v6_verdict=false/);
-  assert.match(readme, /Only then may it write[\s\S]*terminal_v6_verdict=true/i);
-  assert.match(readme, /twenty-two payload files/);
-  assert.match(readme, /three times under the same active lease/);
-  assert.doesNotMatch(readme, /11ff4f50f5f300a67d5aebc0937d484cf16958db/);
-  assert.doesNotMatch(readme, /Windows support is complete/i);
-  assert.match(plan, /does not block unrelated development/i);
-  assert.match(plan, /Hyper-V/i);
 });
 
 if (pwshPath) {

@@ -1,225 +1,68 @@
-# AionCore Codex-Only Carrier
+# AionUI Codex Runtime Carrier
 
-Owner: `one-person-lab-app`
-Purpose: `aioncore_codex_only_packaging_ssot`
-State: `implemented_with_packaged_runtime_evidence`
-Machine boundary: `contracts/app-shell-adapter.json#codex_executable_contract.carrier.target_packaging_policy`
+Owner: `one-person-lab-app` for composition policy; `opl-aion-shell` for implementation.
+Purpose: runtime byte sources, packaged composition and identity boundary.
+State: current source reference; installed evidence is cohort-specific.
 
-## 结论
+## Composition
 
-OPL 不 fork、不 patch AionCore，也不维护第二套 Codex 下载器或版本 SSOT。AionCore
-`prepare-managed-resources` 继续完整导出 Node、Claude 和 Codex，但该导出只进入临时
-staging。Shell 从上游 manifest 选择 Node 和 Codex，生成 OPL-owned projection；Standard
-与 Full 最终包都只携带 AionCore、Node 和 Codex，并物理排除 Claude。
+AionCore is an unmodified official dependency. The active Shell obtains Node
+from its schema-v2 producer export and selects official `@openai/codex` bytes
+independently through the Shell-owned intake contract. AionCore no longer owns
+the selected Codex version. Its Node export is temporary build input, not the
+distributed managed-resources manifest.
 
-这是当前开发和维护成本最低的平衡点：
+The policy owner is
+[`app-shell-adapter.json`](../../contracts/app-shell-adapter.json), under
+`codex_executable_contract.carrier.target_packaging_policy`. Exact Codex package,
+version, digest and verified AionCore compatibility live in the Shell's
+`contracts/aionui-upstream-intake.json#managed_runtime.codex_cli`. This page does
+not maintain a second version list.
 
-- AionCore 版本、Node/Codex 字节与 digest 继续跟随上游 AionCore release。
-- OPL 只维护一次小而显式的打包投影，不接管 AionCore 内部实现。
-- Standard 与 Full 共用 `bundled-aioncore`，无需两套 carrier。
-- 未来 Native GUI 可替换 shell/carrier，不需要迁移 Framework 或 Codex thread authority。
-
-App PR #149 与 Shell PR #32 已把 Codex-only projection、resolver、最终树排除策略和
-source tests 吸收到 canonical main。当前不再存在“Shell source 仍打包 raw export”的
-已知实现缺口；尚未完成的是新的 Standard/Full installed artifact replay，不能用 source
-tests 代替最终下载、安装与运行时证据。
-
-## 三层 SSOT
-
-| 层 | Owner | 内容 | 是否进入最终包 |
-| --- | --- | --- | --- |
-| Producer export | AionCore | schema v2；Node + Claude + Codex；版本和 digest 来源 | 否，只作临时 staging |
-| Packaged projection | `opl-aion-shell` | `opl_aioncore_managed_resources_projection.v1`；Node + Codex；引用 producer manifest digest | 是 |
-| Distributed bundle | `one-person-lab-app` release | 必需 AionCore、Node、Codex，并带 projection manifest 和 producer digest provenance；CLI set 恰为 Codex；Standard/Full 共用 | 是；Claude 必须物理不存在 |
-
-Projection 不是第二个版本源。它只能复制 producer export 已声明并校验的 Node/Codex entry，
-记录 producer manifest digest，并证明 Claude 被排除。禁止把 `clis=["codex"]` 冒充
-AionCore schema v2，也禁止把原始含 Claude 的 manifest 留在 distributed root。
-
-目标 manifest 的最小语义为：
-
-```json
-{
-  "schema": "opl_aioncore_managed_resources_projection.v1",
-  "runtimeKey": "darwin-arm64",
-  "source": {
-    "schemaVersion": 2,
-    "manifestSha256": "<producer-manifest-sha256>",
-    "cliNames": ["claude", "codex"]
-  },
-  "node": "<exact producer node entry>",
-  "clis": ["<exact producer codex entry>"],
-  "projection": {
-    "includedCliNames": ["codex"],
-    "excludedCliNames": ["claude"],
-    "requiredAbsentPaths": ["cli/claude"]
-  }
-}
-```
-
-字段细节由 Shell source 和测试固定，但不得改变上述 owner、来源和物理缺失语义。
-
-## 当前与目标
-
-| 事项 | 当前 source 状态 | 剩余终态 |
+| Layer | Owner | Result |
 | --- | --- | --- |
-| AionCore | upstream release，OPL 不修改 | 保持 |
-| Producer export | Node + Claude + Codex | 保持，仅作 staging |
-| Final `managed-resources` | source verifier要求 OPL projection，只含 Node + Codex | 新 artifact tree readback |
-| Standard | source/package policy携带 slim `bundled-aioncore` | clean install/Finder replay |
-| Full | 与 Standard 共用 slim AionCore carrier，无 Framework duplicate Codex | Full clean install后再执行 Standard update |
-| CI cold cache | 仍可下载 Node + Claude + Codex 到 task-scoped staging | 保持；不得进入用户 artifact |
-| 用户下载/安装 | source 已要求 Claude 五类物理缺失 | 新 Standard/Full artifact tree 逐项证明 |
-| Framework headless | 独立 carrier | 保持，不进入 App bundle |
+| AionCore and Node | Official AionCore release | Unmodified runtime plus Node-only staging export. |
+| Codex CLI | Official npm package, selected by Shell intake | Verified platform bytes and source identity. |
+| Packaged composition | Shell | `opl_aioncore_managed_resources_projection.v1` combining Node and Codex with producer and Codex-source provenance. |
+| Distributed App | App release owner | Standard and Full share one slim `bundled-aioncore`; Full differs in offline seeds elsewhere. |
 
-macOS arm64 当前 Claude payload 约 `247,124,336` bytes（`235.7 MiB`）installed、
-gzip 约 `72,579,289` bytes（`69.2 MiB`）。实际 release 节省量以最终各平台 artifact
-diff 为准，不能把单平台估算写成所有平台的完成证据。
+The final App must contain AionCore, Node and exactly one Codex CLI. Claude
+directories, executables/symlinks, Anthropic packages/archives, distribution cache
+entries and raw producer manifests must be absent. Build staging is not installed
+state. The composition neither patches AionCore nor changes user-owned tools.
 
-## 必须实现
+Framework's headless Codex carrier stays outside App bundles. Studio uses its own
+App-admitted carrier and has no AionCore dependency. Neither creates a second
+Package registry or Codex thread authority.
 
-### App SSOT
+## Runtime Identity
 
-Owner: `one-person-lab-app`
+The Shell derives `opl_codex_runtime_identity.v1` from the packaged projection.
+It binds path, realpath, version, binary digest, `CODEX_HOME`, platform, cohort and
+manifest provenance. Direct App Server validates that identity before spawn;
+AionCore receives the same `OPL_CODEX_BIN`, `CODEX_HOME`, identity and Codex-first
+PATH. A bound identity must not silently fall back to global or other managed
+Codex bytes when validation fails.
 
-- 已固定三层 owner 和不 fork AionCore 的边界。
-- 已固定 Standard/Full required components、CLI exact set 和 Claude physical-absence policy。
-- source implementation 已完成；packaged/runtime evidence 仍须单独登记。
-- 保留 Framework headless carrier 和未来 Native carrier independence。
+Missing installation, missing executable, unavailable runtime, required
+activation and identity drift retain their typed error boundary. Exact artifact
+identity is evidence, not a requirement that Framework headless and GUI share
+one physical installation or that all compatible artifacts have the same digest.
 
-### Shell producer
+AionCore does not expose a native identity readback. The ACP claim is limited to
+OPL-controlled process input plus a successful real handshake, never an invented
+AionCore self-report. Codex Core/App Server owns canonical threads and history.
 
-Owner: `gaofeng21cn/opl-aion-shell`
+## Verification And Historical Evidence
 
-- 已由 canonical source 实现 task-scoped staging、producer schema v2 校验、Codex-only
-  projection、cache currentness、失败清理和 projection resolver。
-- AionCore 继续从其预期物理目录启动；OPL 不 patch AionCore。
-- 新 source binding 在 packaged startup 生成 `opl_codex_runtime_identity.v1`，并把同一
-  Codex path、`CODEX_HOME`、identity JSON、cohort ref 和 PATH 传给 direct App Server
-  与 AionCore child。
+Source validators check composition, provenance and final-tree absence. Packaged
+qualification must inspect the actual artifact and prove ordinary ACP and direct
+App Server behavior using the same declared identity. Updates require complete App
+build, install and runtime readback; individual installed binaries are not hot-swapped.
 
-### Consumers 和 release gates
-
-Owner: `gaofeng21cn/opl-aion-shell`，App 只消费最终证据。
-
-- 目标 Standard/Full Desktop 必须接受同一 projection schema。
-- Standard/Full package verifier证明 AionCore、Node、Codex 存在且 digest 对齐 producer。
-- 最终树证明 `managed-resources/cli/claude`、Claude executable、Anthropic
-  package/archive 和 distribution cache entry 均不存在。
-- 原始 producer manifest 不得进入 final distributed root。
-- OPL 不发现、不验证、不支持 Claude route；同时不删除用户自行安装的文件。
-- Windows WSL2 与 Web CLI 若消费同一 `bundled-aioncore`，必须在各自下一次 publication
-  前通过 compatibility gate，但不阻塞本 App SSOT lane。
-
-## Issue 122 Runtime Identity SSOT
-
-本次 carrier 裁剪与 Issue 122 的 runtime identity closure 正交。它减少重复 payload，
-但 Claude 是否存在不影响单一 Codex identity 能否成立。当前机器 SSOT 是
-`contracts/app-runtime-bridge.json#shared_gui_runtime_resolution_policy`，证据格式是
-`contracts/opl-codex-runtime-identity-evidence.schema.json`。
-
-### 已落实的 source binding
-
-- Shell 从 Codex-only projection 生成 `opl_codex_runtime_identity.v1`。
-- identity 固定 `path`、`realpath`、version、binary SHA-256、`CODEX_HOME`、runtime key、
-  cohort ref、producer manifest digest 和 projection manifest digest。
-- direct `codex app-server` 在 spawn 前重新验证 realpath、digest、`CODEX_HOME` 和 cohort；
-  identity 存在时禁止回退 global Codex、其他 managed path 或 host PATH。
-- AionCore child 继承同一 `OPL_CODEX_BIN`、`CODEX_HOME`、identity JSON、cohort ref 和
-  Codex-first PATH；managed projection 中 Codex candidate 数量必须恰为 1。
-- 本地缺失、不可执行、未激活和 identity drift 保留 typed OPL error：
-  `USER_AGENT_NOT_INSTALLED`、`USER_AGENT_COMMAND_NOT_FOUND`、
-  `MANAGED_RUNTIME_UNAVAILABLE`、`RUNTIME_ACTIVATION_REQUIRED`、
-  `RUNTIME_IDENTITY_MISMATCH`。
-
-### 明确不做
-
-- 不 fork、不 patch、也不等待 AionCore 增加 API。
-- 不声称 AionCore 提供了不存在的 native identity readback。
-- 不把 exact identity 变成 App install/runtime readiness gate；能力与版本化 schema
-  compatibility 仍是产品 admission basis。
-- 不要求 App GUI 与 Framework headless 安装使用同一物理 Codex。Framework headless
-  carrier 是独立部署边界，不进入 Standard/Full App bundle。
-
-### 已完成的 artifact evidence
-
-`v26.8.1-r5` Standard 与独立 immutable Full adjunct
-`v26.8.1-r5-full-17f46a1d04b9` 已在同一 Tart VM 串行完成以下证据：
-
-1. `full_clean_install_finder`：无 global Codex、`PATH=/usr/bin:/bin`、Finder 启动、
-   direct initialize 与 ACP ordinary conversation real response 均通过。
-2. `standard_update_after_full_finder`：先安装 Full，再应用 Standard update，完全退出并从
-   Finder 重启；同样两条 handshake 通过。
-3. 两个 run 必须按 Full clean install -> Standard update 的顺序记录，都比较 path、
-   realpath、version、SHA-256、`CODEX_HOME` 和 cohort ref，并附 artifact tree、
-   environment、process inspection 与 handshake log digest。
-4. 两个 run 都执行五类 typed-error negative probes。
-5. `validate:codex-runtime-identity-evidence` 对两份 DMG 和 18 个运行 evidence ref
-   逐一验证 SHA-256，最终报告 `artifact_evidence_complete=true`、
-   `verified_file_count=20`。
-
-机器可读摘要在
-`docs/delivery/release-evidence/issue-122-codex-runtime-identity-v26.8.1-r5.json`。
-`same_physical_runtime_currently_claimed=true` 只表示每个 installed run 内 direct App
-Server 与 ACP 的 OPL-controlled identity 匹配；不表示 AionCore 提供 native readback，
-也不把 Full 与 Standard 两个独立签名 artifact 的 exact SHA 当成 compatibility gate。
-
-ACP 侧证据的正式 claim scope 是
-`opl_controlled_input_and_successful_handshake_without_aioncore_native_readback`。这能在不改
-AionCore 的前提下证明 OPL 控制边界和真实功能结果，但不能改写成“AionCore 自己回报了
-identity”。
-
-## 问题清单与验收
-
-| ID | 状态 | 问题 / 计划 | Owner / 完成条件 | 实际工时 |
-| --- | --- | --- | --- | --- |
-| A3 | source完成 | Codex-only projection、Claude 排除、App consumption | App PR #149 + Shell PR #32 canonical/parity/close | 已完成 |
-| R1-S | source完成 | 唯一 identity、direct 强校验、AionCore env、typed errors | Shell focused/type/lint/full + canonical parity/close | 约 6-8 小时 |
-| R1-C | source完成 | evidence schema、validator、negative tests、App SSOT | App focused/release/active-shell + canonical parity/close | 约 4-6 小时 |
-| R1-F | evidence完成 | Full clean install + minimal PATH + Finder 双 handshake | immutable Full artifact、同一 VM、strict evidence validator passed | 已完成 |
-| R1-U | evidence完成 | Full 后应用 Standard update + restart/Finder 双 handshake | immutable Standard artifact、同一 VM、strict evidence validator passed | 已完成 |
-| R1-N | evidence完成 | 五类 typed error probes | 两个 packaged run 均通过全部五码并保存 digest receipt | 已完成 |
-| U1 | optional | AionCore native identity/readback API | 仅上游自然提供时再消费 | 不纳入计划 |
-
-source 与 artifact evidence 均已完成。AionCore native readback 仍是 optional upstream
-enhancement，不属于 #122 当前 OPL acceptance 的 remaining。
-
-## 并行执行图
-
-```text
-Shell identity source + tests
-  -> Shell canonical integration
-       -> App contract/schema/tool + active-shell cross gate
-            -> App canonical integration
-
-Artifact phase:
-  Full artifact build --------\
-                               -> clean install/Finder run
-  Standard artifact build ----/     -> Standard update/restart/Finder run
-  typed negative fixtures ---------> both runs
-```
-
-Full 与 Standard artifact build、negative fixture 准备可以并行；同一安装 VM 上的
-Full clean install -> Standard update -> restart 必须串行。两仓 canonical `main` 吸收也
-必须使用各自 expected-head 短时串行，不能创建第二 writer。
-
-## 精确门禁
-
-1. App JSON parse、runtime identity evidence validator、contract negative tests。
-2. Shell identity/resolver/startup focused tests、typecheck、lint、format、full unit aggregate。
-3. fresh App/Shell main replay、cross-repo active-shell gate、remote tree/blob parity。
-4. artifact trigger 时验证 Full/Standard SHA-256、installed tree 和 Finder minimal PATH。
-5. direct App Server initialize、ACP real response、process/environment inspection与 typed errors。
-6. `npm run validate:codex-runtime-identity-evidence -- --input <evidence.json>`。
-
-测试通过、task branch、PR 或 candidate package都不是 #122 终态。本轮 packaged
-evidence validator 已通过；GitHub Issue 仍保持 OPEN，仅因为回复/关闭属于独立外部写入，
-必须获得 fresh 授权后才能执行。
-
-## 非目标
-
-- fork、patch 或等待 AionCore 增加新 CLI/API。
-- 让 OPL 自己下载、升级或选择 Codex 版本。
-- 删除 Framework headless carrier。
-- 禁止用户机器上独立安装 Claude。
-- 在没有 packaged smoke 时关闭 Issue 122 或声称 runtime identity 已完全证明。
+[`issue-122-codex-runtime-identity-v26.8.1-r5.json`](../delivery/release-evidence/issue-122-codex-runtime-identity-v26.8.1-r5.json)
+retains historical Full clean-install followed by Standard-update evidence for
+its exact artifacts. It is not proof for today's independently selected Codex
+bytes or new release cohort. The owning validator is
+`npm run validate:codex-runtime-identity-evidence`; current qualification and
+publication follow the [release guide](../delivery/release/README.md).

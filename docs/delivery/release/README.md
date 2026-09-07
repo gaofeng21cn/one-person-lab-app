@@ -21,8 +21,9 @@ PR/main CI or blocks the primary macOS arm64 Desktop release.
 ## Release acceleration
 
 After Standard publication and public readback, the same run calls the Stable follow-up hub.
-Full, Linux, Windows and Homebrew start alongside Docker publication; they do not wait for Docker
-promotion or for the whole Stable workflow to finish. The completion event is observation-only.
+Full, Linux, Windows and Homebrew follow-up lanes do not wait for the whole
+Stable workflow to finish. Docker operations use their independent workflow.
+The completion event is observation-only.
 Manual reconciliation still selects one exact lane and retains its existing owner and asset CAS.
 A checkpoint alone cannot authorize an append before its Standard Release is public.
 
@@ -145,29 +146,20 @@ git diff --check
 Use the first real failure as the repair point. A green local suite is only source evidence; it does
 not authorize public mutation.
 
-## Canonical Integration
+## Publication and recovery
 
-Fetch `main` and wire refs immediately before integration. Replay the intended semantics onto fresh
-`origin/main`, rerun affected gates, push the task ref, and read back its commit/tree/blob. Absorb by
-ordinary non-force update to canonical `main`, then repeat remote commit/tree/blob/raw readback.
-Public release mutation starts only after canonical source and hosted non-release gates are proven.
+Use the controller's admitted immutable candidate and the protected mutation job.
+Each upload compares exact name, size and digest; same bytes are idempotent and
+conflicting bytes require the contract's protected repair path. Never turn a
+historical migration's delete sequence into routine release instructions.
 
-## Public Mutation
+Unknown or timed-out outcomes require owner-authoritative readback before any
+further mutation. Source integration and task cleanup follow the repository's
+Git instructions; this guide does not define a second worktree lifecycle.
 
-For an existing Stable Release migration:
-
-1. Read the owner API and freeze the exact release id, tag, asset inventory and draft/prerelease state.
-2. Download source assets to a task-owned temporary directory; record name, byte size and SHA-256.
-3. Before each upload, compare the target asset name. Missing is writable, same bytes are idempotent,
-   and same name with different bytes is a conflict except for the protected `opl-install.sh` repair
-   path described above.
-4. Append Desktop assets first; fresh-read the target inventory.
-5. Delete only the exact superseded asset ids authorized for this migration.
-6. Verify every public download by size and SHA-256, plus Latest and release flags.
-7. Only then delete the superseded Release and tag.
-
-Unknown or timed-out mutation outcomes permit owner-authoritative read-only reconciliation only. Do
-not rerun a workflow, repeat an upload/delete, alter settings/secrets, or guess success.
+Local development builds use [manual-latest-builds.md](manual-latest-builds.md).
+Their separately protected preview publication and cleanup use the
+[Manual Full handoff](manual-full-preview-handoff.md).
 
 ## Docker WebUI
 

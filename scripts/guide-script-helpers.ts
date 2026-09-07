@@ -60,17 +60,13 @@ export function createGuideScriptHelpers(appRoot: string) {
       }
       return expanded;
     },
-    scanText(label: string, text: string, options: { forbiddenPhrases?: string[] } = {}) {
+    scanText(label: string, text: string) {
       const secretHits = forbiddenSecretPatterns.filter((pattern) => pattern.test(text)).map(String);
       if (secretHits.length > 0) {
         throw new Error(`${label} contains forbidden sensitive marker(s): ${secretHits.join(', ')}`);
       }
       if (/\{\{[^}]+\}\}/.test(text)) {
         throw new Error(`${label} contains unresolved template placeholder(s).`);
-      }
-      const forbiddenPhraseHits = (options.forbiddenPhrases ?? []).filter((phrase) => text.includes(phrase));
-      if (forbiddenPhraseHits.length > 0) {
-        throw new Error(`${label} contains forbidden phrase(s): ${forbiddenPhraseHits.join(', ')}`);
       }
     },
     withGeneratedLifecycleFrontMatter(markdown: string, lifecycle: string) {

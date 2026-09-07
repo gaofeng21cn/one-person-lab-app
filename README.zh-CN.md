@@ -2,377 +2,83 @@
   <img src="assets/branding/opl-app-logo.png" alt="One Person Lab App 标志" width="132" />
 </p>
 
-<p align="center">
-  <a href="./README.md">English</a> | <a href="./README.zh-CN.md"><strong>中文</strong></a>
-</p>
+<p align="center"><a href="README.md">English</a> | <strong>中文</strong></p>
 
-<h1 align="center">One Person Lab App</h1>
+# One Person Lab App
 
-<p align="center"><strong>面向复杂知识工作的本地优先 AI 工作台</strong></p>
-<p align="center">在本机或浏览器里进入通用任务和当前 Package 提供的专业工作，查看进度、继续长任务、检查交付物</p>
+面向复杂知识工作的本地优先 AI 工作台：开始或继续 Codex 任务，进入当前安装的
+Package 提供的专业工作，查看进度并打开交付物。
 
 <!--
-Owner: `one-person-lab-app`
-Purpose: `public_app_entry_zh_cn`
-State: `active_public_entry`
-Machine boundary: 人读产品入口。机器真相在 `contracts/`、源码、release artifacts、updater metadata、validation outputs，以及 App 消费的 OPL Framework/domain projections。
+Owner: one-person-lab-app
+Purpose: public_product_and_installation_entry_zh_cn
+State: active_public_entry
+Machine boundary: 当前合同、源码和精确发布/安装证据。
 -->
 
-<p align="center">
-  <img src="assets/branding/opl-app-user-journey-v2.png" alt="One Person Lab App 从选择任务到成果交付的用户旅程" width="100%" />
-</p>
+![One Person Lab App 用户旅程](assets/branding/opl-app-user-journey-v2.png)
 
-## 为什么需要它
+## 工作台
 
-AI 已经很擅长回答问题和生成内容，但当工作变成一篇论文、一个基金本子、一套汇报材料或一个长期项目时，用户真正关心的是：
+App 将对话、项目上下文、文件、长期任务和专业入口放在同一个工作空间。首页入口
+动态来自 Framework 对已安装 Agent Packages 的投影；各 Package 保留专业判断、
+业务任务生命周期和交付物权威。
 
-- 从哪里开始，下一步该做什么？
-- 之前跑过的任务进展到哪一步了？
-- 生成了哪些文件，哪些还需要检查？
-- 后台任务是否还在运行，失败时卡在哪里？
-- 研究、基金、汇报这些专业 Agent 能不能放在一个统一入口里使用？
+Codex 持有对话与执行。项目用于可选上下文和组织信息，普通任务无需先选择工作目录。
+Runtime 展示 owner 提供的业务进度与执行状态，Settings 负责软件、连接和维护。
 
-**One Person Lab App 就是这个入口。** 它把 One Person Lab、专业 Agent 和常用工具打包成桌面应用，让用户用一个界面进入复杂知识工作。
-
-它不是把研究、基金、汇报压成一排按钮，而是把“开始、继续、查看进度、打开文件、处理阻塞”放到同一个产品里。用户不用关心背后是哪一个专业 Agent 在工作，只需要看到当前任务做到哪一步、生成了什么、还缺什么、下一步怎么继续。
-
-OPL App 也不是只能装在一台 Mac 上的本地工具。对用户发布的 App 产品只有
-Desktop，提供 Standard 与 Full 两种载荷密度。macOS 与 Linux Desktop 可在 headless
-host 上运行，并通过浏览器访问同一个内置 WebUI。Docker WebUI 是独立容器产品线，
-不是 Desktop follower，也不属于 Desktop GitHub Release。
-OPL Cloud 是与 Base、App、Packages 并列的第四层产品，正在建设和持续交付。
-OPL Cloud 在线工作空间按照真实产品与运行证据接入同一套工作台语义。
-
-## 核心亮点
-
-**一个入口进入多类专业 AI 工作**<br/>
-从桌面应用进入通用工作，以及当前安装的 Package 动态提供的专业工作，不需要在多个命令、仓库和工具之间切换。
-
-**桌面与浏览器共享一套工作台**<br/>
-用户可以在 Desktop 窗口中使用，也可以通过 macOS/Linux Desktop 自带的 WebUI 在
-浏览器中访问同一工作台。Docker WebUI 是面向服务器与隔离部署的独立容器产品线。
-OPL Cloud 在线工作空间与本机工作台共享任务、成果、进度和责任语言，并以真实的产品与运行投影进入 App。
-
-**看得见长任务进度**<br/>
-应用展示任务进展、文件、运行状态和可继续的上下文。用户回来时可以直接看到做到了哪一步、有哪些结果、是否需要人工处理。
-
-**把首次安装做成产品体验**<br/>
-macOS 新用户优先使用 Full 首次安装包，减少 Base、Package seeds 和工具载荷的首启在线下载。
-
-**专业 Agent 保持清晰分工**<br/>
-首页入口来自 Framework 对当前 Agent Packages 的动态投影。8.22 当前提供科研、基金申请、视觉交付和智能体构建入口；各 Package 仍保留自己的专业判断和交付边界。
-
-**让专业 AI 保持专业空间**<br/>
-App 负责把入口、进度、文件和交付体验做好；医学研究、基金写作和视觉交付的具体判断，仍交给对应专业 Agent 完成。当任务进入专业阶段时，用户可以看到 AI 读资料、比较方案、接受审阅、继续修订并形成下一版交付物。
-
-**适合从日常使用走向长期托管**<br/>
-它不只服务一次对话，也面向需要多轮推进、后台维护、失败恢复、远程访问和持续交付的工作。
-
-## 设计理念
-
-想了解 OPL App 为什么从工作目的开始、如何让成果带着来路，以及为什么把内部诊断留在需要时才展开，请阅读 [OPL App 白皮书（HTML）](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html) 或 [PDF 版本](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.pdf)。
+桌面产品提供 Standard 和 Full 两种载荷密度。macOS/Linux Desktop 同时提供内置
+浏览器模式，也可在 headless host 上使用。Docker WebUI 是独立发布的容器产品。
+云端能力通过真实 owner 投影接入；实际可用范围取决于所选部署和对应证据。
 
 ## 下载与安装
 
-用户先选择 macOS/Linux/Windows Desktop、macOS/Linux Desktop 自带的浏览器模式，
-或独立 Docker WebUI，不需要先理解 GitHub、Homebrew 或 GHCR。Standard 与 Full 是
-Desktop 载荷密度，当前 Full 只在 macOS arm64 公开；Headless 只安装 Framework Base，
-不属于 App 产品。统一入口、平台矩阵、校验、更新和回滚见
-[One Person Lab 安装指南](docs/delivery/install/README.zh-CN.md)；维护侧术语与状态见
-[分发与安装 SSOT](docs/delivery/distribution-and-install-ssot.md)。
+先阅读[安装指南](docs/delivery/install/README.zh-CN.md)，选择平台并完成可信下载、
+摘要校验、首次启动和更新。当前桌面资产位于
+[Latest Release](https://github.com/gaofeng21cn/one-person-lab-app/releases/latest)，
+该 Release 的平台 manifest 持有实际文件名和摘要。
 
-macOS 首次安装推荐 Full。Standard 适合升级，或网络环境非常好的联网安装；它会在安装和
-首次检查期间下载 Base、Packages 和其他模块，并需要访问所选模型服务。例如使用 OpenAI 时，
-需要能够直连 OpenAI。安装或首次检查异常时，先排查网络、代理、DNS 和目标服务连通性。
+macOS arm64 首次安装优先选择当前 Release 已提供的 Full DMG，以减少在线下载。
+Standard 适合升级或网络条件良好的安装。两种密度使用同一个 Official Profile；
+Full 只增加离线 seed，模型服务仍需要所选账户或 provider 的连接。
 
-### Homebrew
+| 平台或部署 | 教程 |
+| --- | --- |
+| macOS 桌面 | [图文安装教程](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html) |
+| Windows x64 桌面 | [下载、校验与 WSL2 边界](https://gaofeng21cn.github.io/one-person-lab-app/latest/windows-app-install/windows-app-install.html) |
+| Linux 桌面及内置浏览器模式 | [安装指南](docs/delivery/install/README.zh-CN.md) |
+| 服务器、NAS 或隔离宿主上的 Docker | [容器安装教程](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html) |
 
-已经使用 Homebrew 的 macOS arm64 用户，可以走最短终端路径：
-
-```bash
-brew tap gaofeng21cn/one-person-lab
-brew install --cask one-person-lab
-open -a "One Person Lab"
-```
-
-更新使用标准 Homebrew 流程：
-
-```bash
-brew update
-brew upgrade --cask one-person-lab
-```
-
-Homebrew 是 App cask 分发路径。安装后打开 `One Person Lab.app`；首次启动使用共享的 App 设置流程，然后由 App 在后台继续所需维护。如果 App 提示需要设置或修复，按应用内提示操作。需要终端诊断时，可以运行：
-
-```bash
-opl system initialize --json
-```
-
-Homebrew 本身也支持 Linux。`opl` Formula 是 Base/CLI carrier，Cask 是 Desktop
-carrier。Docker WebUI 由 GHCR 独立版本化，不从 Desktop Stable 继承 authority。
-
-Full 是 macOS Stable 必须提供的首次安装载体，由 Standard 之后独立执行的 operation 追加。Standard 先公开并成为 Latest；Full
-成功后只向同一个 Standard Release/tag 新增 Full DMG 与
-`opl-release-manifest.json`，不创建平行 Full Release/tag，也不修改 Standard assets、
-release body、updater metadata 或 Latest。Full Homebrew follower 只消费该同 tag、
-digest-bound 的结果。
-Nightly 表示 Automated Preview，不是第三种质量或载荷密度。当前 schedule 选择
-Standard 密度且默认不移动 Latest；独立的 protected single-use pointer operation
-可以临时选择 exact published Preview，而不提升质量，下一 qualified Stable 默认
-reclaim Latest。Nightly publication 及其 digest-bound Homebrew follower 已实现，
-但在首个公开 publication 和 follower readback 完成前不得称为 production-verified。
-具体 release channel、updater、Full package 和 macOS trust 细节由
-[App release guide](docs/delivery/release/README.md) 与 App contracts 维护。
-
-### 可信安装入口
-
-macOS 与 Linux 使用当前 Latest Release 提供的同一个公共安装器入口。通过稳定的
-Latest URL 下载脚本和 component manifest，校验脚本 digest 后再执行；安装器会先把
-Latest 解析为一个精确 Release，再下载资产或修改 App：
-
-```bash
-BASE="https://github.com/gaofeng21cn/one-person-lab-app/releases/latest/download"
-curl -fLO "${BASE}/opl-install.sh"
-curl -fLO "${BASE}/opl-app-component-manifest.json"
-EXPECTED="$(jq -r '.artifacts[] | select(.name == "opl-install.sh") | .digest | sub("^sha256:"; "")' opl-app-component-manifest.json)"
-if command -v shasum >/dev/null 2>&1; then
-  ACTUAL="$(shasum -a 256 opl-install.sh | awk '{print $1}')"
-else
-  ACTUAL="$(sha256sum opl-install.sh | awk '{print $1}')"
-fi
-test "$ACTUAL" = "$EXPECTED"
-chmod 0755 opl-install.sh
-./opl-install.sh
-```
-
-使用 `--desktop` 安装 App；当前 macOS Stable installer 提供
-`--standard`/`--full`。Linux 安装同 tag Desktop package，并可在 headless host 上
-提供内置 WebUI。`--headless` 只安装 Framework Base。
-
-已安装 Homebrew 的 macOS 用户使用摘要绑定的 Standard Cask：
+已使用 Homebrew 的用户可安装 Standard 桌面载体：
 
 ```bash
 brew install --cask gaofeng21cn/one-person-lab/one-person-lab
+open -a "One Person Lab"
 ```
 
-未安装 Homebrew 时，从下面的 Latest GitHub Release 下载 DMG。不要把可变
-`main` 分支中的 `install.sh` 直接通过管道交给 shell 执行。仓库脚本仍供从已审阅
-source checkout 开发或恢复时运行 `./install.sh`。Release 中的 `opl-install.sh`
-是唯一公开 installer，会在任何 App 目标变更前解析精确 Release，并校验 component
-manifest 与 DMG：
+日常更新使用安装 App 的载体。Full seed 不是平行更新通道；Base、App 和 Packages
+保留各自生命周期 owner，用户数据和交付物属于独立存储边界。产品支持和公开资产
+存在本身不能证明实际安装运行已经验收。精确平台与交付模型见
+[分发与安装参考](docs/delivery/distribution-and-install-ssot.md)。
 
-```bash
-curl -fLO https://github.com/gaofeng21cn/one-person-lab-app/releases/latest/download/opl-install.sh
-chmod 0755 opl-install.sh
-./opl-install.sh --stable-macos-install --full --yes
-```
+## 隐私与信任
 
-### 直接下载
+请阅读[隐私政策](docs/security/privacy-policy.md)和
+[代码签名政策](docs/security/code-signing-policy.md)。Windows Authenticode 是可选
+信誉增强；获批后可接入 [SignPath.io](https://about.signpath.io/) 和
+[SignPath Foundation](https://signpath.org/) 或其他可验证服务。
+每个产物必须如实标明签名状态，并通过相应下载与发布完整性校验。
 
-也可以从发布页下载当前桌面包：
+## 项目
 
-[下载 One Person Lab App](https://github.com/gaofeng21cn/one-person-lab-app/releases/latest)
+本仓负责 App 产品行为、打包与发布验收。
+[One Person Lab Framework](https://github.com/gaofeng21cn/one-person-lab)
+负责运行与 Package 投影，领域 Packages 负责专业判断和交付物。AionUI 是当前
+活动 Shell，OPL Studio 是 foreground candidate；两者使用独立外部 checkout，
+保留各自源码历史。AionCore 是未修改的官方依赖。
 
-macOS arm64 新用户选择同一 Standard Release 页面的
-`One-Person-Lab-Full-<version>-mac-arm64.dmg`。刚发版时如暂未显示 Full，请等待同 tag
-追加完成；Full 后续出现不会改变哪个 Standard 是 Latest。
-
-Stable 发布不依赖 GitHub 仓库级 Immutable Releases。Standard 资产通过精确的
-name/size/digest CAS 与统一 `opl-release-attestation.json` 保护；Full 后续只能向同一
-Release/tag 追加其精确 DMG 和 manifest。已有 immutable Release 仅作只读历史证据，
-不迁移、不改写。
-
-支持的 App 产品是 Desktop Standard/Full。DMG、Homebrew 与平台 package 是 Desktop
-carrier；Docker WebUI 通过 GHCR 独立发布。矩阵本身不声明
-某个精确平台资产已经公开或安装；应检查所选 Release 的 manifest、digest、
-qualification 和安装 readback。macOS Desktop 首次启动图文教程以
-[macOS App install user guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html)
-为主入口；同一份 guide 也提供
-[可转发 PDF](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pdf)、
-[可转发 PPTX](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pptx) 和
-[detailed PDF](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-detailed-guide.pdf)。
-
-日常更新由 Homebrew 或应用内更新通道完成，取决于安装方式。release asset、updater metadata 和 Full first-install 边界由 App release guide 与 contracts 维护。
-
-### 隐私与代码签名
-
-[隐私政策](docs/security/privacy-policy.md)明确本地数据、外部服务、更新、支持和崩溃
-报告的真实边界；[代码签名政策](docs/security/code-signing-policy.md)定义构建来源、
-审批人、签名范围、验证和 fail-closed 身份规则。Windows Authenticode 是可选信誉增强，
-不是发布门禁。项目获批后可使用 [SignPath.io](https://about.signpath.io/) 与
-[SignPath Foundation](https://signpath.org/) 证书，或其他可验证的 HSM 托管服务；
-服务商审核不会阻断发布。每个产物必须如实声明签名状态，未签名产物不得描述为已签名。
-
-### 安装与更新对象
-
-Full 密度包是供干净机器或离线使用的 macOS Desktop 预置载荷，不是长期更新通道。
-安装完成后，App
-维护只暴露三个软件对象。运行时、集成、Codex 投影和 profile migration
-都只是所属对象内部的状态详情，不形成独立 updater：
-
-| 对象 | 用户应如何理解 |
-| --- | --- |
-| OPL Base | Framework 持有的无界面运行前提。Runtime substrate、隔离的 embedded Codex CLI、Temporal、native helpers 和 companion-tool integration 都是 Base 内部的依赖或集成状态。Homebrew Formula `opl` 与 Framework installer 只是同一 Base 对象的不同 carrier。 |
-| OPL App | GUI 与控制面。standard updater、Homebrew Cask 和 signed installer 只更新 App carrier，不修改 Base 或 Packages。 |
-| OPL Packages | Agent、能力和工作流 package，包括 MAS/MAG/RCA/OMA/OBF、MAS Scholar Skills 与 OPL Flow。各 owner 定义 identity 与 publication，配置的平台原生 carrier 持有物理 lifecycle 与 installed readback，Framework 聚合 installed/callable 状态和通用 actions。Codex Surface readiness 和 workflow-profile migration 仍是内部详情，不是独立软件对象或更新通道。 |
-
-安装源只提供 bytes。Framework 持有 Base reconciliation，并从配置的平台原生 carrier
-聚合 Package 状态与 actions；App 只投影“已是最新、后台更新、重启完成、建议刷新
-Codex、需要处理”五类用户状态。Package action 只有在 carrier-native readback 后才完成；
-staged Base runtime 与 App carrier 变更在 App 重启后切换，并保留各自 owner 定义的
-rollback evidence。
-
-User Data / Artifacts 属于独立的存储、保留与清理边界，不是可安装软件，也不会成为第四个 updater 对象。
-
-Windows 11 x64 用户应打开
-[当前 Latest Release](https://github.com/gaofeng21cn/one-person-lab-app/releases/latest)，
-选择其中的 Windows x64 EXE。同一 Release 的平台 manifest 持有当前文件名、大小和
-SHA-256，教程不复制版本绑定的发版数据。公开资产与 digest
-不能证明 WSL2 runtime acceptance、installed behavior、签名、supported-platform 完成或
-release-wide ready。
-下载、摘要校验、首次启动、WSL2 边界和更新步骤见
-[Windows x64 安装教程](https://gaofeng21cn.github.io/one-person-lab-app/latest/windows-app-install/windows-app-install.html)。
-
-Linux x64 使用 Latest Release 的 `.deb` 与
-`opl-install.sh --desktop --standard`；安装器会先把 Latest 绑定到一个精确 tag。
-`--webui` 只把同一 Desktop 包启动为浏览器模式，
-不会恢复已退役的独立 Native WebUI carrier；资产公开与 installed/runtime acceptance
-仍是两项独立结论。
-
-服务器、NAS、云主机或需要容器隔离的用户使用 Docker WebUI 时，请从
-[Docker/WebUI install guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html) 开始；Linux x86_64
-个人电脑默认使用 Desktop 或其自带浏览器模式。同一份 Container guide 也提供
-[detailed PDF](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf)。
-
-## 应用能做什么
-
-One Person Lab App 是面向用户的日常 chat-first 桌面入口：
-
-- 从一个桌面界面进入通用工作，以及当前安装的 Package 动态提供的专业工作入口。
-- 在 macOS 桌面、本机/服务器浏览器 WebUI 与 OPL Cloud 在线工作空间之间保留同一套工作台语义。
-- 8.22 当前投影科研、基金申请、视觉交付和智能体构建入口；安装、启用或移除 Package 后，首页随 Framework 投影更新。
-- 展示进度、文件、运行状态和可恢复的工作上下文，帮助用户继续长任务和检查交付物。
-- 首次启动先完成最基本的可用准备，再让更完整的运行环境和专业 Agent 载荷在后台维护。
-- 通过 Homebrew、直接下载或完整首次安装包提供安装和更新路径。
-- 把 One Person Lab 和领域智能体呈现为可直接使用的产品体验。
-
-## 用户路径
-
-1. 从发布页下载应用包。
-2. 打开 `One Person Lab.app`。
-3. 让首次启动完成基础设置；界面会显示准备进度和下一步。
-4. 选择工作目录。
-5. 开始通用工作，或选择当前 Package 提供的专业工作入口。
-6. 通过进度、文件和运行状态视图继续任务、检查交付物。
-
-## 产品边界
-
-One Person Lab App 负责桌面产品体验：打包、发布、更新、首次启动、界面状态、截图和用户文档。它证明的是用户能否顺利安装、打开、进入任务、查看进度和处理文件；医学研究、基金写作和视觉交付是否合格，仍由对应专业 Agent 和人工决策来判断。
-
-公开角色图：
-
-- App 是普通用户产品入口和 GUI 产品事实源。产品导航、页面状态预期、用户文档、截图，以及让用户管理专业 Agent package 的界面，都由 App 仓维护。
-- Agent package management 是 App 产品面。各 Package owner 定义 identity 与 publication，配置的平台原生 carrier 持有物理 lifecycle 与 installed readback，Framework/root 聚合 installed/callable 状态和通用 actions。App 渲染这份动态 projection，不能把 shell 本地状态当成安装权威。
-- One Person Lab Framework/root 持有 App 背后的 runtime state、action execution、package/runtime projection、provider/domain projection 和领域路由事实。
-- AionUI 是主线 shell implementation carrier；OPL Studio 是开发备选候选。二者都消费 App/root canonical state，不持有 product、runtime、package 或 domain truth。
-
-App 决定用户看到的安装形态、默认入口、首次启动体验和设置界面。One Person Lab Framework 提供背后的运行、初始化和进度数据，MAS、MAG、RCA、OBF 承载各自专业判断和交付物。App 只负责把这些能力呈现为用户能使用的桌面产品体验，不替专业 Agent 做领域判断。
-
-当前 OPL App 工作台发布为 Desktop Standard 或 Full；macOS/Linux Desktop 的内置
-WebUI 可从浏览器使用，包括 headless host。Docker WebUI 是独立容器产品线。
-OPL Cloud 在线工作空间沿用同一套任务、成果、进度和责任语言。
-App 根据当前的产品与运行投影呈现云端能力，OPL Cloud 持续交付在线服务并维护相应产品事实。
-
-GUI 产品事实也由 App 仓维护。当前 GUI 主线是基于 AionUI 的 OPL 品牌壳；OPL Studio 是唯一开发备选和 foreground candidate。PilotDeck 等外部项目只作为参考材料；真正进入产品的界面、默认行为和发布体验，以 App 仓的产品文档、合同和验证结果为准。
-
-需要框架、运行时和合同信息时，请进入 [`gaofeng21cn/one-person-lab`](https://github.com/gaofeng21cn/one-person-lab)。
-
-## 技术入口
-
-<details>
-  <summary><strong>展开开发者与发布说明</strong></summary>
-
-### 仓库结构
-
-```text
-one-person-lab-app/
-  assets/               应用首页和产品视觉资产
-  docs/                 应用产品、发布、测试、截图和用户文档
-  contracts/            应用层机器可读合同
-  scripts/              应用层验证和发布包装脚本
-  shells/
-    aionui/             gaofeng21cn/opl-aion-shell 的外部检出目录
-```
-
-`shells/aionui/` 不纳入本仓跟踪。构建和验证时从 `gaofeng21cn/opl-aion-shell` 检出，AionUI 历史和贡献者记录保留在独立 shell 仓库中。OPL Studio 作为唯一开发备选候选，同样以 `shells/opl-studio` 外部检出承载；该检出本身实现完整的 DSH/Cordis Application Host、原生 Codex 集成与三种 delivery carrier，不是 App 仓内的 GUI 子模块。
-
-### 常用验证命令
-
-```bash
-npm run ensure:shell
-bun install --cwd shells/aionui --frozen-lockfile
-bun run validate:active-shell
-npm run validate:gui-shell
-bun run i18n:types
-bun run test
-bun run build-mac
-```
-
-发布资产归一化和验证从应用根目录暴露：
-
-```bash
-bun run prepare-release-assets -- build-artifacts release-assets
-bun run validate-release -- release-assets
-```
-
-当前活动界面由 [`contracts/app-shell-adapter.json`](contracts/app-shell-adapter.json) 声明：
-
-- 活动界面：`aionui`
-- 界面目录：`shells/aionui`
-- 运行桥接合同：`contracts/app-runtime-bridge.json`
-- 上游家族：`AionUI`
-- 界面来源：`gaofeng21cn/opl-aion-shell`
-- 历史策略：外部检出，不合并进 App 默认分支
-
-不改变默认发布 adapter 的情况下，可以显式选择 OPL Studio 开发备选候选：
-
-```bash
-OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/shell-adapters/opl-studio.json npm run package
-```
-
-当前迁移与发布状态见 [`docs/status.md`](docs/status.md)。
-
-### 产品与安装合同
-
-App 产品默认策略由
-[`contracts/app-product-profile.json`](contracts/app-product-profile.json)
-声明。安装与 Codex 可见暴露策略由
-[`contracts/app-install-exposure-policy.json`](contracts/app-install-exposure-policy.json)
-声明，运行桥接策略由
-[`contracts/app-runtime-bridge.json`](contracts/app-runtime-bridge.json)
-声明，release channel 策略由
-[`contracts/app-release-channel.json`](contracts/app-release-channel.json)
-声明。这些 contracts 维护用户可见安装面、standard 与 Full package 边界、
-7 层安装/更新分类、updater 可见性、Homebrew cask policy、条件保留的 X0-01 运行状态页桥接行为、
-App 管理的 Codex 暴露、Workflow Profile merge 边界和 release validation gates。
-
-OPL Framework 仍生产 install/sync/read-model surfaces、runtime state 和 action
-execution。MAS/MAG/RCA/OMA 继续持有 domain skill semantics、quality/export
-judgment、artifact authority 和 owner receipts。发布脚本会在打包前把 App-owned
-product contracts 同步到活动 shell，让 shell 消费 App truth，而不是定义 App
-truth。
-
-当前 release 操作、Full package policy、macOS trust 诊断、updater metadata 和 evidence
-gates 见 [App release guide](docs/delivery/release/README.md)。当前 App 产品状态和剩余
-gap 见 [`docs/status.md`](docs/status.md) 与
-[`docs/active/app-ideal-state-gap-plan.md`](docs/active/app-ideal-state-gap-plan.md)。
-
-GUI 定义栈按顺序阅读：[`docs/product/gui/ideal-interaction-spec.md`](docs/product/gui/ideal-interaction-spec.md) 定义不绑定具体 shell 的理想交互形态，[`docs/product/gui/codex-to-opl-app-delta.md`](docs/product/gui/codex-to-opl-app-delta.md) 定义 Codex App 变成 OPL App 需要追加、隐藏和治理的产品增量，[`docs/product/gui/feature-inventory.md`](docs/product/gui/feature-inventory.md) 维护跨 shell 的能力清单。后续设计或评审 GUI 时先看这三份，再看 contracts 和 page-state 矩阵；AionUI 是当前实现主线，OPL Studio 是唯一开发备选和 foreground candidate，PilotDeck 等外部项目只提供参考材料，不能反过来定义 OPL App 产品事实。
-
-### Agent / Framework Boundary
-
-- App 展示 OPL route 和 progress projection 给出的下一步、阻塞、文件和状态，但不把它们当成 MAS/MAG/RCA 的领域裁决。
-- Foundry Agents 的具体工作仍发生在各自 stage attempt 内部；App 不规定专业 Agent 必须按什么工具顺序思考或创作。
-- 工具和技能入口对 App 来说是可用能力目录；权限、凭据、可写范围和质量裁决仍由 Framework 与 domain agent 的合同和回执约束。
-
-</details>
+[App 白皮书](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)
+解释产品设计。维护者从[文档入口](docs/README.md)进入
+[命令参考](scripts/README.md)或[测试指南](docs/testing/README.md)。当前源码与证据
+入口见[状态页](docs/status.md)，已授权发布操作见
+[发布指南](docs/delivery/release/README.md)。

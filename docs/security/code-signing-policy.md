@@ -4,15 +4,16 @@ Authenticode is an optional trust enhancement, not a Windows publication gate.
 The project may use [SignPath.io](https://about.signpath.io/) with a certificate
 from [SignPath Foundation](https://signpath.org/), or another verifiable
 HSM-backed provider, after approval. Provider review timelines do not block
-Preview, Stable base, Latest, or an explicitly selected Windows optional
-adjunct. Every artifact states its actual signing status; unsigned artifacts
+Preview, the macOS primary Stable release, Latest, or a Windows additive
+delivery. Every artifact states its actual signing status; unsigned artifacts
 must never be represented as signed.
 
 This policy covers Windows artifacts built from the public
 [`gaofeng21cn/one-person-lab-app`](https://github.com/gaofeng21cn/one-person-lab-app)
-repository. A valid signature identifies SignPath Foundation as the certificate
-publisher and binds the signed artifact to a verified GitHub-hosted build of
-this project. It does not imply that SignPath Foundation authored the software.
+repository. A signature identifies the certificate's actual publisher and binds
+the signed artifact to the verified build. When SignPath Foundation is the
+approved provider, its certificate identity does not imply that it authored
+the software.
 
 ## Project Roles
 
@@ -29,8 +30,8 @@ publication, and signing approval is independent from release authority.
 - Signing inputs must be produced by a GitHub-hosted runner from the reviewed
   source and build scripts in this repository.
 - The unsigned input is uploaded as an immutable GitHub Actions artifact before
-  it is submitted to SignPath.
-- SignPath verifies the GitHub workflow origin before applying a signature.
+  submission to the approved signing provider.
+- A SignPath integration must verify the GitHub workflow origin before signing.
 - Rerunning an old workflow does not make it a current signing candidate. A new
   candidate must bind fresh source, workflow, artifact, and approval identities.
 - No Authenticode private key or exportable certificate is stored in GitHub
@@ -62,7 +63,7 @@ When a signature is present, it is accepted only when all of the following are
 true:
 
 1. Windows reports a valid Authenticode signature and timestamp chain.
-2. The signer identity matches the approved SignPath Foundation certificate.
+2. The signer identity matches the certificate approved for that signing operation.
 3. The signed file digest and size match updater metadata, checksums, manifests,
    and the candidate receipt.
 4. The candidate passes the required clean-install and upgrade qualification for
@@ -93,7 +94,7 @@ artifact revocation.
 ## 中文摘要
 
 Windows Authenticode 是可选信誉增强，不再是 Preview、Stable 基础发布、Latest 或显式
-Windows optional adjunct 的阻断条件。SignPath Foundation 或其他 HSM 托管服务获批后仍可
+Windows 同 tag 追加交付的阻断条件。SignPath Foundation 或其他 HSM 托管服务获批后仍可
 接入；有签名时继续严格校验身份、时间戳和最终字节，无签名时 receipt 必须明确写 `unsigned`，
 并保留 SmartScreen 风险提示。两种路径都必须校验 immutable Release、来源、摘要、size、
 blockmap、updater metadata、manifest 和安装结果；任何未签名产物都不得冒充已签名。

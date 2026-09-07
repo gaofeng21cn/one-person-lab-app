@@ -39,8 +39,9 @@ Machine boundary: 本文是 shell-neutral 的人读交互目标。机器可读�
 8. **Thread operations stay native and thin。** 用户通过现有 directory/actions 执行 thread
    list/read/start/resume/fork/archive；App Server 拥有 thread truth，Shell 只做一个薄 adapter。
 9. **Executable carrier stays replaceable。** Shell 只通过 `OPL_CODEX_BIN` 获取 exact
-   Codex executable 并启动 App Server。当前 AionUI 可从 AionCore managed-resources
-   manifest 解析该路径，但 AionCore 不能进入 App/Framework 的 thread、product 或 Native
+   Codex executable 并启动 App Server。当前 AionUI 从 Shell-owned projection 解析该路径；
+   projection 组合官方 AionCore Node-only export 与 Shell 独立选择的官方 Codex package。
+   AionCore 不能进入 App/Framework 的 thread、product 或 Native
    adoption authority；替换 shell 只改变 executable source，不改变 `CODEX_HOME` 或 thread truth。
 
 没有明确 OPL delta 的主流程采用 OPL contracts 对观察时最新可验证的官方 ChatGPT Codex
@@ -86,7 +87,8 @@ macOS 所做的 composition 翻译；精确版本由每次 observation receipt �
    `+` palette 选择同一动态发现、已安装且对当前 surface 可见的 Agent Package；两条入口写入同一个 active capability 与 route receipt，
    Home 由 starter 选中态表达当前能力，不在 composer 重复标签。Package 安装、Home 显示与 lifecycle 管理在
    Settings → Agents 完成 package lifecycle；Settings → Capabilities 完成 Skills/Plugins/Flow 管理。普通文本中的
-   Agent 名称和 `@` 提及不改变 active capability；同一 prompt 可引用多个 Agent，但新会话仍只有零或一个 active
+   Agent 名称和普通文本 `@` 引用不改变 active capability；首次发送前，用户在明确的 `@` 选择器中选择 Agent
+   可以设置该新会话的 active capability。同一 prompt 可引用多个 Agent，但新会话仍只有零或一个 active
    Agent Package。跨 Agent 准入由目标主 Skill 阅读完整请求做语义判断，不由关键词、文件扩展名或失败码决定。
 4. **提交任务。** 用户输入说明、附加材料、确认模型/推理状态并发送。
 5. **观察执行。** Timeline 显示 pending、elapsed time、assistant output、tool/process
@@ -95,20 +97,20 @@ macOS 所做的 composition 翻译；精确版本由每次 observation receipt �
    locality、branch、changes、subtasks 和 sources；artifact/evidence 使用次级 section、
    preview 或 conversation disclosure，Terminal/Browser/Files 从 Environment 或任务需要打开。
 7. **继续或恢复。** Turn 完成后保留 compact receipt/next action；用户可继续提问、
-   切换 conversation；仅在 X0-01 route 显式启用时，才进入 Runtime 查看跨项目工作。
+   切换 conversation，或进入核心 Runtime 页面查看跨项目 Agent 工作。
 
 ## Project / Conversation Rail
 
 Rail 负责 navigation，不承担 dashboard：
 
-- Active AionUI 顶部固定 New task、运行状态、Scheduled tasks、Archived；Runtime route
-  仍不扩张 Native phase-1 或默认 release gate。会话级 current-task context 独立成立，不依赖全局 Runtime。Package/capability
+- Active AionUI 顶部固定 New task、运行状态、Scheduled tasks、Archived；Runtime 是核心
+  Agent 工作入口。会话级 current-task context 独立成立，不依赖全局 Runtime。Package/capability
   选择由 Home starter 承接，package 管理由 Settings → Agents 承接，Skills/Plugins/Flow
   管理由 Settings → Capabilities 承接，不在 rail 重复。
   其它全局入口仅在 OPL 有真实对应能力时保留。
 - 中段优先按显式 Project-affinity marker 分组 App Server threads，并以 canonical thread ID join。App Server overview
   可用时是 Codex session directory authority；carrier 只持有 affinity、draft、preference 和可重建 cache，不拥有 history。
-  缺显式 `projectId` 时，普通 recorded cwd 可生成不写回 affinity 的只读目录组；`~/Documents/Codex/**` 与
+  缺显式 UI affinity 时，普通 recorded cwd 可生成不写回 affinity 的只读目录组；`~/Documents/Codex/**` 与
   `~/.codex/worktrees/<id>/**` managed scratch 保持 projectless，不按叶目录生成同名 Project。Git origin URL 与
   turn/command runtime `pwd` 只进入 Environment，不作为 Project identity，也不参与分组。
   这类 Codex 对话行在标题右侧保留一个低权重分支图标，tooltip 和 accessible name 使用本地化“隔离工作树”；
@@ -136,21 +138,21 @@ Rail 负责 navigation，不承担 dashboard：
 - 切换 conversation 保留各自 scroll、draft 和 refs context。
 - New-session context bar 的工作目录动作明确说明只设置新 session 的初始工作目录；runtime `pwd` 不反写 App metadata。
 - 目录组提供“使用此工作目录新建对话”和 projectless session adoption。Adoption 支持拖动及键盘可达的等价动作，
-  仅 canonical `projectId` 缺失且 `thread/read` 再确认缺失的 thread eligible。Destination 是用户选择的唯一 canonical
+  仅版本化 UI metadata 尚未绑定 affinity 的 thread eligible。Destination 是用户选择的唯一
   Project directory，不要求覆盖 thread 曾引用的文件或目录；这些显式输入与 writable roots 仍是独立上下文/权限。
-  Carrier 通过现有单一 App Server adapter 的 typed affinity IPC 分配 `projectId`；只有 assignment 与 exact
-  `thread/read.projectId` 匹配且 recorded cwd 不变，才持久化本地 `canonical_project_id + custom_workspace=true`
-  projection 并移动 row。任一步失败都保持 projectless、显示轻提示且不阻止对话。已有显式 affinity 的 session
+  Carrier 通过现有 App Server adapter 回读 exact canonical thread identity，再以该 ID 为键写入
+  版本化 UI affinity；recorded cwd 保持不变。App Server 不提供 Project assignment authority，
+  Shell DTO 的 project 字段不构成上游回读。任一步失败都保持 projectless、显示轻提示且不阻止对话。已有显式 affinity 的 session
   不执行 assignment。目录组无 owner 语义，不提供组级删除，也不得级联
   archive/delete/reset 其下 session。
 - Home 的 New task 只通过 composer 上方独立 context bar 选择初始 cwd；Local/Worktree、starting branch
   仅在 active adapter 有真实 new-session action 时显示，不提供 managed Worktree create/reuse 的假入口。
 - Conversation Environment 只读显示 recorded workspace 与 live Git context，不提供已绑定 session 的目录
   重绑、Local↔Worktree lifecycle、projection transaction 或任意 rail 重分组。Projectless adoption 只走上述
-  单向、用户触发、affinity-assignment-backed 的 rail 动作；不能从 thread/runtime cwd 是否存在推断 projectless。
+  单向、用户触发的 UI affinity 动作；不能从 thread/runtime cwd 是否存在推断 projectless。
 - App 不保存 `opl_workspace_handoff.v1`，不发明私有 App Server adoption RPC，也不提供 managed Worktree、cleanup、
   snapshot receipt、restore 或 cross-host handoff 控制面。Projectless adoption 只在既有 adapter 内执行一次 typed
-  assignment 与 `thread/read` exact readback，不创建第二套 thread client、adoption service、pending 状态机或 receipt，
+  canonical-thread readback 与版本化 UI metadata 写入，不创建第二套 thread client、adoption service、pending 状态机或 receipt，
   不修改 recorded cwd 或 sandbox writable roots，也不授权 `bound(A) -> bound(B)`。用户或执行器为某一 turn 覆盖 cwd、
   在 shell 中改变 `pwd`，均不反写 canonical recorded cwd 或 Project affinity。
 - Backend、provider、permission、router 和 raw runtime state 不作为 rail 层级。
@@ -172,7 +174,7 @@ affordance，通过 application menu 与现有 conversation header 提供，并�
 Previous/Next 只在当前可见 ordinary conversations 中移动，不扩张 WebUI 产品 IA。
 Active AionUI 的一级导航固定按 New task、运行状态、Scheduled tasks、Archived 排列；
 “运行状态”在展开栏、折叠栏和窄窗口 drawer 中都可见并可键盘访问，目标为 `/runtime`。
-这只恢复 Runtime 导航，不把 Home 改成 dashboard，也不扩张 Native phase-1 或默认 release gate。
+Runtime 的显示范围与采用要求由当前 App contract 决定，Home 保持对话工作区。
 
 ## Home / New Conversation
 
@@ -226,9 +228,10 @@ Composer 是普通路径唯一主 command surface：
 - `+` 始终先打开与 composer 外边缘对齐、可搜索、分组、viewport-bounded 且内部可滚动的 capability
   palette，不因 Skill/MCP 目录为空而直接打开文件 picker；它添加文件/文件夹，并按 Home/new-session 与
   existing conversation 分别呈现 active adapter 可执行、由 Framework/native platform 动态发现且对当前
-  surface 可见的已安装 Agent Package、Skill 和真实连接，
+  surface 可见的已安装 Agent Package、OPL capability、Skill 和真实连接，
   以及 adapter 明确报告且不与 permission/access 重复的 mode。Agent Package 不允许在既有会话重绑；
-  Skill 在既有会话只调用已发现且 callable 的条目，连接只显示已加载状态。
+  Agent/OPL capability 在既有会话可为当前 turn 调用，不重绑 thread，也不触发 Package activation；
+  Skill 只调用已发现且 callable 的条目，连接只显示已加载状态。
   Working directory 不进入 palette，已选 capability/input 只显示为紧凑 chip。
 - Home starter 只是用户配置的快捷入口；`+` 中“专业智能体”组来自动态 installed Package directory
   与当前 surface 的用户可见偏好，不维护固定专业智能体清单。已卸载 Package 留在 Settings discovery，
@@ -259,8 +262,9 @@ Composer 是普通路径唯一主 command surface：
 ## Purpose 与 Capability 交互
 
 - 普通标签描述用户工作：科研、基金、演示、写书等。
-- Purpose 主要从 Home starter 选择；Home/new-session 的 `+` palette 是同一 active capability 的备用入口，
-  仅在首次发送前可用。Purpose 不再是 composer 的常驻可变 selector，也不在 rail 建立 Capabilities 主导航。
+- Purpose 从 Home starter、new-session `+` palette 或显式 `@` Agent selector 选择；三者在首次发送前
+  共享同一 active capability。既有会话的 palette 调用只影响当前 turn，不重绑 Agent。
+  Purpose 不作为 composer 的常驻可变 selector，也不在 rail 建立 Capabilities 主导航。
 - `+` 中的组名使用本地化“专业智能体 / Professional agents”，不向普通用户显示“智能体包”。
 - Composer 只以低权重显示 active capability；更换 capability 改变 route context
   与 assistant-scoped profile，不改变 executor。
@@ -314,14 +318,14 @@ OPL 增量按以下顺序进入：
 Bottom panel、file tree、Terminal、Browser 等 advanced work surfaces 保留，但默认关闭；
 用户显式打开后必须真实可见、可调、可关闭，不以 hidden DOM 冒充功能。
 
-## 条件 Runtime 交互（X0-01）
+## Runtime 交互
 
-Runtime 是显式启用 X0-01 时的跨 conversation/project 工作状态页。它不是核心导航、
-默认 release gate 或 Native phase-1 parity；未启用时，current-task context 与 Inspector refs
-仍在 conversation 内独立成立：
+Runtime 是 `core_dynamic_agent_runtime`：跨 conversation/project 展示动态发现的 Agent tasks。
+Agent/domain owner 提供业务状态，Temporal 提供执行状态，Framework 负责投影，App 负责显示。
+当前任务和 Inspector 在 conversation 内仍独立可用：
 
 - 普通读取和 refresh 使用 `opl app state --profile fast --json`。
-- Full state/operator drilldown 只在 explicit detail/diagnostic path 使用。
+- Full state/operator drilldown 只在 Maintenance diagnostics 或 release tooling 使用。
 - 首屏先回答：哪些任务真实在跑、哪些项目仍在推进、哪些排队、哪些需要关注。
 - User-facing primary state 与 automation/provider secondary state 分开展示。
 - Running 只来自权威 projection 的显式运行状态；active id、module dirt 或 DOM 不构成
@@ -332,7 +336,8 @@ Runtime 是显式启用 X0-01 时的跨 conversation/project 工作状态页。�
 - UI 不从 progress/readback 推断 domain-ready、artifact quality、production-ready 或
   release-ready。
 
-该条件 route 的专题设计见
+Typed domain views 使用 `opl_app.typed_domain_views.v3`；未知 view 或缺少 provider 只局部降级，
+不让 App 接管 domain schema。Runtime 的完整显示与动作边界见
 [`runtime-overview-redesign.md`](runtime-overview-redesign.md)。
 
 ## Settings 交互
@@ -361,7 +366,8 @@ Settings 是 OPL Control Center，不是 upstream 配置列表：
 
 First-run 的目标是让用户尽快进入可工作的 App：
 
-- Core readiness 只回答 workspace、Codex CLI 和可用模型访问是否满足普通 launch。
+- Core readiness 解释 workspace、Codex CLI 和模型访问的能力前置条件；ordinary launch 不等待它，
+  用户可显式进入 Guid，只有依赖未就绪能力的操作局部受限。
 - 当前 blocker 用用户语言解释，并只突出一个最重要 next action。
 - Initialization 显示真实 phase、elapsed time、完成/失败和恢复路径。
 - Full readiness、package reconcile、runtime provider 和 background maintenance 在进入
@@ -407,49 +413,13 @@ First-run 的目标是让用户尽快进入可工作的 App：
 - 状态不只靠颜色；icon button 有 accessible name；dialog/drawer 管理焦点和 Escape。
 - Streaming 与 live status 使用适当 announcement，避免逐 token 重复朗读。
 
-## 验收清单
+## 验收
 
-一个 shell 匹配理想交互，需要有匹配层级的 fresh evidence 证明：
+按本次改变的用户路径执行 focused behavior 与对应页面状态检查，覆盖成功、局部失败、
+键盘、窄窗和 draft 保留。核心路径是新建/恢复 conversation、显式输入与能力选择、
+发送/停止/审批、结果检查、Runtime 和 Settings 恢复入口。
 
-- 宽桌面打开即显示 project/conversation rail、single timeline 和 composer。
-- 窄窗口 rail 可收起并能以 drawer 重新打开。
-- Environment details 默认关闭且 anchored，打开后不破坏 conversation/draft。
-- Home 使用动态问题标题与全部已安装、用户可见的 configured starters，不静默截断，也不是
-  dashboard/landing。
-- Home 不为已卸载 Package 保留强制 starter；`ready`/`degraded` 条目可选择，
-  `package_unavailable` 条目显示 owner-projected 原因和恢复动作但不强制可选。选择后 identity
-  presence/callability、入口、安全目标或权限发生失败时只局部阻止所选 Package。Settings/new conversation/send
-  不执行 activation；Framework 仅在真实 StageRun/StageAttempt 前按该 stage 的 `workspace_locator` 激活。
-- Project task 与 projectless conversation 均可用；无 workspace 时 attachment、任意本地文件/目录
-  选择、paste/drop 与 `/open` 保持可用，访问只由 Codex permission/approval/sandbox 决定。
-- Projectless session 可一次性归入一个 canonical directory group；已绑定 session 不任意换组，runtime `pwd`
-  和额外 writable roots 不改变 Project affinity。
-- Composer 只有 textarea、send-local controls 和 bottom action row；Home/new-session context bar 是
-  composer stack 的独立上层，purpose 不再常驻可变 selector，既有 conversation 不重复 project/local/branch。
-- Permission/access mode 可见并用用户语言表达，不暴露 backend/provider。
-- Model/reasoning 及当前默认值来自 App product profile。
-- Current-task summary bar 可 pin，并包含 status/elapsed/progress/next action/stop。
-- Rail/Archived/conversation management 与 desktop affordances 完整可达。
-- Active AionUI rail 在 New task 之后、Scheduled tasks 之前持续显示“运行状态”，折叠态提供 tooltip
-  与 accessible name，窄窗口 drawer 保留文字标签。
-- Active AionUI Rail 顶部固定 New task、运行状态、Scheduled tasks、Archived；capability
-  选择在 Home，管理在 Settings，Native/default-release 的 Runtime gate 仍保持可选。
-- Environment 首层保持 recorded workspace/branch/changes/subtasks/sources；OPL artifact/evidence 为
-  次级 section/preview，advanced tools 默认关闭。
-- 普通 navigation 不展示独立 coordination 页面；用户可从现有 directory/actions 执行
-  list/read/start/resume/fork/archive/restore，普通 conversation 仍走现有 ACP。
-- Home New task 只用 composer 上方独立 context bar 设置初始 cwd；projectless adoption 从 rail 触发，经
-  typed affinity assignment 与 exact `thread/read.projectId`、recorded-cwd-unchanged readback 成功后持久化本地
-  projection，后续 conversation 以显式 Project affinity 作为默认 project hint，recorded cwd 继续作为独立 runtime
-  workspace。Conversation Environment 保持只读，Shell 不含 managed Worktree/Handoff 或已绑定 session
-  的任意目录重绑。Review复用
-  Files/Changes diff surface并覆盖四类 target、两种 delivery、五个
-  sections 与 `gh` unavailable 状态，其中 Last turn 已实现，custom instructions 只进入
-  `review/start.target.custom`。非 custom `Review Focus` 因公开 App Server 缺少对应 input 而
-  protocol-blocked；Shell 在启动 Review 前 fail closed，不调用 `turn/steer`，也不写成功 audit 或
-  产生其它副作用。Line-level comments同样保持 protocol-blocked。
-- Settings 使用 full-window shell，OPL IA、first-run、品牌和双语边界保持不变。
-- Pending、elapsed、tool/process、permission、failure 和 receipt 在 turn 中可理解。
-- Runtime/Settings 使用 App state/action/Control Plane，不拥有 owner truth。
-- 中英文、keyboard、focus、contrast、responsive panel 均可用。
-- Contract/DOM/source screenshot/package/VM/release evidence 没有跨层过度声明。
+产品分类与所需结果见 [功能目录](feature-inventory.md)，元素位置审查见
+[元素审计](element-audit.md)，视觉比较见 [像素验收协议](codex-app-visual-parity.md)。
+五轴证据与 carrier 验证入口见 [Shell conformance](shell-conformance-matrix.md)。
+本文不追加逐轮测试结果、已完成事项或与上文重复的长检查清单。

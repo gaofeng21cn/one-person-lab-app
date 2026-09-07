@@ -1,15 +1,36 @@
 # Windows WSL2 V6 Hyper-V Execution Runbook
 
+Owner: `one-person-lab-app`
+Purpose: execute and close one exact V6 diagnostic run.
 State: `validation_only_non_binding`
 Executor task: `authority_bindings.executor_task_id` from the immutable intake manifest
 Platform owner task: `authority_bindings.platform_owner_task_id` from the immutable intake manifest
-Source custodian task: `019f9bc5-8707-78b2-b221-5453d9d9b855`
 VM: `OPL-V6-WSL2-01`
 
+The [validation scope](validation-scope.md) defines acceptance and exclusions.
 This runbook is part of the immutable intake packet. The intake manifest binds
 its exact bytes. Do not use the historical Intel VM or its candidate ZIP as an
 input. Do not run WebUI, clean-install, Docker, release, or public-promotion
 operations in this lane.
+
+## 0. Materialize Intake
+
+From a clean checkout at the exact App acceptance commit, generate one absent
+packet directory with the fresh platform-owner and executor identities:
+
+```powershell
+node .\docs\delivery\validation\windows-wsl2\fixtures\v6-materialize-intake.mjs `
+  --app-sha <APP_ACCEPTANCE_SHA> `
+  --platform-owner-task-id <WINDOWS_PLATFORM_OWNER_TASK_ID> `
+  --executor-task-id <WINDOWS_EXECUTOR_TASK_ID> `
+  --output-dir C:\v6-packet
+Get-FileHash -Algorithm SHA256 C:\v6-packet\windows-wsl2-v6-intake-manifest.json
+```
+
+The generator owns frozen source identities and packet membership. Publish the
+exact packet through its distinct delivery commit before platform admission;
+the request and lease bind that delivery plus the manifest digest. An earlier
+packet, ZIP or lease cannot authorize the new operation.
 
 ## 1. Platform Lease
 
@@ -255,7 +276,7 @@ path is on the Windows host and `<...>` values come from the already verified
 manifest, lease, build receipt, or `Get-VM` readback:
 
 ```powershell
-node .\v6-host-closeout.mjs `
+node .\docs\delivery\validation\windows-wsl2\fixtures\v6-host-closeout.mjs `
   --vm-name OPL-V6-WSL2-01 `
   --expected-vm-id <VM_ID> `
   --writer-lease <HOST_WRITER_LEASE_JSON> `

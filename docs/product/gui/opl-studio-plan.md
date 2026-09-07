@@ -54,19 +54,12 @@ Bridge
 scope 分离保证 Studio 可以使用 DSH plugin ecosystem，同时不会创建第二套 OPL runtime、Package
 registry/currentness、App state/action、domain 或 product/release authority。
 
-## Native Codex Boundary
+## Application Host
 
-`opl-codex-native` 是 Studio 内唯一 Codex runtime owner。它启动一个持久
-`codex app-server --stdio`，并持有 canonical threads/turns、approvals 和 live events。Studio
-renderer 不保存第二份会话真相。
-
-DSH `ctx.tools` 通过 authenticated stateful loopback MCP 暴露给同一个 Codex child。因此只注册
-tools、或只依赖 Studio 已加载 Host services 的 DSH plugins 可以直接复用。依赖 DSH Session、LLM
-Provider、Agent Loop 或 Credentials 的 plugins 需要单独 adapter；Studio 不通过加载 `dsh-base`
-来换取兼容性。
-
-OPL Packages 仍由 Framework installed discovery 和 App contribution ABI 提供，不转换成 DSH
-plugins，也不由 Studio 维护 Package catalog。
+Studio 独立持有 DSH profile/plugin lifecycle、native Codex App Server、Framework bridge
+与三 carrier transport；Framework 持有 runtime/Package authority，App 持有产品/adoption。
+Host 结构、DSH plugin 兼容性和上游升级方法只维护在
+[Application Host composition](deepseek-harness-composition-plan.md)。
 
 ## Product Shape
 
@@ -83,60 +76,20 @@ GUI contributions 只进入 App 声明的 `settings.section`、`runtime.detail` 
 `composer.palette`。Client graph 由 Framework projection 与 App slot policy 派生，不允许
 browser-side Package discovery、arbitrary code plugin、第二 action bus 或第二 session store。
 
-## Current Source Status
+## Carrier Evidence
 
-App contracts 将 Studio Application Host 标为
-`source_implemented_release_admission_separate`。当前 source contract 已包含：
+Source stage 从 `contracts/app-shell-candidates.json` 与 Studio adapter 读取，当前 source
+或本地 build 不外推 adoption/release。`npm run package:candidate:studio` 由 App wrapper
+将当前 App checkout 注入 Studio，在 committed/clean source 上产出 Desktop、standalone
+WebUI、Docker smoke 和 exact-commit carrier manifest。详细操作只维护在
+[Shell candidates](gui-shell-candidates.md)。
 
-- pinned RC2 DSH boot/profile/overlay 和 selected GUI source cohort；
-- OPL Host plugin tree 与可回收 lifecycle；
-- persistent native Codex App Server；
-- DSH tools-to-Codex MCP bridge；
-- Framework state/action/auth/channel bridge；
-- shared renderer/Host core across Electron and HTTP/SSE；
-- three-carrier candidate evidence generator；
-- authenticated Cloud-shaped WebUI、native `amd64`/`arm64` Preview OCI workflow、
-  Cosign verification 与 `opl_studio_cloud_workspace_image_handoff.v1` admission；
-- App/Framework/Studio/AionUI Client conformance gate。
-
-本地三 carrier manifest 仍只证明 candidate build，不是 release 声明。公开 OCI Preview 使用独立
-handoff：App 只接纳 `ghcr.io/gaofeng21cn/opl-studio-webui` 的 immutable index/child digests、
-双原生架构、BuildKit SPDX/max provenance 和固定 GitHub OIDC workflow identity。该 admission
-不改变 Desktop distribution wiring、App Stable、active shell 或 Cloud activation 状态。
-
-## Three-Carrier Candidate Evidence
-
-Studio `npm run package` 不再只构建 Electron `.app`，而是按 App contract 顺序验证并生成：
-
-1. Electron Desktop `.app`；
-2. standalone headless WebUI archive；
-3. Docker local smoke receipt；
-4. `out/opl-studio-carrier-evidence-manifest.json`。
-
-该命令要求 Studio tracked source 已提交且在运行前后保持 clean，以便 manifest 绑定 exact
-`source_commit`。它从当前 App checkout 读取 `carrier_evidence_contract`，不会在 Studio 复制另一份
-carrier authority。生成物是 ignored local evidence；它不授权发布或 active-shell 切换。
-
-独立 WebUI Preview publication 由 Studio 的
-`.github/workflows/studio-webui-preview.yml` 持有，只允许 `v<Studio version>`、`sha-<Studio SHA>`
-以及验收后同步移动的 `preview`、`latest` 标签，禁止 `stable`。`latest` 只表示最新合格
-Preview，不表示 Stable 质量或 active-shell adoption。App 使用
-`npm run validate:candidate:studio:cloud-handoff -- <handoff.json>` 验证交付给 OPL Cloud 的 ABI；
-Cloud owner 后续激活与真实 Workspace smoke 不属于 Studio/App source admission。
-
-## Upstream DSH Policy
-
-Studio 必须保持可跟随上游，而不是形成私有 DSH fork：
-
-- 一个 exact version/ref 和一组同步 package versions；
-- profile、Web overlay、vendor inventory、license notices 同 cohort；
-- OPL branding、bridge、Host plugins 和 product behavior 留在 vendor tree 外；
-- 只允许有真实 OPL semantic/host/platform/accessibility caller 的最小 source delta；
-- 每次升级重跑 Host/MCP、renderer、Desktop/WebUI、candidate、notice 和 carrier gates；
-- Host service 或 authority 变化时先更新 App contract，再吸收 Studio implementation。
-
-完整升级方法见
-[`deepseek-harness-composition-plan.md`](deepseek-harness-composition-plan.md)。
+公开 WebUI Preview 使用独立 OCI handoff。App 接纳 immutable multi-arch digests、
+provenance 与 workflow identity，并通过
+`npm run validate:candidate:studio:cloud-handoff -- <handoff.json>` 验证 App/Cloud ABI。
+Preview 的 `latest` 不表示 Stable 或 active-shell adoption；Cloud activation 与真实
+Workspace smoke 仍归 Cloud owner。具体 image、tag 和 admission 字段以 App machine contract
+及 Studio publication workflow 为准，本文不复制移动的发布清单。
 
 ## Adoption And Release
 

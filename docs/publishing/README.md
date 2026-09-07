@@ -13,7 +13,10 @@ OPL install guides use a Quarto-first publishing pipeline:
 - Published reading outputs: Quarto Book HTML and PDF under `docs/site/latest/`.
 - Shared style: `docs/publishing/templates/opl-guide`.
 
-This keeps the maintenance boundary simple: edit QMD for prose, edit manifest JSON for paths and validation terms, edit screenshot manifest for image provenance, and edit templates for brand or layout.
+Edit QMD for prose, manifest JSON for build paths and download inputs, screenshot
+manifests for image provenance, and templates for brand or layout. Content
+correctness and document structure are reviewed against current code and contracts;
+keywords, minimum page counts and fixed phrases do not establish quality.
 
 The delivery tree under `docs/delivery/user-guides/` is not the prose source.
 It stores guide-specific Quarto manifests, generated Markdown/QMD snapshots, and
@@ -44,12 +47,11 @@ npm run docs:whitepaper
 The generator validates:
 
 - QMD placeholders are resolved.
-- Required terms are present in generated PDF text.
 - Forbidden secret-like markers are absent.
 - Referenced screenshots are declared.
 - Screenshot files exist and match declared dimensions or SHA256 when provided.
 - HTML and PDF are generated.
-- PDF is portrait and has a reasonable page count.
+- PDF is readable, nonempty and uses the template's portrait format.
 
 Generated HTML, Markdown, PDFs, and verification JSON are build artifacts. Do
 not hand-edit them as content sources. Public HTML filenames must match the

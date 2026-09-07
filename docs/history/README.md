@@ -5,9 +5,10 @@ Purpose: `app_history`
 State: `history_index`
 Machine boundary: Human-readable historical notes. Machine truth stays in `contracts/`, source, release artifacts, updater metadata, test outputs, active shell validation, and OPL Framework CLI/read-model output consumed by the App.
 
-Historical references to `opl-aion-shell` belong here or inside
-`shells/aionui/` upstream-intake documentation. Current product docs should use
-`one-person-lab-app`.
+Retained records explain a past decision or failure for their original cohort.
+They cannot authorize current implementation or publication. Current Shell
+references remain valid in active documentation when they identify its actual
+implementation ownership.
 
 ## Superseded Product Designs
 
@@ -26,5 +27,7 @@ Historical references to `opl-aion-shell` belong here or inside
 ## Process History
 
 - [Process history index](./process/README.md)
-- [v26.6.12 stable release profile](./process/2026-06-12-stable-release-profile.md)
-- [v26.6.18 stable release profile](./process/2026-06-18-stable-release-profile.md)
+- [Windows WSL2 V0-V3 receipts](./windows-wsl2/): historical probe evidence;
+  current execution and qualification use the Windows validation owner.
+- [K-Dense BYOK evaluation](./gui/kdense-byok-evaluation.md): sealed external
+  reference analysis; no active implementation requirement.

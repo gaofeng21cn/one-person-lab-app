@@ -1,193 +1,35 @@
-# Windows WSL2 Validation Evidence
+# Windows WSL2 Diagnostic Validation
 
 Owner: `one-person-lab-app`
-Purpose: `windows_wsl2_execution_validation_evidence`
-State: `validation_only_non_binding`
-Machine boundary: Sanitized receipts and disposable validation fixtures only.
-This directory is not product machine truth, a release receipt, a supported
-platform claim, an active implementation plan, or an App development gap.
+Purpose: route the retained V6 diagnostic fixture and its evidence.
+State: maintained validation fixture; separate from current product acceptance.
 
-Use
-[`../../../architecture/windows-wsl2-execution-validation-plan.md`](../../../architecture/windows-wsl2-execution-validation-plan.md)
-for scope and operating rules. Keep passwords, tokens, complete environment
-dumps, full `opl app state` payloads, thread or prompt bodies, and raw logs out
-of version control. Raw diagnostics stay in private guest/staging quarantine
-and are removed after bounded evidence has been extracted.
-
-V0-V3 evidence and the planned V6 Windows Electron smoke remain
-`validation_only_non_binding`. They do not enter
-`docs/active/app-ideal-state-gap-plan.md`, do not block unrelated development,
-and do not constitute a Windows support or release claim.
-
-## Receipts
-
-- [`2026-07-24-v0-local-vm-host-preflight.md`](2026-07-24-v0-local-vm-host-preflight.md)
-  records the completed host and guest preflight.
-- [`2026-07-24-v1-wsl-launcher-viability.md`](2026-07-24-v1-wsl-launcher-viability.md)
-  records the attempted V1 launcher and direct component probes.
-- [`2026-07-24-v2-auth-process-ownership.md`](2026-07-24-v2-auth-process-ownership.md)
-  records V2 authentication-enabled remote-mode listener, process ownership,
-  cancellation, and negative-request readback. It is partial because upstream
-  credential bootstrap returned `403` and renderer secret isolation was not
-  attempted.
-- [`2026-07-24-v3-independent-route-coverage.md`](2026-07-24-v3-independent-route-coverage.md)
-  records V3 direct Codex and Framework route probes. It is partial because
-  the managed AionCore ACP artifact remains blocked and a single owner binding
-  was not established.
-
-## V6 Candidate And Evidence
-
-No V6 receipt exists until an exact Windows Electron candidate has completed a
-real-VM smoke. The acceptance is defined in
-[`V6: Windows Electron technical-validation surface`](../../../architecture/windows-wsl2-execution-validation-plan.md#v6-windows-electron-technical-validation-surface): a visibly gated
-diagnostic surface may show only the discovered `OPL-Validation-g0001` guest
-identity, AionCore health, direct Codex App Server, and read-only Framework
-state. ACP, authenticated bootstrap, and WebSocket conversation remain clearly
-`unverified` or `unavailable` and must not appear as usable chat.
-
-No native-Windows platform owner or V6 executor is currently activated. Fresh
-host receipts must supply both IDs, each distinct from source custodian
-`019f9bc5-8707-78b2-b221-5453d9d9b855` and from each other. Both IDs must be
-bound into the immutable packet and the active writer lease for `OPL-V6-WSL2-01`
-(`host_platform=windows_hyperv`) before any guest entry. The lease must match
-[`windows-wsl2-v6-writer-lease.schema.json`](windows-wsl2-v6-writer-lease.schema.json).
-The lease binds the exact Hyper-V VM ID, executor, clean-VM attestation,
-operations, and validity window. A password, an old VM handoff, or ownership of
-historical bytes is not a writer lease.
-
-The source-bound V6 identity is:
-
-| Item | Exact identity |
+| Reader question | Owner |
 | --- | --- |
-| App acceptance source | `source_refs.app_acceptance_sha` in the immutable intake manifest |
-| Shell candidate source | `868d6e818583547a5ec982b10b34464a3fa47c10` |
-| Shell root tree | `1dc9960a357d9f64eaaac7eadf44b9c1a1d00ca7` |
-| Shell validation subtree | `6f8519a26c3075f8b252c79a81e42f328c6efbb8` |
-| Shell `bun.lock` SHA256 | `8975e67539a778ef9058419d990646b21ce35757d4cdaf45e0b101e4ce3cff7b` |
-| Guest Framework repository | `https://github.com/gaofeng21cn/one-person-lab.git` |
-| Guest Framework fixture | `e260ad46e2cf73ea334d2453d901ee448248d9e0` |
-| Guest Framework root tree | `6b72719e34a5dc8ac522a758296436be0c97b1bd` |
-| Guest Framework CLI blob | Git `9a81790365e5140c7965cad870c109c6afa4b564`, SHA256 `e040d5ddab2e4c6cb660e5ba728e61172fe9e7e2f272974b19c7c4b653e159a5` |
-| Windows VM | `OPL-V6-WSL2-01` with identity `hyperv-vmid:<VM-ID>` |
-| Validation root | `C:\Users\Public\Documents\OnePersonLabValidation\windows-wsl2-v6-v1` |
-| Sealed ZIP | `OPL-Windows-WSL2-Validation-v6.zip`, identity created by the build-seal receipt |
+| How does the current desktop execute on Windows? | [Windows execution reference](../../../architecture/windows-wsl2-execution.md) |
+| What does this diagnostic candidate prove? | [V6 validation scope](validation-scope.md) |
+| How is an exact V6 run executed and closed? | [Execution runbook](windows-wsl2-v6-execution-runbook.md) |
+| Where are VM admission and platform tools defined? | [Windows platform validation](../windows-platform/README.md) |
+| What did the original V0-V3 experiments observe? | [Frozen experiment receipts](../../../history/windows-wsl2/README.md) |
 
-The App SHA identifies the acceptance source revision and is not claimed to be
-embedded in the Shell-built ZIP. The historical Intel-VM ZIP SHA256
-`3b126175...9dd` and executable SHA256 `60b86b47...f6c42` are provenance only.
-ZIP timestamps, Bun/Node versions, cache state, and compression inputs were not
-fully pinned, so those historical digests are not the acceptance authority for
-a fresh Windows build.
+## Executable Evidence Owners
 
-No packet from an earlier delivery is current. The only executable intake is a
-fresh create-once directory under `packets/<APP_ACCEPTANCE_SHA>/`, generated by
-`v6-materialize-intake.mjs` from a clean checkout at that exact acceptance
-commit, then published by a distinct delivery commit. The manifest SHA256 and
-delivery commit are transport inputs to the C-root request and writer lease;
-neither may be replaced by a historical packet or lease.
+`fixtures/v6-materialize-intake.mjs` owns packet materialization and frozen
+source selection. `v6-build-seal.ps1` seals a particular Windows build;
+`v6-electron-visible-smoke.ps1` records the interactive guest result;
+`v6-host-closeout.mjs` validates the evidence joins and terminal host state.
+Current runs obtain exact identities from these artifacts, not a copied SHA
+table or a historical task's status.
 
-## Fixtures
+| Evidence | Schema |
+| --- | --- |
+| Intake packet | [Intake manifest](windows-wsl2-v6-intake-manifest.schema.json) |
+| Built artifact | [Build seal](windows-wsl2-v6-build-seal.schema.json) |
+| Guest write authority | [Writer lease](windows-wsl2-v6-writer-lease.schema.json) |
+| Guest visible smoke | [Guest receipt](windows-wsl2-v6-receipt.schema.json) |
+| Terminal host result | [Host closeout](windows-wsl2-v6-host-closeout.schema.json) |
 
-`fixtures/` contains disposable validation-only scripts. They do not implement
-an App, Shell, Framework, AionCore, installer, or release route.
-
-The committed PowerShell fixtures include the V0-V3 probes, the V6 source
-builder/sealer, and the V6 visible-smoke runner. `v6-materialize-intake.mjs`
-creates the immutable source packet and `v6-host-closeout.mjs` is the Hyper-V
-host finalizer.
-The packet and receipts are validated against:
-
-- [`windows-wsl2-v6-intake-manifest.schema.json`](windows-wsl2-v6-intake-manifest.schema.json);
-- [`windows-wsl2-v6-build-seal.schema.json`](windows-wsl2-v6-build-seal.schema.json);
-- [`windows-wsl2-v6-writer-lease.schema.json`](windows-wsl2-v6-writer-lease.schema.json);
-- [`windows-wsl2-v6-receipt.schema.json`](windows-wsl2-v6-receipt.schema.json); and
-- [`windows-wsl2-v6-host-closeout.schema.json`](windows-wsl2-v6-host-closeout.schema.json).
-
-Previously executed PowerShell fixtures were parsed in the Windows guest with
-`System.Management.Automation.Language.Parser::ParseFile`; a new or changed
-fixture still requires a zero-error target-Windows parse before its result can
-be accepted.
-
-From a clean checkout at the exact App acceptance commit, create the packet
-once:
-
-```powershell
-node .\docs\delivery\validation\windows-wsl2\fixtures\v6-materialize-intake.mjs `
-  --app-sha <APP_ACCEPTANCE_SHA> `
-  --platform-owner-task-id <FRESH_WINDOWS_PLATFORM_OWNER_TASK_ID> `
-  --executor-task-id <FRESH_WINDOWS_EXECUTOR_TASK_ID> `
-  --output-dir C:\v6-packet
-Get-FileHash -Algorithm SHA256 `
-  C:\v6-packet\windows-wsl2-v6-intake-manifest.json
-```
-
-Copy the create-once manifest plus its twenty-two payload files without changing
-their bytes into the empty
-validation root. The platform owner then writes `writer-lease.json`; record its
-SHA256 and run:
-
-```powershell
-.\v6-build-seal.ps1 `
-  -ExpectedIntakeManifestSha256 <INTAKE_MANIFEST_SHA256> `
-  -ExpectedWriterLeaseSha256 <WRITER_LEASE_SHA256>
-```
-
-The build seal uses a fresh detached Shell checkout, validates its commit,
-tree, lock and harness inputs, runs frozen install plus the focused tests,
-builds the x64 ZIP target, and creates
-`v6-build-seal-receipt.json`. The receipt records the exact Windows build,
-Git/Bun/Node and builder tools, environment evidence, commands and logs, ZIP,
-executable, `app.asar`, expanded tree, and file count. It identifies that
-specific build; source equality alone does not predict its ZIP digest.
-
-Run
-[`fixtures/v6-electron-visible-smoke.ps1`](fixtures/v6-electron-visible-smoke.ps1)
-three times under the same active lease and build receipt: first with
-`-ExpectedPhase stopped` and a distinct stopped `-RunId`, then with
-`-ExpectedPhase running` and a distinct running `-RunId`, then after one normal
-guest restart with `-ExpectedPhase restart_persistence`, the pre-restart boot
-time, and a third distinct `-RunId`. Supply the exact App/Shell/Framework refs,
-manifest/build/lease/ZIP digests, VM identity, lease ID and times on all three
-commands. The runner verifies those fixed-path receipts,
-validates the exact sealed ZIP digest, keeps the same read-only archive stream locked
-against writers while rejecting zip-slip and duplicate paths and expanding
-into the current `RunId` directory, then launches only that run-owned tree.
-The runner holds read handles that deny writes and deletion across every
-extracted file from the final pre-launch tree check until the owned processes
-exit, then verifies the complete tree again. Each receipt binds that tree's
-SHA256 and file count. It sets
-`OPL_WINDOWS_WSL2_VALIDATION=1` only for the launched process, waits for a real
-`MainWindowHandle`, reads the Chromium accessibility surface through Windows UI
-Automation, captures the target window through `PrintWindow`, closes only the
-process tree owned by that launch, removes only the run-owned expansion, and
-compares WSL state before and after. It does not start, stop, import, unregister,
-or adopt a WSL distribution and never calls Docker.
-
-The runner writes each receipt and screenshot under
-`<validation-root>\evidence\<RunId>\`. A `passed` guest receipt is still
-non-terminal and keeps `writer_release.status=pending_host_soft_shutdown`.
-It cannot release the writer or claim a product verdict.
-
-The sanitized output must match
-[`windows-wsl2-v6-receipt.schema.json`](windows-wsl2-v6-receipt.schema.json).
-The runner deliberately records AionCore health, direct Codex App Server, and
-Framework state as `unverified` or `unavailable` when that is what the
-status-only candidate shows. A visible-smoke pass means the bounded projection
-is accurate and guest cleanup passed; it does not turn those unavailable
-capabilities into a product claim. This runner emits only
-`guest_smoke_pending_host_closeout` evidence with `terminal_v6_verdict=false`.
-After distinct stopped, running, and restart-persistence runs pass, use
-[`fixtures/v6-host-closeout.mjs`](fixtures/v6-host-closeout.mjs). It validates
-all three guest receipts with Draft 2020-12 JSON Schema, binds their receipt,
-screenshot, and identical three-phase tree identities to the same artifact,
-source refs, Hyper-V VM identity, active writer lease, intake manifest, and
-build-seal receipt. It queries `Get-VM`, requests only
-`Stop-VM -Shutdown`, and waits for the exact VM ID to read back `State=Off`.
-Only then may it write
-[`windows-wsl2-v6-host-closeout.schema.json`](windows-wsl2-v6-host-closeout.schema.json)
-evidence with `terminal_v6_verdict=true` and a released writer receipt. A soft
-shutdown timeout is a failed closeout; hard power-off cannot be substituted.
-
-The previous uncontrolled candidate launch, in which processes appeared but no
-window, UI state, negative boundary, screenshot, or cleanup receipt was
-captured, does not count as a V6 smoke.
+The retired V1-V3 probes are retained only in Git history. Their frozen
+receipts remain diagnostic records, not current product tests. New exact-run
+receipts belong in the operation's evidence output; this index does not track
+live executor assignment or completion.

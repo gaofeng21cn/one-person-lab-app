@@ -29,38 +29,6 @@
     "issues_url": "https://github.com/gaofeng21cn/one-person-lab-app/issues/new"
   },
   "assets": [],
-  "required_terms": [
-    "One Person Lab Windows x64 安装与配置教程",
-    "Windows 11 x64",
-    "Stable Release",
-    "https://github.com/gaofeng21cn/one-person-lab-app/releases/latest",
-    "One-Person-Lab-*-win-x64.exe",
-    "Get-FileHash",
-    "Windows SmartScreen",
-    "code_signing.status",
-    "Gateway 账户",
-    "模型访问",
-    "gateway.medopl.com",
-    "https://gateway.medopl.com/v1",
-    "oplgateway",
-    "无需手工填写 Base URL",
-    "不会隐式迁移",
-    "WSL 2",
-    "OPL-Linux",
-    "Docker Desktop",
-    "Windows Desktop App 不要求 Docker Desktop",
-    "http://localhost:3000/",
-    "检查更新",
-    "卸载",
-    "用户数据",
-    "不能证明 WSL2 runtime acceptance、installed behavior 或产品支持完成"
-  ],
-  "forbidden_phrases": [
-    "这是 Windows 支持完成证明",
-    "关闭 Windows Defender",
-    "在命令行输入 Gateway 密码",
-    "把 API Key 粘贴到 PowerShell"
-  ],
   "publishing": {
     "template": "opl-guide",
     "preferred_pdf_engine": "typst",

@@ -12,9 +12,10 @@ The App exposes one current user-facing documentation set, not one copy per
 release. Install guides can still be built locally and published with
 `npm run docs:publish`. The App whitepaper is previewed locally with
 `npm run docs:whitepaper`; App `main` carries no second publication workflow or
-write token. Public whitepaper updates remain fail closed until a
-Framework-owned protected cross-repository publisher can update the exact App
-Pages target and record the exact-byte publication receipt.
+write token. Public whitepaper updates use the Framework-owned family publication at
+[one-person-lab/latest/whitepapers](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/).
+The App repository owns its source prose and local preview profile; it has no
+independent public whitepaper target.
 Generated HTML files use artifact-aligned names such as
 `macos-app-install.html`, not `index.html`.
 
@@ -41,8 +42,7 @@ Generated output:
 Do not commit `docs/site/latest/` on `main`. `npm run docs:latest` rebuilds local
 previews, while `npm run docs:publish` publishes only the macOS, Windows, and
 Docker install guide allowlist and preserves `latest/whitepapers/`. Obsolete
-guide directories are removed from Pages during publication. Do not publish a whitepaper until the
-protected cross-repository owner route binds the approved build bytes, visual
-evidence, App Pages target, public readback, and receipt. Remove local generated copies with
+guide directories are removed from Pages during publication. Whitepaper publication
+and exact-byte public readback belong to the Framework publisher. Remove local generated copies with
 `npm run cleanup:local-artifacts -- --scope docs --execute` when they are no
 longer needed for preview.

@@ -13,7 +13,7 @@ thin local entry that delegates to the canonical renderer in the OPL Framework
 repo. Set `OPL_FRAMEWORK_REPO` when the Framework checkout is not at the normal
 same-workspace `one-person-lab` path.
 
-The Framework repository owns the five-whitepaper branded publication bundle
+The Framework repository owns the branded family publication bundle
 and its public URL. This repository remains the source owner for App prose and
 the local build profile.
 
@@ -38,4 +38,7 @@ Current source:
 
 - `opl-app-whitepaper.md`
 
-Evidence routing is documented in `docs/delivery/whitepapers/README.md`.
+Evidence routing is documented in
+[`../delivery/whitepapers/README.md`](../delivery/whitepapers/README.md).
+The public family entry is
+[one-person-lab/latest/whitepapers](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/).

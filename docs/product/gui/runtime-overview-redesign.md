@@ -2,19 +2,18 @@
 
 Owner: `one-person-lab-app`
 Purpose: `dynamic_agent_task_and_typed_view_runtime`
-State: `target_planned_with_current_compatibility_reference`
-Product classification: `target_core`
-Current compatibility classification: `X0-01`
-Machine boundary: 本文前半定义目标产品边界，属于 `target/planned`。当前机器实现仍归
+State: `active_product_reference`
+Product classification: `core_dynamic_agent_runtime`
+Machine boundary: 本文定义 Runtime 产品行为。当前机器合同归
 `contracts/app-gui-product-contract.json#pages.runtime_status.runtime_cockpit_product_contract`、
 `contracts/app-runtime-bridge.json#work_item_projection`、
 `contracts/app-page-state-matrix.json#pages[id=runtime]`、validators、source 与 tests，
-并仍把 route 视为可选 `X0-01`。该旧 shape 是迁移兼容，不是目标完成。本文不拥有
+当前合同要求核心 Runtime 路由及动态 Agent scope；实现与安装证据须分别核对。本文不拥有
 Framework runtime、Temporal execution truth、domain truth、artifact authority 或 release evidence。
 
 ## 结论
 
-Runtime 升为目标核心 App 能力：统一查看所有已安装 Agent Package 暴露的业务任务，
+Runtime 是核心 App 能力：统一查看所有已安装 Agent Package 暴露的业务任务，
 同时展示 Temporal 提供的真实执行状态，并允许 Agent 通过 typed view 提供领域视图。
 它不是 observability dashboard 或平台运维控制台。
 
@@ -42,9 +41,9 @@ semantic fields，Shell 按当前 App locale 渲染；手工归档是独立 visi
 归档库。以上均是 App 产品 truth，不由 binding label、runtime history、Shell 本地状态或
 Framework raw 文案覆盖。
 
-当前 `WorkItemProjection v2`、固定 `AgentAvailabilityProjection` 和
-`validate:runtime-route` 继续作为 compatibility bridge，直到新 target contracts/source/
-installed evidence 完成；之后删除旧 `X0-01` optional gate 和 fixed scope。
+当前 `WorkItemProjection v2` 是受支持的通用任务投影，Agent membership 从 installed
+directory 动态生成。`validate:runtime-route` 是专项验证入口，不表示产品路由可选。
+旧 X0-01 分类和固定 Agent scope 已退出当前机器合同。
 
 ## 问题背景
 
@@ -94,9 +93,9 @@ raw ID、workflow、receipt、provider、日志和 refs 不参与默认判断。
 
 ## 产品数据模型
 
-### Target Task Envelope
+### Task Ownership
 
-每个 task 由 owning Agent Package 提供 opaque stable id，并包含以下通用对象：
+下表说明 task 各语义维度的 owner，并非另一套 wire schema；当前字段 shape 见下节 WorkItemProjection v2：
 
 | 对象 | Owner 与职责 |
 | --- | --- |
@@ -126,10 +125,10 @@ Agent 可以提供一个或多个 typed view。App 的扩展点只有通用 desc
 - 未注册、invalid、stale 或 read error 只让该 view 使用 generic unavailable；
   task row、selected-item core detail、其他 views 和其他 Agents 保持可用。
 
-### Current Compatibility: WorkItemProjection v2
+### Current WorkItemProjection v2
 
-以下九对象和相关页面行为描述当前 compatibility bridge。它们不是新 target contract，
-不得新增 Package id、版本、lock、payload、receipt、materialization 或领域字段。
+以下对象解释当前通用投影；精确字段和可选性由 runtime bridge contract 持有。
+不得在通用投影中添加 Package 特例或 App-owned 领域 schema。
 
 每个 canonical work item 顶层必须有全局 canonical `item_id`，并投出以下九个一级对象：
 
@@ -154,10 +153,9 @@ readback。
 Stage 弹层或详情中按需显示；历史 Attempt 和其他 raw ID 只属于 Maintenance diagnostics。任何 Attempt
 都不能决定 work item 是否存在、属于哪个项目或用户主状态。
 
-### Superseded Fixed Agent Availability
+### Dynamic Agent Availability
 
-当前 contracts 中固定 Agent ID/全称和 `AgentAvailabilityProjection` 只属兼容迁移，
-禁止继续扩展。目标 scope 从 installed Package descriptors 中动态发现
+当前 scope 从 installed Package descriptors 中动态发现
 `kind=agent && task_provider=true`；Package availability 在 Settings > Agents 显示，
 Runtime 只显示可读取或局部 unavailable 的 producer/task 状态。
 
@@ -354,72 +352,12 @@ Maintenance diagnostics 查看。
 | One Person Lab App | 产品语言、通用 task/view envelope、generic fallback、可选 `view_kind` rich renderer registry、page-state 和证据分账。 | runtime/domain truth、MAS schema、Token 估算、owner receipt。 |
 | Shell | 按当前 locale 渲染 projection、级联筛选、语义重排、打开 task/typed view，并对允许动作执行 refresh/readback。 | 猜项目、状态、stage、owner、Token，以 localStorage 保存 truth，实现第二套去重，或按 Agent id 分支。 |
 
-## 历史 exact-cohort 证据边界
+## 验证与历史证据
 
-下方只保留 `2026-07-15` exact-cohort 的历史实现与安装验收事实，不是当前完成度账本，也不得
-外推新的 Source、Pixel、Install 或 Release 状态。当前唯一五轴 authority 是
-[`app-ideal-state-gap-plan.md`](../../active/app-ideal-state-gap-plan.md) 与
-[`shell-conformance-matrix.md`](shell-conformance-matrix.md)；Contract、Source、Pixel、Install、
-Release 必须在那里逐轴读取。该历史 cohort 的合同、Framework producer、Shell consumer 与本机
-installed user path 证据只证明旧 X0-01 compatibility route 的对应字节和路径，不证明
-动态 Agent producer、Agent/Temporal 分工、typed view、目标核心 Runtime 或当前 release-ready。
+专项检查入口是 `npm run test:runtime-route`。合同、Framework producer、Shell consumer、
+像素、安装和发布分别证明各自边界；当前状态只汇总到
+[shell conformance matrix](shell-conformance-matrix.md)。验证应覆盖上文定义的动态发现、
+业务/执行隔离、身份、归档并发、局部 view 降级、本地化与响应式行为，不复制第二份验收清单。
 
-### 2026-07-15 本机安装版验收
-
-本次验收以 `/Applications/One Person Lab.app` 为唯一 UI 对象，精确记录见
-[`runtime-local-installed-acceptance-2026-07-15.json`](../../delivery/release-evidence/runtime-local-installed-acceptance-2026-07-15.json)。
-
-- 安装版与构建产物的 `app.asar` SHA-256 均为
-  `4b399c3326dcdc989fa1eb6427fd95b5103d6528014ddba9ca7413df5e121c08`，
-  `codesign --verify --deep --strict` 通过；App 退出、重启后再次验收通过。
-- Framework fast readback 为 5 个智能体、6 个项目、9 个 work item、9 visible、0 archived、
-  0 running；MAS 项目名严格为 `DM-CVD-Mortality-Risk`、`NF-PitNET`、`Obesity`。
-- Agent 选 Med Auto Science 后仍有 9 项；Project 选 `DM-CVD-Mortality-Risk` 后为 4 项。
-  默认列表、Stage Popover、详情 Drawer、归档确认和归档库均走真实安装版界面。
-- DM003 展示完整 8 个 MAS Stage，全部为已完成；当前无 Stage/Attempt，当前 Stage Token
-  显示“不适用”，任务累计显示 `25,490 tokens`。历史无 telemetry 的项目继续诚实显示未记录。
-- 归档一项后主列表为 8、归档库为 1；恢复后回到 9 visible、0 archived，并在 App 重启后保持。
-- `zh-CN` 和 `en-US` 均通过；英文 Runtime 与 Stage Map 未混入中文状态、Next Step、owner 或 Stage。
-- 1358、1024、768、375 px 均无 document/body/Runtime 横向溢出，Stage Popover 与 680 px
-  Drawer 完整落位；Playwright 期间 console error 与 page error 均为 0。
-
-这是一条本机安装版 Runtime user-path 证据。它不声明当前显示的 `26.7.14` 等同于已发布的
-同版本公共 cohort，也不声明 Stable/latest、clean VM、跨机器、release-ready、owner acceptance、
-领域 ready 或 OPL family production-ready。
-
-## 验收标准
-
-目标 Runtime 至少需要：
-
-- installed Agent Package descriptors 动态生成 Agent scope；测试 Agent 不修改 App source 即出现。
-- Agent business status 与 Temporal queued/running/retry/terminal 分别由 owner 提供，缺失时公开 unknown。
-- 一个 producer/required capability/Temporal binding 失败只降级其 tasks。
-- MAS research roadmap 通过 MAS-owned typed view 显示；App 不含 MAS id 或科研 schema。
-- 未知/invalid `view_kind` 只局部 unavailable，task row 和其他 views/Agents 保持可用。
-- Settings availability、Maintenance diagnostics、Inspector artifacts 与 release evidence 不复制进 Runtime。
-- Contract、Source、Pixel、Install、Release 独立关闭。
-
-以下列表只约束迁移期旧 X0-01 compatibility route。现有 validator pass 仅作 retained
-source 回归证据，不关闭上面的目标：
-
-- Scope 只有 Agent -> Project 两层，work item 不进入菜单，状态筛选不含 MAS。
-- Project 显示名严格等于 canonical workspace path basename；目录改名同时改变当前 path-hash `project_id`。
-- 当前 compatibility fixture 中五个一方智能体使用全称；该固定集合不得扩展，并在动态 producer迁移后删除。MAS Scholar Skills 不作为智能体。
-- 每个 canonical work item 以顶层 `item_id` 保持一行并选择详情；跨项目重复 local `work_item_id` 不串行。
-- action 使用 `title_key / summary_key / message_args / owner / owner_kind`，Shell 按当前 locale 渲染，raw title/summary 只作 fallback。
-- 默认列表只显示 visible；归档库独立于 lifecycle、scope 和 saved views，并允许恢复。
-- visibility mutation 使用完整 identity tuple 与可用的 expected generation，随后 refresh/readback；stale conflict 刷新后重试。
-- 归档不改变 lifecycle、不停止执行、不删除 evidence；停止任务需前往所属控制面，Runtime 不提供 stop。
-- 七个主状态只能来自 Framework V2 projection，Shell 不做状态或身份推断。
-- `system_attention` 缺任一责任字段、不是当前 generation 或不再阻塞时不能出现。
-- `loading / ready / empty / error / unavailable` 互斥；失败首屏只显示本地化摘要、重试和打开维护。
-- 技术详情默认收起且可复制，原始 JSON、绝对路径和 Node warning 不得进入首屏。
-- Token missing 不显示零，无上限时不出现进度条。
-- 默认页不显示 raw refs、IDs、logs、receipt、provider、operator summary、safe actions、软件更新或平台维护动作。
-- 当前 Stage 可点击；Popover 显示完整 Stage 顺序、当前/下一 Stage 与当前 Attempt，且不打开详情 Drawer。
-- 详情只呈现 Work Item、Stage Map、当前 Attempt、heartbeat、Token 和只读行动；artifact provenance 只在 Inspector。
-- delivered Stage Map 只显示 completed 历程或为空，后续动作只来自 ActionEnvelope。
-- 普通文案按词边界换行，仅无断点技术长串可为防溢出而断开。
-- 375/768/1024/1440 px 均无横向页面溢出与文字重叠。
-- Environment、Capabilities、Advanced、Inspector 与 release tooling 的所有权边界均通过契约和测试验证；Runtime 不提供这些内容的次级或折叠入口。
-- Product contract、Framework producer、Shell consumer、Live evidence 四条完成度独立报告。
+[2026-07-15 安装收据](../../delivery/release-evidence/runtime-local-installed-acceptance-2026-07-15.json)
+只证明其历史 cohort 的本机路径，不能证明当前动态 scope、typed views、跨机器或公开发布。

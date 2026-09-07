@@ -7,7 +7,7 @@ Machine boundary: Generated artifacts, Quarto manifest, and verification records
 
 This directory is not the clean end-user reading surface and is not the prose
 editing area. Link users to
-[`../../../site/latest/docker-webui-install/`](../../../site/latest/docker-webui-install/)
+[the public guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html)
 instead.
 
 Canonical source files:
@@ -23,7 +23,7 @@ Delivery and generated files:
 
 - [`source/docker-webui-install.guide.json`](source/docker-webui-install.guide.json):
   machine manifest for output paths, install commands, publishing template,
-  screenshot manifest reference, required terms, and validation boundaries.
+  screenshot manifest reference and artifact verification inputs.
 - `generated/docker-webui-install.md`: generated Markdown snapshot, recreated
   by `npm run docs:docker-webui-guide` and ignored by Git.
 - `verification/docker-webui-install-verification.json`: generated HTML/PDF
@@ -42,8 +42,7 @@ Update flow:
 1. Edit `docs/guides/docker-webui-install/guide.qmd` for user-facing guide body,
    FAQ, and boundary text.
 2. Edit `source/docker-webui-install.guide.json` only when install commands,
-   output paths, publishing template, screenshot manifest reference, required
-   terms, or validation boundaries change.
+   output paths, publishing template or screenshot manifest references change.
 3. Replace screenshots under `docs/guides/docker-webui-install/screenshots/`,
    then update `screenshots.manifest.json` with provenance, locale, dimensions,
    expected UI text, and SHA256.

@@ -1,98 +1,40 @@
 # Immutable Release Bundle
 
-## Scope
+This document explains the artifact boundary consumed by the App release executor.
+The [release guide](README.md) owns operator commands, recovery and publication;
+[`contracts/app-release-channel.json`](../../../contracts/app-release-channel.json)
+owns App product policy. Framework owns Bundle identity, storage, checkpoints and
+operation receipts.
 
-The Framework Release Bundle freezes source and product inputs for one App Desktop release. It is
-not a release controller, public mutation receipt, or currentness claim. Framework owns Bundle
-identity, storage, checkpoints and operation receipts; App owns Desktop product policy, carrier
-qualification and the GitHub executor.
+A Bundle freezes the exact App, Shell and Framework source, version, prepared
+notes, selected Desktop platforms, Standard inputs and any Full package closure.
+Later source advancement does not invalidate those bytes. Frozen-byte drift,
+qualification failure or an explicit security revocation does.
 
-The Bundle binds the exact App, Shell and Framework commits, release version, prepared notes,
-Desktop platform selection, Standard inputs and any Full package closure. After freeze, newer remote
-source does not invalidate the Bundle. Only bound-byte drift, qualification failure or explicit
-security revocation invalidates it.
+## Desktop artifacts
 
-## Desktop Release Set
+One Stable Bundle produces one GitHub Release/tag. Signed and notarized macOS
+arm64 Standard defines the primary publication and Latest gate; macOS Full,
+Linux x64, Windows x64 and installer delivery converge additively on that tag.
+Failure of an additive delivery does not invalidate the published primary.
+Docker WebUI has independent source authority, qualification and GHCR publication.
 
-One Stable Bundle produces one public GitHub Release/tag:
+| Manifest | Bound artifact |
+| --- | --- |
+| `opl-app-component-manifest.json` | Primary Desktop carrier and frozen installer |
+| `opl-release-manifest.json` | Same-tag Full DMG |
+| `opl-desktop-platforms-manifest.json` | Same-tag Linux and Windows assets |
+| `opl-release-attestation.json` | Publication and macOS trust evidence |
 
-1. macOS arm64 Desktop Standard is the primary release and Latest gate.
-2. macOS arm64 Desktop Full may be appended to the same Release/tag.
-3. Linux x64 Desktop may be appended to the same Release/tag.
-4. Windows x64 Desktop may be appended to the same Release/tag.
+## Recovery checkpoints
 
-Full, Linux, Windows and the universal installer are additional members of the same Desktop Release
-Set. They do not derive another version, tag or Release. The macOS primary publication defines
-whether the Stable version exists; additive delivery failures do not invalidate that version.
-Each append is exact-name digest CAS and may not alter macOS Standard bytes, updater identity, notes,
-release body or Latest.
+Standard and Full checkpoints bind the candidate bytes and build cohort. Once Full
+bytes exist, terminal qualification exports `full_qualified` on success or
+`full_built` on failure. Recovery can reuse the bytes only when App, Shell and
+Framework content SHAs match the requested Full cohort; otherwise it returns to
+the Standard checkpoint and builds the requested candidate. A verifier repair
+with unchanged artifact content does not require another build.
 
-The public manifests are owner-specific:
-
-- `opl-app-component-manifest.json` binds the primary Desktop carrier and frozen installer;
-- `opl-release-manifest.json` binds the same-tag Full DMG;
-- `opl-desktop-platforms-manifest.json` binds same-tag Linux/Windows Desktop assets;
-- `opl-release-attestation.json` binds publication and macOS trust evidence.
-
-No independent Native WebUI tarball, WebUI qualification archive or WebUI installer is a Bundle or
-Desktop Release asset. Docker WebUI has its own independent source authority, publication record,
-qualification and GHCR namespace.
-
-## Workflow Boundary
-
-`.github/workflows/release-stable.yml` exposes `standard`, `resume_standard` and `append_full` only.
-Lower-level workflows are reusable implementation details. The Standard operation receives its
-version/cohort from protected admission, publishes the primary Desktop carrier, and activates Latest
-only after exact qualification and public readback.
-
-`.github/workflows/release-stable-post-success-followups.yml` consumes the exact successful Standard
-checkpoint and appends selected Linux/Windows assets to that same mutable Release/tag. The independent
-`.github/workflows/release-stable-post-success-followups.yml` reconciles the same successful Standard handoff to
-one Full owner run and stops as soon as that owner is identified; it does not wait for the Full build,
-qualification or publication. Its protected manual reconciliation takes only the source run and a
-target-state confirmation, never failed-run generations or historical logs. The Desktop follower's
-protected manual `repair_additive` branch may replace only `opl-install.sh` in
-the same Release/tag after old asset ID/size/digest CAS and frozen primary-asset/body/tag checks. It
-does not create a Framework Bundle operation, allocate a version, rebuild platform assets or move
-Latest. Repeated repairs form one complete, unforked digest-and-size chain from the component
-manifest's original installer identity through every public additive repair receipt to the current
-Release asset. `.github/workflows/release-post-publication-certification.yml` is a read-only consumer
-of the completed same-tag Release Set and additive repair receipt.
-
-Once exact Full bytes have been materialized, the Full workflow always exports a Framework
-checkpoint after qualification reaches a terminal result. Successful hosted and clean-VM
-qualification exports `full_qualified`; any later qualification failure still exports `full_built`.
-Recovery consumes that checkpoint only when its build cohort exactly matches the requested Full App,
-Shell and Framework content SHAs. A content mismatch returns to the original Standard checkpoint and
-builds a new signed/notarized Full candidate; a failed verifier with unchanged content cannot force
-another build or human artifact-producer choice.
-
-Nightly and Windows Preview/RC are separate Preview policies and never become alternate Stable
-Releases. Docker WebUI is also outside this Bundle control plane.
-
-## Mutation Rules
-
-Only protected publish jobs receive write permissions. For every asset name:
-
-- absent: one upload is allowed;
-- present with the same digest and size: accept as idempotent;
-- present with different bytes: fail closed;
-- present `opl-install.sh` with different bytes: only the protected additive repair branch may delete
-  the exact old asset ID and upload the replacement, with pre-mutation and public receipts;
-- timeout or unknown result: read-only reconcile, no repeated mutation.
-
-Canonical source must be absorbed and remotely read back before public mutation. A Bundle,
-checkpoint, candidate, task branch, test pass or workflow success is not a release terminal.
-
-## Terminal Proof
-
-A Stable macOS primary release is complete when owner-authoritative readback proves its signed,
-notarized public assets and Latest identity. Additive deliveries converge independently in the same
-Release Set. Overall release maintenance is closed only when owner-authoritative readback proves:
-
-- canonical `main` commit/tree/blob and hosted gates;
-- exact public asset names, sizes and SHA-256 values;
-- `draft=false`, `prerelease=false` and expected Latest identity;
-- public downloads match the recorded bytes;
-- superseded temporary Releases/tags are exactly absent;
-- task-owned temporary state, refs, worktree and lifecycle receipt are cleaned with `remaining=[]`.
+A Bundle or checkpoint is prepublication evidence. It does not prove publication,
+Latest, target-machine installation, or domain readiness. Those claims require the
+corresponding owner readback described in the release guide.

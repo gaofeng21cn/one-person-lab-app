@@ -57,7 +57,7 @@ Native 将来需要独立实现同一用户结果。视觉 1:1 是独立的 pixe
 | `B0-09` | Terminal、Browser、Environment details | Agent 工作经常需要按需查看运行与环境。 | 作为次级工具按需打开，不做默认第三栏或 OPL dashboard。 |
 | `B0-10` | Workspace 初始 cwd、Project adoption 与本地 Worktree 工作模式 | 本地任务需要明确主要目录、隔离目录和执行上下文。 | Composer 只设置新 session 初始 cwd；projectless session 允许一次性 adoption。已绑定 session 不任意重绑，当前 AionUI 不自造 managed handoff；Worktree 未来复用稳定 upstream 或由 Native 实现。 |
 | `B0-11` | Codex Subagents / 并行子任务 | 复杂任务需要并行探索、验证与汇总。 | Portable core 是 read-only Active/Done lists、completed detail/result、open subagent thread，以及既有 App Server/ACP owner-supported controls。AionUI Team 继续关闭；不新增第二 App Server client、Team store、scheduler、执行 authority 或 bespoke direct-control buttons。 |
-| `B0-12` | Scheduled tasks/Cron、后台继续与通知 | 长任务和周期任务需要离开前台后继续。 | 属 Codex 必要基线；carrier-neutral Contract 已对齐为单一 scheduler/store、ordinary discoverability、固定 Codex 与 legacy preservation。AionUI Source 仍需在现有 Cron engine 上挂载 Sider 并收敛 create/edit composition，不新建第二 scheduler。 |
+| `B0-12` | Scheduled tasks/Cron、后台继续与通知 | 长任务和周期任务需要离开前台后继续。 | 使用单一 carrier scheduler/store、可发现的 ordinary entry 和 owner-projected executor identity；不新建第二 scheduler。 |
 | `B0-13` | Memory、personalization、instructions | 稳定偏好和项目指令决定长期易用性。 | 复用 owner-correct profile/refs，不新建独立 memory 平台。 |
 | `B0-14` | 通用 Settings 容器、search/back/redirect、a11y、theme、i18n | 所有配置与长期使用能力需要一致容器。 | 容器行为属于 B0；OPL 栏目、owner route 与数据语义归 `R1-05`。 |
 
@@ -68,7 +68,7 @@ negative policy 和用户可见性偏好影响展示。Local Git、Terminal、Br
 本地 checkout 属 B0；SSH/HPC 可作为 Resources refs 接入，但托管远程 Workspace、资源调度和
 跨主机 handoff 仍归 `X0-04/X0-05`。`B0-10` 也不授权 Shell 自建 managed Worktree/Handoff。
 
-B0 不进入 OPL 自维护的 R1/U1 12 项实现矩阵。AionUI 已有的基线不为追求理论完整度重写；Native
+B0 与 OPL 自维护的 R1/U1 分别评估。AionUI 已有的基线不为追求理论完整度重写；Native
 候选最终必须自行补齐。当前 carrier 实现程度见
 [`shell-conformance-matrix.md`](shell-conformance-matrix.md)，未 fresh 核对的能力一律
 `source_not_assessed`。
@@ -77,9 +77,7 @@ B0 不进入 OPL 自维护的 R1/U1 12 项实现矩阵。AionUI 已有的基线�
 产品面，不表示 Codex subagent 缺失。当前状态按 contract、Codex runtime/execution、App Server
 adapter、ordinary activity UI、pixel、install 和 release 分账，见
 [`shell-conformance-matrix.md#b0-11-codex-subagent-证据`](shell-conformance-matrix.md#b0-11-codex-subagent-证据)。
-当前 AionUI source 已按真实 `codex-acp` delegated-turn metadata shape 补齐只读
-Active/Done、详情/结果和 canonical task 打开；它复用现有 adapter，不建立新的执行或编排层。
-Pixel、Install 和 Release 仍须在 exact source/package 上独立验证。
+实现和后续证据从该入口按当前 source/package 分别验证，不在功能定义中冻结完成度。
 
 ### List 1：等价功能替换类（R1）
 
@@ -112,7 +110,6 @@ R1 与 U1 的当前实现程度按 carrier 分开维护在
 
 | ID | 条件能力 | 当前处理 |
 | --- | --- | --- |
-| `X0-01` | 旧全局跨项目 Runtime cockpit 分类 | **Superseded target:** 当前 WorkItem route/validator 仅作迁移 compatibility；目标能力已进入 `U1-07`。新 Runtime未完成前不得删除旧 producer，完成后删除 optional gate和fixed Agent scope。 |
 | `X0-02` | 完整 Evidence/Provenance/receipt/route-ref 平台 | 只保留 owner-required refs、confirmation 与 receipt；完整 cockpit 条件推进。 |
 | `X0-03` | Hosted Workspace / cloud-continuous execution | `optional_owner_projected_resource_refs`：App contract 与 AionUI Resources & Connections 已实现 owner projection 条件启用、独立分组和空投影无占位；不再维护 hosted promise copy。 |
 | `X0-04` | Fabric/HPC/远程资源控制面 | `optional_owner_projected_resource_refs`：真实 owner/backend projection 存在时才提供 refs/owner route；空投影不挂载 group/anchor。完整调度仍归 domain/runtime 产品。 |
@@ -157,7 +154,7 @@ App 不以 allowlist 删除 capability，只应用窄 Team/internal negative pol
 | Current execution context | Working directory 在 rail；新会话 cwd 从 composer 上方独立 context bar 选择，branch/locality 在 Environment。文件、文件夹、动态发现的 Agent Package/capability、adapter-reported nonduplicate mode 与真实可用连接从 composer `+` palette 选择并以紧凑 chip 展示。缺 workspace 或 workspace readiness 未完成都不禁用普通本地对话与显式文件输入。 | GUI contract、workspace/App state refs。 |
 | Model/reasoning control | Home 与普通 conversation 共用一个紧凑 App-owned menu；用户选择优先，其后依次消费已安装 Flow recommendation、Codex live default 和 App fallback。 | `contracts/app-product-profile.json`；文档不复制 allowlist。 |
 | Permission/access mode | 在 Home 与 conversation composer 以自动化和文件权限的用户语言显示，保留安全透明度但不暴露 provider/backend。 | GUI contract、workspace/access policy。 |
-| Purpose selection | Home 优先显示用户启用的 Agent Package shortcuts；new-session `+` palette 在首次发送前提供完整 installed Agent 目录，不受 Home shortcut visibility/order 过滤。两者同步同一 active Package；Home 只是快捷方式。Official defaults 来自 Agent descriptors/Profile，不是 App fixed list。 | Dynamic Agent Package descriptors、user shortcut preference、GUI contract。 |
+| Purpose selection | Home shortcuts、new-session `+` palette 与显式 `@` Agent selector 在首次发送前同步同一 active Package；完整 installed Agent 目录不由 Home 快捷方式截断。既有会话可为当前 turn 调用 Agent/capability，不重绑 thread。 | Dynamic Agent Package descriptors、user shortcut preference、GUI contract。 |
 | Agent-scoped capabilities | 只显示当前 Package声明且实际 present/callable 的 required/optional capabilities。 | Package/native discovery；App无 packaged-skill profile或 allowlist。 |
 | Package conversation availability | Installed/enabled/callable Agent 可选择；missing required identity 或 entrypoint 只局部阻止所选 Agent。Version、ABI、lock、payload、receipt、digest 不成为发送门。 | Framework minimum Package status projection。 |
 | User-input and permission prompt | 当前 conversation 需要 command/file/permission approval、补充信息或 MCP elicitation 时，沿用 AionUI ACP 的现有可见流程；拒绝、取消或协议错误保持真实失败。 | AionUI ACP 与 Codex permission/request flow。 |
@@ -177,12 +174,11 @@ Purpose shortcut 只改变 route context 和 capability selection，不定义 do
 artifact schema、quality verdict 或 readiness。普通用户标签描述工作目的；Package id 和
 technical refs 只进入 Advanced detail。
 
-## Current Compatibility: X0-01 Runtime 支撑面
+## Runtime 与结果查看
 
-以下表格只描述 AionUI 当前已保留 route 的 compatibility 行为。目标能力已进入 `U1-07`。
-Framework producer 在迁移期继续受保护，完整旧 route 检查仍由
-`npm run validate:runtime-route` 显式执行。Validator pass 不关闭 dynamic Agent Runtime 的
-Contract/Source/Pixel/Install/Release。
+Runtime 是 `U1-07` 核心 Agent 工作入口；页面消费动态 task producers 与
+`opl_app.typed_domain_views.v3`。Conversation 和 Inspector 各自拥有当前任务与结果查看，
+不混入 Runtime 的跨项目任务列表。实现与验证不在功能目录中重复计分。
 
 | 功能 | 用户结果 | Authority / machine owner |
 | --- | --- | --- |
@@ -234,7 +230,7 @@ Legacy/upstream routes 只作为 compatibility redirects，不构成功能目录
 | 功能 | 用户结果 | Authority / machine owner |
 | --- | --- | --- |
 | Ordinary launch | 认证后的普通路径立即进入可交互 Guid；readiness 与 managed-agent discovery 后台刷新，不以 `StartupGate` 阻塞首窗。 | Startup product contract、first-run matrix；installed evidence 单独证明 `<=1500 ms` 目标。 |
-| Core readiness check | 知道 workspace、Codex CLI 和模型访问是否足以进入 App。 | First-run contracts/page-state。 |
+| Core readiness check | 解释 workspace、Codex CLI 和模型访问的能力前置条件；不阻断显式进入 App。 | First-run contracts/page-state。 |
 | Guided blocker resolution | 看到当前 blocker、下一步和可执行配置/修复动作。 | App state/action；技术命令按需展开。 |
 | Initialization progress | 看到阶段、elapsed time、完成/失败和恢复路径。 | OPL initialization event/readback。 |
 | Official Profile install | Standard/Full自动安装同一组官方 roots并补齐required presence；单包失败局部化。 | App Official Profile + native platform actions + Framework fresh installed/callable readback。 |

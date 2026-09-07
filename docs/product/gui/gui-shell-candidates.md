@@ -26,65 +26,24 @@ contracts are intentionally carrier-owned and explicit:
 | Fixed role registry | `npm run validate:shell-candidates` | Included in default structural gates; does not inspect candidate implementation detail. |
 | OPL Studio foreground detail | `npm run validate:candidate:studio` / `npm run test:candidate:studio` | Explicit on demand; full candidate evidence is Studio-only. |
 
-## 双 GUI、单控制面
+## 选择边界
 
-在 `OPL Base + OPL App + OPL Packages + optional OPL Cloud` 四层生态中，
-本文件只管理 App 的 Shell carrier 选择。Package topology/发布、Framework Host
-composition 与 Cloud 服务都不因 Shell 切换而迁移 authority；跨仓品牌名也只是
-capability domains，不是 Shell plugin 或 Package 清单。
+两个 Shell 实现同一 App product contract，拥有独立 checkout、依赖树、bundle identity
+和 GUI user-data。Runtime、Package、Codex thread 与 domain authority 不随选择迁移；
+renderer 启动前通过 App-owned compatibility/admission。
 
-OPL App 采用“同一逻辑基座、多个独立 GUI 客户端”的运行模型。AionUI 与
-`opl-studio` 都消费 App-owned product contracts、OPL state/action surface
-和 Codex App Server authority，但不共享 renderer 源码、前端依赖目录、GUI 私有数据库
-或构建链。这个关系类似同一个语言 Runtime 可以被多个 IDE 使用，而不是把两个 IDE
-合并进同一个依赖树。
+Repository 与 adoption 责任见 [Studio 产品边界](opl-studio-plan.md)，Host 架构见
+[Application Host composition](deepseek-harness-composition-plan.md)。
+本文件只负责启动目标选择，不复制这些架构规则或 current source gap。
 
-两个 Shell 的 Client Cordis 必须消费同一 Host-projected allowlisted graph、typed
-slots/actions、RPC/events 与产品状态语义。Client 只渲染并经 canonical App action bridge
-派发：不得自行发现/安装 plugin、维护 registry/currentness、获得 release-operation，或拥有
-task、Package、product truth。Framework Host producer/projection 已 canonical；本节只冻结
-两个 Shell 的统一 consumer contract，不替代各 Shell 自己的 runtime conformance 证据。
+Codex executable 通过 `OPL_CODEX_BIN` 进入既有 App Server adapter。Active AionUI 使用
+Shell-owned `opl_aioncore_managed_resources_projection.v1`，组合官方 AionCore Node-only
+export 与 Shell 独立选择的官方 Codex package；Studio 不依赖 AionCore 或 AionUI parser。
+具体打包与 readback 只维护在
+[Codex carrier](../../architecture/aioncore-codex-only-carrier.md)。
 
-三仓的终态关系固定为“一个产品 authority、两个可替换 Shell 实现”：
-
-| 仓库 | 终态职责 | 明确不拥有 |
-| --- | --- | --- |
-| `one-person-lab-app` | 产品行为、导航、页面状态、GUI contribution ABI、Client Cordis profile、active shell、版本组合与发布门禁 | Electron/React 具体实现、AionUI/DSH 上游源码 |
-| `opl-aion-shell` | 当前 Stable 的 AionUI renderer、Electron/preload、AionCore/Codex 适配和安装实现 | OPL 产品定义、插件名单、发布策略 |
-| `opl-studio` | 完整 DSH/Cordis Application Host、`opl-codex-native`、Framework bridge、Client Cordis、renderer 与三种 carrier 的下一代候选实现 | 第二套 Framework runtime/Package authority、第二套 App 产品 authority、擅自声明 active/release-ready |
-
-共享产品逻辑只能沉淀为 App contracts/profile、Framework ABI、GUI contribution schema
-或独立 Package；不能从一个 Shell 复制到另一个。Shell 切换只需在 App 主仓通过
-`app-shell-adapter.json` 冻结新的 selected Shell 和组合版本，不需要迁移 Framework
-authority 或重写另一 Shell。
-
-| Surface | Owner / sharing rule | Current boundary |
-| --- | --- | --- |
-| GUI product truth、profile、page-state | `one-person-lab-app`，两个 shell 共用 | 已有 machine contracts。 |
-| OPL state/action 与 domain/package refs | OPL Framework/domain owner，两个 shell 只消费 | 已有 canonical bridge；shell 不得创建第二 truth。 |
-| Codex thread history 与 opaque thread id | Codex Core/App Server | Authority 已固定。P1c candidate bytes remove the Native private coordination/cache requirement and preserve one App Server adapter, but canonical App/Native absorption and cross-GUI directory/read/resume continuity are not yet proved. AionUI private repository remains outside this candidate cleanup. |
-| OPL/Codex executable identity | App command-resolution policy + OPL runtime owner | App launcher 已向 Native 注入 exact path/version/cohort；AionUI physical parity 仍未证明，Native 直接打开 bundle 时仍是 host-PATH fallback。 |
-| Workspace、source files、artifact refs | 用户 workspace / domain owner | 可由两个 GUI 指向同一逻辑工作区，但不据此声明并发写安全。 |
-| Renderer、framework、lockfile、`node_modules` | 每个 shell 独立 | AionUI 与 Native 不共享依赖树。 |
-| Window state、panel layout、draft、UI cache | 每个 GUI 私有、可重建 | 不允许直接读取或写入另一个 GUI 的 SQLite、localStorage 或 user-data store。 |
-| Bundle id、updater、release artifact | 每个安装身份隔离；release authority 仍归 App | 可并存安装；candidate 在 adoption 前只进入独立 Studio Preview repository/feed，不进入 App Stable、Dev 或 Nightly identity。Latest pointer selection 不改变 shell role。 |
-
-“共享逻辑基座”不等于“当前共享同一份物理 Runtime”。AionUI 走 managed/packaged
-runtime 路径；Native 通过 App launcher 使用显式 `opl`/`codex` 路径，但直接打开 bundle
-仍回退到宿主 PATH。在两者都返回相同
-executable path/version/cohort readback 前，不得声称物理 Runtime parity。
-
-Codex carrier 选择也不进入共享产品 truth。Active AionUI 当前从 raw AionCore
-managed-resources manifest 解析 exact Codex；目标由 Shell 从同一上游导出生成
-`opl_aioncore_managed_resources_projection.v1`，只保留 Node + Codex，再通过
-`OPL_CODEX_BIN` 交给单一 App Server adapter。Standard/Full 最终包必须物理排除 Claude，
-并继续排除 Framework managed Codex archive、cache 或 generation。Framework headless
-carrier 作为独立 Base 安装能力保留，不得因为 App 选择 AionCore 而打入 App bundle。
-OPL Studio candidate 与后续 adopted shell 继续使用同一 resolver/protocol，但其
-carrier 必须是 Studio-owned 或 exact external binary，不能要求 AionCore，也不能读取
-AionUI 私有 manifest parser。这保证替换 GUI 时只切换 executable source，不迁移
-canonical thread history。迁移计划见
-[`../../architecture/aioncore-codex-only-carrier.md`](../../architecture/aioncore-codex-only-carrier.md)。
+显式 launcher、直接打开 bundle 与 installed process 分别验证 executable resolution。
+同一产品名、两个窗口或一次顺序切换均不证明相同物理 runtime 或并发写安全。
 
 ## 两条选择轴
 
@@ -94,88 +53,16 @@ canonical thread history。迁移计划见
 | `local GUI launch target` | 本机本次打开 AionUI 或 Native | 每次 launch 局部选择；不得修改 active adapter、release role 或 updater channel。 |
 | `adoption / promotion` | 候选正式替换默认发布 GUI | 显式修改 active adapter，并完成完整 adoption/release/owner gates。 |
 
-## Preview 到正式 App 的升级路线
+## Adoption 与设计
 
-完整机器合同是
-`contracts/app-release-channel.json#shell_transition_policy`；本节只解释 Shell 角色，
-不复制 release/version/data truth。
+本机选择 candidate 不改变 active release shell、App identity 或 updater feed。
+Preview 到正式 App 的 handoff、原地升级、允许迁移的数据与回滚准入仅由
+`contracts/app-release-channel.json#shell_transition_policy` 和
+[Studio 产品边界](opl-studio-plan.md) 规定。候选构建和窗口可用不表示 adoption。
 
-正式切换保留当前 `One Person Lab` 的 Bundle ID、`/Applications/One Person Lab.app`、
-user-data 根和 App Stable feed，仅把实现从 AionUI 换成 Studio。这样当前主线用户可以沿
-现有 updater 原地升级，且第一版 Studio 正式 App 在正常启动 renderer 前执行一次幂等、
-可恢复的 allowlisted local-state migration。
-
-Studio Preview 继续保持独立 Bundle ID、应用名、user-data 和 repository/feed。不同身份的
-Electron App 不能被描述为原地自动更新：Preview 的 terminal release 必须通过受签名保护的
-handoff 安装 exact 正式 App，迁移 Preview 私有设置和未发送草稿，并在正式 App 的启动、
-版本、数据和 owner state 回读成功后才允许清理 Preview。Preview feed 不得被重定向或改名
-为 App Stable feed。
-
-切换不迁移 Codex thread truth、Gateway credential、Framework Package/runtime/receipt、
-Workspace 或 domain artifact；这些数据继续由原 owner 提供。AionUI/Preview 的数据库、
-cookie、Electron cache、updater identity 和凭据不得整体复制到新 renderer。两边都存在时，
-触发 handoff 的来源只填充正式 App 尚不存在的允许字段；草稿按来源命名空间保留，禁止静默
-覆盖。
-
-在 Preview 内测结束前，这条路线只是 `planned_not_authorized`。后续开发必须分别证明：
-AionUI supported-source window 到正式 App 的直接更新、Preview 到正式 App 的 handoff、
-双安装共存的单 writer、迁移中断恢复、回滚路径，以及更新后 Gateway/thread/workspace/
-settings 的 owner readback。通过这些门禁后，才修改 `app-shell-adapter.json`。
-
-每次 App wrapper 解析 active 或显式 candidate adapter 时，都必须先通过 App-owned
-`client_renderer_compatibility` / `client_renderer_admission`。该门禁验证两条 renderer 共享
-Host-derived graph、App allowlist、typed slots/actions、RPC/events 和 state semantics 后才允许
-启动命令；它不改变 active release shell，也不构成无验证热切换或 Studio release admission。
-
-本地启动 candidate 只证明该 bundle 可被选择和打开，不证明 adoption、release readiness
-或与 AionUI 的 Runtime/session parity。两个 bundle 可并存，但在 host coordination 与并发
-负向证据完成前，只承诺快速顺序切换，不承诺两个 GUI 同时写同一 workspace/thread 的安全性。
-
-DeepSeek Harness is not another shell role. Its pinned Application Host and selected
-renderer/slot source form the implementation base of the sole foreground candidate,
-`opl-studio`.
-AionUI consumes the OPL-owned contribution ABI plus only the bounded visual source
-cohort through `OplVisualProvider` and `OplIcon`; it does not import DeepSeek Harness
-Application Host, session, router, provider, connection, complete renderer, or Client
-Cordis. Both shells may run the single App-approved Client Cordis graph derived from
-the Framework Host graph and App profile/allowlist. Studio's separate server-side Host
-is scoped to DSH/plugin/Codex/transport composition; neither shell may create a second
-Framework runtime/Package graph, discover or install OPL Packages, maintain a Package
-registry/currentness view, receive release-operation, or own App state/action authority.
-The evaluation and controlled migration plan lives in
-[`deepseek-harness-composition-plan.md`](deepseek-harness-composition-plan.md).
-
-## Design System Governance
-
-The governance entry is `docs/product/gui/README.md`. It routes
-the three-layer definition stack and the four foundation documents:
-
-- Product definition: `docs/product/gui/README.md`,
-  `docs/product/gui/feature-inventory.md`, and App contracts.
-- Visual and ideal interaction system:
-  `docs/product/gui/ideal-interaction-spec.md`,
-  `docs/product/gui/visual-system.md`,
-  `docs/product/gui/codex-to-opl-app-delta.md`, and
-  `docs/product/gui/element-audit.md`.
-- Shell implementation and conformance:
-  `docs/product/gui/shell-implementation-guide.md` and
-  `docs/product/gui/shell-conformance-matrix.md`.
-
-The priority marker is
-`gui_definition_stack: product_definition > visual_system > shell_implementation_conformance`.
-Shell authority is `gui_shell_authority: implementation_only`: a shell
-implements the higher layers and records deviations, but cannot reverse-define
-the product from renderer code, screenshots, upstream defaults, or visual QA.
-
-The external visual and interaction reference is the latest official ChatGPT Codex macOS
-version verified at observation time, with exact identity recorded in that observation receipt.
-Builds `26.707.41301`, `26.707.31428`, and `26.707.31123` are retained only as historical
-observations. The ideal/native target keeps the
-desktop workspace/session rail visible and the inspector closed by default.
-The conformance matrix reads active AionUI state from
-`contracts/app-product-profile.json#gui.home.home_layout`, compares it with the
-App-owned ideal, and allows later active convergence without copying or freezing
-the current profile value.
+设计体系从 [GUI README](README.md) 进入；Shell 实现 App-owned 产品、交互与视觉，
+不能从 upstream 默认或截图反向定义产品。当前证据通过
+[Shell conformance](shell-conformance-matrix.md) 定位。
 
 ## Commands
 
@@ -257,16 +144,9 @@ edited and the App shell adapter, product profile, page-state, first-run,
 package, release, and owner gates pass for that adoption. Local launch selection
 is deliberately outside that authority path.
 
-## Landing order
+## 文档生命周期
 
-| Order | Work package | Completion rule | Current status |
-| ---: | --- | --- | --- |
-| 1 | Operating policy | Contracts declare launcher selection, shared Runtime resolution and conversation continuity boundaries; validators reject policy drift and false-ready flags. | Implemented for local launch policy; stronger parity/readiness claims remain gated. |
-| 2 | App-root launcher | One `--shell/--mode` interface selects active or foreground shell without mutating release adoption. | Implemented with plan/readback, isolated bundle identity and Candidate default read-only policy. |
-| 3 | Shared Runtime resolver | Both GUI clients consume the App resolver and emit exact OPL/Codex path, version and cohort readback. | Implemented for launcher-started Native only; active AionUI parity and Native direct-launch fallback remain unproven. |
-| 4 | Canonical conversation continuity | Both clients project App Server `thread/list/read/resume`; local stores contain UI state/drafts/rebuildable cache only. | P1c App/Studio candidate bytes remove the Studio private coordination/cache requirement, but canonical absorption and cross-GUI continuity evidence remain pending; AionUI private repository is unchanged by this slice. |
-| 5 | Side-by-side acceptance | Distinct bundle identities, sequential switching, same-workspace readback and negative concurrent-write cases use one exact cohort. | Pending; no simultaneous-write claim. |
-| 6 | Preview qualification | Dedicated Preview feed proves signed/notarized install, update, restart and current-version readback without changing the active App identity. | Current phase after functional acceptance. |
-| 7 | Dual-source migration | AionUI direct in-place update and Preview exact handoff preserve allowlisted local state and reuse owner state without copying databases or secrets. | Planned; implementation and clean-VM proof pending. |
-| 8 | Optional adoption | Candidate changes the active adapter and publishes Studio bytes on the preserved App Stable identity only after full release/owner gates. | Separate later decision. |
-| 9 | Legacy retirement | Terminal Preview handoff and old Shell data are removed only after post-update owner readback and rollback retention. | Deferred until adoption acceptance. |
+本文只维护 active/foreground 选择、启动操作与 adoption 边界。Studio 的架构与产品角色见
+[Studio boundary](opl-studio-plan.md)，实现状态与证据通过
+[Shell conformance](shell-conformance-matrix.md) 定位。每轮候选工作、source SHA、测试结果、
+迁移顺序和待办写入该 operation 的报告，不按历史顺序追加到本文件。

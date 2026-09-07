@@ -150,32 +150,12 @@ Studio 把 DSH 作为可跟随的 pinned upstream，而不是一次性复制。�
 一次升级如果必须大面积改写 vendor source，或必须加载被排除的 DSH authority services，说明当前
 adapter boundary 已失效，应重新做架构决策，而不是在 Studio 内维持长期私有 fork。
 
-## 仓库关系与 Authority
+## 产品与准入
 
-| Repository | Owner role |
-| --- | --- |
-| `one-person-lab-app` | 产品行为、GUI ABI、Client profile、active-shell 选择、carrier evidence contract、发布和 adoption truth |
-| `opl-studio` | DSH Application Host、Studio plugins、native Codex integration、renderer、Desktop/WebUI/OCI carrier source 与本地验证 |
-| `one-person-lab` | Framework runtime、installed Package graph、App projection 与 state/action/auth/channel contracts |
-| `opl-aion-shell` | 当前 Stable AionUI implementation carrier；不拥有 Studio Host 或 App product truth |
-
-`opl-studio` 不再是 App repo 的一个 Framework plugin，也不是只承载 GUI 的空壳。它是独立应用
-仓库，通过 App adapter 被选择为一个 Shell carrier。这里的 `Shell` 是 App 发布组合中的角色，
-不是对 Studio 内部架构的降级描述。
-
-## 当前证据边界
-
-当前 machine contracts 已把 Studio 标记为
-`source_implemented_release_admission_separate`，同时固定：
-
-- `active_shell_adopted=false`；
-- `release_ready=false`；
-- AionUI 仍是当前 Stable release shell；
-- Studio 是唯一 foreground alternative。
-
-Source、tests、local package、carrier manifest 或 Preview 启动只证明对应候选层。只有 App owner
-显式更新 active adapter，并完成签名、公证、安装、更新、回滚、clean-host/VM、公开 artifact 与
-installed/runtime readback，才能声明 adopted 或 released。
+Repository relationship、candidate role 和 adoption 只维护在
+[Studio product boundary](opl-studio-plan.md)，本地选择和命令见
+[Shell candidates](gui-shell-candidates.md)。本架构允许 Studio 独立 Application Host，
+但不据此改变 AionUI active-shell 或声明任何 carrier 已发布。
 
 ## Canonical References
 

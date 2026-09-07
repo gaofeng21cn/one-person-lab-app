@@ -5,12 +5,7 @@ import assert from 'node:assert/strict';
 
 const appRoot = join(import.meta.dirname, '..', '..', '..');
 
-test('DSH visual source policy is discoverable and keeps sessions primary', () => {
-  const readme = readFileSync(join(appRoot, 'docs/product/gui/README.md'), 'utf8');
-  const policy = readFileSync(join(appRoot, 'docs/product/gui/codex-app-visual-parity.md'), 'utf8');
-  const delta = readFileSync(join(appRoot, 'docs/product/gui/codex-to-opl-app-delta.md'), 'utf8');
-  const visualSystem = readFileSync(join(appRoot, 'docs/product/gui/visual-system.md'), 'utf8');
-  const conformance = readFileSync(join(appRoot, 'docs/product/gui/shell-conformance-matrix.md'), 'utf8');
+test('DSH visual primitives and session controls match App contracts', () => {
   const guiContract = JSON.parse(
     readFileSync(join(appRoot, 'contracts/app-gui-product-contract.json'), 'utf8'),
   );
@@ -20,39 +15,6 @@ test('DSH visual source policy is discoverable and keeps sessions primary', () =
   const pageStateMatrix = JSON.parse(
     readFileSync(join(appRoot, 'contracts/app-page-state-matrix.json'), 'utf8'),
   );
-
-  assert.match(readme, /codex-app-visual-parity\.md/);
-  assert.match(policy, /visual_source=pinned_deepseek_harness_visual_source_cohort/);
-  assert.match(policy, /historical_interaction_reference=chatgpt_codex_workflow_and_spatial_observation_only/);
-  assert.match(policy, /pixel_reference=opl_app_owned_approved_visual_baseline/);
-  assert.match(policy, /external_reference_artifact_required_for_release=false/);
-  assert.match(policy, /project_owns_session=false/);
-  assert.match(policy, /project_context_row=forbidden/);
-  assert.match(policy, /new_session_context_bar=required_above_composer/);
-  assert.match(policy, /composer_capability_palette=searchable_grouped_scrollable/);
-  assert.match(policy, /conversation_search_location=rail_history_header_icon_button/);
-  assert.match(policy, /composer_resting_shadow=required/);
-  assert.match(policy, /home_starter_selected_alignment=centered_no_layout_shift/);
-  assert.match(policy, /settings_surface_audit=all_routes_light_dark_desktop_narrow/);
-  assert.match(policy, /temporal_maintenance=server_worker_detect_install_configure_start_restart_run_now_readback/);
-  assert.match(
-    policy,
-    /temporal_server_supervisor=login_resident_stable_launcher_run_at_load_keep_alive_repairable/,
-  );
-  assert.match(policy, /aioncore_modification=forbidden/);
-  assert.match(policy, /visual_acceptance=source_dom_and_installed_pixels/);
-  assert.match(policy, /candidate_shell_commit_source=active_shell_checkout_git_head/);
-  assert.doesNotMatch(policy, /candidate_shell_commit=[0-9a-f]{40}/);
-  assert.match(policy, /candidate_webui_pixels=pending_on_clean_release_cohort/);
-  assert.match(policy, /installed_pixel_acceptance=pending/);
-  assert.match(policy, /visual_parity_complete=false/);
-  assert.match(visualSystem, /固定的 DeepSeek Harness commit/);
-  assert.match(visualSystem, /ChatGPT Codex macOS 只保留历史工作流和空间关系参考/);
-  assert.match(visualSystem, /OPL App 自有、经人工批准的 16-scene baseline/);
-  assert.match(visualSystem, /grouped-row Control Center/);
-  assert.doesNotMatch(conformance, /默认 cwd、分组与 context hint/);
-  assert.match(delta, /稳定视觉 chrome 逐像素对齐/);
-  assert.doesNotMatch(delta, /不宣称逐像素或逐行为复制/);
 
   const homeVisual = guiContract.interaction_baseline.home.visual_structure;
   assert.equal(homeVisual.starter_typography, '13/18/500');

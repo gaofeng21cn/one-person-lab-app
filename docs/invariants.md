@@ -1,82 +1,86 @@
 # One Person Lab App Invariants
 
 Owner: `one-person-lab-app`
-Purpose: `app_invariants`
+Purpose: `cross_cutting_authority_and_safety_invariants`
 State: `active_truth`
-Machine boundary: Human-readable invariants. Machine-readable truth lives in `contracts/`, source, release artifacts, updater metadata, and test results.
+Machine boundary: Contracts, source and fresh owner evidence determine behavior.
 
-- The App repo owns desktop product packaging, release metadata, first-run product policy, App-level contracts, screenshots, user guides, and App validation wrappers.
-- Temporary visual, Playwright, and Codex screenshots are local run artifacts, not repo truth. Keep them out of git unless they are promoted into `docs/site/latest`, a release evidence bundle, or an explicit manifest-backed evidence surface.
-- The App repo is a purpose-first Codex wrapper product authority. It owns how users enter research, grant, presentation, and book work; it does not own the runtime, domain, memory, artifact, or family production truth behind those entries.
-- The App repo owns One Person Lab App GUI product truth. The active shell may implement renderer/process/package/test/release-hook details and absorb upstream AionUI changes, but App page behavior, model-selection policy, onboarding policy, screenshots, and release/user docs stay App-owned.
-- Conversation/session backed by the canonical Codex App Server thread ID is the primary user-work unit. Project affinity is `unbound | bound` and has zero-or-one cardinality: a new session may start projectless or bound. User-triggered one-time adoption is keyed by the exact canonical thread ID and stored in versioned Studio UI metadata; it must not claim an App Server `projectId` field or require a `thread/read.projectId` readback that the current protocol does not provide. The adapter reads back the exact canonical thread identity before committing the rebuildable local metadata projection, while the recorded runtime cwd remains App Server execution metadata. Existing explicit affinity blocks `bound(A) -> bound(B)` reassignment; recorded cwd neither creates nor blocks affinity. Git origin is environment metadata, not Project identity. App Server `turn/start.cwd`, runtime command or shell `pwd`, explicit local inputs, sandbox, approvals, and writable roots do not rewrite or expand UI affinity. Failure leaves the thread projectless and usable, without a second client, private pending/receipt state, or managed Worktree/Handoff lifecycle.
-- Workspace/cwd readiness is fail-open for the Codex-first shell: a missing or unavailable directory selector must leave projectless new task, composer input, explicit send-scoped local inputs, and ordinary Codex conversation available. Agent Package Workspace or managed-target validation applies only when the selected owner-projected action lists that context in `required_payload_fields`; the shell must not infer the requirement from a manifest. Readiness failure for one Agent Package must not disable ordinary Codex.
-- GUI 定义必须按
-  `gui_definition_stack: product_definition > visual_system > shell_implementation_conformance`
-  从 App-owned product docs 流向 implementation。Product definition 入口是
-  `docs/product/gui/README.md`、
-  `docs/product/gui/ideal-interaction-spec.md`、
-  `docs/product/gui/codex-to-opl-app-delta.md`、
-  `docs/product/gui/feature-inventory.md` 和 App contracts；visual system 与
-  shell implementation/conformance 入口统一由
-  `docs/product/gui/README.md` 路由。
-- Shell authority is `gui_shell_authority: implementation_only`. Shell code,
-  screenshots, upstream defaults, visual QA, and local implementation state may
-  prove implementation or record a deviation, but cannot redefine App product
-  truth or override a higher GUI definition layer.
-- Upstream inheritance is reuse-first. AionUI/AionCore official capabilities remain available by default unless an App contract explicitly classifies a surface as `adapt`, `redirect`, or `reject`; Team is an explicit reject. Absence from an OPL allowlist is not general authority to disable upstream behavior. OPL does not privately recreate complex capabilities that upstream does not provide unless a protected B0/R1/U1 user result requires them. Defects confined to rejected, retired, or private legacy surfaces do not enter the product repair mainline.
-- The external GUI design reference is the latest official ChatGPT Codex macOS
-  version verified at observation time. Its exact identity belongs in the observation
-  receipt and never becomes a required Pixel, Install, Release, or Stable artifact.
-  Formal pixel regression uses the App-owned approved visual baseline in
-  `contracts/app-gui-visual-reference-cohort.json`; historical external observations
-  cannot substitute for it. The ideal/native target requires the
-  desktop workspace/session rail visible and inspector closed by default. The
-  active AionUI state is read dynamically from
-  `contracts/app-product-profile.json#gui.home.home_layout` and compared with
-  that ideal; governance must report current conformance or deviation without
-  freezing the current active values.
-- The App ordinary path is currently a Codex CLI fixed-executor experience with configurable professional-agent shortcuts. This is an App product default, not an OPL Package ecosystem constraint. OPL standard agents are ordinary installed Packages with `kind=agent`; shortcut descriptors come from those Packages and user preferences, not an App-maintained Agent list. It must not expose Aion CLI, Claude Code, or generic backend/provider switching as normal user choices; App-owned model/reasoning and user-language permission/access controls remain visible at the composer decision point.
-- Package, carrier, and executor are independent. Package identity, capabilities, dependency presence, user preferences, business Work Items, and typed views are executor-neutral. Codex Plugin Manager is the first carrier adapter only; Codex plugin ids, marketplace layout, Codex home/path, and manifest shape must not enter the public Package projection or define installed truth.
-- Production is Codex-first to minimize current implementation and maintenance cost, but durable boundaries are OPL-owned. Package/capability identity, Official Profile, preferences, Work Items, Temporal refs, typed views, and domain-delivery semantics must survive carrier/executor replacement. One small Git/local neutral proof must keep the public contract free of Codex-private fields; full alternative executors are not maintained without a real need.
-- Each first-party Package owner publishes complete official bytes to an independent GHCR repository and advances only its own `latest-stable`. `one-person-lab-manifest:latest-stable` must not define ordinary currentness and remains only a Full/offline/integration-test/QA snapshot.
-- The Base OCI adapter is thin: it downloads and verifies complete Package bytes, then hands them to the Package-declared carrier/runtime adapter. The Package owner defines runtime activation and health, configured carriers execute it, Codex owns Plugin/config/cache activation, and Framework aggregates fresh readback across actual carriers. Base does not own complete Package lifecycle; a Plugin projection alone must not prove a runtime-bearing Package installed.
-- Package is the install unit. Codex Plugin Manager, Git, an OS package manager, or another configured carrier owns installation/update state; Framework provides installed discovery, required-presence/callability checks, per-executor route readiness, status aggregation, and thin adapters only where a platform has no adequate interface. App/Shell must not create a parallel resolver, version/ABI matrix, lock, payload, digest, LKG, receipt, materialization, rollback, Skill, Tool, Plugin, or Agent authority.
-- Switching executor must not reinstall or rename a Package or discard Settings/Home preference, Agent business Work Items, required-capability presence, or typed views. A missing executor adapter degrades only that route. If the removed carrier held the only physical Package bytes, fresh readback must report `physical_unavailable`; App metadata must never preserve a false installed state.
-- The App owns one Official Profile of first-install roots. Standard and Full use the same Profile; Full only adds offline seed bytes. The Profile is evaluated on first install or explicit “restore official combination”, is not an ecosystem ceiling, and must not reinstall a Package the user removed during ordinary startup or silent maintenance.
-- The App home professional-agent shortcuts are not backend selectors and not strong session contracts. They launch Codex through the installed Agent Package descriptor. The App must not use shortcut metadata to decide domain workflow, prompt internals, stage behavior, artifact schema, readiness verdict, quality/export authority, or owner receipts.
-- Ordinary Settings navigation 由 App 拥有。`settings_ia.v2` 必须把十个稳定 carrier routes 组织为七个一级组：Overview；Account & Models；Connections & Deployment；Workspace；Agents & Capabilities；Runtime & Maintenance；Preferences。About 是底部唯一辅助页。Resources & Connections 只归 Connections & Deployment；Instructions & Context 只归 Agents & Capabilities，并仅复用 Workspace personalization carrier；Workspace 只拥有 Working Directory 与 Data & Storage。Runtime & Maintenance 必须把 Service Status、Updates & Repair、Logs & Diagnostics 作为三个互斥二级目的地；Overview 只常驻一个 Background tasks 汇总，Temporal server/worker/scheduler 明细只在 Service Status。Desktop 日志目录由 Logs & Diagnostics 通过 `application.setLogDirectory` 管理并验证 `hostLogDir`；standalone WebUI 只读显示 owner/systemInfo 投影的实际日志目录，Docker WebUI 只读显示 `/data/logs`。Desktop workspace root 使用 Framework owner action；standalone WebUI 只读显示 owner 投影的实际逻辑 root，Docker WebUI 才由 `OPL_WORKSPACE_ROOT=/projects` 固定显示 `/projects`；任何 WebUI 都禁止执行 `workspace_root_set`。Docker WebUI 恰有两个必需宿主 bind：`/projects` 与 `/data`；Settings 永不修改宿主 source 或 bind，`/recovery` 只是可选 deployment-managed recovery staging。Storage 的部署位置摘要只在确认 Docker deployment identity 后显示。Storage 只读引用日志路径并持有 usage/cleanup；缺少完整 carrier-host ABI 时 WebUI cleanup 保持 status-only fail-open。Advanced、Update、Theme、Local Services、Personalization 仅作 owner destination 的兼容 deep link。`SettingsHost` 与 `SettingsShellAdapterSlot` 只是实现 adapter。首窗使用持久化窄快照或 loading shell，不等待完整 fast projection/drilldown，遵守 1,500 ms cold/warm 与 262,144-byte 预算。视觉与时序证据必须覆盖七组、全部二级目的地、十个 carrier routes、About 和 redirects；合同或测试不能单独证明安装与发布终态。
-- `contracts/app-settings-control-plane.json#product_system_checklist` is the Settings Control Center completion-audit source. Each item requires fresh evidence for the slice being claimed. Installed App currentness, notarization, running version, and release readiness remain explicit release-owner-gated items and must not be inferred from Settings contracts, shell tests, screenshot QA, pushed commits, or active-shell validation.
-- Settings visual QA is active-shell behavior evidence only. Screenshot or E2E visual coverage for Settings routes can close UI structure and overlap/framing risks, but it must not be used as release readiness, packaged App readiness, runtime currentness, owner acceptance, or production readiness evidence.
-- AionUI Settings upstream intake must be classified as `accepted`, `adapt`, `redirect`, or `reject` before entering the Settings registry, `SettingsHost`, or `SettingsShellAdapterSlot`. Accepted/adapted entries need registry or slot evidence; redirected/rejected entries must go through legacy redirect, extension anchor remap, or forbidden probes. This classification does not prove release readiness.
-- AionUI Settings fork maintenance uses the existing App-owned Settings Control Plane plus thin shell adapter. Do not introduce a parallel Settings package, plugin ecosystem, overlay topology, or shell-owned product IA unless the App contracts first define a concrete gap that the existing registry, adapter slot, view-model adapters, and upstream intake gate cannot cover.
-- GUI behavior changes must land first in App-owned contracts, docs, page-state tests, and release gates. Shell implementation follows those App-owned boundaries.
-- Skill, Tool, Plugin, MCP, Agent task producer, and typed view are discoverable capabilities exposed by Packages or their native platform. Required/optional edges check identity presence and callability only. The App has no packaged-skill allowlist or parallel capability catalog; user hide/show preference and narrow explicit product cuts affect presentation only.
-- Professional Skill content, skill-local helpers, programmatic substrate, and domain authority remain distinct even when one Package exposes them together. Presence means callable, not domain-ready or scientifically valid.
-- Workflow dependencies use the same Package/capability presence rule. OPL Flow owns its required/recommended intent; App and Full do not keep a second closure.
-- The App repo owns the GUI runtime bridge contract; OPL owns the runtime/app CLI protocol; the active shell only implements the replaceable adapter.
-- `opl app state --profile fast --json` is the default GUI state and refresh source; `opl app state --profile full --json` is explicit full-state diagnostic or release-evidence state; `opl app action execute --action <id> [--payload <json>] [--dry-run] --json` is the App mutation boundary.
-- `opl runtime app-operator-drilldown --detail full --json` is restricted to Maintenance diagnostics and release evidence tooling; Advanced only redirects there, and Runtime never consumes or exposes it.
-- Runtime is a target core App capability. Installed Agent Packages own business task inventory/lifecycle; Temporal owns queued/running/attempt/heartbeat/terminal execution; Framework joins and validates generic projections; App/Shell render them without Agent-id branches. Typed domain views are selected only by `view_kind`; MAS owns its research-roadmap schema and medical semantics. Missing producers, missing Temporal bindings, and unknown view kinds degrade locally. Existing `X0-01` contracts/source remain migration compatibility truth until replaced and must not be reported as target completion.
-- OPL App has exactly two product surfaces, Desktop and WebUI, and exactly two payload densities, Standard and Full. The four supported cells consume the same App contracts, Official Profile, and Framework state/action boundary. Native and Container are internal WebUI carriers, never additional surfaces, densities, quality levels, or product channels. This matrix does not prove an exact cell publicly available or installed; that requires its own artifact, qualification, public, and installed readback. Hosted OPL Workspace is X0-03 and may appear only with real URL, account, isolation, storage, backend, and owner policy; it must not become a second App truth or placeholder requirement.
-- OPL Fabric is an X0-04 retained refs-only resource context shown only with a real owner/backend: OPL Gateway for AI access, OPL Connect for connector readiness, compute/storage refs for execution, Environment Catalog refs for template/version/source/task fit, and resource receipts for plan/approve/execute/monitor/collect flows. The App must not own Fabric compute scheduling, storage authority, connector credentials, environment bodies, billing, or Console policy truth.
-- OPL Console is an X0-04 conditional management reference for organization policy, quota, billing, permissions, Workspace lifecycle, connector approval, environment policy, and managed resource packages. It appears only when a Console owner/backend exists; user-provided local, SSH, or HPC resources remain self-managed unless the Framework projection marks them as Console-managed.
-- The App must not own OPL runtime truth, provider implementation, domain truth, domain quality verdicts, memory body, artifact body, artifact authority, or owner receipt authority.
-- External learning landings, including K-Dense BYOK learning and OpenClaudeScience / Claude Science workbench framing, must not create a second runtime, domain, provider, billing, artifact, owner-receipt, or release-readiness truth. Reusable lessons must land as App contracts/profile/docs/tests, candidate adapter requirements, or Framework producer-ref requests.
-- `shells/aionui/` remains an external checkout of `gaofeng21cn/opl-aion-shell`; this repo must not merge or vendor AionUI history into the App default branch.
-- Future GUI shell candidates are declared in `contracts/app-shell-candidates.json`; selectable candidates also get their own repo-relative adapter contract under `contracts/shell-adapters/`. The stable role marker is `gui_shell_roles: active=aionui; foreground=opl-studio`. `opl-studio` uses an independent external checkout at `shells/opl-studio`. The default release shell remains `contracts/app-shell-adapter.json`; explicit candidate builds must set `OPL_APP_SHELL_ADAPTER_CONTRACT`, compile a launchable `.app` bundle manifest, and must not change Stable qualification gates, updater metadata, or the active release-shell role. Nightly is the Automated Preview built by that active shell: its scheduled writer defaults to no Latest mutation, while an explicit protected single-use expected-current CAS plus exact public readback may temporarily select an exact published Dev or Nightly Preview without changing quality and must disclose non-Stable/skipped gates; the next qualified Stable reclaims Latest by default. A candidate becomes the default release shell only after `contracts/app-shell-adapter.json` is changed deliberately and the App shell adapter, product profile sync, page-state/first-run matrices, active-shell validation, GUI package compile, and external checkout history policy all pass.
-- Local GUI launch selection and active release-shell adoption are independent axes. A per-launch choice may open AionUI or the foreground Native candidate without changing `contracts/app-shell-adapter.json`, release role, or updater channel. Both clients consume the same App contracts, OPL state/action surfaces, and Codex App Server authority, but keep separate bundle identities, dependency trees, GUI user-data, preferences, and caches. Same-Runtime parity requires exact OPL/Codex path/version/cohort readback from the App resolver; host-PATH-only resolution cannot prove it. Codex App Server owns thread history and opaque thread ids; GUI-local databases may hold UI state, drafts, or rebuildable cache only, and shells must not directly share private stores or claim simultaneous same-workspace/thread write safety without exact-cohort coordination evidence.
-- Standard updater assets and Full-density assets stay separate on both Desktop and WebUI. Updater metadata must not select assets whose names include `Full`.
-- Full-density assets preload payloads for clean or offline use; they are not a long-term update channel. A Standard update mutates only the selected product cell's App carrier, never `opl_base`, `opl_packages`, User Data / Artifacts, another surface, another density, Homebrew/system tools, or developer checkout sources.
-- `running_version_switched` triggers a fresh Framework App-state readback, not an App-owned Package mutation. Package maintenance remains independent and routes through its native platform or thin Framework adapter; the App never selects versions, carries a conflict list, deletes Skills directly, or writes `AGENTS.md` itself.
-- App install/update documentation and Settings copy expose exactly three software objects: OPL Base, OPL App, and OPL Packages. Installation carriers are adapters for Base or App; Runtime Fabric and Companion Tools are Base dependency/integration details; Capability Packages, Codex Surface, and Workflow Profile are Packages lifecycle or transaction details; User Data / Artifacts is a separate storage and cleanup boundary. None of these details may be presented as peer software layers or independent update owners. Legacy machine ids such as `runtime_substrate`, `runtime_toolchain`, `agent_package_channel`, and `capability_exposure` may appear only as internal contract/readback ids, not as primary user terms.
-- `embedded_codex_executor` is the App-owned Codex CLI executor payload in OPL Runtime Fabric. It must not upgrade, rewrite, or silently override a user's global Codex, Homebrew Codex, or system Codex install. OPL Runtime Fabric defaults to App-owned runtime; compatible system PATH, Homebrew, global tools, and developer checkouts may be detected for diagnostics, but require explicit expert opt-in to use and remain unmanaged.
-- Every discovered OPL Package is independent and differs only by `kind` and exposed capabilities; current first-party examples do not define a fixed inventory or count. MAS requires MAS Scholar Skills by identity presence/callability; a missing dependency is installed when MAS is first selected or explicitly repaired, and failure affects MAS only. Any other Package gains that edge only through its own owner contract. No Package depends on a family version cohort, lock, digest, payload, or receipt.
-- OPL Flow is an Official Profile workflow Package, not a standard updater or WebUI image target. Its lifecycle uses the same platform-native route as other Packages; the App never writes user `AGENTS.md` or `TASTE.md` directly.
-- GitHub repo or local checkout module sources are an explicit Developer Profile `source_channel` opt-in, not a normal-user default. Settings must express Developer Profile capabilities across `source_channel`, `workspace_trust`, `github_authority`, `agent_automation`, and `runtime_mutation_scope`, rather than a single Developer Mode switch.
-- App release/user-path evidence is cohort-bound App evidence. It must not be used as stable/latest promotion, MAS/MAG/RCA/BookForge domain readiness, or OPL family production readiness without the separate owner decisions and evidence gates.
-- Live Evidence deferred / functional structure first is the App development rule. App-owned contracts, active-shell adapter sync, AionUI mainline behavior, `opl-studio` foreground-alternative boundaries, page-state matrices, route receipts, first-run policy, Settings / Storage, release-boundary validators, runtime/domain no-authority guards, and retired-candidate deletion guards are functional/structural lanes and may close before release cohorts, clean-VM proof, packaged `.app` smoke, same-cohort user-path artifacts, real user-directory E2E, owner acceptance, or production-ready claims. Those later items remain mandatory release/lifecycle evidence lanes; shell tests, App validation, contract validation, UI rendering, or docs updates cannot replace them.
-- First-run Core ready can use bundled runtime bytes; Official Profile Package installation continues visibly in parallel or background after Codex core is usable. It installs all desired roots and required-presence dependencies once, while failures remain Package-local and user removal remains persistent.
-- Authenticated ordinary startup enters `/guid` without waiting for fast App state and without a visible `StartupGate`; state refresh and managed-agent discovery run in the background. The `<=1500 ms` value is an installed-product target measured from the OS launch request until the Guid composer is visible, enabled, and focusable. It is not a current measurement or SLA until exact installed evidence exists, and background hydration is outside that timing endpoint.
-- App page-state behavior must consume framework-owned read models and refs-only action routes; it must not infer domain ready, production ready, quality verdict, release ready, or artifact authority from provider completion or UI rendering alone.
-- App docs are human-readable navigation and product guidance. Machine decisions must use contracts, source, release artifacts, updater metadata, and test outputs.
+This reference contains constraints that cross component boundaries. Page rules,
+field catalogs, operating procedures and completion status belong to their
+specialized owners in the [documentation index](README.md).
+
+## Authority
+
+- App owns product behavior, first-install policy, GUI contracts and App release
+  qualification. Shells implement those contracts. GUI definitions flow from
+  product definition through the visual system to implementation/conformance.
+- Framework owns OPL runtime, Package discovery/aggregation and App state/action
+  projection. Domain owners retain scientific semantics, quality verdicts,
+  artifacts and business lifecycle. App cannot infer those verdicts from UI,
+  provider completion or a successful transport.
+- AionCore is an unmodified official dependency. The Shell composes its Node-only
+  export with the independently selected official Codex CLI; App does not create
+  a private AionCore fork or replace a running App's embedded core in place.
+- Native carriers own actual Package lifecycle. Package identity, physical
+  carrier, executor route and owner publication/currentness stay independent.
+  App must not create a resolver, lock, payload, LKG or parallel installed registry.
+- The Official Profile owns first-install roots and explicit restoration only.
+  Installed descriptors dynamically supply capabilities; no fixed Agent/Package
+  list limits discovery or silently reinstalls a user-removed Package.
+
+## Sessions And Interaction
+
+- Codex App Server owns canonical thread IDs, history, execution, permission and
+  lifecycle. One adapter serves user-triggered thread operations. App adds no
+  model-callable orchestration tools, coordination ledger or second client.
+- Project affinity is zero-or-one versioned UI metadata keyed by canonical thread
+  ID. One-time adoption requires exact thread identity readback and leaves the
+  recorded runtime cwd unchanged. The current protocol has no `projectId` field
+  to read back. Explicit affinity blocks reassignment; cwd and writable roots
+  neither create nor expand affinity. Failure leaves the thread usable.
+- Ordinary Codex remains available without a selected project or an Agent's
+  readiness. Required context comes only from the selected owner action's typed
+  payload requirements. An unavailable optional route degrades locally.
+- Authenticated startup enters `/guid` while App state refresh runs in the
+  background. Core readiness gates the first conversation; it is not a blocking
+  pre-`/guid` state fetch. Installed timing claims require measured evidence.
+- Runtime is a required core dynamic Agent route. Agents own Work Items; Temporal
+  owns execution; Framework joins projections; Shell renders them without
+  Agent-ID branches. Typed views dispatch by `view_kind`, with domain schemas
+  owned by their producers. Diagnostics and software repair belong to Settings.
+
+## Mutation And Data
+
+- GUI reads and mutations use Framework's public state/action interfaces. App
+  does not inspect private domain stores or turn diagnostics into runtime truth.
+- Install/update copy distinguishes OPL Base, OPL App and OPL Packages. User Data
+  and Artifacts remain a separate storage/cleanup boundary. A Standard App
+  update must not update Packages, system tools or developer source checkouts.
+- Full supplies offline seed bytes for first install; it is not a parallel
+  update authority. Full assets never enter Standard updater metadata.
+- Explicit user preferences and removals persist. App does not overwrite user
+  `AGENTS.md`, `TASTE.md`, global Codex or system/Homebrew tools. Configuration
+  ownership and write admission follow the [capability reference](capability-governance.md).
+- Local GUI selection does not adopt a release shell. Separate shells keep
+  separate identities, UI data and caches and do not share private stores.
+  Same-runtime claims require exact resolver readback.
+- Secret material, arbitrary local paths and unreviewed screenshots do not enter
+  public documentation. Temporary visual artifacts stay outside Git unless an
+  explicit evidence manifest owns their promotion.
+
+## Evidence
+
+Contract, Source, Pixel, Install and Release are independent evidence axes.
+The [conformance matrix](product/gui/shell-conformance-matrix.md) owns per-feature
+status. An external GUI observation is a design reference; the approved
+App-owned baseline owns formal pixel regression. Neither proves installation.
+
+Current source, local tests and a launchable candidate cannot prove installed
+currentness, public availability, Stable/latest promotion, domain acceptance or
+family production readiness. Each claim requires fresh evidence from its owner
+for the exact cohort. Missing evidence remains an explicit gap.
+
+Retired requirements, fixtures and compatibility aliases must not become new
+work. Preserve unique rationale in history or Git; remove executable consumers
+after verifying their active callers. Human prose is reviewed semantically;
+machines validate contracts, links, schemas, assets and deterministic safety.

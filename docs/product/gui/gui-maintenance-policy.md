@@ -103,44 +103,15 @@ manifest、ACP lock 和 Codex binary 的 exact digest/source-lock/qualification 
 数值基线绑定 exact Shell ref 与 upstream tag。更新基线必须同时记录原因、影响文件、分类和
 focused evidence，不能只把阈值调大让 gate 变绿。
 
-## Visual Comparison Protocol
+## 视觉与产品回归
 
-比较 manifest 至少绑定：OPL reference baseline ID、approval receipt SHA、App contract ref、Shell commit、
-package 或 dev build identity、OS、架构、display scale、viewport、theme、locale、route/state、
-reference/candidate screenshot SHA-256。
+Source cohort 推进必须同时绑定 exact App contract、Shell commit、build identity、主题、
+语言与 viewport 的比较证据。完整 baseline approval、mask、threshold、scene verdict 和
+安装层边界只维护在 [像素验收协议](codex-app-visual-parity.md)。
 
-Approved baseline 的 reference 目录必须包含 `baseline-approval-receipt.json`；cohort 中的
-receipt SHA-256 必须匹配该文件 bytes。Receipt 绑定 reviewer、reviewed-at、
-`human_visual_review`、总 `accepted` verdict，以及全部 16 个 scene 的 canonical PNG 名称、
-SHA-256 和逐场景 verdict。缺失、伪造、scene 不完整或批准后 PNG 漂移均 fail-closed。
-
-每个场景同时做 side-by-side human review 和带显式 mask/threshold 的 pixel diff。允许声明：
-`scene_compared`、`layout_checked`、`visual_delta_reviewed`。不得从中推导：全产品 1:1、
-release-ready、installed-current 或 upstream 已吸收。
-
-Settings 的最小比较集包含：展开侧栏、收起侧栏/窄窗、中文、英文、light、dark，以及从带
-query/hash 的普通页面进入 Settings 后点击 `返回应用 / Back to app` 的路径恢复。
-
-## Settings Return Contract
-
-Settings 侧栏第一行固定为左箭头和 `返回应用 / Back to app`，位于搜索框之前。它读取进入
-Settings 前最后一个合法非 Settings location，完整保留 pathname、query 和 hash；存储不可用、
-值为空或指向 Settings 时回退 `/guid`。
-
-展开态显示图标和文案；收起态显示图标、tooltip 和 accessible name；窄窗 Titlebar 复用同一个
-resolver。该入口是导航，不改变 Settings IA，也不替代浏览器/应用历史前进后退。
-
-## Appearance And Update Entry
-
-Settings 左下 footer 不再提供明暗快捷切换，也不常驻“检查更新”。只有 `opl_app` 已确认存在
-更高版本时，Gateway 账号或 Settings 单行入口最右侧才显示轻量更新图标；点击复用既有
-carrier update modal。该入口不可实现第二套 updater，必要时只回退到
-`/settings/environment?section=updates`。
-
-明暗外观移入 Preferences 的 Display 区，固定为 `系统 / System`、`浅色 / Light`、
-`深色 / Dark` 三态。OPL 视觉基线始终启用；CSS theme preset、Codex preset 和自定义主题编辑器
-不再暴露。旧主题数据保留用于兼容和回退，但 active preset 会迁回 `default-theme`，不会继续
-覆盖产品基线；系统模式跟随 OS 变化。
+Settings return、appearance 与 updater 入口属于
+[Settings Control Center](settings-control-center.md)；视觉值归 [视觉系统](visual-system.md)。
+维护时验证这些用户结果，不在本流程复制其字段、路由、固定数值或旧兼容要求。
 
 ## Closeout Boundary
 

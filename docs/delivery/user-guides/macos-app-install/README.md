@@ -7,7 +7,7 @@ Machine boundary: Generated artifacts, Quarto manifests, and verification record
 
 This directory is not the clean end-user reading surface and is not the prose
 editing area. Link users to
-[`../../../site/latest/macos-app-install/`](../../../site/latest/macos-app-install/) instead.
+[the public guide](https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html) instead.
 
 Canonical source files:
 
@@ -24,7 +24,7 @@ Delivery and generated files:
 
 - [`source/macos-app-install.quarto.json`](source/macos-app-install.quarto.json):
   machine manifest for output paths, download links, publishing template,
-  screenshot manifest reference, required terms, and validation boundaries.
+  screenshot manifest reference and artifact verification inputs.
 - `generated/macos-app-install.md`: generated long-form Markdown snapshot,
   recreated by `npm run docs:macos-guide` and ignored by Git.
 - `generated/macos-app-install-slides.qmd`: generated expanded presentation

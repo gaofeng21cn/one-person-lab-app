@@ -1,9 +1,9 @@
 # OpenScience Console Projection
 
 Owner: `one-person-lab-app`
-Purpose: `console_product_projection_contract`
-State: `retained_x0_reference`
-Currentness boundary: 本文只保留 X0-03/X0-04 refs-only projection 参考。Console、Hosted
+Purpose: `optional_console_projection_boundaries`
+State: `active_optional_surface`
+Currentness boundary: 本文只解释可选 Console projection 的责任边界。Console、Hosted
 Workspace、Fabric 或 HPC 只有在真实 backend 与 owner route 存在时才可显示，不构成 ordinary
 App requirement、默认 release gate 或 Native phase-1 parity，也不得维护 placeholder state。
 Machine boundary: Human-readable product note. Machine-readable acceptance lives
@@ -42,10 +42,10 @@ The projection is `refs_only` and `watch_only`. It is not:
 Runtime/source producers remain the source of refs. Console owns only the user
 projection shape, disclosure placement, and forbidden-claim boundary.
 
-## Accepted App Items
+## Related Core App Projections
 
-The accepted OpenScience items land as App-owned projection contracts, not as a
-new dashboard or second artifact system. The current product uses a Codex-first
+The following core App projections are independent of optional Console availability,
+and are not a new dashboard or second artifact system. The current product uses a Codex-first
 shell and executor, while professional agents remain executor-neutral OPL
 Packages (`kind=agent`). Codex plugins and packaged skills are carrier
 projections or Package capabilities, not Agent identity or installed truth.

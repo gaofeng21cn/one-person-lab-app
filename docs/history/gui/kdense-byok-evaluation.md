@@ -1,8 +1,10 @@
-# K-Dense BYOK Learning Landing
+# K-Dense BYOK Snapshot Evaluation
 
 Owner: `one-person-lab-app`
 Purpose: `external_learning_landing`
-State: `active_learning_record`
+State: `historical_external_evaluation`
+Currentness boundary: This is an immutable evaluation of the recorded upstream snapshot,
+not current package selection or product architecture. Implementation choices follow current owner contracts.
 Machine boundary: Human-readable external learning record. It does not change
 App contracts, shell code, OPL Framework runtime truth, provider truth, release
 owner receipts, or domain artifact authority.
@@ -13,7 +15,7 @@ owner receipts, or domain artifact authority.
 - Local source path read: `/tmp/k-dense-byok`
 - Snapshot commit: `dccc7ec4d034a00d7662eaabb3f5916bc3d00602`
   (`docs: update README to include application screenshot`)
-- Release context: `v0.6.0` is the latest tag; `server/package.json` reports
+- Release context at the recorded snapshot: `v0.6.0` was the latest tag; `server/package.json` reports
   version `0.6.0`.
 - File categories read: README and user docs; architecture, installation,
   MCP, sub-agent, model, workflow, and limitation docs; server package and

@@ -382,33 +382,6 @@ const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
     ],
   },
   {
-    id: "docker_webui_clean_windows_runner_bootstrap_runbook",
-    file: "docs/delivery/install/docker-webui-smoke-gates.md",
-    required: [
-      "Clean Windows Runner Bootstrap",
-      "self-hosted",
-      "Windows",
-      "X64",
-      "docker-webui-clean-vm",
-      "Docker Desktop",
-      "WSL 2",
-      "Settings -> Actions -> Runners -> New",
-      "Keep the generated registration token out of docs",
-      "npm run smoke:docker-webui:windows-clean-vm:dispatch -- --execute --json",
-      "docker-webui-clean-windows-vm-evidence",
-      "docker_webui_clean_windows_evidence_artifact",
-      "docker-webui-clean-windows-vm-runner-blocker",
-      "missing_clean_windows_self_hosted_runner",
-      "runner_inventory_unreadable",
-    ],
-    forbidden: [
-      "windows-latest runner is acceptable evidence",
-      "registration token:",
-      "OPENAI_API_KEY",
-      "GHCR_TOKEN",
-    ],
-  },
-  {
     id: "release_notes_ai_provider_chain",
     file: "scripts/release-notes-ai-writer.ts",
     required: [

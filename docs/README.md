@@ -1,127 +1,48 @@
-# One Person Lab App Docs
+# One Person Lab App Documentation
 
-Owner: `one-person-lab-app`
-Purpose: `app_docs_entry`
-State: `active`
-Machine boundary: Human-readable App documentation index. Machine-readable truth
-lives in `contracts/`, source, release artifacts, updater metadata, validation
-outputs, and OPL Framework CLI/read-model output consumed by the App.
+This is the maintainer documentation entry. App owns product and delivery;
+Framework and Package owners retain runtime and domain truth. Public installation
+instructions begin at the root [README](../README.md) or its [Chinese edition](../README.zh-CN.md).
 
-This directory is the App docs entry point. The App owns desktop product
-documentation, GUI/product shell intent, release/install documentation, public
-user guides, and App validation guidance. It consumes OPL Framework runtime
-output and domain-owned projections; it does not own provider runtime truth,
-domain truth, owner receipts, artifact bodies, artifact authority, or quality
-verdicts.
+## Repository
 
-## Core Current Docs
+| Question | Document |
+| --- | --- |
+| What does this repository own? | [Project](project.md) |
+| How do components and owners connect? | [Architecture](architecture.md) |
+| Which cross-cutting constraints apply? | [Invariants](invariants.md) |
+| Why were durable choices made? | [Decisions](decisions.md) |
+| What is the current source/evidence boundary? | [Status](status.md) |
+| What work remains and who owns it? | [Active gaps](active/app-ideal-state-gap-plan.md) |
+| How are documents maintained and retired? | [Documentation lifecycle](docs_portfolio_consolidation.md) |
 
-The root docs layer stays small: current state, durable decisions, and portfolio
-governance only.
+## Product And Engineering
 
-| Doc | Owner / purpose / state | Machine boundary |
-| --- | --- | --- |
-| [`project.md`](project.md) | App repository role and product ownership boundary; `active` | Human-readable product scope; contracts/source/artifacts prove machine claims |
-| [`status.md`](status.md) | Current App repository, shell, release, runtime-page, and validation state; `active` | Status summary only; no runtime/provider/domain authority |
-| [`architecture.md`](architecture.md) | App, shell, OPL Framework, and domain-agent ownership split; `active` | Architecture narrative; executable truth stays in contracts/source/tests |
-| [`architecture/aioncore-codex-only-carrier.md`](architecture/aioncore-codex-only-carrier.md) | AionCore producer input, OPL Codex-only packaged projection, implementation plan, gates, owners, and estimate; `target_policy_implementation_pending` | `app-shell-adapter.json` owns the machine target; Shell source and packaged artifact readback prove implementation |
-| [`architecture/windows-wsl2-execution-exploration.md`](architecture/windows-wsl2-execution-exploration.md) | Conditional Windows WSL2-only execution and maintenance direction; `exploration_non_binding` | Reference only: not an implementation plan, supported-platform claim, backlog, release gap, or readiness evidence |
-| [`architecture/windows-wsl2-execution-implementation-blueprint.md`](architecture/windows-wsl2-execution-implementation-blueprint.md) | Detailed conditional architecture, protocols, transactions, repository map, and qualification gates for the WSL2-only direction; `reference_blueprint_non_binding` | Development reference subordinate to the exploration SSOT; not active work, machine truth, release support, or implementation evidence |
-| [`architecture/windows-wsl2-execution-validation-plan.md`](architecture/windows-wsl2-execution-validation-plan.md) | Explicitly authorized non-blocking Windows/WSL2 technical validation lane; `validation_only_non_binding` | Validation evidence only; never an App gap, active implementation plan, support claim, or release proof |
-| [`invariants.md`](invariants.md) | App repository invariants and non-ownership rules; `active` | Human-readable constraints; guards live in contracts, scripts, workflows, and tests |
-| [`decisions.md`](decisions.md) | Still-active App product, shell, runtime bridge, release, and docs lifecycle decisions; `active` | Durable human-readable decisions; machine gates use contracts/source/tests |
-| [`product/opl-link.md`](product/opl-link.md) | OPL Link conversation-first product baseline and owner boundary; `approved_product_baseline` | Human-readable product policy; App remote-companion contracts and source/runtime readback remain machine truth |
-| [`product/gui/computer-use.md`](product/gui/computer-use.md) | Default KimiCU desktop provider, Standard/Full parity, TCC state, browser route, implementation ledger and acceptance; `active_ssot` | Product/install target plus source-progress ledger; installed truth still requires clean-VM readback |
-| [`docs_portfolio_consolidation.md`](docs_portfolio_consolidation.md) | Docs lifecycle governance and directory role inventory; `active_support` | Governance index only; not release/runtime proof |
-| [`active/app-ideal-state-gap-plan.md`](active/app-ideal-state-gap-plan.md) | Active App product progress, gaps, and next-round baton; `active_plan` | Plan/read-model only; not runnable behavior or owner acceptance |
-| [`active/opl-package-platform-composition-migration.md`](active/opl-package-platform-composition-migration.md) | Package/carrier/executor migration, functional-equivalence matrix, frozen work packages, implementation order, and legacy deletion gates; `phase_2_controlled_cutover_active` | The sole implementation-plan SSOT; Phase 2 is scoped and executing, while current behavior and completion remain subject to contracts/source/fresh readback |
-| [`delivery/distribution-and-install-ssot.md`](delivery/distribution-and-install-ssot.md) | App release/install terminology, current carrier matrix, target platform routing, and convergence gates; `active_support` | Human SSOT backed by the release and install machine contracts; remote currentness still requires owner readback |
-| [`delivery/install/README.md`](delivery/install/README.md) / [`中文`](delivery/install/README.zh-CN.md) | Unified user route for macOS/Linux/Windows Desktop, built-in browser mode, Docker WebUI, and Headless; `active_support` | Guide routing only; public assets and installed behavior still require owner readback |
+| Topic | Entry |
+| --- | --- |
+| GUI function, interaction, visuals and carrier conformance | [GUI](product/gui/README.md) |
+| Package and capability consumption | [Capability governance](capability-governance.md) |
+| Package successor cutover and legacy deletion | [Package migration](active/opl-package-platform-composition-migration.md) |
+| Product integrations | [Product docs](product/README.md) |
+| AionUI runtime composition | [Codex carrier](architecture/aioncore-codex-only-carrier.md) |
+| Windows execution | [Windows architecture](architecture/windows-wsl2-execution.md) |
+| Verification and command reference | [Testing](testing/README.md), [Scripts](../scripts/README.md) |
 
-For the OPL Package ecology, read in this order:
+## Delivery And Publication
 
-1. [`architecture.md`](architecture.md) for the durable `Base ~= R`,
-   `App ~= RStudio`, `Package ~= R Package`, GHCR publication, and
-   Package/carrier/executor ownership model.
-2. [`active/opl-package-platform-composition-migration.md`](active/opl-package-platform-composition-migration.md)
-   for current gaps, phased implementation, functional-equivalence and deletion
-   gates.
-3. [`product/managed-update-three-layer.md`](product/managed-update-three-layer.md)
-   for user-facing install/update behavior.
-4. [`history/agent-package-management-implementation-snapshot.md`](history/agent-package-management-implementation-snapshot.md)
-   only for historical implementation provenance; it is not a target SSOT.
+| Topic | Entry |
+| --- | --- |
+| Distribution and installer identity | [Distribution reference](delivery/distribution-and-install-ssot.md) |
+| Release operations, guide inputs and exact-cohort evidence | [Delivery](delivery/README.md) |
+| Install routes | [English](delivery/install/README.md), [Chinese](delivery/install/README.zh-CN.md) |
+| Guide rendering | [Publishing](publishing/README.md) |
+| App whitepaper source and family publication | [Whitepapers](whitepapers/README.md) |
+| Generated latest output | [Site](site/README.md) |
+| Signing and privacy | [Signing](security/code-signing-policy.md), [Privacy](security/privacy-policy.md) |
+| Retained historical evidence | [History](history/README.md) |
 
-Authority remains deliberately bounded across both phases:
-
-| Document | Current authority | It does not authorize |
-| --- | --- | --- |
-| [`architecture.md`](architecture.md) | Durable ecology and owner boundaries. | Implementation state or migration completion. |
-| [`decisions.md`](decisions.md) | Two-stage authority, presence-only composition, Official Profile, Codex-first/OPL-owned policy, and the approved successor-first Phase 2 direction. | Migration completion, release, Package publication or public mutation. |
-| [`active/opl-package-platform-composition-migration.md`](active/opl-package-platform-composition-migration.md) | Current/canonical/candidate classification, retained-consumer inventory, approved Phase 2 work packages, dependencies, execution order, acceptance and deletion gates. | Automatic completion claims or Package GHCR/tag, Stable/Latest, WebUI, real-user managed-state or other public mutation. |
-| [`product/managed-update-three-layer.md`](product/managed-update-three-layer.md) | Target user-facing install/update behavior. | Current lifecycle implementation truth. |
-| [`delivery/distribution-and-install-ssot.md`](delivery/distribution-and-install-ssot.md) | App carrier/release/install terminology and convergence. | Package currentness or publication mutation. |
-
-When these documents disagree, the architecture/decisions define durable policy,
-the migration plan defines this migration's execution order, machine contracts
-and source describe current compatibility, and fresh owner readback decides
-currentness. A candidate, handoff, test result, or worktree never outranks
-canonical authority.
-
-## Directory Index
-
-| Directory | Owner / purpose / state | Use it for | Machine boundary |
-| --- | --- | --- | --- |
-| [`site/`](site/) | App latest docs site; `latest_public_docs`; `active_support` | GitHub Pages root for the one maintained current user docs set. Generated HTML/PDF/PPTX outputs are produced under `site/latest/`. | Generated payload only; source and provenance stay in `delivery/`, `guides/`, and `whitepapers/`. |
-| [`whitepapers/`](whitepapers/) | OPL App whitepaper source; `whitepaper_source_root`; `active` | Source Markdown for maintained public whitepapers. | Generated HTML/PDF/verification belongs under ignored `site/latest/whitepapers/`; evidence routing belongs under `delivery/whitepapers/`. |
-| [`product/`](product/) | App/workbench/product shell design and GUI support; `active_support` | Product requirements, GUI support docs, App/workbench shell design, and product-facing decisions. | Product acceptance stays in App contracts, page-state matrices, shell validation, source, and tests. |
-| [`delivery/`](delivery/) | Release, artifact/package/export, user-guide generation source, and verification; `active_support` | Release operator docs, generated guide source/provenance, screenshots, and package/export lifecycle support. | Release truth stays in produced assets, updater metadata, evidence manifests, CI/logs, workflows, validators, and release-boundary tests. |
-| [`testing/`](testing/) | App testing entry; `app_testing_docs`; `active` | Test, validation, release-evidence classification, and smoke command orientation. | Test code, contracts, workflows, validators, and artifacts are executable truth. |
-| [`history/`](history/) | App historical index; `app_history`; `history_index` | Retired routes, candidate verification provenance, and compressed process history. | Historical only; not active product/runtime/release truth. |
-The canonical public user install entries are the latest Pages outputs under
-`docs/site/latest/`; source and maintenance material belongs under
-`docs/guides/`, `docs/delivery/`, and `docs/whitepapers/`. New shareable
-HTML/PDF/PPTX outputs should be release assets or regenerated local output
-unless they replace a canonical latest bundle.
-
-## Public User Entry
-
-Use the GitHub Pages latest URLs for publishable user documents:
-
-- OPL App whitepaper: [HTML](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html) / [PDF](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.pdf)
-
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pdf`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pptx`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-detailed-guide.pdf`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/windows-app-install/windows-app-install.html`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/windows-app-install/windows-app-install-detailed-guide.pdf`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html`
-- `https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf`
-Do not link ordinary users to `docs/delivery/user-guides/*`; those are
-maintenance/source surfaces.
-
-The Windows guide binds the same-tag Stable Windows x64 asset and its public
-digest. Publication does not prove WSL2 runtime acceptance, installed behavior,
-signing, supported-platform completion, or release-wide readiness.
-
-## GUI And Candidate Docs
-
-GUI definition and candidate verification material is App-owned:
-
-- [`product/gui/`](product/gui/) holds the ideal interaction spec, element
-  audit, Codex-to-OPL product delta, `opl-studio` foreground
-  alternative plan, Claude Science Runtime task-awareness landing plan, and GUI
-  feature inventory. Retired candidate bytes are available only from Git history.
-
-Executable acceptance for GUI/candidate work stays in contracts, adapter
-manifests, validators, shell artifacts, tests, release artifacts, workflows, and
-CI logs.
-
-## Documentation Language
-
-App internal development docs may default to Chinese so GUI, release, contract,
-and runtime-boundary reviews stay direct for maintainers. Public user-facing
-documentation defaults to English and must provide a paired Chinese edition.
-Chinese editions should read as natural Chinese and retain English only for
-product names, commands, protocol fields, and other terms whose translation
-would reduce precision.
+The App whitepaper is published by the Framework family publisher:
+[HTML](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)
+and [PDF](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.pdf).
+Install-guide publication and generated output routing are documented in [Site](site/README.md).
+An index link is not evidence that a public artifact is current or available.
