@@ -16,7 +16,7 @@ const action = parseYaml(actionSource) as Record<string, any>;
 
 test('Full add-on is one independently rerunnable lane in the Stable follow-up hub', () => {
   assert.equal(workflow.name, 'OPL Stable Follow-ups');
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_call', 'workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.equal(workflow.on.workflow_dispatch.inputs.operation.options.includes('reconcile_full_addon'), true);
   assert.equal(workflow.on.workflow_dispatch.inputs.source_run_id.required, true);

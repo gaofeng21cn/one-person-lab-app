@@ -792,7 +792,10 @@ jobs:
             }
             $Command += ' --config.nsis.differentialPackage=true'
           }
+          @{ timestamp = [DateTime]::UtcNow.ToString('o'); event = 'release_stage'; stage = 'windows_electron_build' } | ConvertTo-Json -Compress
           iex $Command
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @{ timestamp = [DateTime]::UtcNow.ToString('o'); event = 'release_stage'; stage = 'windows_electron_build_complete' } | ConvertTo-Json -Compress
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           OPL_REQUIRE_WINDOWS_UPDATER_ASSETS: ${{ inputs.require_windows_updater_assets }}

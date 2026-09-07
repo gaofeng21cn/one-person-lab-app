@@ -562,6 +562,7 @@ export function finalizeNotarizedDmg() {
     evidence.credential_mode = keychainProfile ? 'keychain_profile' : 'apple_id';
 
     stage = 'verify_embedded_app';
+    console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage }));
     fs.mkdirSync(mountPoint);
     run('hdiutil', ['attach', options.dmgPath, '-nobrowse', '-readonly', '-mountpoint', mountPoint]);
     mounted = true;
@@ -572,6 +573,7 @@ export function finalizeNotarizedDmg() {
     mounted = false;
 
     stage = 'probe_timestamp_service';
+    console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage }));
     const probePath = path.join(tempRoot, 'timestamp-service-probe');
     const configuredProbeTimeoutMs = configuredTimestampServiceProbeTimeoutMs();
     evidence.timestamp_signing.probe_status = 'running';
@@ -604,6 +606,7 @@ export function finalizeNotarizedDmg() {
     }
 
     stage = 'sign_dmg';
+    console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage }));
     const artifactSizeBytes = fs.statSync(options.dmgPath).size;
     const maximumAttempts = timestampSigningMaximumAttempts(artifactSizeBytes);
     evidence.timestamp_signing.artifact_size_bytes = artifactSizeBytes;
@@ -652,6 +655,7 @@ export function finalizeNotarizedDmg() {
     persist();
     const dmgSignature = signatureFacts(candidateDmg, teamId, false, preNotarizationTimeoutMs());
     stage = 'submit_and_wait';
+    console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage }));
     const notarization = submitForNotarization(candidateDmg, {
       appleId,
       password: appleIdPassword,
@@ -659,9 +663,11 @@ export function finalizeNotarizedDmg() {
       keychainProfile,
     }, options.operationDeadlineAt, (notarizationState) => {
       evidence.notarization = { ...notarizationState };
+      console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'apple_notarization_observation', stage, submission_id: notarizationState.id, status: notarizationState.status }));
       persist();
     });
     stage = 'staple_and_verify';
+    console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage }));
     run('xcrun', ['stapler', 'staple', candidateDmg]);
     run('xcrun', ['stapler', 'validate', candidateDmg]);
     run('hdiutil', ['verify', candidateDmg]);

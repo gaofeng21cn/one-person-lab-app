@@ -617,7 +617,7 @@ function validateProductProfileCodexDefaults(profile) {
     profile.codex.auto_model_policy.configured_default_role !==
       'app_default_with_catalog_compatibility_fallback'
   ) {
-    throw new Error('Product profile model policy must use user, fresh frontier/App default, installed Flow, compatible catalog, then App fallback precedence');
+    throw Object.assign(new Error('Product profile model policy must use user, fresh frontier/App default, installed Flow, compatible catalog, then App fallback precedence'), { code: 'app_model_policy_precedence' });
   }
   validateOplFlowContext(profile.codex?.opl_flow_context, 'Product profile OPL Flow Context');
   const additionalInstructions = profile.codex?.new_conversation_additional_instructions;

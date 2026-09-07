@@ -16,7 +16,7 @@ const platformWorkflow = parseYaml(platformSource) as Record<string, any>;
 
 test('one Stable follow-up hub owns routing while each side effect remains an independent lane', () => {
   assert.equal(workflow.name, 'OPL Stable Follow-ups');
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_call', 'workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
   assert.equal(workflow.concurrency, undefined);
@@ -78,6 +78,25 @@ test('automatic routing does not couple independent follower outcomes', () => {
   assert.equal(workflow.jobs['repair-admit'].if, "${{ needs.route.outputs.repair_additive == 'true' }}");
   assert.deepEqual(workflow.jobs['publish-homebrew-full'].needs, ['resolve-homebrew-full']);
   assert.equal(workflow.jobs['publish-homebrew-full'].uses, './.github/workflows/_release-homebrew-full-publish.yml');
+});
+
+test('VM preparation overlaps build while final qualification still consumes sealed bytes', () => {
+  const read = (name: string) => parseYaml(fs.readFileSync(path.join(appRoot, '.github/workflows', name), 'utf8'));
+  const standard = read('_release-bundle.yml').jobs;
+  assert.deepEqual(standard['prepare-standard-vm-inputs'].needs, ['freeze']);
+  assert.ok(!standard['standard-build'].needs.includes('prepare-standard-vm-inputs'));
+  assert.ok(standard['standard-clean-vm-qualification'].needs.includes('seal-standard-identity'));
+  const full = read('_release-full-addon.yml').jobs;
+  assert.deepEqual(full['prepare-full-vm-inputs'].needs, ['restore-standard']);
+  assert.ok(!full['full-build'].needs.includes('prepare-full-vm-inputs'));
+  assert.ok(full['full-clean-vm-qualification'].needs.includes('full-qualification'));
+  const prepare = read('_prepare-clean-vm-inputs.yml').jobs.prepare;
+  assert.equal(prepare['continue-on-error'], true);
+  assert.ok(prepare['timeout-minutes'] <= 10);
+  const vmSteps = Object.values(read('opl-first-run-vm.yml').jobs).flatMap((job: any) => job.steps ?? []);
+  const restore = vmSteps.find((step: any) => step.name === 'Restore prepared install tarballs');
+  assert.equal(restore['continue-on-error'], true);
+  assert.ok(vmSteps.indexOf(restore) < vmSteps.findIndex((step: any) => step.name === 'Prefetch Codex package install assets'));
 });
 
 test('admission binds the exact published mutable Stable source without requiring Latest', () => {

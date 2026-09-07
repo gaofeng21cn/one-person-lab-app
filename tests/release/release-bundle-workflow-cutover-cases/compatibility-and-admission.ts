@@ -57,7 +57,7 @@ test('append_full delegates Full Homebrew without mutating Standard publication 
 
 test('Standard Homebrew follower uses same-tag inspect-before-write CAS and cannot block core publication', () => {
   const workflow = parseWorkflow('release-stable-post-success-followups.yml');
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_call', 'workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.ok(workflow.on.workflow_dispatch.inputs.operation.options.includes('reconcile_homebrew_standard'));
   const job = workflow.jobs['publish-standard-cask'];

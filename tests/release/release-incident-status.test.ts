@@ -149,6 +149,28 @@ test('non-external active step becomes actionable after five minutes without obs
   assert.equal(status.vm_state.status, 'unknown_requires_runtime_marker');
 });
 
+test('heartbeat cannot hide a stalled build or create VM evidence', () => {
+  const stage = { timestamp: '2026-08-22T00:04:01Z', event: 'release_stage', stage: 'build_full_shell' };
+  const heartbeat = { timestamp: '2026-08-22T00:09:59Z', event: 'command_heartbeat', child_running: true, progress_claimed: false };
+  for (const prefix of [true, false]) {
+    const log = [stage, heartbeat].map(event => `${prefix ? `${event.timestamp} ` : ''}${JSON.stringify(event)}`).join('\n');
+    const status = buildReleaseIncidentStatus({
+      run: run({ status: 'in_progress', conclusion: null }),
+      jobs: { jobs: [{
+        id: 10, name: 'append-full / full-build', status: 'in_progress', conclusion: null,
+        started_at: '2026-08-22T00:04:00Z', completed_at: null,
+        steps: [step(10, 'Build Full package', null, '2026-08-22T00:04:00Z', null)],
+      }] },
+      artifacts: { artifacts: [] }, jobLogs: { 10: log }, now: '2026-08-22T00:10:00Z',
+    });
+    assert.deepEqual(status.focus?.runtime_stage, stage);
+    assert.equal(status.focus?.last_change_at, '2026-08-22T00:04:01.000Z');
+    assert.equal(status.focus?.stalled_seconds, 359);
+    assert.equal(status.next_action.code, 'inspect_stalled_step_log');
+    assert.equal(status.vm_state.marker_count, 0);
+  }
+});
+
 test('Apple notarization remains an external-service wait rather than a false stall', () => {
   const status = buildReleaseIncidentStatus({
     run: run({ status: 'in_progress', conclusion: null }),

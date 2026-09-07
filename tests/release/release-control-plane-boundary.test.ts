@@ -300,6 +300,19 @@ test('all privileged Stable entries remain admission-dependent step-free reusabl
   assert.ok(withoutExpectedDiagnostics(() => validateWorkflowDispatchWriteAuthority(root)) > 0);
 });
 
+test('inline follow-ups cannot drop Standard publication dependencies or escalate permissions', (t) => {
+  for (const mutate of [
+    (job: Record<string, any>) => { job.needs = ['admission']; },
+    (job: Record<string, any>) => { job.permissions.packages = 'write'; },
+    (job: Record<string, any>) => { job.with.source_run_id = '123'; },
+  ]) {
+    const root = fixture(t);
+    updateWorkflow(root, 'release-stable.yml', workflow => mutate(workflow.jobs['stable-followups']));
+    assert.ok(withoutExpectedDiagnostics(() => validateStableReleaseControlPlane(root)) > 0);
+    assert.ok(withoutExpectedDiagnostics(() => validateWorkflowDispatchWriteAuthority(root)) > 0);
+  }
+});
+
 test('Manual Preview write entries remain admission-dependent step-free reusable calls', (t) => {
   const root = fixture(t);
   assert.equal(withoutExpectedDiagnostics(() => validateWorkflowDispatchWriteAuthority(root)), 0);

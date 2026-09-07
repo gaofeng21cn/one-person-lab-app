@@ -261,6 +261,7 @@ test('the live control plane is split into Standard build, Standard publish, and
     'freeze',
     'webui-source-authority',
     'webui-qualify',
+    'prepare-standard-vm-inputs',
     'standard-build',
     'seal-standard-identity',
     'full-candidate',
@@ -837,6 +838,7 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     'full-build',
     'materialize-full-build',
     'full-qualification',
+    'prepare-full-vm-inputs',
   ]);
   assert.equal(cleanVmQualification.with.package_profile, 'full');
   assert.equal(cleanVmQualification.with.diagnostic_scope, 'release_gate');

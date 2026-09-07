@@ -71,7 +71,7 @@ test('the Stable follow-up hub keeps observation read-only and append-only', () 
     fs.existsSync(path.join(appRoot, '.github/workflows/release-attempt-observability.yml')),
     false,
   );
-  assert.deepEqual(Object.keys(hub.on), ['workflow_run', 'workflow_dispatch']);
+  assert.deepEqual(Object.keys(hub.on), ['workflow_call', 'workflow_run', 'workflow_dispatch']);
   assert.equal(observe.if, "${{ needs.route.outputs.observe == 'true' }}");
   assert.deepEqual(observe.permissions, { contents: 'read', actions: 'read' });
   assert.equal(observe.steps.at(-1).uses, './.github/actions/release-followups/observe');

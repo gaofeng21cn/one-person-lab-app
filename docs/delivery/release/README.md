@@ -18,6 +18,27 @@ same-volume container restart and state readback. The separately protected `publ
 create one OCI index only when both platform qualifications pass. Neither operation is part of
 PR/main CI or blocks the primary macOS arm64 Desktop release.
 
+## Release acceleration
+
+After Standard publication and public readback, the same run calls the Stable follow-up hub.
+Full, Linux, Windows and Homebrew start alongside Docker publication; they do not wait for Docker
+promotion or for the whole Stable workflow to finish. The completion event is observation-only.
+Manual reconciliation still selects one exact lane and retains its existing owner and asset CAS.
+A checkpoint alone cannot authorize an append before its Standard Release is public.
+
+Large already-compressed release artifacts use uncompressed Actions transport. Full continues to
+consume content-bound runtime caches; cache hits never replace artifact qualification. Model policy
+rejection tests bind a stable error code instead of human-readable diagnostic wording. Framework's
+`npm ci` owns its `prepare` build, so Full does not compile the same CLI a second time. Submitted
+Apple recovery DMGs stay in the dedicated recovery artifact instead of duplicating them in the
+normal Full package transfer.
+
+Clean-VM input preparation runs beside the macOS build: it checks the Tart source inventory and
+prefetches Codex tarballs from the frozen qualification manifest. This creates no VM and uses no
+Gateway credentials. The final VM gate revalidates tarball digests against the built artifact cohort;
+a missing preparation result takes the normal fetch path. Runtime stage and Apple observation logs
+report real events, without inferring progress from elapsed time.
+
 ## Stable Operations
 
 `npm run release:stable-dispatch` is the only operator entry for a Stable release. It resolves and

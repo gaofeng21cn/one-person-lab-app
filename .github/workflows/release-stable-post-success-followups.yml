@@ -9,6 +9,16 @@ run-name: >-
     || format('Stable follow-ups for Stable run {0}', github.event.workflow_run.id) }}
 
 on:
+  workflow_call:
+    inputs:
+      source_run_id:
+        description: Calling Stable run after Standard publication and readback.
+        required: true
+        type: string
+      source_operation:
+        description: Admitted standard or resume_standard operation.
+        required: true
+        type: string
   workflow_run:
     workflows:
       - OPL Stable Release Bundle
@@ -97,11 +107,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
           OPERATION: ${{ inputs.operation || '' }}
+          SOURCE_OPERATION: ${{ inputs.source_operation || '' }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
-          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+          if [ -n "$SOURCE_OPERATION" ]; then
+            test "$SOURCE_RUN_ID" = "$GITHUB_RUN_ID"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > stable-source-run.json
+            node --experimental-strip-types scripts/stable-followup-router.ts \
+              --event workflow_call --run stable-source-run.json --source-run-id "$SOURCE_RUN_ID" \
+              --operation "$SOURCE_OPERATION" --caller-sha "$GITHUB_SHA" \
+              --output stable-followup-route.json --github-output "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > stable-source-run.json
             node --experimental-strip-types scripts/stable-followup-router.ts               --event workflow_run --run stable-source-run.json               --output stable-followup-route.json --github-output "$GITHUB_OUTPUT"
           else
@@ -251,17 +269,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ needs.route.outputs.source_run_id }}
           SOURCE_HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
-          REQUESTED_PLATFORM: ${{ github.event_name == 'workflow_dispatch' && inputs.desktop_platform || '' }}
+          REQUESTED_PLATFORM: ${{ inputs.operation == 'reconcile_desktop_platform' && inputs.desktop_platform || '' }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+          if [ -n "$REQUESTED_PLATFORM" ]; then
             test "$GITHUB_REF" = refs/heads/main
             case "$REQUESTED_PLATFORM" in linux-x64|windows-x64) ;; *) exit 1 ;; esac
           else
-            [[ "$SOURCE_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            test -z "$SOURCE_HEAD_SHA" || [[ "$SOURCE_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
             test -z "$REQUESTED_PLATFORM"
           fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
@@ -274,8 +292,8 @@ jobs:
             and .head_branch == "main"
             and ($head == "" or .head_sha == $head)
             and .run_attempt == 1
-            and .status == "completed"
-            and .conclusion == "success"
+            and ((.status == "completed" and .conclusion == "success")
+              or ((.id | tostring) == env.GITHUB_RUN_ID and .status == "in_progress"))
           ' source-run.json >/dev/null
           gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --name "opl-release-operation-admission-$SOURCE_RUN_ID" --dir operation-admission
@@ -311,7 +329,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ steps.source.outputs.source_run_id }}
           SOURCE_ARTIFACT: ${{ steps.source.outputs.source_artifact }}
-          REQUESTED_PLATFORM: ${{ github.event_name == 'workflow_dispatch' && inputs.desktop_platform || '' }}
+          REQUESTED_PLATFORM: ${{ inputs.operation == 'reconcile_desktop_platform' && inputs.desktop_platform || '' }}
         shell: bash
         run: |
           set -euo pipefail

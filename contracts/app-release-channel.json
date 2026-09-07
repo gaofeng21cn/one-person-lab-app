@@ -5058,6 +5058,14 @@
     "rule": "Optional clean-machine certification consumes the exact already-published artifact and produces a separate immutable receipt. It never rebuilds, mutates or resigns the component manifest, blocks publication or Latest, or masquerades as publication success."
   },
   "release_acceleration": {
+    "stable_followup_scheduling": {
+      "trigger": "same_run_reusable_call_after_standard_publication_readback",
+      "independent_lanes": ["full_addon", "desktop_platforms", "homebrew_standard", "docker_publication"],
+      "completion_event": "observation_only",
+      "checkpoint_owner": "framework",
+      "public_mutation_mutex": "opl-release-bundle-global",
+      "standard_latest_waits_for_addons": false
+    },
     "scope": "product_build_qualification_vm_and_cache_policy_only",
     "product_policy_only": true,
     "live_state_authority": false,

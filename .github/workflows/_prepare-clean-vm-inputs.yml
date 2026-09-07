@@ -1,0 +1,98 @@
+name: Prepare frozen clean VM inputs
+
+on:
+  workflow_call:
+    inputs:
+      app_ref:
+        description: Frozen App source holding qualification input digests.
+        required: true
+        type: string
+      package_profile:
+        description: Standard or Full input namespace.
+        required: true
+        type: string
+    outputs:
+      artifact_name:
+        description: Verified install tarballs only; never a qualification receipt.
+        value: ${{ jobs.prepare.outputs.artifact_name }}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  prepare:
+    runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
+    timeout-minutes: 10
+    continue-on-error: true
+    outputs:
+      artifact_name: ${{ steps.identity.outputs.artifact_name }}
+    steps:
+      - name: Checkout frozen qualification inputs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.app_ref }}
+          path: frozen-inputs
+          persist-credentials: false
+      - name: Checkout current preparation executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: executor
+          persist-credentials: false
+      - name: Inspect source VM inventory without allocating a VM
+        env:
+          SOURCE_VM: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C frozen-inputs rev-parse HEAD)" = '${{ inputs.app_ref }}'
+          case '${{ inputs.package_profile }}' in standard|full) ;; *) exit 1 ;; esac
+          test -n "$SOURCE_VM"
+          tart list --source local --quiet | grep -Fx "$SOURCE_VM"
+          echo 'VM source available; no VM has been created or started.'
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Restore Codex install asset cache
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            artifacts/opl-first-run-vm/codex-npm-cache
+            artifacts/opl-first-run-vm/codex-package-tarballs
+          key: opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}-latest
+          restore-keys: |
+            opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}-
+      - name: Prepare digest-bound install assets while Apple build runs
+        id: prefetch
+        env:
+          OPL_CODEX_PREWARM_MANIFEST: frozen-inputs/contracts/app-release-qualification-input-manifest.json
+          CACHE_KEY_PREFIX: opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}
+          CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.cache.outputs.cache-matched-key }}
+        run: node executor/scripts/prefetch-codex-package-install-assets.mjs
+      - name: Save verified install assets for the next exact cohort
+        if: ${{ github.ref == 'refs/heads/main' && steps.prefetch.outputs.cache_save_required == 'true' }}
+        continue-on-error: true
+        env:
+          OPL_ACTIONS_CACHE_CLASS: first_run_install_seed
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            artifacts/opl-first-run-vm/codex-npm-cache
+            artifacts/opl-first-run-vm/codex-package-tarballs
+          key: ${{ steps.prefetch.outputs.cache_key }}
+      - name: Upload exact install tarballs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-clean-vm-prepared-${{ inputs.package_profile }}-${{ github.run_id }}
+          path: artifacts/opl-first-run-vm/codex-package-tarballs
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Expose successful preparation
+        id: identity
+        run: echo 'artifact_name=opl-clean-vm-prepared-${{ inputs.package_profile }}-${{ github.run_id }}' >> "$GITHUB_OUTPUT"

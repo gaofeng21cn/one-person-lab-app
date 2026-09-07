@@ -13,8 +13,12 @@ const preflightPath = path.join(artifactRoot, 'codex-package-preflight.json');
 const packageName = '@openai/codex';
 fs.mkdirSync(npmCacheDir, { recursive: true });
 fs.mkdirSync(path.dirname(tarballPath), { recursive: true });
-const buildCohort = JSON.parse(fs.readFileSync('artifacts/release-cohort/opl-build-cohort.json', 'utf8'));
-const frozen = buildCohort?.qualification_runtime?.codex_cli;
+const prewarmManifestPath = process.env.OPL_CODEX_PREWARM_MANIFEST;
+const buildCohort = prewarmManifestPath ? null
+  : JSON.parse(fs.readFileSync('artifacts/release-cohort/opl-build-cohort.json', 'utf8'));
+const frozen = prewarmManifestPath
+  ? JSON.parse(fs.readFileSync(prewarmManifestPath, 'utf8')).runtime_payloads?.codex_cli
+  : buildCohort?.qualification_runtime?.codex_cli;
 if (!frozen?.version || !frozen?.npm_integrity || !frozen?.tarball_url || !frozen?.tarball_sha256 ||
     !frozen?.platform?.version || !frozen?.platform?.npm_integrity || !frozen?.platform?.tarball_url || !frozen?.platform?.tarball_sha256) {
   throw new Error('build cohort lacks frozen Codex CLI qualification identity');
@@ -65,6 +69,14 @@ function sha256File(filePath) {
   const hash = crypto.createHash('sha256');
   hash.update(fs.readFileSync(filePath));
   return hash.digest('hex');
+}
+
+function verifiedCachedTarball(filePath, expectedSha256) {
+  if (!fs.existsSync(filePath)) return null;
+  const stat = fs.lstatSync(filePath);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0) return null;
+  const observed = sha256File(filePath);
+  return observed === expectedSha256 ? { sha256: observed, size: stat.size } : null;
 }
 
 const diagnostics = [];
@@ -182,7 +194,12 @@ let platformTarballDownload = null;
 let platformTarballStatusCode = null;
 let platformTarballSha256 = null;
 let platformTarballSizeBytes = null;
-if (tarballUrl && tarballUrlHost) {
+const cachedTarball = verifiedCachedTarball(tarballPath, frozen.tarball_sha256);
+const cachedPlatformTarball = verifiedCachedTarball(platformTarballPath, frozen.platform.tarball_sha256);
+if (cachedTarball) {
+  tarballSha256 = cachedTarball.sha256;
+  tarballSizeBytes = cachedTarball.size;
+} else if (tarballUrl && tarballUrlHost) {
   const partialTarballPath = `${tarballPath}.part`;
   fs.rmSync(partialTarballPath, { force: true });
   tarballDownload = run('curl', [
@@ -220,7 +237,10 @@ if (tarballUrl && tarballUrlHost) {
     blockingFailures.push(`Codex package tarball download failed with status ${tarballDownload.stdout || 'unknown'}`);
   }
 }
-if (platformTarballUrl && platformTarballUrlHost) {
+if (cachedPlatformTarball) {
+  platformTarballSha256 = cachedPlatformTarball.sha256;
+  platformTarballSizeBytes = cachedPlatformTarball.size;
+} else if (platformTarballUrl && platformTarballUrlHost) {
   const partialPlatformTarballPath = `${platformTarballPath}.part`;
   fs.rmSync(partialPlatformTarballPath, { force: true });
   platformTarballDownload = run('curl', [
@@ -312,7 +332,7 @@ const preflight = {
     platform_tarball_url_host: platformTarballUrlHost,
     platform_dist_integrity: platformDistIntegrity,
     frozen_identity: frozen,
-    qualification_input_manifest_sha256: buildCohort.digests?.qualification_input_manifest_sha256 || null,
+    qualification_input_manifest_sha256: buildCohort?.digests?.qualification_input_manifest_sha256 || null,
   },
   registry: {
     npm_registry: registryUrl,
@@ -324,6 +344,7 @@ const preflight = {
     metadata_request: registryResponse,
   },
   tarball: {
+    source: cachedTarball ? 'verified_cache' : 'download',
     path: 'codex-package-tarballs/openai-codex.tgz',
     workflow_path: tarballPath,
     url_host: tarballUrlHost,
@@ -333,6 +354,7 @@ const preflight = {
     download: tarballDownload,
   },
   platform_tarball: {
+    source: cachedPlatformTarball ? 'verified_cache' : 'download',
     path: 'codex-package-tarballs/openai-codex-darwin-arm64.tgz',
     workflow_path: platformTarballPath,
     requested_spec: platformPackageLabel,

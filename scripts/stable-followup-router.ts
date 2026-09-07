@@ -23,7 +23,7 @@ export type StableManualFollowup =
 
 export type StableFollowupRoute = {
   schema: 'opl_app_stable_followup_route.v1';
-  trigger: 'workflow_run' | 'workflow_dispatch';
+  trigger: 'workflow_run' | 'workflow_dispatch' | 'workflow_call';
   source_run_id: string;
   source_operation: StableSourceOperation;
   source_conclusion: string | null;
@@ -74,13 +74,13 @@ export function classifyStableSourceOperation(displayTitle: string): StableSourc
   return 'unknown';
 }
 
-export function routeCompletedStableRun(value: unknown): StableFollowupRoute {
+function routeStableRun(value: unknown, caller?: { runId: string; operation: string; headSha: string }): StableFollowupRoute {
   const run = record(value, 'Stable run');
   const repository = record(run.repository, 'Stable run repository');
   const headRepository = record(run.head_repository, 'Stable run head repository');
   const sourceRunId = positiveRunId(run.id, 'Stable run id');
   const displayTitle = requiredString(run.display_title, 'Stable run display title');
-  const conclusion = requiredString(run.conclusion, 'Stable run conclusion');
+  const conclusion = caller ? null : requiredString(run.conclusion, 'Stable run conclusion');
   const headSha = requiredString(run.head_sha, 'Stable run head SHA');
   if (
     repository.full_name !== 'gaofeng21cn/one-person-lab-app'
@@ -89,25 +89,32 @@ export function routeCompletedStableRun(value: unknown): StableFollowupRoute {
     || run.event !== 'workflow_dispatch'
     || run.head_branch !== 'main'
     || run.run_attempt !== 1
-    || run.status !== 'completed'
+    || (caller
+      ? !((run.status === 'in_progress' && run.conclusion === null) || (run.status === 'completed' && run.conclusion === 'success'))
+      : run.status !== 'completed')
+    || (caller && (sourceRunId !== positiveRunId(caller.runId, 'calling run id') || headSha !== caller.headSha))
     || !exactShaPattern.test(headSha)
   ) {
     throw new Error('Stable follow-up routing requires one completed first-attempt canonical Stable run.');
   }
 
   const sourceOperation = classifyStableSourceOperation(displayTitle);
-  const successful = conclusion === 'success';
-  const standardPublication = successful
-    && (sourceOperation === 'standard' || sourceOperation === 'resume_standard');
+  if (caller && (caller.operation !== sourceOperation
+    || !['standard', 'resume_standard'].includes(caller.operation))) {
+    throw new Error('Inline Stable follow-ups require the calling Standard operation.');
+  }
+  // The reusable caller depends on successful Standard publication/readback. The
+  // completion event only observes; it cannot start a second set of writers.
+  const standardPublication = caller !== undefined;
   return {
     schema: 'opl_app_stable_followup_route.v1',
-    trigger: 'workflow_run',
+    trigger: caller ? 'workflow_call' : 'workflow_run',
     source_run_id: sourceRunId,
     source_operation: sourceOperation,
     source_conclusion: conclusion,
     manual_operation: null,
     lanes: {
-      observe: true,
+      observe: caller === undefined,
       full_addon: standardPublication,
       homebrew_standard: standardPublication,
       homebrew_full: false,
@@ -115,6 +122,16 @@ export function routeCompletedStableRun(value: unknown): StableFollowupRoute {
       repair_additive: false,
     },
   };
+}
+
+export function routeCompletedStableRun(value: unknown): StableFollowupRoute {
+  return routeStableRun(value);
+}
+
+export function routePublishedStableRun(value: unknown, caller: {
+  runId: string; operation: string; headSha: string;
+}): StableFollowupRoute {
+  return routeStableRun(value, caller);
 }
 
 export function routeManualStableFollowup(input: {
@@ -171,6 +188,7 @@ function main(argv: string[]): void {
       run: { type: 'string' },
       operation: { type: 'string' },
       'source-run-id': { type: 'string' },
+      'caller-sha': { type: 'string' },
       output: { type: 'string' },
       'github-output': { type: 'string' },
     },
@@ -179,7 +197,13 @@ function main(argv: string[]): void {
   const event = requiredString(values.event, '--event');
   const output = requiredString(values.output, '--output');
   let route: StableFollowupRoute;
-  if (event === 'workflow_run') {
+  if (event === 'workflow_call') {
+    route = routePublishedStableRun(JSON.parse(fs.readFileSync(requiredString(values.run, '--run'), 'utf8')), {
+      runId: requiredString(values['source-run-id'], '--source-run-id'),
+      operation: requiredString(values.operation, '--operation'),
+      headSha: requiredString(values['caller-sha'], '--caller-sha'),
+    });
+  } else if (event === 'workflow_run') {
     const runPath = requiredString(values.run, '--run');
     route = routeCompletedStableRun(JSON.parse(fs.readFileSync(path.resolve(runPath), 'utf8')));
   } else if (event === 'workflow_dispatch') {

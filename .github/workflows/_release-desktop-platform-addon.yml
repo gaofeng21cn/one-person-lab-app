@@ -79,8 +79,8 @@ jobs:
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == 1
-            and .status == "completed"
-            and .conclusion == "success"
+            and ((.status == "completed" and .conclusion == "success")
+              or ((.id | tostring) == env.GITHUB_RUN_ID and .status == "in_progress"))
           ' source-run.json >/dev/null
           gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --name "opl-release-operation-admission-$SOURCE_RUN_ID" --dir operation-admission

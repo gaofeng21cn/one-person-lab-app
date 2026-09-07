@@ -269,6 +269,21 @@ function isAuthorizedFullAddonFollowerWriteJob(
     && hasLocalStep(job, localActionUse(stableFollowupActionPaths.fullAddon));
 }
 
+function isAuthorizedInlineStableFollowups(workflowPath: string, jobId: string, job: Record<string, any>): boolean {
+  return workflowPath === '.github/workflows/release-stable.yml'
+    && jobId === 'stable-followups'
+    && needsExactly(job, ['admission', 'standard', 'resume-standard'])
+    && job.if === "${{ always() && !cancelled() && needs.admission.result == 'success' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}"
+    && job.uses === './.github/workflows/release-stable-post-success-followups.yml'
+    && exactObject(job.permissions, { contents: 'write', actions: 'write' })
+    && exactObject(job.with, {
+      source_run_id: '${{ github.run_id }}',
+      source_operation: '${{ needs.admission.outputs.operation }}',
+    })
+    && job.secrets === 'inherit'
+    && !Array.isArray(job.steps);
+}
+
 function isAuthorizedStableWebuiWriteJob(
   workflowPath: string,
   jobId: string,
@@ -761,6 +776,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     'webui-source-authority',
     'webui-carrier',
     'webui-promotion',
+    'stable-followups',
     ...Object.keys(stableEntrySpecs),
   ].sort();
   if (JSON.stringify(Object.keys(jobs).sort()) !== JSON.stringify(expectedJobs)) {
@@ -776,6 +792,9 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       id,
       'Stable entry must not retain the legacy source-qualification job or receipt after protected operation admission owns the frozen source gate.',
     );
+  }
+  if (!isAuthorizedInlineStableFollowups('.github/workflows/release-stable.yml', 'stable-followups', jobs['stable-followups'] ?? {})) {
+    failures += reportFailure(id, 'Stable followers must start after Standard publication without waiting for Docker');
   }
   const webuiSourceAuthority = jobs['webui-source-authority'];
   const webuiSourceAuthorityRun = jobRuns(webuiSourceAuthority);
@@ -1244,6 +1263,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'freeze',
     'webui-source-authority',
     'webui-qualify',
+    'prepare-standard-vm-inputs',
     'standard-build',
     'seal-standard-identity',
     'full-candidate',
@@ -1371,7 +1391,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   const standardCleanVm = bundleJobs['standard-clean-vm-qualification'];
   if (
     !standardCleanVm
-    || !needsExactly(standardCleanVm, ['freeze', 'seal-standard-identity'])
+    || !needsExactly(standardCleanVm, ['freeze', 'seal-standard-identity', 'prepare-standard-vm-inputs'])
     || standardCleanVm.if !== "${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}"
     || standardCleanVm.with?.release_artifact_name !==
       '${{ needs.seal-standard-identity.outputs.standard_vm_artifact_name }}'
@@ -1594,6 +1614,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       'full-build',
       'materialize-full-build',
       'full-qualification',
+      'prepare-full-vm-inputs',
     ])
     || fullCleanVm.with?.release_artifact_run_id !== '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'
     || fullCleanVm.with?.verification_app_ref !== '${{ inputs.verification_app_ref || inputs.full_content_app_ref }}'
@@ -1719,7 +1740,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
     'route',
   ];
   if (
-    JSON.stringify(Object.keys(triggers).sort()) !== JSON.stringify(['workflow_dispatch', 'workflow_run'])
+    JSON.stringify(Object.keys(triggers).sort()) !== JSON.stringify(['workflow_call', 'workflow_dispatch', 'workflow_run'])
     || JSON.stringify(triggers.workflow_run?.workflows) !== JSON.stringify(['OPL Stable Release Bundle'])
     || JSON.stringify(triggers.workflow_run?.types) !== JSON.stringify(['completed'])
     || JSON.stringify(Object.keys(dispatchInputs).sort()) !== JSON.stringify(expectedDispatchInputs)
@@ -2889,6 +2910,7 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
         failures += validateExactActionPins(workflowPath, jobId, steps);
         continue;
       }
+      if (isAuthorizedInlineStableFollowups(workflowPath, jobId, job)) continue;
       if (workflowPath === stableWorkflowPath && stableEntryJobs.has(jobId)) {
         const spec = stableEntrySpecs[jobId as keyof typeof stableEntrySpecs];
         if (job.uses && steps.length === 0 && spec && exactObject(job.permissions, spec.permissions)) {

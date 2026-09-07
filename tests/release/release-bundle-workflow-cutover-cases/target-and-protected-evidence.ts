@@ -510,7 +510,7 @@ test('one signed Standard build is sealed once and every final consumer binds it
   );
   const standardCleanVm = bundle.jobs['standard-clean-vm-qualification'];
   assert.equal(standardCleanVm.uses, './.github/workflows/opl-first-run-vm.yml');
-  assert.deepEqual(standardCleanVm.needs, ['freeze', 'seal-standard-identity']);
+  assert.deepEqual(standardCleanVm.needs, ['freeze', 'seal-standard-identity', 'prepare-standard-vm-inputs']);
   assert.equal(standardCleanVm.with.package_profile, 'standard');
   assert.equal(standardCleanVm.with.diagnostic_scope, 'release_gate');
   assert.equal(

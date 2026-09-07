@@ -873,6 +873,17 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  prepare-full-vm-inputs:
+    if: ${{ needs.restore-standard.outputs.completed_stage != 'full_qualified' }}
+    needs: [restore-standard]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_prepare-clean-vm-inputs.yml
+    with:
+      app_ref: ${{ inputs.full_content_app_ref }}
+      package_profile: full
+
   full-build:
     if: ${{ inputs.prior_full_artifact_run_id == '' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified') }}
     needs: [restore-standard]
@@ -1220,6 +1231,7 @@ jobs:
           path: full-output/One-Person-Lab-Full-${{ needs.restore-standard.outputs.version }}-mac-arm64.dmg
           if-no-files-found: error
           retention-days: 14
+          compression-level: 0
 
       - name: Upload materialized Full cohort identity
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -1359,7 +1371,7 @@ jobs:
 
   full-clean-vm-qualification:
     if: ${{ always() && needs.full-qualification.result == 'success' }}
-    needs: [restore-standard, full-build, materialize-full-build, full-qualification]
+    needs: [restore-standard, full-build, materialize-full-build, full-qualification, prepare-full-vm-inputs]
     permissions:
       contents: read
       actions: read
@@ -1376,6 +1388,7 @@ jobs:
       framework_ref: ${{ inputs.full_content_framework_ref }}
       framework_executor_ref: ${{ needs.restore-standard.outputs.framework_executor_ref }}
       mas_ref: ${{ needs.full-build.outputs.mas_ref || needs.materialize-full-build.outputs.mas_ref }}
+      prepared_inputs_artifact: ${{ needs.prepare-full-vm-inputs.outputs.artifact_name }}
       package_profile: full
       diagnostic_scope: release_gate
       require_macos_gatekeeper: true
@@ -1658,6 +1671,7 @@ jobs:
             full-clean-vm-qualification-receipt.sha256
           if-no-files-found: error
           retention-days: 30
+          compression-level: 0
 
   provenance:
     if: ${{ always() && needs.restore-standard.result == 'success' && (needs.restore-standard.outputs.completed_stage == 'full_qualified' || needs.checkpoint-full.result == 'success') }}

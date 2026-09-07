@@ -24,6 +24,19 @@ function validateSilently(releaseContract: Record<string, any>, brokerAuthority:
   }
 }
 
+test('follow-up scheduling cannot restore completion writers or make Latest wait for add-ons', () => {
+  const broker = readJson('contracts/app-release-broker-authority.json');
+  for (const change of [
+    { completion_event: 'dispatch_addons' },
+    { standard_latest_waits_for_addons: true },
+    { checkpoint_owner: 'app' },
+  ]) {
+    const release = readJson('contracts/app-release-channel.json');
+    Object.assign(release.release_acceleration.stable_followup_scheduling, change);
+    assert.ok(validateSilently(release, broker) > 0);
+  }
+});
+
 test('Framework checkpoint plus the App executor is the only live release mutation authority', () => {
   const release = readJson('contracts/app-release-channel.json');
   const broker = readJson('contracts/app-release-broker-authority.json');

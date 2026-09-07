@@ -632,17 +632,21 @@ jobs:
           fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'opl-full-toolchain-observation-receipt.json'), `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
           NODE
 
-      - name: Install Framework dependencies
+      - name: Install and build Framework CLI payload once
         working-directory: one-person-lab
+        shell: bash
         run: |
-          npm ci
-          echo "OPL_FULL_FRAMEWORK_DEPS_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
-
-      - name: Build Framework CLI payload
-        working-directory: one-person-lab
-        run: |
-          npm run build
-          echo "OPL_FULL_FRAMEWORK_BUILD_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          # Framework owns prepare. Only older sources without prepare need an explicit build.
+          if [ "$(node -p "require('./package.json').scripts?.prepare || ''")" != 'npm run build' ]; then
+            npm run build
+          fi
+          test -d dist
+          {
+            echo "OPL_FULL_FRAMEWORK_DEPS_READY_AT=$(date +%s)"
+            echo "OPL_FULL_FRAMEWORK_BUILD_READY_AT=$(date +%s)"
+          } >> "$GITHUB_ENV"
 
       - name: Install App shell dependencies
         if: ${{ !inputs.cache_only }}
@@ -651,7 +655,6 @@ jobs:
         run: |
           set -euo pipefail
           bun install --frozen-lockfile
-          bun run postinstall || true
           echo "OPL_FULL_SHELL_NODE_DEPS_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Verify App product profile against Shell consumer
@@ -1004,6 +1007,13 @@ jobs:
           const args = process.argv.slice(3);
           let deadlineElapsed = false;
           const child = spawn(command, args, { env: process.env, stdio: 'inherit' });
+          const startedAt = Date.now();
+          const heartbeat = setInterval(() => console.error(JSON.stringify({
+            timestamp: new Date().toISOString(), event: 'command_heartbeat',
+            stage: 'full_package_build', elapsed_seconds: Math.floor((Date.now() - startedAt) / 1000),
+            child_running: child.exitCode === null, progress_claimed: false,
+          })), 30_000);
+          heartbeat.unref();
           const timer = setTimeout(() => {
             deadlineElapsed = true;
             child.kill('SIGTERM');
@@ -1011,11 +1021,13 @@ jobs:
           }, timeoutMs);
           child.once('error', (error) => {
             clearTimeout(timer);
+            clearInterval(heartbeat);
             console.error(error);
             process.exit(1);
           });
           child.once('exit', (code, signal) => {
             clearTimeout(timer);
+            clearInterval(heartbeat);
             if (deadlineElapsed) {
               console.error('operation_deadline_elapsed: npm run release:full exhausted its immutable operation budget.');
               process.exit(78);
@@ -1832,6 +1844,7 @@ jobs:
           path: one-person-lab-app/dist/opl-full-release
           if-no-files-found: error
           retention-days: 14
+          compression-level: 0
 
       - name: Upload Full build artifact cohort manifest
         if: ${{ success() && steps.full_package_build.outcome == 'success' && !inputs.cache_only && inputs.operation != 'append_full' }}
@@ -1850,6 +1863,7 @@ jobs:
           path: one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${{ env.OPL_RELEASE_VERSION }}-mac-arm64.dmg
           if-no-files-found: error
           retention-days: 14
+          compression-level: 0
 
       - name: Clean up keychain
         if: ${{ always() && !inputs.cache_only }}
@@ -2328,7 +2342,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: opl-full-first-install-${{ inputs.opl_version }}-mac-arm64
-          path: one-person-lab-app/dist/opl-full-release
+          path: |
+            one-person-lab-app/dist/opl-full-release
+            !one-person-lab-app/dist/opl-full-release/*.submitted-for-notarization.dmg
           if-no-files-found: error
           compression-level: 0
           retention-days: 14

@@ -192,10 +192,28 @@ function lastCompletedStepAt(job: JsonRecord): string | null {
   )));
 }
 
+function releaseLogEvent(line: string): JsonRecord | null {
+  const json = line.replace(/^\d{4}-\d{2}-\d{2}T\S+\s+/, '');
+  try {
+    const event = record(JSON.parse(json), 'Release runtime event');
+    return ['release_stage', 'apple_notarization_observation', 'command_heartbeat'].includes(String(event.event))
+      ? event : null;
+  } catch { return null; }
+}
+
+function latestReleaseStage(log: string | null | undefined): JsonRecord | null {
+  for (const line of (log ?? '').split(/\r?\n/).reverse()) {
+    const event = releaseLogEvent(line);
+    if (event && event.event !== 'command_heartbeat') return event;
+  }
+  return null;
+}
+
 function latestLogTimestamp(log: string | null | undefined): string | null {
   if (!log) return null;
   const timestamps: string[] = [];
   for (const line of log.split(/\r?\n/)) {
+    if (releaseLogEvent(line)?.event === 'command_heartbeat') continue;
     const match = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s/);
     if (match?.[1]) timestamps.push(match[1]);
     try {
@@ -544,6 +562,7 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
           step_started_at: focusStep
             ? canonicalTimestamp(stringField(focusStep, 'started_at', 'startedAt'))
             : null,
+          runtime_stage: latestReleaseStage(log),
           last_change_at: lastChange.timestamp,
           last_change_source: lastChange.source,
           stalled_seconds: stalledSeconds,

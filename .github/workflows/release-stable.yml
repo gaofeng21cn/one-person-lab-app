@@ -1191,6 +1191,18 @@ jobs:
       prior_standard_artifact_run_id: ${{ needs.admission.outputs.prior_standard_artifact_run_id }}
     secrets: inherit
 
+  stable-followups:
+    if: ${{ always() && !cancelled() && needs.admission.result == 'success' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}
+    needs: [admission, standard, resume-standard]
+    permissions:
+      contents: write
+      actions: write
+    uses: ./.github/workflows/release-stable-post-success-followups.yml
+    with:
+      source_run_id: ${{ github.run_id }}
+      source_operation: ${{ needs.admission.outputs.operation }}
+    secrets: inherit
+
   webui-source-authority:
     if: ${{ always() && !cancelled() && needs.admission.result == 'success' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}
     needs: [admission, stable-admission-manifest, standard, resume-standard]

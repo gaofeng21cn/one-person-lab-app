@@ -41,8 +41,8 @@ runs:
           and .head_branch == "main"
           and .head_sha == $head
           and .run_attempt == 1
-          and .status == "completed"
-          and .conclusion == "success"
+          and ((.status == "completed" and .conclusion == "success")
+            or ((.id | tostring) == env.GITHUB_RUN_ID and .status == "in_progress"))
           and (
             (.display_title | startswith("OPL Stable standard "))
             or (.display_title | startswith("OPL Stable resume_standard "))

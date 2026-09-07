@@ -120,7 +120,7 @@ test('Full owner chain calls Homebrew Full reusable after publication', () => {
 test('Full Homebrew follower permits automatic delivery or source-bound reconciliation', () => {
   const source = fs.readFileSync(path.join(process.cwd(), '.github/actions/release-followups/homebrew-full-handoff/action.yml'), 'utf8');
   const workflow = parse('release-stable-post-success-followups.yml');
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_call', 'workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Release Bundle']);
   assert.equal(workflow.on.workflow_dispatch.inputs.source_run_id.required, true);
   assert.equal(workflow.on.workflow_dispatch.inputs.source_run_id.type, 'string');

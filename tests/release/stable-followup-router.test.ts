@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   classifyStableSourceOperation,
   routeCompletedStableRun,
+  routePublishedStableRun,
   routeManualStableFollowup,
 } from '../../scripts/stable-followup-router.ts';
 
@@ -33,10 +34,10 @@ test('Stable source operation classification is explicit and fail-closed', () =>
   assert.equal(classifyStableSourceOperation('OPL Stable future_operation run:2'), 'unknown');
 });
 
-test('successful Standard routes independent additive lanes', () => {
-  const route = routeCompletedStableRun(stableRun('OPL Stable standard operation:x authority:y run:424242'));
+test('published Standard starts independent additive lanes before the outer run completes', () => {
+  const route = routePublishedStableRun({ ...stableRun('OPL Stable standard operation:x authority:y run:424242'), status: 'in_progress', conclusion: null }, { runId: '424242', operation: 'standard', headSha: sha });
   assert.deepEqual(route.lanes, {
-    observe: true,
+    observe: false,
     full_addon: true,
     homebrew_standard: true,
     homebrew_full: false,
@@ -58,11 +59,11 @@ test('successful Full append is observation-only because Homebrew Full is owner-
 });
 
 test('successful Standard still routes Homebrew Standard and Desktop when Full add-on is later skipped', () => {
-  const route = routeCompletedStableRun(stableRun('OPL Stable standard operation:x authority:y run:424242'));
+  const route = routePublishedStableRun({ ...stableRun('OPL Stable standard operation:x authority:y run:424242'), status: 'in_progress', conclusion: null }, { runId: '424242', operation: 'standard', headSha: sha });
   assert.equal(route.lanes.homebrew_standard, true);
   assert.equal(route.lanes.desktop_platforms, true);
   assert.equal(route.lanes.full_addon, true);
-  assert.equal(route.source_conclusion, 'success');
+  assert.equal(route.source_conclusion, null);
 });
 
 test('failed and unknown Stable runs remain observation-only', () => {
@@ -105,4 +106,28 @@ test('router rejects non-canonical source identity and unsupported manual operat
     () => routeManualStableFollowup({ sourceRunId: '1', operation: 'rerun_everything' }),
     /Unsupported Stable follow-up operation/,
   );
+});
+
+test('completion never launches duplicate additive writers', () => {
+  const route = routeCompletedStableRun(stableRun('OPL Stable standard operation:x authority:y run:424242'));
+  assert.equal(route.lanes.observe, true);
+  assert.equal(Object.values(route.lanes).filter(Boolean).length, 1);
+});
+
+test('inline launch rejects another run, mismatched SHA and non-Standard operation', () => {
+  const run = { ...stableRun('OPL Stable standard operation:x authority:y run:424242'), status: 'in_progress', conclusion: null };
+  for (const caller of [
+    { runId: '9', operation: 'standard', headSha: sha },
+    { runId: '424242', operation: 'standard', headSha: 'b'.repeat(40) },
+    { runId: '424242', operation: 'append_full', headSha: sha },
+  ]) assert.throws(() => routePublishedStableRun(run, caller));
+});
+
+test('inline launch rejects a failed source and supports resumed Standard publication', () => {
+  const caller = { runId: '424242', operation: 'resume_standard', headSha: sha };
+  const run = stableRun('OPL Stable resume_standard source:1 run:424242');
+  assert.throws(() => routePublishedStableRun({ ...run, conclusion: 'failure' }, caller));
+  const route = routePublishedStableRun({ ...run, status: 'in_progress', conclusion: null }, caller);
+  assert.equal(route.lanes.full_addon, true);
+  assert.equal(route.trigger, 'workflow_call');
 });

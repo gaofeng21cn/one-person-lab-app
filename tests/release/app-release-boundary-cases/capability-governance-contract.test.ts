@@ -358,7 +358,7 @@ test('model precedence keeps a supported App frontier ahead of stale recommendat
   ];
   assert.throws(
     () => validateProductProfile(competingAppDefault, installExposure),
-    /Product profile model policy must use/,
+    { code: 'app_model_policy_precedence' },
   );
 });
 

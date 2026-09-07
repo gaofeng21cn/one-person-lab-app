@@ -1689,6 +1689,19 @@ export function validateReleaseAccelerationPolicy(
   const settingsRuntimeRefresh = acceleration?.settings_runtime_refresh_evidence_policy;
   const homebrew = releaseContract.homebrew_tap_distribution;
 
+  const followups = acceleration?.stable_followup_scheduling;
+  if (
+    followups?.trigger !== 'same_run_reusable_call_after_standard_publication_readback' ||
+    !sameStringSet(followups?.independent_lanes, ['full_addon', 'desktop_platforms', 'homebrew_standard', 'docker_publication']) ||
+    followups?.completion_event !== 'observation_only' ||
+    followups?.checkpoint_owner !== 'framework' ||
+    followups?.public_mutation_mutex !== 'opl-release-bundle-global' ||
+    followups?.standard_latest_waits_for_addons !== false
+  ) {
+    console.error('FAIL stable_followup_scheduling: published Standard must start independent followers once while preserving Framework checkpoint and publication mutex');
+    failures += 1;
+  }
+
   for (const violation of retiredReleaseControlPlaneViolations(releaseContract)) {
     console.error(`FAIL release_legacy_surface_absent: ${violation}`);
     failures += 1;

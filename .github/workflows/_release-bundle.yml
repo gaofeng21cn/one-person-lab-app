@@ -888,6 +888,17 @@ jobs:
       source_cutoff_observed_at: ${{ needs.webui-source-authority.outputs.source_cutoff_observed_at }}
     secrets: inherit
 
+  prepare-standard-vm-inputs:
+    if: ${{ inputs.channel == 'stable' }}
+    needs: [freeze]
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/_prepare-clean-vm-inputs.yml
+    with:
+      app_ref: ${{ needs.freeze.outputs.app_sha }}
+      package_profile: standard
+
   standard-build:
     if: ${{ inputs.prior_standard_artifact_run_id == '' }}
     needs: [freeze, resolve-platform-matrix]
@@ -1387,6 +1398,7 @@ jobs:
           path: bound-standard
           if-no-files-found: error
           retention-days: 30
+          compression-level: 0
 
       - name: Upload exact-candidate Standard VM artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -1437,7 +1449,7 @@ jobs:
 
   standard-clean-vm-qualification:
     if: ${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}
-    needs: [freeze, seal-standard-identity]
+    needs: [freeze, seal-standard-identity, prepare-standard-vm-inputs]
     permissions:
       contents: read
       actions: read
@@ -1454,6 +1466,7 @@ jobs:
       smoke_harness_ref: ${{ needs.freeze.outputs.shell_sha }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       framework_executor_ref: ${{ needs.freeze.outputs.framework_sha }}
+      prepared_inputs_artifact: ${{ needs.prepare-standard-vm-inputs.outputs.artifact_name }}
       package_profile: standard
       diagnostic_scope: release_gate
       require_macos_gatekeeper: true
@@ -1709,6 +1722,7 @@ jobs:
             stable-operation-control
           if-no-files-found: error
           retention-days: 30
+          compression-level: 0
 
       - name: Upload Standard identity evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

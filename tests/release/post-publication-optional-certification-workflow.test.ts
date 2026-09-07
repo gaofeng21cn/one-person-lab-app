@@ -80,6 +80,16 @@ test('non-Desktop Stable operations complete certification as not applicable', (
   );
 });
 
+test('certification downloads receipts from the resolved writer run, including inline followers', () => {
+  const { source, workflow } = readWorkflow();
+  const steps = workflow.jobs['resolve-release-set'].steps;
+  for (const name of ['Download exact Release Set follow-up receipt', 'Download exact Desktop append receipt']) {
+    const download = steps.find((step: Record<string, any>) => step.name === name);
+    assert.equal(download.with['run-id'], '${{ steps.authority.outputs.followup_run_id }}');
+  }
+  assert.match(source, /FOLLOWUP_RUN_ID="\$source_run_id"\s+followup_run_id="\$source_run_id"/);
+});
+
 test('Linux certification consumes the exact public same-tag Desktop assets', () => {
   const { source, workflow } = readWorkflow();
   const resolve = workflow.jobs['resolve-release-set'];

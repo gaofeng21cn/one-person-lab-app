@@ -290,6 +290,7 @@ function main() {
 
   const timings = {};
   const buildStartedAt = monotonicSeconds();
+  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_runtime_materialize' }));
   const prepared = prepareRuntime(options, sources, sourceResolutions);
   const runtimePreparedAt = monotonicSeconds();
   timings.runtime_materialize = durationSeconds(buildStartedAt, runtimePreparedAt);
@@ -322,9 +323,11 @@ function main() {
     return;
   }
 
+  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_offline_seed' }));
   materializeFullKimiCuOfflineSeed(prepared);
 
   const cacheEventsWrittenAt = monotonicSeconds();
+  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_shell_build' }));
   let payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
   const payloadSyncedAt = monotonicSeconds();
   timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
@@ -435,6 +438,7 @@ function main() {
     }
   }
   removeStandardGuiArtifacts(options.guiRoot, options.version);
+  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_archive' }));
   const runtimeTar = maybeCreateRuntimeTar(options, prepared.runtimeRoot, artifactNames);
   timings.dmg_package_compression = durationSeconds(packageCompressionStartedAt, monotonicSeconds());
 

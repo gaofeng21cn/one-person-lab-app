@@ -667,6 +667,31 @@ printf '200'
     assert.equal(preflight.platform_tarball.sha256, frozen.platform.tarball_sha256);
     assert.equal(preflight.cache.write_scope, 'refs/heads/main_only');
     assert.equal(preflight.cache.save_required, true);
+    const rerun = (extraEnv = {}) => spawnSync(process.execPath,
+      [path.join(process.cwd(), 'scripts', 'prefetch-codex-package-install-assets.mjs')], {
+        cwd: root, encoding: 'utf8',
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}`, ...extraEnv },
+      });
+    const cached = rerun();
+    assert.equal(cached.status, 0, cached.stderr);
+    const cachedReport = JSON.parse(fs.readFileSync(path.join(artifactRoot, 'codex-package-preflight.json'), 'utf8'));
+    assert.equal(cachedReport.tarball.source, 'verified_cache');
+    assert.equal(cachedReport.platform_tarball.source, 'verified_cache');
+    assert.equal(cachedReport.tarball.download, null);
+    assert.equal(cachedReport.platform_tarball.download, null);
+    fs.writeFileSync(path.join(artifactRoot, 'codex-package-tarballs/openai-codex.tgz'), 'corrupt');
+    const repaired = rerun();
+    assert.equal(repaired.status, 0, repaired.stderr);
+    const repairedReport = JSON.parse(fs.readFileSync(path.join(artifactRoot, 'codex-package-preflight.json'), 'utf8'));
+    assert.equal(repairedReport.tarball.source, 'download');
+    assert.equal(repairedReport.tarball.sha256, frozen.tarball_sha256);
+    assert.equal(repairedReport.platform_tarball.source, 'verified_cache');
+    const prewarmManifest = path.join(root, 'qualification-inputs.json');
+    fs.writeFileSync(prewarmManifest, JSON.stringify({ runtime_payloads: { codex_cli: frozen } }));
+    fs.rmSync(path.join(cohortRoot, 'opl-build-cohort.json'));
+    const prewarmed = rerun({ OPL_CODEX_PREWARM_MANIFEST: prewarmManifest });
+    assert.equal(prewarmed.status, 0, prewarmed.stderr);
+
     assert.match(
       fs.readFileSync(output, 'utf8'),
       new RegExp(`cache_key=fixture-cache-1\\.2\\.3-${frozen.tarball_sha256}-${frozen.platform.tarball_sha256}`),

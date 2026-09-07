@@ -514,7 +514,11 @@ test('an incomplete bounded wait emits durable typed reconcile evidence and neve
     assert.equal(value.receipt.notarization.info_poll_attempts, value.notaryInfoAttempts);
     assert.equal((value.commands.match(/notarytool info/g) ?? []).length, value.notaryInfoAttempts);
     assert.doesNotMatch(value.commands, /stapler staple/);
-    const logged = JSON.parse(value.result.stderr.trim()) as Record<string, any>;
+    const events = value.result.stderr.trim().split('\n').map(line => JSON.parse(line));
+    const failures = events.filter(event => event.schema === 'opl_notarization_failure_log.v1');
+    assert.equal(failures.length, 1);
+    const logged = failures[0];
+    assert.ok(events.some(event => event.event === 'apple_notarization_observation' && event.submission_id === submissionId));
     assert.equal(logged.schema, 'opl_notarization_failure_log.v1');
     assert.equal(logged.failure.code, 'notarization_submission_incomplete');
     assert.equal(logged.notarization.id, submissionId);
@@ -538,7 +542,10 @@ test('a permanent notarization rejection fails closed without polling or staplin
     assert.equal((value.commands.match(/notarytool wait/g) ?? []).length, 1);
     assert.equal((value.commands.match(/notarytool info/g) ?? []).length, 1);
     assert.doesNotMatch(value.commands, /stapler staple/);
-    const logged = JSON.parse(value.result.stderr.trim()) as Record<string, any>;
+    const events = value.result.stderr.trim().split('\n').map(line => JSON.parse(line));
+    const failures = events.filter(event => event.schema === 'opl_notarization_failure_log.v1');
+    assert.equal(failures.length, 1);
+    const logged = failures[0];
     assert.equal(logged.failure.code, 'notarization_submission_rejected');
     assert.equal(logged.notarization.status, 'Rejected');
   } finally {
