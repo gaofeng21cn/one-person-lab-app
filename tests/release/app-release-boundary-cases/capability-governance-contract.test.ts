@@ -358,7 +358,7 @@ test('model precedence keeps a supported App frontier ahead of stale recommendat
   ];
   assert.throws(
     () => validateProductProfile(competingAppDefault, installExposure),
-    /user, installed Flow, live Codex, then App fallback precedence/,
+    /Product profile model policy must use/,
   );
 });
 
