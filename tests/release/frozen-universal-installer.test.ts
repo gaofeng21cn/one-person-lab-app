@@ -37,7 +37,7 @@ test('frozen universal installer binds one exact App carrier and remains executa
     assert.match(script, new RegExp(`OPL_FRAMEWORK_SOURCE_REF='${frameworkSha}'`));
     assert.match(script, new RegExp(`OPL_RELEASE_VERSION='${version.replaceAll('.', '\\.')}'`));
     assert.match(script, /OPL_RELEASE_REPO='gaofeng21cn\/one-person-lab-app'/);
-    assert.match(script, new RegExp(`OPL_CONTAINER_WEBUI_TAG='${version.replaceAll('.', '\\.')}'`));
+    assert.match(script, /^OPL_CONTAINER_WEBUI_TAG=\$\{OPL_CONTAINER_WEBUI_TAG:-\}$/m);
     assert.match(script, new RegExp(`OPL_FROZEN_RELEASE_TAG='v${version.replaceAll('.', '\\.')}'`));
     assert.match(script, /release_asset_name "\$tag" full/);
     assert.match(script, /download_and_validate_full_manifest/);

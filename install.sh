@@ -64,7 +64,6 @@ Options:
   --runtime-form <form>      Select auto, desktop, webui, container-webui, or headless.
   --desktop                 Require the platform Desktop payload.
   --webui                   Prefer the installed Desktop payload in WebUI mode.
-  --native-webui            Deprecated alias for --webui.
   --container-webui         Use the Container WebUI installer.
   --server                  Select the Container WebUI server path.
   --isolated                Select the Container WebUI isolation path.
@@ -198,8 +197,8 @@ while [ "$#" -gt 0 ]; do
       OPL_INSTALL_RUNTIME_FORM=webui
       ;;
     --native-webui)
-      printf '%s\n' '--native-webui is deprecated; using the packaged Desktop WebUI mode.' >&2
-      OPL_INSTALL_RUNTIME_FORM=webui
+      printf 'Unsupported option: %s\n' "$arg" >&2
+      exit 1
       ;;
     --container-webui)
       OPL_INSTALL_RUNTIME_FORM=container-webui
@@ -278,10 +277,6 @@ normalize_runtime_form() {
       printf 'desktop\n'
       ;;
     webui|browser)
-      printf 'webui\n'
-      ;;
-    native|native-webui|native_webui)
-      printf '%s\n' 'native-webui is deprecated; using the packaged Desktop WebUI mode.' >&2
       printf 'webui\n'
       ;;
     container|container-webui|container_webui|docker)

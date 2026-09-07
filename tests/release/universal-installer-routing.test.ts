@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import { createAppComponentManifest } from '../../scripts/write-opl-app-component-manifest.ts';
+import { generateFrozenUniversalInstaller } from '../../scripts/generate-frozen-universal-installer.ts';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
 const installerPath = path.join(appRoot, 'install.sh');
@@ -24,7 +25,7 @@ function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function dockerAcquisitionFixture(root: string) {
+function dockerAcquisitionFixture(root: string, universalInstaller?: Buffer) {
   const releaseDir = path.join(root, 'release');
   const bin = path.join(root, 'bin');
   const cacheDir = path.join(root, 'cache');
@@ -48,6 +49,7 @@ function dockerAcquisitionFixture(root: string) {
     '#!/usr/bin/env bash\nprintf \'trusted:%s\\n\' "$*" >> "$OPL_FAKE_EXECUTED"\n',
   );
   assets.set('install-docker-webui.sh', trustedInstaller);
+  if (universalInstaller) assets.set('opl-install.sh', universalInstaller);
   for (const [name, bytes] of assets) fs.writeFileSync(path.join(releaseDir, name), bytes);
 
   const releaseAssets = [...assets].map(([name, bytes]) => ({
@@ -134,7 +136,8 @@ if [ "$write_code" = 1 ]; then printf '200'; fi
   const run = (
     extraEnv: NodeJS.ProcessEnv = {},
     args = ['--container-webui', '--release-tag', tag, '--yes', '--no-open'],
-  ) => spawnSync('/bin/bash', [installerPath, ...args], {
+    scriptPath = installerPath,
+  ) => spawnSync('/bin/bash', [scriptPath, ...args], {
     encoding: 'utf8',
     env: {
       ...process.env,
@@ -213,14 +216,21 @@ test('explicit Desktop density reaches the platform carrier and unsupported Linu
   );
 });
 
-test('WebUI mode reuses packaged Desktop bytes and native-webui is only its deprecated alias', () => {
+test('WebUI mode reuses packaged Desktop bytes and retired Native forms fail closed', () => {
   const webui = route('Linux', 'x86_64', ['--webui']);
-  const alias = route('Linux', 'x86_64', ['--native-webui']);
   assert.equal(webui.status, 0, webui.stderr);
   assert.equal(webui.stdout.trim(), 'linux-desktop-webui');
-  assert.equal(alias.status, 0, alias.stderr);
-  assert.equal(alias.stdout.trim(), 'linux-desktop-webui');
-  assert.match(alias.stderr, /deprecated; using the packaged Desktop WebUI mode/);
+  for (const args of [
+    ['--native-webui'],
+    ['--runtime-form', 'native'],
+    ['--runtime-form=native-webui'],
+    ['--runtime-form=native_webui'],
+  ]) {
+    const result = route('Linux', 'x86_64', args);
+    assert.notEqual(result.status, 0, args.join(' '));
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /Unsupported (?:option|runtime form):/);
+  }
 });
 
 test('server, isolated, headless, and Windows routes stay distinct from the Desktop carrier', () => {
@@ -341,6 +351,32 @@ test('Container WebUI acquires and executes only the exact Release-bound install
     assert.equal(identity.release_tag, 'v26.8.14');
     assert.equal(identity.asset.sha256, sha256(fixture.trustedInstaller).slice('sha256:'.length));
     assert.equal(identity.asset.size_bytes, fixture.trustedInstaller.length);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('frozen Desktop installer leaves Docker image selection to its independent carrier', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-frozen-docker-route-'));
+  try {
+    const outputPath = path.join(root, 'opl-install.sh');
+    writeExecutable(outputPath, generateFrozenUniversalInstaller({
+      sourcePath: installerPath,
+      outputPath,
+      version: '26.8.14',
+      appSha: 'a'.repeat(40),
+      shellSha: 'b'.repeat(40),
+      frameworkSha: 'c'.repeat(40),
+    }));
+    const fixture = dockerAcquisitionFixture(root, fs.readFileSync(outputPath));
+    const args = ['--container-webui', '--yes', '--no-open'];
+    const defaultImage = fixture.run({ OPL_CONTAINER_WEBUI_TAG: '' }, args, outputPath);
+    assert.equal(defaultImage.status, 0, defaultImage.stderr || defaultImage.stdout);
+    assert.equal(fs.readFileSync(fixture.executed, 'utf8').trim(), 'trusted:--yes --no-open');
+    fs.writeFileSync(fixture.executed, '');
+    const explicitImage = fixture.run({ OPL_CONTAINER_WEBUI_TAG: 'independent-docker-version' }, args, outputPath);
+    assert.equal(explicitImage.status, 0, explicitImage.stderr || explicitImage.stdout);
+    assert.equal(fs.readFileSync(fixture.executed, 'utf8').trim(), 'trusted:--tag independent-docker-version --yes --no-open');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

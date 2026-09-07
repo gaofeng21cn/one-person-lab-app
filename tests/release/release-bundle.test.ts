@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { validateReleaseBundle } from '../../scripts/release-bundle.ts';
 import { appRoot } from './app-release-boundary-cases/helpers.ts';
 
@@ -165,4 +166,11 @@ test('schema remains closed for historical byte verification', () => {
   assert.equal(schema.properties.tracks.additionalProperties, false);
   assert.equal(schema.$defs.bound_track.additionalProperties, false);
   assert.equal(schema.$defs.asset.additionalProperties, false);
+  const validate = new Ajv2020({ allErrors: true, strictTypes: false }).compile(schema);
+  const bundle = historicalBundle();
+  assert.equal(validate(bundle), true, JSON.stringify(validate.errors));
+  bundle.tracks.standard.assets.pop();
+  assert.equal(validate(bundle), false);
+  bundle.tracks.standard.assets.push(bundle.tracks.standard.assets[0], bundle.tracks.standard.assets[0]);
+  assert.equal(validate(bundle), false);
 });

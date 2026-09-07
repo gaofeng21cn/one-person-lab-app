@@ -184,7 +184,7 @@
         "assets": {
           "type": "array",
           "minItems": 2,
-          "maxItems": 6,
+          "maxItems": 9,
           "items": { "$ref": "#/$defs/asset" }
         }
       },
@@ -196,7 +196,7 @@
         {
           "type": "object",
           "properties": {
-            "assets": { "type": "array", "minItems": 8, "maxItems": 8 }
+            "assets": { "type": "array", "minItems": 9, "maxItems": 9 }
           }
         }
       ]

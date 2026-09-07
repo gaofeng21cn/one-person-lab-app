@@ -72,7 +72,6 @@ export function generateFrozenUniversalInstaller(input: FrozenUniversalInstaller
   generated = replaceDefault(generated, 'OPL_FROZEN_RELEASE_TAG', tag);
   generated = replaceDefault(generated, 'OPL_RELEASE_VERSION', version);
   generated = replaceDefault(generated, 'OPL_RELEASE_REPO', repository);
-  generated = replaceDefault(generated, 'OPL_CONTAINER_WEBUI_TAG', version);
   generated = replaceDefault(generated, 'OPL_INSTALL_RUNTIME_FORM', 'auto');
   generated = replaceUnique(
     generated,
@@ -131,7 +130,6 @@ export function generateFrozenUniversalInstaller(input: FrozenUniversalInstaller
     ['OPL_FRAMEWORK_SOURCE_REF', frameworkSha],
     ['OPL_RELEASE_VERSION', version],
     ['OPL_RELEASE_REPO', repository],
-    ['OPL_CONTAINER_WEBUI_TAG', version],
   ]) {
     if (!generated.includes(`${name}='${value}'`)) {
       throw new Error(`Frozen universal installer omitted ${name}.`);
