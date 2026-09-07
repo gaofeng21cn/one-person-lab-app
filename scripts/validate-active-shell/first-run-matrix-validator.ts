@@ -164,7 +164,7 @@ function validateUpdaterScenario(updater) {
   if (
     updater?.update_policy?.download !== 'background'
     || updater?.update_policy?.apply !== 'restart_when_ready'
-    || updater?.update_policy?.ready_prompt !== 'prompt_restart_after_download_ready'
+    || updater?.update_policy?.ready_prompt !== 'status_only_install_on_normal_restart'
     || updater?.update_policy?.full_first_install_metadata_allowed !== false
     || updater?.update_policy?.scope !== 'desktop_app_assets_only'
     || updater?.update_policy?.module_package_update_allowed !== false

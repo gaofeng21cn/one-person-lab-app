@@ -326,18 +326,19 @@ test('Framework compatibility receipt validation rejects empty, unbound, expired
   );
 });
 
-test('model precedence makes App defaults a Flow-unavailable fallback only', () => {
+test('model precedence keeps a supported App frontier ahead of stale recommendations', () => {
   const installExposure = readJson('contracts/app-install-exposure-policy.json');
   const productProfile = readJson('contracts/app-product-profile.json');
   assert.deepEqual(productProfile.codex.auto_model_policy.resolution_precedence, [
     'explicit_user_selection',
+    'fresh_catalog_frontier_then_app_default_when_available',
     'installed_opl_flow_recommendation',
     'fresh_codex_live_default',
     'app_fallback_when_flow_unavailable',
   ]);
   assert.equal(
     productProfile.codex.auto_model_policy.app_fallback_role,
-    'configured_default_is_used_only_when_flow_projection_is_absent_invalid_or_unavailable_and_catalog_cannot_resolve',
+    'configured_default_when_catalog_metadata_is_unavailable',
   );
   assert.equal(
     productProfile.codex.auto_model_policy.policy_source_ref,
@@ -345,7 +346,7 @@ test('model precedence makes App defaults a Flow-unavailable fallback only', () 
   );
   assert.equal(
     productProfile.codex.auto_model_policy.configured_default_role,
-    'app_fallback_not_flow_recommendation_authority',
+    'app_default_with_catalog_compatibility_fallback',
   );
 
   const competingAppDefault = structuredClone(productProfile);

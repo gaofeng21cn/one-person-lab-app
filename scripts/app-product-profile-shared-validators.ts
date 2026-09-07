@@ -649,7 +649,7 @@ function assertCodexAutoModelPolicy(
         actual: policy?.app_role,
         expected: 'resolve_auto_from_fresh_catalog_and_projected_recommendation_then_persist_user_override',
       },
-      { actual: policy?.configured_default_role, expected: 'app_fallback_not_flow_recommendation_authority' },
+      { actual: policy?.configured_default_role, expected: 'app_default_with_catalog_compatibility_fallback' },
       { actual: policy?.mode_default, expected: 'auto' },
       { actual: policy?.model_catalog_source, expected: 'codex_cli_model_list' },
       { actual: policy?.catalog_response_models_field, expected: 'data' },

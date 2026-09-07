@@ -390,7 +390,7 @@ Conformance 必须按 `contract_status`、`source_status`、`pixel_status`、`in
 - Settings 已进入 maintenance；保持现有 OPL IA/object 和 model policy，不得决定 Home、
   rail、conversation 或 composer 结构，也不拥有 installer/runtime truth。
 - 模型显示和 fallback 只读取 `contracts/app-product-profile.json`；推荐策略由已安装 OPL Flow
-  投影提供。优先级固定为用户显式选择、Flow recommendation、Codex live default、App fallback，
+  投影提供。优先级为用户显式选择、目录支持的 App 默认、Flow recommendation、Codex live default、App fallback，
   本文档族不复制当前 model/reasoning 值或具体模型 allowlist。
 
 Active AionUI 通过上面的动态 state-source marker 读取默认状态；

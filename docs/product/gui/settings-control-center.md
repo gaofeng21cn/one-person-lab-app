@@ -560,7 +560,11 @@ the next qualified Stable reclaims Latest by default.
 Canary is validation-only and never appears as a user update channel. The App performs one update check after startup
 and publishes it to a shared main-process updater state store. Mounting or
 navigating to About only reads that state and never starts a check. The manual
-button refreshes the same shared state.
+button refreshes the same shared state. During a download, About shows a progress
+bar, percentage, transferred/total size and current speed from that store. Before
+the first byte event it shows preparation; an unknown total stays unknown. A
+manual click during an existing download observes that transfer without starting
+another check or download. Completion stays quiet and installs on normal restart.
 
 Maintenance and the compact Settings footer subscribe to that same store rather
 than reading a second desktop App-update truth. WebUI uses the managed `opl_app`

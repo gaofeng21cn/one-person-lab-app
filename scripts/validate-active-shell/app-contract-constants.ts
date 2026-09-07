@@ -588,6 +588,9 @@ export const appOwnedSettingsAppUpdateStatePolicy = {
       "cancelled",
     ],
     manual_check: "refresh_the_same_shared_state",
+    download_progress: "about_displays_percent_transferred_total_and_speed_from_shared_updater_state",
+    active_download_manual_check: "observe_existing_download_without_restarting",
+    background_completion: "silent_install_on_normal_app_restart",
   },
   webui: {
     fallback_source:
@@ -613,6 +616,9 @@ export const appOwnedSettingsAboutUpdaterStatePolicy = {
   mount_check: false,
   shared_state: "single_main_process_updater_state_store",
   manual_check: "refresh_the_same_shared_state",
+    download_progress: "about_displays_percent_transferred_total_and_speed_from_shared_updater_state",
+    active_download_manual_check: "observe_existing_download_without_restarting",
+    background_completion: "silent_install_on_normal_app_restart",
   app_update_state_policy_ref: appOwnedSettingsAppUpdateStatePolicyRef,
 };
 export const appOwnedSettingsManagedUpdateRepairPolicyRef =

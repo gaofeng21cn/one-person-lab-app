@@ -1304,7 +1304,7 @@
       "update_policy": {
         "download": "background",
         "apply": "restart_when_ready",
-        "ready_prompt": "prompt_restart_after_download_ready",
+        "ready_prompt": "status_only_install_on_normal_restart",
         "full_first_install_metadata_allowed": false,
         "scope": "desktop_app_assets_only",
         "module_package_update_allowed": false,

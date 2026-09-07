@@ -607,16 +607,17 @@ function validateProductProfileCodexDefaults(profile) {
       'consume_only_when_fresh_opl_flow_presence_installed_true_and_projection_is_valid' ||
     JSON.stringify(profile.codex.auto_model_policy.resolution_precedence) !== JSON.stringify([
       'explicit_user_selection',
+      'fresh_catalog_frontier_then_app_default_when_available',
       'installed_opl_flow_recommendation',
       'fresh_codex_live_default',
       'app_fallback_when_flow_unavailable',
     ]) ||
     profile.codex.auto_model_policy.app_fallback_role !==
-      'configured_default_is_used_only_when_flow_projection_is_absent_invalid_or_unavailable_and_catalog_cannot_resolve' ||
+      'configured_default_when_catalog_metadata_is_unavailable' ||
     profile.codex.auto_model_policy.configured_default_role !==
-      'app_fallback_not_flow_recommendation_authority'
+      'app_default_with_catalog_compatibility_fallback'
   ) {
-    throw new Error('Product profile model policy must use user, installed Flow, live Codex, then App fallback precedence');
+    throw new Error('Product profile model policy must use user, fresh frontier/App default, installed Flow, compatible catalog, then App fallback precedence');
   }
   validateOplFlowContext(profile.codex?.opl_flow_context, 'Product profile OPL Flow Context');
   const additionalInstructions = profile.codex?.new_conversation_additional_instructions;
@@ -1357,8 +1358,8 @@ function validateStandardUpdatePolicy(profile) {
     'Product profile Standard updater metadata bridge',
   );
   if (
-    profile.first_run?.updates?.standard_channel?.implementation_reference !== 'electron_autoUpdater_background_download_update_downloaded_restart_prompt'
-    || profile.first_run?.updates?.standard_channel?.ready_prompt !== 'prompt_restart_after_download_ready'
+    profile.first_run?.updates?.standard_channel?.implementation_reference !== 'electron_autoUpdater_background_download_silent_install_on_quit'
+    || profile.first_run?.updates?.standard_channel?.ready_prompt !== 'status_only_install_on_normal_restart'
     || profile.first_run?.updates?.standard_channel?.full_first_install_metadata_allowed !== false
     || profile.first_run?.updates?.standard_channel?.download_policy !== 'background_download'
     || profile.first_run?.updates?.standard_channel?.apply_policy !== 'restart_when_ready'
