@@ -308,8 +308,14 @@ export function validateMinimumCompleteProductContract(minimumProduct: MinimumCo
   }
 
   for (const feature of features) {
-    if (!feature.capability_id?.trim() || !feature.owner?.trim() || feature.cutover_blocking !== true) {
+    if (!feature.capability_id?.trim() || !feature.owner?.trim() || (feature.feature_id !== 'B0-08' && feature.cutover_blocking !== true)) {
       throw new Error(`${feature.feature_id} must be owner-backed and cutover-blocking`);
+    }
+    if (feature.feature_id === 'B0-08') {
+      if (feature.disposition !== 'deferred' || feature.cutover_blocking !== false) {
+        throw new Error('B0-08 dedicated Git workbench must remain explicitly deferred');
+      }
+      continue;
     }
     if (feature.feature_id !== 'B0-12') {
       if (feature.disposition !== 'required' || feature.components?.some((component) => component.disposition === 'deferred')) {

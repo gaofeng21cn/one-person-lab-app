@@ -52,14 +52,16 @@ Native 将来需要独立实现同一用户结果。视觉 1:1 是独立的 pixe
 | `B0-04` | Composer、文本、附件、paste/drop、显式 file/directory input | 用户必须能直接把本地上下文交给 Agent。 | 输入只进入当前 send，不做隐式 workspace preload。 |
 | `B0-05` | Model/reasoning 与 Auto/fixed 偏好 | 用户需要在发送点控制质量、速度和成本。 | 交互属于 B0；模型 entitlement、余额和默认目录 owner 归 `R1-02`。 |
 | `B0-06` | Access/permission、sandbox、approval、补充输入 | 本地 Agent 必须让权限与不可逆动作透明。 | 安全边界 fail closed；单个 OPL package 故障不得改变普通 Codex 权限流。 |
-| `B0-07` | Files、Changes、artifact preview 与常用 renderer | 用户需要查看代码、文件和交付物，而不是只读聊天文本。 | Preview/renderer 属 B0；完整 OPL evidence 平台归 `X0-02`。 |
-| `B0-08` | Git、branch、diff、review、commit/push、PR context | 编码任务需要可审查、可交付的版本控制闭环。 | 协议缺口显示 unavailable，不建立本地伪成功 store。 |
+| `B0-07` | 文件浏览、搜索、外部打开或下载 | 用户必须能找到并自行查看工作成果。 | 优先复用 DSH 文件插件；富预览可由生态插件补充，不作为切换门槛。 |
+| `B0-08` | Git 工具与可选工作台插件 | 编码流程保留 canonical Git 工具与外部客户端；独立 GUI 不阻塞首次切换。 | 优先评估 DSH 官方及社区 Git 插件，不自研完整工作台；插件接入仍须验证真实工作目录与动作结果。 |
 | `B0-09` | Terminal、Browser、Environment details | Agent 工作经常需要按需查看运行与环境。 | 作为次级工具按需打开，不做默认第三栏或 OPL dashboard。 |
 | `B0-10` | Workspace 初始 cwd、Project adoption 与本地 Worktree 工作模式 | 本地任务需要明确主要目录、隔离目录和执行上下文。 | Composer 只设置新 session 初始 cwd；projectless session 允许一次性 adoption。已绑定 session 不任意重绑，当前 AionUI 不自造 managed handoff；Worktree 未来复用稳定 upstream 或由 Native 实现。 |
 | `B0-11` | Codex Subagents / 并行子任务 | 复杂任务需要并行探索、验证与汇总。 | Portable core 是 read-only Active/Done lists、completed detail/result、open subagent thread，以及既有 App Server/ACP owner-supported controls。AionUI Team 继续关闭；不新增第二 App Server client、Team store、scheduler、执行 authority 或 bespoke direct-control buttons。 |
 | `B0-12` | Scheduled tasks/Cron、后台继续与通知 | 长任务和周期任务需要离开前台后继续。 | 使用单一 carrier scheduler/store、可发现的 ordinary entry 和 owner-projected executor identity；不新建第二 scheduler。 |
 | `B0-13` | Memory、personalization、instructions | 稳定偏好和项目指令决定长期易用性。 | 复用 owner-correct profile/refs，不新建独立 memory 平台。 |
 | `B0-14` | 通用 Settings 容器、search/back/redirect、a11y、theme、i18n | 所有配置与长期使用能力需要一致容器。 | 容器行为属于 B0；OPL 栏目、owner route 与数据语义归 `R1-05`。 |
+
+通用能力先检索 DSH 官方与社区生态，按当前版本升级和最薄接口适配接入；OPL 自有插件重点维护智能体研究进度、研究地图和产品专属入口。插件被发现、安装和实际可用分别记录，不以目录宣称代替验收。存储盘点保留，破坏性清理向导后置。
 
 B0 保护的是 Codex 必要用户结果，不是把上游所有同名入口自动纳入 OPL。Skill/Tool/Plugin/MCP
 的执行、权限与 elicitation 底座可复用 B0，但面向用户的管理 IA 归 `R1-04`。这些 capability

@@ -19,11 +19,13 @@ import type {
 
 const readJson = <T>(relativePath: string): T => JSON.parse(fs.readFileSync(relativePath, 'utf8')) as T;
 
-test('Studio minimum-complete baseline keeps all 27 features and only defers Scheduled Tasks/Cron', () => {
+test('Studio minimum-complete baseline keeps core switching outcomes and explicitly defers the dedicated Git workbench and Cron', () => {
   const profile = readJson<any>('contracts/app-product-profile.json');
   const baseline = profile.delivery_topology.minimum_complete_product;
   assert.doesNotThrow(() => validateMinimumCompleteProductContract(baseline));
   assert.equal(baseline.features.length, 27);
+  assert.equal(baseline.features.find((feature: any) => feature.feature_id === 'B0-08').cutover_blocking, false);
+  assert.equal(baseline.features.find((feature: any) => feature.feature_id === 'B0-07').capability_id, 'workspace_file_browse_search_and_external_open_or_download');
 
   const missingFeature = structuredClone(baseline);
   missingFeature.features = missingFeature.features.filter((feature: any) => feature.feature_id !== 'B0-08');

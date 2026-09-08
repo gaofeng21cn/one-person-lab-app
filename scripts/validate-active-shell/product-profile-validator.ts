@@ -527,13 +527,17 @@ function validateDeliveryTopology(profile) {
         second_currentness_authority_allowed: false,
         second_state_or_action_truth_allowed: false,
       },
+      generic_capability_reuse_policy: 'discover_official_and_community_DSH_plugins_first_keep_upstream_current_adapt_canonical_OPL_interfaces_maintain_custom_plugins_for_OPL_specific_outcomes',
       explicit_non_goals: [
         'AionCore',
         'AionUI_multi_backend_or_provider_abstraction',
         'AionUI_custom_assistant_catalog',
         'AionUI_Team_or_shell_owned_agent_orchestration',
-        'generic_arbitrary_code_GUI_plugins',
+        'unreviewed_arbitrary_code_GUI_plugins',
         'full_AionUI_feature_or_page_parity',
+        'built_in_rich_artifact_preview_plugin_can_supply_it',
+        'dedicated_git_workbench_is_not_an_initial_cutover_gate',
+        'destructive_storage_cleanup_ui_for_initial_cutover',
       ],
       cutover_policy: {
         strategy: 'establish_then_replace',
