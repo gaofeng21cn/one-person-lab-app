@@ -67,7 +67,7 @@ test("Settings Capabilities owns local MCP, image, and voice controls without Pr
   ]);
   assert.ok(
     values.pageStateMatrix.pages.find((page) => page.id === "capabilities")
-      .required_dom.always.includes("settings-capabilities-voice-input"),
+      .required_dom.conditional.some((entry) => entry.testid === "settings-capabilities-voice-input" && entry.when === "image_voice_tab_active"),
   );
   assert.equal(
     values.controlPlane.experience_contract.page_contracts.preferences.surface_rules
@@ -79,8 +79,8 @@ test("Settings Capabilities owns local MCP, image, and voice controls without Pr
   const capabilitiesPage = missingVoiceDom.pageStateMatrix.pages.find(
     (page) => page.id === "capabilities",
   );
-  capabilitiesPage.required_dom.always = capabilitiesPage.required_dom.always.filter(
-    (testid) => testid !== "settings-capabilities-voice-input",
+  capabilitiesPage.required_dom.conditional = capabilitiesPage.required_dom.conditional.filter(
+    (entry) => entry.testid !== "settings-capabilities-voice-input",
   );
   assert.throws(() => validate(missingVoiceDom), /capabilities required DOM|Capabilities page must own local MCP, image, and voice/i);
 

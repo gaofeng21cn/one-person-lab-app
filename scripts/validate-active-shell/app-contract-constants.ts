@@ -990,7 +990,7 @@ export const appOwnedSettingsPageAnchors = {
     "additional-instructions",
   ],
   agents: ["catalog", "package-role", "availability", "source", "home-visibility"],
-  capabilities: ["opl-flow-managed", "opl-managed-companion", "third-party"],
+  capabilities: ["opl-flow-managed", "opl-managed-companion", "third-party", "voice-input", "packages"],
   resources: [
     "local-browser-access",
     "web-access",
@@ -1042,6 +1042,8 @@ export const appOwnedSettingsPageSearchEntryIds = {
     "capabilities.opl_flow_managed",
     "capabilities.opl_managed_companion",
     "capabilities.third_party",
+    "capabilities.image_voice",
+    "capabilities.packages",
   ],
   resources: [
     "resources.local_browser_access",
@@ -1082,7 +1084,7 @@ export const appOwnedSettingsPageSearchEntryIds = {
 export const appOwnedSettingsCapabilitiesTabContract = {
   surface_label_zh: "能力",
   surface_label_en: "Capabilities",
-  tab_order: ["opl_flow_managed", "opl_managed_companion", "manual_and_third_party"],
+  tab_order: ["desktop", "opl_flow_managed", "manual_and_third_party", "image_voice", "packages"],
   default_tab: "opl_flow_managed",
   on_demand_tab_ids: [],
 };
@@ -1353,7 +1355,7 @@ export const legacySettingsRouteRedirects = {
   model: "access",
   agent: "agents",
   assistants: "capabilities#third-party",
-  "skills-hub": "capabilities#third-party",
+  "skills-hub": "capabilities#opl-flow-managed",
   tools: "capabilities#third-party",
   display: "appearance",
   webui: "resources",

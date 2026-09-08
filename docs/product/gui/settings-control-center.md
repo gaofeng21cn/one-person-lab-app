@@ -653,3 +653,26 @@ also requires:
 
 These checks do not prove package installation, runtime currentness, release
 promotion, or owner acceptance. Those remain separate release-owner gates.
+
+## Settings usability refinement
+
+Search results use the visible primary group and destination, including Instructions under Agents &
+Capabilities, while keeping existing carrier routes and anchors. Arrow keys select a result, Enter
+opens it, and Escape clears the query. The destination reveals any containing disclosure and focuses
+and briefly highlights the setting.
+
+Agents lists only standard Agents and workflows. Supporting Packages remain manageable under
+Capabilities. Capabilities is organized by user purpose (desktop operation, skills/plugins,
+connections, image and voice); installation source remains metadata and never changes lifecycle
+ownership. Managed desktop operation shows one state-appropriate projected next action; other
+projected actions remain available under More.
+
+Preferences puts appearance, language and live font preview first, then application behavior and
+notifications. Performance is a named configuration disclosure, collapsed until opened or reached
+from search; it is not diagnostics. Automatic model reasoning is a readable policy summary with an
+explicit manual-model entry. Local controls show saving/saved/error feedback; text editors distinguish
+unsaved changes from persisted values.
+
+Overview shows a background exception once and names destination actions. Account balance and today's
+usage are primary; cumulative statistics are disclosed on request. Page titles retain a distinct
+readable hierarchy. Maintenance retains confirmation, progress and owner readback.

@@ -4446,7 +4446,7 @@
       "model": "access",
       "agent": "agents",
       "assistants": "capabilities#third-party",
-      "skills-hub": "capabilities#third-party",
+      "skills-hub": "capabilities#opl-flow-managed",
       "tools": "capabilities#third-party",
       "display": "appearance",
       "webui": "resources",
@@ -7485,11 +7485,7 @@
       "tab_contract": {
         "surface_label_zh": "能力",
         "surface_label_en": "Capabilities",
-        "tab_order": [
-          "opl_flow_managed",
-          "opl_managed_companion",
-          "manual_and_third_party"
-        ],
+        "tab_order": ["desktop", "opl_flow_managed", "manual_and_third_party", "image_voice", "packages"],
         "default_tab": "opl_flow_managed",
         "on_demand_tab_ids": []
       },

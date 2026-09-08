@@ -90,11 +90,11 @@ export function validateSettingsExperienceContract(experience) {
     search.result_item_testid !== "settings-search-result" ||
     search.empty_state_testid !== "settings-search-empty" ||
     search.index_granularity !== "item" ||
-    search.result_label_format !== "{page_label} > {entry_label}" ||
+    search.result_label_format !== "{group_label} > {destination_label} > {entry_label}" ||
     search.result_navigation !== "route_id_plus_anchor" ||
     search.keyboard_activation_policy !==
-      "enter_activates_first_visible_result" ||
-    search.destination_focus_policy !== "scroll_and_focus_declared_anchor" ||
+      "arrow_keys_select_result_enter_activates_selected_escape_clears_query" ||
+    search.destination_focus_policy !== "open_ancestor_disclosures_scroll_focus_and_highlight_declared_anchor" ||
     search.anchor_query_param !== "section" ||
     search.hash_router_policy !==
       "use_route_query_section_when_a_second_hash_fragment_is_not_supported" ||
@@ -443,9 +443,10 @@ export function validateSettingsExperienceContract(experience) {
       visual_baseline: "single_governed_opl_codex_aligned_baseline",
       interactive_controls_inside_diagnostic_surface_allowed: false,
       performance_and_waiting_policy:
-        "advanced_but_persistent_controls_use_a_named_configuration_group_not_a_technical_details_disclosure",
+        "named_configuration_disclosure_collapsed_by_default_search_reveals_controls",
       voice_input_configuration_allowed: false,
       voice_input_configuration_owner: "capabilities",
+      display_preview: "live_sample_uses_current_chat_markdown_and_code_font_sizes_and_interface_scale",
     },
     "Settings Preferences surface rules",
   );

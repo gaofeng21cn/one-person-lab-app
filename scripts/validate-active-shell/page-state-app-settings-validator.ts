@@ -319,7 +319,7 @@ function validateCapabilitiesPage(matrix, guiContract) {
   if (
     capabilitiesPage.local_capability_configuration_source !==
       'AionUI local configuration#MCP servers + image generation + voice input' ||
-    !capabilitiesPage.required_dom?.always?.includes('settings-capabilities-voice-input') ||
+    !capabilitiesPage.required_dom?.conditional?.some((entry) => entry.testid === 'settings-capabilities-voice-input' && entry.when === 'image_voice_tab_active') ||
     !guiCapabilitiesPage?.entity_kinds?.includes('voice_input')
   ) {
     throw new Error('Capabilities page must own local MCP, image, and voice configuration with stable DOM');
