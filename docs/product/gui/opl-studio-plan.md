@@ -106,6 +106,16 @@ Studio Preview 保持独立 product name、bundle id、user-data root、reposito
 source 和 domain artifacts 继续由原 owner 提供；AionUI/AionCore database、cookies、secrets、
 Electron cache 和 updater identity 不整体复制。
 
+Studio 首次启动还提供有界的旧会话导入：只读 SQLite 或旧 JSON，保留私有来源快照；已有
+Codex ID 直接关联，旧后端专有会话通过公开接口关联新的 Codex thread。旧问答作为明确的
+来源历史显示，并在继续对话时作为上下文传入，新 turn 始终归 Codex App Server。不会恢复
+旧后端运行进程或复制其凭据。持久化的置顶、排序和可取得的语言/主题偏好合并到 Studio，
+已有 Studio 选择优先。当前 AionUI 草稿仅在内存中，旧进程退出后不能从磁盘恢复。
+
+macOS 自动发现既有数据位置；Docker 必须挂载旧数据卷，可用 `OPL_AIONUI_DATA_DIR` 指定
+只读挂载目录。来源保留、绑定持久化、失败可重试以及删除后不重新导入属于同一迁移行为。
+这些首次启动能力可先进入独立 Preview，不替代正式 App identity 切换的签名与迁移验收。
+
 Adoption 只有在以下 owner evidence 完成后才可发生：
 
 - minimum-complete App user outcomes；

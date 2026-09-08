@@ -367,6 +367,18 @@
       "implementation_id": "opl-studio",
       "completion_rule": "all_required_user_outcomes_have_owner_backed_state_action_and_post_action_readback_without_a_second_runtime_or_truth_store",
       "feature_inventory_ref": "docs/product/gui/feature-inventory.md#b0-codex-necessary-baseline",
+      "startup_history_continuity": {
+        "source_owner": "aionui_sqlite_or_legacy_json_read_only",
+        "canonical_native_threads": "reuse_same_codex_home_and_public_app_server_identity_without_copy",
+        "legacy_only_conversations": "retain_private_source_snapshot_link_to_new_codex_thread_display_imported_history_and_supply_context_on_continuation",
+        "new_turn_owner": "codex_core_app_server",
+        "ui_metadata": "merge_persisted_pins_order_and_available_locale_theme_without_overwriting_studio_choices",
+        "unsent_draft_limit": "current_aionui_composer_drafts_are_memory_only_not_recoverable_after_source_process_exit",
+        "docker_source": "existing_legacy_volume_must_be_mounted_read_only_or_selected_by_OPL_AIONUI_DATA_DIR",
+        "source_preserved": true,
+        "direct_database_copy": false,
+        "second_runtime_or_backend_restart": false
+      },
       "functional_baseline_scope": {
         "first_qualification_platform": "macos",
         "macos_full_functional_baseline_required_before_cutover": true,
