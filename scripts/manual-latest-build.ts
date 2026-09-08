@@ -250,15 +250,26 @@ export function resolveAioncoreManagedCodexBinding(shellRoot: string) {
     );
   }
   const producerCliNames = producer.cliNames;
-  if (
-    !Array.isArray(producerCliNames)
-    || JSON.stringify([...producerCliNames].sort()) !== JSON.stringify(['claude', 'codex'])
-  ) {
-    throw new Error(
-      'AionCore managed-resources projection must bind producer CLI names Claude and Codex',
-    );
-  }
   const projection = requiredObject(managedManifest.projection, 'projection metadata');
+  const legacyProducer = Array.isArray(producerCliNames)
+    && JSON.stringify([...producerCliNames].sort()) === JSON.stringify(['claude', 'codex']);
+  const composedProducer = Array.isArray(producerCliNames) && producerCliNames.length === 0;
+  if (!legacyProducer && !composedProducer) {
+    throw new Error('AionCore managed-resources projection has unsupported producer CLI provenance');
+  }
+  if (composedProducer) {
+    const codexSource = requiredObject(projection.codexSource, 'official Codex carrier source');
+    const codexVersion = requiredString(codexSource.version, 'official Codex carrier version');
+    const projectedCodex = Array.isArray(managedManifest.clis)
+      ? managedManifest.clis.find((cli) => cli.name === 'codex') : null;
+    if (codexSource.package !== '@openai/codex'
+      || codexSource.packageSpec !== `@openai/codex@${codexVersion}-${MANUAL_RUNTIME_KEY}`
+      || codexSource.authority !== 'official_npm_platform_package'
+      || codexSource.oplVerifiedAioncoreVersion !== aioncoreVersion
+      || projectedCodex?.version !== codexVersion) {
+      throw new Error('AionCore composed projection must bind the official Codex package and verified runtime version');
+    }
+  }
   if (
     JSON.stringify(projection.includedCliNames) !== JSON.stringify(['codex'])
     || JSON.stringify(projection.excludedCliNames) !== JSON.stringify(['claude'])
@@ -485,6 +496,8 @@ function prepareAioncoreManagedCodexBinding(shellRoot: string) {
     env: { ...process.env, AIONUI_BACKEND_ARCH: 'arm64' },
     timeoutMs: 20 * 60 * 1000,
   });
+  const verifierPath = requireFile(path.join(shellRoot, 'packages', 'shared-scripts', 'src', 'verify-bundled-aioncore-resources.js'), 'Shell AionCore resource verifier');
+  commandResult(process.execPath, ['-e', `const {verifyBundledAioncoreResources}=require(process.argv[1]); const result=verifyBundledAioncoreResources({resourcesDir:process.argv[2],electronPlatformName:'darwin',targetArch:'arm64'}); if(result.missing.length || result.invalid.length) throw new Error(JSON.stringify({missing:result.missing,invalid:result.invalid}));`, verifierPath, path.join(shellRoot, 'resources')], { cwd: shellRoot });
   return resolveAioncoreManagedCodexBinding(shellRoot);
 }
 
