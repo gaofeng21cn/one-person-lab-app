@@ -459,7 +459,7 @@ function validateDeliveryTopology(profile) {
     'Product profile AionUI reference boundary',
   );
   assertDeepEqualJson(
-    (({ feature_inventory_ref, functional_baseline_scope, evidence_axes, features, ...legacyMinimumProduct }) => legacyMinimumProduct)(topology.minimum_complete_product),
+    (({ feature_inventory_ref, functional_baseline_scope, evidence_axes, features, startup_history_continuity, ...legacyMinimumProduct }) => legacyMinimumProduct)(topology.minimum_complete_product),
     {
       schema: 'opl_app_successor_minimum_complete_product.v3',
       implementation_id: 'opl-studio',
