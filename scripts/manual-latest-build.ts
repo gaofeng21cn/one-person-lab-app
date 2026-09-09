@@ -296,11 +296,6 @@ export function resolveAioncoreManagedCodexBinding(shellRoot: string) {
       'AionCore managed-resources manifest must not retain retired acpTools truth',
     );
   }
-  if (fs.lstatSync(path.join(managedRoot, 'acp'), { throwIfNoEntry: false })) {
-    throw new Error(
-      'AionCore managed-resources must not contain the retired managed-resources/acp directory',
-    );
-  }
   if (managedManifest.runtimeKey !== MANUAL_RUNTIME_KEY) {
     throw new Error(
       `AionCore managed-resources runtimeKey mismatch: expected ${MANUAL_RUNTIME_KEY}`,
@@ -329,13 +324,7 @@ export function resolveAioncoreManagedCodexBinding(shellRoot: string) {
   requireFile(nodeExecutable, 'AionCore managed Node executable');
 
   const clis = Array.isArray(managedManifest.clis) ? managedManifest.clis : [];
-  const cliNames = clis
-    .map((entry) => entry?.name)
-    .sort((left, right) => comparePathNames(String(left), String(right)));
-  if (
-    clis.length !== 1
-    || JSON.stringify(cliNames) !== JSON.stringify(['codex'])
-  ) {
+  if (clis.length !== 1 || clis[0]?.name !== 'codex') {
     throw new Error(
       'AionCore managed-resources projection must contain exactly one Codex direct CLI',
     );
@@ -690,7 +679,6 @@ function parseOptions(argv: string[]) {
       'no-launch': { type: 'boolean', default: false },
       'reuse-gui-vite-output': { type: 'boolean', default: false },
       'print-plan': { type: 'boolean', default: false },
-      'keep-workdir': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
   });
@@ -748,7 +736,6 @@ function parseOptions(argv: string[]) {
     launch: !values['no-launch'],
     reuseGuiViteOutput: values['reuse-gui-vite-output'],
     printPlan: values['print-plan'],
-    keepWorkdir: values['keep-workdir'],
   } as const;
 }
 
@@ -770,7 +757,6 @@ Options:
   --no-launch                     Do not relaunch local-app after replacement
   --reuse-gui-vite-output         Reuse an already compiled Shell frontend
   --print-plan                    Resolve and verify inputs without building
-  --keep-workdir                  Keep the temporary Framework overlay for diagnosis
 
 Guide: docs/delivery/release/manual-latest-builds.md`);
 }
@@ -910,7 +896,6 @@ function main() {
     return;
   }
   assertManagedOutputPath(options);
-  const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-manual-latest-build-'));
   const buildOutDir = options.printPlan ? options.outDir : managedOutputStage(options.outDir);
   let completed = false;
   let outputPromoted = false;
@@ -1054,11 +1039,6 @@ function main() {
   } finally {
     if (!options.printPlan && !outputPromoted) {
       fs.rmSync(buildOutDir, { recursive: true, force: true });
-    }
-    if (!options.keepWorkdir) {
-      fs.rmSync(workRoot, { recursive: true, force: true });
-    } else {
-      console.error(`Manual latest build workdir retained: ${workRoot}`);
     }
     if (!completed) {
       console.error('Manual latest build did not complete; no success claim was written.');

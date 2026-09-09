@@ -9,46 +9,12 @@ export const registryPath = path.join(root, 'contracts', 'app-shell-candidates.j
 export const activeAdapterPath = path.join(root, 'contracts', 'app-shell-adapter.json');
 export const guiContractPath = path.join(root, 'contracts', 'app-gui-product-contract.json');
 export const runtimeBridgePath = path.join(root, 'contracts', 'app-runtime-bridge.json');
-export const pageStateMatrixPath = path.join(root, 'contracts', 'app-page-state-matrix.json');
-export const firstRunMatrixPath = path.join(root, 'contracts', 'app-first-run-test-matrix.json');
 
 export function resolveCandidateRoot(candidateRoot: string): string {
   const override = process.env.OPL_APP_SHELL_ROOT?.trim();
   return override ? path.resolve(root, override) : path.join(root, candidateRoot);
 }
 export const requiredHomeEntries = ['research', 'grant', 'ppt'];
-export const requiredCapabilities = [
-  'codex_cli_fixed_executor_home',
-  'codex_app_server_thread_turn_backend',
-  'purpose_first_home_entries',
-  'workspace_directory_picker',
-  'new_conversation_thread_reset',
-  'pixel_visible_ui_smoke',
-  'source_renderer_build',
-  'source_ui_smoke',
-  'packaged_ui_smoke',
-  'webui_shared_renderer',
-  'web_transport_bridge',
-  'webui_smoke',
-  'chat_first_codex_app_surface',
-  'default_context_collapsed_chat_first_home',
-  'lightweight_workspace_session_rail',
-  'collapsible_contextual_tabs',
-  'app_product_profile_mapping',
-  'opl_app_state_bridge',
-  'active_project_line_state_model',
-  'opl_app_action_bridge',
-  'page_state_matrix_mapping',
-  'first_run_matrix_mapping',
-  'runtime_summary_detail_action_bridge',
-  'foundry_agent_series_shared_progress_display',
-  'app_owned_settings_information_architecture',
-  'secondary_runtime_context_refs',
-  'conversation_event_ref_rendering',
-  'webui_renderer_parity',
-  'release_isolation',
-  'candidate_app_bundle_package',
-];
 export const requiredNativeThreadCapabilities = [
   'single_codex_app_server_thread_adapter',
   'thread_list_read_start_resume_fork_archive_unarchive',
@@ -112,36 +78,7 @@ export const requiredNativeCapabilities = [
   'electron_desktop_adapter',
   'http_sse_web_adapter',
 ];
-export const requiredSettingsTabs = ['general', 'access', 'capabilities', 'environment', 'storage', 'appearance', 'advanced'];
-export const forbiddenLegacySettingsTabs = [
-  'overview',
-  'runtime',
-  'system',
-  'model',
-  'agent',
-  'assistants',
-  'skills-hub',
-  'tools',
-  'display',
-  'webui',
-  'pet',
-];
-export const requiredActivityGroups = ['needs_attention', 'active_projects', 'recent_projects'];
 export const requiredConversationEventKinds = ['tool', 'process', 'diff', 'file', 'receipt', 'user_input', 'permission'];
-export const requiredContextTestIds = [
-  'opl-workspace-rail',
-  'opl-session-list',
-  'opl-context-tabs',
-  'opl-runtime-status-panel',
-  'opl-agent-run-status',
-  'opl-runtime-contributions',
-  'opl-files-results-panel',
-  'opl-input-files-list',
-  'opl-agents-capabilities-panel',
-  'opl-current-agent-capabilities',
-  'opl-codex-capability-catalog',
-  'opl-web-transport',
-];
 export const forbiddenAuthority = [
   'App GUI product truth',
   'App model-selection policy',
@@ -160,9 +97,6 @@ export const expectedFrameworkSurfaces: Record<string, string> = {
   full_state: 'opl app state --profile full --json',
   full_drilldown: 'opl runtime app-operator-drilldown --detail full --json',
   action: 'opl app action execute --action <action_id> [--payload json] [--dry-run] --json',
-};
-export const expectedOptionalRuntimeFrameworkSurfaces: Record<string, string> = {
-  full_drilldown: 'opl runtime app-operator-drilldown --detail full --json',
 };
 export const requiredSeriesProgressFields = [
   'progress_delta_classification',

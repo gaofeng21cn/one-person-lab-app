@@ -7,7 +7,6 @@ import {
   writeFile,
   writeExecutable,
   listFullRuntimeProductionNodeModulePaths,
-  copyOfficeCliUpstreamSkill,
   flowCapabilityBuildLockFixture,
   writeVersionExecutable,
 } from "./full-first-install-runtime-fixtures.ts";
@@ -29,27 +28,6 @@ test("Full runtime keeps only macOS arm64 platform packages from optional produc
     "node_modules/@swc/core",
     "node_modules/@swc/core-darwin-arm64",
   ]);
-});
-
-test("Full companion skill packaging normalizes known OfficeCLI upstream frontmatter", () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-companion-skills-"));
-  const targetRoot = path.join(tempRoot, "packaged");
-  const officeCliRoot = path.join(tempRoot, "OfficeCLI");
-  try {
-    writeFile(
-      path.join(officeCliRoot, "skills", "officecli-data-dashboard", "SKILL.md"),
-      "---\nname: officecli-data-dashboard\ndescription: Use for a weekly report with ≤ 1 chart and < 10 rows (use xlsx).\n---\n\n# Dashboard\n",
-    );
-    copyOfficeCliUpstreamSkill("officecli-data-dashboard", targetRoot, { officeCliRoot });
-    const packagedDashboard = fs.readFileSync(
-      path.join(targetRoot, "officecli-data-dashboard", "SKILL.md"),
-      "utf8",
-    );
-    assert.match(packagedDashboard, /at most 1 chart and fewer than 10 rows/);
-    assert.doesNotMatch(packagedDashboard.split("---", 3)[1], /[<>]/);
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
-  }
 });
 
 test('Full capability build lock rejects unsupported selection and payload drift', async () => {

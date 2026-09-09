@@ -16,7 +16,6 @@ import {
 } from "./helpers.ts";
 import { pathToFileURL } from "node:url";
 import { listFullRuntimeProductionNodeModulePaths } from "../../../scripts/full-first-install-package.ts";
-import { copyOfficeCliUpstreamSkill } from "../../../scripts/build-full-first-install-package/skills.ts";
 
 export {
   assert,
@@ -35,7 +34,6 @@ export {
   writeReleaseMetadata,
   pathToFileURL,
   listFullRuntimeProductionNodeModulePaths,
-  copyOfficeCliUpstreamSkill,
 };
 
 

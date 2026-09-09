@@ -16,31 +16,11 @@ export function existingFileSha256(filePath) {
   return readFileSha256(filePath);
 }
 
-export function functionSourceSha256(functions) {
-  return crypto.createHash('sha256').update(functions.map((fn) => fn.toString()).join('\n\n')).digest('hex');
-}
-
-export function hashFiles(sourceRoot, relativePaths) {
-  const entries = {};
-  for (const relativePath of relativePaths) {
-    const filePath = path.join(sourceRoot, relativePath);
-    entries[relativePath] = fs.existsSync(filePath) ? existingFileSha256(filePath) : null;
-  }
-  return entries;
-}
-
 export function directoryFingerprint(root, runtimePrefix) {
   if (!fs.existsSync(root)) {
     return null;
   }
   return treeFingerprint(root, (relative) => shouldExcludeRuntimePath(path.posix.join(runtimePrefix, relative)));
-}
-
-export function completeDirectoryFingerprint(root) {
-  if (!fs.existsSync(root)) {
-    return null;
-  }
-  return treeFingerprint(root, () => false);
 }
 
 function treeFingerprint(root, shouldExcludeRelativePath) {
