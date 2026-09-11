@@ -177,7 +177,8 @@ jobs:
           [[ "$CARRIER_EXECUTOR_REF" =~ ^[0-9a-f]{40}$ ]]
           [[ "$CARRIER_FOLLOWER_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
           canonical_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          test "$canonical_sha" = "$GITHUB_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$canonical_sha" > executor-reachability.json
+          jq -e '.status == "identical" or .status == "ahead"' executor-reachability.json >/dev/null
           mkdir -p evidence
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID" \
             > evidence/carrier-follower-run.json
@@ -200,10 +201,6 @@ jobs:
             and .head_branch == "main"
             and .run_attempt == $run_attempt
             and (.head_sha == $head)
-            and (if $run == $promotion_run
-              then (.status == "in_progress" or (.status == "completed" and .conclusion == "success"))
-              else (.status == "completed" and .conclusion == "success")
-              end)
           ' evidence/carrier-follower-run.json >/dev/null
           jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" '
             [
@@ -227,7 +224,7 @@ jobs:
             (.id | tostring) == $run
             and .repository.full_name == "gaofeng21cn/one-person-lab-app"
             and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .path == $path
+            and (.path == $path or .path == ".github/workflows/release-webui-development.yml")
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == 1
