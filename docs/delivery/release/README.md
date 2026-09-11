@@ -77,6 +77,9 @@ old classifier called it a product failure. Signed-byte identity and scope proof
 the failed acceptance is never reused and a fresh clean-VM qualification remains mandatory.
 Account-login qualification waits for actual Codex model-access readiness after confirmation, and records
 at most one retry of a settled session failure through the same visible confirmation action.
+When a publication attempt persists an unknown GitHub outcome, continue with
+`publish-qualified-standard --run-id <run> --source-artifact opl-release-standard-published-<run>`.
+This preserves the unknown marker for owner-authoritative reconciliation before any new mutation.
 `publish-qualified-standard` and `append-full` preserve the
 source checkpoint tag. For Full, `append-full` follows the complete recovery chain, binds a published or active owner when one
 exists, otherwise reuses the newest non-expired Full checkpoint whose App, Shell and Framework content

@@ -224,6 +224,19 @@ test('qualified Standard publication selects only the exact qualification checkp
   );
 });
 
+test('Standard mutation recovery explicitly preserves the run-bound publication checkpoint', () => {
+  const artifacts = [
+    { id: 1, name: 'opl-release-standard-checkpoint-123', expired: false },
+    { id: 2, name: 'opl-release-standard-published-123', expired: false },
+  ];
+  assert.equal(selectQualifiedStandardCheckpointArtifact(artifacts, '123', 'opl-release-standard-published-123'),
+    'opl-release-standard-published-123');
+  assert.throws(() => selectQualifiedStandardCheckpointArtifact(artifacts, '123', 'opl-release-standard-published-124'),
+    /exact run-bound/);
+  assert.throws(() => selectQualifiedStandardCheckpointArtifact([artifacts[0]!], '123', 'opl-release-standard-published-123'),
+    /exactly one/);
+});
+
 test('Full checkpoint reuse requires an exact content cohort and otherwise returns to Standard', () => {
   const checkpointTarget = {
     state: 'dispatch_required' as const,

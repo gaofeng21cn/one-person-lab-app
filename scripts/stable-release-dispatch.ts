@@ -235,9 +235,13 @@ function reusableFullBuildCohorts(artifacts: WorkflowArtifact[]): WorkflowArtifa
 export function selectQualifiedStandardCheckpointArtifact(
   artifacts: WorkflowArtifact[],
   sourceRunId: string,
+  requestedArtifact?: string,
 ): string {
   const id = runId(sourceRunId, 'source_run_id');
-  const expected = `opl-release-standard-checkpoint-${id}`;
+  const expected = requestedArtifact ?? `opl-release-standard-checkpoint-${id}`;
+  if (![`opl-release-standard-checkpoint-${id}`, `opl-release-standard-published-${id}`].includes(expected)) {
+    throw new Error('Standard recovery requires the exact run-bound qualification or publication checkpoint.');
+  }
   const matches = artifacts.filter((artifact) => !artifact.expired && artifact.name === expected);
   if (matches.length !== 1) {
     throw new Error(`Run ${id} must expose exactly one qualified Standard checkpoint; found ${matches.length}.`);
@@ -1153,7 +1157,7 @@ function parsePlatforms(value: string | undefined): string[] {
 function usage(): never {
   process.stderr.write(`Usage:
   npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--reuse-standard-run-id <failed-run> --smoke-harness-ref <sha>] [--execute]
-  npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
+  npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--source-artifact <exact-publication-checkpoint>] [--execute]
   npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--smoke-harness-ref <sha>] [--verification-app-ref <sha>] [--execute]
 
 Only new-product-release may allocate a tag, and it requires an explicit product-change summary. When --reuse-standard-run-id is present, it continues that failed same-version operation with its already signed and notarized Standard bytes. Publication, repair, and Full operations preserve the source tag and perform at most one workflow dispatch.
@@ -1219,7 +1223,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     plan = buildPublishQualifiedStandardPlan({
       attemptId: attemptId('publish-qualified-standard', runtime),
       sourceRunId,
-      sourceArtifact: selectQualifiedStandardCheckpointArtifact(artifacts, sourceRunId),
+      sourceArtifact: selectQualifiedStandardCheckpointArtifact(artifacts, sourceRunId, values['source-artifact']),
       frameworkSha: values['framework-ref']
         ? sha(values['framework-ref'], 'framework_ref')
         : wireSha(runtime, frameworkRemote),
