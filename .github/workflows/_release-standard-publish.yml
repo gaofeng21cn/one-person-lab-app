@@ -238,6 +238,34 @@ jobs:
           test "${#pre_nonce_guards[@]}" -eq 1
           test "${#run_reconciles[@]}" -eq 1
 
+      - name: Recover original qualification sidecars for an interrupted publication
+        if: ${{ inputs.publication_channel == 'stable' && inputs.source_artifact == format('opl-release-standard-published-{0}', inputs.source_run_id) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing="$(find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.json -print)"
+          if [ -n "$existing" ]; then exit 0; fi
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name "opl-release-standard-checkpoint-$SOURCE_RUN_ID" --dir original-qualified-checkpoint
+          original_bundles=()
+          imported_bundles=()
+          while IFS= read -r item; do original_bundles+=("$item"); done < <(find original-qualified-checkpoint -type f -name bundle.json -print)
+          while IFS= read -r item; do imported_bundles+=("$item"); done < <(find checkpoint-identity-bootstrap -type f -name bundle.json -print)
+          test "${#original_bundles[@]}" -eq 1
+          test "${#imported_bundles[@]}" -eq 1
+          cmp "${original_bundles[0]}" "${imported_bundles[0]}"
+          mkdir -p checkpoint-identity-bootstrap/recovered-qualification-sidecars
+          for name in standard-identity-receipt.json standard-clean-vm-qualification-receipt.json standard-clean-vm-qualification-receipt.sha256; do
+            originals=()
+            while IFS= read -r item; do originals+=("$item"); done < <(find original-qualified-checkpoint -type f -name "$name" -print)
+            test "${#originals[@]}" -eq 1
+            test -s "${originals[0]}" && test ! -L "${originals[0]}"
+            cp "${originals[0]}" "checkpoint-identity-bootstrap/recovered-qualification-sidecars/$name"
+          done
+
       - name: Verify sealed Standard identity
         id: standard-identity
         env:
@@ -920,6 +948,12 @@ jobs:
           test -d imported-checkpoint
           mkdir -p immutable-carrier-input
           cp -a imported-checkpoint/. immutable-carrier-input/
+          for name in standard-identity-receipt.json standard-clean-vm-qualification-receipt.json standard-clean-vm-qualification-receipt.sha256; do
+            sidecars=()
+            while IFS= read -r item; do sidecars+=("$item"); done < <(find imported-checkpoint -type f -name "$name" -print)
+            test "${#sidecars[@]}" -eq 1
+            cp "${sidecars[0]}" "$name"
+          done
 
       - name: Resolve immutable Stable control executor
         if: ${{ needs.restore.outputs.channel == 'stable' }}
@@ -1394,6 +1428,9 @@ jobs:
         with:
           name: opl-release-standard-published-${{ github.run_id }}
           path: |
+            standard-identity-receipt.json
+            standard-clean-vm-qualification-receipt.json
+            standard-clean-vm-qualification-receipt.sha256
             publish-plan.json
             publish-apply.json
             planned-payload-assets.json
