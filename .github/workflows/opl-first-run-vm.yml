@@ -970,11 +970,27 @@ jobs:
           fi
           echo "source_vm=$SOURCE_VM" >> "$GITHUB_OUTPUT"
 
-      - name: Download exact clean VM source handoff
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Checkout immutable artifact transport executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          name: opl-clean-vm-sources-${{ inputs.package_profile }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/opl-clean-vm-source-input
+          ref: ${{ github.workflow_sha }}
+          path: opl-artifact-transport-executor
+          persist-credentials: false
+          sparse-checkout: scripts/download-github-artifact.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Download exact clean VM source handoff
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPL_ARTIFACT_RUN_ID: ${{ github.run_id }}
+          OPL_ARTIFACT_NAME: opl-clean-vm-sources-${{ inputs.package_profile }}-${{ github.run_id }}
+          OPL_ARTIFACT_DEST: ${{ runner.temp }}/opl-clean-vm-source-input
+          OPL_ARTIFACT_CACHE: ${{ runner.tool_cache }}/opl-exact-artifact-downloads
+        run: |
+          set -euo pipefail
+          cp opl-artifact-transport-executor/scripts/download-github-artifact.mjs "$RUNNER_TEMP/opl-download-github-artifact.mjs"
+          node "$RUNNER_TEMP/opl-download-github-artifact.mjs"
 
       - name: Activate exact clean VM sources
         shell: bash
@@ -1215,14 +1231,16 @@ jobs:
       - name: Download release DMG artifact
         if: ${{ inputs.release_artifact_name != '' }}
         id: release_artifact_download_1
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         timeout-minutes: 30
         continue-on-error: true
-        with:
-          name: ${{ inputs.release_artifact_name }}
-          run-id: ${{ inputs.release_artifact_run_id || github.run_id }}
-          github-token: ${{ github.token }}
-          path: artifacts/release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPL_ARTIFACT_RUN_ID: ${{ inputs.release_artifact_run_id || github.run_id }}
+          OPL_ARTIFACT_NAME: ${{ inputs.release_artifact_name }}
+          OPL_ARTIFACT_DEST: artifacts/release
+          OPL_ARTIFACT_CACHE: ${{ runner.tool_cache }}/opl-exact-artifact-downloads
+        run: node "$RUNNER_TEMP/opl-download-github-artifact.mjs"
 
       - name: Remove partial release DMG after first download failure
         if: ${{ inputs.release_artifact_name != '' && steps.release_artifact_download_1.outcome == 'failure' }}
