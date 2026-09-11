@@ -10,6 +10,30 @@ const g32HandoffPath = path.join(process.cwd(), 'tests', 'release', 'fixtures', 
 const read = (name: string) => fs.readFileSync(path.join(workflowRoot, name), 'utf8');
 const parse = (name: string) => parseYaml(read(name)) as Record<string, any>;
 
+test('Full recovery resolves independent exact executor and retains original build provenance', () => {
+  const admission = parse('release-stable.yml').jobs.admission.steps.find((step: any) => step.id === 'admission').run as string;
+  const binding = admission.slice(admission.indexOf('FRAMEWORK_EXECUTOR_REF="$REQUESTED_FRAMEWORK_REF"'), admission.indexOf('if [ "$OPERATION" = resume_standard ]; then'));
+  for (const requested of ['a'.repeat(40), JSON.stringify({ source_ref: 'a'.repeat(40), executor_ref: 'b'.repeat(40) })]) {
+    const result = spawnSync('bash', ['-c', `set -euo pipefail\n${binding}\nprintf '%s %s' "$FRAMEWORK_SOURCE_REF" "$FRAMEWORK_EXECUTOR_REF"`], {
+      encoding: 'utf8', env: { ...process.env, OPERATION: 'append_full', REQUESTED_FRAMEWORK_REF: requested, REQUESTED_APP_REF: 'c'.repeat(40), SHELL_REF: 'd'.repeat(40) },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, `${'a'.repeat(40)} ${requested.startsWith('{') ? 'b'.repeat(40) : 'a'.repeat(40)}`);
+  }
+  const result = spawnSync('bash', ['-c', `set -euo pipefail\n${binding}`], {
+    encoding: 'utf8', env: { ...process.env, OPERATION: 'append_full', REQUESTED_FRAMEWORK_REF: JSON.stringify({ source_ref: 'a'.repeat(40), executor_ref: 'main' }) },
+  });
+  assert.notEqual(result.status, 0);
+  const restore = parse('_release-full-addon.yml').jobs['restore-standard'].steps.find((step: any) => step.id === 'operation').run as string;
+  const receiptCheck = restore.slice(restore.indexOf('full_artifact_producer_run_id="$(')).split(/\n\s*;;/)[0];
+  const checked = spawnSync('bash', ['-c', `set -euo pipefail\n${receiptCheck}\nprintf '%s' "$full_artifact_producer_run_id"`], {
+    encoding: 'utf8', env: { ...process.env, BUNDLE_DIGEST: 'sha256:test', GITHUB_REPOSITORY: 'owner/repo', operation_id: 'new-operation', imported_operation_id: 'old-operation', original_full_receipt: '/dev/stdin' },
+    input: JSON.stringify({ surface_kind: 'opl_release_bundle_executor_receipt.v1', operation: 'build', executor: 'remote', bundle_digest: 'sha256:test', track: 'full', outcome: 'complete', release_operation: 'append_full', operation_id: 'old-operation', attempt_id: 'gha-123-full-build', remote_target: 'github-actions:owner/repo/runs/123/full-build' }),
+  });
+  assert.equal(checked.status, 0, checked.stderr);
+  assert.equal(checked.stdout, '123');
+});
+
 const g32Predicate = `
   def opl_fromdateiso8601:
     if type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?Z$")

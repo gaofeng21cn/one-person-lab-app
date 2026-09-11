@@ -298,6 +298,7 @@ jobs:
           operation_started_at="$(jq -r '.release_bundle_status.operation_controls.append_full.operation_started_at // ""' append-operation-status-before.json)"
           operation_deadline_at="$(jq -r '.release_bundle_status.operation_controls.append_full.operation_deadline_at // ""' append-operation-status-before.json)"
           imported_operation_deadline_at="$operation_deadline_at"
+          imported_operation_id="$operation_id"
           if [ -z "$operation_id" ]; then
             operation_id="gha-${GITHUB_RUN_ID}-append-full"
             operation_started_at='${{ inputs.operation_started_at }}'
@@ -536,7 +537,7 @@ jobs:
               full_artifact_producer_run_id="$(
                 jq -er \
                   --arg bundle "$BUNDLE_DIGEST" \
-                  --arg operation_id "$operation_id" \
+                  --arg operation_id "${imported_operation_id:-$operation_id}" \
                   --arg repository "$GITHUB_REPOSITORY" '
                     (.attempt_id | capture("^gha-(?<run>[1-9][0-9]*)-full-build$").run) as $run
                     | select(

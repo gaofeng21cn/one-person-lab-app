@@ -108,7 +108,7 @@ on:
         default: ''
         type: string
       framework_ref:
-        description: Exact Framework executor SHA required for protected Studio Standard admission and used by resume/append lanes
+        description: Exact Framework SHA, or strict source_ref/executor_ref JSON for unchanged Full recovery
         required: false
         default: ''
         type: string
@@ -896,6 +896,16 @@ jobs:
                 exit 1
               }
               FRAMEWORK_EXECUTOR_REF="$REQUESTED_FRAMEWORK_REF"
+              if [ "$OPERATION" = append_full ] && ! [[ "$REQUESTED_FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]; then
+                jq -e '
+                  type == "object"
+                  and (keys | sort) == ["executor_ref", "source_ref"]
+                  and (.source_ref | type == "string" and test("^[0-9a-f]{40}$"))
+                  and (.executor_ref | type == "string" and test("^[0-9a-f]{40}$"))
+                ' <<<"$REQUESTED_FRAMEWORK_REF" >/dev/null
+                FRAMEWORK_EXECUTOR_REF="$(jq -er .executor_ref <<<"$REQUESTED_FRAMEWORK_REF")"
+                REQUESTED_FRAMEWORK_REF="$(jq -er .source_ref <<<"$REQUESTED_FRAMEWORK_REF")"
+              fi
               [[ "$FRAMEWORK_EXECUTOR_REF" =~ ^[0-9a-f]{40}$ ]] || {
                 echo "::error::$OPERATION requires an exact Framework executor SHA."
                 exit 1
@@ -910,7 +920,8 @@ jobs:
                   echo "::error::append_full requires an exact fresh Full content Shell SHA."
                   exit 1
                 }
-                FRAMEWORK_SOURCE_REF="$FRAMEWORK_EXECUTOR_REF"
+                FRAMEWORK_SOURCE_REF="$REQUESTED_FRAMEWORK_REF"
+                [[ "$FRAMEWORK_SOURCE_REF" =~ ^[0-9a-f]{40}$ ]]
               fi
               if [ "$OPERATION" = resume_standard ]; then
                 test -z "$PRIOR_FULL_ARTIFACT_RUN_ID$SMOKE_HARNESS_REF$VERIFICATION_APP_REF" || {

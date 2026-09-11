@@ -324,9 +324,14 @@ test('Full checkpoint requalification preserves the tag and accepts exact option
     frameworkSha,
     smokeHarnessSha: '4'.repeat(40),
     verificationAppSha: '5'.repeat(40),
+    frameworkExecutorSha: '6'.repeat(40),
     recoveryRunId: '32665218996',
   });
   assert.equal(plan.version_policy, 'preserve_source_tag');
+  assert.deepEqual(JSON.parse(plan.workflow_inputs.framework_ref), {
+    source_ref: frameworkSha, executor_ref: '6'.repeat(40),
+  });
+  assert.equal(plan.cohort?.framework_sha, frameworkSha);
   assert.equal('prior_full_artifact_run_id' in plan.workflow_inputs, false);
   assert.equal(plan.workflow_inputs.smoke_harness_ref, JSON.stringify({
     app_ref: '5'.repeat(40),

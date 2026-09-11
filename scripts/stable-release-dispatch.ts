@@ -594,6 +594,7 @@ export function buildAppendFullPlan(input: {
   shellSha: string;
   frameworkSha: string;
   priorFullArtifactRunId?: string;
+  frameworkExecutorSha?: string;
   artifactProducerRunId?: string;
   qualificationRunId?: string;
   smokeHarnessSha?: string;
@@ -608,7 +609,12 @@ export function buildAppendFullPlan(input: {
     source_artifact: text(input.sourceArtifact, 'source_artifact'),
     app_ref: sha(input.appSha, 'app_ref'),
     shell_ref: sha(input.shellSha, 'shell_ref'),
-    framework_ref: sha(input.frameworkSha, 'framework_ref'),
+    framework_ref: input.frameworkExecutorSha && input.frameworkExecutorSha !== input.frameworkSha
+      ? JSON.stringify({
+        source_ref: sha(input.frameworkSha, 'framework_ref'),
+        executor_ref: sha(input.frameworkExecutorSha, 'framework_executor_ref'),
+      })
+      : sha(input.frameworkSha, 'framework_ref'),
   };
   if (input.priorFullArtifactRunId) {
     workflowInputs.prior_full_artifact_run_id = runId(
@@ -650,7 +656,7 @@ export function buildAppendFullPlan(input: {
     cohort: {
       app_sha: workflowInputs.app_ref,
       shell_sha: workflowInputs.shell_ref,
-      framework_sha: workflowInputs.framework_ref,
+      framework_sha: sha(input.frameworkSha, 'framework_ref'),
     },
     authority: null,
   };
@@ -1182,6 +1188,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       'app-ref': { type: 'string' },
       'shell-ref': { type: 'string' },
       'framework-ref': { type: 'string' },
+      'framework-executor-ref': { type: 'string' },
       'smoke-harness-ref': { type: 'string' },
       'verification-app-ref': { type: 'string' },
       'desktop-additional-platforms': { type: 'string' },
@@ -1316,6 +1323,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       smokeHarnessSha: values['smoke-harness-ref'],
       verificationAppSha: values['verification-app-ref'],
       recoveryRunId: isFullRecovery ? sourceRunId : rootSourceRunId,
+      frameworkExecutorSha: values['framework-executor-ref']
+        ? sha(values['framework-executor-ref'], 'framework_executor_ref')
+        : wireSha(runtime, frameworkRemote),
     });
   } else {
     usage();

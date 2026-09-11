@@ -4641,6 +4641,7 @@
       "runs_during_standard_admission": false,
       "may_block_standard_terminal": false,
       "required_before_append_full_operation": true,
+      "full_recovery_framework_binding": "framework_ref accepts a SHA or strict source_ref/executor_ref JSON. source_ref preserves frozen content while executor_ref selects an exact compatible recovery executor. Original build receipts retain their producer operation identity.",
       "admission_dry_run": {
         "executor_source": "canonical_workflow_sha",
         "dependency_check": "npm_ci_ignore_scripts_dry_run",
