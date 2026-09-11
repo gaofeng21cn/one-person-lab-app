@@ -1178,6 +1178,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       'run-id': { type: 'string' },
       'reuse-standard-run-id': { type: 'string' },
       'source-run-id': { type: 'string' },
+      'source-artifact': { type: 'string' },
       'app-ref': { type: 'string' },
       'shell-ref': { type: 'string' },
       'framework-ref': { type: 'string' },
