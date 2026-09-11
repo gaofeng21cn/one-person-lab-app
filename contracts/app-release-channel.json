@@ -2768,6 +2768,8 @@
       "provider": "openai_compatible",
       "compatibility_base_url": "https://gateway.medopl.com/v1",
       "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "response_timeout_seconds": 300,
       "api_key_secret": "OPL_RELEASE_NOTES_CODEX_API_KEY"
     },
     "ai_assisted_draft_scope": "pre_release_preparation_only_not_publish_or_promote",

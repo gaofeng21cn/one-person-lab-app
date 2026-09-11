@@ -213,8 +213,13 @@ function parseChatCompletionsContent(stdout: string, providerLabel: string, toke
 }
 
 function buildChatCompletionsRequest(model: string, prompt: string) {
+  const reasoningEffort = process.env.OPL_RELEASE_NOTES_AI_REASONING_EFFORT?.trim();
+  if (reasoningEffort && !['low', 'medium', 'high'].includes(reasoningEffort)) {
+    throw new Error('Invalid OPL_RELEASE_NOTES_AI_REASONING_EFFORT');
+  }
   return JSON.stringify({
     model,
+    ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
     messages: [
       {
         role: 'user',

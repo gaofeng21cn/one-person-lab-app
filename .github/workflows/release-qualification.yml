@@ -66,12 +66,12 @@ jobs:
 
       - name: Probe release-note online AI provider
         env:
-          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_BASE_URL: ${{ vars.OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_BASE_URL }}
-          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_API_KEY: ${{ secrets.OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_API_KEY }}
-          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODEL: ${{ vars.OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODEL }}
-          OPL_RELEASE_NOTES_CODEX_BASE_URL: ${{ vars.OPL_RELEASE_NOTES_CODEX_BASE_URL }}
+          OPL_RELEASE_NOTES_CODEX_BASE_URL: https://gateway.medopl.com/v1
           OPL_RELEASE_NOTES_CODEX_API_KEY: ${{ secrets.OPL_RELEASE_NOTES_CODEX_API_KEY }}
-          OPL_RELEASE_NOTES_MODEL: ${{ vars.OPL_RELEASE_NOTES_MODEL }}
+          OPL_RELEASE_NOTES_MODEL: gpt-5.6-luna
+          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS: gpt-5.6-luna,gpt-5.4
+          OPL_RELEASE_NOTES_AI_REASONING_EFFORT: low
+          OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS: '300'
         run: node --experimental-strip-types scripts/release-notes-ai-writer.ts --probe-openai-compatible
 
       - name: Run release-boundary tests

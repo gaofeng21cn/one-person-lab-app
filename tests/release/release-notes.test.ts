@@ -444,6 +444,37 @@ test('OpenAI-compatible provider probe accepts a Responses output message', () =
   });
 });
 
+test('notes provider gives synchronous generation its configured deadline and reasoning budget', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-notes-generation-budget-'));
+  const binDir = path.join(tempRoot, 'bin');
+  fs.mkdirSync(binDir);
+  fs.writeFileSync(path.join(binDir, 'curl'), `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const request = JSON.parse(args[args.indexOf('-d') + 1]);
+if (Number(args[args.indexOf('--max-time') + 1]) < 272 || request.reasoning_effort !== 'low') {
+  process.stderr.write('curl: (28) synchronous generation exceeds caller budget');
+  process.exit(28);
+}
+process.stdout.write(JSON.stringify({ choices: [{ message: { content: 'OPL_RELEASE_NOTES_PROVIDER_OK' } }] }));
+`, { mode: 0o755 });
+  const env = {
+    PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+    OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_BASE_URL: 'http://127.0.0.1:3001/v1',
+    OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_API_KEY: 'test-key',
+    OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODEL: 'gpt-5.6-luna',
+    OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS: '300',
+    OPL_RELEASE_NOTES_AI_REASONING_EFFORT: 'low',
+    OPL_RELEASE_NOTES_AI_TRANSPORT_ATTEMPTS: '1',
+  };
+  const result = runNode(['scripts/release-notes-ai-writer.ts', '--probe-openai-compatible'], { env });
+  assert.equal(result.status, 0, result.stderr);
+  const invalid = runNode(['scripts/release-notes-ai-writer.ts', '--probe-openai-compatible'], {
+    env: { ...env, OPL_RELEASE_NOTES_AI_REASONING_EFFORT: 'invalid' },
+  });
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /Invalid OPL_RELEASE_NOTES_AI_REASONING_EFFORT/);
+});
+
 test('AI release notes writer auto provider prefers the OpenAI-compatible online endpoint', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-openai-compatible-notes-'));
   const binDir = path.join(tempRoot, 'bin');
