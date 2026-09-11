@@ -484,6 +484,18 @@ jobs:
             echo "::error::Exact Full read-only reconcile did not resolve the imported outcome; no mutation is authorized."
             exit 1
           }
+          if DEADLINE="$operation_deadline_at" node -e 'process.exit(Date.now() >= Date.parse(process.env.DEADLINE) ? 0 : 1)'; then
+            # Reconciliation uses the imported identity; only a resolved, expired Full operation may be replaced.
+            operation_id="gha-${GITHUB_RUN_ID}-append-full"
+            operation_started_at='${{ inputs.operation_started_at }}'
+            operation_deadline_at='${{ inputs.operation_deadline_at }}'
+            operation_args=(
+              --operation append_full
+              --operation-id "$operation_id"
+              --operation-started-at "$operation_started_at"
+              --operation-deadline-at "$operation_deadline_at"
+            )
+          fi
           framework-executor/bin/opl release operation admit \
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > append-operation-admit.json
