@@ -41,7 +41,8 @@ async function runDownload(url, file) {
     child.stderr.resume();
     child.on('error', () => reject(new Error('Artifact transport could not start')));
     child.on('close', code => code === 0 ? resolve() : reject(new Error(`Artifact transport failed with exit ${code}`)));
-    child.stdin.end(hasAria ? `${url}\n` : `url = ${JSON.stringify(url)}\n`);
+    // aria2 ignores global --out with --input-file; bind the name to this input entry.
+    child.stdin.end(hasAria ? `${url}\n  out=${path.basename(file)}\n` : `url = ${JSON.stringify(url)}\n`);
   });
 }
 
