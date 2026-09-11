@@ -41,13 +41,13 @@ runs:
           and .head_branch == "main"
           and .head_sha == $head
           and .run_attempt == 1
-          and ((.status == "completed" and .conclusion == "success")
-            or ((.id | tostring) == env.GITHUB_RUN_ID and .status == "in_progress"))
           and (
             (.display_title | startswith("OPL Stable standard "))
             or (.display_title | startswith("OPL Stable resume_standard "))
           )
         ' source-run.json >/dev/null
+        gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" > source-jobs.json
+        jq -e '[.[].jobs[] | select((.name == "standard / publish-standard / publish-standard-nonlatest" or .name == "resume-standard / publish-standard-nonlatest") and .status == "completed" and .conclusion == "success")] | length == 1' source-jobs.json >/dev/null
         artifact="opl-release-standard-remote-verify-${SOURCE_RUN_ID}"
         gh api --paginate --slurp \
           "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" > source-artifacts.json
