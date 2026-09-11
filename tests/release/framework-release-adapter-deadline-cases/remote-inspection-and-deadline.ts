@@ -447,6 +447,33 @@ test('a timed out Release create performs one Release mutation and then read-onl
   assert.equal(calls.filter(isReleaseInspect).length, 2, 'one pre-create read and one bounded reconcile read');
 });
 
+test('explicit GitHub permission rejection does not become an unknown mutation', () => {
+  const files = fixture([asset('first.zip', '6')]);
+  let mutations = 0;
+  const result = applyPublishPlan({
+    ...mutationAdmission(), bundle: files.bundlePath, plan: files.planPath,
+    'operation-deadline-at': deadlineAt,
+  }, {
+    now: () => deadlineMs - 90_000,
+    run(_command, args) {
+      if (isReleaseInspect(args) || isReleaseView(args) || isTagRefReadFor(args, tag, repo)) {
+        return { status: 1, stdout: '', stderr: 'HTTP 404 Not Found' };
+      }
+      if (args[3] === `repos/${repo}/releases`) {
+        mutations += 1;
+        return { status: 1, stdout: JSON.stringify({ status: '403', message: 'Resource not accessible by integration',
+          documentation_url: 'https://docs.github.com/rest/releases/releases#create-a-release' }), stderr: 'HTTP 403' };
+      }
+      throw new Error(`Unexpected gh call: ${args.join(' ')}`);
+    },
+  });
+  assert.equal(mutations, 1);
+  assert.equal(result.status, 'rejected');
+  assert.equal(result.failure.failure_taxonomy, 'github_release_creation_rejected');
+  assert.equal(result.reconciliation.observation.release.exists, false);
+  assert.equal(result.retry_disposition, 'repair_permission_then_start_new_admitted_operation');
+});
+
 test('accepted Release create uses its exact id while the draft remains absent by tag', () => {
   const first = asset('first.zip', '6');
   const files = fixture([first]);

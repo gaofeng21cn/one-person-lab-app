@@ -1342,6 +1342,10 @@ jobs:
                 echo "::error::An ordinary publish plan cannot inherit unresolved state; resume must reconcile it first."
                 exit 1
                 ;;
+              rejected)
+                echo "::error::GitHub explicitly rejected Release creation; repair permission and start a new admitted operation from the qualified checkpoint."
+                exit 1
+                ;;
               deadline_elapsed)
                 echo "::error::The absolute deadline elapsed before another mutation; reconcile is not authorized without a persisted unknown outcome."
                 exit 1

@@ -1844,7 +1844,7 @@ function inspectLatestForReconcile(repo: string, runtime: GitHubAdapterRuntime):
 
 type GitHubMutationAttempt =
   | { status: 'accepted'; evidence: JsonRecord }
-  | { status: 'deadline_elapsed' | 'outcome_unknown'; failure: JsonRecord };
+  | { status: 'deadline_elapsed' | 'outcome_unknown' | 'rejected'; failure: JsonRecord };
 
 function mutationAttemptId(
   baseAttemptId: string,
@@ -1899,10 +1899,16 @@ function runGitHubMutation(input: {
   };
   input.runtime.onMutationAttempt?.(evidence);
   if (result.status !== 0 || result.error) {
+    let response: JsonRecord | null = null;
+    try { response = JSON.parse(String(result.stdout ?? '')); } catch { /* No structured rejection. */ }
+    const creationRejected = input.mutation === 'release_create'
+      && result.status === 1 && !result.error && !result.signal
+      && ['401', '403'].includes(String(response?.status))
+      && response?.documentation_url === 'https://docs.github.com/rest/releases/releases#create-a-release';
     return {
-      status: 'outcome_unknown',
+      status: creationRejected ? 'rejected' : 'outcome_unknown',
       failure: {
-        failure_taxonomy: evidence.timed_out
+        failure_taxonomy: creationRejected ? 'github_release_creation_rejected' : evidence.timed_out
           ? 'github_mutation_timeout'
           : 'github_mutation_outcome_unknown',
         mutation: input.mutation,
@@ -1931,7 +1937,9 @@ function stoppedMutation(input: {
     unresolved_asset: input.unresolvedAsset ?? null,
     mutation_attempt_id: input.attempt.failure.mutation_attempt_id ?? null,
     remote_target: input.attempt.failure.remote_target ?? null,
-    retry_disposition: 'read_only_reconcile_only',
+    retry_disposition: input.attempt.status === 'rejected'
+      ? 'repair_permission_then_start_new_admitted_operation'
+      : 'read_only_reconcile_only',
     failure: input.attempt.failure,
     reconciliation: input.reconciliation,
   };
