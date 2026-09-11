@@ -640,7 +640,7 @@ jobs:
           OPL_RELEASE_NOTES_CODEX_BASE_URL: https://gateway.medopl.com/v1
           OPL_RELEASE_NOTES_CODEX_API_KEY: ${{ secrets.OPL_RELEASE_NOTES_CODEX_API_KEY }}
           OPL_RELEASE_NOTES_MODEL: gpt-5.6-luna
-          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS: gpt-5.6-luna,gpt-5.4
+          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS: gpt-5.6-luna
           OPL_RELEASE_NOTES_AI_REASONING_EFFORT: low
           OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS: '300'
         shell: bash

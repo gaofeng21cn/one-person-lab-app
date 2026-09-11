@@ -46,7 +46,8 @@ The online notes writer uses the contracted Gateway route with low reasoning
 effort and a 300-second response deadline. Synchronous Chat Completions returns
 the complete document at once; the deadline must cover generation, not only
 connection establishment. The qualification probe uses the same endpoint,
-credential and model settings as Stable preparation. A short probe proves
+credential and current `gpt-5.6-luna` model with low reasoning as Stable
+preparation, with a shorter 75-second deadline and no legacy-model fallback. A short probe proves
 connectivity; only validated full notes prove that preparation succeeded.
 
 `npm run release:stable-dispatch` is the only operator entry for a Stable release. It resolves and
