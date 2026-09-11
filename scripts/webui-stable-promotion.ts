@@ -154,7 +154,6 @@ function validateCarrierFollowerRun(
   carrierExecutorAppSha: string,
   expectedRunAttempt: number,
   sourceAuthority: JsonRecord,
-  sameRunPromotion: boolean,
 ): void {
   exact(String(run.id), runId, 'carrier follower run.id');
   exact(run.repository?.full_name, appRepository, 'carrier follower run.repository');
@@ -171,14 +170,8 @@ function validateCarrierFollowerRun(
   );
   exact(run.head_branch, 'main', 'carrier follower run.head_branch');
   const status = text(run.status, 'carrier follower run.status');
-  if (sameRunPromotion) {
-    if (!['in_progress', 'completed'].includes(status)) {
-      throw new Error('same-run Docker carrier run.status must be in_progress or completed.');
-    }
-    if (status === 'completed') exact(run.conclusion, 'success', 'same-run Docker carrier run.conclusion');
-  } else {
-    exact(status, 'completed', 'independent Docker carrier run.status');
-    exact(run.conclusion, 'success', 'independent Docker carrier run.conclusion');
+  if (!['in_progress', 'completed'].includes(status)) {
+    throw new Error('Docker carrier run.status must be in_progress or completed.');
   }
   exact(run.run_attempt, expectedRunAttempt, 'carrier follower run.run_attempt');
   exact(
@@ -219,7 +212,11 @@ function validatePromotionExecutorRun(
   carrierFollowerRunId: string,
   sourceAuthority: JsonRecord,
 ): string {
-  const callerWorkflow = text(sourceAuthority.authorization.workflow, 'source authority workflow');
+  const sourceWorkflow = text(sourceAuthority.authorization.workflow, 'source authority workflow');
+  const callerWorkflow = text(run.path, 'promotion executor run.path');
+  if (![sourceWorkflow, '.github/workflows/release-webui-development.yml'].includes(callerWorkflow)) {
+    throw new Error('promotion executor run.path is not an authorized Docker promotion entry.');
+  }
   exact(String(run.id), runId, 'promotion executor run.id');
   exact(run.repository?.full_name, appRepository, 'promotion executor run.repository');
   exact(run.head_repository?.full_name, appRepository, 'promotion executor run.head_repository');
@@ -473,7 +470,6 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
     carrierExecutorAppSha,
     carrierRunAttempt,
     sourceAuthority,
-    input.carrierFollowerRunId === input.promotionExecutorRunId,
   );
   validateCarrierFollowerJob(
     input.carrierFollowerJob,

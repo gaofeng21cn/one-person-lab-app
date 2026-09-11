@@ -286,6 +286,16 @@ test('independent Stable admission binds a durable Docker record and moves stabl
   assert.equal(decision.authorized_tag_attempts, 1);
 });
 
+test('successful exact carrier publication remains promotable when an unrelated parent job fails', () => {
+  const { input } = fixture('independent_stable');
+  input.carrierFollowerRun.conclusion = 'failure';
+  fs.writeFileSync(input.carrierFollowerRunPath, JSON.stringify(input.carrierFollowerRun));
+  assert.equal(admitWebuiStablePromotion(input).target.promotion_tags.length, 2);
+  input.carrierFollowerJob.conclusion = 'failure';
+  fs.writeFileSync(input.carrierFollowerJobPath, JSON.stringify(input.carrierFollowerJob));
+  assert.throws(() => admitWebuiStablePromotion(input), /carrier follower job.conclusion/);
+});
+
 test('independent Preview admission moves latest only and freezes stable', () => {
   const { input } = fixture('independent_preview');
   const admission = admitWebuiStablePromotion(input);
