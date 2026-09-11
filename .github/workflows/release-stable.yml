@@ -103,7 +103,7 @@ on:
         default: ''
         type: string
       smoke_harness_ref:
-        description: Exact Shell verification SHA or strict App/Shell verification-ref JSON used only for unchanged Full checkpoint bytes
+        description: Exact Shell verification SHA for signed Standard recovery, or SHA / strict App-Shell verification JSON for unchanged Full checkpoint bytes
         required: false
         default: ''
         type: string
@@ -543,7 +543,11 @@ jobs:
           test -n "$OPERATION_ID"
           test -n "$AUTHORITY_CARRIER"
           [[ "$AUTHORITY_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
-          test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID"
+          test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID"
+          if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
+            test -n "$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+            [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
+          fi
           if [ -n "$PRIOR_STANDARD_ARTIFACT_RUN_ID" ]; then
             [[ "$PRIOR_STANDARD_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             test "$PRIOR_STANDARD_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
@@ -849,10 +853,14 @@ jobs:
                 echo "::error::A new product release requires a user-visible product change summary."
                 exit 1
               }
-              test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
+              test -z "$REQUESTED_VERSION$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_FRAMEWORK_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID" || {
                 echo "::error::A new Standard Bundle accepts no external source artifact."
                 exit 1
               }
+              if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
+                test -n "$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+                [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
+              fi
               if [ -n "$PRIOR_STANDARD_ARTIFACT_RUN_ID" ]; then
                 [[ "$PRIOR_STANDARD_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]] || {
                   echo "::error::Standard artifact reuse requires an exact failed producer run id."
@@ -1189,6 +1197,7 @@ jobs:
       stable_admission_manifest_digest: ${{ needs.stable-admission-manifest.outputs.manifest_digest }}
       stable_desktop_additional_platforms: ${{ needs.protected-operation-admission.outputs.desktop_additional_platforms }}
       prior_standard_artifact_run_id: ${{ needs.admission.outputs.prior_standard_artifact_run_id }}
+      smoke_harness_ref: ${{ needs.admission.outputs.smoke_harness_ref }}
     secrets: inherit
 
   stable-followups:

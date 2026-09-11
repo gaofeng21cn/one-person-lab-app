@@ -96,6 +96,11 @@ on:
         required: false
         default: ''
         type: string
+      smoke_harness_ref:
+        description: Exact Shell verification SHA for unchanged signed Standard artifact recovery.
+        required: false
+        default: ''
+        type: string
     outputs:
       source_run_id:
         description: Run containing the exported Standard checkpoint
@@ -1465,10 +1470,10 @@ jobs:
       artifact_app_ref: ${{ needs.freeze.outputs.app_sha }}
       verification_app_ref: ${{ needs.freeze.outputs.app_sha }}
       shell_ref: ${{ needs.freeze.outputs.shell_sha }}
-      smoke_harness_ref: ${{ needs.freeze.outputs.shell_sha }}
+      smoke_harness_ref: ${{ inputs.smoke_harness_ref || needs.freeze.outputs.shell_sha }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       framework_executor_ref: ${{ needs.freeze.outputs.framework_sha }}
-      prepared_inputs_artifact: ${{ needs.prepare-standard-vm-inputs.outputs.artifact_name }}
+      prepared_inputs_artifact: ${{ inputs.smoke_harness_ref == '' && needs.prepare-standard-vm-inputs.outputs.artifact_name || '' }}
       package_profile: standard
       diagnostic_scope: release_gate
       require_macos_gatekeeper: true

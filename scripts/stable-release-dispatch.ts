@@ -818,7 +818,11 @@ export function buildStandardPlan(input: {
   desktopAdditionalPlatforms: string[];
   productChangeSummary: string;
   priorStandardArtifactRunId?: string;
+  smokeHarnessSha?: string;
 }): StableDispatchPlan {
+  if (input.smokeHarnessSha && !input.priorStandardArtifactRunId) {
+    throw new Error('A Standard verification harness override requires an existing signed artifact run.');
+  }
   const objectiveFingerprint = 'opl-desktop-stable-release';
   const criticalBlobs = stableOperationCriticalBlobs(appRoot);
   const operationId = stableOperationIdForFrozenCohort({
@@ -887,6 +891,7 @@ export function buildStandardPlan(input: {
   };
   if (priorStandardArtifactRunId) {
     workflowInputs.prior_standard_artifact_run_id = priorStandardArtifactRunId;
+    if (input.smokeHarnessSha) workflowInputs.smoke_harness_ref = sha(input.smokeHarnessSha, 'smoke_harness_ref');
   }
   return {
     schema: 'opl_app_stable_dispatch_plan.v1',
@@ -900,7 +905,7 @@ export function buildStandardPlan(input: {
       requested_run_id: priorStandardArtifactRunId,
       artifact_producer_run_id: priorStandardArtifactRunId,
       qualification_run_id: null,
-      smoke_harness_ref: null,
+      smoke_harness_ref: input.smokeHarnessSha ? sha(input.smokeHarnessSha, 'smoke_harness_ref') : null,
       verification_app_ref: null,
     },
     cohort: authority.cohort,
@@ -1119,7 +1124,7 @@ function parsePlatforms(value: string | undefined): string[] {
 
 function usage(): never {
   process.stderr.write(`Usage:
-  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--reuse-standard-run-id <failed-run>] [--execute]
+  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--reuse-standard-run-id <failed-run> --smoke-harness-ref <sha>] [--execute]
   npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--execute]
   npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--smoke-harness-ref <sha>] [--verification-app-ref <sha>] [--execute]
 
@@ -1175,6 +1180,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       desktopAdditionalPlatforms: parsePlatforms(values['desktop-additional-platforms']),
       productChangeSummary: text(values['product-change-summary'], 'product_change_summary'),
       priorStandardArtifactRunId,
+      smokeHarnessSha: values['smoke-harness-ref'],
     });
   } else if (command === 'publish-qualified-standard') {
     const sourceRunId = runId(values['run-id'], 'run_id');

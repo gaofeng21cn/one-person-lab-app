@@ -153,6 +153,7 @@ test('Standard recovery preserves the failed source tag and binds its signed art
     desktopAdditionalPlatforms: ['linux-x64', 'windows-x64'],
     productChangeSummary: 'Continue the same Stable release after fixture repair.',
     priorStandardArtifactRunId: '33728918457',
+    smokeHarnessSha: 'e'.repeat(40),
   });
 
   assert.equal(plan.operation, 'standard');
@@ -160,6 +161,19 @@ test('Standard recovery preserves the failed source tag and binds its signed art
   assert.equal(plan.workflow_inputs.prior_standard_artifact_run_id, '33728918457');
   assert.equal(plan.recovery.requested_run_id, '33728918457');
   assert.equal(plan.recovery.artifact_producer_run_id, '33728918457');
+  assert.equal(plan.workflow_inputs.smoke_harness_ref, 'e'.repeat(40));
+  assert.equal(plan.recovery.smoke_harness_ref, 'e'.repeat(40));
+  assert.equal(plan.cohort?.shell_sha, shellSha);
+  assert.throws(() => buildStandardPlan({
+    runtime,
+    workflow: '.github/workflows/release-stable.yml',
+    appSha,
+    shellSha,
+    frameworkSha,
+    desktopAdditionalPlatforms: [],
+    productChangeSummary: 'New release',
+    smokeHarnessSha: 'e'.repeat(40),
+  }), /requires an existing signed artifact run/);
 });
 
 test('checkpoint selection prefers the deepest exact non-expired checkpoint', () => {

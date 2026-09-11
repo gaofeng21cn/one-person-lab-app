@@ -2047,6 +2047,12 @@
         "smoke_harness_ref": "qualification_scope_proof_shell_head_sha_or_explicit_exact_override",
         "roles_must_not_be_inferred_as_equal": true
       },
+      "standard_artifact_recovery_verification": {
+        "smoke_harness_ref": "optional_exact_shell_sha_only_with_prior_standard_artifact_run_id",
+        "artifact_cohort_policy": "preserve_original_signed_app_and_shell_bytes",
+        "acceptance": "fresh_clean_vm_gateway_login_and_confirmed_codex_model_access_required",
+        "settled_gateway_session_failure_retries": 1
+      },
       "stable_operations": {
         "standard": {
           "source": "new_framework_bundle",

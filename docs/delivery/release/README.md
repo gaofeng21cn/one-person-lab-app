@@ -68,7 +68,11 @@ Omit `--execute` for a read-only plan. The command never accepts a version: only
 `new-product-release` may ask the workflow to allocate one, and it requires an explicit nonempty
 user-visible product change summary. `--reuse-standard-run-id` continues the same unpublicized Stable
 version with the failed run's already signed and notarized Standard bytes, while a new workflow
-operation may contain release-path fixes. `publish-qualified-standard` and `append-full` preserve the
+operation may contain release-path fixes. Standard artifact recovery also accepts `--smoke-harness-ref <sha>` to run a repaired
+verification harness against the original signed bytes; this override requires `--reuse-standard-run-id`.
+Account-login qualification waits for actual Codex model-access readiness after confirmation, and records
+at most one retry of a settled session failure through the same visible confirmation action.
+`publish-qualified-standard` and `append-full` preserve the
 source checkpoint tag. For Full, `append-full` follows the complete recovery chain, binds a published or active owner when one
 exists, otherwise reuses the newest non-expired Full checkpoint whose App, Shell and Framework content
 SHAs exactly match the requested Full cohort. A mismatch falls back to the original Standard checkpoint
