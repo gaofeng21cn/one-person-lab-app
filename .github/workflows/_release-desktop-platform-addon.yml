@@ -79,9 +79,9 @@ jobs:
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == 1
-            and ((.status == "completed" and .conclusion == "success")
-              or ((.id | tostring) == env.GITHUB_RUN_ID and .status == "in_progress"))
           ' source-run.json >/dev/null
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" > source-jobs.json
+          jq -e '[.[].jobs[] | select((.name == "standard / publish-standard / publish-standard-nonlatest" or .name == "resume-standard / publish-standard-nonlatest") and .status == "completed" and .conclusion == "success")] | length == 1' source-jobs.json >/dev/null
           gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --name "opl-release-operation-admission-$SOURCE_RUN_ID" --dir operation-admission
           mapfile -t admissions < <(find operation-admission -type f -name release-operation-admission.json -print | LC_ALL=C sort)
