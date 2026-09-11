@@ -66,11 +66,22 @@ test('Standard notes and Bundle freeze stay independent from Full and Package au
   );
   assert.equal(step.env.OPL_RELEASE_NOTES_MODE, 'ai');
   assert.equal(step.env.OPL_RELEASE_NOTES_PROVIDER, 'openai_compatible');
-  assert.equal(step.env.OPL_RELEASE_NOTES_MODEL, 'gpt-5.6-luna');
+  const route = JSON.parse(fs.readFileSync(
+    new URL('../../../contracts/app-release-channel.json', import.meta.url), 'utf8',
+  )).public_release_notes.preferred_ai_route;
+  assert.equal(step.env.OPL_RELEASE_NOTES_MODEL, route.model);
   assert.equal(
     step.env.OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS,
-    'gpt-5.6-luna,gpt-5.4',
+    route.model,
   );
+  assert.equal(step.env.OPL_RELEASE_NOTES_CODEX_BASE_URL, route.compatibility_base_url);
+  assert.equal(step.env.OPL_RELEASE_NOTES_AI_REASONING_EFFORT, route.reasoning_effort);
+  assert.equal(Number(step.env.OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS), route.response_timeout_seconds);
+  const probe = workflowStep('release-qualification.yml', 'release-boundary', 'Probe release-note online AI provider');
+  for (const name of ['OPL_RELEASE_NOTES_MODEL', 'OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS',
+    'OPL_RELEASE_NOTES_CODEX_BASE_URL', 'OPL_RELEASE_NOTES_CODEX_API_KEY', 'OPL_RELEASE_NOTES_AI_REASONING_EFFORT']) {
+    assert.equal(probe.env[name], step.env[name], `probe and full notes must use the same ${name}`);
+  }
   const script = String(step.run);
   assert.doesNotMatch(script, /--include-full-package|--full-payload-authority|--full-package-manifest/);
   assert.match(script, /notes_root="\$RUNNER_TEMP\/opl-release-prepared-notes-\$GITHUB_RUN_ID"/);
