@@ -2050,6 +2050,7 @@
       "standard_artifact_recovery_verification": {
         "smoke_harness_ref": "optional_exact_shell_sha_only_with_prior_standard_artifact_run_id",
         "artifact_cohort_policy": "preserve_original_signed_app_and_shell_bytes",
+        "prior_failure_taxonomy_policy": "explicit_repaired_harness_may_requalify_unchanged_bytes_even_when_interrupted_attempt_was_classified_product_failure_never_reuse_failed_acceptance",
         "acceptance": "fresh_clean_vm_gateway_login_and_confirmed_codex_model_access_required",
         "settled_gateway_session_failure_retries": 1
       },

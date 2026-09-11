@@ -1299,6 +1299,7 @@ jobs:
             --arg run_id "$PRIOR_RUN_ID" \
             --arg bundle "$prior_bundle_digest" \
             --arg artifact "opl-release-standard-vm-bound-${PRIOR_RUN_ID}" \
+            --arg repaired_harness '${{ inputs.smoke_harness_ref }}' \
             --arg dmg_sha "${dmg_sha256#sha256:}" '
               .schema == "opl_app_qualification_attempt_receipt.v1"
               and .identity.release_cohort_ref == $bundle
@@ -1310,10 +1311,10 @@ jobs:
               and .identity.source_artifact_name == $artifact
               and .artifact.sha256 == $dmg_sha
               and .evidence.strict_qualification_receipt_path == null
-              and .evidence.smoke_summary_path == null
               and (
                 (
                   .status == "incomplete"
+                  and .evidence.smoke_summary_path == null
                   and .retry.disposition == "terminal_blocked"
                   and .outcomes.validate_inputs == "failure"
                   and .outcomes.clean_vm == "skipped"
@@ -1323,6 +1324,7 @@ jobs:
                 (
                   .status == "failed"
                   and .failure_taxonomy == "fixture"
+                  and .evidence.smoke_summary_path == null
                   and .retry.disposition == "same_artifact_retry_allowed"
                   and .outcomes.validate_inputs == "success"
                   and .outcomes.clean_vm == "failure"
@@ -1330,6 +1332,18 @@ jobs:
                   and .evidence.scope_proof.classification == "same_as_artifact_cohort"
                   and .evidence.scope_proof.artifact_semantic_digest == .evidence.scope_proof.verification_semantic_digest
                   and .evidence.scope_proof.artifact_probe_digest == .evidence.scope_proof.verification_probe_digest
+                  and .evidence.scope_proof.forbidden_app_paths == []
+                  and .evidence.scope_proof.forbidden_shell_paths == []
+                )
+                or
+                (
+                  ($repaired_harness | test("^[0-9a-f]{40}$"))
+                  and .status == "failed"
+                  and .outcomes.validate_inputs == "success"
+                  and .outcomes.clean_vm == "failure"
+                  and (.evidence.critical_diagnostics_path | type == "string" and length > 0)
+                  and .evidence.scope_proof.classification == "same_as_artifact_cohort"
+                  and .evidence.scope_proof.artifact_semantic_digest == .evidence.scope_proof.verification_semantic_digest
                   and .evidence.scope_proof.forbidden_app_paths == []
                   and .evidence.scope_proof.forbidden_shell_paths == []
                 )
