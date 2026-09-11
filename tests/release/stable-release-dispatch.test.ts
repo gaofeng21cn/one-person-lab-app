@@ -108,12 +108,22 @@ test('Stable recovery validates frozen product source in an isolated worktree wh
 });
 
 test('Standard recovery preserves the failed source tag and binds its signed artifact run', () => {
+  let repeatedSourceGate = false;
+  const reusableSourceGate = {
+    schema: 'opl_app_release_source_gate.v1',
+    status: 'passed',
+    operation_fingerprint: 'opl-desktop-stable-release',
+    typed_blocker: null,
+    admission: { status: 'passed', immutable_cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha } },
+    checks: [{ id: 'app_frozen_commit_reachable', status: 'passed' }],
+  };
   const runtime = {
     runner(command: string, args: string[]) {
       if (command === 'git' && args.join(' ') === 'rev-parse HEAD') {
         return { status: 0, stdout: `${appSha}\n`, stderr: '' };
       }
       if (command === process.execPath) {
+        repeatedSourceGate = true;
         const outputIndex = args.indexOf('--output');
         fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({
           schema: 'opl_app_release_source_gate.v1',
@@ -154,6 +164,7 @@ test('Standard recovery preserves the failed source tag and binds its signed art
     productChangeSummary: 'Continue the same Stable release after fixture repair.',
     priorStandardArtifactRunId: '33728918457',
     smokeHarnessSha: 'e'.repeat(40),
+    reusableSourceGate,
   });
 
   assert.equal(plan.operation, 'standard');
@@ -161,6 +172,7 @@ test('Standard recovery preserves the failed source tag and binds its signed art
   assert.equal(plan.workflow_inputs.prior_standard_artifact_run_id, '33728918457');
   assert.equal(plan.recovery.requested_run_id, '33728918457');
   assert.equal(plan.recovery.artifact_producer_run_id, '33728918457');
+  assert.equal(repeatedSourceGate, false);
   assert.equal(plan.workflow_inputs.smoke_harness_ref, 'e'.repeat(40));
   assert.equal(plan.recovery.smoke_harness_ref, 'e'.repeat(40));
   assert.equal(plan.cohort?.shell_sha, shellSha);

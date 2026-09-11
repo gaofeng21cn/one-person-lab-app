@@ -23,6 +23,7 @@ import {
   encodeStableOperationAuthorityCarrier,
   stableOperationCriticalBlobs,
   stableOperationIdForFrozenCohort,
+  validateStableOperationControl,
 } from './stable-operation-control.ts';
 
 type JsonRecord = Record<string, unknown>;
@@ -341,6 +342,32 @@ function readFullCheckpointCohort(
   }
 }
 
+function readReusableStandardSourceGate(runtime: Runtime, repository: string, sourceRunId: string): unknown {
+  const source = record(JSON.parse(runRequired(runtime, 'gh',
+    ['api', `repos/${repository}/actions/runs/${sourceRunId}`], 30_000, 'Read original Standard owner')), 'source run');
+  if (String(source.id) !== sourceRunId || source.run_attempt !== 1 || source.event !== 'workflow_dispatch'
+    || source.path !== defaultWorkflow || source.status !== 'completed' || source.conclusion !== 'failure') {
+    throw new Error('Standard source-gate reuse requires the exact failed one-shot Standard owner.');
+  }
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-standard-source-evidence-'));
+  try {
+    runRequired(runtime, 'gh', ['run', 'download', sourceRunId, '--repo', repository,
+      '--name', `opl-stable-operation-control-${sourceRunId}`, '--dir', tempRoot],
+    2 * 60_000, 'Download original immutable Standard source evidence');
+    const control = validateStableOperationControl(readJsonFile(path.join(tempRoot, 'stable-operation-control.json')));
+    const bytes = fs.readFileSync(path.join(tempRoot, 'source-gate.json'));
+    const digest = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+    if (control.run_id !== sourceRunId || control.cohort.app_sha !== source.head_sha || control.source_gate_digest !== digest) {
+      throw new Error('Original Standard source-gate bytes do not match their run-bound control.');
+    }
+    // The pre-nonce guard below revalidates the report against the requested
+    // immutable cohort. New workflow and harness changes have their own checks.
+    return JSON.parse(bytes.toString('utf8'));
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
 function normalizedOwnerRun(value: unknown): OwnerWorkflowRun | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const run = value as JsonRecord;
@@ -566,6 +593,7 @@ export function buildAppendFullPlan(input: {
   artifactProducerRunId?: string;
   qualificationRunId?: string;
   smokeHarnessSha?: string;
+  reusableSourceGate?: unknown;
   verificationAppSha?: string;
   recoveryRunId?: string;
 }): StableDispatchPlan {
@@ -834,7 +862,7 @@ export function buildStandardPlan(input: {
   });
   const nonce = input.runtime.randomBytes(16).toString('hex');
   const authorityId = `authority-${operationId}-${nonce.slice(0, 8)}`;
-  const report = sourceGate(
+  const report = input.reusableSourceGate ?? sourceGate(
     input.runtime,
     input.appSha,
     input.shellSha,
@@ -1181,6 +1209,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       productChangeSummary: text(values['product-change-summary'], 'product_change_summary'),
       priorStandardArtifactRunId,
       smokeHarnessSha: values['smoke-harness-ref'],
+      reusableSourceGate: priorStandardArtifactRunId
+        ? readReusableStandardSourceGate(runtime, repository, priorStandardArtifactRunId)
+        : undefined,
     });
   } else if (command === 'publish-qualified-standard') {
     const sourceRunId = runId(values['run-id'], 'run_id');

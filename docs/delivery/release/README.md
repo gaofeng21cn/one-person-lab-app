@@ -70,6 +70,8 @@ user-visible product change summary. `--reuse-standard-run-id` continues the sam
 version with the failed run's already signed and notarized Standard bytes, while a new workflow
 operation may contain release-path fixes. Standard artifact recovery also accepts `--smoke-harness-ref <sha>` to run a repaired
 verification harness against the original signed bytes; this override requires `--reuse-standard-run-id`.
+Recovery verifies the original source-gate bytes against their run-bound control and reuses that passed
+exact-cohort evidence, so advancing owner checkouts does not repeat unchanged source tests.
 Account-login qualification waits for actual Codex model-access readiness after confirmation, and records
 at most one retry of a settled session failure through the same visible confirmation action.
 `publish-qualified-standard` and `append-full` preserve the
