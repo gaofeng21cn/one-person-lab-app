@@ -35,6 +35,11 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
 
 ## 已知列表的角色
 
+Desktop 首页及管理目录刷新通过既有 canonical Codex app-server adapter 读取完整
+`model/list`，不以 AionCore 持久化的历史握手记录判断当前可用模型。这个只读操作不创建
+会话，不改写后台 registry；CLI 读取失败时按 App 的目录不可用策略回退，不重新采用旧握手。
+用户固定的模型与推理档独立保存，目录刷新和 App 升级不覆盖它们。
+
 `frontier_model_preference_order` 是已知模型的回退及显示顺序，不是允许列表。
 本机 Codex 自定义模型继续按实际目录展示，未知的新默认模型仍可进入 Auto。
 直接读取 `model/list` 的 adapter 必须收集全部分页；ACP 缺少能力元数据时使用上述
