@@ -9,6 +9,20 @@ macOS 与 Linux Desktop 可在无图形会话中运行，并通过 Desktop 自�
 Docker WebUI 保留为独立容器产品线，使用 GHCR 自己的版本、资格与移动标签；它不是
 Desktop Stable 的 follower，也不参与 Desktop GitHub Release 的资产集合。
 
+## Codex 插件安装范围
+
+安装器按 Package owner descriptor 区分交互式入口和内部能力。只有直接供用户使用的
+交互式入口安装到用户的系统 Codex；`headless_internal` Package 使用 Framework state
+下的 `internal-package-carrier`，由同一个原生插件管理器负责生命周期，Framework 聚合
+实际安装状态。App 不另建插件清单，也不复制认证、Profile 或会话。
+
+Scholar Skills 是 MAS/MAG 按任务消费的能力包；微信通道、Fleet Agent 和 Link Connector
+是内部模块。它们应保留 OPL 能力，而不出现在系统 Codex 的已安装插件列表中。
+
+升级后的 App 通过既有启动维护入口迁移旧安装：核验并复用已安装文件，验证内部安装和
+Framework descriptor 可读取，再原生卸载系统 Codex 的旧条目。历史下载地址不可用不妨碍
+同版本迁移；文件冲突或内部安装失败时保留原安装。后续启动没有旧条目时不重复写入。
+
 ## GUI 演进与升级路线
 
 机器真值位于
