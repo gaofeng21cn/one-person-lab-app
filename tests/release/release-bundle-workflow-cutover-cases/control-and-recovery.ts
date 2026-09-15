@@ -77,6 +77,7 @@ test('Standard notes and Bundle freeze stay independent from Full and Package au
   assert.equal(step.env.OPL_RELEASE_NOTES_CODEX_BASE_URL, route.compatibility_base_url);
   assert.equal(step.env.OPL_RELEASE_NOTES_AI_REASONING_EFFORT, route.reasoning_effort);
   assert.equal(Number(step.env.OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS), route.response_timeout_seconds);
+  assert.equal(Number(step.env.OPL_RELEASE_NOTES_AI_TRANSPORT_ATTEMPTS), route.transport_attempts_per_model);
   const probe = workflowStep('release-qualification.yml', 'release-boundary', 'Probe release-note online AI provider');
   for (const name of ['OPL_RELEASE_NOTES_MODEL', 'OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS',
     'OPL_RELEASE_NOTES_CODEX_BASE_URL', 'OPL_RELEASE_NOTES_CODEX_API_KEY', 'OPL_RELEASE_NOTES_AI_REASONING_EFFORT']) {

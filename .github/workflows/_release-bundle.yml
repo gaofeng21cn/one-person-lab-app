@@ -644,10 +644,11 @@ jobs:
           OPL_RELEASE_NOTES_PROVIDER: openai_compatible
           OPL_RELEASE_NOTES_CODEX_BASE_URL: https://gateway.medopl.com/v1
           OPL_RELEASE_NOTES_CODEX_API_KEY: ${{ secrets.OPL_RELEASE_NOTES_CODEX_API_KEY }}
-          OPL_RELEASE_NOTES_MODEL: gpt-5.6-luna
-          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS: gpt-5.6-luna,gpt-5.6-sol
+          OPL_RELEASE_NOTES_MODEL: deepseek-flash
+          OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS: deepseek-flash,gpt-5.6-sol
           OPL_RELEASE_NOTES_AI_REASONING_EFFORT: low
-          OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS: '300'
+          OPL_RELEASE_NOTES_AI_TIMEOUT_SECONDS: '180'
+          OPL_RELEASE_NOTES_AI_TRANSPORT_ATTEMPTS: '1'
         shell: bash
         run: |
           set -euo pipefail

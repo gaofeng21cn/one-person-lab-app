@@ -379,9 +379,15 @@ function runOpenAICompatibleModels<T>(
   const failures: Array<{ model: string; error: unknown }> = [];
   for (const model of models) {
     const providerLabel = `OpenAI-compatible ${model}`;
+    const startedAt = Date.now();
+    process.stderr.write(`[release-notes] model=${model} status=started\n`);
     try {
-      return requestModel(model, providerLabel);
+      const result = requestModel(model, providerLabel);
+      process.stderr.write(`[release-notes] model=${model} status=passed duration_ms=${Date.now() - startedAt}\n`);
+      return result;
     } catch (error) {
+      const failureType = error instanceof ReleaseNotesProviderFailure ? error.failureType : 'validation_failed';
+      process.stderr.write(`[release-notes] model=${model} status=failed type=${failureType} duration_ms=${Date.now() - startedAt}\n`);
       failures.push({ model, error });
     }
   }

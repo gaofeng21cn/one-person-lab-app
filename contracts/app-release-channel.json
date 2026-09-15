@@ -2757,10 +2757,11 @@
     "preferred_ai_route": {
       "provider": "openai_compatible",
       "compatibility_base_url": "https://gateway.medopl.com/v1",
-      "model": "gpt-5.6-luna",
+      "model": "deepseek-flash",
       "fallback_models": ["gpt-5.6-sol"],
       "reasoning_effort": "low",
-      "response_timeout_seconds": 300,
+      "response_timeout_seconds": 180,
+      "transport_attempts_per_model": 1,
       "api_key_secret": "OPL_RELEASE_NOTES_CODEX_API_KEY"
     },
     "ai_assisted_draft_scope": "pre_release_preparation_only_not_publish_or_promote",
