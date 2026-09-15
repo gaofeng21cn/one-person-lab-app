@@ -72,7 +72,7 @@ test('Standard notes and Bundle freeze stay independent from Full and Package au
   assert.equal(step.env.OPL_RELEASE_NOTES_MODEL, route.model);
   assert.equal(
     step.env.OPL_RELEASE_NOTES_OPENAI_COMPATIBLE_MODELS,
-    route.model,
+    [route.model, ...route.fallback_models].join(','),
   );
   assert.equal(step.env.OPL_RELEASE_NOTES_CODEX_BASE_URL, route.compatibility_base_url);
   assert.equal(step.env.OPL_RELEASE_NOTES_AI_REASONING_EFFORT, route.reasoning_effort);

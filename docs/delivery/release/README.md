@@ -20,6 +20,10 @@ PR/main CI or blocks the primary macOS arm64 Desktop release.
 
 ## Release acceleration
 
+Release-note preparation tries the contracted fallback model when the preferred model fails or
+returns no public text. Both paths use the same evidence and semantic validation; empty responses
+never count as prepared copy.
+
 After Standard publication and public readback, the same run calls the Stable follow-up hub.
 Full, Linux, Windows and Homebrew follow-up lanes do not wait for the whole
 Stable workflow to finish. Docker operations use their independent workflow.
