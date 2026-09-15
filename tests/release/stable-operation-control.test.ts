@@ -30,6 +30,7 @@ const criticalBlobPaths = [
   '.github/workflows/release-stable.yml',
   '.github/workflows/_release-bundle.yml',
   '.github/workflows/_release-standard-publish.yml',
+  '.github/workflows/opl-first-run-vm.yml',
   'contracts/app-release-channel.json',
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
@@ -168,6 +169,18 @@ function control(desktopAdditionalPlatforms: unknown = []) {
     issuedAuthority: issuedAuthority({ desktopAdditionalPlatforms }),
   });
 }
+
+test('qualification repairs change the operation while legacy authority is read-only', () => {
+  const changed = { ...criticalBlobs, '.github/workflows/opl-first-run-vm.yml': `sha256:${'f'.repeat(64)}` };
+  assert.notEqual(issuedAuthority({ criticalBlobs: changed }).operation_id, operationId);
+  const legacyBlobs = { ...criticalBlobs };
+  delete legacyBlobs['.github/workflows/opl-first-run-vm.yml'];
+  const legacy = issuedAuthority({ criticalBlobs: legacyBlobs });
+  assert.equal(validateStableOperationAuthority(legacy).authority_digest, legacy.authority_digest);
+  assert.throws(() => validateStableOperationAuthorityExecutorBinding({
+    authority: legacy, appRoot: '.', expectedActor: legacy.issuer, expectedExecutorSha: appSha,
+  }), /requires all critical workflow bindings/);
+});
 
 test('Stable operation control binds one actor, exact frozen cohort, critical blobs, and nonce', () => {
   const actual = control();

@@ -23,6 +23,7 @@ export const stableOperationCriticalBlobPaths = [
   '.github/workflows/release-stable.yml',
   '.github/workflows/_release-bundle.yml',
   '.github/workflows/_release-standard-publish.yml',
+  '.github/workflows/opl-first-run-vm.yml',
   'contracts/app-release-channel.json',
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
@@ -225,10 +226,15 @@ function normalizedCriticalBlobs(value: unknown): Record<string, string> {
   }
   const normalized = Object.fromEntries(entries);
   const expected = new Set(stableOperationCriticalBlobPaths);
-  if (
+  // Read already-issued controls so their signed artifacts and source evidence
+  // remain recoverable. Current executor admission below requires the full set.
+  const legacyPaths = stableOperationCriticalBlobPaths.filter((file) => file !== '.github/workflows/opl-first-run-vm.yml');
+  const legacy = Object.keys(normalized).length === legacyPaths.length
+    && legacyPaths.every((file) => normalized[file] !== undefined);
+  if (!legacy && (
     Object.keys(normalized).length !== expected.size
     || stableOperationCriticalBlobPaths.some((file) => normalized[file] === undefined)
-  ) {
+  )) {
     throw new Error(
       `critical_blobs must bind exactly the Stable control paths: ${stableOperationCriticalBlobPaths.join(', ')}.`,
     );
@@ -595,6 +601,9 @@ export function validateStableOperationAuthorityExecutorBinding(input: {
   expectedExecutorSha: string;
 }): StableOperationAuthority {
   const authority = validateStableOperationAuthority(input.authority);
+  if (stableOperationCriticalBlobPaths.some((file) => authority.critical_blobs[file] === undefined)) {
+    throw new Error('Current Stable executor requires all critical workflow bindings, including clean-VM qualification.');
+  }
   if (authority.issuer !== text(input.expectedActor, 'expected_actor')) {
     throw new Error('Pre-dispatch authority issuer does not match the dispatch actor.');
   }

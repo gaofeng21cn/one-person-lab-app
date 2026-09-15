@@ -85,6 +85,9 @@ Account-login qualification waits for actual Codex model-access readiness after 
 at most one retry of a settled session failure through the same visible confirmation action.
 The Gateway account preflight enables Node's system CA trust store on the macOS runner,
 preserving certificate verification when the runner's trusted network CA is absent from Node's bundled roots.
+The clean-VM workflow participates in the operation fingerprint, so repairing qualification creates
+a fresh operation without rebuilding the frozen product. Historical controls remain readable for
+artifact recovery; new executor admission requires the complete workflow binding set.
 When a publication attempt persists an unknown GitHub outcome, continue with
 `publish-qualified-standard --run-id <run> --source-artifact opl-release-standard-published-<run>`.
 This preserves the unknown marker for owner-authoritative reconciliation before any new mutation.

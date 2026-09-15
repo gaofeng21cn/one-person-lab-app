@@ -600,7 +600,6 @@ export function buildAppendFullPlan(input: {
   artifactProducerRunId?: string;
   qualificationRunId?: string;
   smokeHarnessSha?: string;
-  reusableSourceGate?: unknown;
   verificationAppSha?: string;
   recoveryRunId?: string;
 }): StableDispatchPlan {
@@ -859,6 +858,7 @@ export function buildStandardPlan(input: {
   productChangeSummary: string;
   priorStandardArtifactRunId?: string;
   smokeHarnessSha?: string;
+  reusableSourceGate?: unknown;
 }): StableDispatchPlan {
   if (input.smokeHarnessSha && !input.priorStandardArtifactRunId) {
     throw new Error('A Standard verification harness override requires an existing signed artifact run.');
