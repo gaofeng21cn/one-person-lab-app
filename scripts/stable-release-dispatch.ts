@@ -831,6 +831,7 @@ export function sourceGate(
         '--shell-root', shellRoot,
         '--framework-root', frameworkRoot,
         '--output', output,
+        '--json',
       ],
       30 * 60_000,
       'Stable source gate',
