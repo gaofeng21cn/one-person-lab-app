@@ -151,6 +151,8 @@ export const expectedHomeComposerStateContract = {
     permission_access_visible: true,
     executor_selector_visible: false,
     active_shortcut_changes_executor: false,
+    active_shortcut_requires_explicit_session_binding: true,
+    active_shortcut_must_emit_domain_instruction: true,
     default_visibility_governs_execution: false,
     single_home_root: true,
     single_composer_shell: true,

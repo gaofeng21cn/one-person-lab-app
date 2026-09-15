@@ -499,6 +499,8 @@ export type AppProductProfile = {
           permission_access_visible: boolean;
           executor_selector_visible: boolean;
           active_shortcut_changes_executor: boolean;
+          active_shortcut_requires_explicit_session_binding: boolean;
+          active_shortcut_must_emit_domain_instruction: boolean;
           default_visibility_governs_execution: boolean;
           single_home_root: boolean;
           single_composer_shell: boolean;
