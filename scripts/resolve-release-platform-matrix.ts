@@ -24,6 +24,7 @@ type PlatformCapability = {
   build: {
     os: string;
     command: string;
+    artifact_commands?: Partial<Record<ArtifactProfile, string>>;
     arch: string;
     native_arch?: string;
     artifact_names: Partial<Record<ArtifactProfile, string>>;
@@ -91,7 +92,7 @@ function matrixEntry(
   return {
     platform,
     os: capability.build.os,
-    command: capability.build.command,
+    command: capability.build.artifact_commands?.[artifactProfile] ?? capability.build.command,
     'artifact-name': artifactName,
     arch: capability.build.arch,
     ...(capability.build.native_arch ? { native_arch: capability.build.native_arch } : {}),

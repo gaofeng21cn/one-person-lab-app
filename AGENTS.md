@@ -22,7 +22,7 @@
 - 必需的 pre-dispatch gates 全部通过、canonical main 与 cohort 回读一致、发布 authority 可用后，下一生产性动作必须在同一执行轮次触发唯一一次正式 dispatch。此时停止新增测试、格式化、历史检索、Skill/流程阅读、额外 evidence schema、重复 readback 或旁路审计；只有发现会使发布不合法或必然失败的新事实时才能暂停 dispatch。
 - 发布 run 失败时只读取失败 run 的精确首个失败 step 和必要日志，选择 `direct_fix`、最小 `delivery_bridge` 或真实 `stop`。修复后废弃旧 operation，按合同生成一个 fresh operation 并继续；不得扩大为全仓巡检、无关重构或重复验证已经通过且未失效的阶段。
 - 监控只跟踪当前唯一 owner run，不以高频轮询、重复状态摘要或等待回调冒充进展。Standard 成功后立即进入其合同规定的 Full 路径；最终完成必须回读 Latest/tag、Standard/Full 资产与 digest、签名/公证、普通账号 clean-install 登录和 Framework-owned Agent projection。
-- 每次发布监控都先运行一次 `npm run --silent release:incident-status -- --run-id <id>` 或等价只读检查，并报告精确 job/step、step 开始时间、最后可证变化时间、已完成的真实阶段/产物和唯一生产性 `next_action`。非 Apple 公证等外部服务 step 连续 5 分钟没有状态或可得日志变化时，立即读取该 step 的必要日志并进入修复，不能等 workflow timeout。
+- 每次发布监控都先运行一次 `npm run --silent release:incident-status -- --run-id <id>` 或等价新鲜只读检查，并报告精确 job/step、step 开始时间、最后可证变化时间、已完成的真实阶段/产物和唯一生产性 `next_action`。非 Apple 公证等外部服务 step 连续 5 分钟没有可证变化时，立即读取该 step 的必要日志或 runner/产物证据，修复已证断点。日志不可得、GitHub 页面虚拟化或旧 API 快照只说明观测缺口，不能据此取消、重建或宣称进程卡死；局部日志可用 `--job-id <id> --job-log-file <path>` 绑定当前 run 分析。取消前确认新鲜状态、首个真实故障和最小恢复范围；已公开 Standard 的附加渠道失败应单渠道恢复，不能把整个 run 的取消状态当成 Standard 发布失败。
 - Tart/VM 只有在日志或运行产物出现 `stage=clone_vm`、`stage=start_vm`、`stage=wait_for_ip`、`vm_name` 或 `guest_ip` 等真实 runtime marker 后才可报告对应状态；marker 出现前必须明确“VM 尚未证实创建”，不得从 job 名称、静止 GUI 或等待时长推断。已签名、公证且 candidate 字节未变化时，若存在经 Framework 验证的 `full_built` 或更后 checkpoint，优先消费 checkpoint 继续 qualification/publication，不得默认重建。
 - 测试凭据只使用用户授权的最低权限专用账号和既有瞬态凭据桥，不使用管理员账号，不把密码写入 GitHub Secrets、仓库、日志、receipt 或聊天。缺少可执行测试凭据时明确转为 `NEEDS_ACTION`，不得用管理员账号或伪造登录结果绕过。
 

@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import { buildReleaseIncidentStatus } from '../../scripts/release-incident-status.ts';
 
@@ -146,7 +150,68 @@ test('non-external active step becomes actionable after five minutes without obs
   assert.equal(status.focus?.last_change_source, 'step_state');
   assert.equal(status.focus?.log_probe.status, 'unavailable');
   assert.equal(status.next_action.code, 'inspect_stalled_step_log');
+  assert.match(status.next_action.reason, /observation gap, not proof/);
   assert.equal(status.vm_state.status, 'unknown_requires_runtime_marker');
+});
+
+test('an older downloaded log does not override a newer running step timestamp', () => {
+  const status = buildReleaseIncidentStatus({
+    run: run({ status: 'in_progress', conclusion: null }),
+    jobs: { jobs: [{
+      id: 10, name: 'Full build', status: 'in_progress', conclusion: null,
+      steps: [step(2, 'Upload Full artifact', null, '2026-08-22T00:09:30Z', null)],
+    }] },
+    artifacts: { artifacts: [] },
+    jobLogs: { 10: '2026-08-22T00:01:00Z Build started\n' },
+    now: '2026-08-22T00:10:00Z',
+  });
+  assert.equal(status.focus?.last_change_source, 'step_state');
+  assert.equal(status.focus?.stalled_seconds, 30);
+  assert.equal(status.next_action.code, 'continue_current_step');
+});
+
+test('incident CLI refreshes every API snapshot and accepts run-bound live log evidence', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-incident-cli-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const fixture = {
+    run: run({ status: 'in_progress', conclusion: null }),
+    jobs: { jobs: [{
+      id: 10, name: 'Full build', status: 'in_progress', conclusion: null,
+      steps: [step(1, 'Build package', null, '2026-08-22T00:00:00Z', null)],
+    }] },
+    artifacts: { artifacts: [] },
+  };
+  fs.writeFileSync(path.join(dir, 'fixture.json'), JSON.stringify(fixture));
+  // A stale API route must never supply the incident snapshot, even when it
+  // returns HTTP success. Exercise the real CLI and pagination argument path.
+  fs.writeFileSync(path.join(dir, 'gh'), `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const endpoint = args.find(a => a.startsWith('repos/'));
+if (!endpoint?.includes('readback=') || !args.includes('Cache-Control: no-cache')) process.exit(91);
+const d = JSON.parse(fs.readFileSync(${JSON.stringify(path.join(dir, 'fixture.json'))}, 'utf8'));
+const payload = endpoint.includes('/jobs?') ? [d.jobs] : endpoint.includes('/artifacts?') ? [d.artifacts] : d.run;
+process.stdout.write(JSON.stringify(payload));
+`, { mode: 0o755 });
+  const liveLog = path.join(dir, 'live.log');
+  fs.writeFileSync(liveLog, '2026-08-22T00:09:50Z Created Windows installer\n');
+  const cli = path.resolve(import.meta.dirname, '../../scripts/release-incident-status.ts');
+  const invoke = (extra: string[] = []) => spawnSync(process.execPath, [
+    '--experimental-strip-types', cli, '--run-id', String(runId),
+    '--now', '2026-08-22T00:10:00Z', ...extra,
+  ], { encoding: 'utf8', env: { ...process.env, PATH: `${dir}${path.delimiter}${process.env.PATH}` } });
+  const withoutLog = invoke();
+  assert.equal(withoutLog.status, 0, withoutLog.stderr);
+  assert.equal(JSON.parse(withoutLog.stdout).focus.log_probe.status, 'unavailable');
+  const withLog = invoke(['--job-id', '10', '--job-log-file', liveLog]);
+  assert.equal(withLog.status, 0, withLog.stderr);
+  const result = JSON.parse(withLog.stdout);
+  assert.equal(result.focus.last_change_source, 'job_log');
+  assert.equal(result.focus.stalled_seconds, 10);
+  assert.equal(result.next_action.code, 'continue_current_step');
+  const wrongRun = invoke(['--job-id', '99', '--job-log-file', liveLog]);
+  assert.notEqual(wrongRun.status, 0);
+  assert.match(wrongRun.stderr, /must belong to the requested run/);
 });
 
 test('heartbeat cannot hide a stalled build or create VM evidence', () => {

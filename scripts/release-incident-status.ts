@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 import { runGitHubCli } from './release-file-helpers.ts';
 
@@ -232,12 +234,14 @@ function focusLastChangeAt(job: JsonRecord, step: JsonRecord | null, log: string
   source: 'job_log' | 'step_state' | 'job_state' | 'unavailable';
 } {
   const logTimestamp = latestLogTimestamp(log);
-  if (logTimestamp) return { timestamp: logTimestamp, source: 'job_log' };
   const stepTimestamp = latestTimestamp([
     step ? stringField(step, 'started_at', 'startedAt') : null,
     step ? stringField(step, 'completed_at', 'completedAt') : null,
     step ? null : lastCompletedStepAt(job),
   ]);
+  if (logTimestamp && (timestampMs(logTimestamp) ?? 0) >= (timestampMs(stepTimestamp) ?? 0)) {
+    return { timestamp: logTimestamp, source: 'job_log' };
+  }
   if (stepTimestamp) return { timestamp: stepTimestamp, source: 'step_state' };
   const jobTimestamp = latestTimestamp([
     stringField(job, 'started_at', 'startedAt', 'created_at', 'createdAt'),
@@ -469,7 +473,7 @@ function nextAction(input: {
     }
     return {
       code: 'inspect_stalled_step_log',
-      reason: `The non-external current step has no observable change for ${input.stalledSeconds} seconds.`,
+      reason: `No newer observable change for ${input.stalledSeconds} seconds. This is an observation gap, not proof of a stalled process. Inspect fresh current-step logs or runner evidence before any cancellation or recovery.`,
     };
   }
   return {
@@ -603,9 +607,13 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
   };
 }
 
-function paginatedPayload(endpoint: string, key: 'jobs' | 'artifacts'): JsonRecord {
+function freshReadArgs(endpoint: string, readback: string): string[] {
+  return ['api', '-H', 'Cache-Control: no-cache', `${endpoint}${endpoint.includes('?') ? '&' : '?'}readback=${readback}`];
+}
+
+function paginatedPayload(endpoint: string, key: 'jobs' | 'artifacts', readback: string): JsonRecord {
   const raw = runGitHubCli(
-    ['api', '--paginate', '--slurp', endpoint],
+    [...freshReadArgs(endpoint, readback), '--paginate', '--slurp'],
     `Read GitHub ${key}`,
     { maxBuffer: 32 * 1024 * 1024 },
   );
@@ -628,7 +636,7 @@ function fetchJobLog(repository: string, job: JsonRecord): string | null {
 
 function usage(exitCode = 2): never {
   process.stderr.write(
-    `Usage: npm run release:incident-status -- --run-id <id> [--repo <owner/name>] [--now <iso>]\n`,
+    `Usage: npm run release:incident-status -- --run-id <id> [--repo <owner/name>] [--now <iso>] [--job-id <id> --job-log-file <path>]\n`,
   );
   process.exit(exitCode);
 }
@@ -641,6 +649,8 @@ function main(argv: string[]): void {
       'run-id': { type: 'string' },
       repo: { type: 'string' },
       now: { type: 'string' },
+      'job-id': { type: 'string' },
+      'job-log-file': { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -652,26 +662,38 @@ function main(argv: string[]): void {
     throw new Error('--repo must be an exact owner/name repository.');
   }
 
+  if (Boolean(values['job-id']) !== Boolean(values['job-log-file'])) {
+    throw new Error('--job-id and --job-log-file must be supplied together.');
+  }
+  const readback = randomUUID();
   const run = record(JSON.parse(runGitHubCli(
-    ['api', `repos/${repository}/actions/runs/${runId}`],
+    freshReadArgs(`repos/${repository}/actions/runs/${runId}`, readback),
     `Read GitHub run ${runId}`,
   )), 'GitHub run payload');
   const jobsPayload = paginatedPayload(
     `repos/${repository}/actions/runs/${runId}/jobs?per_page=100`,
     'jobs',
+    readback,
   );
   const artifactsPayload = paginatedPayload(
     `repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`,
     'artifacts',
+    readback,
   );
   const jobs = normalizedJobs(jobsPayload);
+  const logs: JobLogMap = {};
+  if (values['job-id']) {
+    if (!jobs.some((job) => jobId(job) === values['job-id'])) {
+      throw new Error('--job-id must belong to the requested run.');
+    }
+    logs[values['job-id']] = readFileSync(values['job-log-file']!, 'utf8');
+  }
   const failure = firstTerminalFailure(jobs);
   const active = failure
     ? null
-    : focusForActiveRun(jobs, {}, timestampMs(values.now ?? new Date().toISOString()) ?? Date.now());
+    : focusForActiveRun(jobs, logs, timestampMs(values.now ?? new Date().toISOString()) ?? Date.now());
   const focusJob = failure?.job ?? active?.job ?? null;
-  const logs: JobLogMap = {};
-  if (focusJob) logs[jobId(focusJob)] = fetchJobLog(repository, focusJob);
+  if (focusJob && logs[jobId(focusJob)] === undefined) logs[jobId(focusJob)] = fetchJobLog(repository, focusJob);
 
   const status = buildReleaseIncidentStatus({
     run,

@@ -20,6 +20,19 @@ PR/main CI or blocks the primary macOS arm64 Desktop release.
 
 ## Release acceleration
 
+Stable Windows builds select the contract's `stable_desktop_additional` command with
+`--win nsis`: only the EXE and updater sidecars are published. Do not generate and then
+delete the unused ZIP. Manual builds retain their general Windows targets.
+
+Incident snapshots use cache-bypassed GitHub reads. Five minutes without observable change
+requires inspection, not cancellation: active-job REST logs can be unavailable, and the web
+log viewer virtualizes its visible range. Feed captured runner/current-job logs through
+`npm run release:incident-status -- --run-id <run> --job-id <job> --job-log-file <file>`.
+Bind the file to that run's job, inspect the latest actual stage and prefer the newer of
+step state and log timestamps. A heartbeat is not progress. Cancel or recover only after
+establishing a real failure, the current owner state and the smallest recovery scope.
+See the [v26.9.15 timing and recovery retrospective](incidents/2026-09-15-release-efficiency.md).
+
 Release-note preparation tries the contracted fallback model when the preferred model fails or
 returns no public text. Both paths use the same evidence and semantic validation; empty responses
 never count as prepared copy.
@@ -48,13 +61,12 @@ report real events, without inferring progress from elapsed time.
 
 ## Stable Operations
 
-The online notes writer uses the contracted Gateway route with low reasoning
-effort and a 300-second response deadline. Synchronous Chat Completions returns
-the complete document at once; the deadline must cover generation, not only
-connection establishment. The qualification probe uses the same endpoint,
-credential and current `gpt-5.6-luna` model with low reasoning as Stable
-preparation, with a shorter 75-second deadline and no legacy-model fallback. A short probe proves
-connectivity; only validated full notes prove that preparation succeeded.
+The online notes writer follows `public_release_notes.preferred_ai_route` in the release
+contract: `deepseek-flash`, then `gpt-5.6-sol`, low reasoning, one transport attempt per model,
+and a 180-second per-attempt response deadline. Synchronous Chat Completions returns the
+complete document at once; the deadline must cover generation, not only connection
+establishment. A short provider probe proves connectivity; only validated full notes
+prove that preparation succeeded.
 
 `npm run release:stable-dispatch` is the only operator entry for a Stable release. It resolves and
 validates the checkpoint, original artifact producer, qualification run, verification harness,

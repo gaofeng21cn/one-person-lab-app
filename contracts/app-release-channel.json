@@ -1068,6 +1068,9 @@
         "build": {
           "os": "windows-latest",
           "command": "node scripts/build-with-builder.js x64 --win --x64",
+          "artifact_commands": {
+            "stable_desktop_additional": "node scripts/build-with-builder.js x64 --win nsis --x64"
+          },
           "arch": "x64",
           "artifact_names": {
             "stable_desktop_additional": "stable-desktop-windows-x64",
