@@ -780,12 +780,28 @@ jobs:
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
+      - name: Build Windows Vite bundles with the configured Node runtime
+        if: startsWith(matrix.platform, 'windows')
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Keep bundling bounded and invoke the installed Node entry directly
+          # when recovering a stall between the main and preload build phases.
+          $ViteEntry = node -e "const path = require('node:path'); process.stdout.write(path.join(path.dirname(require.resolve('electron-vite/package.json')), 'bin/electron-vite.js'))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node $ViteEntry build --config packages/desktop/electron.vite.config.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+          ELECTRON_BUILDER_ARCH: ${{ matrix.native_arch || matrix.arch }}
+
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $Command = $env:WINDOWS_BUILD_COMMAND
+          $Command = $env:WINDOWS_BUILD_COMMAND + ' --skip-vite'
           if ($env:OPL_REQUIRE_WINDOWS_UPDATER_ASSETS -eq 'true') {
             if ('${{ matrix.platform }}' -ne 'windows-x64') {
               throw 'Windows updater assets are supported only for windows-x64.'
