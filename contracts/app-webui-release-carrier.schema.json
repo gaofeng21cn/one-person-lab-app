@@ -3,8 +3,12 @@
   "$id": "https://one-person-lab.dev/contracts/app-webui-release-carrier.schema.json",
   "title": "One Person Lab WebUI Release Carrier",
   "oneOf": [
-    { "$ref": "#/$defs/build_input" },
-    { "$ref": "#/$defs/carrier_receipt" }
+    {
+      "$ref": "#/$defs/build_input"
+    },
+    {
+      "$ref": "#/$defs/carrier_receipt"
+    }
   ],
   "$defs": {
     "digest": {
@@ -21,21 +25,41 @@
     },
     "release_identity": {
       "type": "object",
-      "required": ["version", "bundle_digest", "cohort_ref"],
+      "required": [
+        "version",
+        "bundle_digest",
+        "cohort_ref"
+      ],
       "properties": {
-        "version": { "$ref": "#/$defs/release_version" },
-        "bundle_digest": { "$ref": "#/$defs/digest" },
-        "cohort_ref": { "$ref": "#/$defs/digest" }
+        "version": {
+          "$ref": "#/$defs/release_version"
+        },
+        "bundle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "cohort_ref": {
+          "$ref": "#/$defs/digest"
+        }
       },
       "additionalProperties": false
     },
     "cohort": {
       "type": "object",
-      "required": ["app_sha", "shell_sha", "framework_sha"],
+      "required": [
+        "app_sha",
+        "shell_sha",
+        "framework_sha"
+      ],
       "properties": {
-        "app_sha": { "$ref": "#/$defs/git_sha" },
-        "shell_sha": { "$ref": "#/$defs/git_sha" },
-        "framework_sha": { "$ref": "#/$defs/git_sha" }
+        "app_sha": {
+          "$ref": "#/$defs/git_sha"
+        },
+        "shell_sha": {
+          "$ref": "#/$defs/git_sha"
+        },
+        "framework_sha": {
+          "$ref": "#/$defs/git_sha"
+        }
       },
       "additionalProperties": false
     },
@@ -44,31 +68,53 @@
       "required": [
         "observed_at",
         "policy",
-        "frozen_base_release_set",
         "post_freeze_remote_refresh_allowed",
         "later_authority_advancement_invalidates_bundle"
       ],
       "properties": {
-        "observed_at": { "type": "string", "format": "date-time" },
-        "policy": { "const": "single_read_at_freeze_admission" },
-        "frozen_base_release_set": { "type": "null" },
-        "post_freeze_remote_refresh_allowed": { "const": false },
-        "later_authority_advancement_invalidates_bundle": { "const": false }
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "policy": {
+          "const": "single_read_at_freeze_admission"
+        },
+        "post_freeze_remote_refresh_allowed": {
+          "const": false
+        },
+        "later_authority_advancement_invalidates_bundle": {
+          "const": false
+        }
       },
       "additionalProperties": false
     },
     "platform": {
       "type": "object",
-      "required": ["os", "architecture"],
+      "required": [
+        "os",
+        "architecture"
+      ],
       "properties": {
-        "os": { "const": "linux" },
-        "architecture": { "enum": ["amd64", "arm64"] }
+        "os": {
+          "const": "linux"
+        },
+        "architecture": {
+          "enum": [
+            "amd64",
+            "arm64"
+          ]
+        }
       },
       "additionalProperties": false
     },
     "input": {
       "type": "object",
-      "required": ["id", "ref", "digest", "size_bytes"],
+      "required": [
+        "id",
+        "ref",
+        "digest",
+        "size_bytes"
+      ],
       "properties": {
         "id": {
           "enum": [
@@ -81,9 +127,17 @@
             "qualification_harness"
           ]
         },
-        "ref": { "type": "string", "minLength": 1 },
-        "digest": { "$ref": "#/$defs/digest" },
-        "size_bytes": { "type": "integer", "minimum": 1 }
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
       "additionalProperties": false
     },
@@ -99,18 +153,32 @@
         "content_fingerprint"
       ],
       "properties": {
-        "schema": { "const": "opl_app_webui_build_input.v1" },
-        "release": { "$ref": "#/$defs/release_identity" },
-        "source_cutoff": { "$ref": "#/$defs/source_cutoff" },
-        "cohort": { "$ref": "#/$defs/cohort" },
-        "platform": { "$ref": "#/$defs/platform" },
+        "schema": {
+          "const": "opl_app_webui_build_input.v1"
+        },
+        "release": {
+          "$ref": "#/$defs/release_identity"
+        },
+        "source_cutoff": {
+          "$ref": "#/$defs/source_cutoff"
+        },
+        "cohort": {
+          "$ref": "#/$defs/cohort"
+        },
+        "platform": {
+          "$ref": "#/$defs/platform"
+        },
         "inputs": {
           "type": "array",
           "minItems": 9,
           "maxItems": 9,
-          "items": { "$ref": "#/$defs/input" }
+          "items": {
+            "$ref": "#/$defs/input"
+          }
         },
-        "content_fingerprint": { "$ref": "#/$defs/digest" }
+        "content_fingerprint": {
+          "$ref": "#/$defs/digest"
+        }
       },
       "additionalProperties": false
     },
@@ -129,18 +197,35 @@
         "platforms"
       ],
       "properties": {
-        "carrier_id": { "const": "docker_webui" },
-        "carrier_kind": { "const": "oci_image" },
-        "package_profile": { "const": "webui-full" },
+        "carrier_id": {
+          "const": "docker_webui"
+        },
+        "carrier_kind": {
+          "const": "oci_image"
+        },
+        "package_profile": {
+          "const": "webui-full"
+        },
         "ref": {
           "type": "string",
           "pattern": "^[a-z0-9.-]+(?::[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$"
         },
-        "digest": { "$ref": "#/$defs/digest" },
-        "size_bytes": { "type": "integer", "minimum": 1 },
-        "content_fingerprint": { "$ref": "#/$defs/digest" },
-        "os": { "const": "linux" },
-        "architecture": { "const": "multiarch" },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content_fingerprint": {
+          "$ref": "#/$defs/digest"
+        },
+        "os": {
+          "const": "linux"
+        },
+        "architecture": {
+          "const": "multiarch"
+        },
         "platforms": {
           "type": "array",
           "minItems": 2,
@@ -148,14 +233,30 @@
           "prefixItems": [
             {
               "allOf": [
-                { "$ref": "#/$defs/carrier_platform" },
-                { "properties": { "architecture": { "const": "amd64" } } }
+                {
+                  "$ref": "#/$defs/carrier_platform"
+                },
+                {
+                  "properties": {
+                    "architecture": {
+                      "const": "amd64"
+                    }
+                  }
+                }
               ]
             },
             {
               "allOf": [
-                { "$ref": "#/$defs/carrier_platform" },
-                { "properties": { "architecture": { "const": "arm64" } } }
+                {
+                  "$ref": "#/$defs/carrier_platform"
+                },
+                {
+                  "properties": {
+                    "architecture": {
+                      "const": "arm64"
+                    }
+                  }
+                }
               ]
             }
           ],
@@ -166,17 +267,38 @@
     },
     "carrier_platform": {
       "type": "object",
-      "required": ["os", "architecture", "ref", "digest", "size_bytes", "content_fingerprint"],
+      "required": [
+        "os",
+        "architecture",
+        "ref",
+        "digest",
+        "size_bytes",
+        "content_fingerprint"
+      ],
       "properties": {
-        "os": { "const": "linux" },
-        "architecture": { "enum": ["amd64", "arm64"] },
+        "os": {
+          "const": "linux"
+        },
+        "architecture": {
+          "enum": [
+            "amd64",
+            "arm64"
+          ]
+        },
         "ref": {
           "type": "string",
           "pattern": "^[a-z0-9.-]+(?::[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$"
         },
-        "digest": { "$ref": "#/$defs/digest" },
-        "size_bytes": { "type": "integer", "minimum": 1 },
-        "content_fingerprint": { "$ref": "#/$defs/digest" }
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content_fingerprint": {
+          "$ref": "#/$defs/digest"
+        }
       },
       "additionalProperties": false
     },
@@ -192,13 +314,31 @@
         "runtime_image_id"
       ],
       "properties": {
-        "os": { "const": "linux" },
-        "architecture": { "enum": ["amd64", "arm64"] },
-        "image_digest": { "$ref": "#/$defs/digest" },
-        "build_input_digest": { "$ref": "#/$defs/digest" },
-        "content_fingerprint": { "$ref": "#/$defs/digest" },
-        "runtime_summary_sha256": { "$ref": "#/$defs/digest" },
-        "runtime_image_id": { "type": "string", "minLength": 1 }
+        "os": {
+          "const": "linux"
+        },
+        "architecture": {
+          "enum": [
+            "amd64",
+            "arm64"
+          ]
+        },
+        "image_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "build_input_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "content_fingerprint": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_summary_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_image_id": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "additionalProperties": false
     },
@@ -218,16 +358,37 @@
         "platform_qualifications"
       ],
       "properties": {
-        "schema": { "const": "opl_app_webui_runtime_qualification.v1" },
-        "status": { "const": "passed" },
-        "build_stage": { "const": "webui_built" },
-        "qualification_stage": { "const": "webui_qualified" },
-        "image_digest": { "$ref": "#/$defs/digest" },
-        "build_input_digest": { "$ref": "#/$defs/digest" },
-        "content_fingerprint": { "$ref": "#/$defs/digest" },
-        "runtime_summary_sha256": { "$ref": "#/$defs/digest" },
-        "registry_readback_sha256": { "$ref": "#/$defs/digest" },
-        "runtime_image_id": { "type": "string", "minLength": 1 },
+        "schema": {
+          "const": "opl_app_webui_runtime_qualification.v1"
+        },
+        "status": {
+          "const": "passed"
+        },
+        "build_stage": {
+          "const": "webui_built"
+        },
+        "qualification_stage": {
+          "const": "webui_qualified"
+        },
+        "image_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "build_input_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "content_fingerprint": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_summary_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "registry_readback_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_image_id": {
+          "type": "string",
+          "minLength": 1
+        },
         "platform_qualifications": {
           "type": "array",
           "minItems": 2,
@@ -235,14 +396,30 @@
           "prefixItems": [
             {
               "allOf": [
-                { "$ref": "#/$defs/platform_qualification" },
-                { "properties": { "architecture": { "const": "amd64" } } }
+                {
+                  "$ref": "#/$defs/platform_qualification"
+                },
+                {
+                  "properties": {
+                    "architecture": {
+                      "const": "amd64"
+                    }
+                  }
+                }
               ]
             },
             {
               "allOf": [
-                { "$ref": "#/$defs/platform_qualification" },
-                { "properties": { "architecture": { "const": "arm64" } } }
+                {
+                  "$ref": "#/$defs/platform_qualification"
+                },
+                {
+                  "properties": {
+                    "architecture": {
+                      "const": "arm64"
+                    }
+                  }
+                }
               ]
             }
           ],
@@ -263,28 +440,60 @@
         "qualification"
       ],
       "properties": {
-        "schema": { "const": "opl_app_webui_release_carrier.v1" },
-        "release": { "$ref": "#/$defs/release_identity" },
-        "source_cutoff": { "$ref": "#/$defs/source_cutoff" },
-        "cohort": { "$ref": "#/$defs/cohort" },
+        "schema": {
+          "const": "opl_app_webui_release_carrier.v1"
+        },
+        "release": {
+          "$ref": "#/$defs/release_identity"
+        },
+        "source_cutoff": {
+          "$ref": "#/$defs/source_cutoff"
+        },
+        "cohort": {
+          "$ref": "#/$defs/cohort"
+        },
         "build_input": {
           "type": "object",
-          "required": ["schema", "manifest_digest", "platforms"],
+          "required": [
+            "schema",
+            "manifest_digest",
+            "platforms"
+          ],
           "properties": {
-            "schema": { "const": "opl_app_webui_multiarch_build_input.v1" },
-            "manifest_digest": { "$ref": "#/$defs/digest" },
+            "schema": {
+              "const": "opl_app_webui_multiarch_build_input.v1"
+            },
+            "manifest_digest": {
+              "$ref": "#/$defs/digest"
+            },
             "platforms": {
               "type": "array",
               "minItems": 2,
               "maxItems": 2,
               "items": {
                 "type": "object",
-                "required": ["os", "architecture", "manifest_digest", "content_fingerprint"],
+                "required": [
+                  "os",
+                  "architecture",
+                  "manifest_digest",
+                  "content_fingerprint"
+                ],
                 "properties": {
-                  "os": { "const": "linux" },
-                  "architecture": { "enum": ["amd64", "arm64"] },
-                  "manifest_digest": { "$ref": "#/$defs/digest" },
-                  "content_fingerprint": { "$ref": "#/$defs/digest" }
+                  "os": {
+                    "const": "linux"
+                  },
+                  "architecture": {
+                    "enum": [
+                      "amd64",
+                      "arm64"
+                    ]
+                  },
+                  "manifest_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "content_fingerprint": {
+                    "$ref": "#/$defs/digest"
+                  }
                 },
                 "additionalProperties": false
               }
@@ -292,8 +501,12 @@
           },
           "additionalProperties": false
         },
-        "carrier": { "$ref": "#/$defs/carrier" },
-        "qualification": { "$ref": "#/$defs/qualification" }
+        "carrier": {
+          "$ref": "#/$defs/carrier"
+        },
+        "qualification": {
+          "$ref": "#/$defs/qualification"
+        }
       },
       "additionalProperties": false
     }

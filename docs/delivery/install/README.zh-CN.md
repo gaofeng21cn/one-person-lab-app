@@ -25,7 +25,7 @@ MCP 工具、权限模型与行为完全一致；Full 只增加离线密度，�
 macOS 仍要求用户授予 Accessibility 和 Screen Recording，授权前只影响 Computer
 Use readiness，不影响普通 OPL/Codex 使用。
 
-## 当前 Stable Desktop Release Set
+## 当前 Stable Desktop artifact
 
 每个 Stable 版本只有一个 GitHub Release 和一个 `v<version>` tag。macOS Stable 发布集包含
 Standard 与 Full；Standard 可以先成为 Latest，Full 随后追加到同一 tag：

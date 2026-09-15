@@ -374,7 +374,7 @@ test('Full source manifest supplies resolution hints without selecting capabilit
   assert.equal(projection.materialization_authority, 'opl_flow_capability_build_lock.v1');
   assert.equal('capability_graph' in projection, false);
   assert.equal(projection.framework_input.selection, 'workflow_input_framework_ref');
-  assert.equal(projection.generation_contract.preexisting_release_set_required, false);
+  assert.equal(projection.generation_contract.other_component_release_required, false);
   assert.equal(projection.generation_contract.preexisting_lock_required, false);
   assert.equal(projection.generation_contract.payload_inventory_required, false);
   assert.equal(projection.generation_contract.selected_inputs_recorded_after_resolution, true);

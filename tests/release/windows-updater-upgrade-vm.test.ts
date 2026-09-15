@@ -416,7 +416,7 @@ test('preflight workflow never queues a self-hosted or publication job', () => {
   assert.doesNotMatch(source, /gh release|make_latest|Restore-VMSnapshot|Start-VM|Start-Process/i);
 });
 
-test('release contract keeps Windows qualification optional and nonblocking inside the same Desktop Release Set', () => {
+test('release contract keeps Windows qualification optional and nonblocking inside the same Desktop artifact', () => {
   const contract = JSON.parse(
     fs.readFileSync(path.join(appRoot, 'contracts', 'app-release-channel.json'), 'utf8'),
   );

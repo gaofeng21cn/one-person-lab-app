@@ -1020,7 +1020,7 @@
         "blocks_stable": false,
         "build_available": true,
         "build_route": ".github/workflows/_build-reusable.yml",
-        "publication_status": "same_stable_release_set",
+        "publication_status": "same_app_release",
         "publication_route": ".github/workflows/build-manual.yml",
         "build": {
           "os": "ubuntu-latest",
@@ -1063,7 +1063,7 @@
         "blocks_stable": false,
         "build_available": true,
         "build_route": ".github/workflows/_build-reusable.yml",
-        "publication_status": "same_stable_release_set",
+        "publication_status": "same_app_release",
         "publication_route": ".github/workflows/build-manual.yml",
         "build": {
           "os": "windows-latest",
@@ -1184,7 +1184,7 @@
       "same_name_different_digest": "fail_closed",
       "manifest": "opl-desktop-platforms-manifest.json",
       "platform_manifest_schema": "opl_app_desktop_platform_manifest.v1",
-      "aggregate_manifest_schema": "opl_app_desktop_release_set_manifest.v1",
+      "aggregate_manifest_schema": "opl_app_desktop_artifact_manifest.v1",
       "execution": "one_independent_fail_fast_false_matrix_lane_per_platform",
       "build_mutex": null,
       "public_append_mutex": "opl-release-bundle-global",
@@ -1405,7 +1405,10 @@
     "release_vm_smoke": {
       "default_provider_configuration_status": "required_gateway_account_login",
       "provider_configuration_is_blocking_release_gate": true,
-      "required_package_profiles": ["standard", "full"],
+      "required_package_profiles": [
+        "standard",
+        "full"
+      ],
       "credential_mode": "dedicated_release_test_account_files",
       "credential_variable_names": [
         "OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL"
@@ -1503,13 +1506,13 @@
       "publication_build_packaging_signing_notarization_notes_homebrew_or_additive_failure_eligible": false,
       "same_tag_repair_required": true,
       "additive_platform_full_or_installer_failure_eligible": false,
-      "additive_failure_route": "repair_in_original_release_set_without_new_version",
+      "additive_failure_route": "repair_in_original_app_release_without_new_version",
       "stable_release_native_immutable_required": false,
       "wall_clock_role": "reject_future_base_only"
     },
     "release_intent_policy": {
       "new_tag_requires": "release_intent_new_product_and_nonempty_user_visible_product_change_summary",
-      "current_latest_release_set_must_be_complete_before_new_tag": true,
+      "current_latest_app_release_must_be_complete_before_new_tag": true,
       "preserve_existing_tag_for": [
         "build_failure",
         "signing_failure",
@@ -1581,7 +1584,7 @@
         "latest_activation"
       ]
     },
-    "rule": "GitHub Release names, tags, assets, and UI use the display version. Updater, app package metadata, CFBundle versions, and Homebrew ordering use the separately bound machine version. A new Stable tag or same-day revision requires an explicit user-visible product change. Build, signing, notarization, packaging, publication, notes, Homebrew, Full, or additive-platform repair stays in the original mutable Release Set under the same tag with exact-current-identity CAS and public readback."
+    "rule": "GitHub Release names, tags, assets, and UI use the display version. Updater, app package metadata, CFBundle versions, and Homebrew ordering use the separately bound machine version. A new Stable tag or same-day revision requires an explicit user-visible product change. Build, signing, notarization, packaging, publication, notes, Homebrew, Full, or additive-platform repair stays in the original mutable App release under the same tag with exact-current-identity CAS and public readback."
   },
   "release_profiles": {
     "default": "stable",
@@ -1778,26 +1781,6 @@
           "release_set_digest",
           "first_party_packages",
           "opl_flow"
-        ]
-      },
-      "legacy_bundle_read_compatibility": {
-        "identity_mode": "framework_release_set_and_exact_packages",
-        "new_standard_generation_allowed": false,
-        "checkpoint_import_and_qualification_readback_allowed": true,
-        "required_package_ids": [
-          "mas",
-          "mag",
-          "rca",
-          "oma",
-          "obf",
-          "mas-scholar-skills",
-          "opl-flow"
-        ],
-        "required_per_package_fields": [
-          "package_id",
-          "package_version",
-          "owner_source_commit",
-          "payload_manifest_sha256"
         ]
       },
       "canonical_digest_covers": [
@@ -2178,7 +2161,7 @@
         "freeze_adapter_rederives_from_current_operation_refs": [
           "App source commit",
           "Shell source commit and AionCore managed manifest/lock",
-          "Framework source commit and Release Set",
+          "Framework source commit used to build this App artifact",
           "seven Package manifests and payload manifests",
           "App Full third-party source manifest"
         ],
@@ -3414,7 +3397,7 @@
       "latest-arm64-mac.yml",
       "opl-app-component-manifest.json"
     ],
-      "rule": "Nightly production defaults to the daily schedule. A user-explicit development_validation may invoke workflow_dispatch with the exact publish_nonlatest_nightly confirmation and must execute the same scheduled Nightly path. The frozen request, qualification, publication receipt, and followers bind the invocation mode, event, authority source, exact run, and cohort. Neither mode publishes Full or WebUI or changes Latest. A separate explicit protected single-use exact-CAS operation may move Latest to the published Nightly without changing Preview quality; the next qualified Stable reclaims by default. From 26.8.14, Stable display revisions are allocated only from existing same-day Stable tags or Releases. Nightly and Preview display revisions are separate channel namespaces and never consume a Stable -rN slot. Stable uses machine slot 91 plus its own revision so an unsuffixed Stable outranks the same-core Nightly or Preview prerelease without borrowing their display revision. Historical releases before the cutover keep the shared allocator and recorded updater identity."
+    "rule": "Nightly production defaults to the daily schedule. A user-explicit development_validation may invoke workflow_dispatch with the exact publish_nonlatest_nightly confirmation and must execute the same scheduled Nightly path. The frozen request, qualification, publication receipt, and followers bind the invocation mode, event, authority source, exact run, and cohort. Neither mode publishes Full or WebUI or changes Latest. A separate explicit protected single-use exact-CAS operation may move Latest to the published Nightly without changing Preview quality; the next qualified Stable reclaims by default. From 26.8.14, Stable display revisions are allocated only from existing same-day Stable tags or Releases. Nightly and Preview display revisions are separate channel namespaces and never consume a Stable -rN slot. Stable uses machine slot 91 plus its own revision so an unsuffixed Stable outranks the same-core Nightly or Preview prerelease without borrowing their display revision. Historical releases before the cutover keep the shared allocator and recorded updater identity."
   },
   "webui_ghcr_image": {
     "owner": "one-person-lab-app",
@@ -3619,7 +3602,12 @@
         ".github/workflows/release-stable.yml",
         ".github/workflows/release-webui-development.yml"
       ],
-      "entry_operations": ["standard", "resume_standard", "publish", "promote"],
+      "entry_operations": [
+        "standard",
+        "resume_standard",
+        "publish",
+        "promote"
+      ],
       "protected_environment": "release-preview-publication",
       "immutable_version_required": false,
       "public_version_tag_policy": "mutable_replace_after_dual_arch_qualification_and_carrier_receipt",
@@ -3709,11 +3697,11 @@
       "one-person-lab-nightly",
       "one-person-lab-full"
     ],
-  "casks": [
-    "one-person-lab",
-    "one-person-lab-nightly",
-    "one-person-lab-full"
-  ],
+    "casks": [
+      "one-person-lab",
+      "one-person-lab-nightly",
+      "one-person-lab-full"
+    ],
     "cask_install_policy": {
       "standard_cask": "one-person-lab",
       "standard_cask_install_ref": "gaofeng21cn/one-person-lab/one-person-lab",
@@ -3726,11 +3714,11 @@
       "trust_scope": "explicit_standard_and_conflicting_cask_refs_not_whole_tap",
       "rule": "Homebrew user and CI installs use the fully qualified standard cask ref and trust only the standard plus conflicts_with sibling cask refs so installation stays explicit without granting broad trust to the whole tap."
     },
-  "initial_live_targets": [
-    "Casks/one-person-lab.rb",
-    "Casks/one-person-lab-nightly.rb",
-    "Casks/one-person-lab-full.rb"
-  ],
+    "initial_live_targets": [
+      "Casks/one-person-lab.rb",
+      "Casks/one-person-lab-nightly.rb",
+      "Casks/one-person-lab-full.rb"
+    ],
     "excluded_casks": [],
     "full_casks": [
       "one-person-lab-full"
@@ -3757,37 +3745,37 @@
       "direct_commit_conflict_policy": "Apply against the exact current Cask SHA and push once without force. A mismatched result fails only the follower; a later follower rerun starts from fresh public Cask state and never allocates a release version.",
       "planner_script": "scripts/update-homebrew-tap.ts",
       "nightly": {
-      "mode": "post_publication_digest_bound_single_attempt_follower",
-      "workflow": ".github/workflows/release-nightly-followups.yml",
-      "operation": "reconcile_homebrew",
-      "environment": "release-nightly",
-      "credential": {
-        "kind": "repository_scoped_write_deploy_key",
-        "repository": "gaofeng21cn/homebrew-one-person-lab",
-        "secret": "release-nightly.OPL_HOMEBREW_TAP_DEPLOY_KEY",
-        "stable_environment_credentials_reused": false
+        "mode": "post_publication_digest_bound_single_attempt_follower",
+        "workflow": ".github/workflows/release-nightly-followups.yml",
+        "operation": "reconcile_homebrew",
+        "environment": "release-nightly",
+        "credential": {
+          "kind": "repository_scoped_write_deploy_key",
+          "repository": "gaofeng21cn/homebrew-one-person-lab",
+          "secret": "release-nightly.OPL_HOMEBREW_TAP_DEPLOY_KEY",
+          "stable_environment_credentials_reused": false
+        },
+        "target": "Casks/one-person-lab-nightly.rb",
+        "may_update_stable": false,
+        "mutation_allowed": true,
+        "stable_cask_must_remain_exact": true,
+        "unknown_or_conflicting_result": "fail_closed_no_retry_rerun_or_redispatch"
       },
-      "target": "Casks/one-person-lab-nightly.rb",
-      "may_update_stable": false,
-      "mutation_allowed": true,
-      "stable_cask_must_remain_exact": true,
-      "unknown_or_conflicting_result": "fail_closed_no_retry_rerun_or_redispatch"
-    },
       "stable": {
-      "mode": "post_publication_digest_bound_cas_follower",
-      "publication_mode": "post_publication_digest_bound_cas_follower",
-      "workflow": ".github/workflows/release-stable-post-success-followups.yml",
-      "operation": "reconcile_homebrew_standard",
-      "environment": "release-stable",
-      "target": "Casks/one-person-lab.rb",
-      "source_completed_stage": "standard_public_and_latest_activated",
-      "mutation_allowed": true,
-      "core_release_or_latest_blocking": false,
-      "same_tag_replacement_allowed": true,
-      "new_release_version_required_for_changed_bytes": false,
-      "exact_current_cask_sha256_cas_required": true,
-      "fresh_cas_rerun_allowed": true,
-      "may_consume_nightly_directly": false,
+        "mode": "post_publication_digest_bound_cas_follower",
+        "publication_mode": "post_publication_digest_bound_cas_follower",
+        "workflow": ".github/workflows/release-stable-post-success-followups.yml",
+        "operation": "reconcile_homebrew_standard",
+        "environment": "release-stable",
+        "target": "Casks/one-person-lab.rb",
+        "source_completed_stage": "standard_public_and_latest_activated",
+        "mutation_allowed": true,
+        "core_release_or_latest_blocking": false,
+        "same_tag_replacement_allowed": true,
+        "new_release_version_required_for_changed_bytes": false,
+        "exact_current_cask_sha256_cas_required": true,
+        "fresh_cas_rerun_allowed": true,
+        "may_consume_nightly_directly": false,
         "desired_state_reconciliation": {
           "trigger": "workflow_dispatch",
           "authority_binding": "same_successful_standard_run_and_exact_published_handoff",
@@ -3796,15 +3784,15 @@
             "source_run_id"
           ],
           "operation": "reconcile_homebrew_standard",
-        "failed_run_history_inputs_forbidden": true,
-        "exact_publication_handoff_required": true,
-        "missing_or_expired_handoff": "fail",
-        "exact_current_cask_sha256_cas_required": true,
-        "canonical_main_executor_required": true,
-        "concurrency_scope": "source_run_id",
-        "workflow_rerun_allowed": false,
-        "standard_redispatch_allowed": false
-      }
+          "failed_run_history_inputs_forbidden": true,
+          "exact_publication_handoff_required": true,
+          "missing_or_expired_handoff": "fail",
+          "exact_current_cask_sha256_cas_required": true,
+          "canonical_main_executor_required": true,
+          "concurrency_scope": "source_run_id",
+          "workflow_rerun_allowed": false,
+          "standard_redispatch_allowed": false
+        }
       },
       "full": {
         "mode": "post_publication_digest_bound_single_attempt_follower",
@@ -3862,9 +3850,7 @@
         "artifact",
         "sha256",
         "manifest_url",
-        "local_authorization_policy_ref",
-        "release_set_generation",
-        "release_set_manifest_digest"
+        "local_authorization_policy_ref"
       ]
     },
     "full_first_install_policy": "the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. After exact Full asset readback, append_full idempotently updates the same Release body with the Full download URL, digest, size, and manifest so publication is visible to users. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, Latest, and updater metadata remain unchanged",
@@ -3979,7 +3965,11 @@
         "artifact_name": "opl-full-apple-recovery-<version>-<run-id>",
         "runs_on_failure_only": true,
         "exact_submitted_dmg_bytes_must_be_retained": true,
-        "required_identity_fields": ["submission_id", "sha256", "size_bytes"],
+        "required_identity_fields": [
+          "submission_id",
+          "sha256",
+          "size_bytes"
+        ],
         "resubmission_allowed_before_owner_authoritative_reconcile": false,
         "finalize_only_may_consume_only_exact_submitted_bytes": true,
         "identity_incomplete_status": "diagnostic_only",
@@ -4624,7 +4614,7 @@
       ],
       "remote_only": [
         "github_hosted_required_macos_linux_matrix",
-        "github_hosted_desktop_release_set_matrix_required",
+        "github_hosted_desktop_artifacts_matrix_required",
         "protected_signing_and_notarization_credentials",
         "public_mutation",
         "owner_authoritative_remote_readback"
@@ -4901,7 +4891,10 @@
       "existing_submission_reconcile": {
         "input": "notary_submission_id",
         "identity_binding": "exact_uuid",
-        "commands": ["xcrun notarytool info", "xcrun notarytool log on Invalid_or_Rejected"],
+        "commands": [
+          "xcrun notarytool info",
+          "xcrun notarytool log on Invalid_or_Rejected"
+        ],
         "submit_allowed": false,
         "wait_allowed": false,
         "staple_allowed": false,
@@ -5070,7 +5063,12 @@
   "release_acceleration": {
     "stable_followup_scheduling": {
       "trigger": "same_run_reusable_call_after_standard_publication_readback",
-      "independent_lanes": ["full_addon", "desktop_platforms", "homebrew_standard", "docker_publication"],
+      "independent_lanes": [
+        "full_addon",
+        "desktop_platforms",
+        "homebrew_standard",
+        "docker_publication"
+      ],
       "completion_event": "observation_only",
       "checkpoint_owner": "framework",
       "public_mutation_mutex": "opl-release-bundle-global",
@@ -5102,7 +5100,10 @@
       "protected_macos_clean_install_gate": {
         "runner_pool": "mac-tart",
         "workload_class": "pre_publication_macos_clean_install_gate",
-        "required_profiles": ["standard", "full"],
+        "required_profiles": [
+          "standard",
+          "full"
+        ],
         "artifact_binding": "same_run_exact_candidate_cohort_and_checkpoint_sidecar",
         "credentials_environment": "release-stable",
         "missing_runner_or_credential_effect": "fail_closed_without_publication",
@@ -5111,7 +5112,10 @@
       "workload_classes": {
         "pre_publication_macos_clean_install_gate": {
           "artifact_binding": "exact_same_run_candidate_before_publication",
-          "statuses": ["passed", "failed"],
+          "statuses": [
+            "passed",
+            "failed"
+          ],
           "publication_blocking": true
         },
         "post_publication_optional_certification": {
@@ -5958,7 +5962,7 @@
         "<exact-tag>",
         "--no-open"
       ],
-      "release_set_single_tag_asset_binding_required": true,
+      "app_release_single_tag_asset_binding_required": true,
       "same_release_tag_required": true,
       "desktop_manifest_cohort_binding_required": true,
       "same_deb_artifact_identity_required": true,

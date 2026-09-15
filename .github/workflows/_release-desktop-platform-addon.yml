@@ -215,7 +215,7 @@ jobs:
       actions: read
     uses: ./.github/workflows/build-manual.yml
     with:
-      invocation_mode: stable_release_set_build
+      invocation_mode: stable_app_build
       platform_policy: stable_desktop_additional
       app_ref: ${{ inputs.app_ref }}
       shell_ref: ${{ inputs.shell_ref }}

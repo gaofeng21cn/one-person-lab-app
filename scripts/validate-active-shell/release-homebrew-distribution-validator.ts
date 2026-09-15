@@ -221,8 +221,6 @@ function validateReleaseHomebrewTapUpdatePolicy(homebrew) {
       'sha256',
       'manifest_url',
       'local_authorization_policy_ref',
-      'release_set_generation',
-      'release_set_manifest_digest',
     ],
     'Release channel Homebrew cohort manifest fields',
   );

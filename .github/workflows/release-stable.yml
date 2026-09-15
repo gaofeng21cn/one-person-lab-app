@@ -14,7 +14,7 @@ on:
           - studio_carrier_admission
           - studio_full_append
       operation:
-        description: New product release or same-tag Release Set completion
+        description: New product release or same-tag App asset completion
         required: true
         default: standard
         type: choice
@@ -563,7 +563,7 @@ jobs:
           path: app-executor
           fetch-depth: 0
 
-      - name: Require the current Latest Release Set to be complete
+      - name: Require the current Latest App release to be complete
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

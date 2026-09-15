@@ -10,7 +10,7 @@
       "actual_commit_recorded_in": "full-package-manifest.json#components.opl.git_commit"
     },
     "generation_contract": {
-      "preexisting_release_set_required": false,
+      "other_component_release_required": false,
       "preexisting_lock_required": false,
       "payload_inventory_required": false,
       "selected_inputs_recorded_after_resolution": true

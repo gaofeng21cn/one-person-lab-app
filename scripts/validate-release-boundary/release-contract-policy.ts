@@ -466,10 +466,10 @@ function validateGithubReleaseName(releaseContract: Record<string, any>): number
     releaseName?.stable_revision?.same_tag_repair_required !== true ||
     releaseName?.stable_revision?.additive_platform_full_or_installer_failure_eligible !== false ||
     releaseName?.stable_revision?.additive_failure_route !==
-      'repair_in_original_release_set_without_new_version' ||
+      'repair_in_original_app_release_without_new_version' ||
     releaseName?.release_intent_policy?.new_tag_requires !==
       'release_intent_new_product_and_nonempty_user_visible_product_change_summary' ||
-    releaseName?.release_intent_policy?.current_latest_release_set_must_be_complete_before_new_tag !== true ||
+    releaseName?.release_intent_policy?.current_latest_app_release_must_be_complete_before_new_tag !== true ||
     !sameStringSet(releaseName?.release_intent_policy?.preserve_existing_tag_for, [
       'build_failure',
       'signing_failure',
@@ -905,7 +905,7 @@ function validatePhysicalVmOptionalCertificationPolicy(releaseContract: Record<s
       '<exact-tag>',
       '--no-open',
     ]) ||
-    hostedLinux?.release_set_single_tag_asset_binding_required !== true ||
+    hostedLinux?.app_release_single_tag_asset_binding_required !== true ||
     hostedLinux?.same_release_tag_required !== true ||
     hostedLinux?.desktop_manifest_cohort_binding_required !== true ||
     hostedLinux?.same_deb_artifact_identity_required !== true ||
@@ -1203,7 +1203,7 @@ function validateReleasePreflightContract(releaseContract: Record<string, any>):
     ])
     || !sameStringSet(localFirst?.remote_only, [
       'github_hosted_required_macos_linux_matrix',
-      'github_hosted_desktop_release_set_matrix_required',
+      'github_hosted_desktop_artifacts_matrix_required',
       'protected_signing_and_notarization_credentials',
       'public_mutation',
       'owner_authoritative_remote_readback',
@@ -2485,15 +2485,15 @@ export function validateReleasePlatformMatrix(
     || capabilities['linux-x64'].blocks_stable !== false
     || !capabilities['linux-x64'].quality_channels.includes('stable')
     || capabilities['linux-x64'].publication_route !== '.github/workflows/build-manual.yml'
-    || capabilities['linux-x64'].publication_status !== 'same_stable_release_set'
+    || capabilities['linux-x64'].publication_status !== 'same_app_release'
     || capabilities['windows-x64'].default_enabled !== true
     || capabilities['windows-x64'].stable_allowed !== true
     || capabilities['windows-x64'].blocks_stable !== false
     || !capabilities['windows-x64'].quality_channels.includes('stable')
     || capabilities['windows-x64'].publication_route !== '.github/workflows/build-manual.yml'
-    || capabilities['windows-x64'].publication_status !== 'same_stable_release_set'
+    || capabilities['windows-x64'].publication_status !== 'same_app_release'
   ) {
-    console.error('FAIL release_platform_matrix: Linux x64 and Windows x64 must be non-blocking members of the Stable Desktop Release Set');
+    console.error('FAIL release_platform_matrix: Linux x64 and Windows x64 must be non-blocking members of the Stable Desktop artifact');
     failures += 1;
   }
   const policyAssertions: Array<[string, string[], boolean, boolean]> = [
@@ -2624,7 +2624,7 @@ export function validateReleasePlatformMatrix(
     || desktopFollower?.new_release_or_tag_allowed !== false
     || desktopFollower?.same_name_different_digest !== 'fail_closed'
     || desktopFollower?.platform_manifest_schema !== 'opl_app_desktop_platform_manifest.v1'
-    || desktopFollower?.aggregate_manifest_schema !== 'opl_app_desktop_release_set_manifest.v1'
+    || desktopFollower?.aggregate_manifest_schema !== 'opl_app_desktop_artifact_manifest.v1'
     || desktopFollower?.execution !== 'one_independent_fail_fast_false_matrix_lane_per_platform'
     || desktopFollower?.build_mutex !== null
     || desktopFollower?.public_append_mutex !== 'opl-release-bundle-global'

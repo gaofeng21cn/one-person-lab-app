@@ -64,7 +64,6 @@ function draftBuildInput(architecture: Architecture = 'amd64') {
     source_cutoff: {
       observed_at: '2026-07-23T01:02:03Z',
       policy: 'single_read_at_freeze_admission',
-      frozen_base_release_set: null,
       post_freeze_remote_refresh_allowed: false,
       later_authority_advancement_invalidates_bundle: false,
     },
@@ -286,7 +285,7 @@ test('WebUI build input sealing is canonical, repeatable, and identity-bound', (
   assert.equal(summary.architecture, 'amd64');
   assert.match(summary.content_fingerprint, /^sha256:[0-9a-f]{64}$/);
   const sealed = JSON.parse(fs.readFileSync(firstPath, 'utf8'));
-  assert.equal(sealed.source_cutoff.frozen_base_release_set, null);
+  assert.equal(Object.hasOwn(sealed.source_cutoff, 'frozen_base_release_set'), false);
   assert.deepEqual(sealed.inputs.map((input: { id: string }) => input.id), [
     'app_source',
     'base_image',
@@ -660,7 +659,7 @@ test('WebUI carrier accepts both required architectures and fails closed for uns
     path.join(releaseSetRoot, 'output.json'),
   ]);
   assert.notEqual(rejectedReleaseSet.status, 0);
-  assert.match(rejectedReleaseSet.stderr, /frozen_base_release_set must be null/);
+  assert.match(rejectedReleaseSet.stderr, /source_cutoff must contain exactly/);
 });
 
 test('WebUI carrier rejects one platform image whose architecture does not match its evidence lane', () => {
@@ -693,7 +692,7 @@ test('WebUI carrier schema closes both sealed artifacts', () => {
   assert.deepEqual(schema.$defs.platform.properties.architecture.enum, ['amd64', 'arm64']);
   assert.equal(schema.$defs.carrier.properties.architecture.const, 'multiarch');
   assert.equal(schema.$defs.carrier.properties.platforms.minItems, 2);
-  assert.equal(schema.$defs.source_cutoff.properties.frozen_base_release_set.type, 'null');
+  assert.equal(Object.hasOwn(schema.$defs.source_cutoff.properties, 'frozen_base_release_set'), false);
   assert.match(
     schema.$defs.release_version.pattern,
     /preview\\\.r\[1-9\]\[0-9\]\*/,

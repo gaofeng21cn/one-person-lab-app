@@ -64,7 +64,7 @@ Framework descriptor 可读取，再原生卸载系统 Codex 的旧条目。历�
 最后才进行旧数据和 Preview 的有界清理。任何一步的 source、candidate 或本机测试都不能
 替代下一步的 public/installed/owner readback。
 
-## Stable Desktop Release Set
+## Stable Desktop artifact
 
 每个 Stable 版本只有一个 GitHub Release 和一个 `v<version>` tag：
 

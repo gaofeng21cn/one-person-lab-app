@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       invocation_mode:
-        description: Audited reusable route; only stable_release_set_build is accepted.
+        description: Audited reusable route; only stable_app_build is accepted.
         required: true
         type: string
       platform_policy:
@@ -49,7 +49,7 @@ on:
         required: true
         type: string
       source_bundle_digest:
-        description: Exact completed Standard Bundle digest for the Stable Release Set build.
+        description: Exact completed Standard Bundle digest for the Stable App release build.
         required: false
         type: string
         default: ''
@@ -141,7 +141,7 @@ jobs:
           set -euo pipefail
           macos_x64_signed_development_validation=false
           if [ -n '${{ inputs.invocation_mode }}' ]; then
-            test '${{ inputs.invocation_mode }}' = stable_release_set_build
+            test '${{ inputs.invocation_mode }}' = stable_app_build
             test '${{ inputs.platform_policy }}' = stable_desktop_additional
             [[ '${{ inputs.app_ref }}' =~ ^[0-9a-f]{40}$ ]]
             [[ '${{ inputs.shell_ref }}' =~ ^[0-9a-f]{40}$ ]]
@@ -154,7 +154,7 @@ jobs:
               or . == ["windows-x64"]
               or . == ["linux-x64", "windows-x64"]
             ' <<< '${{ inputs.platform_ids }}' >/dev/null || {
-              echo '::error::Stable Release Set accepts only canonical Linux x64 and Windows x64 Desktop subsets.'
+              echo '::error::Stable App release accepts only canonical Linux x64 and Windows x64 Desktop subsets.'
               exit 1
             }
             node --experimental-strip-types .release-control/scripts/resolve-release-platform-matrix.ts \
@@ -223,12 +223,12 @@ jobs:
       upload_installers_only: true
       opl_release_version: ${{ inputs.opl_release_version }}
       opl_updater_version: ${{ inputs.opl_updater_version || inputs.opl_release_version }}
-      require_windows_updater_assets: ${{ inputs.invocation_mode == 'stable_release_set_build' && contains(needs.prepare-matrix.outputs.platform_ids, 'windows-x64') }}
+      require_windows_updater_assets: ${{ inputs.invocation_mode == 'stable_app_build' && contains(needs.prepare-matrix.outputs.platform_ids, 'windows-x64') }}
       require_windows_authenticode: false
       require_macos_gatekeeper: ${{ needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
-      cache_role: ${{ inputs.invocation_mode == 'stable_release_set_build' && 'stable_desktop_additional' || '' }}
-      release_bundle_digest: ${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}
-      release_cohort_ref: ${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}
+      cache_role: ${{ inputs.invocation_mode == 'stable_app_build' && 'stable_desktop_additional' || '' }}
+      release_bundle_digest: ${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}
+      release_cohort_ref: ${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}
     secrets: inherit

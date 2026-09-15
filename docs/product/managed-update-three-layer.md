@@ -46,8 +46,8 @@ parallel lifecycle authorities.
 
 First-party OPL Package owners publish complete official bytes independently to
 per-Package GHCR repositories and advance only their own `latest-stable`.
-`one-person-lab-manifest:latest-stable` is excluded from ordinary Package
-currentness and remains only a Full/offline/integration-test/QA snapshot.
+Framework, App, Full, Homebrew and tests consume independent owner artifacts.
+There is no shared publication snapshot, combination freeze, or aggregate channel.
 
 - Standard and Full use the same **App Official Profile**.
 - The Profile declares desired root Packages only for first install or explicit
@@ -152,8 +152,7 @@ readback remains a failure, isolated from unrelated Packages.
 - Require fresh native installed/callable readback before reporting success.
 - Enumerate installed Packages from carrier readback, not from the selected
   executor or Codex plugin inventory.
-- Prefer per-Package owner `latest-stable`; never let an unchanged shared
-  Release Set hide a newer Package.
+- Resolve each Package version from its own owner `latest-stable`.
 - Verify Plugin/config/cache and complete Package runtime after restart.
 - Keep failure local and continue unrelated Package maintenance.
 

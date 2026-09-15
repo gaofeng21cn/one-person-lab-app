@@ -40,15 +40,6 @@ type GitHubMutation =
   | 'release_publish'
   | 'latest_patch';
 
-const packageIds = [
-  'mas',
-  'mag',
-  'rca',
-  'oma',
-  'obf',
-  'mas-scholar-skills',
-  'opl-flow',
-] as const;
 const aiNotesMarker = '<!-- OPL_RELEASE_NOTES_GENERATOR:online-ai -->';
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
 // Additional release assets are observational; only path traversal and control
@@ -815,7 +806,6 @@ function buildWebuiBuildInputFromSourceAuthority(values: AdapterOptionValues): J
     source_cutoff: {
       observed_at: observedAt,
       policy: 'single_read_at_freeze_admission',
-      frozen_base_release_set: null,
       post_freeze_remote_refresh_allowed: false,
       later_authority_advancement_invalidates_bundle: false,
     },
@@ -840,25 +830,9 @@ function qualificationCohort(bundle: JsonRecord): JsonRecord {
     shell_sha: bundle.sources.shell.source_commit,
     framework_sha: bundle.sources.framework.source_commit,
   };
-  if (bundle.identity_mode === appStandardIdentityMode) {
-    exactJson(
-      bundle.package_compatibility,
-      packageCompatibility,
-      'App Standard Package compatibility',
-    );
-    return {
-      ...sources,
-      identity_mode: appStandardIdentityMode,
-      package_compatibility: packageCompatibility,
-    };
-  }
-  return {
-    ...sources,
-    framework_release_set_digest: bundle.framework_release_set.digest,
-    package_payload_manifest_sha256: Object.fromEntries(
-      packageIds.map((packageId) => [packageId, bundle.packages[packageId].payload_manifest_sha256]),
-    ),
-  };
+  if (bundle.identity_mode !== appStandardIdentityMode) throw new Error('Unsupported App artifact identity.');
+  exactJson(bundle.package_compatibility, packageCompatibility, 'App Package compatibility');
+  return { ...sources, identity_mode: appStandardIdentityMode, package_compatibility: packageCompatibility };
 }
 
 function bundleDocument(bundlePath: string): JsonRecord {

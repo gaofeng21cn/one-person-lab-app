@@ -251,7 +251,6 @@ function validateSourceCutoff(value: unknown): JsonRecord {
     [
       'observed_at',
       'policy',
-      'frozen_base_release_set',
       'post_freeze_remote_refresh_allowed',
       'later_authority_advancement_invalidates_bundle',
     ],
@@ -268,13 +267,9 @@ function validateSourceCutoff(value: unknown): JsonRecord {
   if (cutoff.later_authority_advancement_invalidates_bundle !== false) {
     fail('source_cutoff.later_authority_advancement_invalidates_bundle must be false');
   }
-  if (cutoff.frozen_base_release_set !== null) {
-    fail('source_cutoff.frozen_base_release_set must be null for App Standard composition');
-  }
   return {
     observed_at: observedAt,
     policy: 'single_read_at_freeze_admission',
-    frozen_base_release_set: null,
     post_freeze_remote_refresh_allowed: false,
     later_authority_advancement_invalidates_bundle: false,
   };

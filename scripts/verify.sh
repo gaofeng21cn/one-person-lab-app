@@ -47,7 +47,7 @@ const payload = {
   ],
   remote_only: [
     'github_hosted_required_macos_linux_matrix',
-    'github_hosted_desktop_release_set_matrix_required',
+    'github_hosted_desktop_artifacts_matrix_required',
     'protected_signing_and_notarization_credentials',
     'public_mutation',
     'owner_authoritative_remote_readback',

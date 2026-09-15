@@ -29,10 +29,10 @@ not a second provider. macOS still requires the user to grant Accessibility and
 Screen Recording; before that, Computer Use reports permission required while
 the rest of OPL remains usable.
 
-## Current Stable Desktop Release Set
+## Current Stable Desktop artifact
 
 Each Stable version has one GitHub Release and one `v<version>` tag. The macOS
-Stable release set contains both Standard and Full. Standard may become Latest
+The App Stable release offers Standard and Full installers. Standard may become Latest
 first, with Full appended to the same tag afterward:
 
 - `One-Person-Lab-<version>-mac-arm64.dmg`: macOS Standard;

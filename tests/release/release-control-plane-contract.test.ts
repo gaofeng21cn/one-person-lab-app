@@ -79,7 +79,7 @@ test('release platform contract keeps the primary Stable platform separate from 
   assert.equal(matrix.policies.windows_preview, undefined);
   assert.equal(matrix.capabilities['windows-x64'].stable_allowed, true);
   assert.equal(matrix.capabilities['windows-x64'].default_enabled, true);
-  assert.equal(matrix.capabilities['windows-x64'].publication_status, 'same_stable_release_set');
+  assert.equal(matrix.capabilities['windows-x64'].publication_status, 'same_app_release');
   assert.equal(matrix.capabilities['windows-x64'].publication_route, '.github/workflows/build-manual.yml');
   assert.equal(matrix.capabilities['windows-arm64'].stable_allowed, false);
   assert.equal(

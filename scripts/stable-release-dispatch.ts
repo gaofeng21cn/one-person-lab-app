@@ -567,7 +567,7 @@ function latestRelease(runtime: Runtime, repository: string): unknown {
     'gh',
     ['api', `repos/${repository}/releases/latest`],
     30_000,
-    'Read Latest Release Set',
+    'Read Latest App Release',
   ));
 }
 

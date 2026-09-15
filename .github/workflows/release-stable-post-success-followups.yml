@@ -322,7 +322,7 @@ jobs:
           github-token: ${{ github.token }}
           path: standard-checkpoint
 
-      - name: Bind one mutable Stable Release Set
+      - name: Bind one mutable Stable App release
         id: bind
         if: ${{ steps.source.outputs.applicable == 'true' }}
         env:
@@ -434,11 +434,11 @@ jobs:
           jq -n --arg source "$SOURCE_RUN_ID" --arg operation "$OPERATION_KIND" \
             --arg tag "$RELEASE_TAG" --argjson platforms "$PLATFORMS" --arg result "$RECONCILE_RESULT" \
             '{schema:"opl_app_stable_desktop_followup.v1",source_run_id:$source,operation_kind:$operation,release_tag:$tag,platforms:$platforms,platform_reconcile:$result,required_for_standard_or_latest:false,remaining:(if $result == "success" then [] else $platforms end)}' \
-            > stable-release-set-followup.json
+            > stable-app-release-followup.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opl-stable-release-set-followup-${{ needs.admit.outputs.source_run_id }}
-          path: stable-release-set-followup.json
+          name: opl-stable-app-release-followup-${{ needs.admit.outputs.source_run_id }}
+          path: stable-app-release-followup.json
           if-no-files-found: error
           retention-days: 30
 

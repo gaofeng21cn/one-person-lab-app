@@ -343,12 +343,8 @@ test('release-gate Gateway credentials stay file-bound and are scanned before ar
   }
 });
 
-test('release helpers reject duplicate mounted Apps, promotion receipts, and packaged runtime executables', () => {
+test('release helpers reject duplicate mounted Apps and packaged runtime executables', () => {
   const installer = fs.readFileSync(path.join(process.cwd(), 'install.sh'), 'utf8');
-  const promotion = fs.readFileSync(
-    path.join(process.cwd(), 'scripts', 'framework-release-promotion-step.sh'),
-    'utf8',
-  );
   const runtimeLayers = fs.readFileSync(
     path.join(process.cwd(), 'scripts', 'build-full-first-install-package', 'runtime-layers.ts'),
     'utf8',
@@ -367,12 +363,11 @@ test('release helpers reject duplicate mounted Apps, promotion receipts, and pac
     'utf8',
   );
 
-  for (const source of [installer, promotion, runtimeLayers, runtimeWrappers]) {
+  for (const source of [installer, runtimeLayers, runtimeWrappers]) {
     assert.doesNotMatch(source, /find[^\n]*(?:-print -quit|\|[^\n]*head\s+-n?\s*1)/);
     assert.match(source, /LC_ALL=C sort/);
   }
   assert.match(installer, /Mounted DMG must contain exactly one App bundle/);
-  assert.match(promotion, /must contain exactly one JSON receipt/);
   assert.match(runtimeLayers, /multiple executable temporal binaries/);
   assert.match(runtimeWrappers, /multiple Python bin roots/);
   assert.match(codexCarrierValidator, /resolver_env !== 'OPL_CODEX_BIN'/);

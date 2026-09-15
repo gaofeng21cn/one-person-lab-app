@@ -1978,10 +1978,10 @@ export function validateStableFollowupTopology(appRoot: string): number {
       JSON.stringify(['verify_existing_repair'])
     || !exactObject(optionalCertification.workflow.permissions, exactReadPermissions)
     || optionalCertification.workflow.concurrency?.group !==
-      'opl-desktop-release-set-certification-${{ github.event_name == \'workflow_dispatch\' && inputs.followup_run_id || github.event.workflow_run.id }}'
+      'opl-desktop-artifact-certification-${{ github.event_name == \'workflow_dispatch\' && inputs.followup_run_id || github.event.workflow_run.id }}'
     || optionalCertification.workflow.concurrency?.['cancel-in-progress'] !== false
     || JSON.stringify(Object.keys(certificationJobs)) !== JSON.stringify([
-      'resolve-release-set',
+      'resolve-app-release',
       'certify-linux-x64',
       'admit-macos-vm',
       'certify-standard-vm',
@@ -1993,7 +1993,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
       'Optional certification must be a read-only follower of the single Stable follow-up hub',
     );
   }
-  for (const jobId of ['resolve-release-set', 'certify-linux-x64', 'admit-macos-vm', 'receipt']) {
+  for (const jobId of ['resolve-app-release', 'certify-linux-x64', 'admit-macos-vm', 'receipt']) {
     const job = certificationJobs[jobId];
     if (!job || job['runs-on'] !== 'ubuntu-latest' || !Array.isArray(job.steps)) {
       failures += reportFailure(id, `Optional certification job ${jobId} must stay GitHub-hosted`);
@@ -2007,13 +2007,13 @@ export function validateStableFollowupTopology(appRoot: string): number {
     || Object.prototype.hasOwnProperty.call(certifyStandardVm, 'runs-on')
     || !exactObject(certifyStandardVm.permissions, exactReadPermissions)
     || !exactObject(certifyStandardVm.with, {
-      release_tag: '${{ needs.resolve-release-set.outputs.tag }}',
-      published_artifact_name: '${{ needs.resolve-release-set.outputs.standard_artifact_name }}',
-      published_artifact_digest: '${{ needs.resolve-release-set.outputs.standard_artifact_digest }}',
-      artifact_app_ref: '${{ needs.resolve-release-set.outputs.app_sha }}',
-      shell_ref: '${{ needs.resolve-release-set.outputs.shell_sha }}',
-      smoke_harness_ref: '${{ needs.resolve-release-set.outputs.shell_sha }}',
-      framework_ref: '${{ needs.resolve-release-set.outputs.framework_sha }}',
+      release_tag: '${{ needs.resolve-app-release.outputs.tag }}',
+      published_artifact_name: '${{ needs.resolve-app-release.outputs.standard_artifact_name }}',
+      published_artifact_digest: '${{ needs.resolve-app-release.outputs.standard_artifact_digest }}',
+      artifact_app_ref: '${{ needs.resolve-app-release.outputs.app_sha }}',
+      shell_ref: '${{ needs.resolve-app-release.outputs.shell_sha }}',
+      smoke_harness_ref: '${{ needs.resolve-app-release.outputs.shell_sha }}',
+      framework_ref: '${{ needs.resolve-app-release.outputs.framework_sha }}',
       package_profile: 'standard',
       diagnostic_scope: 'post_publication_optional_certification',
       require_macos_gatekeeper: true,
@@ -2023,9 +2023,9 @@ export function validateStableFollowupTopology(appRoot: string): number {
   }
   for (const required of [
     '.path == ".github/workflows/release-stable-post-success-followups.yml"',
-    'opl-stable-release-set-followup-${source_run_id}',
+    'opl-stable-app-release-followup-${source_run_id}',
     'opl-stable-desktop-append-${source_run_id}',
-    'opl_app_desktop_release_set_certification.v1',
+    'opl_app_desktop_artifacts_certification.v1',
     'required_for_publication:false',
     'remaining:[]',
     'reason_code=operator_deferred',

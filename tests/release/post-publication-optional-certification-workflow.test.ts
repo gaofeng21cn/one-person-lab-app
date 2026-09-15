@@ -13,13 +13,13 @@ function readWorkflow(): { source: string; workflow: Record<string, any> } {
   return { source, workflow: YAML.parse(source) };
 }
 
-test('Desktop Release Set certification follows the one Stable follow-up hub', () => {
+test('Desktop artifact certification follows the one Stable follow-up hub', () => {
   const { source, workflow } = readWorkflow();
   assert.deepEqual(Object.keys(workflow.on), ['workflow_run', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.workflow_run.workflows, ['OPL Stable Follow-ups']);
   assert.deepEqual(workflow.on.workflow_run.types, ['completed']);
   assert.deepEqual(Object.keys(workflow.jobs), [
-    'resolve-release-set',
+    'resolve-app-release',
     'certify-linux-x64',
     'admit-macos-vm',
     'certify-standard-vm',
@@ -40,7 +40,7 @@ test('Desktop Release Set certification follows the one Stable follow-up hub', (
 
 test('non-Desktop Stable operations complete certification as not applicable', () => {
   const { source, workflow } = readWorkflow();
-  const resolve = workflow.jobs['resolve-release-set'];
+  const resolve = workflow.jobs['resolve-app-release'];
   assert.equal(resolve.outputs.applicable, '${{ steps.authority.outputs.applicable }}');
   assert.equal(resolve.outputs.reason_code, '${{ steps.authority.outputs.reason_code }}');
   assert.equal(resolve.outputs.certification_kind, '${{ steps.authority.outputs.certification_kind }}');
@@ -61,29 +61,29 @@ test('non-Desktop Stable operations complete certification as not applicable', (
   );
 
   for (const stepName of [
-    'Download exact Release Set follow-up receipt',
+    'Download exact App release follow-up receipt',
     'Download exact Desktop append receipt',
     'Bind completed follow-up identity',
-    'Bind one public Desktop Release Set',
+    'Bind one public Desktop artifact',
   ]) {
     const step = resolve.steps.find((candidate: Record<string, unknown>) => candidate.name === stepName);
-    assert.equal(step.if, "${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'desktop_release_set' }}");
+    assert.equal(step.if, "${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'desktop_artifacts' }}");
   }
 
   assert.equal(
     workflow.jobs['certify-linux-x64'].if,
-    "${{ needs.resolve-release-set.outputs.applicable == 'true' }}",
+    "${{ needs.resolve-app-release.outputs.applicable == 'true' }}",
   );
   assert.equal(
     workflow.jobs['admit-macos-vm'].if,
-    "${{ needs.resolve-release-set.outputs.applicable == 'true' && needs.resolve-release-set.outputs.certify_macos == 'true' }}",
+    "${{ needs.resolve-app-release.outputs.applicable == 'true' && needs.resolve-app-release.outputs.certify_macos == 'true' }}",
   );
 });
 
 test('certification downloads receipts from the resolved writer run, including inline followers', () => {
   const { source, workflow } = readWorkflow();
-  const steps = workflow.jobs['resolve-release-set'].steps;
-  for (const name of ['Download exact Release Set follow-up receipt', 'Download exact Desktop append receipt']) {
+  const steps = workflow.jobs['resolve-app-release'].steps;
+  for (const name of ['Download exact App release follow-up receipt', 'Download exact Desktop append receipt']) {
     const download = steps.find((step: Record<string, any>) => step.name === name);
     assert.equal(download.with['run-id'], '${{ steps.authority.outputs.followup_run_id }}');
   }
@@ -92,9 +92,9 @@ test('certification downloads receipts from the resolved writer run, including i
 
 test('Linux certification consumes the exact public same-tag Desktop assets', () => {
   const { source, workflow } = readWorkflow();
-  const resolve = workflow.jobs['resolve-release-set'];
+  const resolve = workflow.jobs['resolve-app-release'];
   const linux = workflow.jobs['certify-linux-x64'];
-  assert.deepEqual(linux.needs, ['resolve-release-set']);
+  assert.deepEqual(linux.needs, ['resolve-app-release']);
   assert.equal(linux['runs-on'], 'ubuntu-latest');
   assert.equal(linux.permissions, undefined);
   assert.deepEqual(workflow.permissions, { contents: 'read', actions: 'read' });
@@ -114,17 +114,17 @@ test('Linux certification consumes the exact public same-tag Desktop assets', ()
 test('Desktop macOS certification remains read-only and Standard-only', () => {
   const { workflow } = readWorkflow();
   const certify = workflow.jobs['certify-standard-vm'];
-  assert.deepEqual(certify.needs, ['resolve-release-set', 'admit-macos-vm']);
+  assert.deepEqual(certify.needs, ['resolve-app-release', 'admit-macos-vm']);
   assert.equal(certify.uses, './.github/workflows/opl-first-run-vm.yml');
   assert.deepEqual(certify.permissions, { contents: 'read', actions: 'read' });
-  assert.equal(certify.with.release_tag, '${{ needs.resolve-release-set.outputs.tag }}');
+  assert.equal(certify.with.release_tag, '${{ needs.resolve-app-release.outputs.tag }}');
   assert.equal(certify.with.package_profile, 'standard');
   assert.equal(workflow.jobs['certify-full-vm'], undefined);
 });
 
 test('additive repair certification binds public receipt and old/new installer digests', () => {
   const { source, workflow } = readWorkflow();
-  const resolve = workflow.jobs['resolve-release-set'];
+  const resolve = workflow.jobs['resolve-app-release'];
   for (const stepName of [
     'Download exact additive repair receipt',
     'Download original Stable source bundle',
@@ -141,6 +141,6 @@ test('additive repair certification binds public receipt and old/new installer d
   assert.match(source, /Require clean Linux certification for additive installer repair/);
   assert.equal(
     workflow.jobs['admit-macos-vm'].if,
-    "${{ needs.resolve-release-set.outputs.applicable == 'true' && needs.resolve-release-set.outputs.certify_macos == 'true' }}",
+    "${{ needs.resolve-app-release.outputs.applicable == 'true' && needs.resolve-app-release.outputs.certify_macos == 'true' }}",
   );
 });

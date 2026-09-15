@@ -176,26 +176,6 @@ test("new App Standard identity records source refs as provenance and admits typ
   assert.equal(control.identity.canonical_digest_covers.includes("package_binding"), false);
 });
 
-test("legacy Package-bound Bundles remain read-compatible but cannot be generated as new Standard", () => {
-  const legacy = control.identity.legacy_bundle_read_compatibility;
-  assert.equal(legacy.identity_mode, "framework_release_set_and_exact_packages");
-  assert.equal(legacy.new_standard_generation_allowed, false);
-  assert.equal(legacy.checkpoint_import_and_qualification_readback_allowed, true);
-  assert.deepEqual(legacy.required_package_ids, [
-    "mas",
-    "mag",
-    "rca",
-    "oma",
-    "obf",
-    "mas-scholar-skills",
-    "opl-flow",
-  ]);
-  assert.deepEqual(
-    legacy.required_per_package_fields,
-    ["package_id", "package_version", "owner_source_commit", "payload_manifest_sha256"],
-  );
-});
-
 test("local and GitHub executors consume one exact build-once Bundle", () => {
   assert.equal(control.execution.model, "build_once_verify_and_promote_many");
   assert.deepEqual(control.execution.executors, ["local", "github_actions"]);

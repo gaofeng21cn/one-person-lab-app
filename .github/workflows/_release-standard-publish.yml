@@ -1606,7 +1606,7 @@ jobs:
                     tag: $tag,
                     id: $remote[0].release.id,
                     target_commitish: $remote[0].release.target_commitish,
-                    mutable_same_tag_release_set: true
+                    mutable_same_tag_app_release: true
                   },
                   cohort: {
                     app_sha: $app_sha,
@@ -2065,7 +2065,7 @@ jobs:
                       tag: $tag,
                       id: $remote[0].release.id,
                       target_commitish: $remote[0].release.target_commitish,
-                      mutable_same_tag_release_set: true
+                      mutable_same_tag_app_release: true
                     },
                     cohort: {
                       app_sha: $app_sha,

@@ -6,7 +6,7 @@ import {
   buildAppendPlan,
   mergeDesktopPlatformManifest,
   validateDesktopPlatformManifest,
-  validateDesktopReleaseSetManifest,
+  validateDesktopArtifactManifest,
 } from '../../scripts/append-stable-desktop-assets.ts';
 
 const release = {
@@ -82,7 +82,7 @@ test('independent Desktop platform manifests merge without rebuilding the comple
   assert.deepEqual(complete.manifest.assets.map((asset) => asset.name), [linuxAsset, ...windowsAssets]
     .map((asset) => asset.name).sort());
   assert.equal(mergeDesktopPlatformManifest(complete.manifest, linux).changed, false);
-  assert.doesNotThrow(() => validateDesktopReleaseSetManifest(complete.manifest));
+  assert.doesNotThrow(() => validateDesktopArtifactManifest(complete.manifest));
 });
 
 test('Desktop platform reconcile rejects cohort drift and same-platform byte drift', () => {

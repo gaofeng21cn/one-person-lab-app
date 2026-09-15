@@ -465,7 +465,7 @@ test('additional Desktop platform publication is an independent protected post-s
   const build = platformAddon.jobs['build-platform'];
   const append = platformAddon.jobs['append-platform'];
   assert.equal(build.uses, './.github/workflows/build-manual.yml');
-  assert.equal(build.with.invocation_mode, 'stable_release_set_build');
+  assert.equal(build.with.invocation_mode, 'stable_app_build');
   assert.equal(build.with.platform_policy, 'stable_desktop_additional');
   assert.equal(build.with.platform_ids, '${{ format(\'["{0}"]\', inputs.platform_id) }}');
   assert.equal(build.with.opl_updater_version, '${{ inputs.updater_version }}');
@@ -486,12 +486,12 @@ test('additional Desktop platform publication is an independent protected post-s
   );
   assert.match(
     manualMatrixRun,
-    /Stable Release Set accepts only canonical Linux x64 and Windows x64 Desktop subsets/,
+    /Stable App release accepts only canonical Linux x64 and Windows x64 Desktop subsets/,
   );
   assert.match(manualMatrixRun, /\. == \["linux-x64", "windows-x64"\]/);
   assert.equal(
     manual.jobs['build-pipeline'].with.require_windows_updater_assets,
-    "${{ inputs.invocation_mode == 'stable_release_set_build' && contains(needs.prepare-matrix.outputs.platform_ids, 'windows-x64') }}",
+    "${{ inputs.invocation_mode == 'stable_app_build' && contains(needs.prepare-matrix.outputs.platform_ids, 'windows-x64') }}",
   );
   assert.equal(
     manual.jobs['build-pipeline'].with.require_windows_authenticode,
@@ -504,15 +504,15 @@ test('additional Desktop platform publication is an independent protected post-s
   assert.equal(manual.jobs['build-pipeline'].with.operation, undefined);
   assert.equal(
     manual.jobs['build-pipeline'].with.cache_role,
-    "${{ inputs.invocation_mode == 'stable_release_set_build' && 'stable_desktop_additional' || '' }}",
+    "${{ inputs.invocation_mode == 'stable_app_build' && 'stable_desktop_additional' || '' }}",
   );
   assert.equal(
     manual.jobs['build-pipeline'].with.release_bundle_digest,
-    "${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}",
+    "${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}",
   );
   assert.equal(
     manual.jobs['build-pipeline'].with.release_cohort_ref,
-    "${{ inputs.invocation_mode == 'stable_release_set_build' && inputs.source_bundle_digest || '' }}",
+    "${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}",
   );
   assert.equal(manual.jobs['publish-selected-platforms'], undefined);
   assert.equal(manual.on.workflow_dispatch.inputs.publication_mode, undefined);

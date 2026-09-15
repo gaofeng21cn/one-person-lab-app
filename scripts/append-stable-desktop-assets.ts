@@ -33,8 +33,8 @@ export type DesktopPlatformManifest = DesktopManifestIdentity & {
   platform: DesktopPlatformId;
   assets: ManifestAsset[];
 };
-export type DesktopReleaseSetManifest = DesktopManifestIdentity & {
-  schema: 'opl_app_desktop_release_set_manifest.v1';
+export type DesktopArtifactManifest = DesktopManifestIdentity & {
+  schema: 'opl_app_desktop_artifact_manifest.v1';
   platforms: DesktopPlatformId[];
   assets: ManifestAsset[];
 };
@@ -189,29 +189,29 @@ export function validateDesktopPlatformManifest(
   };
 }
 
-export function validateDesktopReleaseSetManifest(value: unknown): DesktopReleaseSetManifest {
-  const candidate = record(value, 'Desktop Release Set manifest');
-  if (candidate.schema !== 'opl_app_desktop_release_set_manifest.v1') fail('Desktop Release Set manifest schema is invalid.');
+export function validateDesktopArtifactManifest(value: unknown): DesktopArtifactManifest {
+  const candidate = record(value, 'Desktop artifact manifest');
+  if (candidate.schema !== 'opl_app_desktop_artifact_manifest.v1') fail('Desktop artifact manifest schema is invalid.');
   if (!Array.isArray(candidate.platforms) || !Array.isArray(candidate.assets)) {
-    fail('Desktop Release Set manifest platforms or assets are missing.');
+    fail('Desktop artifact manifest platforms or assets are missing.');
   }
-  const identity = manifestIdentity(candidate, 'Desktop Release Set manifest');
+  const identity = manifestIdentity(candidate, 'Desktop artifact manifest');
   const platforms = candidate.platforms.map((platform, index) => {
-    const id = requiredString(platform, `Desktop Release Set manifest.platforms[${index}]`) as DesktopPlatformId;
+    const id = requiredString(platform, `Desktop artifact manifest.platforms[${index}]`) as DesktopPlatformId;
     if (!desktopPlatformOrder.includes(id)) fail(`Unsupported Desktop platform ${id}.`);
     return id;
   });
   const canonicalPlatforms = desktopPlatformOrder.filter((platform) => platforms.includes(platform));
   if (new Set(platforms).size !== platforms.length || JSON.stringify(platforms) !== JSON.stringify(canonicalPlatforms)) {
-    fail('Desktop Release Set manifest platform order or uniqueness is invalid.');
+    fail('Desktop artifact manifest platform order or uniqueness is invalid.');
   }
-  const assets = sortedAssets(candidate.assets.map((asset, index) => manifestAsset(asset, `Desktop Release Set manifest.assets[${index}]`)));
+  const assets = sortedAssets(candidate.assets.map((asset, index) => manifestAsset(asset, `Desktop artifact manifest.assets[${index}]`)));
   const expectedNames = platforms.flatMap((platform) => expectedPlatformAssetNames(platform, identity.release.version)).sort();
   if (JSON.stringify(assets.map((asset) => asset.name)) !== JSON.stringify(expectedNames)) {
-    fail('Desktop Release Set manifest asset ownership is invalid.');
+    fail('Desktop artifact manifest asset ownership is invalid.');
   }
   return {
-    schema: 'opl_app_desktop_release_set_manifest.v1',
+    schema: 'opl_app_desktop_artifact_manifest.v1',
     ...identity,
     platforms,
     assets,
@@ -224,13 +224,13 @@ function sameManifestIdentity(left: DesktopManifestIdentity, right: DesktopManif
 }
 
 export function mergeDesktopPlatformManifest(
-  existing: DesktopReleaseSetManifest | null,
+  existing: DesktopArtifactManifest | null,
   incoming: DesktopPlatformManifest,
-): { manifest: DesktopReleaseSetManifest; changed: boolean } {
+): { manifest: DesktopArtifactManifest; changed: boolean } {
   if (!existing) {
     return {
       manifest: {
-        schema: 'opl_app_desktop_release_set_manifest.v1',
+        schema: 'opl_app_desktop_artifact_manifest.v1',
         release: incoming.release,
         source: incoming.source,
         cohort: incoming.cohort,
@@ -252,7 +252,7 @@ export function mergeDesktopPlatformManifest(
   if (existingPlatformAssets.length > 0) fail(`Published aggregate already contains unowned ${incoming.platform} assets.`);
   return {
     manifest: {
-      schema: 'opl_app_desktop_release_set_manifest.v1',
+      schema: 'opl_app_desktop_artifact_manifest.v1',
       release: existing.release,
       source: existing.source,
       cohort: existing.cohort,
@@ -516,8 +516,8 @@ function renameAsset(
 }
 
 function assertManifestSuccessor(
-  current: DesktopReleaseSetManifest | null,
-  staged: DesktopReleaseSetManifest,
+  current: DesktopArtifactManifest | null,
+  staged: DesktopArtifactManifest,
 ): void {
   if (!current) return;
   if (!sameManifestIdentity(current, staged)) fail('Staged Desktop manifest cohort conflicts with the current aggregate.');
@@ -536,7 +536,7 @@ function assertManifestSuccessor(
 function readAggregateManifest(
   repository: string,
   asset: ExpectedRepairAsset,
-): { manifest: DesktopReleaseSetManifest; bytes: string } {
+): { manifest: DesktopArtifactManifest; bytes: string } {
   const bytes = readReleaseAssetText(repository, asset);
   let value: unknown;
   try {
@@ -544,7 +544,7 @@ function readAggregateManifest(
   } catch {
     fail(`Published Desktop manifest ${asset.name} is not JSON.`);
   }
-  return { manifest: validateDesktopReleaseSetManifest(value), bytes };
+  return { manifest: validateDesktopArtifactManifest(value), bytes };
 }
 
 function main() {
@@ -749,7 +749,7 @@ function main() {
   assertTagTarget(repository, tag, target);
 
   let aggregate = aggregateAssets(release);
-  let currentManifest: DesktopReleaseSetManifest | null = null;
+  let currentManifest: DesktopArtifactManifest | null = null;
   let currentManifestBytes: string | null = null;
   if (aggregate.canonical) {
     const current = readAggregateManifest(repository, aggregate.canonical);
@@ -821,7 +821,7 @@ function main() {
 
     aggregate = aggregateAssets(release);
     if (aggregate.stages.length !== 0) fail('No staged Desktop manifest may remain before a new aggregate mutation.');
-    let liveManifest: DesktopReleaseSetManifest | null = null;
+    let liveManifest: DesktopArtifactManifest | null = null;
     let liveManifestBytes: string | null = null;
     if (aggregate.canonical) {
       const current = readAggregateManifest(repository, aggregate.canonical);

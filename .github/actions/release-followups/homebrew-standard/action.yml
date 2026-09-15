@@ -106,7 +106,7 @@ runs:
           and (.release.updater_version | strings | length > 0)
           and (.release.id | type == "number")
           and (.release.target_commitish | test("^[0-9a-f]{40}$"))
-          and .release.mutable_same_tag_release_set == true
+          and .release.mutable_same_tag_app_release == true
           and (.cohort.app_sha | test("^[0-9a-f]{40}$"))
           and (.cohort.shell_sha | test("^[0-9a-f]{40}$"))
           and (.cohort.framework_sha | test("^[0-9a-f]{40}$"))
@@ -229,7 +229,7 @@ runs:
           --arg tap_base "$tap_base" --arg tap_commit "$remote_head" --arg cask "$expected_cask" \
           --arg decision "$decision" --arg outcome "$outcome" \
           --argjson push_count "$push_count" --argjson push_status "$push_status" '
-            {schema:"opl_homebrew_standard_follower_receipt.v1",status:"passed",source:{run_id:$source_run,executor_head_sha:$source_head},release:{version:$version,updater_version:$updater_version,tag:$tag,mutable_same_tag_release_set:true},public_assets:{standard_dmg_sha256:$dmg,component_manifest_sha256:$manifest},tap:{repository:"gaofeng21cn/homebrew-one-person-lab",target:"Casks/one-person-lab.rb",base_commit:$tap_base,commit:$tap_commit,cask_sha256:$cask,decision:$decision,outcome:$outcome,push_count:$push_count,push_exit_status:$push_status},core_release_or_latest_blocked:false,second_push_attempted:false,public_readback:true}
+            {schema:"opl_homebrew_standard_follower_receipt.v1",status:"passed",source:{run_id:$source_run,executor_head_sha:$source_head},release:{version:$version,updater_version:$updater_version,tag:$tag,mutable_same_tag_app_release:true},public_assets:{standard_dmg_sha256:$dmg,component_manifest_sha256:$manifest},tap:{repository:"gaofeng21cn/homebrew-one-person-lab",target:"Casks/one-person-lab.rb",base_commit:$tap_base,commit:$tap_commit,cask_sha256:$cask,decision:$decision,outcome:$outcome,push_count:$push_count,push_exit_status:$push_status},core_release_or_latest_blocked:false,second_push_attempted:false,public_readback:true}
           ' > homebrew-standard-receipt.json
 
     - name: Upload Standard Homebrew follower receipt

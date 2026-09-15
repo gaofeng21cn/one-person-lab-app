@@ -97,7 +97,7 @@ test('standalone Windows RC publication is retired without fabricating runtime a
   assert.equal(release.release_platform_matrix.policies.windows_preview, undefined);
   assert.equal(
     release.release_platform_matrix.capabilities['windows-x64'].publication_status,
-    'same_stable_release_set',
+    'same_app_release',
   );
   assert.equal(
     release.release_platform_matrix.capabilities['windows-arm64'].publication_status,

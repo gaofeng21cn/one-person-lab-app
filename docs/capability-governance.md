@@ -58,8 +58,8 @@ offline seed；缺失的可选 Package 不阻断发布或安装。用户移除 P
 普通启动、silent update 和 App update 不得重装；只有显式 Restore 才重新应用。
 
 每个一方 Package owner 独立发布完整 bytes 到自身 GHCR 并推进自身
-`latest-stable`。`one-person-lab-manifest:latest-stable` 只保留 Full、offline、
-integration-test 和 QA 快照用途，不参与普通 Package currentness。
+`latest-stable`。Framework、App、Full、Homebrew 与测试都不消费共享发布快照；
+各组件独立选择和更新，不保留组合冻结或备案指针。
 
 Full/release artifact 可以绑定它实际包含的 commit、ref、digest 和完整性证明。
 这些 exact facts 只证明该 artifact 的 bytes，不要求未选 Package、Flow、App 或 Base

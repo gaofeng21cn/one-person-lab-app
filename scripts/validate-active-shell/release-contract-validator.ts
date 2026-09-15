@@ -683,7 +683,7 @@ function validateReleaseCalendarGuard(releaseName) {
     || stableRevision?.publication_build_packaging_signing_notarization_notes_homebrew_or_additive_failure_eligible !== false
     || stableRevision?.same_tag_repair_required !== true
     || releaseIntent?.new_tag_requires !== 'release_intent_new_product_and_nonempty_user_visible_product_change_summary'
-    || releaseIntent?.current_latest_release_set_must_be_complete_before_new_tag !== true
+    || releaseIntent?.current_latest_app_release_must_be_complete_before_new_tag !== true
     || releaseIntent?.same_tag_asset_and_notes_replacement_allowed !== true
     || releaseIntent?.same_tag_mutation_requires_exact_current_identity_cas_and_public_readback !== true
     || releaseIntent?.nonfunctional_release_work_may_allocate_version !== false
@@ -1146,7 +1146,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     localFirst.remote_only,
     [
       'github_hosted_required_macos_linux_matrix',
-      'github_hosted_desktop_release_set_matrix_required',
+      'github_hosted_desktop_artifacts_matrix_required',
       'protected_signing_and_notarization_credentials',
       'public_mutation',
       'owner_authoritative_remote_readback',
@@ -1462,7 +1462,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
       artifact: 'One-Person-Lab-<version>-linux-x64.deb',
       installer: 'opl-install.sh',
       installer_arguments: ['--desktop', '--release-tag', '<exact-tag>', '--no-open'],
-      release_set_single_tag_asset_binding_required: true,
+      app_release_single_tag_asset_binding_required: true,
       same_release_tag_required: true,
       desktop_manifest_cohort_binding_required: true,
       same_deb_artifact_identity_required: true,
@@ -1611,7 +1611,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || capabilities?.['windows-x64']?.stable_allowed !== true
     || capabilities?.['windows-x64']?.blocks_stable !== false
     || !capabilities?.['windows-x64']?.quality_channels?.includes('stable')
-    || capabilities?.['windows-x64']?.publication_status !== 'same_stable_release_set'
+    || capabilities?.['windows-x64']?.publication_status !== 'same_app_release'
     || capabilities?.['windows-x64']?.publication_route !== '.github/workflows/build-manual.yml'
     || capabilities?.['windows-arm64']?.default_enabled !== false
     || capabilities?.['windows-arm64']?.stable_allowed !== false
@@ -1655,7 +1655,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.desktop_platform_additive_follower?.platform_manifest_schema !==
       'opl_app_desktop_platform_manifest.v1'
     || platformMatrix?.desktop_platform_additive_follower?.aggregate_manifest_schema !==
-      'opl_app_desktop_release_set_manifest.v1'
+      'opl_app_desktop_artifact_manifest.v1'
     || platformMatrix?.desktop_platform_additive_follower?.execution !==
       'one_independent_fail_fast_false_matrix_lane_per_platform'
     || platformMatrix?.desktop_platform_additive_follower?.build_mutex !== null

@@ -273,7 +273,7 @@ function buildRunSummaries(runs: JsonRecord[], top: number) {
       ['build', /build|package|compile|finalizer/i],
       ['apple_wait', /notar|apple|staple/i],
       // "release" also appears in read-only resolver jobs such as
-      // resolve-release-set. Keep publication tied to mutation/readback verbs.
+      // resolve-app-release. Keep publication tied to mutation/readback verbs.
       ['publication', /publish|upload|homebrew|latest/i],
       ['certification', /certif|vm smoke|first-run/i],
     ].map(([phase, pattern]) => {
