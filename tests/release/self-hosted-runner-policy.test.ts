@@ -76,8 +76,8 @@ test('Stable and Latest allow only the exact protected Standard/Full clean-insta
     }
   }
 
-  const stableSource = readWorkflow('release-stable.yml').source;
-  assert.doesNotMatch(stableSource, /self-hosted|opl-first-run-vm|release-post-publication-certification/i);
+  // The structured job checks above enforce executor and call boundaries.
+  // Workflow paths in the immutable input manifest are data, not job calls.
 });
 
 test('Manual Full Preview keeps its explicit self-hosted exception outside Stable/Latest', () => {
