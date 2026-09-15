@@ -315,6 +315,8 @@ test('release-gate Gateway credentials stay file-bound and are scanned before ar
   assert.match(String(prepare.run), /chmod 600 "\$email_file" "\$password_file"/);
   assert.doesNotMatch(String(prepare.run), /echo[^\n]*\$GATEWAY_ACCOUNT_(?:EMAIL|PASSWORD)/);
   assert.match(String(preflight.run), /verify-release-gateway-test-account\.ts/);
+  assert.match(String(preflight.run), /node --use-system-ca --experimental-strip-types/);
+  assert.doesNotMatch(String(preflight.run), /NODE_TLS_REJECT_UNAUTHORIZED|--insecure/);
   assert.match(String(preflight.run), /--email-file/);
   assert.match(String(preflight.run), /--password-file/);
   assert.match(String(preflight.run), /gateway-release-test-account-qualification\.json/);

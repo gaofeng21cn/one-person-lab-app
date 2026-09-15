@@ -1950,7 +1950,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts/opl-first-run-vm
-          node --experimental-strip-types scripts/verify-release-gateway-test-account.ts \
+          node --use-system-ca --experimental-strip-types scripts/verify-release-gateway-test-account.ts \
             --email-file "${{ steps.gateway_credentials.outputs.email_file }}" \
             --password-file "${{ steps.gateway_credentials.outputs.password_file }}" \
             --output artifacts/opl-first-run-vm/gateway-release-test-account-qualification.json
