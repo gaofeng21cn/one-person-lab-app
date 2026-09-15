@@ -1,5 +1,9 @@
 # OPL App Release Guide
 
+For operator sequencing, monitoring, recovery decisions and closeout, start with the
+[release SOP](stable-release-sop.md). This guide is the technical reference; the
+[release Skill](../../../skills/opl-app-release/SKILL.md) routes to that same SOP.
+
 ## Authority
 
 Product and installation semantics live in
@@ -98,7 +102,9 @@ npm run release:stable-dispatch -- publish-qualified-standard --run-id <standard
 npm run release:stable-dispatch -- append-full --source-run-id <checkpoint-run> --execute
 ```
 
-Omit `--execute` for a read-only plan. The command never accepts a version: only
+Omit `--execute` to prepare a plan without dispatching a workflow. Planning can still
+prepare local candidate checkouts and run source gates; use `release:incident-status` for
+a lightweight current-run read. The command never accepts a version: only
 `new-product-release` may ask the workflow to allocate one, and it requires an explicit nonempty
 user-visible product change summary. `--reuse-standard-run-id` continues the same unpublicized Stable
 version with the failed run's already signed and notarized Standard bytes, while a new workflow
@@ -197,19 +203,10 @@ Certification failure records evidence but cannot roll back or rewrite the publi
 
 ## Local Gates
 
-Before pushing a task ref or touching a public Release, run the locally reproducible gates:
-
-```bash
-npm run typecheck
-actionlint <changed-workflows>
-npm run validate:release-boundary
-npm run validate:active-shell
-npm run test:release-boundary
-git diff --check
-```
-
-Use the first real failure as the repair point. A green local suite is only source evidence; it does
-not authorize public mutation.
+Use the [SOP candidate preparation](stable-release-sop.md#2-准备一次准确候选) to select the
+checks required by the actual change and current contract. Reuse still-valid exact-candidate
+results; do not rerun a complete preflight merely because a task ref is being pushed or a
+controller dispatch follows. A green local suite proves source checks, not publication.
 
 ## Publication and recovery
 
