@@ -186,13 +186,13 @@ Runtime 的显示范围与采用要求由当前 App contract 决定，Home 保�
   不保留强制 starter。
 - 默认不激活任何专业智能体。历史保存的 preset 不得反向成为 Home 默认值；只有用户点击
   starter 或从明确 capability 路由进入时才设置 active capability。
-- Starter click-to-start 只准备 route context 与 active capability，不自动执行隐藏 workflow。
+- Starter click-to-start 只准备 route context 与 active capability，不自动执行隐藏 workflow；首次发送时必须把 active capability 显式绑定到新会话上下文，并生成面向所选 Agent/Skill 的领域指令。
 - Starter 选中态保留现有 quiet fill 与 `aria-pressed`，不追加尾部圆圈对号或其它 selection glyph。
 - `ready` 或 `degraded` 的 starter 可选择；已安装、Home 可见但 owner projection 报告
   `package_unavailable` 时保留紧凑状态、原因和安装/启用/修复动作，但不强制其可选。选择后状态若变化，
   发送边界只局部阻止所选 Agent，不用 spinner、空白或伪造成功掩盖问题。
 - 点击 package starter 只设置 route context 与 active capability；普通 conversation create/send 不执行
-  package activation。已安装且已暴露的 `verification_deferred` 或 `scope_materialization_missing` 不构成
+  package activation，但必须保留用户明确选择的 Agent/Skill，不能只把 Skill 放入候选列表。已安装且已暴露的 `verification_deferred` 或 `scope_materialization_missing` 不构成
   预配置门槛。真实 domain stage 的 activation 由 Framework 在 stage runtime 处理，失败只阻止对应 stage。
 - 无 workspace 时仍可发送文字、attachment、任意本地 file/directory picker、paste/drop 与
   `/open`；只有 Codex permission/approval/sandbox 可以阻止真实访问。
