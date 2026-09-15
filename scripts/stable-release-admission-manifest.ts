@@ -18,6 +18,7 @@ import {
 } from './stable-release-version-order.ts';
 import { validateGithubOwnerReleaseNamespaceEvidence } from './validate-release-source-gate.ts';
 import { validateReleaseHomebrewDistribution } from './validate-active-shell/release-homebrew-distribution-validator.ts';
+import { classifyStableSourceOperation } from './stable-followup-router.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appRepository = 'gaofeng21cn/one-person-lab-app';
@@ -931,6 +932,7 @@ export function parseActiveReleaseRunLookups(
         );
       }
       if (String(id) === excludedRunId || !isStableAuthorityWorkflowPath(runPath)) continue;
+      if (classifyStableSourceOperation(typeof candidate.display_title === 'string' ? candidate.display_title : '') === 'studio') continue;
       if (runs.has(id)) throw new Error(`GitHub active release run ${id} appeared in multiple status pages.`);
       runs.set(id, {
         id,

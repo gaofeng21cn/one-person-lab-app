@@ -1186,6 +1186,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       workflow: { type: 'string', default: defaultWorkflow },
       'run-id': { type: 'string' },
       'reuse-standard-run-id': { type: 'string' },
+      'source-gate-run-id': { type: 'string' },
       'source-run-id': { type: 'string' },
       'source-artifact': { type: 'string' },
       'app-ref': { type: 'string' },
@@ -1224,8 +1225,8 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       productChangeSummary: text(values['product-change-summary'], 'product_change_summary'),
       priorStandardArtifactRunId,
       smokeHarnessSha: values['smoke-harness-ref'],
-      reusableSourceGate: priorStandardArtifactRunId
-        ? readReusableStandardSourceGate(runtime, repository, priorStandardArtifactRunId)
+      reusableSourceGate: (values['source-gate-run-id'] || priorStandardArtifactRunId)
+        ? readReusableStandardSourceGate(runtime, repository, runId(values['source-gate-run-id'] || priorStandardArtifactRunId!, 'source_gate_run_id'))
         : undefined,
     });
   } else if (command === 'publish-qualified-standard') {

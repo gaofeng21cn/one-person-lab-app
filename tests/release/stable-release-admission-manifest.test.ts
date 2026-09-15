@@ -614,8 +614,22 @@ test('active release lookup is bounded and retains only other Stable authority r
     {
       status: 'queued' as const,
       payload: {
-        total_count: 3,
+        total_count: 5,
         workflow_runs: [
+          {
+            id: 30150000004,
+            path: '.github/workflows/release-stable.yml',
+            status: 'queued',
+            head_sha: appRef,
+            display_title: 'OPL Stable Studio Full append ref:abc run:30150000004',
+          },
+          {
+            id: 30150000005,
+            path: '.github/workflows/release-stable.yml',
+            status: 'queued',
+            head_sha: appRef,
+            display_title: 'OPL Stable Studio release ref:abc run:30150000005',
+          },
           {
             id: 30150000002,
             path: '.github/workflows/release-nightly.yml@refs/heads/main',

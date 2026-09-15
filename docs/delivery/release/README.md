@@ -78,6 +78,9 @@ operation may contain release-path fixes. Standard artifact recovery also accept
 verification harness against the original signed bytes; this override requires `--reuse-standard-run-id`.
 Recovery verifies the original source-gate bytes against their run-bound control and reuses that passed
 exact-cohort evidence, so advancing owner checkouts does not repeat unchanged source tests.
+When a failed run has no signed artifact yet, `--source-gate-run-id <failed-run>` reuses only its
+authenticated, exact-cohort source gate. The repaired workflow still builds and qualifies the product;
+this option neither reuses a failed acceptance nor authorizes another consumer of the same operation.
 With an explicit repaired harness, an interrupted failed qualification may be run again even if its
 old classifier called it a product failure. Signed-byte identity and scope proof still must match;
 the failed acceptance is never reused and a fresh clean-VM qualification remains mandatory.
