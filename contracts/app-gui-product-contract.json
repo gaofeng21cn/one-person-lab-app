@@ -105,6 +105,13 @@
       "default_install": true,
       "default_register": true,
       "default_enabled": true,
+      "startup_maintenance_recovery": {
+        "trigger": "core_readiness_after_initialize",
+        "retry_failed_initial_attempt_once": true,
+        "reuse_existing_desktop_maintenance_owner": true,
+        "concurrent_maintenance_allowed": false,
+        "core_launch_blocking": false
+      },
       "permission_model": {
         "required_permissions": ["accessibility", "screen_recording"],
         "system_prompt_or_settings_action_required": true,

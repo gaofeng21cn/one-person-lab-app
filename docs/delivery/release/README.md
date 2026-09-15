@@ -88,6 +88,9 @@ preserving certificate verification when the runner's trusted network CA is abse
 The clean-VM workflow participates in the operation fingerprint, so repairing qualification creates
 a fresh operation without rebuilding the frozen product. Historical controls remain readable for
 artifact recovery; new executor admission requires the complete workflow binding set.
+On first launch, failed background maintenance receives one automatic retry after core readiness.
+This reuses the desktop maintenance owner and prevents an early plugin-discovery failure from
+permanently skipping managed companions. Successful or still-running maintenance is not duplicated.
 When a publication attempt persists an unknown GitHub outcome, continue with
 `publish-qualified-standard --run-id <run> --source-artifact opl-release-standard-published-<run>`.
 This preserves the unknown marker for owner-authoritative reconciliation before any new mutation.
