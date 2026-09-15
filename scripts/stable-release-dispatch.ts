@@ -7,6 +7,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { classifyStableSourceOperation } from './stable-followup-router.ts';
 
 import {
   buildPostDispatchReconcile,
@@ -396,6 +397,7 @@ export function activeStableRunIds(runs: unknown[], workflow = defaultWorkflow):
     .filter((run): run is OwnerWorkflowRun => run !== null)
     .filter((run) => (
       run.path === workflow
+      && classifyStableSourceOperation(run.display_title) !== 'studio'
       && run.event === 'workflow_dispatch'
       && run.head_branch === 'main'
       && activeRunStatuses.has(run.status)

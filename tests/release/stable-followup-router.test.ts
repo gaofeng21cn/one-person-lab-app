@@ -31,6 +31,7 @@ test('Stable source operation classification is explicit and fail-closed', () =>
   assert.equal(classifyStableSourceOperation('OPL Stable resume_standard source:1 run:2'), 'resume_standard');
   assert.equal(classifyStableSourceOperation('OPL Stable append_full source:1 run:2'), 'append_full');
   assert.equal(classifyStableSourceOperation('OPL Stable Studio release ref:a run:2'), 'studio');
+  assert.equal(classifyStableSourceOperation('OPL Stable Studio Full append ref:a run:2'), 'studio');
   assert.equal(classifyStableSourceOperation('OPL Stable future_operation run:2'), 'unknown');
 });
 

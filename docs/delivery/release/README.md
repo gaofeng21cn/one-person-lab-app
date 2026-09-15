@@ -56,6 +56,12 @@ cohort, source gate, operation identity and active owner before invoking the pro
 most once. `.github/workflows/release-stable.yml` is the mutation sink, not an operator API; do not
 fill its Stable inputs manually or rerun it from the GitHub UI.
 
+Stable admission and dispatch reconciliation are scoped to the Desktop publication in
+`gaofeng21cn/one-person-lab-app`. Studio Standard and Full share the protected workflow entry,
+but publish to `gaofeng21cn/opl-studio` and use their own publication mutex. Their active runs
+must neither block Desktop admission nor be mistaken for its dispatched owner. The shared
+workflow's declared run names identify these operations; unknown entries remain blocking.
+
 The controller exposes these commands:
 
 ```bash

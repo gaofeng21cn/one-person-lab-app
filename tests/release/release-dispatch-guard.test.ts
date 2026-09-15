@@ -270,6 +270,41 @@ test('pre-nonce guard rejects another active Stable authority before nonce issua
   assert.equal(report.dispatch_allowed, false);
 });
 
+for (const studioEntry of ['Studio release', 'Studio Full append']) {
+  test(`Desktop admission and owner reconciliation exclude independent ${studioEntry}`, () => {
+    const studio = ownerRun(99, { display_title: `OPL Stable ${studioEntry} ref:${appSha} run:99` });
+    const input = {
+      workflow,
+      expectedAppSha: appSha,
+      expectedShellSha: shellSha,
+      expectedFrameworkSha: frameworkSha,
+      sourceGateReport: sourceGateReport(),
+      authorityId: 'authority-42',
+      operationId,
+    };
+    const beforeDispatch = buildPreNonceDispatchGuard(input, { runner: successfulRunner([studio]) });
+    assert.equal(beforeDispatch.dispatch_allowed, true);
+    const current = ownerRun(42);
+    const runBound = buildPreNonceDispatchGuard({ ...input, currentRunId: '42' }, {
+      runner: successfulRunner([studio, current]),
+    });
+    assert.equal(runBound.dispatch_allowed, true);
+    const reconciled = buildPostDispatchReconcile({
+      workflow, headSha: appSha, operationStartedAt, observedAt, mutationInvocationCount: 1,
+    }, { runner: successfulRunner([studio, current]) });
+    assert.equal(reconciled.status, 'identified');
+    assert.equal(reconciled.owner_run?.id, 42);
+  });
+}
+
+test('Desktop admission keeps unknown shared-workflow entries blocking', () => {
+  const report = buildPreNonceDispatchGuard({
+    workflow, expectedAppSha: appSha, expectedShellSha: shellSha, expectedFrameworkSha: frameworkSha,
+    sourceGateReport: sourceGateReport(), authorityId: 'authority-42', operationId,
+  }, { runner: successfulRunner([ownerRun(99, { display_title: 'OPL Stable future_operation run:99' })]) });
+  assert.equal(report.dispatch_allowed, false);
+});
+
 test('pre-nonce guard uses one bounded paginated structured owner-run query', () => {
   let observedArgs: string[] = [];
   const prior = ownerRun(41, { status: 'completed', conclusion: 'success' });

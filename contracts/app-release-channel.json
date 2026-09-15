@@ -4679,6 +4679,9 @@
       ],
       "active_run_scope": {
         "blocking_workflow": ".github/workflows/release-stable.yml",
+        "blocking_publication_repository": "gaofeng21cn/one-person-lab-app",
+        "shared_workflow_studio_entries_block_stable_admission": false,
+        "unknown_shared_workflow_entries_block_stable_admission": true,
         "independent_release_workflows_block_stable_admission": false,
         "nightly_active_run_blocks_stable_admission": false,
         "same_stable_authority_parallel_run_allowed": false

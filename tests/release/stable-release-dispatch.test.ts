@@ -767,4 +767,8 @@ test('active owner detection blocks only the canonical Stable workflow writer', 
   assert.deepEqual(activeStableRunIds([{ ...base, run_attempt: 2 }]), [11]);
   assert.deepEqual(activeStableRunIds([{ ...base, status: 'completed', conclusion: 'failure' }]), []);
   assert.deepEqual(activeStableRunIds([{ ...base, path: '.github/workflows/other.yml' }]), []);
+  for (const entry of ['Studio release', 'Studio Full append']) {
+    assert.deepEqual(activeStableRunIds([{ ...base, display_title: `OPL Stable ${entry} ref:${appSha} run:11` }]), []);
+  }
+  assert.deepEqual(activeStableRunIds([{ ...base, display_title: 'OPL Stable future_operation run:11' }]), [11]);
 });

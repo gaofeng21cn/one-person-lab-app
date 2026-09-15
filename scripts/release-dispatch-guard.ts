@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { classifyStableSourceOperation } from './stable-followup-router.ts';
 import {
   normalizeStableFailureFingerprint,
   stableFailureFingerprintsEqual,
@@ -576,6 +577,7 @@ function matchingOwnerRuns(runs: unknown[], identity: OwnerRunIdentity): OwnerWo
     .filter((run): run is OwnerWorkflowRun => run !== null)
     .filter((run) => (
       run.path === identity.workflow
+      && classifyStableSourceOperation(run.display_title) !== 'studio'
       && run.head_sha === identity.headSha.toLowerCase()
       && run.event === 'workflow_dispatch'
       && run.head_branch === 'main'
@@ -830,6 +832,7 @@ export function buildPreNonceDispatchGuard(
     .filter((run): run is OwnerWorkflowRun => run !== null)
     .filter((run) => (
       run.path === input.workflow
+      && classifyStableSourceOperation(run.display_title) !== 'studio'
       && run.event === 'workflow_dispatch'
       && run.head_branch === 'main'
       && run.run_attempt === 1

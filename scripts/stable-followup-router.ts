@@ -71,6 +71,7 @@ export function classifyStableSourceOperation(displayTitle: string): StableSourc
   if (displayTitle.startsWith('OPL Stable resume_standard ')) return 'resume_standard';
   if (displayTitle.startsWith('OPL Stable append_full ')) return 'append_full';
   if (displayTitle.startsWith('OPL Stable Studio release ')) return 'studio';
+  if (displayTitle.startsWith('OPL Stable Studio Full append ')) return 'studio';
   return 'unknown';
 }
 
