@@ -4606,6 +4606,13 @@
       "replacement": "scripts/framework-release-adapter.ts freeze-request",
       "may_create_release_state_or_authorize_mutation": false
     },
+    "pipeline_efficiency": {
+      "gateway_preflight": "dedicated_non_admin_account_before_standard_freeze_and_fresh_full_build; repeat_real_login_in_clean_vm",
+      "source_quality_scheduling": "parallel_with_artifact_build; all_required_checks_must_pass_before_reusable_build_success",
+      "full_qualification_scheduling": "hosted_package_and_clean_vm_in_parallel_after_verified_build; both_required_for_full_qualified",
+      "recovery": "reuse_exact_verified_checkpoint; never_restart_standard_for_addon_failure",
+      "timing": "record_first_attempt_to_all_required_channels_terminal_separately_from_successful_attempt; include_failed_and_cancelled_attempts"
+    },
     "local_first": {
       "entrypoint": "scripts/verify.sh release-preflight",
       "reuses_existing_orchestrator": true,

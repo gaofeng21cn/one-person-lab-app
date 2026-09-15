@@ -371,16 +371,12 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     environment: ${{ inputs.require_macos_gatekeeper && startsWith(matrix.platform, 'macos') && 'release-stable' || null }}
+    # Build isolated artifacts while source checks run; build-summary joins all gates.
     needs:
-      - workflow-lint
-      - lint-format
-      - typecheck
-      - release-boundary
-      - active-shell-tests
       - prepare-windows-linux-runtime
       - macos-signing-preflight
       - resolve-active-shell-ref
-    if: ${{ always() && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') && (inputs.skip_code_quality || (needs['workflow-lint'].result == 'success' && needs['lint-format'].result == 'success' && needs.typecheck.result == 'success' && needs['release-boundary'].result == 'success' && needs['active-shell-tests'].result == 'success')) }}
+    if: ${{ !cancelled() && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') }}
     defaults:
       run:
         working-directory: shells/aionui
@@ -1439,10 +1435,26 @@ jobs:
   build-summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [lint-format, typecheck, release-boundary, active-shell-tests, build]
+    needs: [workflow-lint, lint-format, typecheck, release-boundary, active-shell-tests, build]
     if: ${{ always() }}
 
     steps:
+      - name: Require every applicable source and artifact gate
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIP_CODE_QUALITY: ${{ inputs.skip_code_quality }}
+        run: |
+          node <<'NODE'
+          const needs = JSON.parse(process.env.NEEDS_JSON);
+          const checks = ['workflow-lint', 'lint-format', 'typecheck', 'release-boundary', 'active-shell-tests'];
+          const required = process.env.SKIP_CODE_QUALITY === 'true' ? ['build'] : ['build', ...checks];
+          const failed = required.filter(id => needs[id]?.result !== 'success');
+          if (failed.length) {
+            console.error(`Required build gates did not pass: ${failed.join(', ')}`);
+            process.exit(1);
+          }
+          NODE
+
       - name: Write build summary
         env:
           MATRIX: ${{ inputs.matrix }}

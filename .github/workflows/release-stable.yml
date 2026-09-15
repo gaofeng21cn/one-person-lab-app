@@ -1063,6 +1063,13 @@ jobs:
           node --experimental-strip-types app-executor/scripts/verify-apple-release-credentials.ts \
             --output "$RUNNER_TEMP/apple-release-credentials-preflight.json"
 
+      - name: Verify Gateway account before Standard freeze and build
+        uses: ./app-executor/.github/actions/release-gateway-preflight
+        with:
+          executor-root: app-executor
+          account-email: ${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}
+          account-password: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}
+
       - name: Seal one same-run Stable admission manifest
         id: manifest
         env:

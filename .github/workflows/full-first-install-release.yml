@@ -83,6 +83,8 @@ on:
       operation_started_at: { description: Immutable outer operation start timestamp, required: false, default: '', type: string }
       operation_deadline_at: { description: Immutable outer operation deadline; never recomputed here, required: false, default: '', type: string }
     secrets:
+      OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD:
+        required: false
       BUILD_CERTIFICATE_BASE64:
         required: false
       P12_PASSWORD:
@@ -234,6 +236,14 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
+
+      - name: Verify Gateway account before release-bound Full build
+        if: ${{ inputs.operation == 'append_full' && !inputs.cache_only }}
+        uses: ./release-executor/.github/actions/release-gateway-preflight
+        with:
+          executor-root: release-executor
+          account-email: ${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}
+          account-password: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}
 
       - name: Validate frozen Full source SHAs
         run: |

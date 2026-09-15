@@ -89,7 +89,9 @@ test('VM preparation overlaps build while final qualification still consumes sea
   const full = read('_release-full-addon.yml').jobs;
   assert.deepEqual(full['prepare-full-vm-inputs'].needs, ['restore-standard']);
   assert.ok(!full['full-build'].needs.includes('prepare-full-vm-inputs'));
-  assert.ok(full['full-clean-vm-qualification'].needs.includes('full-qualification'));
+  assert.ok(!full['full-clean-vm-qualification'].needs.includes('full-qualification'));
+  assert.ok(full['checkpoint-full'].needs.includes('full-qualification'));
+  assert.ok(full['checkpoint-full'].needs.includes('full-clean-vm-qualification'));
   const prepare = read('_prepare-clean-vm-inputs.yml').jobs.prepare;
   assert.equal(prepare['continue-on-error'], true);
   assert.ok(prepare['timeout-minutes'] <= 10);

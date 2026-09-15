@@ -1613,7 +1613,6 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       'restore-standard',
       'full-build',
       'materialize-full-build',
-      'full-qualification',
       'prepare-full-vm-inputs',
     ])
     || fullCleanVm.with?.release_artifact_run_id !== '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'
@@ -1626,7 +1625,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   ) {
     failures += reportFailure(
       id,
-      'Full clean-VM qualification must follow hosted trust validation and consume the exact original Full artifact run',
+      'Full clean-VM qualification must parallel hosted validation after a verified build and consume the exact original Full artifact run',
     );
   }
   const checkpointFullRuns = jobRuns(fullJobs['checkpoint-full']);

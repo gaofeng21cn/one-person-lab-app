@@ -20,6 +20,16 @@ PR/main CI or blocks the primary macOS arm64 Desktop release.
 
 ## Release acceleration
 
+Standard checks the dedicated Gateway account during protected admission; a fresh Full append
+checks it before dependency preparation and packaging. These checks use temporary private files
+and the existing credential bridge. Both final clean-VM lanes still perform real account login.
+
+Source checks and artifact construction run concurrently. The reusable build summary rejects
+any required check that failed, was cancelled, skipped or is missing, even when packaging succeeded.
+Full hosted package verification and clean-VM qualification run concurrently on the same built
+artifact; the checkpoint becomes `full_qualified` only after both pass. Publication keeps its
+existing checkpoint, signature, notarization and digest gates.
+
 Stable Windows builds select the contract's `stable_desktop_additional` command with
 `--win nsis`: only the EXE and updater sidecars are published. Do not generate and then
 delete the unused ZIP. Manual builds retain their general Windows targets.

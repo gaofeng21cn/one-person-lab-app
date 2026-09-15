@@ -1,0 +1,37 @@
+name: Preflight dedicated Gateway release account
+description: Fail before expensive release work using the existing transient credential bridge; never qualify an install.
+inputs:
+  executor-root:
+    required: true
+    description: Checked-out App executor containing the account verifier.
+  account-email:
+    required: true
+    description: Dedicated non-admin test account identity.
+  account-password:
+    required: true
+    description: Existing transient release-test credential.
+runs:
+  using: composite
+  steps:
+    - name: Verify account before expensive release work
+      shell: bash
+      env:
+        EXECUTOR_ROOT: ${{ inputs.executor-root }}
+        GATEWAY_ACCOUNT_EMAIL: ${{ inputs.account-email }}
+        GATEWAY_ACCOUNT_PASSWORD: ${{ inputs.account-password }}
+      run: |
+        set -euo pipefail
+        test -n "$GATEWAY_ACCOUNT_EMAIL" && test -n "$GATEWAY_ACCOUNT_PASSWORD" || {
+          echo "::error::Dedicated Gateway release-test credentials are unavailable."
+          exit 1
+        }
+        umask 077
+        credential_dir="$(mktemp -d "$RUNNER_TEMP/opl-gateway-preflight.XXXXXX")"
+        trap 'rm -rf "$credential_dir"' EXIT
+        printf '%s' "$GATEWAY_ACCOUNT_EMAIL" > "$credential_dir/email"
+        printf '%s' "$GATEWAY_ACCOUNT_PASSWORD" > "$credential_dir/password"
+        unset GATEWAY_ACCOUNT_EMAIL GATEWAY_ACCOUNT_PASSWORD
+        node --use-system-ca --experimental-strip-types "$EXECUTOR_ROOT/scripts/verify-release-gateway-test-account.ts" \
+          --email-file "$credential_dir/email" --password-file "$credential_dir/password" \
+          --output "$credential_dir/preflight.json"
+        echo 'Dedicated account preflight passed; clean-VM login remains required.'

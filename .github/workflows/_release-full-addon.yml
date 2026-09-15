@@ -1384,8 +1384,8 @@ jobs:
           retention-days: 30
 
   full-clean-vm-qualification:
-    if: ${{ always() && needs.full-qualification.result == 'success' }}
-    needs: [restore-standard, full-build, materialize-full-build, full-qualification, prepare-full-vm-inputs]
+    if: ${{ !cancelled() && needs.restore-standard.result == 'success' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified' || needs.restore-standard.outputs.completed_stage == 'full_built') && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
+    needs: [restore-standard, full-build, materialize-full-build, prepare-full-vm-inputs]
     permissions:
       contents: read
       actions: read

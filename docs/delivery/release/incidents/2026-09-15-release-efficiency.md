@@ -12,7 +12,26 @@
 | Apple Full 已取得提交编号 → Accepted | 4 分 41 秒 | 同一 Full run，17:38:56 → 17:43:37；不是全程拖延的主要原因。 |
 | Windows 恢复构建 job | 21 分 56 秒 | [34953127224](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34953127224)，Node/Vite 1 分 2 秒；ZIP 构建日志 17:43:42.990，下一条 NSIS 构建日志 17:54:41.804，间隔 10 分 59 秒。ZIP 最后被清理，没有公开发布。 |
 
-成功候选的完整路径从 16:19:50 到 18:03:31 为 **1 小时 43 分 41 秒**。对照没有前置恢复链的 [9 月 7 日 Standard](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34077857743) 至 [Full](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34080821531) 为 1 小时 47 分 44 秒，[9 月 8 日 Standard](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34183867419) 至 [Full](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34186698363) 为 1 小时 50 分 54 秒。本次最终单轮没有比这两个样本更慢，优先收益是避免重复操作。不同候选、缓存与执行环境不能作为严格性能基准。
+成功候选的完整路径从 16:19:50 到 18:03:31 为 **1 小时 43 分 41 秒**，但它排除了前面的 3 小时 7 分 59 秒，不能据此认为本次完整发布效率正常。此前只用 9 月 7 日和 8 日两个成功单轮作比较，统计口径不足。
+
+### 扩大历史样本
+
+从最新 120 条 Stable workflow 记录排除 Studio，选取本次之前最近 10 条能沿 `source:<run>` 回溯至 Standard 的成功 Full 发布链。以下为“关联 Standard 创建 → 成功 Full/Homebrew Full run 结束”，包含这一区间内的失败、取消、恢复和人工间隔；**不是首次用户请求到所有独立渠道完成的总体平均**。例如 9 月 7 日更早的 Standard 取消和 9 月 11 日更早的独立 Standard 尝试不在引用链起点内，因此这个口径仍会低估整批交付成本。原始起止时间和 run ID 见 [统计记录](2026-09-15-release-chain-timings.json)。
+
+| 日期（UTC） | Standard run | Full run | 分钟 |
+| --- | --- | --- | --- |
+| 2026-09-11 | [34561722115](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34561722115) | [34581635482](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34581635482) | 299.77 |
+| 2026-09-08 | [34183867419](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34183867419) | [34186698363](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34186698363) | 110.90 |
+| 2026-09-07 | [34077857743](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34077857743) | [34080821531](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34080821531) | 107.73 |
+| 2026-09-06 | [34025033824](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34025033824) | [34042721005](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/34042721005) | 383.60 |
+| 2026-09-03 | [33744290031](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33744290031) | [33759445668](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33759445668) | 232.77 |
+| 2026-08-30 | [33329303618](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33329303618) | [33332230659](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33332230659) | 122.77 |
+| 2026-08-29 | [33236257661](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33236257661) | [33247817802](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33247817802) | 349.83 |
+| 2026-08-28 | [33138927178](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33138927178) | [33142349500](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33142349500) | 126.83 |
+| 2026-08-28 | [33132653805](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33132653805) | [33135779283](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33135779283) | 119.33 |
+| 2026-08-27 | [33064802559](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33064802559) | [33069847227](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/33069847227) | 126.52 |
+
+样本均值 **198.01 分钟**，中位数 **126.68 分钟**。长恢复链显著抬高均值；本次 291.67 分钟不能被一个正常的最终单轮抵消。后续同时记录整批首次尝试、Standard 公开、各附加渠道终态、最后一次成功单轮和失败恢复区间，不混用统计口径。
 
 ## 已证断点及本次发布期间完成的修复
 
@@ -45,6 +64,29 @@ GitHub REST 快照曾落后于真实步骤和取消结果；浏览器日志虚�
 - 保留原候选已签名、公证字节；后段恢复优先使用 `full_built`/`full_qualified` 检查点。不得为缩短耗时跳过签名、公证、普通账号登录和必需 clean-VM。
 - 下一次正式 Windows 构建验证不再出现 ZIP 目标，仍生成 EXE、blockmap、更新清单并通过发布读回；比较实际 Windows job 和总关键路径耗时，再量化收益。本次流程验证不能冒充下一次完整 Windows 构建的提速测量。
 
-## 本次修改验证
+## 第一轮修改验证
 
 观测工具、平台矩阵及发布边界共 80 项针对性检查通过，TypeScript 检查和 `bun run validate:active-shell` 完整验证通过。真实 incident CLI 已回读 Full run 的 `completed/success`；当前安装的 electron-builder 26.15.3 已确认将新 Windows 参数解析为唯一 `nsis` 目标。未生成新候选或重发已公开的 v26.9.15；完整验证中的打包运行时扫描因没有新 `app.asar` 而跳过，下一次 Windows 构建的耗时与安装产物仍需正式运行证明。
+
+## 全流程优化补充
+
+首次尝试到完整交付与最终成功单轮必须分别统计；两次成功样本不足以证明历史平均水平。失败、取消和人工修复间隔必须留在端到端统计中。
+
+Standard 在发布准入期间验证专用普通账号，Full 在新构建开始前验证；正式 clean-VM 仍执行真实账号登录。早期预检失败不会先消耗完整打包、公证时间，也不替代安装验收。恢复已经合格的 Full 检查点时不为预检重新构建。
+
+源码检查与构建并行执行，汇总 job 对所有必需结果显式失败关闭；检查失败即使存在构建产物也不能推进发布。Full 的静态包检查和 clean-VM 从同一已构建产物并行启动，只有两者成功才可写入 `full_qualified` 并发布。静态检查失败仍可保存 `full_built` 恢复点。
+
+### 本轮可减少的关键路径
+
+本次 Standard 最长源码检查结束于 16:33:55，macOS 构建直到 16:34:06 才启动，而 Shell ref、签名和运行时准备在约 16:27 已完成。并行化去掉约 6–7 分钟的串行依赖。Full 静态检查从 17:47:44 到 17:50:06，clean-VM 原来必须等它结束；并行化去掉约 2 分钟的依赖。按本次阶段时长推演，合计约 8–9 分钟；这是关键路径估算，尚非新发布实测，也不承诺 runner 争用、公证或网络耗时不变。
+
+早期 Gateway 预检针对本次在构建后才发现账号/TLS 问题的断点，主要收益是避免失败尝试浪费后续打包时间，不计入正常单轮节省分钟。Desktop/Studio 隔离、说明模型回退、准确候选门禁复用、Full 检查点恢复和附加渠道单独恢复沿用已有真实修复；不为“全流程优化”增加第二个发布控制器或重新发布成功版本。
+
+并行源码检查的取舍是：当源码检查失败时，已启动的隔离构建可能继续消耗算力；它不会得到发布成功状态。源码失败应直接修复对应断点，避免把生成了产物当成可跳过检查的理由。
+
+
+### 本轮验证与交付边界
+
+Actionlint、发布边界验证、TypeScript 检查、针对性回归和 `bun run validate:active-shell` 完整验证通过。回归执行了真实汇总脚本的失败、取消、缺失检查结果，以及凭据私有文件权限和成功/失败清理；恢复条件覆盖新构建、`full_built`、`full_qualified`、未知阶段和取消情形。旧的串行依赖断言已按新合同更新。
+
+本轮没有触发新版本发布，因此早期预检在 GitHub runner 上的表现及并行后的完整耗时仍待下一次正式运行验证。聚合验证未发现新的构建产物 `app.asar`，打包运行时扫描按现有规则跳过。源码检查失败时的算力取舍和不同 runner 的 TLS/网络差异仍需在实际运行中观察；预检通过不能替代最终 clean-VM 登录。

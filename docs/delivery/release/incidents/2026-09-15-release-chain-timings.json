@@ -1,0 +1,130 @@
+{
+  "observed_at": "2026-09-15",
+  "repository": "gaofeng21cn/one-person-lab-app",
+  "source": "gh run list --workflow release-stable.yml --limit 120; exact source-run links in run titles",
+  "sample": "latest ten successful Desktop Full completions before 2026-09-15 with resolvable Standard ancestry",
+  "limits": [
+    "Measures referenced Standard run creation to successful Full run completion, including intervening recovery time.",
+    "Does not include earlier unrelated-by-source-link Standard attempts or guarantee terminal readback of every separate repair workflow.",
+    "Not the population mean of first user request to all channels complete."
+  ],
+  "samples": [
+    {
+      "standard_run": 34561722115,
+      "full_run": 34581635482,
+      "start": "2026-09-11T04:18:36Z",
+      "end": "2026-09-11T09:18:22Z",
+      "minutes": 299.77,
+      "chain_run_ids": [
+        34561722115,
+        34564183815,
+        34565142267,
+        34571460652,
+        34581635482
+      ]
+    },
+    {
+      "standard_run": 34183867419,
+      "full_run": 34186698363,
+      "start": "2026-09-08T03:32:28Z",
+      "end": "2026-09-08T05:23:22Z",
+      "minutes": 110.9,
+      "chain_run_ids": [
+        34183867419,
+        34186698363
+      ]
+    },
+    {
+      "standard_run": 34077857743,
+      "full_run": 34080821531,
+      "start": "2026-09-07T02:54:49Z",
+      "end": "2026-09-07T04:42:33Z",
+      "minutes": 107.73,
+      "chain_run_ids": [
+        34077857743,
+        34080821531
+      ]
+    },
+    {
+      "standard_run": 34025033824,
+      "full_run": 34042721005,
+      "start": "2026-09-06T09:34:28Z",
+      "end": "2026-09-06T15:58:04Z",
+      "minutes": 383.6,
+      "chain_run_ids": [
+        34025033824,
+        34040167883,
+        34041528994,
+        34042721005
+      ]
+    },
+    {
+      "standard_run": 33744290031,
+      "full_run": 33759445668,
+      "start": "2026-09-03T10:26:17Z",
+      "end": "2026-09-03T14:19:03Z",
+      "minutes": 232.77,
+      "chain_run_ids": [
+        33744290031,
+        33759445668
+      ]
+    },
+    {
+      "standard_run": 33329303618,
+      "full_run": 33332230659,
+      "start": "2026-08-30T18:52:35Z",
+      "end": "2026-08-30T20:55:21Z",
+      "minutes": 122.77,
+      "chain_run_ids": [
+        33329303618,
+        33332230659
+      ]
+    },
+    {
+      "standard_run": 33236257661,
+      "full_run": 33247817802,
+      "start": "2026-08-29T05:28:42Z",
+      "end": "2026-08-29T11:18:32Z",
+      "minutes": 349.83,
+      "chain_run_ids": [
+        33236257661,
+        33247817802
+      ]
+    },
+    {
+      "standard_run": 33138927178,
+      "full_run": 33142349500,
+      "start": "2026-08-28T03:27:11Z",
+      "end": "2026-08-28T05:34:01Z",
+      "minutes": 126.83,
+      "chain_run_ids": [
+        33138927178,
+        33142349500
+      ]
+    },
+    {
+      "standard_run": 33132653805,
+      "full_run": 33135779283,
+      "start": "2026-08-28T01:22:22Z",
+      "end": "2026-08-28T03:21:42Z",
+      "minutes": 119.33,
+      "chain_run_ids": [
+        33132653805,
+        33135779283
+      ]
+    },
+    {
+      "standard_run": 33064802559,
+      "full_run": 33069847227,
+      "start": "2026-08-27T10:51:09Z",
+      "end": "2026-08-27T12:57:40Z",
+      "minutes": 126.52,
+      "chain_run_ids": [
+        33064802559,
+        33069847227
+      ]
+    }
+  ],
+  "mean_minutes": 198.005,
+  "median_minutes": 126.675
+}
