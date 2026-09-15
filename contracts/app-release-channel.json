@@ -190,10 +190,36 @@
         "signed_notarized_and_stapled_public_DMG_trust_passed",
         "runtime_profile_passed",
         "Gateway_model_access_action_executed",
-        "real_non_simulated_Codex_turn_completed_with_final_message",
+        "real_non_simulated_Codex_turn_proving_provider_connectivity",
         "Settings_Runtime_and_task_inspector_UI_passed",
         "at_least_five_screenshots_per_profile"
       ],
+      "codex_turn_policy": {
+        "scope": "connectivity_not_generation",
+        "rationale": "The clean-VM turn proves the installed Host reaches the configured Gateway provider with the release-test account and returns a real, non-simulated turn. Model generation and balance are provider concerns and must not gate carrier delivery.",
+        "passing_outcomes": [
+          "non_simulated_turn_completed_with_final_message",
+          "non_simulated_turn_returning_structured_INSUFFICIENT_BALANCE"
+        ],
+        "connectivity_proven_codes": [
+          "INSUFFICIENT_BALANCE"
+        ],
+        "failing_outcomes": [
+          "generic_403_authentication_or_authorization_error",
+          "network_timeout_or_transport_error",
+          "simulated_turn",
+          "missing_turn_identity"
+        ],
+        "receipt_fields": [
+          "codex_turn.status",
+          "codex_turn.outcome",
+          "codex_turn.connectivity",
+          "codex_turn.completed",
+          "codex_turn.final_message_present",
+          "codex_turn.simulated"
+        ],
+        "release_test_account_balance_is_not_a_gate": true
+      },
       "mutation_policy": "read_only_public_asset_qualification_no_release_or_asset_mutation",
       "active_shell_after_qualification": "aionui",
       "active_release_carrier_after_qualification": false

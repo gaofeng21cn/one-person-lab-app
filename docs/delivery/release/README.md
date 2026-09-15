@@ -28,6 +28,16 @@ Standard checks the dedicated Gateway account during protected admission; a fres
 checks it before dependency preparation and packaging. These checks use temporary private files
 and the existing credential bridge. Both final clean-VM lanes still perform real account login.
 
+The clean-VM Codex turn is a **connectivity probe, not a model-generation check**. The release-test
+account is expected to carry no balance, so the accepted outcomes are a non-simulated turn that
+completes with a final message, or a non-simulated turn that reaches the configured provider and
+returns a structured `INSUFFICIENT_BALANCE` response. The second outcome is recorded as
+`codex_turn.status=connectivity_confirmed` with `connectivity=confirmed` and `scope=connectivity_not_generation`
+inside `opl_app_studio_preview_vm_qualification.v1`. Generic 403 authentication or authorization errors,
+transport failures, timeouts, missing turn identities and simulated turns still fail the lane. Do not
+report an expected `INSUFFICIENT_BALANCE` response as a product defect, carrier blocker or release
+retrospective item; the policy owner is `codex_turn_policy` in `contracts/app-release-channel.json`.
+
 Source checks and artifact construction run concurrently. The reusable build summary rejects
 any required check that failed, was cancelled, skipped or is missing, even when packaging succeeded.
 Full hosted package verification and clean-VM qualification run concurrently on the same built

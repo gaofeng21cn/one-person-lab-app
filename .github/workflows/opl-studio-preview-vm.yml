@@ -391,9 +391,19 @@ jobs:
             and .checks.install.passed == true
             and .checks.smoke.status == "passed"
             and .checks.smoke.hooks.gatewaySetup == "passed"
-            and .checks.smoke.hooks.codexTurn == "passed"
-            and .checks.smoke.checks.codexTurn.completed == "completed"
-            and .checks.smoke.checks.codexTurn.finalMessagePresent == true
+            and (.checks.smoke.hooks.codexTurn == "passed" or .checks.smoke.hooks.codexTurn == "connectivity_confirmed")
+            and (
+              (
+                .checks.smoke.hooks.codexTurn == "passed"
+                and .checks.smoke.checks.codexTurn.completed == "completed"
+                and .checks.smoke.checks.codexTurn.finalMessagePresent == true
+              )
+              or (
+                .checks.smoke.hooks.codexTurn == "connectivity_confirmed"
+                and .checks.smoke.checks.codexTurn.connectivity == "confirmed"
+                and (.checks.smoke.checks.codexTurn.connectivityCode == "INSUFFICIENT_BALANCE")
+              )
+            )
             and .checks.smoke.checks.codexTurn.simulated == false
             and .checks.smoke.checks.runtime[$profile].status == "passed"
             and .checks.smoke.checks.ui.settings.panel == true
@@ -619,7 +629,7 @@ jobs:
                   runtime_status:(.checks.smoke.checks.runtime // {})[$profile].status,
                   ui_status:.checks.smoke.checks.ui,
                   gateway_status:.checks.smoke.hooks.gatewaySetup,
-                  codex_turn:{status:.checks.smoke.hooks.codexTurn,completed:(.checks.smoke.checks.codexTurn // {}).completed,final_message_present:(.checks.smoke.checks.codexTurn // {}).finalMessagePresent,simulated:(.checks.smoke.checks.codexTurn // {}).simulated}
+                  codex_turn:{status:.checks.smoke.hooks.codexTurn,outcome:(.checks.smoke.checks.codexTurn // {}).outcome,connectivity:(.checks.smoke.checks.codexTurn // {}).connectivity,connectivity_code:(.checks.smoke.checks.codexTurn // {}).connectivityCode,scope:(.checks.smoke.checks.codexTurn // {}).scope,completed:(.checks.smoke.checks.codexTurn // {}).completed,final_message_present:(.checks.smoke.checks.codexTurn // {}).finalMessagePresent,simulated:(.checks.smoke.checks.codexTurn // {}).simulated}
                 }],
                 remaining:[$profiles[] | select(.status != "passed") | (.app_qualification.profile // ((.checks.smoke.checks.runtime // {}) | keys | .[0]))]
               }
@@ -649,9 +659,20 @@ jobs:
               .runtime_status == "passed"
               and (.profile != "standard" or (.framework_status.status == "passed" and .framework_status.installedIdentity.framework_sha == "${{ needs.validate-inputs.outputs.framework_ref }}"))
               and .gateway_status == "passed"
-              and .codex_turn.status == "passed"
-              and .codex_turn.completed == "completed"
-              and .codex_turn.final_message_present == true
+              and .codex_turn.scope == "connectivity_not_generation"
+              and .codex_turn.connectivity == "confirmed"
+              and (.codex_turn.status == "passed" or .codex_turn.status == "connectivity_confirmed")
+              and (
+                (
+                  .codex_turn.status == "passed"
+                  and .codex_turn.completed == "completed"
+                  and .codex_turn.final_message_present == true
+                )
+                or (
+                  .codex_turn.status == "connectivity_confirmed"
+                  and .codex_turn.connectivity_code == "INSUFFICIENT_BALANCE"
+                )
+              )
               and .codex_turn.simulated == false
               and .ui_status.inspector.closed == true)
           ' opl-studio-preview-vm-qualification.json >/dev/null

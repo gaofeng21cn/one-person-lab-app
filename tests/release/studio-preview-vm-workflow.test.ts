@@ -67,9 +67,17 @@ test('Studio Preview VM qualification requires identity, trust, pages, Gateway, 
     '--require-codex-turn',
     '--screenshots-dir',
     '.checks.smoke.checks.codexTurn.simulated == false',
+    '.checks.smoke.checks.codexTurn.connectivity == "confirmed"',
+    '.checks.smoke.checks.codexTurn.connectivityCode == "INSUFFICIENT_BALANCE"',
     '(.checks.smoke.checks.codexTurn // {}).completed',
     '(.checks.smoke.checks.codexTurn // {}).finalMessagePresent',
     '(.checks.smoke.checks.codexTurn // {}).simulated',
+    '(.checks.smoke.checks.codexTurn // {}).connectivity',
+    '(.checks.smoke.checks.codexTurn // {}).connectivityCode',
+    '(.checks.smoke.checks.codexTurn // {}).scope',
+    '.codex_turn.scope == "connectivity_not_generation"',
+    '.codex_turn.connectivity == "confirmed"',
+    '.codex_turn.connectivity_code == "INSUFFICIENT_BALANCE"',
     'smoke_status=$?',
     'test -s "evidence/$PROFILE/qualification.json"',
     'Ensure profile qualification receipt',
@@ -112,4 +120,26 @@ test('App contract owns exact Framework and resumable public-asset qualification
   assert.equal(policy.download_policy.resume_partial_download, true);
   assert.equal(policy.codex_identity.app_bundle_codex_allowed, false);
   assert.equal(policy.mutation_policy, 'read_only_public_asset_qualification_no_release_or_asset_mutation');
+});
+
+test('Studio Preview VM turn probe is scoped to connectivity rather than model generation', () => {
+  const policy = releaseContract.successor_delivery_target.public_clean_vm_qualification;
+  assert.ok(policy.terminal_requirements.includes('real_non_simulated_Codex_turn_proving_provider_connectivity'));
+  assert.equal(
+    policy.terminal_requirements.includes('real_non_simulated_Codex_turn_completed_with_final_message'),
+    false,
+  );
+  assert.equal(policy.codex_turn_policy.scope, 'connectivity_not_generation');
+  assert.deepEqual(policy.codex_turn_policy.passing_outcomes, [
+    'non_simulated_turn_completed_with_final_message',
+    'non_simulated_turn_returning_structured_INSUFFICIENT_BALANCE',
+  ]);
+  assert.deepEqual(policy.codex_turn_policy.connectivity_proven_codes, ['INSUFFICIENT_BALANCE']);
+  assert.equal(policy.codex_turn_policy.release_test_account_balance_is_not_a_gate, true);
+  // A completed turn is still accepted as the stronger outcome.
+  assert.match(source, /\.checks\.smoke\.hooks\.codexTurn == "passed"/);
+  assert.match(source, /\.checks\.smoke\.hooks\.codexTurn == "connectivity_confirmed"/);
+  // Generic auth/network failures and simulated turns stay rejected.
+  assert.doesNotMatch(source, /connectivity_confirmed"\s*\|\|\s*\.checks\.smoke\.hooks\.codexTurn == "partial"/);
+  assert.match(source, /and \.checks\.smoke\.checks\.codexTurn\.simulated == false/);
 });
