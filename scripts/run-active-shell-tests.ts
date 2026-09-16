@@ -19,7 +19,6 @@ function parseArgs(argv) {
   const { values, positionals, tokens } = parseNodeArgs({
     args: argv.slice(2),
     options: {
-      'chunk-size': { type: 'string' },
       'max-workers': { type: 'string' },
       project: { type: 'string' },
       'file-parallelism': { type: 'boolean' },
@@ -33,12 +32,6 @@ function parseArgs(argv) {
     throw new Error(`Unknown argument: ${positionals[0]}`);
   }
   parsed.passThrough = hasTerminator ? positionals : [];
-  if (values['chunk-size']) {
-    const value = Number.parseInt(values['chunk-size'], 10);
-    if (!Number.isInteger(value) || value <= 0) {
-      throw new Error('Expected a positive integer after --chunk-size');
-    }
-  }
   if (values['max-workers']) {
     const value = Number.parseInt(values['max-workers'], 10);
     if (!Number.isInteger(value) || value <= 0) {

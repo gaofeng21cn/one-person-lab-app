@@ -889,7 +889,7 @@ export function buildReleaseSourceGateReport(
     {
       id: 'active_shell_node_dom_tests',
       required: true,
-      command: 'node --experimental-strip-types scripts/run-active-shell-tests.ts --project all --chunk-size 8 --max-workers 1',
+      command: 'node --experimental-strip-types scripts/run-active-shell-tests.ts --project all --max-workers 1',
       cwd: options.repoRoot,
       executed: false,
       reason: 'Release source gate must catch active shell node/dom regressions before expensive release work.',
@@ -1469,8 +1469,6 @@ export function buildReleaseSourceGateReport(
     'scripts/run-active-shell-tests.ts',
     '--project',
     'all',
-    '--chunk-size',
-    '8',
     '--max-workers',
     '1',
   ];

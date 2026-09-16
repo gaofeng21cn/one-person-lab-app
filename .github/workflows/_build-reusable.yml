@@ -253,7 +253,7 @@ jobs:
 
       - name: Run active shell test project
         working-directory: .
-        run: node --experimental-strip-types scripts/run-active-shell-tests.ts --project ${{ matrix.project }} --chunk-size 8 --max-workers 2
+        run: node --experimental-strip-types scripts/run-active-shell-tests.ts --project ${{ matrix.project }} --max-workers 2
 
   prepare-windows-linux-runtime:
     name: Prepare Windows Linux runtime
