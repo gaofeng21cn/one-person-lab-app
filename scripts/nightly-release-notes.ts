@@ -54,6 +54,7 @@ export type NightlyComponentChange = {
   commit_count: number;
   commit_subjects: string[];
   notable_subjects: string[];
+  withheld_subjects: string[];
   compare_url: string;
 };
 
@@ -65,6 +66,7 @@ export type NightlyReleaseNotesEvidence = {
     source: SourceCohort;
     request_digest: string;
     invocation: NightlyReleaseRequest['invocation'];
+    public_note_language: 'en-US';
     assets: string[];
   };
   baseline: {
@@ -81,6 +83,13 @@ export type NightlyReleaseNotesEvidence = {
 
 const exactShaPattern = /^[0-9a-f]{40}$/;
 const releaseTagPattern = /^v\d+\.\d+\.\d+(?:-r[1-9]\d*|-nightly(?:\.r[1-9]\d*)?|-preview\.r[1-9]\d*)?$/;
+// Automated Nightly notes are published in English only, but App, Shell, and Framework commit
+// subjects are written in the language of whoever authored them. Anything outside the public note
+// language is withheld from the body and stays in the notes evidence artifact instead.
+const publicNoteLanguage = 'en-US';
+const nonPublicNoteLanguagePattern =
+  /[\u1100-\u11ff\u2e80-\u2eff\u3000-\u30ff\u3130-\u318f\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff\uff01-\uff60\uffe0-\uffee]/;
+const notableSubjectLimit = 5;
 
 function exactSha(value: unknown, label: string): string {
   const normalized = String(value ?? '');
@@ -172,16 +181,26 @@ function normalizeSubject(subject: string): string {
     .trim();
 }
 
-function notableSubjects(subjects: string[]): string[] {
-  const candidates = subjects
+function notableSubjectSplit(subjects: string[]): { notable: string[]; withheld: string[] } {
+  const candidates = [...new Set(subjects
     .filter((subject) => !/^Merge\b/i.test(subject))
     .filter((subject) => !/^(?:test|ci|chore)(?:\([^)]+\))?!?:/i.test(subject))
     .filter((subject) =>
       /first[- ]run|setup|bootstrap|install|upgrade|updater|settings|gui|home|provider|health|status|display|runtime|assistant|agent|skill|codex|mas|mag|rca|meta agent|plugin|windows|wsl|linux|docs|readme|guide|screenshot|tutorial|shortcut|ipc|profile/i.test(subject),
     )
     .map(normalizeSubject)
-    .filter(Boolean);
-  return [...new Set(candidates)].slice(0, 5);
+    .filter(Boolean))];
+  const notable = candidates.filter((subject) => !nonPublicNoteLanguagePattern.test(subject));
+  const withheld = candidates.filter((subject) => nonPublicNoteLanguagePattern.test(subject));
+  return { notable: notable.slice(0, notableSubjectLimit), withheld };
+}
+
+function assertPublicNoteLanguage(notes: string): void {
+  if (nonPublicNoteLanguagePattern.test(notes)) {
+    throw new Error(
+      'Nightly public notes must stay in English; publish non-English component content through the comparison evidence instead.',
+    );
+  }
 }
 
 function componentChange(input: RepositoryInput): NightlyComponentChange {
@@ -205,6 +224,7 @@ function componentChange(input: RepositoryInput): NightlyComponentChange {
   if (!Number.isSafeInteger(count) || count < 0 || count !== subjects.length) {
     throw new Error(`${input.label} commit range count is inconsistent.`);
   }
+  const subjectSplit = notableSubjectSplit(subjects);
   return {
     id: input.id,
     label: input.label,
@@ -213,13 +233,19 @@ function componentChange(input: RepositoryInput): NightlyComponentChange {
     current_ref: input.currentRef,
     commit_count: count,
     commit_subjects: subjects,
-    notable_subjects: notableSubjects(subjects),
+    notable_subjects: subjectSplit.notable,
+    withheld_subjects: subjectSplit.withheld,
     compare_url: `https://github.com/${input.repository}/compare/${input.previousRef}...${input.currentRef}`,
   };
 }
 
 function userVisibleChanges(components: NightlyComponentChange[]): string[] {
-  const subjects = components.flatMap((component) => component.notable_subjects);
+  // The public body language boundary withholds non-English commit subjects from the component
+  // listing, but their category still belongs in the English summary above.
+  const subjects = components.flatMap((component) => [
+    ...component.notable_subjects,
+    ...component.withheld_subjects,
+  ]);
   const changes: string[] = [];
   const add = (pattern: RegExp, text: string) => {
     if (subjects.some((subject) => pattern.test(subject))) changes.push(text);
@@ -241,6 +267,13 @@ function renderComponent(component: NightlyComponentChange): string[] {
     lines.push('- No user-facing commit subject was selected; use the exact comparison link for the authoritative diff.');
   } else {
     lines.push(...component.notable_subjects.map((subject) => `- ${subject}`));
+  }
+  if (component.withheld_subjects.length > 0) {
+    const withheld = component.withheld_subjects.length;
+    lines.push(
+      `- ${withheld} commit subject${withheld === 1 ? '' : 's'} ${withheld === 1 ? 'is' : 'are'} not shown because `
+        + `${withheld === 1 ? 'it is' : 'they are'} not written in English; the exact comparison link above is authoritative.`,
+    );
   }
   return lines;
 }
@@ -340,6 +373,7 @@ export function buildNightlyReleaseNotes(input: {
     components,
     visibleChanges,
   });
+  assertPublicNoteLanguage(notes);
   return {
     notes,
     evidence: {
@@ -350,6 +384,7 @@ export function buildNightlyReleaseNotes(input: {
         source: input.request.source,
         request_digest: input.request.request_digest,
         invocation: input.request.invocation,
+        public_note_language: publicNoteLanguage,
         assets: input.qualification.assets.map((asset) => asset.name),
       },
       baseline: {

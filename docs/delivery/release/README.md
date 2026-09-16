@@ -92,6 +92,13 @@ complete document at once; the deadline must cover generation, not only connecti
 establishment. A short provider probe proves connectivity; only validated full notes
 prove that preparation succeeded.
 
+Public bodies follow `public_release_notes.public_body_language`. The AI writer generates the
+hidden `en-US` and `zh-CN` blocks, and its validator rejects Chinese in the visible English body.
+Automated Nightly notes are deterministic instead, so they copy component commit subjects only when
+those subjects are written in English; the rest are withheld from the body, disclosed as a count,
+and kept in `nightly-notes-evidence.json`. Republish a body that still violates the boundary in
+place under the same tag with unchanged assets, then read it back.
+
 `npm run release:stable-dispatch` is the only operator entry for a Stable release. It resolves and
 validates the checkpoint, original artifact producer, qualification run, verification harness,
 cohort, source gate, operation identity and active owner before invoking the protected workflow at

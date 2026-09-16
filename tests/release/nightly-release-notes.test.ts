@@ -38,16 +38,22 @@ function repository(root: string, commits: string[]): { previous: string; curren
   return { previous, current: git(root, ['rev-parse', 'HEAD']) };
 }
 
-function fixture(t: test.TestContext) {
+function fixture(
+  t: test.TestContext,
+  options: { appSubjects?: string[]; frameworkSubjects?: string[] } = {},
+) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-nightly-notes-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const app = repository(path.join(root, 'app'), [
+  const app = repository(path.join(root, 'app'), options.appSubjects ?? [
     'feat(gui): add provider readiness status',
     'fix(updater): preserve Preview automatic update metadata',
     'test: cover internal release receipt',
   ]);
   const shell = repository(path.join(root, 'shell'), ['fix: improve first-run setup']);
-  const framework = repository(path.join(root, 'framework'), ['docs: refresh install guide']);
+  const framework = repository(
+    path.join(root, 'framework'),
+    options.frameworkSubjects ?? ['docs: refresh install guide'],
+  );
   const request = resolveNightlyReleaseRequest({
     baseVersion: '26.8.2-nightly',
     existingRefs: [],
@@ -168,6 +174,31 @@ test('Nightly notes are deterministic, evidence-bound, and useful to Preview upd
   }
   assert.equal(first.evidence.components[0]?.commit_count, 3);
   assert.equal(first.evidence.notes_sha256.length, 71);
+});
+
+test('Nightly notes withhold component commit subjects that are not written in English', (t) => {
+  const input = fixture(t, {
+    appSubjects: ['移除旧发布故障 Skill，统一发布入口'],
+    frameworkSubjects: [
+      'feat(release): publish framework OCI install catalog',
+      '发布 RCA 0.2.18 的 OCI 软件包描述与载体清单',
+    ],
+  });
+  const { notes, evidence } = build(input);
+  assert.doesNotMatch(notes, /[\u3400-\u9fff]/);
+  assert.match(notes, /publish framework OCI install catalog/);
+  assert.match(notes, /1 commit subject is not shown because it is not written in English/);
+  assert.doesNotMatch(notes, /移除旧发布故障/);
+  assert.doesNotMatch(notes, /发布 RCA/);
+  const app = evidence.components.find((component) => component.id === 'app');
+  const framework = evidence.components.find((component) => component.id === 'framework');
+  assert.equal(app?.notable_subjects.length, 0);
+  assert.deepEqual(app?.withheld_subjects, ['移除旧发布故障 Skill，统一发布入口']);
+  assert.equal(framework?.notable_subjects.length, 1);
+  assert.deepEqual(framework?.withheld_subjects, ['发布 RCA 0.2.18 的 OCI 软件包描述与载体清单']);
+  assert.ok(framework?.commit_subjects.includes('发布 RCA 0.2.18 的 OCI 软件包描述与载体清单'));
+  assert.match(notes, /Built-in agent, skill, or Codex integration behavior changed/);
+  assert.equal(evidence.current.public_note_language, 'en-US');
 });
 
 test('Nightly notes fail closed when public baseline identity drifts', (t) => {

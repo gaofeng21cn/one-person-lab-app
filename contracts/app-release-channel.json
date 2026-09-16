@@ -2783,6 +2783,15 @@
     "release_critical_path_ai_allowed": false,
     "prepared_body_required_before_expensive_gates": true,
     "prepared_public_copy_ai_required": true,
+    "public_body_language": {
+      "default": "en-US",
+      "localized_blocks": ["en-US", "zh-CN"],
+      "stable_rule": "The visible GitHub body and the hidden OPL_RELEASE_NOTES:en-US block contain no Chinese text; Chinese reaches App users only through the hidden OPL_RELEASE_NOTES:zh-CN block selected by App locale.",
+      "nightly_rule": "Deterministic Nightly notes are English-only: component commit subjects that are not written in English are withheld from the published body, disclosed as a count, and retained only in the notes evidence artifact.",
+      "component_subject_rule": "App, Shell, and Framework commit subjects may be authored in Chinese, so every writer that copies them into a published body must apply the public body language boundary instead of assuming English subjects.",
+      "app_surface_rule": "The App update popup renders the hidden locale block when present and otherwise falls back to the published body, so a mixed-language body is user-visible in both GitHub and the App.",
+      "repair_route": "A published body that violates this boundary is repaired in place under the same tag with unchanged assets and public readback."
+    },
     "preferred_ai_route": {
       "provider": "openai_compatible",
       "compatibility_base_url": "https://gateway.medopl.com/v1",
