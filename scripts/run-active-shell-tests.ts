@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync } from 'node:fs';
+import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -10,10 +11,16 @@ import { readAppShellAdapterContract, resolveActiveShellPaths } from './app-shel
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
+  // The active shell suite is 3,715 tests across node and dom projects. Running
+  // its files one at a time spends most of the wall clock in per-file setup, so
+  // the default keeps a bounded number of files in flight. Callers that need a
+  // strictly serial gate (the release source gate) pass --max-workers 1, which
+  // leaves a single worker no matter how the files are scheduled.
+  const defaultMaxWorkers = Math.max(1, Math.min(4, availableParallelism() - 1));
   const parsed = {
-    maxWorkers: Number.parseInt(process.env.OPL_APP_TEST_MAX_WORKERS ?? '1', 10),
+    maxWorkers: Number.parseInt(process.env.OPL_APP_TEST_MAX_WORKERS ?? String(defaultMaxWorkers), 10),
     project: 'all',
-    fileParallelism: false,
+    fileParallelism: true,
     passThrough: [],
   };
   const { values, positionals, tokens } = parseNodeArgs({
@@ -22,6 +29,7 @@ function parseArgs(argv) {
       'max-workers': { type: 'string' },
       project: { type: 'string' },
       'file-parallelism': { type: 'boolean' },
+      'no-file-parallelism': { type: 'boolean' },
     } as const,
     allowPositionals: true,
     strict: true,
@@ -47,6 +55,9 @@ function parseArgs(argv) {
   }
   if (values['file-parallelism']) {
     parsed.fileParallelism = true;
+  }
+  if (values['no-file-parallelism']) {
+    parsed.fileParallelism = false;
   }
 
   return parsed;
