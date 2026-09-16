@@ -153,7 +153,7 @@ test('Full App contract delegates Codex to the Shell-composed carrier and omits 
   const manifest = buildFullPackageManifest();
   assert.equal(Object.prototype.hasOwnProperty.call(manifest.components, 'codex'), false);
   assert.deepEqual(
-    manifest.opl_runtime_bundle_consumer.runtime_fabric_bundle_taxonomy['execution-core.bundle'].components,
+    manifest.opl_execution_environment_consumer.runtime_fabric_bundle_taxonomy['execution-core.bundle'].components,
     ['temporal_cli', 'opl'],
   );
 });

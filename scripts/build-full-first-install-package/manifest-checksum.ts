@@ -299,11 +299,9 @@ export function buildResolvedFullPayloadRefs(options, sources, components, sourc
       requested_ref: options.frameworkRef || 'main',
       resolved_commit: components.opl?.git_commit ?? readGitHead(options.frameworkRoot),
       contract_path: 'contracts/opl-framework/runtime-environment-substrate-contract.json',
-      readback_commands: [
-        'opl runtime env contract --json',
-        'opl runtime env build --domain <domain> --profile <profile> --platform <platform> --json',
-        'opl runtime env materialize --domain <domain> --profile <profile> --platform <platform> --dry-run --json',
-        'opl runtime env run-context --domain <domain> --profile <profile> --platform <platform> --json',
+      command_refs: [
+        'opl env prepare --domain <domain> --profile <profile> --requirement-profile <path> --artifact-root <path> --apply --json',
+        'opl env run --domain <domain> --profile <profile> --artifact-root <path> -- <command...>',
       ],
     },
     mas: {

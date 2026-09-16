@@ -35,24 +35,36 @@ test("packaged runtime validator only requires Full runtime when explicitly requ
   assert.match(required.issues.join("\n"), /missing opl-full-runtime extraResource/);
 });
 
-test("Full first-install manifest consumes the OPL runtime bundle boundary instead of owning dependency truth", async () => {
+test("Full first-install manifest consumes execution environment refs and preserves offline payloads", async () => {
   const mod = await import("../../../scripts/full-first-install-package.ts");
-  const manifest = mod.buildFullPackageManifest({ version: "26.6.21-bundle-consumer" });
+  const manifest = mod.buildFullPackageManifest({ version: "26.9.16-environment-consumer" });
 
-  assert.equal(manifest.opl_runtime_bundle_consumer.app_repo_role, "consumer_only");
-  assert.equal(manifest.opl_runtime_bundle_consumer.dependency_truth_owner, false);
+  assert.equal(manifest.opl_execution_environment_consumer.app_repo_role, "consumer_only");
+  assert.equal(manifest.opl_execution_environment_consumer.dependency_truth_owner, false);
   assert.equal(
-    manifest.opl_runtime_bundle_consumer.consumption_boundary
+    manifest.opl_execution_environment_consumer.consumption_boundary
       .keeps_full_offline_first_install_payloads,
     true,
   );
   assert.equal(
-    manifest.opl_runtime_bundle_consumer.consumption_boundary
+    manifest.opl_execution_environment_consumer.consumption_boundary
       .can_delete_required_offline_payloads_for_size,
     false,
   );
   const releaseContract = JSON.parse(
     fs.readFileSync(path.join(appRoot, "contracts", "app-release-channel.json"), "utf8"),
+  );
+  assert.deepEqual(
+    manifest.opl_execution_environment_consumer.source_surface,
+    releaseContract.full_first_install.opl_execution_environment_consumer.source_surface,
+  );
+  assert.deepEqual(
+    manifest.opl_execution_environment_consumer.consumed_refs,
+    releaseContract.full_first_install.opl_execution_environment_consumer.consumed_refs,
+  );
+  assert.equal(
+    manifest.opl_execution_environment_consumer.consumption_boundary.can_prepare_task_environment_during_release,
+    false,
   );
   assert.ok(
     releaseContract.full_first_install.payload_boundary.allowed_actions.includes(

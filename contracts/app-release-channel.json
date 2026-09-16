@@ -4209,17 +4209,17 @@
           "runtime_profile": "offline-kit",
           "updater_visible": false,
           "contains_opl_full_runtime": true,
-          "role": "manual diagnostic/runtime recovery artifact that consumes the same OPL runtime bundle manifest boundary"
+          "role": "manual diagnostic/runtime recovery artifact retaining the same declared offline payloads"
         }
       },
       "runtime_boundary": {
         "opl_full_runtime": {
           "path": "Contents/Resources/opl-full-runtime",
           "owner": "gaofeng21cn/one-person-lab",
-          "role": "offline first-install runtime payload assembled from the OPL runtime bundle manifest; dependency truth remains in OPL",
+          "role": "offline first-install runtime payload assembled from declared Framework and package sources; task dependency environment truth remains in OPL",
           "standard_package_allowed": false,
           "app_role": "consumer_and_packager",
-          "bundle_manifest_ref": "full_first_install.opl_runtime_bundle_consumer.consumed_refs.bundle_manifest"
+          "execution_environment_contract_ref": "full_first_install.opl_execution_environment_consumer.source_surface.contract_ref"
         },
         "aionui_bundled_runtime": {
           "path": "Contents/Resources/bundled-aioncore",
@@ -4509,8 +4509,8 @@
         "copy_declared_companion_tool_payloads",
         "write_distribution_manifest",
         "write_checksums",
-        "consume_opl_runtime_bundle_manifest",
-        "record_opl_runtime_bundle_manifest_ref"
+        "consume_opl_execution_environment_contract",
+        "record_opl_execution_environment_refs"
       ],
       "forbidden_authority": [
         "runtime_truth",
@@ -4531,60 +4531,52 @@
         "gaofeng21cn/redcube-ai"
       ],
       "consumer_refs": {
-        "opl_runtime_bundle": "opl_runtime_bundle_consumer",
-        "bundle_manifest": "OPL runtime bundle manifest",
-        "bundle_lock": "OPL runtime bundle lock",
-        "bundle_readback": "OPL runtime env contract/readback",
-        "env_contract": "OPL runtime env contract"
+        "execution_environment": "opl_execution_environment_consumer",
+        "environment_manifest": "Framework environment_manifest_ref from the prepared run context",
+        "run_context": "dependency_run_context.json",
+        "env_contract": "OPL runtime environment contract"
       },
       "false_ready_flags": {
         "cache_hit_is_release_ready": false,
         "manifest_present_is_release_ready": false,
-        "lock_present_is_release_ready": false,
         "full_package_built_is_release_ready": false,
         "full_package_built_is_family_production_ready": false,
         "app_can_claim_runtime_dependency_truth": false
       }
     },
-    "opl_runtime_bundle_consumer": {
-      "schema": "opl_runtime_bundle_manifest_consumer.v1",
+    "opl_execution_environment_consumer": {
+      "schema": "opl_execution_environment_consumer.v1",
       "app_repo_role": "consumer_only",
       "truth_owner": "gaofeng21cn/one-person-lab",
       "dependency_truth_owner": false,
       "release_efficiency_boundary": {
-        "full_runtime_bundle_preheated_outside_app_release": true,
-        "app_release_consumes_manifest_lock_readback_refs": true,
-        "app_release_must_not_materialize_runtime_bundle": true,
+        "task_environment_preparation_owner": "OPL Framework",
+        "app_release_records_environment_contract_refs": true,
+        "app_release_must_not_prepare_task_environments": true,
         "cache_hit_or_manifest_is_reuse_evidence_only": true,
-        "rule": "Full runtime bundle preparation belongs to OPL Framework. The App Full release consumes the bundle manifest, lock, env contract, and readback refs and packages required offline payloads; it does not own dependency truth or add runtime materialization to the release critical path."
+        "rule": "Full packages retain required offline payloads and distribution layer caches. Temporary task environments are prepared and reused through opl env prepare/run outside the App release path; their installed versions are recorded once in an environment manifest and referenced by each run context."
       },
       "source_surface": {
         "contract_ref": "gaofeng21cn/one-person-lab/contracts/opl-framework/runtime-environment-substrate-contract.json",
-        "readback_command_refs": {
-          "contract": "opl runtime env contract --json",
-          "build": "opl runtime env build --domain <domain> --profile <profile> --platform <platform> --json",
-          "materialize_dry_run": "opl runtime env materialize --domain <domain> --profile <profile> --platform <platform> --dry-run --json",
-          "run_context": "opl runtime env run-context --domain <domain> --profile <profile> --platform <platform> --json"
+        "command_refs": {
+          "prepare": "opl env prepare --domain <domain> --profile <profile> --requirement-profile <path> --artifact-root <path> --apply --json",
+          "run": "opl env run --domain <domain> --profile <profile> --artifact-root <path> -- <command...>"
         },
-        "required_readback_claim_fields": [
-          "implementation_status",
-          "target_planned",
-          "dry_run",
-          "can_claim_runtime_ready",
-          "can_claim_domain_ready",
-          "can_claim_app_release_ready"
-        ]
+        "run_context_fields": [
+          "environment_id",
+          "environment_manifest_ref"
+        ],
+        "preparation_policy": "Reuse prepared local environments; uv and renv own dependency installation and shared caches.",
+        "version_recording_policy": "Record installed versions once when an environment is created or changed; runs reference that manifest."
       },
       "consumed_refs": {
-        "bundle_manifest": "OPL runtime bundle manifest",
-        "bundle_lock": "OPL runtime bundle lock",
-        "bundle_readback": "OPL runtime env contract/readback",
-        "env_contract": "OPL runtime env contract"
+        "environment_manifest": "Framework environment_manifest_ref from the prepared run context",
+        "run_context": "dependency_run_context.json",
+        "env_contract": "OPL runtime environment contract"
       },
       "false_ready_flags": {
         "cache_hit_is_release_ready": false,
         "manifest_present_is_release_ready": false,
-        "lock_present_is_release_ready": false,
         "full_package_built_is_release_ready": false,
         "full_package_built_is_family_production_ready": false,
         "app_can_claim_runtime_dependency_truth": false
@@ -4593,10 +4585,10 @@
         "records_refs_only": true,
         "keeps_full_offline_first_install_payloads": true,
         "can_delete_required_offline_payloads_for_size": false,
-        "can_materialize_runtime_root": false,
         "can_claim_runtime_ready": false,
         "can_claim_app_release_ready": false,
-        "can_claim_family_production_ready": false
+        "can_claim_family_production_ready": false,
+        "can_prepare_task_environment_during_release": false
       },
       "layer_taxonomy": {
         "canonical_layer_ids": [
@@ -5692,38 +5684,32 @@
         "skills": "selected package-set identity, OPL Flow workflow policy when selected, App product profile, selected skill bytes, skills packager implementation, and skills prune projection",
         "unknown_prune_root": "conservative_all_layers"
       },
-      "opl_runtime_bundle_consumer": {
-        "schema": "opl_runtime_bundle_manifest_consumer.v1",
+      "opl_execution_environment_consumer": {
+        "schema": "opl_execution_environment_consumer.v1",
         "app_repo_role": "consumer_only",
         "truth_owner": "gaofeng21cn/one-person-lab",
         "dependency_truth_owner": false,
         "source_surface": {
           "contract_ref": "gaofeng21cn/one-person-lab/contracts/opl-framework/runtime-environment-substrate-contract.json",
-          "readback_command_refs": {
-            "contract": "opl runtime env contract --json",
-            "build": "opl runtime env build --domain <domain> --profile <profile> --platform <platform> --json",
-            "materialize_dry_run": "opl runtime env materialize --domain <domain> --profile <profile> --platform <platform> --dry-run --json",
-            "run_context": "opl runtime env run-context --domain <domain> --profile <profile> --platform <platform> --json"
+          "command_refs": {
+            "prepare": "opl env prepare --domain <domain> --profile <profile> --requirement-profile <path> --artifact-root <path> --apply --json",
+            "run": "opl env run --domain <domain> --profile <profile> --artifact-root <path> -- <command...>"
           },
-          "required_readback_claim_fields": [
-            "implementation_status",
-            "target_planned",
-            "dry_run",
-            "can_claim_runtime_ready",
-            "can_claim_domain_ready",
-            "can_claim_app_release_ready"
-          ]
+          "run_context_fields": [
+            "environment_id",
+            "environment_manifest_ref"
+          ],
+          "preparation_policy": "Reuse prepared local environments; uv and renv own dependency installation and shared caches.",
+          "version_recording_policy": "Record installed versions once when an environment is created or changed; runs reference that manifest."
         },
         "consumed_refs": {
-          "bundle_manifest": "OPL runtime bundle manifest",
-          "bundle_lock": "OPL runtime bundle lock",
-          "bundle_readback": "OPL runtime env contract/readback",
-          "env_contract": "OPL runtime env contract"
+          "environment_manifest": "Framework environment_manifest_ref from the prepared run context",
+          "run_context": "dependency_run_context.json",
+          "env_contract": "OPL runtime environment contract"
         },
         "false_ready_flags": {
           "cache_hit_is_release_ready": false,
           "manifest_present_is_release_ready": false,
-          "lock_present_is_release_ready": false,
           "full_package_built_is_release_ready": false,
           "full_package_built_is_family_production_ready": false,
           "app_can_claim_runtime_dependency_truth": false
@@ -5732,10 +5718,10 @@
           "records_refs_only": true,
           "keeps_full_offline_first_install_payloads": true,
           "can_delete_required_offline_payloads_for_size": false,
-          "can_materialize_runtime_root": false,
           "can_claim_runtime_ready": false,
           "can_claim_app_release_ready": false,
-          "can_claim_family_production_ready": false
+          "can_claim_family_production_ready": false,
+          "can_prepare_task_environment_during_release": false
         },
         "layer_taxonomy": {
           "canonical_layer_ids": [

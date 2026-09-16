@@ -278,7 +278,7 @@ test("Full runtime cache classifies hit and miss modes from one canonical key", 
   assert.deepEqual(aggregate.layer_ids, mod.FULL_RUNTIME_CACHE_LAYER_IDS);
   assert.deepEqual(aggregate.layers, layers);
   assert.deepEqual(
-    aggregate.opl_runtime_bundle_consumer,
-    mod.buildFullPackageManifest().opl_runtime_bundle_consumer,
+    aggregate.opl_execution_environment_consumer,
+    mod.buildFullPackageManifest().opl_execution_environment_consumer,
   );
 });

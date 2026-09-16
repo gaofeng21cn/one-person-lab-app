@@ -20,7 +20,7 @@ export const FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS = [
 export const PACKAGED_MODULE_MARKER_FILE = 'opl-runtime-module.json';
 const FULL_RUNTIME_CACHE_LAYOUT_VERSION = 2;
 export const FULL_RUNTIME_CACHE_LAYER_IDS = ['toolchain', 'domain-runtime', 'opl-runtime', 'skills'] as const;
-const OPL_RUNTIME_BUNDLE_LAYER_IDS = [
+const FULL_PAYLOAD_LAYER_IDS = [
   'base-toolchain',
   'python-wheelhouse',
   'opl-framework-runtime',
@@ -29,7 +29,7 @@ const OPL_RUNTIME_BUNDLE_LAYER_IDS = [
   'optional-heavy-tools',
 ] as const;
 export const FULL_RUNTIME_CACHE_LAYER_TAXONOMY = {
-  canonical_layer_ids: OPL_RUNTIME_BUNDLE_LAYER_IDS,
+  canonical_layer_ids: FULL_PAYLOAD_LAYER_IDS,
   legacy_assembly_layer_mapping: {
     toolchain: ['base-toolchain', 'python-wheelhouse', 'optional-heavy-tools'],
     'domain-runtime': ['domain-pack'],
@@ -52,7 +52,6 @@ const RUNTIME_FABRIC_BUNDLE_TAXONOMY = {
       language_runtimes: ['node', 'python'],
       package_and_env_resolvers: ['uv'],
       env_cache_and_isolated_prefix: 'runtime/current/.runtime-cache plus module-specific managed env roots',
-      optional_resolver_slots: ['pixi_for_scientific_native_stack_when_declared'],
     },
     smoke: 'Node, Python, and uv version checks plus resolver/cache receipt presence',
   },
@@ -63,39 +62,30 @@ const RUNTIME_FABRIC_BUNDLE_TAXONOMY = {
     smoke: 'Native helper doctor/runtime-watch/indexer protocol smoke when helper is present',
   },
 } as const;
-const OPL_RUNTIME_BUNDLE_SOURCE_SURFACE = {
+const OPL_EXECUTION_ENVIRONMENT_SOURCE_SURFACE = {
   contract_ref: 'gaofeng21cn/one-person-lab/contracts/opl-framework/runtime-environment-substrate-contract.json',
-  readback_command_refs: {
-    contract: 'opl runtime env contract --json',
-    build: 'opl runtime env build --domain <domain> --profile <profile> --platform <platform> --json',
-    materialize_dry_run: 'opl runtime env materialize --domain <domain> --profile <profile> --platform <platform> --dry-run --json',
-    run_context: 'opl runtime env run-context --domain <domain> --profile <profile> --platform <platform> --json',
+  command_refs: {
+    prepare: 'opl env prepare --domain <domain> --profile <profile> --requirement-profile <path> --artifact-root <path> --apply --json',
+    run: 'opl env run --domain <domain> --profile <profile> --artifact-root <path> -- <command...>',
   },
-  required_readback_claim_fields: [
-    'implementation_status',
-    'target_planned',
-    'dry_run',
-    'can_claim_runtime_ready',
-    'can_claim_domain_ready',
-    'can_claim_app_release_ready',
-  ],
+  run_context_fields: ['environment_id', 'environment_manifest_ref'],
+  preparation_policy: 'Reuse prepared local environments; uv and renv own dependency installation and shared caches.',
+  version_recording_policy: 'Record installed versions once when an environment is created or changed; runs reference that manifest.',
 } as const;
-const OPL_RUNTIME_BUNDLE_CONSUMER_CONTRACT = {
-  schema: 'opl_runtime_bundle_manifest_consumer.v1',
+const OPL_EXECUTION_ENVIRONMENT_CONSUMER_CONTRACT = {
+  schema: 'opl_execution_environment_consumer.v1',
   app_repo_role: 'consumer_only',
   truth_owner: 'gaofeng21cn/one-person-lab',
   dependency_truth_owner: false,
-  source_surface: OPL_RUNTIME_BUNDLE_SOURCE_SURFACE,
+  source_surface: OPL_EXECUTION_ENVIRONMENT_SOURCE_SURFACE,
   consumed_refs: {
-    bundle_manifest: 'OPL runtime bundle manifest',
-    bundle_lock: 'OPL runtime bundle lock',
-    bundle_readback: 'OPL runtime env contract/readback',
-    env_contract: 'OPL runtime env contract',
+    environment_manifest: 'Framework environment_manifest_ref from the prepared run context',
+    run_context: 'dependency_run_context.json',
+    env_contract: 'OPL runtime environment contract',
   },
   false_ready_flags: {
     cache_hit_is_release_ready: false,
     manifest_present_is_release_ready: false,
-    lock_present_is_release_ready: false,
     full_package_built_is_release_ready: false,
     full_package_built_is_family_production_ready: false,
     app_can_claim_runtime_dependency_truth: false,
@@ -104,7 +94,7 @@ const OPL_RUNTIME_BUNDLE_CONSUMER_CONTRACT = {
     records_refs_only: true,
     keeps_full_offline_first_install_payloads: true,
     can_delete_required_offline_payloads_for_size: false,
-    can_materialize_runtime_root: false,
+    can_prepare_task_environment_during_release: false,
     can_claim_runtime_ready: false,
     can_claim_app_release_ready: false,
     can_claim_family_production_ready: false,
@@ -254,7 +244,7 @@ export function buildFullRuntimeAggregateCacheKeyInput(input: {
     schema: FULL_RUNTIME_CACHE_AGGREGATE_KEY_SCHEMA,
     layout_version: FULL_RUNTIME_CACHE_LAYOUT_VERSION,
     layer_ids: FULL_RUNTIME_CACHE_LAYER_IDS,
-    opl_runtime_bundle_consumer: OPL_RUNTIME_BUNDLE_CONSUMER_CONTRACT,
+    opl_execution_environment_consumer: OPL_EXECUTION_ENVIRONMENT_CONSUMER_CONTRACT,
     layers: input.layers,
   } as const;
 }
@@ -375,7 +365,7 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
       executable_count: 0,
       executables: [],
     },
-    opl_runtime_bundle_consumer: OPL_RUNTIME_BUNDLE_CONSUMER_CONTRACT,
+    opl_execution_environment_consumer: OPL_EXECUTION_ENVIRONMENT_CONSUMER_CONTRACT,
     runtime_fabric_bundles: buildRuntimeFabricBundles(components),
     size_breakdown: input.sizeBreakdown ?? {
       total_runtime_uncompressed_bytes: 0,
@@ -419,10 +409,9 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
         role: 'declared_payload_assembly_and_validation',
         app_repo_does_not_own: productProfile.boundary.app_does_not_own,
         consumer_refs: {
-          opl_runtime_bundle: 'opl_runtime_bundle_consumer',
-          bundle_manifest: 'opl_runtime_bundle_consumer.consumed_refs.bundle_manifest',
-          bundle_lock: 'opl_runtime_bundle_consumer.consumed_refs.bundle_lock',
-          bundle_readback: 'opl_runtime_bundle_consumer.consumed_refs.bundle_readback',
+          execution_environment: 'opl_execution_environment_consumer',
+          environment_manifest: 'opl_execution_environment_consumer.consumed_refs.environment_manifest',
+          run_context: 'opl_execution_environment_consumer.consumed_refs.run_context',
         },
         truth_sources: {
           framework_runtime_contracts: 'gaofeng21cn/one-person-lab',

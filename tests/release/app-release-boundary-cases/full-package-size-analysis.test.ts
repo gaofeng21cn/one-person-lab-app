@@ -78,7 +78,7 @@ test('Full package size analyzer reports component, layer, and runtime budgets',
     summary.top_contributors.layers[0].id,
     summary.optimization_candidates[0].id,
   ], ['mas', 'toolchain', 'mas', 'toolchain', 'toolchain']);
-  assert.deepEqual(summary.opl_layer_taxonomy, manifest.opl_runtime_bundle_consumer.layer_taxonomy);
+  assert.deepEqual(summary.opl_layer_taxonomy, manifest.opl_execution_environment_consumer.layer_taxonomy);
   assert.equal(summary.manifest_size_hotspots[3].path, 'toolchain/vendor/temporal');
 });
 

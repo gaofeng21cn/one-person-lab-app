@@ -302,9 +302,9 @@ function buildSummary(options: ReturnType<typeof parseArgs>) {
     manifest_version: manifest.manifest_version ?? null,
     version: manifest.version ?? null,
     package_kind: manifest.package_kind ?? null,
-    opl_runtime_bundle_consumer: manifest.opl_runtime_bundle_consumer ?? null,
+    opl_execution_environment_consumer: manifest.opl_execution_environment_consumer ?? null,
     opl_layer_taxonomy: manifest.size_breakdown?.opl_layer_taxonomy
-      ?? manifest.opl_runtime_bundle_consumer?.layer_taxonomy
+      ?? manifest.opl_execution_environment_consumer?.layer_taxonomy
       ?? null,
     budget: {
       status: runtimeUncompressedStatus === 'failed' || compressedFullDmgBudgetStatus === 'failed'
@@ -422,8 +422,8 @@ function renderMarkdown(summary: ReturnType<typeof buildSummary>, top: number) {
     summary.size_delta.runtime_uncompressed
       ? `- Runtime delta: ${formatBytes(summary.size_delta.runtime_uncompressed.delta_bytes)} (${summary.size_delta.runtime_uncompressed.delta_percent}%)`
       : null,
-    summary.opl_runtime_bundle_consumer
-      ? `- OPL runtime bundle role: ${summary.opl_runtime_bundle_consumer.app_repo_role}`
+    summary.opl_execution_environment_consumer
+      ? `- OPL execution environment role: ${summary.opl_execution_environment_consumer.app_repo_role}`
       : null,
     '',
     '### Layers',
