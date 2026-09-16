@@ -182,12 +182,12 @@ test('DeepSeek Harness Application Host and full GUI reuse stay Studio-only whil
   const visualCohort = readJson<any>('contracts/app-gui-visual-source-cohort.json');
   const governance = (registry as any).design_system_governance;
 
-  assert.equal(reference?.evaluated_ref, 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e');
+  assert.equal(reference?.evaluated_ref, '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d');
   assert.equal(reference?.license, 'MIT');
   assert.equal(reference?.source_usage, 'approved_application_host_runtime_and_gui_source_reuse');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.1.1-rc.2');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.1.1-rc.2');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-invariants'], '0.1.1-rc.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.1.6-alpha.1');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.1.6-alpha.1');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-invariants'], '0.1.6-alpha.1');
   assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-web-react'], undefined);
   assert.equal(reference?.adopted_packages['use-sync-external-store'], '1.2.0');
   assert.equal(reference?.adopted_source?.root, 'src/vendor/deepseek-harness');
@@ -198,7 +198,7 @@ test('DeepSeek Harness Application Host and full GUI reuse stay Studio-only whil
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-settings-general/src/client/SettingsRoot.tsx'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-theme/src/styles/design-platform.css'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-renderer/src/client/scoped-slots.tsx'));
-  assert.equal(reference?.adopted_source?.package_roots.length, 11);
+  assert.equal(reference?.adopted_source?.package_roots.length, 19);
   assert.equal(reference?.upstream_intake?.floating_ref_allowed, false);
   assert.equal(reference?.upstream_intake?.automatic_promotion_allowed, false);
   assert.equal(visualCohort.upstream.commit, '47f943859bef60e4160492346772ded9b24f765a');

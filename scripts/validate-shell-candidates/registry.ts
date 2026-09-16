@@ -500,39 +500,49 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
   }
   if (
     deepseekHarness.source_repo !== 'https://github.com/deepseek-ai/deepseek-harness' ||
-    deepseekHarness.evaluated_ref !== 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e' ||
+    deepseekHarness.evaluated_ref !== '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d' ||
     deepseekHarness.evaluated_at !== '2026-08-22' ||
-    deepseekHarness.evaluated_version !== '0.1.1-rc.2 Application Host and GUI source cohort' ||
+    deepseekHarness.evaluated_version !== '0.1.6-alpha.1 Application Host and GUI source cohort' ||
     deepseekHarness.license !== 'MIT' ||
     deepseekHarness.source_usage !== 'approved_application_host_runtime_and_gui_source_reuse'
   ) {
     throw new Error('DeepSeek Harness reference must stay pinned to the evaluated Application Host source, version, date, license, and reuse status');
   }
   assertDeepEqualJson(deepseekHarness.adopted_packages, {
-    '@deepseek-ai/cordis': '4.0.1',
-    '@deepseek-ai/cordis-plugin-group': '1.0.1',
-    '@deepseek-ai/cordis-plugin-include': '1.0.6',
-    '@deepseek-ai/cordis-plugin-loader': '1.0.2',
-    '@deepseek-ai/dsh-app-boot': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-brand': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-client-modules': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-client-ui-primitives': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-client-ui-slots': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-client-web': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-home-paths': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-host-frontend-static': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-host-plugin-inventory': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-host-webserver': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-invariants': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-launch-environment': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-system-prompt': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-tools': '0.1.1-rc.2',
-    '@deepseek-ai/dsh-typert-protocol': '0.1.1-rc.2',
+    '@deepseek-ai/cordis': '4.0.2',
+    '@deepseek-ai/cordis-plugin-group': '1.0.2',
+    '@deepseek-ai/cordis-plugin-include': '1.0.7',
+    '@deepseek-ai/cordis-plugin-loader': '1.0.3',
+    '@deepseek-ai/dsh-client-store': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-agent-presets': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-util-workspace-path': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-app-boot': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-brand': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-client-modules': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-client-ui-dockkit': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-client-ui-primitives': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-client-ui-slots': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-client-web': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-home-paths': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-host-frontend-static': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-host-plugin-inventory': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-host-webserver': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-invariants': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-launch-environment': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-llm': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-scope': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-sandbox': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-sandbox-policy': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-session': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-system-prompt': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-timeout': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-tools': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-typert-protocol': '0.1.6-alpha.1',
     'use-sync-external-store': '1.2.0',
   }, 'DeepSeek Harness adopted_packages');
   assertDeepEqualJson(deepseekHarness.adopted_source, {
     root: 'src/vendor/deepseek-harness',
-    ref: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e',
+    ref: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d',
     path_policy: 'preserve_upstream_package_relative_paths',
     byte_policy: 'byte_identical_to_pinned_ref',
     package_roots: [
@@ -547,6 +557,14 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
       'packages/client/ui-theme/src',
       'packages/client/ui-primitives/src',
       'packages/client/ui-renderer/src',
+      'packages/client/ui-sidebar-files/src',
+      'packages/client/ui-sidebar-documentpreview/src',
+      'packages/client/ui-sidebar-right/src',
+      'packages/client/ui-deliverables/src',
+      'packages/client/ui-open-in-app/src',
+      'packages/client/ui-dockkit/src',
+      'packages/client/resources/src',
+      'packages/util/workspace-path/src',
     ],
     files: [
       'packages/client/ui-layout/src/client/AppFrame.tsx',
@@ -563,7 +581,7 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
       'packages/client/ui-input-trigger/src/client/MenuView.tsx',
       'packages/client/ui-model-selection/src/client/ModelSelect.tsx',
       'packages/client/ui-agent-preset/src/client/AgentPresetSeat.tsx',
-      'packages/client/ui-workspace/src/client/WorkspaceBrowser.tsx',
+      'packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx',
       'packages/client/ui-settings-general/src/client/SettingsRoot.tsx',
       'packages/client/ui-settings-general/src/client/SettingsRoot.module.css',
       'packages/client/ui-theme/src/styles/design-platform.css',
@@ -580,8 +598,8 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
       'packages/client/ui-primitives/src/StateDot.module.css',
       'packages/client/ui-primitives/src/Tooltip.tsx',
       'packages/client/ui-primitives/src/Tooltip.module.css',
-      'packages/client/ui-primitives/src/markdown/MessageText.tsx',
-      'packages/client/ui-primitives/src/markdown/MessageText.module.css',
+      'packages/client/ui-primitives/src/markdown/MarkdownText.tsx',
+      'packages/client/ui-primitives/src/markdown/MarkdownText.module.css',
       'packages/client/ui-renderer/src/client/scoped-slots.tsx',
     ],
   }, 'DeepSeek Harness adopted_source');

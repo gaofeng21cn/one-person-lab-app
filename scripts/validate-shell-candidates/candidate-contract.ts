@@ -127,8 +127,8 @@ export const requiredDSHSourceReuseSurfaces = [
 const expectedDshApplicationHost: DSHApplicationHostContract = {
   role: 'deepseek_harness_cordis_application_host',
   implementation_status: 'source_implemented_release_admission_separate',
-  upstream_version: '0.1.1-rc.2',
-  upstream_ref: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e',
+  upstream_version: '0.1.6-alpha.1',
+  upstream_ref: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d',
   profile: 'opl-studio',
   profile_source: 'scripts/webui-host/dsh/cordis.yml',
   web_overlay: 'scripts/webui-host/dsh/web.patch.yml',
@@ -183,8 +183,47 @@ const expectedDshApplicationHost: DSHApplicationHostContract = {
 function validateDshApplicationHostContract(
   host: DSHApplicationHostContract | undefined,
   label: string,
+  candidate: ShellCandidate,
 ): void {
+  assertDeclaredDshPinMatchesStudio(candidate, host, label);
   assertDeepEqualJson(host, expectedDshApplicationHost, label);
+}
+
+// The Studio candidate owns the pinned DeepSeek Harness cohort in its own source
+// manifest. Compare that pin first so a Studio upgrade reports the two exact
+// versions instead of a whole-object diff, and so the App never silently admits
+// a cohort it has not re-declared.
+function assertDeclaredDshPinMatchesStudio(
+  candidate: ShellCandidate,
+  host: DSHApplicationHostContract | undefined,
+  label: string,
+): void {
+  const manifestPath = path.join(
+    resolveCandidateRoot(candidate.candidate_root),
+    'src',
+    'composition',
+    'deepseekHarnessSourceManifest.json',
+  );
+  if (!fs.existsSync(manifestPath)) {
+    return;
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+    upstream?: { repo?: string; source_package_version?: string; ref?: string };
+  };
+  if (manifest.upstream?.repo !== 'https://github.com/deepseek-ai/deepseek-harness') {
+    throw new Error(`${label} must read the DeepSeek Harness source manifest, got ${manifest.upstream?.repo}`);
+  }
+  const version = manifest.upstream.source_package_version;
+  const ref = manifest.upstream.ref;
+  if (typeof version !== 'string' || !version.trim() || typeof ref !== 'string' || !/^[0-9a-f]{40}$/.test(ref)) {
+    throw new Error(`${label} cannot read the pinned DeepSeek Harness version and ref from the Studio source manifest`);
+  }
+  if (host?.upstream_version !== version || host.upstream_ref !== ref) {
+    throw new Error(
+      `${label} declares DeepSeek Harness ${String(host?.upstream_version)}@${String(host?.upstream_ref)} `
+      + `but the Studio source manifest pins ${version}@${ref}; re-declare the cohort in the App contract`,
+    );
+  }
 }
 
 const requiredNativeThreadProtocols = [
@@ -580,6 +619,7 @@ function validateCandidateAdapterContract(
   validateDshApplicationHostContract(
     adapterContract.application_host,
     `${candidate.id} adapter Application Host`,
+    candidate,
   );
   assertDeepEqualJson(
     adapterContract.application_host,
@@ -1051,6 +1091,7 @@ function validateOPLStudioCandidateContract(candidate: ShellCandidate): void {
   validateDshApplicationHostContract(
     candidate.application_host_contract,
     `${candidate.id}.application_host_contract`,
+    candidate,
   );
   const maintenance = candidate.maintenance_policy;
   if (
@@ -1125,13 +1166,13 @@ function validateOPLStudioCandidateContract(candidate: ShellCandidate): void {
   }
   const visual = candidate.dsh_source_reuse_contract as DSHSourceReuseContract | undefined;
   if (
-    visual?.source_cohort !== 'DeepSeek Harness b150a551b8d465e31e418e1b2eaf5e79bbb7d28e Application Host and selected GUI source' ||
+    visual?.source_cohort !== 'DeepSeek Harness 0a15e36e7f82b6ed45af6fa9759f29b40dcd965d Application Host and selected GUI source' ||
     visual.vendor_byte_policy !== 'selected_gui_files_remain_byte_identical_to_their_recorded_upstream_paths_at_the_pinned_ref' ||
     visual.contract_role !== 'application_host_and_source_preservation_with_opl_integration_regression_not_pixel_reimplementation' ||
     visual.reuse_method !== 'pinned_dsh_application_host_packages_plus_source_preserving_gui_reuse_with_opl_plugins_and_adapters' ||
     visual.visual_style_baseline !== 'DeepSeek Harness selected MIT GUI source preserved for DSH-covered modules plus semantically necessary One Person Lab integrations' ||
     visual.visual_style_scope !== 'light_workbench_palette_system_font_stack_type_scale_weight_line_height_sidebar_density_and_composer_surface' ||
-    visual.visual_token_source !== 'deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@b150a551b8d465e31e418e1b2eaf5e79bbb7d28e' ||
+    visual.visual_token_source !== 'deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@0a15e36e7f82b6ed45af6fa9759f29b40dcd965d' ||
     visual.font_asset_policy !== 'reuse_deepseek_harness_system_font_behavior_without_copying_unrelated_assets' ||
     visual.parallel_opl_visual_system_allowed !== false ||
     visual.css_override_policy !== 'forbidden_for_dsh_covered_modules_unless_a_real_opl_semantic_host_accessibility_or_platform_boundary_requires_the_smallest_external_delta' ||
@@ -1147,7 +1188,7 @@ function validateOPLStudioCandidateContract(candidate: ShellCandidate): void {
     visual.default_reasoning_effort !== configuredDefaultReasoningEffort ||
     visual.docs_or_contract_only_completion_allowed !== false
   ) {
-    throw new Error(`${candidate.id}.dsh_source_reuse_contract must require the pinned DSH Application Host and source-preserving GUI reuse without adopting DSH product runtime authority`);
+    throw new Error(`${candidate.id}.dsh_source_reuse_contract must require the pinned DSH Application Host and source-preserving DSH GUI reuse without adopting DSH runtime authority`);
   }
   assertDeepEqualJson(
     visual.dsh_owned_visual_properties,
@@ -1328,7 +1369,11 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
   assertCandidateFileContains(candidate, 'scripts/validate-opl-studio-candidate.mjs', [
     'src/candidateContractEvidence.json',
     'src/vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx',
-    '0.1.1-rc.2',
+    // The Studio self-validator derives the pinned cohort from its own manifest:
+    // asserting a version literal here would re-freeze the value in the App.
+    'scripts/dsh-upstream.mjs',
+    'readDshBinding',
+    'deepseekHarnessSourceManifest.json',
     'opl-studio',
   ], 'OPL Studio self-validator');
 }

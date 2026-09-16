@@ -10,7 +10,7 @@ contracts；Application Host、renderer 与 carrier source 归 `opl-studio`；ru
 ## Decision
 
 `opl-studio` 是 One Person Lab App 的第一方 successor 实现仓库。它不是简单 GUI module、空 Shell
-或 OPL Framework plugin，而是基于 DeepSeek Harness `v0.1.1-rc.2` 的独立 DSH/Cordis
+或 OPL Framework plugin，而是基于 DeepSeek Harness `v0.1.6-alpha.1` 的独立 DSH/Cordis
 Application Host，原生管理 Codex App Server，并为 Electron Desktop、standalone headless WebUI
 和 Docker WebUI 提供同一 renderer、Host core 和 App bridge。
 

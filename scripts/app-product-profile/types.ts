@@ -56,8 +56,8 @@ export type AppDeliveryTopology = {
     implementation_repo: 'gaofeng21cn/opl-studio';
     role: 'deepseek_harness_cordis_application_host';
     implementation_status: 'source_implemented_release_admission_separate';
-    upstream_version: '0.1.1-rc.2';
-    upstream_ref: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e';
+    upstream_version: '0.1.6-alpha.1';
+    upstream_ref: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d';
     profile: 'opl-studio';
     profile_source: 'scripts/webui-host/dsh/cordis.yml';
     web_overlay: 'scripts/webui-host/dsh/web.patch.yml';
