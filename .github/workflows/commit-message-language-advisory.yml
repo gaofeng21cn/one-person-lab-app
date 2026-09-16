@@ -1,0 +1,48 @@
+name: Commit Message Language Advisory
+
+# Weekly, read-only advisory. It reports recent commit subjects that are not written in English
+# through the run summary; it never blocks, delays, or fails a release, and it writes nothing else.
+on:
+  schedule:
+    - cron: "41 2 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: commit-message-language-advisory-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  report:
+    name: Report non-English commit subjects
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout advisory executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Scan recent default-branch commit subjects
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types scripts/commit-message-language-report.ts \
+            --format json \
+            --output "$RUNNER_TEMP/advisory.json"
+          node --experimental-strip-types scripts/commit-message-language-report.ts \
+            --format markdown \
+            --output "$RUNNER_TEMP/advisory.md"
+          cat "$RUNNER_TEMP/advisory.md" >> "$GITHUB_STEP_SUMMARY"
+          count="$(jq '[.scans[].findings | length] | add // 0' "$RUNNER_TEMP/advisory.json")"
+          if [ "$count" != "0" ]; then
+            echo "::warning title=Commit messages::Recent commits in the OPL repositories contain $count non-English subject(s); see the run summary. This advisory blocks nothing."
+          else
+            echo "::notice title=Commit messages::Recent OPL commits are written in English."
+          fi

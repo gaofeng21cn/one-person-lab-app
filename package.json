@@ -113,6 +113,7 @@
     "verify:full-runtime-native-trust": "node --experimental-strip-types scripts/verify-full-runtime-native-trust.ts",
     "release:cleanup-webui-ghcr": "node --experimental-strip-types scripts/cleanup-webui-ghcr-versions.ts",
     "release:notes": "node --experimental-strip-types scripts/generate-release-notes.ts",
+    "advisory:commit-language": "node --experimental-strip-types scripts/commit-message-language-report.ts",
     "release:notes:prepare": "node --experimental-strip-types scripts/release-notes-ai-writer.ts",
     "release:notes:probe-ai": "node --experimental-strip-types scripts/release-notes-ai-writer.ts --probe-openai-compatible",
     "manual:local-app": "node --experimental-strip-types scripts/manual-latest-build.ts local-app",

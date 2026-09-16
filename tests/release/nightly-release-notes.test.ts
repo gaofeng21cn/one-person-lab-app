@@ -176,7 +176,7 @@ test('Nightly notes are deterministic, evidence-bound, and useful to Preview upd
   assert.equal(first.evidence.notes_sha256.length, 71);
 });
 
-test('Nightly notes withhold component commit subjects that are not written in English', (t) => {
+test('Nightly notes omit component commit subjects that are not written in English', (t) => {
   const input = fixture(t, {
     appSubjects: ['移除旧发布故障 Skill，统一发布入口'],
     frameworkSubjects: [
@@ -187,15 +187,15 @@ test('Nightly notes withhold component commit subjects that are not written in E
   const { notes, evidence } = build(input);
   assert.doesNotMatch(notes, /[\u3400-\u9fff]/);
   assert.match(notes, /publish framework OCI install catalog/);
-  assert.match(notes, /1 commit subject is not shown because it is not written in English/);
+  assert.doesNotMatch(notes, /not shown|not written in English|withheld/i);
   assert.doesNotMatch(notes, /移除旧发布故障/);
   assert.doesNotMatch(notes, /发布 RCA/);
   const app = evidence.components.find((component) => component.id === 'app');
   const framework = evidence.components.find((component) => component.id === 'framework');
   assert.equal(app?.notable_subjects.length, 0);
-  assert.deepEqual(app?.withheld_subjects, ['移除旧发布故障 Skill，统一发布入口']);
+  assert.deepEqual(app?.non_english_subjects, ['移除旧发布故障 Skill，统一发布入口']);
   assert.equal(framework?.notable_subjects.length, 1);
-  assert.deepEqual(framework?.withheld_subjects, ['发布 RCA 0.2.18 的 OCI 软件包描述与载体清单']);
+  assert.deepEqual(framework?.non_english_subjects, ['发布 RCA 0.2.18 的 OCI 软件包描述与载体清单']);
   assert.ok(framework?.commit_subjects.includes('发布 RCA 0.2.18 的 OCI 软件包描述与载体清单'));
   assert.match(notes, /Built-in agent, skill, or Codex integration behavior changed/);
   assert.equal(evidence.current.public_note_language, 'en-US');

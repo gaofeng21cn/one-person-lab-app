@@ -95,9 +95,15 @@ prove that preparation succeeded.
 Public bodies follow `public_release_notes.public_body_language`. The AI writer generates the
 hidden `en-US` and `zh-CN` blocks, and its validator rejects Chinese in the visible English body.
 Automated Nightly notes are deterministic instead, so they copy component commit subjects only when
-those subjects are written in English; the rest are withheld from the body, disclosed as a count,
-and kept in `nightly-notes-evidence.json`. Republish a body that still violates the boundary in
-place under the same tag with unchanged assets, then read it back.
+those subjects are written in English; the rest are left out of the body with no operator-facing
+notice, stay readable in `nightly-notes-evidence.json`, and never block publication. Commit subjects
+in the App, Shell, Framework, and Studio repositories are authored in English; subjects already
+recorded in another language stay in history as they are. Republish a body that still violates the
+boundary in place under the same tag with unchanged assets, then read it back.
+
+`npm run advisory:commit-language` prints the same read-only scan on demand, and the weekly
+`commit-message-language-advisory` workflow reports it through its run summary. Both are advisory:
+they never gate a release.
 
 `npm run release:stable-dispatch` is the only operator entry for a Stable release. It resolves and
 validates the checkpoint, original artifact producer, qualification run, verification harness,

@@ -57,6 +57,7 @@ const exactWebuiStablePromotionPermissions = {
 } as const;
 
 const expectedScheduledWorkflows = new Map([
+  ['commit-message-language-advisory.yml', ['41 2 * * 1']],
   ['codeql.yml', ['17 18 * * 0']],
   ['release-bundle-canary.yml', ['0 13 * * *']],
   ['release-nightly.yml', ['17 19 * * *']],

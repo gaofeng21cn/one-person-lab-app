@@ -54,7 +54,7 @@ export type NightlyComponentChange = {
   commit_count: number;
   commit_subjects: string[];
   notable_subjects: string[];
-  withheld_subjects: string[];
+  non_english_subjects: string[];
   compare_url: string;
 };
 
@@ -84,8 +84,8 @@ export type NightlyReleaseNotesEvidence = {
 const exactShaPattern = /^[0-9a-f]{40}$/;
 const releaseTagPattern = /^v\d+\.\d+\.\d+(?:-r[1-9]\d*|-nightly(?:\.r[1-9]\d*)?|-preview\.r[1-9]\d*)?$/;
 // Automated Nightly notes are published in English only, but App, Shell, and Framework commit
-// subjects are written in the language of whoever authored them. Anything outside the public note
-// language is withheld from the body and stays in the notes evidence artifact instead.
+// subjects are written in the language of whoever authored them. Subjects outside the public note
+// language are simply left out of the body; they stay in the notes evidence artifact.
 const publicNoteLanguage = 'en-US';
 const nonPublicNoteLanguagePattern =
   /[\u1100-\u11ff\u2e80-\u2eff\u3000-\u30ff\u3130-\u318f\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff\uff01-\uff60\uffe0-\uffee]/;
@@ -181,7 +181,7 @@ function normalizeSubject(subject: string): string {
     .trim();
 }
 
-function notableSubjectSplit(subjects: string[]): { notable: string[]; withheld: string[] } {
+function notableSubjectSplit(subjects: string[]): { notable: string[]; nonEnglish: string[] } {
   const candidates = [...new Set(subjects
     .filter((subject) => !/^Merge\b/i.test(subject))
     .filter((subject) => !/^(?:test|ci|chore)(?:\([^)]+\))?!?:/i.test(subject))
@@ -191,16 +191,8 @@ function notableSubjectSplit(subjects: string[]): { notable: string[]; withheld:
     .map(normalizeSubject)
     .filter(Boolean))];
   const notable = candidates.filter((subject) => !nonPublicNoteLanguagePattern.test(subject));
-  const withheld = candidates.filter((subject) => nonPublicNoteLanguagePattern.test(subject));
-  return { notable: notable.slice(0, notableSubjectLimit), withheld };
-}
-
-function assertPublicNoteLanguage(notes: string): void {
-  if (nonPublicNoteLanguagePattern.test(notes)) {
-    throw new Error(
-      'Nightly public notes must stay in English; publish non-English component content through the comparison evidence instead.',
-    );
-  }
+  const nonEnglish = candidates.filter((subject) => nonPublicNoteLanguagePattern.test(subject));
+  return { notable: notable.slice(0, notableSubjectLimit), nonEnglish };
 }
 
 function componentChange(input: RepositoryInput): NightlyComponentChange {
@@ -234,17 +226,17 @@ function componentChange(input: RepositoryInput): NightlyComponentChange {
     commit_count: count,
     commit_subjects: subjects,
     notable_subjects: subjectSplit.notable,
-    withheld_subjects: subjectSplit.withheld,
+    non_english_subjects: subjectSplit.nonEnglish,
     compare_url: `https://github.com/${input.repository}/compare/${input.previousRef}...${input.currentRef}`,
   };
 }
 
 function userVisibleChanges(components: NightlyComponentChange[]): string[] {
-  // The public body language boundary withholds non-English commit subjects from the component
-  // listing, but their category still belongs in the English summary above.
+  // Non-English commit subjects stay out of the component listing, but their category still
+  // belongs in the English summary above.
   const subjects = components.flatMap((component) => [
     ...component.notable_subjects,
-    ...component.withheld_subjects,
+    ...component.non_english_subjects,
   ]);
   const changes: string[] = [];
   const add = (pattern: RegExp, text: string) => {
@@ -267,13 +259,6 @@ function renderComponent(component: NightlyComponentChange): string[] {
     lines.push('- No user-facing commit subject was selected; use the exact comparison link for the authoritative diff.');
   } else {
     lines.push(...component.notable_subjects.map((subject) => `- ${subject}`));
-  }
-  if (component.withheld_subjects.length > 0) {
-    const withheld = component.withheld_subjects.length;
-    lines.push(
-      `- ${withheld} commit subject${withheld === 1 ? '' : 's'} ${withheld === 1 ? 'is' : 'are'} not shown because `
-        + `${withheld === 1 ? 'it is' : 'they are'} not written in English; the exact comparison link above is authoritative.`,
-    );
   }
   return lines;
 }
@@ -373,7 +358,6 @@ export function buildNightlyReleaseNotes(input: {
     components,
     visibleChanges,
   });
-  assertPublicNoteLanguage(notes);
   return {
     notes,
     evidence: {

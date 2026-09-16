@@ -2787,8 +2787,8 @@
       "default": "en-US",
       "localized_blocks": ["en-US", "zh-CN"],
       "stable_rule": "The visible GitHub body and the hidden OPL_RELEASE_NOTES:en-US block contain no Chinese text; Chinese reaches App users only through the hidden OPL_RELEASE_NOTES:zh-CN block selected by App locale.",
-      "nightly_rule": "Deterministic Nightly notes are English-only: component commit subjects that are not written in English are withheld from the published body, disclosed as a count, and retained only in the notes evidence artifact.",
-      "component_subject_rule": "App, Shell, and Framework commit subjects may be authored in Chinese, so every writer that copies them into a published body must apply the public body language boundary instead of assuming English subjects.",
+      "nightly_rule": "Deterministic Nightly notes are English-only: component commit subjects that are not written in English are left out of the published body without any operator-facing notice about omitted content, and remain readable in the notes evidence artifact. Commit-subject language never blocks, delays, or fails a Nightly publication.",
+      "component_subject_rule": "App, Shell, Framework, and Studio commit subjects are authored in English so that generated public bodies stay readable; subjects already recorded in other languages stay in history and are omitted from generated bodies instead of being translated, rewritten, or treated as failures.",
       "app_surface_rule": "The App update popup renders the hidden locale block when present and otherwise falls back to the published body, so a mixed-language body is user-visible in both GitHub and the App.",
       "repair_route": "A published body that violates this boundary is repaired in place under the same tag with unchanged assets and public readback."
     },
