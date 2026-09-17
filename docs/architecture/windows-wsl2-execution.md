@@ -16,7 +16,7 @@ Shell implementation.
 | Surface | Owner and current implementation |
 | --- | --- |
 | Windows outcome, execution invariant and acceptance | App's Windows execution contract. |
-| Guided setup, restart resume, repair and progress | `opl-aion-shell`, `packages/desktop/src/process/services/windows-wsl/provisioner.ts` and `provisioningWindow.ts`. |
+| Guided setup, restart resume, repair and progress | `opl-aion-shell`: Shell's `packages/desktop/src/process/services/windows-wsl/provisioner.ts` and `provisioningWindow.ts`. |
 | Structured transport and cancellation | Shell's `packages/desktop/src/process/services/runtime-execution/windowsWslRuntimeExecution.ts`. |
 | AionCore backend launch | Shell's `packages/desktop/src/index.ts` selects `windowsWslBackendProcessController.ts` on Windows. |
 | Direct Codex App Server | Shell's `codexAppServer/adapter.ts` selects the WSL runtime on Windows. |
