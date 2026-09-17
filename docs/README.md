@@ -39,7 +39,7 @@ instructions begin at the root [README](../README.md) or its [Chinese edition](.
 | App whitepaper source and family publication | [Whitepapers](whitepapers/README.md) |
 | Generated latest output | [Site](site/README.md) |
 | Signing and privacy | [Signing](security/code-signing-policy.md), [Privacy](security/privacy-policy.md) |
-| Retained historical evidence | [History](history/README.md) |
+| Retained historical evidence | [History](history/README.md), [Security audit projection](security/audits/2026-07-30-codex-security-app/report.md) |
 
 The App whitepaper is published by the Framework family publisher:
 [HTML](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)

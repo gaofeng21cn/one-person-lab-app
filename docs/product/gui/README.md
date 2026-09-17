@@ -37,6 +37,7 @@ App 拥有一个产品定义，AionUI 与 Studio 分别实现其允许的产品�
 | AionUI 维护 | [Fork maintenance](../../architecture/opl-aionui-fork-maintenance-strategy.md) | AionUI owner；实际偏差归 conformance |
 | Studio | [Studio plan](opl-studio-plan.md) | Studio owner，采用权仍归 App |
 | DeepSeek Harness 复用 | [Composition plan](deepseek-harness-composition-plan.md) | App/Shell 各自合同与源码 |
+| Console 观察投影 | [OpenScience Console projection](openscience-console-projection.md) | Runtime owner；`app-runtime-bridge.json` 字段与 Framework 投影 |
 
 ## 变更与证据
 

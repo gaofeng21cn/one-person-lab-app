@@ -4,6 +4,11 @@ Owner: `one-person-lab-app`
 Purpose: document responsibilities, change lifecycle and retirement.
 State: active.
 
+[`one-person-lab`](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/docs-lifecycle-policy.md)
+owns the OPL family documentation lifecycle rules. This file owns the App
+application of them, including the responsibility map below; it is not a second
+family policy, and the family rules win where the two readings differ.
+
 Each maintained document answers one reader question. Contracts and source define
 machine behavior; documentation explains intent, operation or evidence scope.
 A directory index routes readers and does not repeat its children's requirements.

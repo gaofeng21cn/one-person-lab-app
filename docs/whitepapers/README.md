@@ -7,7 +7,7 @@ Machine boundary: Source prose for public whitepapers. Generated HTML/PDF live
 under ignored local `docs/site/latest/`; immutable build artifacts and
 publication receipts live in GitHub Actions, not on `main`.
 
-The App repo owns the prose in `opl-app-whitepaper.md` and the build inputs in
+The App repo owns the prose in [opl-app-whitepaper.md](./opl-app-whitepaper.md) and the build inputs in
 `contracts/whitepaper_profile.json`. `scripts/build-opl-app-whitepaper.ts` is a
 thin local entry that delegates to the canonical renderer in the OPL Framework
 repo. Set `OPL_FRAMEWORK_REPO` when the Framework checkout is not at the normal
@@ -36,7 +36,7 @@ This repo follows the OPL-wide whitepaper pattern:
 
 Current source:
 
-- `opl-app-whitepaper.md`
+- [opl-app-whitepaper.md](./opl-app-whitepaper.md)
 
 Evidence routing is documented in
 [`../delivery/whitepapers/README.md`](../delivery/whitepapers/README.md).
