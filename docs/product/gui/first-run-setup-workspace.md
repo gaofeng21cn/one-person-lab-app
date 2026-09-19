@@ -47,6 +47,8 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
 
 ## Official Profile Package 安装
 
+非零退出时保留逐 Package 失败摘要供首启页面和验收读取：只包含有界、脱敏的 Package identity、失败状态和错误消息，不返回 action readback 或原始正文。Framework JSON `error.message` 优先于空 stderr；失败仍为 `ok=false`，不写首次安装完成标记，后续可重试。
+
 当前 App source 路径：
 
 - App 只有一个 `OPL Official Profile`，列出首次安装需要的官方 root Packages。
