@@ -500,3 +500,76 @@ process.stdout.write(JSON.stringify({version:'g2',app_state:{agent_packages:{dir
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('Official Profile preserves Framework JSON errors on nonzero exit with empty stderr', () => {
+  const result = applyOfficialProfilePackages({
+    intent: 'first_install',
+    rootPackageIds: ['test-package'],
+    runtime: {
+      execute: () => ({
+        status: 1,
+        stderr: '',
+        stdout: JSON.stringify({
+          error: {
+            message: 'Native inventory unavailable; token=fixture-secret',
+            body: 'private-response-body',
+          },
+          raw: 'private-response-body',
+        }),
+      }),
+    },
+  });
+  assert.equal(result.official_profile_package_apply.status, 'failed');
+  assert.equal(
+    result.official_profile_package_apply.items[0].error.message,
+    'Native inventory unavailable; token=<redacted>'
+  );
+  assert.ok(!JSON.stringify(result).includes('fixture-secret'));
+  assert.ok(!JSON.stringify(result).includes('private-response-body'));
+});
+
+test('Official Profile reports a safe exit fallback instead of empty stderr or raw JSON', () => {
+  for (const stdout of ['', 'private-response-body', JSON.stringify({ body: 'private-response-body' })]) {
+    const result = applyOfficialProfilePackages({
+      intent: 'first_install',
+      rootPackageIds: ['test-package'],
+      runtime: { execute: () => ({ status: 1, stderr: '  ', stdout }) },
+    });
+    assert.equal(result.official_profile_package_apply.items[0].error.message, 'opl app state exited with status 1');
+    assert.ok(!JSON.stringify(result).includes('private-response-body'));
+  }
+});
+
+test('Official Profile bounds diagnostic messages and redacts credentials before returning failure items', () => {
+  const result = applyOfficialProfilePackages({
+    intent: 'explicit_restore',
+    rootPackageIds: ['test-package'],
+    runtime: {
+      execute: () => ({
+        status: 1,
+        stderr: '',
+        stdout: JSON.stringify({
+          error: {
+            message:
+              'Fetch https://user:fixture-password@example.test/?token=fixture-token failed; Bearer fixture-bearer; api_key="fixture-key"; ghp_fixturegithub; ' +
+              'x'.repeat(2000) +
+              '\nprivate-response-body',
+          },
+        }),
+      }),
+    },
+  });
+  const message = result.official_profile_package_apply.items[0].error.message;
+  assert.ok(message.length <= 1024);
+  assert.ok(message.includes('Fetch <redacted-url> failed'));
+  for (const secret of [
+    'fixture-password',
+    'fixture-token',
+    'fixture-bearer',
+    'fixture-key',
+    'ghp_fixturegithub',
+    'private-response-body',
+  ]) {
+    assert.ok(!message.includes(secret));
+  }
+});
