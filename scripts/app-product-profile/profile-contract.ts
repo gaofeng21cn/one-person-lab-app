@@ -9,6 +9,7 @@ import {
   assertAppProductProfileHomeCodexPolicy,
   assertAppProductProfileSettingsVisualSystem,
   assertCapabilityReferenceListShape,
+  expectedHomeComposerDynamicAuthority,
   assertHomeComposerStateContract,
   assertOfficialProfileShape,
   appOwnedOplStandardAgentMembershipPolicy,
@@ -41,18 +42,6 @@ const dynamicPackagePresentationPolicy = {
   },
 } as const;
 
-const dynamicHomeComposerAuthority = {
-  shortcut_package_membership_source_ref:
-    'app_state.agent_packages.directory.entries',
-  opl_standard_agent_membership_policy: appOwnedOplStandardAgentMembershipPolicy,
-  shortcut_preference_source_ref:
-    'app_state.agent_packages.status_index.home_shortcut_preferences[]',
-  shortcut_availability_source_ref:
-    'app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.packages[].presence',
-  unknown_standard_agent_allowed: false,
-  unknown_first_party_opl_standard_agent_allowed: true,
-} as const;
-
 function assertDynamicHomeComposerStateContract(value: AppProductProfile['gui']['home']['home_composer_state_contract'], label: string): void {
   const {
     shortcut_package_membership_source_ref,
@@ -69,7 +58,7 @@ function assertDynamicHomeComposerStateContract(value: AppProductProfile['gui'][
     shortcut_availability_source_ref,
     unknown_standard_agent_allowed,
     unknown_first_party_opl_standard_agent_allowed,
-  }) !== JSON.stringify(dynamicHomeComposerAuthority)) {
+  }) !== JSON.stringify(expectedHomeComposerDynamicAuthority)) {
     throw new Error(`${label} must use the dynamic Agent Package directory and Home preference authority`);
   }
   assertHomeComposerStateContract(value, label);

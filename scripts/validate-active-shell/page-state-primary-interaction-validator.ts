@@ -8,39 +8,13 @@ import {
   homeActivityCenterForbiddenDisplays,
   appOwnedOplStandardAgentMembershipPolicy,
 } from './app-contract-constants.ts';
-import { assertHomeComposerStateContract } from '../app-product-profile-shared-validators.ts';
+import {
+  assertHomeComposerDynamicAuthority,
+  assertHomeComposerStateContract,
+} from '../app-product-profile-shared-validators.ts';
 
 function validateDynamicHomeComposerStateContract(value, label) {
-  const {
-    shortcut_package_membership_source_ref,
-    opl_standard_agent_membership_policy,
-    shortcut_preference_source_ref,
-    shortcut_availability_source_ref,
-    unknown_standard_agent_allowed,
-    unknown_first_party_opl_standard_agent_allowed,
-  } = value ?? {};
-  assertDeepEqualJson(
-    {
-      shortcut_package_membership_source_ref,
-      opl_standard_agent_membership_policy,
-      shortcut_preference_source_ref,
-      shortcut_availability_source_ref,
-      unknown_standard_agent_allowed,
-      unknown_first_party_opl_standard_agent_allowed,
-    },
-    {
-      shortcut_package_membership_source_ref:
-        'app_state.agent_packages.directory.entries',
-      opl_standard_agent_membership_policy: appOwnedOplStandardAgentMembershipPolicy,
-      shortcut_preference_source_ref:
-        'app_state.agent_packages.status_index.home_shortcut_preferences[]',
-      shortcut_availability_source_ref:
-        'app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.packages[].presence',
-      unknown_standard_agent_allowed: false,
-      unknown_first_party_opl_standard_agent_allowed: true,
-    },
-    `${label} dynamic authority`,
-  );
+  assertHomeComposerDynamicAuthority(value, label);
   assertHomeComposerStateContract(value, label);
 }
 

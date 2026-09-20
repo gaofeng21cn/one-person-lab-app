@@ -1406,6 +1406,23 @@ export const appOwnedOplStandardAgentMembershipPolicy = {
   package_id_allowlist_allowed: false,
 };
 
+export const appOwnedOrdinaryForbiddenCapabilityPolicy = {
+  forbidden_mcp_matchers: {
+    exact: ['aionui-team'],
+    prefixes: ['team_', 'mcp__aionui-team'],
+    contains: ['aionui-team'],
+  },
+  scrub_extra_keys: [
+    'team_mcp_stdio_config',
+    'team_id',
+    'teamId',
+    'team_lead_team_id',
+    'team_lead_team_slot_id',
+    'team_lead_conversation_id',
+    'tl',
+  ],
+};
+
 export const appOwnedHomeLayout = {
   default_mode: "composer_first_chat_canvas",
   default_active_shortcut: null,

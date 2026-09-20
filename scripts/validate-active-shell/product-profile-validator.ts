@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { assertDeepEqualJson, assertForbiddenCapabilityPolicy, assertIncludesAll, readJson } from './assertions.ts';
 import {
+  appOwnedOrdinaryForbiddenCapabilityPolicy,
   appOwnedHomeLayout,
   firstRunModelAccessSetupPolicy,
   forbiddenAuthorityOwners,
@@ -35,61 +36,14 @@ import {
   assertAppProductProfileHomeCodexPolicy,
   assertAppProductProfileSettingsVisualSystem,
   assertCapabilityReferenceListShape,
+  assertHomeComposerDynamicAuthority,
   assertHomeComposerStateContract,
   assertOfficialProfileShape,
   appOwnedOplStandardAgentMembershipPolicy,
 } from '../app-product-profile-shared-validators.ts';
 
-const ordinaryForbiddenCapabilityPolicy = {
-  forbidden_mcp_matchers: {
-    exact: ['aionui-team'],
-    prefixes: ['team_', 'mcp__aionui-team'],
-    contains: ['aionui-team'],
-  },
-  scrub_extra_keys: [
-    'team_mcp_stdio_config',
-    'team_id',
-    'teamId',
-    'team_lead_team_id',
-    'team_lead_team_slot_id',
-    'team_lead_conversation_id',
-    'tl',
-  ],
-};
-
-const dynamicHomeComposerAuthority = {
-  shortcut_package_membership_source_ref:
-    'app_state.agent_packages.directory.entries',
-  opl_standard_agent_membership_policy: appOwnedOplStandardAgentMembershipPolicy,
-  shortcut_preference_source_ref:
-    'app_state.agent_packages.status_index.home_shortcut_preferences[]',
-  shortcut_availability_source_ref:
-    'app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.packages[].presence',
-  unknown_standard_agent_allowed: false,
-  unknown_first_party_opl_standard_agent_allowed: true,
-};
-
 function validateDynamicHomeComposerStateContract(value, label) {
-  const {
-    shortcut_package_membership_source_ref,
-    opl_standard_agent_membership_policy,
-    shortcut_preference_source_ref,
-    shortcut_availability_source_ref,
-    unknown_standard_agent_allowed,
-    unknown_first_party_opl_standard_agent_allowed,
-  } = value ?? {};
-  assertDeepEqualJson(
-    {
-      shortcut_package_membership_source_ref,
-      opl_standard_agent_membership_policy,
-      shortcut_preference_source_ref,
-      shortcut_availability_source_ref,
-      unknown_standard_agent_allowed,
-      unknown_first_party_opl_standard_agent_allowed,
-    },
-    dynamicHomeComposerAuthority,
-    `${label} dynamic authority`,
-  );
+  assertHomeComposerDynamicAuthority(value, label);
   assertHomeComposerStateContract(value, label);
 }
 
@@ -1054,7 +1008,7 @@ function validateOrdinaryCapabilitySelectorPolicy(profile) {
   );
   assertForbiddenCapabilityPolicy(
     policy,
-    ordinaryForbiddenCapabilityPolicy,
+    appOwnedOrdinaryForbiddenCapabilityPolicy,
     'Product profile ordinary forbidden MCP policy',
   );
   assertDeepEqualJson(

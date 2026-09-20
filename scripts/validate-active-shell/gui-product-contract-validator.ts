@@ -10,6 +10,7 @@ import {
   appOwnedSettingsManagedDependencySummary,
   appOwnedSettingsResourceActionBehavior,
   appOwnedStorageCarrierBehavior,
+  appOwnedOrdinaryForbiddenCapabilityPolicy,
   appOwnedWebuiDataVolumeHostActionAbiRef,
   appOwnedWebuiDataVolumeHostActionCapabilityId,
   appOwnedTaskAwarenessRefFields,
@@ -24,6 +25,7 @@ import { validateGuiProductHomeContract } from './gui-product-home-validator.ts'
 import { assertCommandSurface } from './value-helpers.ts';
 import {
   assertAgentReferenceAdmissionPolicy,
+  assertHomeComposerDynamicAuthority,
   assertHomeComposerStateContract,
 } from '../app-product-profile-shared-validators.ts';
 import {
@@ -77,59 +79,13 @@ export const appOwnedOfficialProfileRestoreAction = {
 };
 
 function validateDynamicHomeComposerStateContract(value, label) {
-  const {
-    shortcut_package_membership_source_ref,
-    opl_standard_agent_membership_policy,
-    shortcut_preference_source_ref,
-    shortcut_availability_source_ref,
-    unknown_standard_agent_allowed,
-    unknown_first_party_opl_standard_agent_allowed,
-  } = value ?? {};
-  assertDeepEqualJson(
-    {
-      shortcut_package_membership_source_ref,
-      opl_standard_agent_membership_policy,
-      shortcut_preference_source_ref,
-      shortcut_availability_source_ref,
-      unknown_standard_agent_allowed,
-      unknown_first_party_opl_standard_agent_allowed,
-    },
-    {
-      shortcut_package_membership_source_ref:
-        'app_state.agent_packages.directory.entries',
-      opl_standard_agent_membership_policy: appOwnedOplStandardAgentMembershipPolicy,
-      shortcut_preference_source_ref:
-        'app_state.agent_packages.status_index.home_shortcut_preferences[]',
-      shortcut_availability_source_ref:
-        'app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.packages[].presence',
-      unknown_standard_agent_allowed: false,
-      unknown_first_party_opl_standard_agent_allowed: true,
-    },
-    `${label} dynamic authority`,
-  );
+  assertHomeComposerDynamicAuthority(value, label);
   assertHomeComposerStateContract(value, label);
 }
 import {
   validateScheduledTasksPageContract,
   validateScheduledTasksProductPolicy,
 } from './scheduled-tasks-policy-validator.ts';
-
-const ordinaryForbiddenCapabilityPolicy = {
-  forbidden_mcp_matchers: {
-    exact: ['aionui-team'],
-    prefixes: ['team_', 'mcp__aionui-team'],
-    contains: ['aionui-team'],
-  },
-  scrub_extra_keys: [
-    'team_mcp_stdio_config',
-    'team_id',
-    'teamId',
-    'team_lead_team_id',
-    'team_lead_team_slot_id',
-    'team_lead_conversation_id',
-    'tl',
-  ],
-};
 
 const storageAvailabilityPresentationVariants = {
   web_statistics_not_connected: {
@@ -1370,7 +1326,7 @@ export function validateAppGuiProductContract(guiContract, releaseChannel, insta
   );
   assertForbiddenCapabilityPolicy(
     guiContract.ordinary_capability_selector_policy,
-    ordinaryForbiddenCapabilityPolicy,
+    appOwnedOrdinaryForbiddenCapabilityPolicy,
     'App GUI ordinary selector forbidden MCP policy',
   );
   assertDeepEqualJson(

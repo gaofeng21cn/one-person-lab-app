@@ -188,6 +188,43 @@ export const expectedHomeComposerStateContract = {
   },
 };
 
+export const expectedHomeComposerDynamicAuthority = {
+  shortcut_package_membership_source_ref:
+    expectedHomeComposerStateContract.shortcut_package_membership_source_ref,
+  opl_standard_agent_membership_policy:
+    expectedHomeComposerStateContract.opl_standard_agent_membership_policy,
+  shortcut_preference_source_ref:
+    expectedHomeComposerStateContract.shortcut_preference_source_ref,
+  shortcut_availability_source_ref:
+    expectedHomeComposerStateContract.shortcut_availability_source_ref,
+  unknown_standard_agent_allowed:
+    expectedHomeComposerStateContract.unknown_standard_agent_allowed,
+  unknown_first_party_opl_standard_agent_allowed:
+    expectedHomeComposerStateContract.unknown_first_party_opl_standard_agent_allowed,
+} as const;
+
+export function assertHomeComposerDynamicAuthority(value: unknown, label: string): void {
+  const {
+    shortcut_package_membership_source_ref,
+    opl_standard_agent_membership_policy,
+    shortcut_preference_source_ref,
+    shortcut_availability_source_ref,
+    unknown_standard_agent_allowed,
+    unknown_first_party_opl_standard_agent_allowed,
+  } = (value ?? {}) as Record<string, unknown>;
+  const actual = {
+    shortcut_package_membership_source_ref,
+    opl_standard_agent_membership_policy,
+    shortcut_preference_source_ref,
+    shortcut_availability_source_ref,
+    unknown_standard_agent_allowed,
+    unknown_first_party_opl_standard_agent_allowed,
+  };
+  if (JSON.stringify(actual) !== JSON.stringify(expectedHomeComposerDynamicAuthority)) {
+    throw new Error(`${label} dynamic authority must be ${JSON.stringify(expectedHomeComposerDynamicAuthority)}; got ${JSON.stringify(actual)}`);
+  }
+}
+
 export function assertHomeComposerStateContract(value: unknown, label: string): void {
   if (JSON.stringify(value) !== JSON.stringify(expectedHomeComposerStateContract)) {
     throw new Error(`${label} must preserve the fixed Codex executor controls for every Home shortcut state`);
