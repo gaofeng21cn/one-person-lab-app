@@ -26,7 +26,10 @@ PR/main CI or blocks the primary macOS arm64 Desktop release.
 
 Standard checks the dedicated Gateway account during protected admission; a fresh Full append
 checks it before dependency preparation and packaging. These checks use temporary private files
-and the existing credential bridge. Both final clean-VM lanes still perform real account login.
+and the existing credential bridge. Both final clean-VM lanes still perform real account login. The transient Tart guest inherits
+the runner Node process's system and default public CA certificates through process-scoped
+`NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE`. The harness records the bundle digest and keeps TLS
+verification enabled; it does not alter the source VM or product bytes.
 
 The clean-VM Codex turn is a **connectivity probe, not a model-generation check**. The release-test
 account is expected to carry no balance, so the accepted outcomes are a non-simulated turn that

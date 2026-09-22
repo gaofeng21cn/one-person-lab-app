@@ -2155,7 +2155,7 @@ jobs:
           fi
 
           CMD=(
-            node shells/aionui/scripts/opl-first-run-tart-smoke.mjs
+            node --use-system-ca shells/aionui/scripts/opl-first-run-tart-smoke.mjs
             --source-vm "$SOURCE_VM"
             --guest-user "$GUEST_USER"
             --guest-workdir /private/tmp/opl-first-run-smoke
