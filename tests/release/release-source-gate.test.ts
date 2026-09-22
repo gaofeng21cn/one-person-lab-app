@@ -215,7 +215,7 @@ test('Framework release CLI consumer runs direct executable specs after an isola
     assert.equal(report.release_status_surface, 'typed_contract_file_missing');
     assert.deepEqual(report.package_source_preflight?.root_package_ids, ['fixture-root']);
     assert.equal(fs.existsSync(path.join(frameworkRoot, 'prepare-ran')), false);
-    fs.writeFileSync(sourceProbe, "console.log(JSON.stringify({ schema: 'opl_package_source_artifact_preflight.v1', status: 'passed', root_package_ids: ['fixture-root'], items: [], native_carrier_mutation: false }));");
+    fs.writeFileSync(sourceProbe, "console.log(JSON.stringify({ schema: 'opl_package_source_artifact_preflight.v1', status: 'passed', root_package_ids: ['fixture-root'], items: [], native_carrier_mutation: false, scope: 'selected_root_payloads_only' }));");
     git('add', 'scripts/verify-package-source-artifacts.ts');
     git('commit', '-qm', 'incomplete source proof fixture');
     assert.throws(() => runFrameworkReleaseCliConsumerGate({
