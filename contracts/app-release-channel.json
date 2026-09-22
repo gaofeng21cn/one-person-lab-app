@@ -5753,11 +5753,11 @@
       "cache_hit_claim": "cache_hit_is_package_assembly_reuse_only"
     },
     "full_dmg_compression": {
-      "default_ci_format": "ULMO",
-      "default_ci_level": "9",
+      "default_ci_format": "UDZO",
+      "default_ci_level": "7",
       "format_telemetry_field": "dmg_format",
       "telemetry_field": "dmg_compression_level",
-      "rule": "Stable Full CI uses ULMO for the App-owned fallback/rebuilt DMG path by default. UDZO remains available as a legacy diagnostic override with zlib level 9 by default. Release readiness still records compressed Full DMG size from the published GitHub asset; crossing the review threshold opens package-size review but does not authorize removing required offline first-install payloads."
+      "rule": "Stable Full CI uses UDZO with zlib level 7 for the App-owned DMG path to reduce compression latency. ULMO remains an explicit smaller-download override. The measured speed improvement accepts increased download size; the warning and review thresholds remain unchanged. Release readiness still records compressed Full DMG size from the published GitHub asset; crossing the review threshold opens package-size review but does not authorize removing required offline first-install payloads."
     },
     "full_runtime_packaging_hygiene": {
       "source_of_truth": "contracts/full-runtime-prune-policy.json",
