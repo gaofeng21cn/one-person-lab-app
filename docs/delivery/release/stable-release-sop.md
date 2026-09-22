@@ -27,6 +27,8 @@
 3. 执行当前写集所需检查和合同要求的源码门禁。记录已有结果的准确候选、依赖与环境；仅在相关事实变化使旧结果失效时重跑。controller 已负责的检查不在旁路重复执行。
 4. 确认正式发布前提：授权、唯一 writer、可用的签名／公证环境、专用普通测试账号及其既有瞬态凭据桥。使用现有预检，不能把密码写到命令参数、仓库、GitHub Secrets、日志或回执，也不能换用管理员账号绕过失败。
 
+现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
+
 候选冻结后，普通文档修改或其他主线提交不要求当前发布追新。保持原候选，只在其不可构建、不可安装、不合法或必然验收失败，或用户明确改发新候选时重新选择。App／Shell／Framework 的兼容与身份检查仍由原 owner 执行。
 
 ## 3. 使用正式入口派发
@@ -74,6 +76,8 @@ npm run --silent release:incident-status -- --run-id <owner-run-id>
 npm run --silent release:incident-status -- --run-id <owner-run-id> \
   --job-id <该-run-的-job-id> --job-log-file <已核实来源的日志路径>
 ```
+
+Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败与本次启动 PID、时间绑定后，harness 立即报告错误，不再等待安装成功超时；旧日志不构成本次失败证据。
 
 只有 `stage=clone_vm`、`stage=start_vm`、`stage=wait_for_ip`、`vm_name`、`guest_ip` 等 runtime marker 能证明对应 VM 阶段。在此之前报告“VM 尚未证实创建”。心跳不是产物进展。
 

@@ -20,6 +20,7 @@ type CommandResult = {
 export type FrameworkReleaseCliConsumerOptions = {
   frameworkRoot: string;
   expectedFrameworkSha: string;
+  packageIds?: string[];
 };
 
 export type FrameworkReleaseCliConsumerReport = {
@@ -35,6 +36,7 @@ export type FrameworkReleaseCliConsumerReport = {
   release_status_surface: 'typed_contract_file_missing';
   projection: 'temporary_exact_framework_archive';
   source_framework_mutated: false;
+  package_source_preflight: Record<string, unknown> | null;
 };
 
 function run(command: string, args: readonly string[], cwd: string, timeoutMs = 300_000): CommandResult {
@@ -90,6 +92,7 @@ export function runFrameworkReleaseCliConsumerGate(
 
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-framework-release-cli-consumer-'));
   let consumerFailure: unknown = null;
+  let packageSourcePreflight: Record<string, unknown> | null = null;
   try {
     const archivePath = path.join(temporaryRoot, 'framework.tar');
     const archiveRoot = path.join(temporaryRoot, 'framework');
@@ -125,6 +128,23 @@ export function runFrameworkReleaseCliConsumerGate(
     if (fs.existsSync(statusStore)) {
       throw new Error('Framework release status canary must not create a release store for a missing Bundle.');
     }
+    if (options.packageIds?.length) {
+      const packageIds = [...new Set(options.packageIds)];
+      const output = commandOutput(process.execPath, [
+        '--experimental-strip-types', 'scripts/verify-package-source-artifacts.ts',
+        ...packageIds.flatMap((id) => ['--package-id', id]),
+      ], archiveRoot, 5 * 60_000);
+      const proof = JSON.parse(output);
+      if (proof?.schema !== 'opl_package_source_artifact_preflight.v1'
+        || proof.status !== 'passed' || proof.native_carrier_mutation !== false
+        || proof.scope !== 'selected_root_payloads_only'
+        || JSON.stringify(proof.root_package_ids) !== JSON.stringify(packageIds)
+        || !Array.isArray(proof.items) || proof.items.length !== packageIds.length
+        || proof.items.some((item: any, index: number) => item?.package_id !== packageIds[index] || item.status !== 'passed')) {
+        throw new Error('Framework Package source preflight did not verify every selected Official Profile root.');
+      }
+      packageSourcePreflight = proof;
+    }
   } catch (error) {
     consumerFailure = error;
   } finally {
@@ -154,6 +174,7 @@ export function runFrameworkReleaseCliConsumerGate(
     release_status_surface: 'typed_contract_file_missing',
     projection: 'temporary_exact_framework_archive',
     source_framework_mutated: false,
+    package_source_preflight: packageSourcePreflight,
   };
 }
 
@@ -167,6 +188,7 @@ if (isMainModule()) {
       options: {
         'framework-root': { type: 'string' },
         'expected-framework-sha': { type: 'string' },
+        'app-profile': { type: 'string' },
         output: { type: 'string' },
       },
       strict: true,
@@ -177,9 +199,17 @@ if (isMainModule()) {
         'Usage: validate-framework-release-cli-consumer.ts --framework-root <path> --expected-framework-sha <sha> [--output <path>].',
       );
     }
+    let packageIds: string[] | undefined;
+    if (values['app-profile']) {
+      packageIds = JSON.parse(fs.readFileSync(values['app-profile'], 'utf8'))?.official_profile?.desired_root_package_ids;
+      if (!Array.isArray(packageIds) || !packageIds.length || packageIds.some((id) => typeof id !== 'string' || !id.trim())) {
+        throw new Error('App product profile must declare nonempty Official Profile root Package ids.');
+      }
+    }
     const report = runFrameworkReleaseCliConsumerGate({
       frameworkRoot: values['framework-root'],
       expectedFrameworkSha: values['expected-framework-sha'],
+      packageIds,
     });
     const serialized = `${JSON.stringify(report, null, 2)}\n`;
     if (values.output) {

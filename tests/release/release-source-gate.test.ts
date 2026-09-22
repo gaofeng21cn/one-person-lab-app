@@ -187,11 +187,21 @@ test('Framework release CLI consumer runs direct executable specs after an isola
     git('init', '-q');
     git('config', 'user.name', 'OPL Release Test');
     git('config', 'user.email', 'release-test@example.invalid');
-    git('add', '.gitignore', 'package.json', 'package-lock.json', 'bin/opl', 'scripts/prepare.mjs');
+    const sourceProbe = path.join(frameworkRoot, 'scripts', 'verify-package-source-artifacts.ts');
+    fs.writeFileSync(sourceProbe, `
+      import fs from 'node:fs';
+      if (!process.cwd().includes('opl-framework-release-cli-consumer-')) throw new Error('must use exact archive');
+      const ids = process.argv.slice(2).filter((_, i) => i % 2 === 1);
+      console.log(JSON.stringify({ schema: 'opl_package_source_artifact_preflight.v1', status: 'passed',
+        root_package_ids: ids, items: ids.map(id => ({package_id: id, status: 'passed'})),
+        native_carrier_mutation: false, scope: 'selected_root_payloads_only' }));
+    `);
+    git('add', '.gitignore', 'package.json', 'package-lock.json', 'bin/opl', 'scripts/prepare.mjs', 'scripts/verify-package-source-artifacts.ts');
     git('commit', '-qm', 'fixture');
 
     const report = runFrameworkReleaseCliConsumerGate({
       frameworkRoot,
+      packageIds: ['fixture-root'],
       expectedFrameworkSha: git('rev-parse', 'HEAD'),
     });
 
@@ -203,6 +213,14 @@ test('Framework release CLI consumer runs direct executable specs after an isola
     assert.equal(report.release_status_canary, 'bin/opl release status --bundle <zero-digest> --store <temporary-store> --json');
     assert.equal(report.release_status_exit_code, 3);
     assert.equal(report.release_status_surface, 'typed_contract_file_missing');
+    assert.deepEqual(report.package_source_preflight?.root_package_ids, ['fixture-root']);
+    assert.equal(fs.existsSync(path.join(frameworkRoot, 'prepare-ran')), false);
+    fs.writeFileSync(sourceProbe, "console.log(JSON.stringify({ schema: 'opl_package_source_artifact_preflight.v1', status: 'passed', root_package_ids: ['fixture-root'], items: [], native_carrier_mutation: false }));");
+    git('add', 'scripts/verify-package-source-artifacts.ts');
+    git('commit', '-qm', 'incomplete source proof fixture');
+    assert.throws(() => runFrameworkReleaseCliConsumerGate({
+      frameworkRoot, expectedFrameworkSha: git('rev-parse', 'HEAD'), packageIds: ['fixture-root'],
+    }), /did not verify every selected/);
     assert.equal(git('status', '--porcelain', '--untracked-files=normal'), '');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -308,14 +326,14 @@ function runner(overrides: Record<string, { status: number; stdout?: string; std
     }
     if (
       command === process.execPath
-      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead}`
+      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead} --app-profile contracts/app-product-profile.json`
       && commandOptions.cwd === repoRoot
     ) {
       return { status: 0, stdout: 'framework release CLI consumer ok\n', stderr: '' };
     }
     if (
       command === process.execPath
-      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${repoLocalFrameworkRoot} --expected-framework-sha ${frameworkHead}`
+      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${repoLocalFrameworkRoot} --expected-framework-sha ${frameworkHead} --app-profile contracts/app-product-profile.json`
       && commandOptions.cwd === repoRoot
     ) {
       return { status: 0, stdout: 'framework release CLI consumer ok\n', stderr: '' };
@@ -936,7 +954,7 @@ test('release source gate stops at the first required gate failure', () => {
 
 test('release source gate stops before Shell gates when the exact Framework release CLI consumer fails', () => {
   const calls: string[] = [];
-  const consumerCommand = `${repoRoot} $ ${process.execPath} --experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead}`;
+  const consumerCommand = `${repoRoot} $ ${process.execPath} --experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead} --app-profile contracts/app-product-profile.json`;
   const baseRunner = runner({
     [consumerCommand]: {
       status: 1,
