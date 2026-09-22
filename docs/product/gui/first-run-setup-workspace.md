@@ -47,7 +47,7 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
 
 ## Official Profile Package 安装
 
-非零退出时保留逐 Package 失败摘要供首启页面和验收读取：只包含有界、脱敏的 Package identity、失败状态和错误消息，不返回 action readback 或原始正文。Framework JSON `error.message` 优先于空 stderr；失败仍为 `ok=false`，不写首次安装完成标记，后续可重试。
+非零退出时保留逐 Package 失败摘要供首启页面和验收读取：只包含有界、脱敏的 Package identity、失败状态和错误消息，不返回 action readback 或原始正文。Framework stdout 或 stderr JSON 的 `error.code` / `error.message` 优先于原始输出；失败仍为 `ok=false`，不写首次安装完成标记，后续可重试。后台首次安装失败向既有 App 日志写入脱敏结构化终态，绑定 App PID 与时间。clean-VM 验收只消费本次启动的失败事件并立即结束该验收，不重试安装、不改变 roots，也不以日志代替 configured carrier 的成功回读；旧启动和显式恢复事件不得中止本次验收。
 
 当前 App source 路径：
 

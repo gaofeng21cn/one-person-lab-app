@@ -759,7 +759,16 @@
       "guid_navigation_blocking": false,
       "failure_scope": "package_local_nonblocking",
       "unknown_or_timeout_policy": "keep_guid_entry_available_and_report_background_attention",
-      "retry_policy": "explicit_first_run_retry_or_settings_agents"
+      "retry_policy": "explicit_first_run_retry_or_settings_agents",
+      "failure_diagnostics": {
+        "source": "framework_json_error_from_stdout_or_stderr",
+        "fields": ["package_id", "status", "error.code", "error.message"],
+        "redacted_and_bounded": true,
+        "terminal_log_schema": "opl_official_profile_first_install_terminal.v1",
+        "qualification_binding": ["app_process_id", "launch_started_at"],
+        "qualification_terminal_failure_policy": "fail_immediately_without_retry_or_mutation",
+        "package_lifecycle_authority": false
+      }
     },
     "user_removal_policy": {
       "explicit_uninstall_is_persistent_preference": true,
