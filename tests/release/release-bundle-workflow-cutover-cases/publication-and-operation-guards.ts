@@ -514,7 +514,8 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     fullAddon.jobs['full-clean-vm-qualification'].with.smoke_harness_ref,
     '${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}',
   );
-  assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_format.default, 'ULMO');
+  assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_format.default, 'UDZO');
+  assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_compression_level.default, '7');
   assert.equal(fullBuild.jobs['full-first-install']['runs-on'], 'macos-latest');
   assert.equal(fullBuild.jobs['full-first-install']['continue-on-error'], '${{ inputs.candidate_only }}');
   assert.equal(fullBuild.jobs['full-first-install'].environment, 'release-stable');

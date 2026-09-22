@@ -6,6 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { run, runCapture } from '../../../scripts/build-full-first-install-package/process.ts';
+import { resolveFullDmgFormat, resolveFullDmgCompressionLevel } from '../../../scripts/build-full-first-install-package/archive-output.ts';
 import { assertAppBundleLocalAuthorization } from '../../../scripts/build-full-first-install-package/macos-trust.ts';
 
 function captureEvents(action: () => void) {
@@ -83,4 +84,26 @@ test('Full entry consumes the creator-verified DMG without a second unchanged-by
   const create = creator.slice(creator.indexOf('export function createFullDmgFromVerifiedApp'), creator.indexOf('export function resolveFullDmgFormat'));
   assert.ok(create.indexOf('ensureAppBundleAdHocCodesign(stagedApp') > create.indexOf('writeFullPackageManifestIntoApp(stagedApp'));
   assert.ok(create.indexOf('verifyDmgAppBundleLocalAuthorization(targetDmg') > create.indexOf('createDmgWithResourceBusyRetry(targetDmg'));
+});
+
+
+test('Full compression defaults match the measured contract and retain explicit overrides', () => {
+  const keys = ['OPL_FULL_DMG_FORMAT', 'OPL_FULL_DMG_COMPRESSION_LEVEL', 'ELECTRON_BUILDER_COMPRESSION_LEVEL', 'CI'];
+  const previous = keys.map((key) => [key, process.env[key]]);
+  const contract = JSON.parse(fs.readFileSync(fileURLToPath(new URL('../../../contracts/app-release-channel.json', import.meta.url)), 'utf8'));
+  try {
+    for (const key of keys) delete process.env[key];
+    process.env.CI = 'true';
+    assert.equal(resolveFullDmgFormat(), contract.release_acceleration.full_dmg_compression.default_ci_format);
+    assert.equal(resolveFullDmgCompressionLevel(), contract.release_acceleration.full_dmg_compression.default_ci_level);
+    process.env.OPL_FULL_DMG_FORMAT = 'ULMO';
+    assert.equal(resolveFullDmgFormat(), 'ULMO');
+    process.env.OPL_FULL_DMG_FORMAT = 'UDZO';
+    process.env.OPL_FULL_DMG_COMPRESSION_LEVEL = '9';
+    assert.equal(resolveFullDmgCompressionLevel(), '9');
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
 });

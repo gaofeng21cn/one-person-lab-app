@@ -46,12 +46,12 @@ on:
       full_dmg_compression_level:
         description: zlib level for the Full DMG when full_dmg_format is UDZO.
         required: false
-        default: '9'
+        default: '7'
         type: string
       full_dmg_format:
-        description: Full DMG compression format. ULMO favors download size; ULFO/UDZO are explicit overrides.
+        description: Full DMG compression format. UDZO level 7 favors delivery speed; ULMO is a smaller-download override.
         required: false
-        default: ULMO
+        default: UDZO
         type: string
       release_bundle_digest:
         description: Exact immutable Framework Release Bundle digest for the live control plane.
@@ -957,8 +957,8 @@ jobs:
           ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           ELECTRON_MIRROR: ''
-          OPL_FULL_DMG_FORMAT: ${{ inputs.full_dmg_format || 'ULMO' }}
-          OPL_FULL_DMG_COMPRESSION_LEVEL: ${{ inputs.full_dmg_compression_level || '9' }}
+          OPL_FULL_DMG_FORMAT: ${{ inputs.full_dmg_format || 'UDZO' }}
+          OPL_FULL_DMG_COMPRESSION_LEVEL: ${{ inputs.full_dmg_compression_level || '7' }}
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target: ${{ steps.shell-electron-version.outputs.version }}
