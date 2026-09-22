@@ -1174,6 +1174,15 @@ Only new-product-release may allocate a tag, and it requires an explicit product
   process.exit(2);
 }
 
+export function validateShellSmokeHarness(runtime: Runtime, value: string): string {
+  const expected = sha(value, 'smoke_harness_ref');
+  const resolved = runRequired(runtime, 'gh', [
+    'api', `repos/gaofeng21cn/opl-aion-shell/git/commits/${expected}`, '--jq', '.sha',
+  ], 30_000, 'Resolve smoke_harness_ref in opl-aion-shell (an App commit is not a Shell harness)');
+  if (resolved.trim() !== expected) throw new Error('smoke_harness_ref must resolve to the exact opl-aion-shell commit.');
+  return expected;
+}
+
 async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<void> {
   const command = argv[0];
   if (!command || command === '--help' || command === '-h') usage();
@@ -1202,6 +1211,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
   });
   const repository = text(values.repo, 'repo');
   const workflow = text(values.workflow, 'workflow');
+  if (values['smoke-harness-ref']) validateShellSmokeHarness(runtime, values['smoke-harness-ref']);
   const executorSha = wireSha(runtime, 'origin');
   let plan: StableDispatchPlan;
 

@@ -137,8 +137,8 @@ a lightweight current-run read. The command never accepts a version: only
 `new-product-release` may ask the workflow to allocate one, and it requires an explicit nonempty
 user-visible product change summary. `--reuse-standard-run-id` continues the same unpublicized Stable
 version with the failed run's already signed and notarized Standard bytes, while a new workflow
-operation may contain release-path fixes. Standard artifact recovery also accepts `--smoke-harness-ref <sha>` to run a repaired
-verification harness against the original signed bytes; this override requires `--reuse-standard-run-id`.
+operation may contain release-path fixes. Standard artifact recovery also accepts `--smoke-harness-ref <exact-opl-aion-shell-sha>` to run a repaired
+verification harness against the original signed bytes; the controller resolves it in the Shell repository before dispatch, and the controller itself participates in the operation identity; this override requires `--reuse-standard-run-id`.
 Recovery verifies the original source-gate bytes against their run-bound control and reuses that passed
 exact-cohort evidence, so advancing owner checkouts does not repeat unchanged source tests.
 When a failed run has no signed artifact yet, `--source-gate-run-id <failed-run>` reuses only its

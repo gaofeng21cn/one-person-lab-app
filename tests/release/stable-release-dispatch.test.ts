@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  validateShellSmokeHarness,
   activeStableRunIds,
   assertLatestStandardReleaseComplete,
   buildAppendFullPlan,
@@ -771,4 +772,20 @@ test('active owner detection blocks only the canonical Stable workflow writer', 
     assert.deepEqual(activeStableRunIds([{ ...base, display_title: `OPL Stable ${entry} ref:${appSha} run:11` }]), []);
   }
   assert.deepEqual(activeStableRunIds([{ ...base, display_title: 'OPL Stable future_operation run:11' }]), [11]);
+});
+
+test('harness override resolves only in the Shell repository before any dispatch', () => {
+  const calls: string[][] = [];
+  const runtime = {
+    runner(command: string, args: string[]) {
+      assert.equal(command, 'gh');
+      calls.push(args);
+      return { status: 0, stdout: `${shellSha}\n`, stderr: '' };
+    },
+    now: () => new Date(), randomBytes: () => Buffer.alloc(16), wait: async () => {},
+  };
+  assert.equal(validateShellSmokeHarness(runtime, shellSha), shellSha);
+  assert.deepEqual(calls[0], ['api', `repos/gaofeng21cn/opl-aion-shell/git/commits/${shellSha}`, '--jq', '.sha']);
+  assert.throws(() => validateShellSmokeHarness({ ...runtime, runner: () => ({ status: 1, stdout: '', stderr: 'Not Found' }) }, appSha), /App commit is not a Shell harness/);
+  assert.equal(calls.some(args => args.includes('run')), false);
 });

@@ -36,6 +36,7 @@ const criticalBlobPaths = [
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
   'scripts/stable-operation-control.ts',
+  'scripts/stable-release-dispatch.ts',
   'scripts/stable-operation-publication-record.ts',
   'scripts/stable-release-admission-manifest.ts',
   'scripts/validate-release-source-gate.ts',
@@ -177,6 +178,7 @@ test('qualification repairs change the operation while legacy authority is read-
   const legacyBlobs = { ...criticalBlobs };
   delete legacyBlobs['.github/workflows/opl-first-run-vm.yml'];
   delete legacyBlobs['scripts/download-github-artifact.mjs'];
+  delete legacyBlobs['scripts/stable-release-dispatch.ts'];
   const legacy = issuedAuthority({ criticalBlobs: legacyBlobs });
   assert.equal(validateStableOperationAuthority(legacy).authority_digest, legacy.authority_digest);
   assert.throws(() => validateStableOperationAuthorityExecutorBinding({
@@ -189,6 +191,7 @@ test('artifact transport repairs change operation identity and preserve old evid
   assert.notEqual(stableOperationIdForFrozenCohort({ objectiveFingerprint, appSha, shellSha, frameworkSha, criticalBlobs: changed }), operationId);
   const priorBlobs = { ...criticalBlobs };
   delete priorBlobs['scripts/download-github-artifact.mjs'];
+  delete priorBlobs['scripts/stable-release-dispatch.ts'];
   const prior = issuedAuthority({ criticalBlobs: priorBlobs });
   assert.equal(validateStableOperationAuthority(prior).authority_digest, prior.authority_digest);
   assert.throws(() => validateStableOperationAuthorityExecutorBinding({

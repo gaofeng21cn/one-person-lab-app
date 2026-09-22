@@ -29,6 +29,7 @@ export const stableOperationCriticalBlobPaths = [
   'scripts/framework-release-adapter.ts',
   'scripts/release-dispatch-guard.ts',
   'scripts/stable-operation-control.ts',
+  'scripts/stable-release-dispatch.ts',
   'scripts/stable-operation-publication-record.ts',
   'scripts/stable-release-admission-manifest.ts',
   'scripts/validate-release-source-gate.ts',
@@ -230,8 +231,9 @@ function normalizedCriticalBlobs(value: unknown): Record<string, string> {
   // Read already-issued controls so their signed artifacts and source evidence
   // remain recoverable. Current executor admission below requires the full set.
   const historicalPathSets = [
-    stableOperationCriticalBlobPaths.filter(file => file !== 'scripts/download-github-artifact.mjs'),
-    stableOperationCriticalBlobPaths.filter(file => file !== 'scripts/download-github-artifact.mjs' && file !== '.github/workflows/opl-first-run-vm.yml'),
+    stableOperationCriticalBlobPaths.filter(file => file !== 'scripts/stable-release-dispatch.ts'),
+    stableOperationCriticalBlobPaths.filter(file => file !== 'scripts/stable-release-dispatch.ts' && file !== 'scripts/download-github-artifact.mjs'),
+    stableOperationCriticalBlobPaths.filter(file => file !== 'scripts/stable-release-dispatch.ts' && file !== 'scripts/download-github-artifact.mjs' && file !== '.github/workflows/opl-first-run-vm.yml'),
   ];
   const legacy = historicalPathSets.some(paths => Object.keys(normalized).length === paths.length
     && paths.every(file => normalized[file] !== undefined));
