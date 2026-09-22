@@ -1079,6 +1079,22 @@ jobs:
           node --check shells/aionui/scripts/opl-first-run-vm-smoke.mjs
           node --check shells/aionui/scripts/opl-first-run-tart-smoke.mjs
           node --input-type=module -e "await import('./shells/aionui/scripts/opl-first-run-tart-smoke.mjs')"
+          NODE_ENV='test' node --use-system-ca --input-type=module <<'NODE'
+          import tls from 'node:tls';
+          import { __test } from './shells/aionui/scripts/opl-first-run-vm-smoke.mjs';
+          if (tls.getCACertificates('system').length > 0) {
+            const certificatePath = '/tmp/opl-qualification-runner-ca.pem';
+            const env = __test.buildPackagedAppLaunchBaseEnv({
+              NODE_EXTRA_CA_CERTS: certificatePath,
+              SSL_CERT_FILE: certificatePath,
+              NODE_TLS_REJECT_UNAUTHORIZED: '0',
+            });
+            if (env.NODE_EXTRA_CA_CERTS !== certificatePath || env.SSL_CERT_FILE !== certificatePath
+                || Object.hasOwn(env, 'NODE_TLS_REJECT_UNAUTHORIZED')) {
+              throw new Error('The selected VM harness cannot preserve runner CA trust without disabling TLS.');
+            }
+          }
+          NODE
 
       - name: Prepare OPL Framework bootstrap archive
         id: framework_source

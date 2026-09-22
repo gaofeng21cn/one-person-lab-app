@@ -29,7 +29,9 @@ checks it before dependency preparation and packaging. These checks use temporar
 and the existing credential bridge. Both final clean-VM lanes still perform real account login. The transient Tart guest inherits
 the runner Node process's system and default public CA certificates through process-scoped
 `NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE`. The harness records the bundle digest and keeps TLS
-verification enabled; it does not alter the source VM or product bytes.
+verification enabled; it does not alter the source VM or product bytes. The caller verifies that
+the guest launch environment preserves both CA paths and still removes TLS-disable overrides
+before allocating a VM.
 
 The clean-VM Codex turn is a **connectivity probe, not a model-generation check**. The release-test
 account is expected to carry no balance, so the accepted outcomes are a non-simulated turn that
