@@ -145,7 +145,9 @@ When a failed run has no signed artifact yet, `--source-gate-run-id <failed-run>
 authenticated, exact-cohort source gate. The repaired workflow still builds and qualifies the product;
 this option neither reuses a failed acceptance nor authorizes another consumer of the same operation.
 With an explicit repaired harness, an interrupted failed qualification may be run again even if its
-old classifier called it a product failure. Signed-byte identity and scope proof still must match;
+old classifier called it a product failure. A recorded pre-install artifact-download failure may also reuse signed bytes after the recovery job
+reconciles the original run, Bundle, notarization receipt, and both downloaded DMG hashes. Other
+infrastructure failures remain blocked. Signed-byte identity and scope proof still must match;
 the failed acceptance is never reused and a fresh clean-VM qualification remains mandatory.
 Account-login qualification waits for actual Codex model-access readiness after confirmation, and records
 at most one retry of a settled session failure through the same visible confirmation action.

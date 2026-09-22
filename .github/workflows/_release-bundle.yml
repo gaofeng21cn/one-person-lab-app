@@ -1324,9 +1324,19 @@ jobs:
                 or
                 (
                   .status == "failed"
-                  and .failure_taxonomy == "fixture"
+                  and (
+                    (.failure_taxonomy == "fixture" and .retry.disposition == "same_artifact_retry_allowed")
+                    or (
+                      .failure_taxonomy == "infrastructure"
+                      and .retry.disposition == "reconcile_only"
+                      and .failure == {
+                        type: "artifact_download_failed",
+                        boundary: "workflow_artifact_download",
+                        classification: "artifact_download_failed"
+                      }
+                    )
+                  )
                   and .evidence.smoke_summary_path == null
-                  and .retry.disposition == "same_artifact_retry_allowed"
                   and .outcomes.validate_inputs == "success"
                   and .outcomes.clean_vm == "failure"
                   and (.evidence.critical_diagnostics_path | type == "string" and length > 0)

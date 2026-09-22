@@ -1065,3 +1065,26 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
     false,
   );
 });
+
+test('Standard transport recovery admits only reconciled pre-install download failure', () => {
+  const step = workflowStep('_release-bundle.yml', 'seal-standard-identity', 'Verify reusable signed and notarized Standard bytes');
+  const expression = String(step.run).match(/--arg dmg_sha "\$\{dmg_sha256#sha256:\}" '([\s\S]*?)' "\$qualification_attempt"/)?.[1];
+  assert.ok(expression);
+  const receipt = {
+    schema: 'opl_app_qualification_attempt_receipt.v1', status: 'failed', failure_taxonomy: 'infrastructure',
+    identity: { release_cohort_ref: 'bundle', artifact_kind: 'standard', package_profile: 'standard', qualification_run_id: '1', qualification_run_attempt: '1', source_artifact_run_id: '1', source_artifact_name: 'artifact' },
+    artifact: { sha256: 'dmg' },
+    failure: { type: 'artifact_download_failed', boundary: 'workflow_artifact_download', classification: 'artifact_download_failed' },
+    retry: { disposition: 'reconcile_only' },
+    outcomes: { validate_inputs: 'success', clean_vm: 'failure' },
+    evidence: { strict_qualification_receipt_path: null, smoke_summary_path: null, critical_diagnostics_path: 'failure.json', scope_proof: {
+      classification: 'same_as_artifact_cohort', artifact_semantic_digest: 'semantic', verification_semantic_digest: 'semantic', artifact_probe_digest: 'probe', verification_probe_digest: 'probe', forbidden_app_paths: [], forbidden_shell_paths: [],
+    } },
+  };
+  const evaluate = (value: unknown) => spawnSync('jq', ['-e', '--arg', 'run_id', '1', '--arg', 'bundle', 'bundle', '--arg', 'artifact', 'artifact', '--arg', 'repaired_harness', '', '--arg', 'dmg_sha', 'dmg', expression], { input: JSON.stringify(value), encoding: 'utf8' }).status;
+  assert.equal(evaluate(receipt), 0);
+  assert.notEqual(evaluate({ ...receipt, failure: { ...receipt.failure, type: 'unknown' } }), 0);
+  assert.notEqual(evaluate({ ...receipt, artifact: { sha256: 'different' } }), 0);
+  assert.notEqual(evaluate({ ...receipt, evidence: { ...receipt.evidence, smoke_summary_path: 'ran-smoke.json' } }), 0);
+  assert.notEqual(evaluate({ ...receipt, evidence: { ...receipt.evidence, scope_proof: { ...receipt.evidence.scope_proof, verification_semantic_digest: 'changed' } } }), 0);
+});
