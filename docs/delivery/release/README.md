@@ -72,7 +72,9 @@ A checkpoint alone cannot authorize an append before its Standard Release is pub
 
 The exact-artifact downloader accepts canonical relative file paths, including the bound Standard
 `assets/` directory, while rejecting traversal, file/directory conflicts and symlink destinations.
-It validates the cached archive size and digest before extracting any bytes.
+It validates the cached archive size and digest before extracting any bytes. Its exact source is
+bound to the Stable operation identity, so a transport repair admits a fresh recovery operation
+while historical controls remain readable for signed-artifact reuse.
 
 Large already-compressed release artifacts use uncompressed Actions transport. Full continues to
 consume content-bound runtime caches; cache hits never replace artifact qualification. Model policy
