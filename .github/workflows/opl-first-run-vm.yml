@@ -648,6 +648,15 @@ jobs:
           echo "::error::opl-aion-shell smoke harness ref '$shell_ref' does not exist; fix smoke_harness_ref before occupying the first-run VM harness."
           exit 1
 
+      - name: Checkout immutable qualification scope executor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: opl-qualification-scope-executor
+          persist-credentials: false
+          sparse-checkout: scripts/qualification-harness-scope.ts
+          sparse-checkout-cone-mode: false
+
       - name: Prove same-artifact verification harness scope
         id: qualification_scope
         if: ${{ inputs.release_artifact_name != '' }}
@@ -661,7 +670,7 @@ jobs:
             echo "::error::Verification App checkout changed before scope proof."
             exit 1
           }
-          proof="$(node --experimental-strip-types scripts/qualification-harness-scope.ts \
+          proof="$(node --experimental-strip-types opl-qualification-scope-executor/scripts/qualification-harness-scope.ts \
             --artifact-app-sha "${{ steps.diagnostic_inputs.outputs.artifact_app_sha }}" \
             --verification-app-sha "$verification_app_sha" \
             --artifact-shell-sha "${{ steps.shell_ref.outputs.shell_sha }}" \

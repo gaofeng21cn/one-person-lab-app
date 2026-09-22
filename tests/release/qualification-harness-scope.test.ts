@@ -40,6 +40,7 @@ test('qualification harness scope allows a paired VM smoke mechanics subset', ()
     artifactShellSha,
     verificationShellSha,
     shellChangedPaths: [
+      'scripts/opl-first-run-tart-smoke.mjs',
       'scripts/opl-first-run-vm-smoke.mjs',
       'tests/unit/opl-runtime/firstRunVmSmoke.test.ts',
     ],

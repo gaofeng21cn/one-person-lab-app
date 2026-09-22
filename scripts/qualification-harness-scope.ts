@@ -235,6 +235,7 @@ export function buildQualificationHarnessScopeProof(input: {
     'tests/release/release-workflow-broker-admission.test.ts',
   ];
   const shellHarnessMechanicsPaths = [
+    'scripts/opl-first-run-tart-smoke.mjs',
     'scripts/opl-first-run-vm-smoke.mjs',
     'tests/unit/opl-runtime/firstRunVmSmoke.test.ts',
     'tests/unit/opl-runtime/firstRunVmSmokeScripts.test.ts',

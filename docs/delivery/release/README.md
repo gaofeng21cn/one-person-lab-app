@@ -156,7 +156,9 @@ Account-login qualification waits for actual Codex model-access readiness after 
 at most one retry of a settled session failure through the same visible confirmation action.
 The Gateway account preflight enables Node's system CA trust store on the macOS runner,
 preserving certificate verification when the runner's trusted network CA is absent from Node's bundled roots.
-The clean-VM workflow participates in the operation fingerprint, so repairing qualification creates
+Scope proof runs from the immutable current workflow executor while comparing the exact artifact
+and verification refs. Tart host mechanics are harness scope; unchanged semantic and probe digests
+remain mandatory. The clean-VM workflow participates in the operation fingerprint, so repairing qualification creates
 a fresh operation without rebuilding the frozen product. Historical controls remain readable for
 artifact recovery; new executor admission requires the complete workflow binding set.
 On first launch, failed background maintenance receives one automatic retry after core readiness.
