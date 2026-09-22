@@ -127,8 +127,8 @@ export const requiredDSHSourceReuseSurfaces = [
 const expectedDshApplicationHost: DSHApplicationHostContract = {
   role: 'deepseek_harness_cordis_application_host',
   implementation_status: 'source_implemented_release_admission_separate',
-  upstream_version: '0.1.1-rc.2',
-  upstream_ref: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e',
+  upstream_version: '0.1.5-rc.1',
+  upstream_ref: '183f08e9c6dde7e36cd2318eaee70b0da08fb35e',
   profile: 'opl-studio',
   profile_source: 'scripts/webui-host/dsh/cordis.yml',
   web_overlay: 'scripts/webui-host/dsh/web.patch.yml',
@@ -1125,13 +1125,13 @@ function validateOPLStudioCandidateContract(candidate: ShellCandidate): void {
   }
   const visual = candidate.dsh_source_reuse_contract as DSHSourceReuseContract | undefined;
   if (
-    visual?.source_cohort !== 'DeepSeek Harness b150a551b8d465e31e418e1b2eaf5e79bbb7d28e Application Host and selected GUI source' ||
+    visual?.source_cohort !== 'DeepSeek Harness 183f08e9c6dde7e36cd2318eaee70b0da08fb35e Application Host and selected GUI source' ||
     visual.vendor_byte_policy !== 'selected_gui_files_remain_byte_identical_to_their_recorded_upstream_paths_at_the_pinned_ref' ||
     visual.contract_role !== 'application_host_and_source_preservation_with_opl_integration_regression_not_pixel_reimplementation' ||
     visual.reuse_method !== 'pinned_dsh_application_host_packages_plus_source_preserving_gui_reuse_with_opl_plugins_and_adapters' ||
     visual.visual_style_baseline !== 'DeepSeek Harness selected MIT GUI source preserved for DSH-covered modules plus semantically necessary One Person Lab integrations' ||
     visual.visual_style_scope !== 'light_workbench_palette_system_font_stack_type_scale_weight_line_height_sidebar_density_and_composer_surface' ||
-    visual.visual_token_source !== 'deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@b150a551b8d465e31e418e1b2eaf5e79bbb7d28e' ||
+    visual.visual_token_source !== 'deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@183f08e9c6dde7e36cd2318eaee70b0da08fb35e' ||
     visual.font_asset_policy !== 'reuse_deepseek_harness_system_font_behavior_without_copying_unrelated_assets' ||
     visual.parallel_opl_visual_system_allowed !== false ||
     visual.css_override_policy !== 'forbidden_for_dsh_covered_modules_unless_a_real_opl_semantic_host_accessibility_or_platform_boundary_requires_the_smallest_external_delta' ||
@@ -1328,7 +1328,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
   assertCandidateFileContains(candidate, 'scripts/validate-opl-studio-candidate.mjs', [
     'src/candidateContractEvidence.json',
     'src/vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx',
-    '0.1.1-rc.2',
+    '0.1.5-rc.1',
     'opl-studio',
   ], 'OPL Studio self-validator');
 }
