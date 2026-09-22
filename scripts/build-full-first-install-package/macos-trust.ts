@@ -36,8 +36,8 @@ export function ensureAppBundleAdHocCodesign(appPath, label) {
     return;
   }
   const strict = strictMacosRuntimeSigningRequired();
-  const initial = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
-  const initialDetails = strict ? runCapture('codesign', ['-dv', '--verbose=4', appPath]) : null;
+  const initial = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stage: 'full_codesign_verify' });
+  const initialDetails = strict ? runCapture('codesign', ['-dv', '--verbose=4', appPath], { stage: 'full_codesign_identity' }) : null;
   const initialSignature = initialDetails
     ? parseMacosCodeSignatureOutput(`${initialDetails.stdout || ''}${initialDetails.stderr || ''}`)
     : null;
@@ -60,8 +60,8 @@ export function ensureAppBundleAdHocCodesign(appPath, label) {
         appPath,
       ]
     : ['--force', '--deep', '--sign', '-', appPath];
-  run('codesign', signingArgs);
-  const verified = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
+  run('codesign', signingArgs, { stage: 'full_codesign_sign' });
+  const verified = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stage: 'full_codesign_verify' });
   if (verified.status !== 0) {
     throw new Error([
       `${label} signing did not produce a verifiable App bundle: ${appPath}`,
@@ -76,10 +76,9 @@ export function assertAppBundleLocalAuthorization(appPath, label) {
   if (!canRunMacosSigningChecks()) {
     return;
   }
-  const codesign = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
-  const spctl = runCapture('spctl', ['--assess', '--type', 'execute', '--verbose=4', appPath]);
+  const codesign = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stage: 'full_codesign_verify' });
   if (strictMacosRuntimeSigningRequired()) {
-    const details = runCapture('codesign', ['-dv', '--verbose=4', appPath]);
+    const details = runCapture('codesign', ['-dv', '--verbose=4', appPath], { stage: 'full_codesign_identity' });
     const signatureOutput = `${details.stdout || ''}${details.stderr || ''}`;
     const signature = parseMacosCodeSignatureOutput(signatureOutput);
     if (codesign.status !== 0 || !isDeveloperIdApplicationSignature(signature)) {
@@ -93,6 +92,9 @@ export function assertAppBundleLocalAuthorization(appPath, label) {
     }
     return;
   }
+  // Strict builds are assessed by Gatekeeper after notarization; an assessment
+  // here is both premature and unused by that branch.
+  const spctl = runCapture('spctl', ['--assess', '--type', 'execute', '--verbose=4', appPath], { stage: 'full_unsigned_gatekeeper_diagnostic' });
   if (codesign.status !== 0) {
     throw new Error([
       `${label} failed Stable local authorization codesign verification: ${appPath}`,
@@ -117,7 +119,7 @@ export function verifyDmgAppBundleLocalAuthorization(dmgPath, label) {
   }
   const mountPoint = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-dmg-verify-'));
   try {
-    run('hdiutil', ['attach', dmgPath, '-nobrowse', '-readonly', '-mountpoint', mountPoint]);
+    run('hdiutil', ['attach', dmgPath, '-nobrowse', '-readonly', '-mountpoint', mountPoint], { stage: 'full_dmg_mount_verification' });
     const appPath = fs.readdirSync(mountPoint)
       .filter((entry) => entry.endsWith('.app'))
       .sort()
@@ -128,7 +130,7 @@ export function verifyDmgAppBundleLocalAuthorization(dmgPath, label) {
     }
     assertAppBundleLocalAuthorization(appPath, label);
   } finally {
-    runCapture('hdiutil', ['detach', mountPoint]);
+    runCapture('hdiutil', ['detach', mountPoint], { stage: 'full_dmg_unmount_verification' });
     fs.rmSync(mountPoint, { recursive: true, force: true });
   }
 }

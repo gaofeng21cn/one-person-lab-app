@@ -254,7 +254,7 @@ function createDmgWithResourceBusyRetry(targetDmg, args) {
   for (let attempt = 1; attempt <= HDIUTIL_CREATE_ATTEMPTS; attempt += 1) {
     detachMountedImageDevices(targetDmg);
     fs.rmSync(targetDmg, { force: true });
-    const result = runCapture('hdiutil', args);
+    const result = runCapture('hdiutil', args, { stage: 'full_dmg_compression' });
     if (result.status === 0) {
       return;
     }
@@ -296,7 +296,7 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
   let result = null;
   try {
     const stagedApp = path.join(stagingRoot, carrier.appBundleName);
-    run('ditto', [appPath, stagedApp]);
+    run('ditto', [appPath, stagedApp], { stage: 'full_dmg_stage_copy' });
     const trimReport = trimFullAppBundleForDmg(stagedApp);
     const boundaryAudit = auditFullPackageBundleBoundaries(stagedApp, manifest);
     const optimizedManifest = manifest

@@ -412,3 +412,46 @@ test('successful Standard run continues directly into Full instead of closing th
   assert.equal(status.next_action.code, 'continue_current_step');
   assert.match(status.next_action.reason, /contract-defined Full path/);
 });
+
+test('Standard preparation success cannot stand in for build or clean-VM completion', () => {
+  const prepared = [
+    completedJob(1, 'standard / standard-build / Resolve immutable active Shell ref'),
+    completedJob(2, 'standard / standard-build / Prepare Windows Linux runtime'),
+    completedJob(3, 'standard / standard-build / macOS release signing preflight'),
+    completedJob(4, 'standard / standard-build / Build macos-arm64'),
+    completedJob(5, 'standard / standard-clean-vm-qualification / Validate VM harness inputs'),
+    completedJob(6, 'standard / standard-clean-vm-qualification / Persist qualification attempt receipt'),
+  ];
+  const inspect = (jobs: unknown[]) => buildReleaseIncidentStatus({
+    run: run({ status: 'in_progress', conclusion: null }),
+    jobs, artifacts: [], now: '2026-08-22T00:30:00Z',
+  }).completed_actual_stages;
+  assert.equal(inspect(prepared).includes('standard_build_completed'), false);
+  assert.equal(inspect(prepared).includes('standard_clean_vm_qualification_completed'), false);
+  const completed = inspect([
+    ...prepared,
+    completedJob(7, 'standard / standard-build / Build Summary'),
+    completedJob(8, 'standard / standard-clean-vm-qualification / Clean VM first launch'),
+  ]);
+  assert.ok(completed.includes('standard_build_completed'));
+  assert.ok(completed.includes('standard_clean_vm_qualification_completed'));
+});
+
+test('Full compression subprocess events expose the real substage and elapsed time', () => {
+  const event = {
+    timestamp: '2026-08-22T00:05:00Z', event: 'release_stage',
+    stage: 'full_dmg_compression', status: 'completed', duration_seconds: 60, exit_code: 0,
+  };
+  const status = buildReleaseIncidentStatus({
+    run: run({ status: 'in_progress', conclusion: null }),
+    jobs: [{
+      id: 10, name: 'append-full / full-build', status: 'in_progress', conclusion: null,
+      started_at: '2026-08-22T00:04:00Z', completed_at: null,
+      steps: [step(10, 'Build Full package', null, '2026-08-22T00:04:00Z', null)],
+    }],
+    artifacts: [], jobLogs: { 10: JSON.stringify(event) }, now: '2026-08-22T00:06:00Z',
+  });
+  assert.deepEqual(status.focus?.runtime_stage, event);
+  assert.equal(status.focus?.stalled_seconds, 60);
+  assert.equal(status.completed_actual_stages.includes('full_candidate_built'), false);
+});
