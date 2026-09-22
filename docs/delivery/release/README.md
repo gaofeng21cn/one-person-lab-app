@@ -70,6 +70,10 @@ The completion event is observation-only.
 Manual reconciliation still selects one exact lane and retains its existing owner and asset CAS.
 A checkpoint alone cannot authorize an append before its Standard Release is public.
 
+The exact-artifact downloader accepts canonical relative file paths, including the bound Standard
+`assets/` directory, while rejecting traversal, file/directory conflicts and symlink destinations.
+It validates the cached archive size and digest before extracting any bytes.
+
 Large already-compressed release artifacts use uncompressed Actions transport. Full continues to
 consume content-bound runtime caches; cache hits never replace artifact qualification. Model policy
 rejection tests bind a stable error code instead of human-readable diagnostic wording. Framework's

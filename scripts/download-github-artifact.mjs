@@ -14,7 +14,32 @@ export function verifyArchive(file, artifact) {
 export function validateEntries(entries) {
   if (!entries.length || new Set(entries).size !== entries.length) throw new Error('Empty or duplicate archive entries');
   for (const entry of entries) {
-    if (!entry || entry === '.' || entry === '..' || /[/\\\x00-\x1f\x7f]/.test(entry)) throw new Error('Only flat artifact files are admitted');
+    if (!entry || /[\\:\x00-\x1f\x7f]/.test(entry) || entry.split('/').some(part => !part || part === '.' || part === '..')) {
+      throw new Error('Only canonical relative artifact file paths are admitted');
+    }
+    const parts = entry.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      if (entries.includes(parts.slice(0, i).join('/'))) throw new Error('Artifact file conflicts with a parent directory');
+    }
+  }
+  return entries;
+}
+
+export function extractArchive(archive, destination) {
+  const entries = validateEntries(execFileSync('unzip', ['-Z1', archive], { encoding: 'utf8' }).trimEnd().split('\n'));
+  const output = path.resolve(destination);
+  fs.mkdirSync(output, { recursive: true });
+  if (!fs.lstatSync(output).isDirectory()) throw new Error('Artifact destination must be a real directory');
+  for (const entry of entries) {
+    let directory = output;
+    for (const part of entry.split('/').slice(0, -1)) {
+      directory = path.join(directory, part);
+      try { fs.mkdirSync(directory); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+      if (!fs.lstatSync(directory).isDirectory()) throw new Error('Artifact parent must be a real directory');
+    }
+    const fd = fs.openSync(path.join(output, entry), fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC | fs.constants.O_NOFOLLOW, 0o600);
+    try { execFileSync('unzip', ['-p', archive, entry], { stdio: ['ignore', fd, 'pipe'] }); }
+    finally { fs.closeSync(fd); }
   }
   return entries;
 }
@@ -79,14 +104,7 @@ export async function downloadArtifact(env = process.env) {
     await runDownload(url, archive);
     verifyArchive(archive, artifact);
   }
-  const entries = validateEntries(execFileSync('unzip', ['-Z1', archive], { encoding: 'utf8' }).trimEnd().split('\n'));
-  const output = path.resolve(destination);
-  fs.mkdirSync(output, { recursive: true });
-  for (const entry of entries) {
-    const fd = fs.openSync(path.join(output, entry), fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC | fs.constants.O_NOFOLLOW, 0o600);
-    try { execFileSync('unzip', ['-p', archive, entry], { stdio: ['ignore', fd, 'pipe'] }); }
-    finally { fs.closeSync(fd); }
-  }
+  const entries = extractArchive(archive, destination);
   console.log(JSON.stringify({ stage: 'artifact_verified', repository: repo, run_id: run, artifact_id: artifact.id, name, digest: artifact.digest, size_bytes: artifact.size_in_bytes, cache_hit: cacheHit, entries }));
 }
 
