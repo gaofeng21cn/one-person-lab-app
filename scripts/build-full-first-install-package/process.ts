@@ -1,12 +1,35 @@
 import { spawnSync } from 'node:child_process';
 
-export function run(command, args, options = {}) {
+function runProcess(command, args, options = {}) {
+  const startedAt = monotonicSeconds();
+  const emit = (status, extra = {}) => {
+    if (!options.stage) return;
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'release_stage',
+      stage: options.stage,
+      status,
+      ...extra,
+    }));
+  };
+  emit('started');
   const result = spawnSync(command, args, {
     cwd: options.cwd,
     encoding: 'utf8',
     env: options.env ?? process.env,
     stdio: options.capture ? 'pipe' : 'inherit',
   });
+  emit(result.status === 0 ? 'completed' : 'failed', {
+    duration_seconds: durationSeconds(startedAt, monotonicSeconds()),
+    exit_code: result.status,
+    ...(result.signal ? { signal: result.signal } : {}),
+    ...(result.error ? { error_code: result.error.code ?? 'spawn_failed' } : {}),
+  });
+  return result;
+}
+
+export function run(command, args, options = {}) {
+  const result = runProcess(command, args, options);
   if (result.status !== 0) {
     throw new Error([
       `Command failed: ${command} ${args.join(' ')}`,
@@ -17,11 +40,8 @@ export function run(command, args, options = {}) {
   return result;
 }
 
-export function runCapture(command, args) {
-  return spawnSync(command, args, {
-    encoding: 'utf8',
-    stdio: 'pipe',
-  });
+export function runCapture(command, args, options = {}) {
+  return runProcess(command, args, { ...options, capture: true });
 }
 
 export function commandOutput(command, args) {

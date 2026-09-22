@@ -411,8 +411,11 @@ function completedActualStages(
   }
   if (checkpoint.available) stages.push(`framework_${checkpoint.completed_stage}_checkpoint_available`);
   if (successfulJobExists(jobs, /publish-full/i)) stages.push('full_publication_completed');
-  if (successfulJobExists(jobs, /standard.*build|build.*standard/i)) stages.push('standard_build_completed');
-  if (successfulJobExists(jobs, /standard.*clean.*vm|clean.*vm.*standard/i)) {
+  // Reusable-workflow preparation and validation jobs are not completed builds.
+  if (successfulJobExists(jobs, /(?:^|\/)\s*standard-build \/ Build Summary$/i)) {
+    stages.push('standard_build_completed');
+  }
+  if (successfulJobExists(jobs, /(?:^|\/)\s*standard-clean-vm-qualification \/ Clean VM first launch$/i)) {
     stages.push('standard_clean_vm_qualification_completed');
   }
   return [...new Set(stages)];

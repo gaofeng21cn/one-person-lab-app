@@ -11,7 +11,6 @@ import {
 } from './full-first-install-package.ts';
 import {
   createFullDmgFromVerifiedApp,
-  ensureFullDmgLocalAuthorization,
   findBuiltApp,
   maybeCreateRuntimeTar,
   removeStandardGuiArtifacts,
@@ -411,9 +410,8 @@ function main() {
   }
 
   const packageCompressionStartedAt = monotonicSeconds();
-  ensureAppBundleAdHocCodesign(builtApp, 'Full built app bundle');
   const targetDmg = path.join(options.outDir, artifactNames.dmg);
-  let optimizedPackage = createFullDmgFromVerifiedApp(
+  const optimizedPackage = createFullDmgFromVerifiedApp(
     options.guiRoot,
     builtApp,
     targetDmg,
@@ -424,19 +422,8 @@ function main() {
   if (optimizedPackage?.manifest) {
     prepared.manifest = optimizedPackage.manifest;
   }
-  const rebuiltOptimizedPackage = ensureFullDmgLocalAuthorization(
-    options.guiRoot,
-    targetDmg,
-    options.version,
-    prepared.manifest,
-    dmgFormat,
-  );
-  if (rebuiltOptimizedPackage) {
-    optimizedPackage = rebuiltOptimizedPackage;
-    if (rebuiltOptimizedPackage.manifest) {
-      prepared.manifest = rebuiltOptimizedPackage.manifest;
-    }
-  }
+  // The creator verified the final DMG after staging and signing. No DMG bytes
+  // change here, so mounting and assessing it again would repeat that gate.
   removeStandardGuiArtifacts(options.guiRoot, options.version);
   console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_archive' }));
   const runtimeTar = maybeCreateRuntimeTar(options, prepared.runtimeRoot, artifactNames);
