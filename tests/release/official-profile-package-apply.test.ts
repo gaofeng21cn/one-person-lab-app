@@ -573,3 +573,58 @@ test('Official Profile bounds diagnostic messages and redacts credentials before
     assert.ok(!message.includes(secret));
   }
 });
+
+test('Official Profile extracts and redacts pretty Framework stderr JSON without leaking response bodies', () => {
+  const result = applyOfficialProfilePackages({
+    intent: 'first_install',
+    rootPackageIds: ['obf'],
+    runtime: {
+      execute: () => ({
+        status: 1,
+        stdout: '',
+        stderr: JSON.stringify(
+          {
+            error: {
+              code: 'native_install_failed',
+              message: 'Carrier inventory failed; token=fixture-secret',
+              body: 'private-response-body',
+            },
+          },
+          null,
+          2,
+        ),
+      }),
+    },
+  });
+  assert.deepEqual(result.official_profile_package_apply.items[0].error, {
+    code: 'native_install_failed',
+    message: 'Carrier inventory failed; token=<redacted>',
+  });
+  assert.ok(!JSON.stringify(result).includes('private-response-body'));
+  assert.ok(!JSON.stringify(result).includes('fixture-secret'));
+});
+
+test('Official Profile does not expose unrelated stderr JSON or credential-shaped codes', () => {
+  for (const stderr of [
+    JSON.stringify({ body: 'private-response-body' }),
+    JSON.stringify({
+      error: { code: 'token=fixture-secret', message: 'Install failed' },
+    }),
+  ]) {
+    const result = applyOfficialProfilePackages({
+      intent: 'first_install',
+      rootPackageIds: ['obf'],
+      runtime: { execute: () => ({ status: 1, stdout: '', stderr }) },
+    });
+    assert.notEqual(
+      result.official_profile_package_apply.items[0].error.message,
+      '{',
+    );
+    assert.equal(
+      result.official_profile_package_apply.items[0].error.code,
+      undefined,
+    );
+    assert.ok(!JSON.stringify(result).includes('private-response-body'));
+    assert.ok(!JSON.stringify(result).includes('fixture-secret'));
+  }
+});
