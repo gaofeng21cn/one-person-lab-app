@@ -14,8 +14,9 @@ const packageName = '@openai/codex';
 fs.mkdirSync(npmCacheDir, { recursive: true });
 fs.mkdirSync(path.dirname(tarballPath), { recursive: true });
 const prewarmManifestPath = process.env.OPL_CODEX_PREWARM_MANIFEST;
+const buildCohortPath = process.env.OPL_CODEX_BUILD_COHORT_MANIFEST || 'artifacts/release-cohort/opl-build-cohort.json';
 const buildCohort = prewarmManifestPath ? null
-  : JSON.parse(fs.readFileSync('artifacts/release-cohort/opl-build-cohort.json', 'utf8'));
+  : JSON.parse(fs.readFileSync(buildCohortPath, 'utf8'));
 const frozen = prewarmManifestPath
   ? JSON.parse(fs.readFileSync(prewarmManifestPath, 'utf8')).runtime_payloads?.codex_cli
   : buildCohort?.qualification_runtime?.codex_cli;

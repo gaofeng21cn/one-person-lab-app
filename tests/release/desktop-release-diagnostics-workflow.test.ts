@@ -54,12 +54,17 @@ test('release diagnostics is manually invokable without Stable mutation authorit
 
 test('Full release-gate diagnostics pass the exact MAS ref to the VM harness', () => {
   const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
-  assert.ok(workflow.on.workflow_call.inputs.mas_ref);
-  assert.ok(workflow.on.workflow_dispatch.inputs.mas_ref);
-  assert.equal(
-    workflow.jobs['vm-harness-diagnostics-release-asset'].with.mas_ref,
-    '${{ inputs.mas_ref }}',
-  );
+  const inputs = [
+    'mas_ref', 'artifact_app_ref', 'verification_app_ref', 'framework_executor_ref',
+    'codex_qualification_cohort_artifact_name',
+  ];
+  for (const name of inputs) {
+    assert.ok(workflow.on.workflow_call.inputs[name]);
+    assert.ok(workflow.on.workflow_dispatch.inputs[name]);
+    assert.equal(workflow.jobs['vm-harness-diagnostics-release-asset'].with[name], `\${{ inputs.${name} }}`);
+  }
+  assert.equal(workflow.jobs['vm-harness-diagnostics-release-asset'].with.release_artifact_run_id,
+    '${{ inputs.release_artifact_run_id != \'\' && inputs.release_artifact_run_id || inputs.release_run_id }}');
 });
 
 test('Standard VM diagnostics require and inject an exact Framework SHA', () => {

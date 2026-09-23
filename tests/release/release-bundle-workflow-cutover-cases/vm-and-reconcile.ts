@@ -410,6 +410,12 @@ test('first-run VM uploads critical diagnostics only on a real failure path', ()
 test('first-run VM prefetches frozen Codex install assets from a physical script', () => {
   const workflow = parseWorkflow('opl-first-run-vm.yml');
   const steps = workflow.jobs['clean-vm-first-run'].steps as Array<Record<string, any>>;
+  const restored = steps.find((step) => step.name === 'Restore frozen Codex qualification cohort');
+  const validated = steps.find((step) => step.name === 'Validate frozen Codex qualification cohort');
+  assert.equal(restored?.with?.name, '${{ inputs.codex_qualification_cohort_artifact_name }}');
+  assert.match(String(validated?.run), /\.cohort\.app_sha == \$app/);
+  assert.match(String(validated?.run), /\.cohort\.shell_sha == \$shell/);
+  assert.match(String(validated?.run), /\.cohort\.framework_sha == \$framework/);
   const prefetch = steps.find(
     (step) => step.name === 'Prefetch Codex package install assets',
   );
@@ -417,6 +423,7 @@ test('first-run VM prefetches frozen Codex install assets from a physical script
 
   const run = String(prefetch.run);
   assert.equal(run, 'node scripts/prefetch-codex-package-install-assets.mjs');
+  assert.match(String(prefetch.env.OPL_CODEX_BUILD_COHORT_MANIFEST), /codex-qualification-cohort\/opl-build-cohort\.json/);
   assert.doesNotMatch(run, /node\s+<<|<<['"]?NODE/);
 
   const scriptPath = path.join(

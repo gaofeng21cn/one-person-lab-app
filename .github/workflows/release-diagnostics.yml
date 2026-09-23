@@ -51,6 +51,16 @@ on:
         required: false
         default: main
         type: string
+      artifact_app_ref:
+        description: Exact App SHA embedded in the candidate DMG
+        required: false
+        default: ''
+        type: string
+      verification_app_ref:
+        description: Exact App SHA containing the VM verification scripts
+        required: false
+        default: ''
+        type: string
       framework_ref:
         description: Exact 40-character one-person-lab Framework SHA injected into Standard VM diagnostics
         required: false
@@ -58,6 +68,16 @@ on:
         type: string
       mas_ref:
         description: Exact med-autoscience SHA for Full release-gate diagnostics
+        required: false
+        default: ''
+        type: string
+      framework_executor_ref:
+        description: Exact Framework executor SHA for Full release-gate diagnostics
+        required: false
+        default: ''
+        type: string
+      codex_qualification_cohort_artifact_name:
+        description: Frozen source cohort artifact used only for Codex package prefetch
         required: false
         default: ''
         type: string
@@ -152,6 +172,16 @@ on:
         required: false
         default: main
         type: string
+      artifact_app_ref:
+        description: Exact App SHA embedded in the candidate DMG
+        required: false
+        default: ''
+        type: string
+      verification_app_ref:
+        description: Exact App SHA containing the VM verification scripts
+        required: false
+        default: ''
+        type: string
       framework_ref:
         description: Exact 40-character one-person-lab Framework SHA injected into Standard VM diagnostics
         required: false
@@ -159,6 +189,16 @@ on:
         type: string
       mas_ref:
         description: Exact med-autoscience SHA for Full release-gate diagnostics
+        required: false
+        default: ''
+        type: string
+      framework_executor_ref:
+        description: Exact Framework executor SHA for Full release-gate diagnostics
+        required: false
+        default: ''
+        type: string
+      codex_qualification_cohort_artifact_name:
+        description: Frozen source cohort artifact used only for Codex package prefetch
         required: false
         default: ''
         type: string
@@ -468,8 +508,12 @@ jobs:
       release_artifact_name: macos-build-arm64-dmg
       release_artifact_run_id: ${{ github.run_id }}
       shell_ref: ${{ inputs.shell_ref }}
+      artifact_app_ref: ${{ inputs.artifact_app_ref }}
+      verification_app_ref: ${{ inputs.verification_app_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       mas_ref: ${{ inputs.mas_ref }}
+      framework_executor_ref: ${{ inputs.framework_executor_ref }}
+      codex_qualification_cohort_artifact_name: ${{ inputs.codex_qualification_cohort_artifact_name }}
       package_profile: ${{ inputs.package_profile }}
       tart_source_vm: ${{ inputs.tart_source_vm }}
       keep_vm: ${{ inputs.keep_vm }}
@@ -491,8 +535,12 @@ jobs:
       release_artifact_name: ${{ inputs.release_artifact_name }}
       release_artifact_run_id: ${{ inputs.release_artifact_run_id != '' && inputs.release_artifact_run_id || inputs.release_run_id }}
       shell_ref: ${{ inputs.shell_ref }}
+      artifact_app_ref: ${{ inputs.artifact_app_ref }}
+      verification_app_ref: ${{ inputs.verification_app_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       mas_ref: ${{ inputs.mas_ref }}
+      framework_executor_ref: ${{ inputs.framework_executor_ref }}
+      codex_qualification_cohort_artifact_name: ${{ inputs.codex_qualification_cohort_artifact_name }}
       package_profile: ${{ inputs.package_profile }}
       tart_source_vm: ${{ inputs.tart_source_vm }}
       keep_vm: ${{ inputs.keep_vm }}

@@ -93,6 +93,11 @@ on:
         required: false
         default: ''
         type: string
+      codex_qualification_cohort_artifact_name:
+        description: 'Frozen source cohort artifact for Codex prefetch when a repackaged DMG has no same-run build artifact.'
+        required: false
+        default: ''
+        type: string
       package_profile:
         description: 'Install profile to test: full, standard, homebrew-standard, homebrew-nightly, or homebrew-full.'
         required: false
@@ -1758,6 +1763,34 @@ jobs:
           name: ${{ inputs.prepared_inputs_artifact }}
           path: artifacts/opl-first-run-vm/codex-package-tarballs
 
+      - name: Restore frozen Codex qualification cohort
+        if: ${{ inputs.codex_qualification_cohort_artifact_name != '' && inputs.release_artifact_run_id != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.codex_qualification_cohort_artifact_name }}
+          run-id: ${{ inputs.release_artifact_run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts/codex-qualification-cohort
+
+      - name: Validate frozen Codex qualification cohort
+        if: ${{ inputs.codex_qualification_cohort_artifact_name != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n '${{ inputs.codex_qualification_cohort_artifact_name }}'
+          [[ '${{ inputs.release_artifact_run_id }}' =~ ^[1-9][0-9]*$ ]]
+          file=artifacts/codex-qualification-cohort/opl-build-cohort.json
+          test -s "$file" && test ! -L "$file"
+          jq -e \
+            --arg app '${{ needs.validate-vm-inputs.outputs.artifact_app_sha }}' \
+            --arg shell '${{ needs.validate-vm-inputs.outputs.shell_sha }}' \
+            --arg framework '${{ needs.validate-vm-inputs.outputs.framework_executor_sha }}' \
+            '.schema == "opl_app_build_artifact_cohort.v2"
+             and .cohort.app_sha == $app
+             and .cohort.shell_sha == $shell
+             and .cohort.framework_sha == $framework
+             and (.qualification_runtime.codex_cli.version | type == "string")' "$file" >/dev/null
+
       - name: Prefetch Codex package install assets
         if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' }}
         id: codex_package_preflight
@@ -1768,6 +1801,7 @@ jobs:
           CODEX_CACHE_RESTORE_HIT: ${{ steps.codex_install_asset_cache.outputs.cache-hit }}
           CODEX_CACHE_RESTORE_PRIMARY_KEY: ${{ steps.codex_install_asset_cache.outputs.cache-primary-key }}
           CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.codex_install_asset_cache.outputs.cache-matched-key }}
+          OPL_CODEX_BUILD_COHORT_MANIFEST: ${{ inputs.codex_qualification_cohort_artifact_name != '' && 'artifacts/codex-qualification-cohort/opl-build-cohort.json' || '' }}
 
       - name: Save Codex install asset cache
         if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
