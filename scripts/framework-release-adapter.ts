@@ -1877,7 +1877,7 @@ function runGitHubMutation(input: {
     try { response = JSON.parse(String(result.stdout ?? '')); } catch { /* No structured rejection. */ }
     const creationRejected = input.mutation === 'release_create'
       && result.status === 1 && !result.error && !result.signal
-      && ['401', '403'].includes(String(response?.status))
+      && ['401', '403', '404'].includes(String(response?.status))
       && response?.documentation_url === 'https://docs.github.com/rest/releases/releases#create-a-release';
     return {
       status: creationRejected ? 'rejected' : 'outcome_unknown',
