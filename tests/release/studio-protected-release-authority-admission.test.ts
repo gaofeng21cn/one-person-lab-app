@@ -45,7 +45,7 @@ const studioCarrier: DesktopReleaseCarrier = {
     qualify_public_release: 'node scripts/desktop/macos-distribution.mjs --require-release-trust --require-public-feed',
   },
   toolchain: {
-    electron: '43.4.0',
+    electron: '44.0.0',
     electron_builder: '26.15.3',
     electron_updater: '6.8.9',
   },

@@ -39,7 +39,7 @@ function carrierFixture(kind: 'aionui' | 'opl-studio') {
     : 'One-Person-Lab-${env.OPL_RELEASE_VERSION}-${os}-${arch}.${ext}';
   const packageManager = candidate ? 'npm' : 'bun';
   const toolchain = candidate
-    ? { electron: '43.4.0', electronBuilder: '26.15.3', electronUpdater: '6.8.9' }
+    ? { electron: '44.0.0', electronBuilder: '26.15.3', electronUpdater: '6.8.9' }
     : { electron: '41.10.3', electronBuilder: '26.15.3', electronUpdater: '6.8.9' };
   const scripts = candidate
     ? {
@@ -135,7 +135,7 @@ test('App desktop release kernel resolves both admitted Electron carriers throug
       electron_updater: '6.8.9',
     });
     assert.deepEqual(candidate.toolchain, {
-      electron: '43.4.0',
+      electron: '44.0.0',
       electron_builder: '26.15.3',
       electron_updater: '6.8.9',
     });
@@ -178,7 +178,7 @@ test('App desktop release kernel rejects a carrier using another admitted carrie
     const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     writeJson(packagePath, {
       ...pkg,
-      devDependencies: { ...pkg.devDependencies, electron: '43.4.0' },
+      devDependencies: { ...pkg.devDependencies, electron: '44.0.0' },
     });
     assert.throws(() => resolveFixture(fixture), /toolchain drifted from its App-admitted profile/);
   } finally {

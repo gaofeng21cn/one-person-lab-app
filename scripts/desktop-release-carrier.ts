@@ -158,7 +158,7 @@ function validateKernel(value: unknown): DesktopReleaseKernelContract {
     kernel.toolchain_profiles?.aionui?.electron === '41.10.3'
       && kernel.toolchain_profiles.aionui.electron_builder === '26.15.3'
       && kernel.toolchain_profiles.aionui.electron_updater === '6.8.9'
-      && kernel.toolchain_profiles['opl-studio']?.electron === '43.4.0'
+      && kernel.toolchain_profiles['opl-studio']?.electron === '44.0.0'
       && kernel.toolchain_profiles['opl-studio'].electron_builder === '26.15.3'
       && kernel.toolchain_profiles['opl-studio'].electron_updater === '6.8.9'
       && JSON.stringify(Object.keys(kernel.toolchain_profiles).sort()) === JSON.stringify(['aionui', 'opl-studio']),
