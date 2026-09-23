@@ -188,7 +188,8 @@ export function shellBuildEnvironmentWithoutRedundantNotarization(env = process.
 }
 
 export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
-  const configPath = resolveActiveShellPaths({ shellRoot: guiRoot }).electronBuilderConfigPath;
+  const shellPaths = resolveActiveShellPaths({ shellRoot: guiRoot });
+  const configPath = shellPaths.electronBuilderConfigPath;
   const originalConfig = fs.readFileSync(configPath, 'utf8');
   const newline = originalConfig.includes('\r\n') ? '\r\n' : '\n';
   const macHeaders = [...originalConfig.matchAll(/^mac:[ \t]*(?:#[^\r\n]*)?(?:\r?\n|$)/gm)];
@@ -204,11 +205,23 @@ export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
   const signIgnore = `${macHeaders[0][0].endsWith(newline) ? '' : newline}  signIgnore:${newline}    - ${FULL_RUNTIME_SIGN_IGNORE_PATTERN}${newline}`;
   const releaseConfig = `${originalConfig.slice(0, macStart)}${signIgnore}${originalConfig.slice(macStart)}`;
 
-  fs.writeFileSync(configPath, releaseConfig, 'utf8');
+  const runtimeRoot = shellPaths.packagedRuntimeRoot;
+  const parkedDir = fs.existsSync(runtimeRoot)
+    ? fs.mkdtempSync(path.join(path.dirname(runtimeRoot), '.opl-full-runtime-signing-'))
+    : null;
+  if (parkedDir) fs.renameSync(runtimeRoot, path.join(parkedDir, path.basename(runtimeRoot)));
   try {
+    fs.writeFileSync(configPath, releaseConfig, 'utf8');
     return build();
   } finally {
-    fs.writeFileSync(configPath, originalConfig, 'utf8');
+    try {
+      fs.writeFileSync(configPath, originalConfig, 'utf8');
+    } finally {
+      if (parkedDir) {
+        fs.renameSync(path.join(parkedDir, path.basename(runtimeRoot)), runtimeRoot);
+        fs.rmdirSync(parkedDir);
+      }
+    }
   }
 }
 
@@ -357,16 +370,14 @@ function main() {
   const dmgFormat = resolveFullDmgFormat();
   process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
   const builtApp = findBuiltApp(options.guiRoot);
-  if (options.skipGuiBuild) {
-    payloadRoots = {
-      ...payloadRoots,
-      builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(
-        prepared.runtimeRoot,
-        prepared.manifest,
-        builtApp,
-      ),
-    };
-  }
+  payloadRoots = {
+    ...payloadRoots,
+    builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(
+      prepared.runtimeRoot,
+      prepared.manifest,
+      builtApp,
+    ),
+  };
   if (manualLocalAppIdentity) {
     stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
   }

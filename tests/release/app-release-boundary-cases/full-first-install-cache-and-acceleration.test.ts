@@ -175,6 +175,9 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
   ].join("\n");
   fs.mkdirSync(configDir, { recursive: true });
   fs.writeFileSync(configPath, originalConfig);
+  const runtimeRoot = path.join(shellRoot, "packaged-runtimes", "opl-full-runtime");
+  fs.mkdirSync(runtimeRoot, { recursive: true });
+  fs.writeFileSync(path.join(runtimeRoot, "manifest.json"), "preserve this payload");
   context.after(() => fs.rmSync(shellRoot, { recursive: true, force: true }));
 
   assert.throws(
@@ -185,11 +188,13 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
       ]);
       assert.equal(effective.mac.hardenedRuntime, true);
       assert.equal(effective.linux.target, "deb");
+      assert.equal(fs.existsSync(runtimeRoot), false);
       throw new Error("test build failure");
     }),
     /test build failure/,
   );
   assert.equal(fs.readFileSync(configPath, "utf8"), originalConfig);
+  assert.equal(fs.readFileSync(path.join(runtimeRoot, "manifest.json"), "utf8"), "preserve this payload");
 });
 
 test("Full workflow delegates Codex to the Shell AionCore carrier without a Framework install", () => {
