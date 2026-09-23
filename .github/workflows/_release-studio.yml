@@ -740,7 +740,17 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
             "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/tags/$STUDIO_TAG")"
           case "$tag_status" in
-            200) jq -e --arg sha "$STUDIO_SHA" '.object.type == "commit" and .object.sha == $sha' "$RUNNER_TEMP/studio-tag-prestate.json" >/dev/null ;;
+            200)
+              read -r tag_object_type tag_object_sha < <(jq -er '.object.type + " " + .object.sha' "$RUNNER_TEMP/studio-tag-prestate.json")
+              if [ "$tag_object_type" = tag ]; then
+                [[ "$tag_object_sha" =~ ^[0-9a-f]{40}$ ]]
+                read -r tag_object_type tag_object_sha < <(
+                  gh api "repos/$STUDIO_REPOSITORY/git/tags/$tag_object_sha" --jq '.object.type + " " + .object.sha'
+                )
+              fi
+              test "$tag_object_type" = commit
+              test "$tag_object_sha" = "$STUDIO_SHA"
+              ;;
             404) ;;
             *) echo "Unable to reconcile Studio tag prestate ($tag_status)." >&2; exit 1 ;;
           esac
@@ -901,8 +911,14 @@ jobs:
             studio-release-evidence/release-readback.json >/dev/null
           read -r tag_object_type tag_object_sha < <(
             gh api "repos/$STUDIO_REPOSITORY/git/ref/tags/$STUDIO_TAG" \
-              --jq '.object.type + "\t" + .object.sha'
+              --jq '.object.type + " " + .object.sha'
           )
+          if [ "$tag_object_type" = tag ]; then
+            [[ "$tag_object_sha" =~ ^[0-9a-f]{40}$ ]]
+            read -r tag_object_type tag_object_sha < <(
+              gh api "repos/$STUDIO_REPOSITORY/git/tags/$tag_object_sha" --jq '.object.type + " " + .object.sha'
+            )
+          fi
           test "$tag_object_type" = commit
           test "$tag_object_sha" = "$STUDIO_SHA"
 
