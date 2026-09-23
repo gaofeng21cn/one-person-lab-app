@@ -16,6 +16,7 @@ const repo = 'gaofeng21cn/opl-studio';
 const tag = 'v0.1.1';
 const studioSha = 'a'.repeat(40);
 const studioTree = 'b'.repeat(40);
+const annotatedTagSha = 'c'.repeat(40);
 
 function digest(bytes: Buffer | string): string {
   return `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
@@ -65,7 +66,7 @@ function fixture() {
 
 function runtimeFor(
   files: ReturnType<typeof fixture>,
-  options: { initialFull?: boolean; conflictFull?: boolean; failUpload?: boolean; publishThenFail?: boolean } = {},
+  options: { initialFull?: boolean; conflictFull?: boolean; failUpload?: boolean; publishThenFail?: boolean; annotatedTag?: boolean; annotatedTargetSha?: string } = {},
 ): { runtime: StudioFullReleaseRuntime; calls: string[][]; remoteAssets: StudioFullAsset[] } {
   const calls: string[][] = [];
   const remoteAssets = [...files.standardAssets, ...(options.initialFull ? files.fullAssets : [])];
@@ -95,7 +96,10 @@ function runtimeFor(
         return { status: 0, stdout: release(), stderr: '' };
       }
       if (args[0] === 'api' && args[1] === `repos/${repo}/git/ref/tags/${tag}`) {
-        return { status: 0, stdout: JSON.stringify({ object: { type: 'commit', sha: studioSha } }), stderr: '' };
+        return { status: 0, stdout: JSON.stringify({ object: { type: options.annotatedTag ? 'tag' : 'commit', sha: options.annotatedTag ? annotatedTagSha : studioSha } }), stderr: '' };
+      }
+      if (args[0] === 'api' && args[1] === `repos/${repo}/git/tags/${annotatedTagSha}`) {
+        return { status: 0, stdout: JSON.stringify({ object: { type: 'commit', sha: options.annotatedTargetSha ?? studioSha } }), stderr: '' };
       }
       if (args[0] === 'api' && args[1] === `repos/${repo}/git/commits/${studioSha}`) {
         return { status: 0, stdout: JSON.stringify({ sha: studioSha, tree: { sha: studioTree } }), stderr: '' };
@@ -143,6 +147,23 @@ test('Studio Full appends exactly two assets and never mutates release metadata'
   assert.equal(simulated.calls.filter((args) => args[0] === 'release' && args[1] === 'upload').length, 2);
   assert.equal(simulated.calls.some((args) => args.includes('--clobber')), false);
   assert.equal(simulated.calls.some((args) => args.includes('create') || args.includes('edit')), false);
+});
+
+test('Studio Full resolves an annotated tag to the exact admitted commit', () => {
+  const files = fixture();
+  const simulated = runtimeFor(files, { annotatedTag: true });
+  const result = appendArgs(files, simulated.runtime);
+
+  assert.equal(result.status, 'complete');
+  assert.ok(simulated.calls.some((args) => args[0] === 'api' && args[1] === `repos/${repo}/git/tags/${annotatedTagSha}`));
+});
+
+test('Studio Full rejects an annotated tag targeting another commit before upload', () => {
+  const files = fixture();
+  const simulated = runtimeFor(files, { annotatedTag: true, annotatedTargetSha: 'd'.repeat(40) });
+
+  assert.throws(() => appendArgs(files, simulated.runtime), /Studio tag does not point to the exact admitted commit/);
+  assert.equal(simulated.calls.some((args) => args[0] === 'release' && args[1] === 'upload'), false);
 });
 
 test('Studio Full append is idempotent when both exact assets already exist', () => {

@@ -205,7 +205,12 @@ export function inspectStudioRelease(input: {
   const release = ghRead(input.runtime, ['api', `repos/${input.repo}/releases/tags/${input.tag}`]);
   invariant(release, `Studio Release ${input.tag} does not exist.`);
   const tagRef = ghRead(input.runtime, ['api', `repos/${input.repo}/git/ref/tags/${input.tag}`]);
-  invariant(tagRef?.object?.type === 'commit' && tagRef.object.sha === input.studioSha,
+  let tagTarget = tagRef?.object;
+  if (tagTarget?.type === 'tag') {
+    invariant(/^[0-9a-f]{40}$/.test(String(tagTarget.sha)), 'Studio annotated tag object SHA is invalid.');
+    tagTarget = ghRead(input.runtime, ['api', `repos/${input.repo}/git/tags/${tagTarget.sha}`])?.object;
+  }
+  invariant(tagTarget?.type === 'commit' && tagTarget.sha === input.studioSha,
     'Studio tag does not point to the exact admitted commit.');
   const commit = ghRead(input.runtime, ['api', `repos/${input.repo}/git/commits/${input.studioSha}`]);
   invariant(commit?.sha === input.studioSha && commit.tree?.sha === input.studioTree,
