@@ -27,6 +27,19 @@ test('Studio Preview VM qualification owns two clean public-asset profiles witho
   assert.doesNotMatch(source, /contents:\s*write|packages:\s*write|gh release (?:create|upload|edit|delete)|--clobber|make_latest/);
 });
 
+test('Studio Preview VM checks runner Node trust before downloading either public DMG', () => {
+  const steps = workflow.jobs.qualify.steps as Array<{ name: string; run?: string }>;
+  const preflight = steps.findIndex((step) => step.name === 'Verify runner Node trust before public asset transfer');
+  const download = steps.findIndex((step) => step.name === 'Resolve and download exact public Preview DMG');
+  assert.ok(preflight > 0 && preflight < download);
+  assert.match(steps[preflight].run!, /prepareRunnerTrustBundle/);
+  assert.match(steps[preflight].run!, /NODE_EXTRA_CA_CERTS=.*runner-system-ca\.pem/);
+  assert.match(steps[preflight].run!, /SSL_CERT_FILE=.*runner-system-ca\.pem/);
+  assert.match(steps[preflight].run!, /default_session_profile\.base_url/);
+  assert.match(steps[preflight].run!, /AbortSignal\.timeout\(10000\)/);
+  assert.doesNotMatch(steps[preflight].run!, /NODE_TLS_REJECT_UNAUTHORIZED/);
+});
+
 test('Studio Preview VM qualification requires identity, trust, pages, Gateway, and a real Codex turn', () => {
   for (const required of [
     'one-person-lab-preview-${RELEASE_TAG#v}-mac-arm64.dmg',

@@ -33,6 +33,10 @@ verification enabled; it does not alter the source VM or product bytes. The call
 the guest launch environment preserves both CA paths and still removes TLS-disable overrides
 before allocating a VM.
 
+Preview VM qualification also probes the runner Node TLS path using this same temporary CA bundle
+before downloading either public DMG. Missing runner trust or a failed Gateway TLS handshake now
+fails at the small input stage; the installed App still performs the real Gateway login in each VM.
+
 The clean-VM Codex turn is a **connectivity probe, not a model-generation check**. The release-test
 account is expected to carry no balance, so the accepted outcomes are a non-simulated turn that
 completes with a final message, or a non-simulated turn that reaches the configured provider and

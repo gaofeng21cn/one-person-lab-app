@@ -203,6 +203,39 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Verify runner Node trust before public asset transfer
+        shell: bash
+        run: |
+          set -euo pipefail
+          trust_root="$(mktemp -d "$RUNNER_TEMP/opl-studio-preview-trust.XXXXXX")"
+          trap 'rm -rf "$trust_root"' EXIT
+          node --input-type=module - "$trust_root" <<'NODE'
+          import { prepareRunnerTrustBundle } from './scripts/desktop/qualify-clean-vm.mjs';
+          const trust = await prepareRunnerTrustBundle(process.argv[2]);
+          if (!trust || trust.certificateCount === 0) {
+            throw new Error('Runner system CA trust is unavailable for the clean VM');
+          }
+          console.log(`Runner trust ready: ${trust.certificateCount} certificates, sha256:${trust.sha256}`);
+          NODE
+          gateway_base_url="$(jq -er '.default_session_profile.base_url' contracts/app-product-profile.json)"
+          NODE_EXTRA_CA_CERTS="$trust_root/runner-system-ca.pem" \
+          SSL_CERT_FILE="$trust_root/runner-system-ca.pem" \
+          GATEWAY_BASE_URL="$gateway_base_url" \
+          node --input-type=module <<'NODE'
+          const url = new URL(process.env.GATEWAY_BASE_URL);
+          if (url.protocol !== 'https:') throw new Error('Gateway probe requires HTTPS');
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const response = await fetch(url, { signal: AbortSignal.timeout(10000), redirect: 'manual' });
+              console.log(`Runner Node TLS probe reached Gateway: HTTP ${response.status}`);
+              break;
+            } catch (error) {
+              if (attempt === 3) throw error;
+              await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+            }
+          }
+          NODE
+
       - name: Checkout exact Framework bootstrap source
         if: ${{ matrix.profile == 'standard' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

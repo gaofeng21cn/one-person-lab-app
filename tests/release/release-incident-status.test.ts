@@ -413,6 +413,33 @@ test('successful Standard run continues directly into Full instead of closing th
   assert.match(status.next_action.reason, /contract-defined Full path/);
 });
 
+test('successful Preview VM run reports both profiles without proposing another Full dispatch', () => {
+  const status = buildReleaseIncidentStatus({
+    run: run({
+      name: 'OPL Studio Preview v0.1.17 Standard and Full VM qualification',
+      path: '.github/workflows/opl-studio-preview-vm.yml@refs/heads/main',
+      status: 'completed',
+      conclusion: 'success',
+    }),
+    jobs: { jobs: [
+      completedJob(61, 'Clean VM standard'),
+      completedJob(62, 'Clean VM full'),
+      completedJob(63, 'summarize'),
+    ] },
+    artifacts: { artifacts: [artifact(64, 'opl-studio-preview-vm-qualification-35725517659')] },
+    now: '2026-08-22T00:30:00Z',
+  });
+
+  assert.equal(status.run.operation, 'studio_preview_vm');
+  assert.deepEqual(status.completed_actual_stages, [
+    'studio_standard_clean_vm_qualified',
+    'studio_full_clean_vm_qualified',
+    'studio_preview_vm_summary_completed',
+  ]);
+  assert.equal(status.next_action.code, 'complete');
+  assert.match(status.next_action.reason, /aggregate qualification receipt/);
+});
+
 test('Standard preparation success cannot stand in for build or clean-VM completion', () => {
   const prepared = [
     completedJob(1, 'standard / standard-build / Resolve immutable active Shell ref'),

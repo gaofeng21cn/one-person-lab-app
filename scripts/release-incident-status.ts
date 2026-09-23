@@ -389,7 +389,15 @@ function completedActualStages(
   artifacts: ReturnType<typeof artifactSummary>,
   checkpoint: ReturnType<typeof checkpointEvidence>,
   vm: ReturnType<typeof vmState>,
+  operation: string,
 ): string[] {
+  if (operation === 'studio_preview_vm') {
+    return [
+      ...(successfulJobExists(jobs, /^Clean VM standard$/i) ? ['studio_standard_clean_vm_qualified'] : []),
+      ...(successfulJobExists(jobs, /^Clean VM full$/i) ? ['studio_full_clean_vm_qualified'] : []),
+      ...(successfulJobExists(jobs, /^summarize$/i) ? ['studio_preview_vm_summary_completed'] : []),
+    ];
+  }
   const names = new Set(artifacts.map((artifact) => artifact.name));
   const stages: string[] = [];
   if (successfulJobExists(jobs, /(?:^|\/)\s*admission$/i)) stages.push('release_admission_completed');
@@ -432,6 +440,12 @@ function nextAction(input: {
   checkpoint: ReturnType<typeof checkpointEvidence>;
 }): { code: ReleaseIncidentAction; reason: string } {
   if (input.runStatus === 'completed' && input.runConclusion === 'success') {
+    if (input.operation === 'studio_preview_vm') {
+      return {
+        code: 'complete',
+        reason: 'The Preview Standard and Full VM jobs succeeded; read the aggregate qualification receipt before closing.',
+      };
+    }
     if (input.operation === 'standard' || input.operation === 'resume_standard') {
       return {
         code: 'continue_current_step',
@@ -510,7 +524,10 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
     stringField(run, 'name'),
     stringField(run, 'display_title', 'displayTitle'),
   ].filter((entry): entry is string => entry !== null).join(' ');
-  const operation = /append[_ -]?full/i.test(runLabel)
+  const workflowPath = stringField(run, 'path', 'workflowName', 'workflow_name') ?? '';
+  const operation = /(?:^|\/)opl-studio-preview-vm\.yml(?:@|$)/i.test(workflowPath)
+    ? 'studio_preview_vm'
+    : /append[_ -]?full/i.test(runLabel)
     ? 'append_full'
     : /resume[_ -]?standard/i.test(runLabel)
       ? 'resume_standard'
@@ -597,7 +614,7 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
       : null,
     vm_state: vm,
     checkpoint_recovery: checkpoint,
-    completed_actual_stages: completedActualStages(jobs, artifactList, checkpoint, vm),
+    completed_actual_stages: completedActualStages(jobs, artifactList, checkpoint, vm, operation),
     completed_jobs: jobs
       .filter((job) => jobConclusion(job) === 'success')
       .map((job) => ({
