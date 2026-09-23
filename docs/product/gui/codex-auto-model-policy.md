@@ -28,8 +28,9 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
 6. 固定选择从目录消失时，保留为不可用选择，直到用户恢复 Auto 或另选模型。
    自动模式只保存 Auto，不保存旧解析快照。
 
-当前 AionUI 主线通过 Shell 独立携带官方 npm Codex CLI `0.153.4`，其模型目录已声明
-`gpt-6-astra` 为默认模型并支持 `max`。AionCore 保持官方 `v0.2.1` 原样；CLI 与 AionCore
+当前 AionUI 主线通过 Shell 独立携带官方 npm Codex CLI `0.156.1`。App 将目录中可用的
+`gpt-6-astra` 解析为 Auto 默认并使用 `max`；有访问权限时，`gpt-6-sol` 随实时目录进入固定模型菜单。
+目录不可用时按 App fallback 处理。AionCore 保持官方 `v0.2.1` 原样；CLI 与 AionCore
 的组合兼容性由 OPL Shell 验证，升级 CLI 不要求修改或派生 AionCore。安装包仍须经过
 完整 App 构建、安装和运行时版本回读，不能单独替换已安装 App 内的运行文件。
 

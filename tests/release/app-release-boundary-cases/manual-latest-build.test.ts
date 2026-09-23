@@ -466,7 +466,7 @@ test('manual source-lock accepts official composed Codex provenance and rejects 
   manifest.projection.codexSource = {package: '@openai/codex', version: '0.144.6', packageSpec: '@openai/codex@0.144.6-darwin-arm64', authority: 'official_npm_platform_package', oplVerifiedAioncoreVersion: 'v0.1.49'};
   writeJson(manifestPath, manifest);
   assert.equal(resolveAioncoreManagedCodexBinding(fixture.shellRoot).codex_cli.version, '0.144.6');
-  manifest.projection.codexSource.version = '0.153.4';
+  manifest.projection.codexSource.version = '0.156.1';
   writeJson(manifestPath, manifest);
   assert.throws(() => resolveAioncoreManagedCodexBinding(fixture.shellRoot), /official Codex package/);
   delete manifest.projection.codexSource;
