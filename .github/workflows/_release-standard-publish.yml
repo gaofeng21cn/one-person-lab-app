@@ -1071,12 +1071,17 @@ jobs:
       - name: Publish only missing Standard bytes
         env:
           GH_TOKEN: ${{ github.token }}
+          OPL_RELEASE_ADMIN_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
           BUNDLE_DIGEST: ${{ needs.restore.outputs.bundle_digest }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p release-failure-evidence
           exec > >(tee release-failure-evidence/stdout.txt) 2> >(tee release-failure-evidence/stderr.txt >&2)
+          if [ '${{ needs.restore.outputs.channel }}' = stable ]; then
+            test -n "$OPL_RELEASE_ADMIN_TOKEN" || { echo "::error::Protected Release credential is unavailable."; exit 1; }
+            export GH_TOKEN="$OPL_RELEASE_ADMIN_TOKEN"
+          fi
           case '${{ needs.restore.outputs.channel }}' in
             stable|preview) ;;
             *) echo "::error::Unsupported Standard publication channel."; exit 1 ;;
@@ -1670,7 +1675,7 @@ jobs:
         if: ${{ needs.restore.outputs.channel == 'stable' }}
         id: activate-latest
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
           BUNDLE_DIGEST: ${{ needs.restore.outputs.bundle_digest }}
         shell: bash
         run: |

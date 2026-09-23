@@ -144,13 +144,21 @@ test('Stable Standard mutation restores once then publishes, readbacks, and acti
   assert.match(readWorkflow('_release-standard-publish.yml'), /needs\.restore\.outputs\.shell_ref/);
 });
 
-test('Stable Standard publication uses the Contents-write workflow credential', () => {
+test('Stable Standard publication uses the protected Release credential', () => {
   const publish = workflowStep(
     '_release-standard-publish.yml',
     'publish-standard-nonlatest',
     'Publish only missing Standard bytes',
   );
+  const latest = workflowStep(
+    '_release-standard-publish.yml',
+    'publish-standard-nonlatest',
+    'Activate Latest after exact remote parity',
+  );
   assert.equal(publish.env?.GH_TOKEN, '${{ github.token }}');
+  assert.equal(publish.env?.OPL_RELEASE_ADMIN_TOKEN, '${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}');
+  assert.match(String(publish.run), /export GH_TOKEN="\$OPL_RELEASE_ADMIN_TOKEN"/);
+  assert.equal(latest.env?.GH_TOKEN, '${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}');
   assert.match(String(publish.run), /framework-release-adapter\.ts github-apply/);
   assert.doesNotMatch(String(publish.run), /immutable-releases|preflight-setting-receipt|disabled-setting-receipt/);
 });
