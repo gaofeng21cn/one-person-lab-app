@@ -56,6 +56,11 @@ on:
         required: false
         default: ''
         type: string
+      mas_ref:
+        description: Exact med-autoscience SHA for Full release-gate diagnostics
+        required: false
+        default: ''
+        type: string
       package_profile:
         description: Install profile to diagnose
         required: false
@@ -149,6 +154,11 @@ on:
         type: string
       framework_ref:
         description: Exact 40-character one-person-lab Framework SHA injected into Standard VM diagnostics
+        required: false
+        default: ''
+        type: string
+      mas_ref:
+        description: Exact med-autoscience SHA for Full release-gate diagnostics
         required: false
         default: ''
         type: string
@@ -459,6 +469,7 @@ jobs:
       release_artifact_run_id: ${{ github.run_id }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
+      mas_ref: ${{ inputs.mas_ref }}
       package_profile: ${{ inputs.package_profile }}
       tart_source_vm: ${{ inputs.tart_source_vm }}
       keep_vm: ${{ inputs.keep_vm }}
@@ -481,6 +492,7 @@ jobs:
       release_artifact_run_id: ${{ inputs.release_artifact_run_id != '' && inputs.release_artifact_run_id || inputs.release_run_id }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
+      mas_ref: ${{ inputs.mas_ref }}
       package_profile: ${{ inputs.package_profile }}
       tart_source_vm: ${{ inputs.tart_source_vm }}
       keep_vm: ${{ inputs.keep_vm }}

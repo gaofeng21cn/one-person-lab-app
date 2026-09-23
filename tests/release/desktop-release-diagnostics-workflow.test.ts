@@ -52,6 +52,16 @@ test('release diagnostics is manually invokable without Stable mutation authorit
   assert.equal(fs.existsSync(path.join(appRoot, '.github/workflows/release-timestamp-authority-diagnostic.yml')), false);
 });
 
+test('Full release-gate diagnostics pass the exact MAS ref to the VM harness', () => {
+  const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
+  assert.ok(workflow.on.workflow_call.inputs.mas_ref);
+  assert.ok(workflow.on.workflow_dispatch.inputs.mas_ref);
+  assert.equal(
+    workflow.jobs['vm-harness-diagnostics-release-asset'].with.mas_ref,
+    '${{ inputs.mas_ref }}',
+  );
+});
+
 test('Standard VM diagnostics require and inject an exact Framework SHA', () => {
   const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
   const validation = workflow.jobs['diagnostic-inputs'].steps.find(

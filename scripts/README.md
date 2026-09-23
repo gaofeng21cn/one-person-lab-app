@@ -36,6 +36,7 @@ The [testing guide](../docs/testing/README.md) owns check selection and evidence
 | Manual local App / Full build | `npm run manual:local-app`, `npm run manual:full-dmg` |
 | Inspect exact local assets | `npm run validate-release -- <asset-directory>` |
 | Inspect exact public assets | `npm run verify-remote-release -- <arguments>` |
+| Repair assets under an existing mutable tag | `bun scripts/replace-same-tag-release-assets.ts --plan <json> --stage`, then `--promote` after qualification |
 | Collect requested cohort evidence | `npm run release:collect-evidence -- <arguments>` |
 | Write / validate evidence manifest | `npm run release:evidence:manifest -- <arguments>`, `npm run release:evidence:validate -- <arguments>` |
 | Prepare release notes / check provider | `npm run release:notes:prepare -- <arguments>`, `npm run release:notes:probe-ai` |
