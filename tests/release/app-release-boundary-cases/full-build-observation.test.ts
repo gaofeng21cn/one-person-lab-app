@@ -87,7 +87,7 @@ test('Full entry consumes the creator-verified DMG without a second unchanged-by
 });
 
 
-test('Full compression defaults match the measured contract and retain explicit overrides', () => {
+test('Full compression favors size by default and retains explicit overrides', () => {
   const keys = ['OPL_FULL_DMG_FORMAT', 'OPL_FULL_DMG_COMPRESSION_LEVEL', 'ELECTRON_BUILDER_COMPRESSION_LEVEL', 'CI'];
   const previous = keys.map((key) => [key, process.env[key]]);
   const contract = JSON.parse(fs.readFileSync(fileURLToPath(new URL('../../../contracts/app-release-channel.json', import.meta.url)), 'utf8'));
@@ -95,6 +95,7 @@ test('Full compression defaults match the measured contract and retain explicit 
     for (const key of keys) delete process.env[key];
     process.env.CI = 'true';
     assert.equal(resolveFullDmgFormat(), contract.release_acceleration.full_dmg_compression.default_ci_format);
+    assert.equal(resolveFullDmgFormat(), 'ULMO');
     assert.equal(resolveFullDmgCompressionLevel(), contract.release_acceleration.full_dmg_compression.default_ci_level);
     process.env.OPL_FULL_DMG_FORMAT = 'ULMO';
     assert.equal(resolveFullDmgFormat(), 'ULMO');

@@ -122,6 +122,8 @@ Standard 公开回读成功后，现有 follow-up hub 即启动适用的 Full、
 
 Full 的发布仍以已公开 Standard 为前提；构建后的静态包检查与 clean-VM 可并行，只有两者通过才能成为 `full_qualified`。已合格检查点直接继续发布。源码检查与隔离构建可并行，整体成功仍须所有必需检查通过。
 
+Full DMG 按用户明确要求优先缩小下载体积，允许压缩花更长时间；默认 ULMO。压缩测速只能用于观测，不能自行改成更快但更大的默认格式。确需变更此取舍时，先取得新的直接用户指令，再同步发布合同、workflow 与构建器。
+
 Docker 使用 [独立 WebUI 入口](../../../.github/workflows/release-webui-development.yml) 和 [Docker 操作参考](README.md#docker-webui)。只检查而未授权发布时使用 `qualify`；已授权“所有附加发布”时继续该独立渠道的 qualify／publish／promote 和公开 digest 回读，不停在 qualify 成功。执行前读取当前入口：`publish` 当前会接续其受保护 promotion，不能再无条件重复 promote。
 
 Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同执行；它们与 Desktop 的构建、签名、准入和互斥边界独立。只对真正相同的公开目标保持唯一 writer。
