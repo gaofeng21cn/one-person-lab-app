@@ -456,6 +456,15 @@ test('first-run VM prefetches frozen Codex install assets from a physical script
   }
 });
 
+test('release VM does not invoke the model with the zero-balance test account', () => {
+  const workflow = parseWorkflow('opl-first-run-vm.yml');
+  const smoke = workflow.jobs['clean-vm-first-run'].steps.find(
+    (step: { name?: string }) => step.name === 'Run clean VM first launch smoke',
+  );
+  assert.match(String(smoke?.run), /CMD\+=\(--codex-functional-check\)/);
+  assert.doesNotMatch(String(smoke?.run), /CMD\+=\(--codex-ai-self-check\)/);
+});
+
 test('first-run VM records wrapper diagnostics from one offline-testable physical script', () => {
   const wrapper = workflowStep(
     'opl-first-run-vm.yml',

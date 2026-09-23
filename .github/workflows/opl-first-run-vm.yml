@@ -2243,7 +2243,6 @@ jobs:
             CMD+=(--settings-smoke)
             CMD+=(--assistant-route-smoke)
             CMD+=(--codex-functional-check)
-            CMD+=(--codex-ai-self-check)
             if [ -n "${{ steps.mas_qualification_provisioning.outputs.workspace }}" ]; then
               CMD+=(--mas-study-provisioning-workspace "${{ steps.mas_qualification_provisioning.outputs.workspace }}")
               CMD+=(--mas-study-provisioning-receipt "${{ steps.mas_qualification_provisioning.outputs.receipt }}")
