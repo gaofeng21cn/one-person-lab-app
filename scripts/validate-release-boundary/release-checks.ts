@@ -235,7 +235,6 @@ const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "--settings-smoke",
       "--assistant-route-smoke",
       "--codex-functional-check",
-      "--codex-ai-self-check",
       '--runtime-profile "${{ steps.package_profile.outputs.runtime_profile }}"',
       "guide_screenshots:",
       "CMD+=(--guide-screenshots)",
@@ -250,6 +249,7 @@ const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "Setup bun",
       "Install active shell harness dependencies",
       "bun install --frozen-lockfile --ignore-scripts",
+      "CMD+=(--codex-ai-self-check)",
     ],
   },
   {
