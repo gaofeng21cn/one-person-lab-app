@@ -1,0 +1,17 @@
+{
+  "schema": "opl_app_windows_bootstrap_pins.v1",
+  "owner": "one-person-lab-app",
+  "platform": "linux",
+  "arch": "x64",
+  "node": {
+    "version": "24.21.0",
+    "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
+    "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+  },
+  "codex": {
+    "version": "0.144.5",
+    "version_source": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli.version",
+    "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.144.5-linux-x64.tgz",
+    "integrity": "sha512-FalLJlBQGFdK8Gc3kj9sa/ekNdgkHhUawLaKkvy5CtB18JaP2YxtTP/Pe1pD2iBiq8mMUliRnafpF6AdBdQMbg=="
+  }
+}

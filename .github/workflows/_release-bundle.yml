@@ -1032,6 +1032,10 @@ jobs:
           }
           mkdir -p bound-standard-vm/assets
           ln "${standard_dmgs[0]}" "bound-standard-vm/assets/$(basename "${standard_dmgs[0]}")"
+          for asset in bound-standard/assets/*.zip bound-standard/assets/*.blockmap bound-standard/assets/latest*.yml bound-standard/assets/opl-app-component-manifest.json; do
+            test -f "$asset" && test ! -L "$asset"
+            cp "$asset" "bound-standard-vm/assets/$(basename "$asset")"
+          done
           cp bound-standard/standard-identity-receipt.json bound-standard-vm/standard-identity-receipt.json
           {
             echo "standard_artifact_name=opl-release-standard-bound-${GITHUB_RUN_ID}"
@@ -1393,6 +1397,10 @@ jobs:
             --component-manifest-output bound-standard/assets/opl-app-component-manifest.json \
             --identity-receipt-output rebound-standard-identity-receipt.json
           mv rebound-standard-identity-receipt.json bound-standard/standard-identity-receipt.json
+          for asset in bound-standard/assets/*.zip bound-standard/assets/*.blockmap bound-standard/assets/latest*.yml bound-standard/assets/opl-app-component-manifest.json; do
+            test -f "$asset" && test ! -L "$asset"
+            cp "$asset" "bound-standard-vm/assets/$(basename "$asset")"
+          done
           cp bound-standard/standard-identity-receipt.json bound-standard-vm/standard-identity-receipt.json
 
           mkdir -p standard-cohort
