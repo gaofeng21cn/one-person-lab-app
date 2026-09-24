@@ -817,6 +817,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
   const standardOperation = operations?.stable_operations?.standard;
   const resumeStandardOperation = operations?.stable_operations?.resume_standard;
   const appendFullOperation = operations?.stable_operations?.append_full;
+  const standardArtifactRecoveryVerification = operations?.standard_artifact_recovery_verification;
   const resilience = control?.resilience_policy;
   const publication = control?.publication;
   const publisher = control?.publisher_idempotency;
@@ -982,6 +983,8 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     operations?.full_recovery_identity_roles?.qualification_run_id !== 'failed_qualification_receipt_run_id' ||
     operations?.full_recovery_identity_roles?.smoke_harness_ref !== 'qualification_scope_proof_shell_head_sha_or_explicit_exact_override' ||
     operations?.full_recovery_identity_roles?.roles_must_not_be_inferred_as_equal !== true ||
+    standardArtifactRecoveryVerification?.operation_fingerprint !== 'opl-desktop-stable-release:smoke-harness:<exact_shell_sha>' ||
+    standardArtifactRecoveryVerification?.source_gate_reuse !== 'exact_operation_fingerprint_only' ||
     standardOperation?.source !== 'new_framework_bundle' ||
     standardOperation?.control !== 'new_immutable_standard_control' ||
     standardOperation?.deadline_minutes !== 90 ||

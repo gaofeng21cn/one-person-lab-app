@@ -287,6 +287,14 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   assert.equal(operations.maximum_workflow_mutations_per_attempt, 1);
   assert.equal(operations.mutation_retry_allowed, false);
   assert.equal(operations.unknown_dispatch_outcome, 'read_only_reconcile_never_redispatch');
+  assert.equal(
+    operations.standard_artifact_recovery_verification.operation_fingerprint,
+    'opl-desktop-stable-release:smoke-harness:<exact_shell_sha>',
+  );
+  assert.equal(
+    operations.standard_artifact_recovery_verification.source_gate_reuse,
+    'exact_operation_fingerprint_only',
+  );
   assert.deepEqual(operations.full_recovery_identity_roles, {
     source_checkpoint_run_id: 'portable_framework_checkpoint_owner',
     artifact_producer_run_id: 'full_cohort_actions_run_id',
@@ -351,6 +359,18 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   assert.equal(resilience.homebrew_app_local_reconcile_loop_allowed, false);
   assert.equal(resilience.homebrew_reconcile_max_attempts, undefined);
   assert.equal(resilience.homebrew_retry_push_on_unknown_allowed, false);
+});
+
+test('source-validation sparse checkout includes nested active-shell files without resources', () => {
+  const workflow = fs.readFileSync(path.join(appRoot, '.github/workflows/non-release-validation.yml'), 'utf8');
+  const packageJson = readJson('package.json');
+  assert.match(workflow, /https:\/\/github\.com\/gaofeng21cn\/opl-studio\.git/);
+  assert.match(workflow, /sparse-checkout set --cone desktop scripts\/desktop/);
+  assert.match(workflow, /OPL_APP_SHELL_ROOT: \$\{\{ runner\.temp \}\}\/opl-studio/);
+  assert.match(workflow, /https:\/\/github\.com\/gaofeng21cn\/opl-aion-shell\.git/);
+  assert.match(workflow, /sparse-checkout set --cone scripts/);
+  assert.match(workflow, /OPL_AIONUI_TEST_SHELL_ROOT: \$\{\{ runner\.temp \}\}\/opl-aion-shell/);
+  assert.match(packageJson.scripts['test:release-boundary:pr'], /--test-skip-pattern 'W6 \(App gate\|Studio consumes\)'/);
 });
 
 test('Stable attempt results are deterministic observations and unchanged fingerprints stop before dispatch', () => {

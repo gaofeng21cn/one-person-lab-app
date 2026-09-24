@@ -63,21 +63,25 @@ jobs:
       - name: Install App validation dependencies
         run: npm ci --ignore-scripts
 
-      # The release boundary validator and suite read a few active Shell files.
-      # A sparse, blob-filtered checkout provides them in seconds without
-      # pulling the 457 MB resources directory or the full history.
-      - name: Materialize the active Shell sources
+      # Cone mode includes root files and only the nested Shell folders the
+      # release boundary validator reads, without pulling the resources tree.
+      - name: Materialize active and legacy Shell sources
         run: |
           git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/gaofeng21cn/opl-studio.git "$RUNNER_TEMP/opl-studio"
+          git -C "$RUNNER_TEMP/opl-studio" sparse-checkout set --cone desktop scripts/desktop
+
+          git clone --depth 1 --filter=blob:none --sparse \
             https://github.com/gaofeng21cn/opl-aion-shell.git "$RUNNER_TEMP/opl-aion-shell"
-          git -C "$RUNNER_TEMP/opl-aion-shell" sparse-checkout set --no-cone '/*' '!/resources'
+          git -C "$RUNNER_TEMP/opl-aion-shell" sparse-checkout set --cone scripts
 
       # The suite owns App release admission, dispatch guards, notes, carriers
       # and installers. It used to run only under the manual release workflows,
       # so release-script regressions could sit on main until a release was
-      # dispatched. The two W6 cross-fixture cases need the Shell toolchain
+      # dispatched. The W6 cross-fixture cases need the Shell toolchain
       # installed and stay with the Shell qualification lanes.
       - name: Run release boundary validation and tests
         env:
-          OPL_APP_SHELL_ROOT: ${{ runner.temp }}/opl-aion-shell
+          OPL_APP_SHELL_ROOT: ${{ runner.temp }}/opl-studio
+          OPL_AIONUI_TEST_SHELL_ROOT: ${{ runner.temp }}/opl-aion-shell
         run: npm run test:release-boundary:pr
