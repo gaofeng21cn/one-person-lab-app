@@ -66,7 +66,7 @@
     "homebrew:tap:plan": "node --experimental-strip-types scripts/update-homebrew-tap.ts",
     "validate:homebrew-tap": "node --experimental-strip-types scripts/update-homebrew-tap.ts --self-check",
     "test:release-boundary": "npm run codex:model-policy:check && npm run validate:release-boundary && node --experimental-strip-types --test --test-concurrency=4 --test-timeout=120000 --test-force-exit tests/release/*.test.ts tests/release/app-release-boundary-cases/*.test.ts",
-    "test:release-boundary:pr": "npm run codex:model-policy:check && npm run validate:release-boundary && node --experimental-strip-types --test --test-concurrency=4 --test-timeout=120000 --test-force-exit --test-skip-pattern 'W6 App gate' tests/release/*.test.ts tests/release/app-release-boundary-cases/*.test.ts",
+    "test:release-boundary:pr": "npm run codex:model-policy:check && npm run validate:release-boundary && node --experimental-strip-types --test --test-concurrency=4 --test-timeout=120000 --test-force-exit --test-skip-pattern 'W6 (App gate|Studio consumes)' tests/release/*.test.ts tests/release/app-release-boundary-cases/*.test.ts",
     "test:runtime-route": "npm run validate:runtime-route && node --experimental-strip-types --test tests/runtime/runtime-cockpit-contract.test.ts",
     "test:candidate:studio": "npm run validate:candidate:studio && node --experimental-strip-types --test tests/optional/studio-candidate-cross-thread-authority.test.ts tests/optional/studio-candidate-carrier-acceptance.test.ts tests/optional/studio-candidate-p1-baseline.test.ts tests/optional/studio-candidate-source-preserving-reuse.test.ts",
     "test:ownership": "node --experimental-strip-types scripts/validate-test-ownership.ts",
