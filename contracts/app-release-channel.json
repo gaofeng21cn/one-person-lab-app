@@ -2800,7 +2800,7 @@
       "compatibility_base_url": "https://gateway.medopl.com/v1",
       "model": "deepseek-flash",
       "fallback_models": [
-        "gpt-5.6-sol"
+        "gpt-6-luna"
       ],
       "reasoning_effort": "low",
       "response_timeout_seconds": 180,

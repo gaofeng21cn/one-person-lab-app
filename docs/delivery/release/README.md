@@ -127,7 +127,7 @@ report real events, without inferring progress from elapsed time.
 ## Stable Operations
 
 The online notes writer follows `public_release_notes.preferred_ai_route` in the release
-contract: `deepseek-flash`, then `gpt-5.6-sol`, low reasoning, one transport attempt per model,
+contract: `deepseek-flash`, then `gpt-6-luna`, low reasoning, one transport attempt per model,
 and a 180-second per-attempt response deadline. Synchronous Chat Completions returns the
 complete document at once; the deadline must cover generation, not only connection
 establishment. A short provider probe proves connectivity; only validated full notes
