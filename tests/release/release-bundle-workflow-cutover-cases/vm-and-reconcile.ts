@@ -162,8 +162,16 @@ test('first-run VM validates Studio production Runtime refresh before writing qu
   assert.match(String(validation.run), /--validate-runtime-evidence artifacts\/opl-first-run-vm\/artifacts\/smoke-summary\.json/);
   assert.match(String(validation.run), /settings-runtime-refresh-verification\.json/);
   assert.ok(stepIndex('Run clean VM first launch smoke') < validationIndex);
+  const legacyIndex = stepIndex('Qualify public Aion Stable upgrades to the exact sealed Studio candidate');
+  const legacy = steps[legacyIndex];
+  assert.ok(legacy, 'release-gate VM is missing the public Aion to Studio upgrade qualification');
+  assert.equal(legacy.id, 'legacy_upgrade');
+  assert.match(String(legacy.run), /stable-qualify-legacy-upgrade\.mjs/);
+  assert.match(String(legacy.run), /--standard-identity-sha256/);
+  assert.match(String(legacy.run), /--candidate-root standard-identity-input/);
+  assert.ok(legacyIndex < validationIndex, 'legacy upgrade qualification must follow the fresh Studio clean VM');
   const receiptIndex = stepIndex('Write exact-artifact qualification receipt');
-  assert.ok(validationIndex < receiptIndex);
+  assert.ok(legacyIndex < receiptIndex);
   assert.match(String(steps[receiptIndex].if), /steps\.settings_runtime_evidence\.outcome == 'success'/);
 });
 
