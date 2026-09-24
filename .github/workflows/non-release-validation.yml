@@ -68,8 +68,8 @@ jobs:
       - name: Materialize the active Shell sources
         run: |
           git clone --depth 1 --filter=blob:none --sparse \
-            https://github.com/gaofeng21cn/opl-aion-shell.git "$RUNNER_TEMP/opl-aion-shell"
-          git -C "$RUNNER_TEMP/opl-aion-shell" sparse-checkout set --cone desktop scripts/desktop
+            https://github.com/gaofeng21cn/opl-studio.git "$RUNNER_TEMP/opl-studio"
+          git -C "$RUNNER_TEMP/opl-studio" sparse-checkout set --cone desktop scripts/desktop
 
       # The suite owns App release admission, dispatch guards, notes, carriers
       # and installers. It used to run only under the manual release workflows,
@@ -78,5 +78,5 @@ jobs:
       # installed and stay with the Shell qualification lanes.
       - name: Run release boundary validation and tests
         env:
-          OPL_APP_SHELL_ROOT: ${{ runner.temp }}/opl-aion-shell
+          OPL_APP_SHELL_ROOT: ${{ runner.temp }}/opl-studio
         run: npm run test:release-boundary:pr

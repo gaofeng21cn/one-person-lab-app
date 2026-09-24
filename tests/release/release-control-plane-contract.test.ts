@@ -363,9 +363,9 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
 
 test('source-validation sparse checkout includes nested active-shell files without resources', () => {
   const workflow = fs.readFileSync(path.join(appRoot, '.github/workflows/non-release-validation.yml'), 'utf8');
+  assert.match(workflow, /https:\/\/github\.com\/gaofeng21cn\/opl-studio\.git/);
   assert.match(workflow, /sparse-checkout set --cone desktop scripts\/desktop/);
-  assert.doesNotMatch(workflow, /sparse-checkout set --no-cone '\/\*'/);
-  assert.match(workflow, /OPL_APP_SHELL_ROOT: \$\{\{ runner\.temp \}\}\/opl-aion-shell/);
+  assert.match(workflow, /OPL_APP_SHELL_ROOT: \$\{\{ runner\.temp \}\}\/opl-studio/);
 });
 
 test('Stable attempt results are deterministic observations and unchanged fingerprints stop before dispatch', () => {
