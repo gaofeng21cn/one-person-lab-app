@@ -71,12 +71,12 @@ const studioCarrier: DesktopReleaseCarrier = {
   manifestPath: '/fixture/contracts/desktop-release-carrier.json',
 };
 
-test('App contract keeps Studio candidate-only while defining one protected source admission', () => {
+test('App contract selects Studio for the next Stable release while preserving separate Preview authority', () => {
   const successor = releaseContract.successor_delivery_target;
   const admission = successor.protected_release_admission;
   const execution = successor.protected_release_execution;
 
-  assert.equal(successor.active_shell_remains, 'aionui');
+  assert.equal(successor.active_shell_remains, 'opl-studio');
   assert.equal(successor.active_release_carrier, false);
   assert.equal(admission.authority_owner, 'one-person-lab-app');
   assert.equal(admission.workflow, '.github/workflows/release-stable.yml');

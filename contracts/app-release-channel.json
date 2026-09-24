@@ -7,11 +7,11 @@
     "schema": "opl_app_successor_delivery_target.v1",
     "candidate_id": "opl-studio",
     "product_profile_ref": "contracts/app-product-profile.json#delivery_topology",
-    "role": "target_only_not_current_release_authority",
+    "role": "next_stable_shell_release_pending",
     "topology_authority": false,
     "carrier_set_source_ref": "contracts/app-product-profile.json#product.target_runtime_forms",
     "platform_admission_required_independently": true,
-    "active_shell_remains": "aionui",
+    "active_shell_remains": "opl-studio",
     "active_release_carrier": false,
     "current_release_platform_matrix_is_successor_admission_evidence": false,
     "source_contract_or_candidate_evidence_implies_release_ready": false,
@@ -142,9 +142,9 @@
         "anonymous_latest_pointer_and_asset_byte_readback",
         "carrier_public_release_qualification"
       ],
-      "active_shell_after_release": "aionui",
+      "active_shell_after_release": "opl-studio",
       "active_release_carrier_after_release": false,
-      "rule": "A successful Studio preview release makes only the dedicated Studio package and updater feed current. Build, qualification and public readback remain independently recoverable; only the exact GitHub Release mutation is serialized. A publication repair reuses the same checkpoint and tag and never creates a product version merely because the release mechanism failed. It does not adopt Studio as the active App shell or replace the Framework Stable release carrier."
+      "rule": "A successful Studio Preview release makes only the dedicated Preview package and updater feed current; the App Stable release remains the authority that ships the active Studio shell under the preserved App identity. Build, qualification and public readback remain independently recoverable; only the exact GitHub Release mutation is serialized. A publication repair reuses the same checkpoint and tag and never creates a product version merely because the release mechanism failed."
     },
     "public_clean_vm_qualification": {
       "schema": "opl_app_studio_preview_vm_qualification_policy.v1",
@@ -221,7 +221,7 @@
         "release_test_account_balance_is_not_a_gate": true
       },
       "mutation_policy": "read_only_public_asset_qualification_no_release_or_asset_mutation",
-      "active_shell_after_qualification": "aionui",
+      "active_shell_after_qualification": "opl-studio",
       "active_release_carrier_after_qualification": false
     }
   },

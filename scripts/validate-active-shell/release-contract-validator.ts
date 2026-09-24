@@ -234,8 +234,8 @@ function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall)
   const studioFullAppend = fullFirstInstall?.studio_same_tag_append;
   if (
     successor?.candidate_id !== 'opl-studio'
-    || successor?.role !== 'target_only_not_current_release_authority'
-    || successor?.active_shell_remains !== 'aionui'
+    || successor?.role !== 'next_stable_shell_release_pending'
+    || successor?.active_shell_remains !== 'opl-studio'
     || successor?.active_release_carrier !== false
     || admission?.schema !== 'opl_studio_protected_release_admission_policy.v1'
     || admission?.source_admission_receipt_schema !== 'opl_studio_protected_release_admission.v2'

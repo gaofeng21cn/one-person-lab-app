@@ -195,7 +195,7 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
     'standalone_headless_webui',
     'docker_webui',
   ]);
-  assert.equal(release.successor_delivery_target.role, 'target_only_not_current_release_authority');
+  assert.equal(release.successor_delivery_target.role, 'next_stable_shell_release_pending');
   assert.equal(release.successor_delivery_target.topology_authority, false);
   assert.equal(release.successor_delivery_target.current_release_platform_matrix_is_successor_admission_evidence, false);
   assert.equal(
