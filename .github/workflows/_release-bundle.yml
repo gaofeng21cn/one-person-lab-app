@@ -830,11 +830,18 @@ jobs:
     outputs:
       source_authority_artifact_name: ${{ steps.authority.outputs.source_authority_artifact_name }}
       source_cutoff_observed_at: ${{ steps.authority.outputs.source_cutoff_observed_at }}
+      webui_shell_ref: ${{ steps.authority.outputs.webui_shell_ref }}
     steps:
       - name: Checkout canonical WebUI authority executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
+
+      - name: Checkout frozen App WebUI source policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.freeze.outputs.app_sha }}
+          path: webui-app-source
 
       - name: Bind Docker WebUI to the exact frozen Stable cohort
         id: authority
@@ -843,7 +850,11 @@ jobs:
           set -euo pipefail
           version='${{ needs.freeze.outputs.version }}'
           app_ref='${{ needs.freeze.outputs.app_sha }}'
-          shell_ref='${{ needs.freeze.outputs.shell_sha }}'
+          desktop_shell_ref='${{ needs.freeze.outputs.shell_sha }}'
+          node --experimental-strip-types scripts/webui-source-authority.ts resolve-shell \
+            --app-root webui-app-source --desktop-shell-sha "$desktop_shell_ref" \
+            --github-output "$GITHUB_OUTPUT" > webui-shell-source.json
+          shell_ref="$(jq -er .source_commit webui-shell-source.json)"
           framework_ref='${{ needs.freeze.outputs.framework_sha }}'
           release_bundle_digest='${{ needs.freeze.outputs.bundle_digest }}'
           source_cutoff_observed_at='${{ needs.freeze.outputs.operation_started_at }}'
@@ -891,7 +902,7 @@ jobs:
       mode: qualify-only
       authority_mode: independent_stable
       app_ref: ${{ needs.freeze.outputs.app_sha }}
-      shell_ref: ${{ needs.freeze.outputs.shell_sha }}
+      shell_ref: ${{ needs.webui-source-authority.outputs.webui_shell_ref }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       opl_version: ${{ needs.freeze.outputs.version }}
       release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}

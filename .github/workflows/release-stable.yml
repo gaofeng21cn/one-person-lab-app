@@ -1287,6 +1287,12 @@ jobs:
           github-token: ${{ github.token }}
           path: stable-admission
 
+      - name: Checkout frozen App WebUI source policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.admission.outputs.app_ref }}
+          path: webui-app-source
+
       - name: Bind Docker WebUI to the exact Stable cohort
         id: authority
         env:
@@ -1311,6 +1317,11 @@ jobs:
           shell_ref="$(jq -er .sources.shell.source_commit "$bundle")"
           framework_ref="$(jq -er .sources.framework.source_commit "$bundle")"
           release_bundle_digest="$(jq -er .bundle_digest "$bundle")"
+          test "$(git -C webui-app-source rev-parse HEAD)" = "$app_ref"
+          node --experimental-strip-types scripts/webui-source-authority.ts resolve-shell \
+            --app-root webui-app-source --desktop-shell-sha "$shell_ref" > webui-shell-source.json
+          webui_shell_ref="$(jq -er .source_commit webui-shell-source.json)"
+
           if [ "$OPERATION" = standard ]; then
             mapfile -t admissions < <(find stable-admission -type f -name stable-release-admission-manifest.json -print | LC_ALL=C sort)
             test "${#admissions[@]}" -eq 1
@@ -1323,7 +1334,7 @@ jobs:
             mapfile -t authorities < <(find freeze-webui-authority -type f -name source-authority.json -print | LC_ALL=C sort)
             test "${#authorities[@]}" -eq 1
             cp "${authorities[0]}" source-authority.json
-            jq -e --arg version "$version" --arg app "$app_ref" --arg shell "$shell_ref" \
+            jq -e --arg version "$version" --arg app "$app_ref" --arg shell "$webui_shell_ref" \
               --arg framework "$framework_ref" --arg bundle "$release_bundle_digest" --arg run "$GITHUB_RUN_ID" '
                 .release.version == $version
                 and .sources.app.source_commit == $app
@@ -1343,7 +1354,7 @@ jobs:
               --origin stable_standard \
               --version "$version" \
               --app-sha "$app_ref" \
-              --shell-sha "$shell_ref" \
+              --shell-sha "$webui_shell_ref" \
               --framework-sha "$framework_ref" \
               --bundle-digest "$release_bundle_digest" \
               --run-id "$GITHUB_RUN_ID" \
@@ -1367,7 +1378,7 @@ jobs:
             echo "release_bundle_digest=$release_bundle_digest"
             echo "version=$version"
             echo "app_ref=$app_ref"
-            echo "shell_ref=$shell_ref"
+            echo "shell_ref=$webui_shell_ref"
             echo "framework_ref=$framework_ref"
             echo "source_cutoff_observed_at=$source_cutoff_observed_at"
             echo "qualification_status=$qualification_status"

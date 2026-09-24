@@ -3450,6 +3450,14 @@
     "image": "ghcr.io/<owner>/one-person-lab-webui",
     "version_tag": "<app_or_opl_version>",
     "source": "shells/aionui Dockerfile",
+    "shell_source": {
+      "repository": "gaofeng21cn/opl-aion-shell",
+      "source_commit": "7f574278c1076545f7a7e6a3f06babc40f3a3a15",
+      "checkout_path": "shells/aionui",
+      "policy": "independent_pinned_webui_source",
+      "desktop_shell_ref_reuse_allowed": false,
+      "rule": "The Docker WebUI retains its existing AionUI container implementation and persisted /data ABI during the Studio Desktop cutover. The frozen App contract pins its exact Shell source; Desktop Studio refs are never interpreted as AionUI refs. App, Framework, date version, and Stable Bundle linkage remain shared."
+    },
     "source_repository": "https://github.com/gaofeng21cn/one-person-lab-app",
     "distribution_role": "preheated_webui_runtime_image_not_desktop_app_gui_shell",
     "ordinary_app_install_path": false,
@@ -3673,7 +3681,7 @@
         "retry_allowed": false,
         "bounded_read_only_reconcile_required": true
       },
-      "rule": "Docker WebUI is a required additional carrier of the same Stable cohort. It builds and qualifies independently, writes the public date version only after dual-architecture qualification and carrier receipt verification, then promotes Stable and Latest in the same Stable operation. A failed publication is repaired on the same version and never allocates -rN by itself."
+      "rule": "Docker WebUI is a required independent additional carrier of the same Stable App/Framework cohort and date version, with its own frozen WebUI Shell source. It builds and qualifies independently, writes the public date version only after dual-architecture qualification and carrier receipt verification, then promotes Stable and Latest in the same Stable operation. A failed publication is repaired on the same version and never allocates -rN by itself."
     },
     "stable_tags": [
       "<app_or_opl_version>",
@@ -3689,7 +3697,7 @@
     "module_package_publish_allowed": false,
     "opl_flow_plugin_publish_allowed": false,
     "framework_role": "references_image_coordinate_only",
-    "rule": "WebUI GHCR image truth remains App-owned. Stable standard automatically releases the same App/Shell/Framework cohort as a required Docker carrier; the manual WebUI entry remains only for qualification, Preview, and same-version repair. Public version, Stable, and Latest must be read back together.",
+    "rule": "WebUI GHCR image truth remains App-owned. Stable standard automatically releases the same App/Framework cohort and date version with the independently frozen WebUI Shell source as a required Docker carrier; the manual WebUI entry remains only for qualification, Preview, and same-version repair. Public version, Stable, and Latest must be read back together.",
     "publication_route": "stable_same_cohort_additional_carrier_with_manual_repair_entry",
     "desktop_release_bundle_may_publish_or_move_tags": true,
     "current_writer_declared_by_desktop_release_contract": true,

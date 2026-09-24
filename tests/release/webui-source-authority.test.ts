@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { parse } from 'yaml';
 import {
   createWebuiSourceAuthority,
   validateWebuiSourceAuthority,
+  resolveWebuiShellSource,
 } from '../../scripts/webui-source-authority.ts';
 
 const appSha = 'a'.repeat(40);
@@ -38,6 +43,51 @@ test('independent WebUI source authority binds the exact Preview cohort and disp
   assert.equal(authority.authorization.run_id, '302');
   assert.equal(authority.authorization.executor_sha, executorSha);
   assert.match(authority.source_authority_digest, /^sha256:[0-9a-f]{64}$/);
+});
+
+test('Studio Desktop cutover resolves the independently pinned WebUI source and rejects source substitution', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-source-policy-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, 'contracts'));
+  const adapterFile = path.join(root, 'contracts/app-shell-adapter.json');
+  const releaseFile = path.join(root, 'contracts/app-release-channel.json');
+  fs.writeFileSync(adapterFile, JSON.stringify({ active_shell: 'opl-studio' }));
+  const source = { repository: 'gaofeng21cn/opl-aion-shell', source_commit: shellSha, checkout_path: 'shells/aionui', policy: 'independent_pinned_webui_source' };
+  const write = (value: unknown) => fs.writeFileSync(releaseFile, JSON.stringify({ webui_ghcr_image: { shell_source: value } }));
+  write(source);
+  assert.deepEqual(resolveWebuiShellSource(root, executorSha), {
+    repository: source.repository, source_commit: shellSha, checkout_path: source.checkout_path,
+  });
+  for (const invalid of [{ ...source, source_commit: 'main' }, { ...source, repository: 'gaofeng21cn/opl-studio' }, undefined]) {
+    write(invalid);
+    assert.throws(() => resolveWebuiShellSource(root, executorSha));
+  }
+  write({ ...source, source_commit: executorSha });
+  assert.throws(() => resolveWebuiShellSource(root, executorSha), /Studio Desktop SHA/);
+  fs.writeFileSync(adapterFile, JSON.stringify({ active_shell: 'aionui', shell_source: { owner_repo: source.repository } }));
+  assert.equal(resolveWebuiShellSource(root, executorSha).source_commit, executorSha);
+});
+
+test('WebUI qualification and post-publication authority consume the same independent source policy', () => {
+  const workflow = (name: string) => parse(fs.readFileSync(path.join(process.cwd(), '.github/workflows', name), 'utf8'));
+  const bundle = workflow('_release-bundle.yml');
+  const carrier = workflow('_release-webui-carrier.yml');
+  const stable = workflow('release-stable.yml');
+  assert.equal(bundle.jobs['webui-qualify'].with.shell_ref, '${{ needs.webui-source-authority.outputs.webui_shell_ref }}');
+  const checkout = carrier.jobs['build-and-qualify'].steps.find(step => step.name === 'Checkout exact independent WebUI Shell source');
+  assert.equal(checkout.with.repository, 'gaofeng21cn/opl-aion-shell');
+  assert.equal(checkout.with.ref, '${{ inputs.shell_ref }}');
+  assert.equal(checkout.with.path, 'shells/aionui');
+  assert.equal(carrier.jobs['build-and-qualify'].steps.some(step => step.uses === './.github/actions/setup-active-shell-deps'), false);
+  for (const job of [bundle.jobs['webui-source-authority'], stable.jobs['webui-source-authority']]) {
+    const run = job.steps.map(step => step.run ?? '').join('\n');
+    assert.match(run, /webui-source-authority\.ts resolve-shell/);
+    assert.match(run, /--app-root webui-app-source --desktop-shell-sha/);
+  }
+  const postPublication = stable.jobs['webui-source-authority'].steps.map(step => step.run ?? '').join('\n');
+  assert.match(postPublication, /--arg shell "\$webui_shell_ref"/);
+  assert.match(postPublication, /--shell-sha "\$webui_shell_ref"/);
+  assert.match(postPublication, /echo "shell_ref=\$webui_shell_ref"/);
 });
 
 test('independent WebUI source authority admits Stable and fails closed on source or digest drift', () => {

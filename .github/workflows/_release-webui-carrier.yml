@@ -16,7 +16,7 @@ on:
         type: string
         required: true
       shell_ref:
-        description: Exact active Shell SHA frozen into the Release Bundle.
+        description: Exact independent AionUI WebUI Shell SHA from the source authority; never the Studio Desktop ref.
         type: string
         required: true
       framework_ref:
@@ -128,11 +128,13 @@ jobs:
       - name: Install App validation dependencies
         run: npm ci --ignore-scripts
 
-      - name: Checkout exact active Shell source
-        uses: ./.github/actions/setup-active-shell-deps
+      - name: Checkout exact independent WebUI Shell source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          shell-ref: ${{ inputs.shell_ref }}
-          install-dependencies: 'false'
+          repository: gaofeng21cn/opl-aion-shell
+          ref: ${{ inputs.shell_ref }}
+          path: shells/aionui
+          fetch-depth: 1
 
       - name: Checkout exact Framework source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -198,6 +200,11 @@ jobs:
             validate --input "$source_authority" \
             > webui-carrier/source-authority-verification.json
           cp "$source_authority" webui-carrier/source-authority.json
+          test "$(jq -er .sources.shell.repo webui-carrier/source-authority.json)" = gaofeng21cn/opl-aion-shell
+          test "$(jq -er .sources.shell.source_commit webui-carrier/source-authority.json)" = '${{ inputs.shell_ref }}'
+          test "$(jq -er .sources.app.source_commit webui-carrier/source-authority.json)" = '${{ inputs.app_ref }}'
+          test "$(jq -er .sources.framework.source_commit webui-carrier/source-authority.json)" = '${{ inputs.framework_ref }}'
+
           test "$(jq -er '.release.bundle_digest // .source_authority_digest' webui-carrier/source-authority.json)" = '${{ inputs.release_bundle_digest }}'
           test "$(jq -er '.release.cohort_ref // .source_authority_digest' webui-carrier/source-authority.json)" = '${{ inputs.release_cohort_ref }}'
           test "$(jq -er .release.version webui-carrier/source-authority.json)" = '${{ inputs.opl_version }}'

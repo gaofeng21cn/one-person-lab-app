@@ -20,6 +20,23 @@ const sourceRepos = {
   framework: 'gaofeng21cn/one-person-lab',
 } as const;
 
+export function resolveWebuiShellSource(appRoot: string, desktopShellSha: string): { repository: string; source_commit: string; checkout_path: string } {
+  sha(desktopShellSha, 'Desktop Shell source SHA');
+  const adapter = readJson(path.join(appRoot, 'contracts/app-shell-adapter.json')) as JsonRecord;
+  if (adapter.active_shell === 'aionui' && adapter.shell_source?.owner_repo === sourceRepos.shell) {
+    return { repository: sourceRepos.shell, source_commit: desktopShellSha, checkout_path: 'shells/aionui' };
+  }
+  const release = readJson(path.join(appRoot, 'contracts/app-release-channel.json')) as JsonRecord;
+  const source = release.webui_ghcr_image?.shell_source;
+  if (adapter.active_shell !== 'opl-studio' || source?.repository !== sourceRepos.shell
+    || source?.checkout_path !== 'shells/aionui' || source?.policy !== 'independent_pinned_webui_source') {
+    throw new Error('Frozen App must explicitly bind the independent WebUI Shell source.');
+  }
+  const sourceCommit = sha(source.source_commit, 'Independent WebUI Shell source SHA');
+  if (sourceCommit === desktopShellSha) throw new Error('Studio Desktop SHA cannot be used as the AionUI WebUI source.');
+  return { repository: sourceRepos.shell, source_commit: sourceCommit, checkout_path: source.checkout_path };
+}
+
 export type WebuiSourceAuthorityOrigin = 'manual_webui' | 'stable_standard';
 
 function originContract(origin: WebuiSourceAuthorityOrigin) {
@@ -204,8 +221,19 @@ function main(argv: string[]): void {
       'bundle-digest': { type: 'string' },
       input: { type: 'string' },
       output: { type: 'string' },
+      'app-root': { type: 'string' },
+      'desktop-shell-sha': { type: 'string' },
+      'github-output': { type: 'string' },
     },
   });
+  if (command === 'resolve-shell') {
+    const source = resolveWebuiShellSource(path.resolve(required(values['app-root'], 'app-root')),
+      required(values['desktop-shell-sha'], 'desktop-shell-sha'));
+    if (values['github-output']) fs.appendFileSync(path.resolve(values['github-output']),
+      `webui_shell_ref=${source.source_commit}\nwebui_shell_repository=${source.repository}\n`);
+    process.stdout.write(`${JSON.stringify(source)}\n`);
+    return;
+  }
   if (command === 'create') {
     const authority = createWebuiSourceAuthority({
       version: required(values.version, 'version'),
@@ -232,7 +260,7 @@ function main(argv: string[]): void {
     })}\n`);
     return;
   }
-  throw new Error('Usage: webui-source-authority.ts <create|validate> ...');
+  throw new Error('Usage: webui-source-authority.ts <create|validate|resolve-shell> ...');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
