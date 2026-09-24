@@ -23,7 +23,8 @@ const appFixtureRef = process.env.OPL_APP_FIXTURE_REF?.trim() || 'HEAD';
 type Project = keyof typeof crossFixtureTests;
 
 function configuredShellRoot(): string {
-  const shellRoot = resolveActiveShellPaths().shellRoot;
+  const contract = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/shell-adapters/aionui.json'), 'utf8'));
+  const shellRoot = path.join(appRoot, contract.shell_root);
   assert.ok(fs.existsSync(shellRoot), `Active Shell worktree is missing: ${shellRoot}`);
   assert.ok(fs.statSync(shellRoot).isDirectory(), `Active Shell root is not a directory: ${shellRoot}`);
   return shellRoot;
@@ -74,6 +75,7 @@ function isolatedEnvironment(root: string, shellRoot: string, overrides: NodeJS.
     TMPDIR: tmp,
     NO_COLOR: '1',
     OPL_APP_ROOT: appRoot,
+    OPL_APP_SHELL_ADAPTER_CONTRACT: 'contracts/shell-adapters/aionui.json',
     OPL_APP_FIXTURE_REF: 'HEAD',
     OPL_APP_SHELL_ROOT: shellRoot,
     OPL_APP_TEST_MAX_WORKERS: '1',
@@ -126,7 +128,7 @@ test('W6 App fixture authority is tracked and committed without a copied JSON fi
   assertAppFixtureAuthority();
 });
 
-test('W6 App gate runs the active Shell node cross-fixture tests with the App root bound', (t) => {
+test('W6 App gate preserves legacy AionUI node cross-fixture tests with the App root bound', (t) => {
   const shellRoot = configuredShellRoot();
   const root = makeTempRoot();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -137,7 +139,7 @@ test('W6 App gate runs the active Shell node cross-fixture tests with the App ro
   assertProjectPassed('node', result);
 });
 
-test('W6 App gate runs the active Shell DOM cross-fixture tests with the App root bound', (t) => {
+test('W6 App gate preserves legacy AionUI DOM cross-fixture tests with the App root bound', (t) => {
   const shellRoot = configuredShellRoot();
   const root = makeTempRoot();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -148,7 +150,7 @@ test('W6 App gate runs the active Shell DOM cross-fixture tests with the App roo
   assertProjectPassed('dom', result);
 });
 
-test('W6 App gate fails closed when the active Shell worktree is missing', (t) => {
+test('W6 legacy App gate fails closed when the active Shell worktree is missing', (t) => {
   const root = makeTempRoot();
   const missingShellRoot = path.join(root, 'missing-shell');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -158,7 +160,7 @@ test('W6 App gate fails closed when the active Shell worktree is missing', (t) =
   assert.match(outputOf(result), /Missing active shell Vitest config|ENOENT|missing/i);
 });
 
-test('W6 App gate fails closed when the active Shell test command cannot execute', (t) => {
+test('W6 legacy App gate fails closed when the active Shell test command cannot execute', (t) => {
   const shellRoot = configuredShellRoot();
   const root = makeTempRoot();
   const emptyPath = path.join(root, 'empty-bin');
@@ -168,4 +170,38 @@ test('W6 App gate fails closed when the active Shell test command cannot execute
   const result = runCrossFixtureProject('node', shellRoot, root, { PATH: emptyPath });
   assert.notEqual(result.status, 0, 'An unexecutable active Shell test command must fail closed.');
   assert.match(outputOf(result), /bunx|failed|ENOENT/i);
+});
+
+test('W6 Studio consumes canonical App fixture bytes through its actual Host and renderer projections', (t) => {
+  assertAppFixtureAuthority();
+  const studioRoot = resolveActiveShellPaths().shellRoot;
+  const root = makeTempRoot();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, 'studio-cross-fixture.mts');
+  fs.writeFileSync(file, `
+    import assert from 'node:assert/strict';
+    import fs from 'node:fs';
+    import { compactFastState } from ${JSON.stringify(path.join(studioRoot, 'scripts/webui-host/opl-passthrough.mjs'))};
+    import { deriveWorkbenchModelFromState } from ${JSON.stringify(path.join(studioRoot, 'src/workbench/workbenchModel.ts'))};
+    for (const relative of ${JSON.stringify(appFixturePaths)}) {
+      const fixture = JSON.parse(fs.readFileSync(${JSON.stringify(appRoot)} + '/' + relative, 'utf8'));
+      const compacted = compactFastState(fixture);
+      const model = deriveWorkbenchModelFromState(compacted);
+      for (const entry of fixture.app_state?.agent_packages?.directory?.entries ?? []) {
+        const actual = model.packageLifecycle.find(item => item.packageId === entry.package_id);
+        assert.ok(actual, 'Missing canonical package ' + entry.package_id);
+      }
+      const projection = fixture.app_state?.operator?.workbench?.work_item_projection_v2;
+      if (projection) {
+        assert.equal(model.workItemRuntime?.schemaVersion, 'work-item-projection.v2');
+        assert.deepEqual(model.workItemRuntime.agents.map(item => item.id), projection.agent_catalog.map(item => item.agent_id));
+        assert.deepEqual(model.workItemRuntime.projects.map(item => item.id), projection.project_catalog.map(item => item.project_id));
+      }
+    }
+    console.log('OPL_STUDIO_APP_CROSS_FIXTURE_PASSED');
+  `);
+  const result = spawnSync('bun', [file], { cwd: studioRoot, encoding: 'utf8', timeout: 30_000,
+    env: isolatedEnvironment(root, studioRoot) });
+  assert.equal(result.status, 0, outputOf(result));
+  assert.match(result.stdout, /OPL_STUDIO_APP_CROSS_FIXTURE_PASSED/);
 });

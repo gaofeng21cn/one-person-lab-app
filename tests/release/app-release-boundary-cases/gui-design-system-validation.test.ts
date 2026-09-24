@@ -58,7 +58,6 @@ function createFixture(): string {
     'contracts/app-remote-companion.json',
     'contracts/app-gui-visual-reference-cohort.json',
     'contracts/app-page-state-matrix.json',
-    'contracts/app-shell-adapter.json',
     'docs/product/gui/evidence/aionui-41301/manifest.json',
     'docs/product/gui/evidence/aionui-41301/source-manifest.json',
     'package.json',
@@ -66,6 +65,13 @@ function createFixture(): string {
     copyFixtureFile(root, relativePath);
   }
 
+  // The retained AionUI pixel/source evidence is a historical conformance fixture.
+  // It must not accidentally treat the currently selected Studio adapter as AionUI.
+  writeJson(root, 'contracts/app-shell-adapter.json', JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/shell-adapters/aionui.json'), 'utf8')));
+  const registry = JSON.parse(fs.readFileSync(path.join(root, 'contracts/app-shell-candidates.json'), 'utf8'));
+  registry.active_shell_unchanged = 'aionui';
+  registry.active_gui_mainline.shell = 'aionui';
+  writeJson(root, 'contracts/app-shell-candidates.json', registry);
   const verifiedAncestor = createShellCheckout(root);
   const shellAdapter = JSON.parse(fs.readFileSync(path.join(root, 'contracts/app-shell-adapter.json'), 'utf8'));
   shellAdapter.shell_source.upstream_ref = verifiedAncestor;

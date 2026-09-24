@@ -9,12 +9,13 @@ import {
   assertFullCarrierReleaseVersions,
   buildFullPublicReleaseManifest,
 } from '../../scripts/build-full-first-install-package.ts';
+import { readAppShellAdapterContract } from '../../scripts/app-shell-adapter.ts';
 import { resolveFullCarrierProfile } from '../../scripts/build-full-first-install-package/carrier-profile.ts';
 
 function buildManifestFixture(t: test.TestContext, carrierId: 'aionui' | 'opl-studio') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-public-manifest-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const carrier = resolveFullCarrierProfile({ carrierId });
+  const carrier = resolveFullCarrierProfile({ carrierId, ...(carrierId === 'opl-studio' ? { contract: readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json') } : {}) });
   const dmgName = carrier.artifactNameTemplate
     .replace('${version}', '26.8.1-r5')
     .replace('${arch}', 'mac-arm64');
@@ -76,7 +77,7 @@ test('Studio Full public manifest keeps Studio identity instead of AionUI defaul
 
 test('Full carrier profiles keep AionUI calendar versions and Studio numeric SemVer separate', () => {
   const aionui = resolveFullCarrierProfile({ carrierId: 'aionui' });
-  const studio = resolveFullCarrierProfile({ carrierId: 'opl-studio' });
+  const studio = resolveFullCarrierProfile({ carrierId: 'opl-studio', contract: readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json') });
   assert.equal(aionui.versionPolicy, 'stable_calendar');
   assert.equal(studio.versionPolicy, 'numeric_semver');
   assert.doesNotThrow(() => assertFullCarrierReleaseVersions(studio, '0.1.1', '0.1.1'));

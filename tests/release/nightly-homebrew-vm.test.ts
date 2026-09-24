@@ -131,7 +131,7 @@ test("credential scanning skips unused credentials but remains fail-closed once 
   }
 });
 
-test("Nightly Homebrew uses the Standard runtime smoke with the exact Nightly cask", () => {
+test("Nightly Homebrew preserves candidate identity and fails closed without a Studio Cask harness", () => {
   const normalizeInputs = String(
     workflow.jobs["validate-vm-inputs"].steps.find(
       (step: Record<string, unknown>) => step.name === "Normalize diagnostic inputs",
@@ -162,15 +162,9 @@ test("Nightly Homebrew uses the Standard runtime smoke with the exact Nightly ca
   const runSmoke = workflow.jobs["clean-vm-first-run"].steps.find(
     (step: Record<string, unknown>) => step.name === "Run clean VM first launch smoke",
   );
-  assert.match(
-    String(runSmoke.run),
-    /profile \}\}" = "homebrew-nightly"[\s\S]*--smoke-profile homebrew-nightly-cask[\s\S]*--homebrew-cask-file "\$\{\{ steps\.homebrew_candidate\.outputs\.cask_path \}\}"/,
-  );
-  assert.match(String(runSmoke.run), /--smoke-profile homebrew-standard-cask/);
-  assert.match(
-    String(runSmoke.run),
-    /--homebrew-cask "\$\{\{ steps\.package_profile\.outputs\.homebrew_cask \}\}"/,
-  );
+  assert.match(String(runSmoke.run), /Studio Homebrew VM qualification requires a dedicated Cask installation harness/);
+  assert.match(String(runSmoke.run), /install_mode \}\}" = dmg/);
+  assert.doesNotMatch(String(runSmoke.run), /--homebrew-cask-file|--smoke-profile homebrew/);
 });
 
 test("Nightly candidate binding cannot fall through to Full or the public Tap", () => {

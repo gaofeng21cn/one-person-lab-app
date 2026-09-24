@@ -27,7 +27,7 @@
   },
   "release_roles": {
     "current": {
-      "shell": "aionui",
+      "shell": "opl-studio",
       "adapter_ref": "contracts/app-shell-adapter.json",
       "release_channel_ref": "contracts/app-release-channel.json",
       "admitted_product_platforms": ["macos-arm64"]

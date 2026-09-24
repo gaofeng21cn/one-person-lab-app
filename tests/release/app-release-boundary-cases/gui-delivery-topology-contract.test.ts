@@ -138,7 +138,7 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
     client_fixed_brand_registry_allowed: false,
     display_and_allowlist_owner: 'one-person-lab-app',
   });
-  assert.equal(candidates.active_shell_unchanged, 'aionui');
+  assert.equal(candidates.active_shell_unchanged, 'opl-studio');
   const studio = candidates.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(studio);
   assert.deepEqual(studio.carrier_evidence_contract.required_entries, [

@@ -1,0 +1,1162 @@
+{
+  "schema_version": 1,
+  "owner": "one-person-lab-app",
+  "purpose": "active_shell_adapter",
+  "state": "active",
+  "app_repo": "gaofeng21cn/one-person-lab-app",
+  "active_shell": "aionui",
+  "shell_root": "shells/aionui",
+  "runtime_bridge_contract": "contracts/app-runtime-bridge.json",
+  "codex_executable_contract": {
+    "resolver_env": "OPL_CODEX_BIN",
+    "protocol": "codex_app_server_stdio",
+    "thread_store_owner": "codex_core_app_server",
+    "codex_home_policy": "preserve_existing_env_else_codex_system_default",
+    "carrier_scope": "shell_adapter_only",
+    "carrier": {
+      "kind": "aioncore_managed_resources_manifest",
+      "source_ref": "manual_qualification_contract.runtime_dependencies.aioncore.resource_authority",
+      "manifest_parser_owner": "gaofeng21cn/opl-aion-shell",
+      "aioncore_required": true,
+      "framework_managed_payload_in_app_bundle_allowed": false,
+      "target_packaging_policy": {
+        "schema": "opl_aioncore_codex_only_packaging_policy.v1",
+        "implementation_status": "verified_shell_composition_and_packaged_smoke",
+        "aioncore_modification_policy": "consume_upstream_release_without_fork_or_patch",
+        "producer_export": {
+          "owner": "AionCore",
+          "role": "build_intermediate_node_only",
+          "schema_version": 2,
+          "required_cli_names": [],
+          "distributed_manifest_allowed": false
+        },
+        "codex_carrier": {
+          "owner": "gaofeng21cn/opl-aion-shell",
+          "package": "@openai/codex",
+          "version_and_digest_source": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli",
+          "authority": "official_npm_platform_package",
+          "aioncore_compatibility_source": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.opl_verified_aioncore_version"
+        },
+        "packaged_projection": {
+          "owner": "gaofeng21cn/opl-aion-shell",
+          "schema": "opl_aioncore_managed_resources_projection.v1",
+          "authority_path": "bundled-aioncore/<platform>-<arch>/managed-resources/manifest.json",
+          "included_cli_names": [
+            "codex"
+          ],
+          "excluded_cli_names": [
+            "claude"
+          ],
+          "version_and_digest_source": "aioncore_node_export_plus_opl_selected_official_codex_package"
+        },
+        "distributed_bundle": {
+          "applies_to": [
+            "standard",
+            "full"
+          ],
+          "required_runtime_components": [
+            "aioncore",
+            "node_runtime",
+            "codex_cli"
+          ],
+          "required_metadata": [
+            "projection_manifest",
+            "producer_manifest_digest_provenance",
+            "codex_source_identity"
+          ],
+          "cli_names_exact": [
+            "codex"
+          ],
+          "required_absence_checks": [
+            {
+              "id": "managed_claude_subtree",
+              "scope": "distributed_bundle_root",
+              "matcher": "path_glob",
+              "patterns": [
+                "bundled-aioncore/<platform>-<arch>/managed-resources/cli/claude",
+                "bundled-aioncore/<platform>-<arch>/managed-resources/cli/claude/**"
+              ],
+              "expected_match_count": 0
+            },
+            {
+              "id": "claude_executable_or_symlink",
+              "scope": "distributed_bundle_root",
+              "matcher": "executable_or_symlink_basename",
+              "patterns": [
+                "claude",
+                "claude.exe"
+              ],
+              "expected_match_count": 0
+            },
+            {
+              "id": "anthropic_package_or_archive",
+              "scope": "distributed_bundle_root",
+              "matcher": "path_glob",
+              "patterns": [
+                "**/node_modules/@anthropic-ai/claude-code/**",
+                "**/claude-code*.tgz",
+                "**/claude-code*.tar.gz"
+              ],
+              "expected_match_count": 0
+            },
+            {
+              "id": "claude_distribution_cache_entry",
+              "scope": "distributed_bundle_root",
+              "matcher": "path_glob",
+              "patterns": [
+                "**/.cache/**/claude*",
+                "**/cache/**/claude*"
+              ],
+              "expected_match_count": 0
+            },
+            {
+              "id": "raw_producer_manifest",
+              "scope": "distributed_bundle_root",
+              "matcher": "root_manifest_schema_version_equals",
+              "patterns": [
+                "**/managed-resources/manifest.json"
+              ],
+              "values": [
+                "2"
+              ],
+              "expected_match_count": 0
+            }
+          ]
+        },
+        "opl_selected_official_codex_carrier_required": true,
+        "second_codex_carrier_or_registry_allowed": false
+      }
+    },
+    "framework_headless_carrier_policy": "preserved_outside_app_bundle"
+  },
+  "manual_qualification_contract": {
+    "classification": "non_stable_manual_qualification_candidate",
+    "stable_bundle_claim": "forbidden",
+    "exact_source_lock_required": true,
+    "runtime_dependencies": {
+      "aioncore": {
+        "version_source": "package.json#aioncoreVersion",
+        "resource_authority": "bundled-aioncore/<platform>-<arch>/managed-resources/manifest.json"
+      },
+      "node_runtime": {
+        "version_source": "AionCore producer manifest node runtime",
+        "target_platform_binary_required": true
+      },
+      "codex_cli": {
+        "package": "@openai/codex",
+        "version_source": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli",
+        "target_platform_binary_required": true
+      }
+    },
+    "codex_home": {
+      "default_path": "~/.codex",
+      "override_env": "CODEX_HOME",
+      "resolution_policy": "preserve_existing_env_else_codex_system_default",
+      "app_env_injection": "forbidden",
+      "automatic_mutation": "forbidden",
+      "explicit_model_access_mutation": "framework_action_atomic_merge_with_backup_and_restore",
+      "required_processes": [
+        "desktop_shell",
+        "aioncore",
+        "managed_codex_cli",
+        "opl_runtime_bridge"
+      ]
+    },
+    "conversation_readiness": {
+      "method": "POST",
+      "route": "/api/conversations/<id>/runtime/ensure",
+      "retired_route": "/api/conversations/<id>/warmup",
+      "http_404_or_500_policy": "retryable_error_never_ready"
+    },
+    "full_runtime_packages": {
+      "composition_policy": "framework_resolved_selected_package_set",
+      "readiness_policy": "no_fixed_package_count_or_payload_prerequisite",
+      "mas_scholar_global_exposure": "forbidden",
+      "mas_scholar_visibility": "mas_workspace_binding_only"
+    }
+  },
+  "startup_installation_integrity_recovery": {
+    "authority": "one-person-lab-app",
+    "implementation_owner": "gaofeng21cn/opl-aion-shell",
+    "trigger": "packaged_backend_incomplete_installation",
+    "blocking_surface": true,
+    "required_visible_state": [
+      "plain_language_failure_summary",
+      "deduplicated_relative_missing_resource_names_when_reported",
+      "security_software_quarantine_recovery_hint",
+      "reinstall_is_fallback_not_the_only_action"
+    ],
+    "required_actions": [
+      "restart_and_recheck_same_installation",
+      "copy_redacted_diagnostic_summary",
+      "open_local_app_log_directory",
+      "open_prefilled_support_issue",
+      "open_official_release_download"
+    ],
+    "diagnostic_copy_allowlist": [
+      "app_version",
+      "platform",
+      "architecture",
+      "failure_reason",
+      "backend_boundary_code",
+      "backend_boundary_stage",
+      "relative_missing_resources"
+    ],
+    "diagnostic_copy_forbidden": [
+      "credentials",
+      "tokens",
+      "absolute_user_paths",
+      "log_contents",
+      "project_contents"
+    ],
+    "log_action": {
+      "owner": "electron_main_process",
+      "path_source": "electron_app_getPath_logs",
+      "backend_http_dependency_allowed": false,
+      "create_missing_directory_allowed": true
+    },
+    "restart_semantics": "restart_current_app_then_reclassify_from_fresh_packaged_resource_readback",
+    "self_heal_or_reinstall_success_claim_without_fresh_readback_allowed": false,
+    "smartscreen_or_security_software_bypass_allowed": false,
+    "required_evidence": [
+      "shell_source:packages/desktop/src/renderer/components/layout/InstallationIntegrityDialog.tsx",
+      "shell_source:packages/desktop/src/preload/main.ts",
+      "shell_source:packages/desktop/src/index.ts",
+      "shell_test:tests/unit/bootstrap/backendStartupFailure.test.ts",
+      "app_gate:scripts/validate-active-shell/shell-branding-validator.ts"
+    ]
+  },
+  "upstream_family": "AionUI",
+  "shell_source": {
+    "owner_repo": "gaofeng21cn/opl-aion-shell",
+    "default_ref": "main",
+    "checkout_path": "shells/aionui",
+    "history_policy": "external_checkout_not_merged_into_app_default_branch",
+    "upstream_ref": "a0ce713b65801fd9ca7f46ad168c977c75a187de",
+    "upstream_ref_role": "minimum_verified_gui_conformance_ancestor",
+    "current_head_source": "active_shell_checkout_git_head",
+    "current_head_must_contain_upstream_ref": true
+  },
+  "app_remote": {
+    "name": "origin",
+    "url": "git@github.com:gaofeng21cn/one-person-lab-app.git",
+    "main_branch": "main"
+  },
+  "upstream_remote": {
+    "url": "https://github.com/iOfficeAI/AionUi",
+    "main_branch": "main"
+  },
+  "release_role": "stable_app_shell",
+  "channel_thread_binding_boundary": {
+    "source_ref": "contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection",
+    "binding_schema": "opl_app_transport_bindings_projection.v1",
+    "binding_key_fields": [
+      "provider_id",
+      "account_id",
+      "channel_session_id"
+    ],
+    "binding_value_fields": [
+      "canonical_thread_host",
+      "canonical_thread_id"
+    ],
+    "thread_turn_authority": "codex_core_app_server",
+    "persistence_role": "exact_binding_adapter_state_only_not_thread_history_turn_state_or_session_truth",
+    "restart_recovery_transport": "exact_binding_lookup_then_thread_read_then_thread_resume_same_threadId",
+    "unknown_binding_policy": "fail_closed_without_thread_start_or_thread_id_inference_during_recovery",
+    "mismatch_policy": "fail_closed_without_rebind_merge_overwrite_or_turn_start",
+    "binding_key_normalization_or_inference_allowed": false,
+    "shell_thread_id_inference_allowed": false,
+    "second_session_truth_allowed": false,
+    "implementation_status": "framework_projection_consumer_without_cached_conversation_binding_source_e2e_completed"
+  },
+  "gui_authority": {
+    "source_of_truth": "one-person-lab-app",
+    "implementation_role": "active_shell_implementation_carrier",
+    "product_contracts": [
+      "contracts/app-gui-product-contract.json",
+      "contracts/app-remote-companion.json",
+      "contracts/opl-app-contributions.schema.json",
+      "contracts/app-runtime-bridge.json",
+      "contracts/app-product-profile.json",
+      "contracts/app-install-exposure-policy.json",
+      "contracts/app-page-state-matrix.json",
+      "contracts/app-first-run-test-matrix.json",
+      "contracts/app-release-channel.json"
+    ],
+    "shell_may_own": [
+      "concrete renderer implementation",
+      "process and preload implementation",
+      "shell package metadata",
+      "shell tests and release hooks",
+      "upstream AionUI intake",
+      "shell-local implementation details",
+      "shell-local tests that prove App contracts are implemented"
+    ],
+    "shell_must_not_own": [
+      "App GUI product truth",
+      "App user-facing page-state authority",
+      "App model-selection policy",
+      "App onboarding policy",
+      "App release/user documentation authority",
+      "App release gate policy",
+      "OPL runtime truth",
+      "domain truth",
+      "provider implementation",
+      "Package contribution schema or domain data and action truth",
+      "arbitrary Plugin React, Electron, HTML, JavaScript, path, or remote UI injection"
+    ],
+    "upstream_intake_policy": "check_against_app_owned_gui_contracts_before_acceptance"
+  },
+  "client_renderer_admission": {
+    "profile_ref": "contracts/app-product-profile.json#client_renderer_compatibility",
+    "renderer_id": "aionui",
+    "implementation_repo": "gaofeng21cn/opl-aion-shell",
+    "implementation_role": "active_release_renderer",
+    "status": "admitted_current_active_shell",
+    "hot_switch_without_revalidation_allowed": false
+  },
+  "shell_replacement_policy": {
+    "candidate_root_pattern": "shells/<candidate>",
+    "candidate_state": "candidate_until_contracts_and_tests_complete",
+    "authority_transfer_allowed": false,
+    "adoption_gate": [
+      "declare candidate in contracts/app-shell-candidates.json",
+      "implement contracts/app-gui-product-contract.json",
+      "sync App product profile into the candidate shell target",
+      "pass App page-state and first-run matrices",
+      "pass App-root active shell validation",
+      "pass GUI package compile through App wrapper",
+      "preserve external checkout history policy"
+    ]
+  },
+  "shell_contract": {
+    "layout_id": "aionui_v2_workspace",
+    "source_topology": "root_workspace_with_desktop_package",
+    "paths": {
+      "package_manifest": "package.json",
+      "agents_guide": "AGENTS.md",
+      "vitest_config": "vitest.config.ts",
+      "electron_builder_config": "packages/desktop/electron-builder.yml",
+      "desktop_release_carrier_manifest": "contracts/desktop-release-carrier.json",
+      "build_output_dir": "out",
+      "product_profile_target": "packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json",
+      "packaged_runtime_root": "packaged-runtimes/opl-full-runtime",
+      "packaged_runtime_validator": "scripts/validate-packaged-runtime.js",
+      "release_prepare_script": "scripts/prepare-release-assets.sh",
+      "release_verify_script": "scripts/verify-release-assets.sh"
+    },
+    "capabilities": [
+      "app_product_profile_generated_config",
+      "electron_builder_release_packaging",
+      "opl_packaged_runtime_extra_resource",
+      "standard_release_asset_normalization",
+      "standard_release_asset_verification",
+      "app_managed_host_tool_bootstrap",
+      "bundled_runtime_core_ready_without_host_node",
+      "app_owned_gui_product_contract",
+      "app_owned_package_contribution_contract",
+      "app_owned_runtime_bridge_contract",
+      "opl_app_state_bridge",
+      "opl_app_action_bridge",
+      "app_gui_release_channel_gating"
+    ]
+  },
+  "framework_boundary": {
+    "framework_repo": "gaofeng21cn/one-person-lab",
+    "app_consumes": [
+      "OPL CLI JSON outputs",
+      "framework contracts",
+      "runtime snapshots",
+      "provider receipts",
+      "domain-owned projections"
+    ],
+    "app_does_not_own": [
+      "runtime truth",
+      "domain truth",
+      "provider implementation",
+      "domain artifact authority"
+    ]
+  },
+  "validation_commands": [
+    {
+      "id": "install",
+      "cwd": "shells/aionui",
+      "command": "bun install --frozen-lockfile"
+    },
+    {
+      "id": "i18n_types",
+      "cwd": "shells/aionui",
+      "command": "bun run i18n:types"
+    },
+    {
+      "id": "i18n_check",
+      "cwd": "shells/aionui",
+      "command": "node scripts/check-i18n.js"
+    },
+    {
+      "id": "typecheck",
+      "cwd": "shells/aionui",
+      "command": "bunx tsc --noEmit"
+    },
+    {
+      "id": "managed_agent_behavior_node",
+      "cwd": "shells/aionui",
+      "command": "bunx vitest run tests/unit/common-adapter/ipcBridgeAgents.test.ts tests/unit/common-adapter/apiModelMapper.test.ts tests/unit/common-adapter/ipcBridgeTeamGate.test.ts tests/unit/conversation/createConversationParams.test.ts tests/unit/assistants/migrateAssistants.test.ts tests/unit/renderer/channelAssistantOptions.test.ts tests/unit/cron/resolveCronAgentConfig.test.ts tests/unit/common-adapter/teamMapper.test.ts"
+    },
+    {
+      "id": "managed_agent_behavior_dom",
+      "cwd": "shells/aionui",
+      "command": "VITEST_INCLUDE_DOM=1 bunx vitest run --project dom tests/unit/guid/useGuidSend.oplWhitelist.dom.test.tsx tests/unit/assistants/useAssistantEditor.dom.test.ts"
+    },
+    {
+      "id": "test",
+      "cwd": ".",
+      "command": "bun run test:full"
+    },
+    {
+      "id": "lint",
+      "cwd": "shells/aionui",
+      "command": "bun run lint"
+    },
+    {
+      "id": "packaged_runtime_validation",
+      "cwd": "shells/aionui",
+      "command": "node scripts/validate-packaged-runtime.js --scan-all"
+    }
+  ],
+  "gui_product_contract": "contracts/app-gui-product-contract.json",
+  "gui_product_contract_policy": {
+    "must_implement": true,
+    "source_of_truth": "one-person-lab-app",
+    "upstream_override_allowed": false,
+    "upstream_family_role": "implementation_material_only",
+    "aionui_upstream_must_not_override_app_truth": true
+  },
+  "state_surface_contract": {
+    "primary_read_command": "opl app state --profile fast --json",
+    "refresh_read_command": "opl app state --profile fast --json",
+    "full_state_read_command": "opl app state --profile full --json",
+    "full_state_policy": "diagnostic_or_release_evidence_only",
+    "action_command": "opl app action execute --action <action_id> [--payload json] [--dry-run] --json",
+    "package_app_contributions": {
+      "contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions",
+      "schema_ref": "contracts/opl-app-contributions.schema.json",
+      "source_ref": "app_state.agent_packages.directory.entries[].app_contributions",
+      "package_role_filter_allowed": false,
+      "navigation_identity": [
+        "package_id",
+        "navigation_id"
+      ],
+      "read_command": "opl app contribution read --package-id <package_id> --ref <data_ref> [--input <json>|--input-stdin]",
+      "execute_command": "opl app contribution execute --package-id <package_id> --ref <action_ref> [--input <json>|--input-stdin] [--confirm]",
+      "execute_command_role": "framework_internal_delegated_surface_only_never_shell_invoked",
+      "shell_direct_execute_command_allowed": false,
+      "shell_write_action_bridge": {
+        "action_id": "package_contribution_execute",
+        "command": "opl app action execute --action package_contribution_execute --payload <json> [--dry-run] --json",
+        "required_payload_fields": [
+          "package_id",
+          "ref",
+          "input",
+          "confirmed"
+        ],
+        "availability_source": "app_state action catalog exact package_contribution_execute entry",
+        "unavailable_policy": "hide_or_disable_commands_and_preserve_read_only_contribution_views_until_the_current_action_catalog_exposes_the_exact_action"
+      },
+      "broker_response_contract": {
+        "framework_source_ref": "one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution",
+        "cli_envelope_path": "opl_app_contribution",
+        "cli_surface_kind": "opl_app_package_contribution.v1",
+        "package_response_schema": "opl-package-app-contribution-response.v1",
+        "required_envelope_fields": [
+          "surface_kind",
+          "package_id",
+          "ref",
+          "operation",
+          "confirmation_required",
+          "carrier_readback",
+          "readiness",
+          "response"
+        ],
+        "required_response_fields": [
+          "schema_version",
+          "ok",
+          "ref",
+          "operation",
+          "result"
+        ],
+        "allowed_operations": [
+          "read",
+          "execute"
+        ],
+        "identity_validation": "surface_kind_package_id_ref_operation_and_response_schema_ref_operation_must_match_the_current_request_and_descriptor",
+        "success_validation": "response_ok_must_equal_true_before_render_or_action_success",
+        "renderer_selection_source": "current_descriptor_view_type_never_broker_response",
+        "renderer_result_path": "opl_app_contribution.response.result",
+        "canonical_action_response_path": "app_action_execution.result.opl_app_contribution",
+        "canonical_action_surface_kind": "opl_app_action_execution.v1",
+        "canonical_action_dry_run_response_path": "app_action_execution.result.opl_app_contribution_preflight",
+        "canonical_action_dry_run_policy": "revalidate_the_current_descriptor_carrier_readiness_ref_and_confirmation_without_invoking_the_package_command_or_accepting_an_action_success"
+      },
+      "route_resolution_policy": "resolve_only_from_the_current_directory_entry_then_delegate_descriptor_and_ref_revalidation_to_the_broker",
+      "response_policy": "render_only_a_valid_broker_response_for_the_requested_package_ref_and_operation",
+      "confirmation_policy": "broker_and_descriptor_owned_shell_cannot_infer_or_bypass_confirmation",
+      "stale_or_malformed_policy": "fail_closed_hide_the_contribution_without_a_local_fallback_or_fabricated_state",
+      "legacy_package_manager_state_allowed": false,
+      "invalid_block_policy": "reject_entire_package_app_contributions_block_and_preserve_other_packages",
+      "arbitrary_plugin_ui_code_allowed": false
+    },
+    "full_drilldown_exception": "opl runtime app-operator-drilldown --detail full --json",
+    "forbidden_gui_truth_sources": [
+      "direct opl connect modules --json page aggregation",
+      "direct opl system developer-supervisor page aggregation",
+      "direct opl family-runtime worker status page aggregation",
+      "application.systemInfo as OPL path truth",
+      "application.appVersions as OPL release truth",
+      "direct reads of OPL internal state files"
+    ]
+  },
+  "upstream_intake": {
+    "schema_version": 1,
+    "classification_policy": "classify_every_required_capability_and_dependency_before_app_release",
+    "webui_session_compatibility": {
+      "authority": "official_aioncore_cookie_session",
+      "refresh_endpoint": "/api/auth/refresh",
+      "refresh_policy": "browser_only_singleflight_on_http_401_or_realtime_auth_expiration",
+      "request_replay_limit": 1,
+      "credential_endpoint_replay_allowed": false,
+      "failed_refresh_policy": "stop_auth_reconnect_until_login",
+      "reconnect_policy": "bounded_backoff_not_bypassed_by_emit_or_subscribe_reset_only_after_stable_connection",
+      "desktop_local_mode_refresh_allowed": false
+    },
+    "conversation_notification_compatibility": {
+      "preference": "system.notificationEnabled",
+      "events": ["turn_completed", "permission_requested", "question_requested"],
+      "desktop_visibility": "only_when_main_window_is_unfocused_with_main_process_recheck",
+      "browser_visibility": "only_when_hidden_and_notification_permission_already_granted",
+      "payload": "localized_event_and_conversation_title_max_20_characters",
+      "conversation_body_command_and_question_content_allowed": false,
+      "click_action": "focus_existing_window_and_open_exact_conversation",
+      "deduplication": "per_conversation_request_or_turn",
+      "waiting_state": "pending_confirmation_events_and_backend_recovery_clear_on_resolution_or_turn_terminal",
+      "canonical_task_status_override_allowed": false
+    },
+    "stable_currentness_receipt": {
+      "path": "contracts/aionui-upstream-intake.json",
+      "schema": "opl_aionui_upstream_intake.v2",
+      "channel": "stable_tags_only",
+      "read_policy": "active_shell_checkout_read_only_fail_closed",
+      "implementation_ancestry_policy": "all_shell_projection_implementation_refs_must_be_ancestors_of_active_shell_head",
+      "managed_runtime_bindings": {
+        "minimum_aioncore_version": "v0.1.44",
+        "aioncore_version": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.version",
+        "aioncore_source_commit": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.commit",
+        "aioncore_archive_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.archive_sha256",
+        "managed_resources_schema": "contracts/aionui-upstream-intake.json#managed_runtime.managed_resources_schema",
+        "managed_resources_manifest_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.managed_resources_manifest_sha256",
+        "node_runtime_version": "contracts/aionui-upstream-intake.json#managed_runtime.node_runtime.version",
+        "node_runtime_binary_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.node_runtime.binary_sha256",
+        "claude_cli_package_version": "contracts/aionui-upstream-intake.json#managed_runtime.claude_cli",
+        "claude_cli_binary_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.claude_cli.binary_sha256",
+        "codex_cli_package_version": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli",
+        "codex_cli_binary_sha256": "contracts/aionui-upstream-intake.json#managed_runtime.codex_cli.binary_sha256",
+        "qualification_contract": "manual_qualification_contract",
+        "source_lock_requirement_source": "manual_qualification_contract.exact_source_lock_required",
+        "packaged_manifest_authority": "manual_qualification_contract.runtime_dependencies.aioncore.resource_authority"
+      },
+      "required_policy": {
+        "broad_history_merge": "forbidden",
+        "newer_stable_release": "review_required",
+        "network_unknown": "unknown_fail_closed_for_release_admission",
+        "product_authority": "one-person-lab-app"
+      }
+    },
+    "source_refs": {
+      "fork_base": {
+        "ref": "70974c59a275e565e8fc2bd7ecaf2dcac74227f0",
+        "role": "shared_fork_base"
+      },
+      "evaluated_upstream": {
+        "release": "v2.1.31",
+        "ref": "e49cd94935f4e461f002a1260a47c1b7b2ce81ca",
+        "role": "evaluated_upstream_release"
+      },
+      "selective_absorption_head": {
+        "ref": "e38b00ba37cafe56d704b498a4882264836463e4",
+        "role": "scoped_absorption_and_intake_record_head"
+      }
+    },
+    "allowed_classifications": [
+      "absorbed",
+      "rejected",
+      "deferred"
+    ],
+    "required_capability_ids": [
+      "startup_directories",
+      "database_recovery",
+      "managed_agent_api",
+      "feedback_diagnostics_privacy",
+      "cron_history",
+      "guid_slash_allowlist",
+      "settings_i18n",
+      "non_zh_en_locales",
+      "aionui_team"
+    ],
+    "required_dependency_ids": [
+      "aioncore_database_recovery"
+    ],
+    "required_record_fields": [
+      "id",
+      "upstream_surface",
+      "classification",
+      "owner_ref",
+      "release_gate",
+      "dependencies",
+      "evidence"
+    ],
+    "managed_agent_api_contract": {
+      "source": "aioncore_v0.1.44_live_api_compatibility",
+      "root_cause_guard": "prevent_v2.1.31_managed_agent_capability_migration_omission",
+      "required_aioncore_version": "v0.1.44",
+      "assistant_identity_policy": {
+        "canonical_identity_source": "Assistant.id",
+        "allowed_assistant_kinds": [
+          "generated",
+          "preset"
+        ],
+        "runtime_identity_policy": "runtime_ids_may_support_display_or_execution_but_never_replace_Assistant.id_on_wire"
+      },
+      "business_assistant_catalog": {
+        "consumer": "business_assistant_selection",
+        "source_policy": "consume_assistants_catalog_only",
+        "method": "GET",
+        "route": "/api/assistants",
+        "response": "Assistant[]"
+      },
+      "managed_agent_catalog": {
+        "consumers": [
+          "agent_settings",
+          "agent_diagnostics",
+          "runtime_metadata"
+        ],
+        "method": "GET",
+        "route": "/api/agents/management",
+        "response": "ManagedAgent[]"
+      },
+      "managed_agent_health_check": {
+        "consumer": "agent_diagnostics",
+        "method": "POST",
+        "route_template": "/api/agents/{id}/health-check",
+        "success_status": 200
+      },
+      "migration_policy": {
+        "import_checkpoint": "persist_immediately_after_legacy_import",
+        "deleted_assistant_policy": "must_not_reimport_after_user_deletion"
+      },
+      "implementation_surfaces": {
+        "source_root": "packages/desktop/src",
+        "bridge": "packages/desktop/src/common/adapter/ipcBridge.ts",
+        "conversation_writer": "packages/desktop/src/common/adapter/apiModelMapper.ts",
+        "conversation_parameter_builder": "packages/desktop/src/common/utils/buildAgentConversationParams.ts",
+        "team_mapper": "packages/desktop/src/common/adapter/teamMapper.ts",
+        "team_types": "packages/desktop/src/common/types/team/teamTypes.ts",
+        "migration": "packages/desktop/src/process/utils/migrateAssistants.ts",
+        "managed_hook": "packages/desktop/src/renderer/hooks/agent/useManagedAgents.ts",
+        "managed_types": "packages/desktop/src/renderer/utils/model/agentTypes.ts",
+        "assistant_catalog_hook": "packages/desktop/src/renderer/hooks/assistant/useAssistantList.ts",
+        "assistant_editor": "packages/desktop/src/renderer/hooks/assistant/useAssistantEditor.ts",
+        "guid_business_loader": "packages/desktop/src/renderer/pages/guid/hooks/useCustomAgentsLoader.ts",
+        "guid_agent_selection": "packages/desktop/src/renderer/pages/guid/hooks/useGuidAgentSelection.ts",
+        "conversation_agents": "packages/desktop/src/renderer/pages/conversation/hooks/useConversationAgents.ts",
+        "conversation_parameter_resolver": "packages/desktop/src/renderer/pages/conversation/utils/createConversationParams.ts",
+        "conversation_guid_callers": "packages/desktop/src/renderer/pages/guid/hooks/useGuidSend.ts",
+        "channel_assistant_selection": "packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/assistantOptions.ts",
+        "channel_forms": [
+          "packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/TelegramConfigForm.tsx",
+          "packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/LarkConfigForm.tsx",
+          "packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/WecomConfigForm.tsx",
+          "packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/DingTalkConfigForm.tsx"
+        ],
+        "cron_create_dialog": "packages/desktop/src/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog.tsx",
+        "cron_agent_config_resolver": "packages/desktop/src/renderer/pages/cron/ScheduledTasksPage/resolveCronAgentConfig.ts",
+        "team_agent_options": "packages/desktop/src/renderer/pages/team/components/agentSelectUtils.tsx",
+        "team_create_modal": "packages/desktop/src/renderer/pages/team/components/TeamCreateModal.tsx",
+        "team_add_agent_caller": "packages/desktop/src/renderer/pages/team/hooks/useTeamSession.ts"
+      },
+      "focused_tests": {
+        "node": [
+          "tests/unit/common-adapter/ipcBridgeAgents.test.ts",
+          "tests/unit/common-adapter/apiModelMapper.test.ts",
+          "tests/unit/common-adapter/ipcBridgeTeamGate.test.ts",
+          "tests/unit/conversation/createConversationParams.test.ts",
+          "tests/unit/assistants/migrateAssistants.test.ts",
+          "tests/unit/renderer/channelAssistantOptions.test.ts",
+          "tests/unit/cron/resolveCronAgentConfig.test.ts",
+          "tests/unit/common-adapter/teamMapper.test.ts"
+        ],
+        "dom": [
+          "tests/unit/guid/useGuidSend.oplWhitelist.dom.test.tsx",
+          "tests/unit/assistants/useAssistantEditor.dom.test.ts"
+        ]
+      },
+      "retired_facade_paths": [
+        "packages/desktop/src/renderer/hooks/agent/useAgents.ts",
+        "packages/desktop/src/renderer/hooks/assistant/useDetectedAgents.ts"
+      ],
+      "verification_policy": {
+        "quick_gate_claim": "contract_structure_remediation_ancestry_required_paths_and_retired_facade_absence_only",
+        "quick_gate_runs_focused_tests": false,
+        "required_path_claim": "presence_only_not_behavior",
+        "focused_behavior_command_ids": [
+          "managed_agent_behavior_node",
+          "managed_agent_behavior_dom"
+        ],
+        "focused_behavior_claim": "only_successful_command_execution_proves_behavior",
+        "full_active_shell_policy": "focused_behavior_commands_execute_before_test_full"
+      },
+      "write_contracts": {
+        "assistant": {
+          "route": "/api/assistants",
+          "runtime_binding_field": "agent_id"
+        },
+        "conversation": {
+          "create_method": "POST",
+          "create_route": "/api/conversations",
+          "assistant_identity_path": "assistant.id",
+          "assistant_placement": "top_level",
+          "caller_ids": [
+            "openclaw_gateway",
+            "nanobot",
+            "aionrs",
+            "acp_remote_custom_and_preset_fallbacks"
+          ]
+        },
+        "channel": {
+          "read_method": "GET",
+          "read_route_template": "/api/channel/settings/{platform}",
+          "write_method": "PUT",
+          "write_route_template": "/api/channel/settings/{platform}/assistant",
+          "selection_hook": "useChannelAssistantSelection",
+          "identity_field": "assistant_id",
+          "identity_source": "Assistant.id"
+        },
+        "cron": {
+          "product_policy_ref": "contracts/app-gui-product-contract.json#scheduled_tasks_policy",
+          "authority": "aioncore_cron_store_and_routes",
+          "route": "/scheduled",
+          "list_endpoint": "listJobs",
+          "get_endpoint": "getJob",
+          "create_endpoint": "addJob",
+          "update_endpoint": "updateJob",
+          "delete_endpoint": "removeJob",
+          "run_now_endpoint": "runNow",
+          "pause_resume_endpoint": "updateJob.enabled",
+          "history_route_template": "/api/cron/jobs/{id}/conversations",
+          "timezone_policy": "local_iana_timezone_on_write_and_fail_open_repair_for_missing_timezone",
+          "ordinary_sider_entry_visible": true,
+          "sider_placement": "primary_navigation_between_runtime_and_archived",
+          "job_section_visible_when_non_empty": true,
+          "executor": "codex_cli",
+          "executor_selector_visible": false,
+          "assistant_candidate_source": "useConversationAgents.cliAgents",
+          "assistant_candidate_requirements": [
+            "Assistant.source=generated",
+            "Assistant.enabled=true",
+            "managed_agent_runnable=true",
+            "assistantRuntimeKey=codex"
+          ],
+          "assistant_identity_source": "Assistant.id",
+          "candidate_cardinality": "exactly_one",
+          "assistant_unavailable_policy": "disable_new_task_create_and_codex_executor_save_only_with_inline_guidance",
+          "existing_task_management_remains_available": true,
+          "identity_path": "agent_config.assistant_id",
+          "schedule_field_map": {
+            "atMs": "at_ms",
+            "everyMs": "every_ms"
+          },
+          "existing_conversation_update_agent_config": "omit",
+          "aionrs_provider_identity_path": "agent_config.model.provider_id",
+          "legacy_non_codex_job_policy": {
+            "visible": true,
+            "run_now_allowed": true,
+            "pause_resume_allowed": true,
+            "delete_allowed": true,
+            "editable_fields": [
+              "schedule",
+              "prompt"
+            ],
+            "preserve_existing_agent_config": true,
+            "executor_mutation_allowed": false,
+            "silent_migration_allowed": false
+          },
+          "second_scheduler_store_allowed": false
+        },
+        "team": {
+          "create_endpoint": "create",
+          "add_agent_endpoint": "addAgent",
+          "shared_mapper": "toBackendAgent",
+          "identity_field": "assistant_id",
+          "identity_source": "Assistant.id",
+          "response_members_field": "assistants",
+          "response_leader_field": "leader_assistant_id",
+          "events": {
+            "team.agentStatusChanged": "fromBackendTeamAgentStatusEvent",
+            "team.agentSpawned": "fromBackendTeamAgentSpawnedEvent",
+            "team.agentRemoved": "passthrough",
+            "team.agentRenamed": "fromBackendTeamAgentRenamedEvent",
+            "team.listChanged": "passthrough",
+            "team.teammateMessage": "passthrough"
+          }
+        }
+      },
+      "release_claim_policy": "contract_and_gate_pass_do_not_prove_installed_runtime_ready"
+    },
+    "capability_classifications": [
+      {
+        "id": "startup_directories",
+        "upstream_surface": "Backend startup directory preparation and typed startup-directory failure classification",
+        "classification": "absorbed",
+        "owner_ref": "gaofeng21cn/opl-aion-shell:startup_adapter",
+        "release_gate": "shell_startup_focused_tests_plus_app_quick_gate",
+        "dependencies": [],
+        "evidence": [
+          "shell_commit:7c02fd4e55ff732f64f8fad01b454731340a245e",
+          "shell_test:tests/unit/bootstrap/backendStartupFailure.test.ts",
+          "shell_test:packages/web-host/src/backend-launcher.test.ts"
+        ]
+      },
+      {
+        "id": "database_recovery",
+        "upstream_surface": "Corrupted database confirmation and backend restart/rebuild flow",
+        "classification": "absorbed",
+        "owner_ref": "gaofeng21cn/opl-aion-shell:startup_recovery_adapter",
+        "release_gate": "database_recovery_dependency_satisfied",
+        "dependencies": [
+          "aioncore_database_recovery"
+        ],
+        "evidence": [
+          "shell_commit:7c02fd4e55ff732f64f8fad01b454731340a245e",
+          "shell_source:packages/desktop/src/process/startup/recoverCorruptedDatabase.ts",
+          "active_shell_receipt:contracts/aionui-upstream-intake.json#managed_runtime.aioncore.version"
+        ]
+      },
+      {
+        "id": "managed_agent_api",
+        "upstream_surface": "AionCore v0.1.44 managed-agent catalog and per-id health-check compatibility",
+        "classification": "absorbed",
+        "owner_ref": "contracts/app-shell-adapter.json#upstream_intake.managed_agent_api_contract",
+        "release_gate": "managed_agent_api_contract_and_shell_semantic_gate",
+        "remediation_ref": "6875ada9fa6e800b64980dadb02180def6b0f6e2",
+        "dependencies": [],
+        "evidence": [
+          "shell_commit:6875ada9fa6e800b64980dadb02180def6b0f6e2",
+          "aioncore_live_api:GET /api/agents/management -> 200 ManagedAgent[]",
+          "aioncore_live_api:POST /api/agents/{id}/health-check -> 200",
+          "app_gate:scripts/validate-active-shell/upstream-intake-policy-validator.ts",
+          "app_validation_command:managed_agent_behavior_node",
+          "app_validation_command:managed_agent_behavior_dom"
+        ]
+      },
+      {
+        "id": "feedback_diagnostics_privacy",
+        "upstream_surface": "Feedback attachments include dated shell, AionCore, and AionRS logs",
+        "classification": "absorbed",
+        "owner_ref": "one-person-lab-app:app_release_privacy_gate",
+        "release_gate": "feedback_privacy_redaction_verified",
+        "remediation_ref": "9059e992324d18c00de1f2f7503f7da3e77706ba",
+        "dependencies": [],
+        "evidence": [
+          "shell_commit:9059e992324d18c00de1f2f7503f7da3e77706ba",
+          "shell_source:packages/desktop/src/process/feedback/logs.ts",
+          "shell_test:tests/unit/feedback/feedbackBridge.test.ts",
+          "shell_test:tests/unit/feedback/FeedbackReportModal.dom.test.tsx"
+        ]
+      },
+      {
+        "id": "cron_history",
+        "upstream_surface": "Scheduled task run titles, history batch delete, and history refetch",
+        "classification": "absorbed",
+        "owner_ref": "gaofeng21cn/opl-aion-shell:cron_history_renderer",
+        "release_gate": "shell_cron_focused_tests_plus_app_quick_gate",
+        "dependencies": [],
+        "evidence": [
+          "shell_commit:f24d3fa5b7d93f528f2952b77883abe8f01bd070",
+          "shell_test:tests/unit/cron/cronUtils.test.ts",
+          "shell_test:tests/unit/cron/TaskDetailPage.dom.test.tsx"
+        ]
+      },
+      {
+        "id": "guid_slash_allowlist",
+        "upstream_surface": "/guid slash command menu filtered through the OPL capability allowlist",
+        "classification": "absorbed",
+        "owner_ref": "contracts/app-product-profile.json#gui.ordinary_capability_selector_policy",
+        "release_gate": "guid_slash_allowlist_focused_tests_plus_app_quick_gate",
+        "dependencies": [],
+        "evidence": [
+          "shell_commit:ea4b5a107d654eec614542d411f7a7b97cfd8c92",
+          "shell_test:tests/unit/chat/guidSlashCommands.test.ts",
+          "shell_test:tests/unit/renderer/useSlashCommandController.test.ts"
+        ]
+      },
+      {
+        "id": "settings_i18n",
+        "upstream_surface": "Settings navigation context and Chinese/English i18n refinements",
+        "classification": "absorbed",
+        "owner_ref": "contracts/app-settings-control-plane.json#upstream_intake_classification",
+        "release_gate": "settings_i18n_focused_tests_plus_app_quick_gate",
+        "dependencies": [],
+        "evidence": [
+          "shell_commit:bb35cff740757610141afa5a8557e42834a8c2ab",
+          "shell_command:bun run i18n:types",
+          "shell_command:node scripts/check-i18n.js"
+        ]
+      },
+      {
+        "id": "non_zh_en_locales",
+        "upstream_surface": "Upstream locale payloads outside Chinese and English, including es-ES and fa-IR",
+        "classification": "rejected",
+        "owner_ref": "one-person-lab-app:locale_product_policy",
+        "release_gate": "non_zh_en_locale_payload_must_remain_absent",
+        "dependencies": [],
+        "evidence": [
+          "shell_record:docs/history/aionui-upstream-intake-2026-07-09.md#Absorption-Result",
+          "shell_source:packages/desktop/src/common/config/i18n.ts",
+          "supported_locales:zh-CN,en-US"
+        ]
+      },
+      {
+        "id": "aionui_team",
+        "upstream_surface": "Team mode, /team routes, Team sidebar, Team-created redirects, and Team MCP snapshots",
+        "classification": "rejected",
+        "ordinary_surface": "forbidden",
+        "owner_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+        "release_gate": "implementation_probes.aionui_team_disabled_surface",
+        "dependencies": [],
+        "evidence": [
+          "app_contract:contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "app_probe:implementation_probes.aionui_team_disabled_surface",
+          "shell_record:docs/history/aionui-upstream-intake-2026-07-09.md#Absorption-Result"
+        ]
+      }
+    ],
+    "dependency_classifications": [
+      {
+        "id": "aioncore_database_recovery",
+        "upstream_surface": "AionCore emits the recoverable database corruption boundary consumed by the shell recovery flow",
+        "classification": "absorbed",
+        "owner_ref": "iOfficeAI/AionCore:recoverable_database_boundary",
+        "release_gate": "aioncore_database_recovery_verified",
+        "remediation_ref": "81c8b37fdc067549341b41539d7648b09aa31d37",
+        "dependencies": [],
+        "evidence": [
+          "evaluated_upstream:e49cd94935f4e461f002a1260a47c1b7b2ce81ca#package.json.aioncoreVersion=v0.1.44",
+          "selective_absorption_head:e38b00ba37cafe56d704b498a4882264836463e4#package.json.aioncoreVersion=v0.1.28",
+          "active_shell_receipt:contracts/aionui-upstream-intake.json#managed_runtime.aioncore.version",
+          "shell_commit:81c8b37fdc067549341b41539d7648b09aa31d37",
+          "shell_source:packages/desktop/src/process/startup/backendStartupFailure.ts",
+          "shell_test:packages/web-host/src/backend-launcher.test.ts",
+          "shell_smoke:scripts/smoke-test-web-cli.sh"
+        ],
+        "version_gate": {
+          "field_ref": "package.json#aioncoreVersion",
+          "minimum_version": "v0.1.44",
+          "evaluated_upstream_version": "v0.1.44",
+          "selected_version_source": "contracts/aionui-upstream-intake.json#managed_runtime.aioncore.version",
+          "state": "meets_minimum"
+        },
+        "capability_gate": {
+          "required_boundary_code": "BOOTSTRAP_DATA_INIT_FAILED",
+          "accepted_failure_boundaries": [
+            {
+              "stage": "database.recoverable_corruption",
+              "required_corruption_markers_any_of": []
+            },
+            {
+              "stage": "database.open",
+              "required_corruption_markers_any_of": [
+                "sqlite_corrupt",
+                "sqlite_notadb",
+                "database disk image is malformed",
+                "file is not a database",
+                "malformed database schema"
+              ]
+            }
+          ],
+          "recovery_success_boundary": {
+            "code": "BOOTSTRAP_RECOVERED_DATABASE_CORRUPTION",
+            "stage": "database.recovery"
+          },
+          "state": "verified",
+          "required_evidence": "packaged_aioncore_boundary_and_recovery_smoke",
+          "evidence": [
+            "packaged_aioncore_boundary_and_recovery_smoke:scripts/smoke-test-web-cli.sh",
+            "shell_commit:81c8b37fdc067549341b41539d7648b09aa31d37",
+            "shell_test:packages/web-host/src/backend-launcher.test.ts",
+            "shell_test:tests/unit/bootstrap/backendStartupFailure.test.ts"
+          ]
+        }
+      }
+    ]
+  },
+  "implementation_probes": {
+    "settings_control_plane_shell_adapter_slot": {
+      "source": "settings_control_plane_contract",
+      "source_ref": "contracts/app-settings-control-plane.json",
+      "policy": "behavior_level_dom_or_registry_validation_preferred",
+      "source_probe_policy": "reserved_for_forbidden_surfaces_only",
+      "host_component": "SettingsHost",
+      "slots": {
+        "SettingsShellAdapterSlot": {
+          "role": "active_shell_settings_registry_and_render_slot_adapter",
+          "registry_source": "contracts/app-settings-control-plane.json",
+          "ordinary_route_source": "ordinary_routes",
+          "secondary_route_source": "secondary_pages",
+          "legacy_redirect_source": "legacy_route_redirects",
+          "extension_anchor_source": "extension_anchor_remap"
+        }
+      },
+      "required_evidence": [
+        "SettingsHost renders ordinary routes from the hydrated App settings registry",
+        "SettingsShellAdapterSlot mounts App-owned route slots without shell-owned product IA",
+        "legacy route redirects and extension anchor remaps are resolved before shell rendering",
+        "AionUI upstream settings intake is classified as accepted/adapt/redirect/reject before registry or slot changes"
+      ]
+    },
+    "branded_deep_link_surface": {
+      "source": "app_branded_deep_link_policy",
+      "source_ref": "contracts/app-gui-product-contract.json#branded_deep_link_policy",
+      "policy": "behavior_tests_plus_narrow_source_guards",
+      "probes": [
+        {
+          "id": "opl_scheme_only",
+          "required": true,
+          "required_evidence": [
+            "desktop registration and every intake path use opl://",
+            "aionui:// is neither registered nor accepted without an explicit compatibility contract"
+          ]
+        },
+        {
+          "id": "navigate_schema_and_secret_rejection",
+          "required": true,
+          "required_evidence": [
+            "navigate is the only action and route is the only accepted query parameter",
+            "credential actions, unknown or duplicate params, encoded payloads, and secret-like material are rejected before queue or emit"
+          ]
+        },
+        {
+          "id": "app_owned_exact_route_registry",
+          "required": true,
+          "required_evidence": [
+            "renderer derives Settings routes from the App Settings control-plane registry",
+            "only App-owned static and exact Settings paths can navigate"
+          ]
+        },
+        {
+          "id": "shared_cold_warm_second_instance_parser",
+          "required": true,
+          "required_evidence": [
+            "cold argv, macOS open-url, and second-instance delivery share one parser",
+            "only a validated payload can be queued or emitted"
+          ]
+        },
+        {
+          "id": "invalid_link_fail_open_and_redacted",
+          "required": true,
+          "required_evidence": [
+            "invalid input preserves the current App route, composer input, and startup availability",
+            "logs contain a reason code but no raw URL or parameter value"
+          ]
+        }
+      ]
+    },
+    "aionui_team_disabled_surface": {
+      "source": "app_shell_upgrade_architecture_hardening",
+      "policy": "fail_closed_required_for_active_shell_upgrade",
+      "probes": [
+        {
+          "id": "team_mode_disabled",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "Team mode flag is false for ordinary App builds",
+            "Team mode cannot be enabled from ordinary Settings"
+          ]
+        },
+        {
+          "id": "team_route_redirect",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "/team and /team/* routes redirect to the App-owned home path",
+            "redirect does not create a Team conversation or Team workspace state"
+          ]
+        },
+        {
+          "id": "team_sidebar_gate",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "Team sidebar entry is not rendered for ordinary App users",
+            "Team navigation cannot be reached through the ordinary sidebar model"
+          ]
+        },
+        {
+          "id": "team_created_redirect_noop",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "Team-created redirect events are no-ops in ordinary App mode",
+            "Team-created redirects do not mutate the current conversation route"
+          ]
+        },
+        {
+          "id": "ordinary_conversation_team_snapshot_scrub",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "disabled Team MCP state is removed before ordinary conversation rendering",
+            "disabled Team MCP state is removed before ordinary conversation inheritance"
+          ]
+        },
+        {
+          "id": "agent_switching_drops_team_mcp",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "agent switching preserves configured user and third-party MCP servers unless they match the explicit Team/internal negative filter",
+            "agent switching does not inherit Team MCP from prior snapshots"
+          ]
+        },
+        {
+          "id": "team_deep_link_not_whitelisted",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "Team deep links are absent from App route whitelist",
+            "Team deep links resolve through disabled-or-redirect handling"
+          ]
+        },
+        {
+          "id": "team_bridge_mutation_gate",
+          "source_ref": "contracts/app-gui-product-contract.json#settings_navigation.team_surface_policy",
+          "required": true,
+          "required_evidence": [
+            "Team create/add/remove/session mutations are rejected before HTTP when Team mode is disabled",
+            "ordinary App mode cannot create or rebuild Team sessions through the IPC bridge"
+          ]
+        }
+      ]
+    }
+  },
+  "disabled_feature_policy": {
+    "aionui_team": {
+      "state": "disabled",
+      "ordinary_surface": "rejected",
+      "route_policy": "redirect_to_app_home",
+      "mutation_policy": "team_created_redirect_noop",
+      "deep_link_policy": "not_whitelisted",
+      "capability_snapshot_policy": "scrub_before_render_or_inherit",
+      "agent_switching_policy": "must_not_inherit_team_mcp"
+    }
+  }
+}

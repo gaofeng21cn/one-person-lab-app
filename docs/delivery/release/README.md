@@ -1,5 +1,31 @@
 # OPL App Release Guide
 
+## Studio Stable cutover
+
+The active adapter selects `gaofeng21cn/opl-studio`; all release checkouts,
+package managers, smoke harnesses, and build commands are resolved from the
+frozen App adapter. Stable packages use `electron-builder.stable.yml` and retain
+`cn.onepersonlab.opl`, `One Person Lab`, and the existing App release repository.
+The release controller supplies the calendar display version and monotonically
+increasing updater version separately.
+
+The existing App feed delivers the replacement to AionUI-based installations.
+Studio Preview requires its identity-preserving terminal bridge release before
+it hands off to the Stable feed. Both source populations must be qualified with
+actual packaged update installation and data continuity; clean installation or
+source checks do not prove migration. macOS signed distribution validation runs
+before upload and checks the ZIP, app identity, publisher, Gatekeeper acceptance,
+and the real updater replacement path.
+
+Windows retains the existing NSIS upgrade identity; existing Framework and Codex
+runtime discovery must continue through the App-owned WSL execution contract.
+Linux retains Debian package `one-person-lab` and publishes `latest-linux.yml`
+bound to the exact DEB and updater version. Older Linux releases exposed DEBs
+without that feed, so their availability alone is not evidence of a working
+automatic update. Desktop add-on manifests preserve read compatibility with
+historical DEB-only receipts while new Studio publication requires the feed.
+
+
 For operator sequencing, monitoring, recovery decisions and closeout, start with the
 [release SOP](stable-release-sop.md). This guide is the technical reference; the
 [release Skill](../../../skills/opl-app-release/SKILL.md) routes to that same SOP.

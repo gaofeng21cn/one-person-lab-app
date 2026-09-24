@@ -3,8 +3,8 @@
   "owner": "one-person-lab-app",
   "purpose": "first_run_test_matrix",
   "state": "active",
-  "active_shell": "aionui",
-  "shell_root": "shells/aionui",
+  "active_shell": "opl-studio",
+  "shell_root": "shells/opl-studio",
   "computer_use_qualification": {
     "schema": "opl_first_run_computer_use_qualification.v1",
     "product_policy_ref": "contracts/app-gui-product-contract.json#computer_use_policy",

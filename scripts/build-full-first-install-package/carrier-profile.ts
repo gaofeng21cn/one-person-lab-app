@@ -91,7 +91,7 @@ function validateProfile(value: unknown, carrierId: string): CarrierProfileContr
   invariant(profile.carrier_id === carrierId, `Full payload carrier profile ${carrierId} has an invalid carrier_id.`);
   invariant(profile.carrier_id === 'aionui' || profile.carrier_id === 'opl-studio',
     `Unsupported Full payload carrier: ${carrierId}`);
-  invariant(profile.version_policy === (carrierId === 'aionui' ? 'stable_calendar' : 'numeric_semver'),
+  invariant(profile.version_policy === (profile.bundle_id === 'cn.onepersonlab.opl' ? 'stable_calendar' : 'numeric_semver'),
     `${carrierId} Full payload profile has an invalid version_policy.`);
   for (const [key, valueToCheck] of Object.entries(profile)) {
     if (key === 'shell_runtime_path') {
@@ -121,7 +121,9 @@ export function resolveFullCarrierProfile(options: CarrierProfileOptions = {}): 
   const contract = options.contract ?? readAppShellAdapterContract();
   const explicitCarrierId = options.carrierId?.trim() || process.env.OPL_FULL_CARRIER_ID?.trim() || '';
   const carrierId = (explicitCarrierId || resolveShellAdapterIdentity(contract)) as FullCarrierId;
-  const profile = validateProfile(readCarrierProfiles()[carrierId], carrierId);
+  const stableStudio = carrierId === 'opl-studio' && !contract.candidate_shell
+    && contract.active_shell === 'opl-studio' && process.env.OPL_DESKTOP_RELEASE_IDENTITY !== 'preview';
+  const profile = validateProfile(readCarrierProfiles()[stableStudio ? 'opl-studio-stable' : carrierId], carrierId);
   if (!explicitCarrierId && contract.candidate_shell === 'opl-studio' && carrierId !== 'opl-studio') {
     throw new Error('OPL Studio Full build must resolve the opl-studio payload carrier profile.');
   }

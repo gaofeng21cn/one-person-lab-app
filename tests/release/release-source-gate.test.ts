@@ -34,6 +34,7 @@ const managedUpdateProviders = {
 };
 
 function readSourceJson(candidatePath: string, shellName = 'one-person-lab-aion-shell'): any {
+  if (candidatePath.endsWith('app-shell-adapter.json')) return { active_shell: 'aionui', shell_root: 'shells/aionui', shell_source: { owner_repo: 'gaofeng21cn/opl-aion-shell', checkout_path: 'shells/aionui' }, shell_contract: { paths: { electron_builder_config: 'packages/desktop/electron-builder.yml' } } };
   if (candidatePath.endsWith('package.json')) return { name: shellName };
   if (candidatePath.endsWith('app-release-channel.json')) {
     return {
@@ -131,6 +132,7 @@ test('Shell product-profile consumer uses the frozen local vitest executable wit
     const report = runShellProductProfileConsumerGate({
       shellRoot,
       expectedShellSha: git('rev-parse', 'HEAD'),
+      shellId: 'aionui',
     });
 
     assert.equal(report.status, 'passed');

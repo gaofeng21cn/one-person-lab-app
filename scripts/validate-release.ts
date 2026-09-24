@@ -4,15 +4,19 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { validateStandardAssetInventory } from './stage-standard-shell-assets.ts';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import { assertAppleNotarizationReceipt, assertGatekeeperLaunchPolicy } from './macos-gatekeeper-policy.ts';
 import { fileSha256 } from './release-file-helpers.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.resolve(root, process.argv[2] ?? 'release-assets');
-const expectedVersion = process.env.OPL_RELEASE_VERSION?.trim() || '';
+const expectedVersion = process.env.OPL_UPDATER_VERSION?.trim() || process.env.OPL_RELEASE_VERSION?.trim() || '';
 const shellPaths = resolveActiveShellPaths();
 
+if (shellPaths.contract.active_shell === 'opl-studio') {
+  validateStandardAssetInventory(outputDir);
+} else {
 const result = spawnSync('bash', [shellPaths.releaseVerifyScriptPath, outputDir], {
   cwd: shellPaths.shellRoot,
   stdio: 'pipe',
@@ -26,6 +30,8 @@ if (result.status !== 0) {
 }
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);
+
+}
 
 if (!existsSync(outputDir)) {
   console.error(`Release asset directory does not exist: ${outputDir}`);

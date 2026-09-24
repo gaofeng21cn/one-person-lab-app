@@ -20,7 +20,7 @@ export function resolveValidationCwd(entry, contract, shellPaths) {
 }
 
 export function isDefaultReleaseAdapter(contract) {
-  return contract.active_shell === 'aionui' && contract.shell_root === 'shells/aionui';
+  return ['aionui', 'opl-studio'].includes(contract.active_shell) && contract.shell_root === `shells/${contract.active_shell}` && !contract.candidate_shell;
 }
 
 export function validateContractShape(contract) {
@@ -52,11 +52,15 @@ export function validateContractShape(contract) {
   }
   assertFile(shellPaths.packageManifestPath, 'active shell package.json');
   assertFile(shellPaths.agentsGuidePath, 'active shell AGENTS.md');
-  if (defaultReleaseAdapter) {
+  if (defaultReleaseAdapter && contract.active_shell === 'aionui') {
     assertFile(shellPaths.vitestConfigPath, 'active shell vitest config');
     assertFile(shellPaths.electronBuilderConfigPath, 'active shell electron-builder config');
     validateUpstreamIntakePolicy(contract, shellPaths);
   }
 
+  if (defaultReleaseAdapter && contract.active_shell === 'opl-studio') {
+    assertFile(shellPaths.electronBuilderConfigPath, 'active Studio Stable electron-builder config');
+    assertFile(shellPaths.desktopReleaseCarrierManifestPath, 'active Studio Stable carrier manifest');
+  }
   validateValidationCommands(contract, shellPaths, resolveValidationCwd);
 }

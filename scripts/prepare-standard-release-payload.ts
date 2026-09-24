@@ -150,6 +150,18 @@ export function materializeStudioStandardBootstrapPayload(input: {
     aionui_standard_payload_preparation: false,
   };
   writeJsonAtomic(manifestPath, manifest);
+  const officialProfileRoot = path.join(targetRoot, 'resources', 'opl-official-profile');
+  fs.mkdirSync(officialProfileRoot, { recursive: true });
+  const helper = fs.readFileSync(path.join(appRoot, 'scripts', 'official-profile-package-apply.ts'));
+  const profile = fs.readFileSync(path.join(appRoot, 'contracts', 'app-product-profile.json'));
+  fs.writeFileSync(path.join(officialProfileRoot, 'official-profile-package-apply.ts'), helper);
+  fs.writeFileSync(path.join(officialProfileRoot, 'app-product-profile.json'), profile);
+  writeJsonAtomic(path.join(officialProfileRoot, 'manifest.json'), {
+    schema: 'opl_app_official_profile_resources.v1',
+    authority: 'one-person-lab-app',
+    helper_sha256: crypto.createHash('sha256').update(helper).digest('hex'),
+    profile_sha256: crypto.createHash('sha256').update(profile).digest('hex'),
+  });
   return manifest;
 }
 
@@ -157,7 +169,9 @@ export function prepareStandardReleasePayload(env: NodeJS.ProcessEnv = process.e
   const frameworkPin = resolveStandardFrameworkBootstrapPin(env);
   const shellPaths = resolveActiveShellPaths();
   const shellRuntimeRoot = shellPaths.packagedRuntimeRoot;
-  const shellBootstrapInstallerPath = path.join(shellPaths.shellRoot, 'resources', 'opl-install.sh');
+  const shellBootstrapInstallerPath = shellPaths.contract.shell_contract.paths.standard_bootstrap_installer
+    ? path.join(shellPaths.shellRoot, shellPaths.contract.shell_contract.paths.standard_bootstrap_installer)
+    : path.join(shellPaths.shellRoot, 'resources', 'opl-install.sh');
 
   assertAppRootBoundary({ phase: 'before standard payload preparation' });
   if (shellPaths.contract.release_role === 'experimental_candidate_shell') {
@@ -172,6 +186,13 @@ export function prepareStandardReleasePayload(env: NodeJS.ProcessEnv = process.e
     contract: shellPaths.contract,
     shellRoot: shellPaths.shellRoot,
   });
+  if (resolveShellAdapterIdentity(shellPaths.contract) === 'opl-studio') {
+    if (!frameworkPin) throw new Error('Studio Standard packaging requires an exact Framework bootstrap ref.');
+    const manifest = materializeStudioStandardBootstrapPayload({ targetRoot: shellPaths.shellRoot, frameworkPin });
+    const profileSync = syncAppProductProfileToShell(shellPaths.shellRoot);
+    assertAppRootBoundary({ phase: 'after Studio standard payload preparation' });
+    return { status: 'standard_release_payload_ready', shell_root: shellPaths.shellRootForDisplay, framework_bootstrap: manifest, product_profile_synced: profileSync.synced, desktop_release_carrier: releaseCarrier.carrierId };
+  }
   fs.rmSync(path.join(runtimeRoot, 'runtime'), { recursive: true, force: true });
   fs.rmSync(path.join(runtimeRoot, 'manifest'), { recursive: true, force: true });
   fs.mkdirSync(runtimeRoot, { recursive: true });

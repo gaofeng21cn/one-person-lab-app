@@ -1,3 +1,4 @@
+import { readAppShellAdapterContract } from '../../app-shell-adapter.ts';
 import { assertDeepEqualJson } from '../assertions.ts';
 import { validateMinimumCompleteProductContract } from '../../validate-shell-candidates/candidate-contract.ts';
 
@@ -21,7 +22,7 @@ export function validateDeliveryTopology(profile) {
     profile.release_roles,
     {
       current: {
-        shell: 'aionui',
+        shell: readAppShellAdapterContract().active_shell,
         adapter_ref: 'contracts/app-shell-adapter.json',
         release_channel_ref: 'contracts/app-release-channel.json',
         admitted_product_platforms: ['macos-arm64'],

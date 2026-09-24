@@ -31,7 +31,7 @@ export function validateGuiAuthority(contract, isDefaultReleaseAdapter) {
     assertFile(path.join(root, contractRef), `GUI authority contract ${contractRef}`);
   }
   const requiredShellOwnedSurface: string[] = [...REQUIRED_BASE_SHELL_OWNED_SURFACES];
-  if (isDefaultReleaseAdapter) {
+  if (isDefaultReleaseAdapter && contract.active_shell === 'aionui') {
     requiredShellOwnedSurface.push(DEFAULT_RELEASE_SHELL_OWNED_SURFACE);
   }
   for (const allowed of requiredShellOwnedSurface) {

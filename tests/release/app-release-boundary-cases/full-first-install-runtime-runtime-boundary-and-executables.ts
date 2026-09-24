@@ -7,7 +7,7 @@ import {
   test,
   appRoot,
   require,
-  activeShellRoot,
+  legacyAionShellRoot,
   runNode,
   writeFile,
   writeExecutable,
@@ -17,7 +17,7 @@ import {
   createFullRuntimeFixture,
 } from "./full-first-install-runtime-fixtures.ts";
 
-test("packaged runtime validator only requires Full runtime when explicitly requested", () => {
+test("legacy AionUI packaged runtime validator only requires Full runtime when explicitly requested", () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-app-packaged-runtime-"));
   const resourcesRoot = path.join(tempRoot, "One Person Lab.app", "Contents", "Resources");
   const asarPath = path.join(resourcesRoot, "app.asar");
@@ -25,7 +25,7 @@ test("packaged runtime validator only requires Full runtime when explicitly requ
   fs.mkdirSync(resourcesRoot, { recursive: true });
   fs.writeFileSync(asarPath, "", "utf8");
 
-  const validator = require(path.join(activeShellRoot, "scripts", "validate-packaged-runtime.js"));
+  const validator = require(path.join(legacyAionShellRoot, "scripts", "validate-packaged-runtime.js"));
   const optional = validator.validateFullRuntimeResources(resourcesRoot, { require: false });
   const required = validator.validateFullRuntimeResources(resourcesRoot, { require: true });
 

@@ -104,6 +104,7 @@ test('Tart VM consumers and routine advisory jobs use distinct exact capability 
     "${{ needs.validate-vm-inputs.outputs.diagnostic_scope == 'release_gate' && 'release-stable' || null }}",
   );
   assert.deepEqual(Object.keys(firstRun.on.workflow_call.secrets), [
+    'TEAM_ID',
     'OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD',
   ]);
   assert.equal(

@@ -1,5 +1,5 @@
 import { validateShellThreadCoordination } from '../../../scripts/validate-active-shell/shell-thread-coordination-validator.ts';
-import { assert, fs, os, path, test } from './helpers.ts';
+import { assert, fs, os, path, test, appRoot } from './helpers.ts';
 
 const files = {
   'packages/desktop/src/process/services/codexAppServer/adapter.ts': `
@@ -40,14 +40,15 @@ const files = {
   `,
 };
 
-function fixture(): { root: string; shellPaths: { shellRoot: string } } {
+function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-codex-app-server-shell-'));
   for (const [relativePath, contents] of Object.entries(files)) {
     const target = path.join(root, relativePath);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, contents, 'utf8');
   }
-  return { root, shellPaths: { shellRoot: root } };
+  const contract = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/shell-adapters/aionui.json'), 'utf8'));
+  return { root, shellPaths: { shellRoot: root, contract } };
 }
 
 test('active-shell validator accepts one user-triggered Codex App Server adapter', () => {

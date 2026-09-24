@@ -294,7 +294,7 @@ test('Framework transport binding projection and renderer-specific Weixin routes
   );
   assert.equal(
     activeAdapter.channel_thread_binding_boundary.implementation_status,
-    'framework_projection_consumer_without_cached_conversation_binding_source_e2e_completed',
+    'framework_projection_consumer_and_exact_binding_source_e2e_completed',
   );
   assert.ok(studio?.required_capabilities.includes('channel_access_standard_view'));
   assert.ok(studio?.required_capabilities.includes('remote_companion_access_standard_view'));

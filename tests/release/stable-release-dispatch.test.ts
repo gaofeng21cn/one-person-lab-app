@@ -71,7 +71,7 @@ test('Stable dispatch executes the required active Shell source gates before aut
       '--require-shell-format', 'true',
       '--run-shell-tests', 'true',
       '--repo-root', appRoot,
-      '--shell-root', path.join(appRoot, 'shells', 'aionui'),
+      '--shell-root', path.join(appRoot, 'shells', 'opl-studio'),
       '--framework-root', path.resolve(appRoot, '..', 'one-person-lab'),
     ],
   );
@@ -85,7 +85,13 @@ test('Stable recovery validates frozen product source in an isolated worktree wh
       if (command === 'git' && args.join(' ') === 'rev-parse HEAD') {
         return { status: 0, stdout: `${'9'.repeat(40)}\n`, stderr: '' };
       }
-      if (command === 'git') return { status: 0, stdout: '', stderr: '' };
+      if (command === 'git') {
+        if (args.slice(0, 3).join(' ') === 'worktree add --detach') {
+          fs.mkdirSync(path.join(args[3]!, 'contracts'), { recursive: true });
+          fs.copyFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), path.join(args[3]!, 'contracts/app-shell-adapter.json'));
+        }
+        return { status: 0, stdout: '', stderr: '' };
+      }
       if (command === process.execPath) {
         const outputIndex = args.indexOf('--output');
         fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({ schema: 'source-gate-fixture', status: 'passed' }));
@@ -785,7 +791,7 @@ test('harness override resolves only in the Shell repository before any dispatch
     now: () => new Date(), randomBytes: () => Buffer.alloc(16), wait: async () => {},
   };
   assert.equal(validateShellSmokeHarness(runtime, shellSha), shellSha);
-  assert.deepEqual(calls[0], ['api', `repos/gaofeng21cn/opl-aion-shell/git/commits/${shellSha}`, '--jq', '.sha']);
+  assert.deepEqual(calls[0], ['api', `repos/gaofeng21cn/opl-studio/git/commits/${shellSha}`, '--jq', '.sha']);
   assert.throws(() => validateShellSmokeHarness({ ...runtime, runner: () => ({ status: 1, stdout: '', stderr: 'Not Found' }) }, appSha), /App commit is not a Shell harness/);
   assert.equal(calls.some(args => args.includes('run')), false);
 });

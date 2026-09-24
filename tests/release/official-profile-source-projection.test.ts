@@ -22,16 +22,7 @@ test('Standard and Full consumers receive one exact App-owned profile and helper
     const shellRoot = createIsolatedShell();
     try {
       const result = syncAppProductProfileToShell(shellRoot);
-      const profileTarget = path.join(
-        shellRoot,
-        'packages',
-        'desktop',
-        'src',
-        'common',
-        'config',
-        'oplProductProfile',
-        'oplProductProfile.generated.json'
-      );
+      const profileTarget = result.targetPath;
       const helperTarget = path.join(shellRoot, 'resources', 'official-profile-package-apply.ts');
       assert.equal(result.synced, true, distribution);
       assert.equal(fs.readFileSync(profileTarget, 'utf8'), fs.readFileSync(profileSource, 'utf8'));

@@ -163,8 +163,8 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
     "../../../scripts/build-full-first-install-package.ts"
   );
   const shellRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-shell-signing-"));
-  const configDir = path.join(shellRoot, "packages", "desktop");
-  const configPath = path.join(configDir, "electron-builder.yml");
+  const configDir = shellRoot;
+  const configPath = path.join(configDir, "electron-builder.stable.yml");
   const originalConfig = [
     "appId: cn.onepersonlab.opl",
     "mac:",
@@ -184,7 +184,7 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
     () => withShellFullRuntimeSigningExcluded(shellRoot, () => {
       const effective = parseYaml(fs.readFileSync(configPath, "utf8")) as Record<string, any>;
       assert.deepEqual(effective.mac.signIgnore, [
-        "/Contents/Resources/opl-full-runtime(?:/|$)",
+        "/Contents/Resources/opl-studio-full-runtime(?:/|$)",
       ]);
       assert.equal(effective.mac.hardenedRuntime, true);
       assert.equal(effective.linux.target, "deb");
@@ -197,7 +197,7 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
   assert.equal(fs.readFileSync(path.join(runtimeRoot, "manifest.json"), "utf8"), "preserve this payload");
 });
 
-test("Full workflow delegates Codex to the Shell AionCore carrier without a Framework install", () => {
+test("Full workflow delegates Codex to the active Shell carrier without a Framework install", () => {
   const workflow = fs.readFileSync(
     path.join(appRoot, ".github/workflows/full-first-install-release.yml"),
     "utf8",
@@ -210,10 +210,10 @@ test("Full workflow delegates Codex to the Shell AionCore carrier without a Fram
   for (const name of ["Resolve Full runtime cache keys", "Build Full first-install package"]) {
     const step = steps.find((candidate) => candidate.name === name);
     assert.equal(step?.["working-directory"], "release-executor", name);
-    assert.match(String(step?.run), /npm (?:--silent )?run release:full --/, name);
+    assert.match(String(step?.run), /npm (?:--silent )?run release:full(?::app-stable)? --/, name);
     assert.match(
       String(step?.run),
-      /--gui-root "\$GITHUB_WORKSPACE\/one-person-lab-app\/shells\/aionui"/,
+      /--gui-root "\$GITHUB_WORKSPACE\/one-person-lab-app\/\$\{\{ steps\.shell_profile\.outputs\.shell_root \}\}"/,
       name,
     );
     assert.match(

@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { stringify } from 'yaml';
+import { validateLinuxUpdaterAssets } from '../../scripts/validate-linux-updater-assets.ts';
 import {
   assertFrozenReleaseAssets,
   buildAdditiveRepairPlan,
@@ -167,4 +173,35 @@ test('frozen primary assets reject drift, invalid identity, and duplicate names'
     () => assertFrozenReleaseAssets(release, [release.assets[0], release.assets[0]]),
     /duplicate names/,
   );
+});
+
+test('Linux updater metadata joins the exact platform manifest while legacy DEB-only receipts remain readable', () => {
+  const feed = { name: 'latest-linux.yml', size: 128, digest: `sha256:${'8'.repeat(64)}` };
+  const linux = validateDesktopPlatformManifest({
+    schema: 'opl_app_desktop_platform_manifest.v1', ...desktopIdentity,
+    platform: 'linux-x64', assets: [linuxAsset, feed],
+  }, [linuxAsset, feed]);
+  const aggregate = mergeDesktopPlatformManifest(null, linux).manifest;
+  assert.doesNotThrow(() => validateDesktopArtifactManifest(aggregate));
+  assert.equal(aggregate.assets.some(asset => asset.name === 'latest-linux.yml'), true);
+});
+
+test('Linux updater validates exact DEB bytes and rejects stale version or digest', () => {
+  const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-linux-updater-'));
+  try {
+    const releaseVersion = '26.9.24', updaterVersion = '26.9.2491';
+    const name = `One-Person-Lab-${releaseVersion}-linux-x64.deb`;
+    const bytes = Buffer.from('deb candidate');
+    fs.writeFileSync(path.join(artifactDir, name), bytes);
+    const sha512 = crypto.createHash('sha512').update(bytes).digest('base64');
+    const metadata = { version: updaterVersion, path: name, sha512, files: [{ url: name, sha512, size: bytes.length }] };
+    const write = value => fs.writeFileSync(path.join(artifactDir, 'latest-linux.yml'), stringify(value));
+    write(metadata);
+    assert.doesNotThrow(() => validateLinuxUpdaterAssets({ artifactDir, releaseVersion, updaterVersion }));
+    write({ ...metadata, version: releaseVersion });
+    assert.throws(() => validateLinuxUpdaterAssets({ artifactDir, releaseVersion, updaterVersion }), /exact release DEB/);
+    write(metadata);
+    fs.writeFileSync(path.join(artifactDir, name), Buffer.from('changed bytes'));
+    assert.throws(() => validateLinuxUpdaterAssets({ artifactDir, releaseVersion, updaterVersion }), /exact release DEB/);
+  } finally { fs.rmSync(artifactDir, { recursive: true, force: true }); }
 });

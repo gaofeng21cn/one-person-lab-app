@@ -293,13 +293,13 @@
   },
   "shell_transition_policy": {
     "schema": "opl_app_shell_transition_policy.v1",
-    "state": "planned_not_authorized",
+    "state": "authorized_implementation_in_progress",
     "authority_owner": "one-person-lab-app",
     "initial_carrier": "macos_arm64",
     "current_active_shell": "aionui",
     "current_candidate_shell": "opl-studio",
     "target_active_shell": "opl-studio",
-    "execution_requires_separate_authorization": true,
+    "execution_requires_separate_authorization": false,
     "identities": {
       "active_app": {
         "product_name": "One Person Lab",
@@ -2785,7 +2785,10 @@
     "prepared_public_copy_ai_required": true,
     "public_body_language": {
       "default": "en-US",
-      "localized_blocks": ["en-US", "zh-CN"],
+      "localized_blocks": [
+        "en-US",
+        "zh-CN"
+      ],
       "stable_rule": "The visible GitHub body and the hidden OPL_RELEASE_NOTES:en-US block contain no Chinese text; Chinese reaches App users only through the hidden OPL_RELEASE_NOTES:zh-CN block selected by App locale.",
       "nightly_rule": "Deterministic Nightly notes are English-only: component commit subjects that are not written in English are left out of the published body without any operator-facing notice about omitted content, and remain readable in the notes evidence artifact. Commit-subject language never blocks, delays, or fails a Nightly publication.",
       "component_subject_rule": "App, Shell, Framework, and Studio commit subjects are authored in English so that generated public bodies stay readable; subjects already recorded in other languages stay in history and are omitted from generated bodies instead of being translated, rewritten, or treated as failures.",
@@ -2796,7 +2799,9 @@
       "provider": "openai_compatible",
       "compatibility_base_url": "https://gateway.medopl.com/v1",
       "model": "deepseek-flash",
-      "fallback_models": ["gpt-5.6-sol"],
+      "fallback_models": [
+        "gpt-5.6-sol"
+      ],
       "reasoning_effort": "low",
       "response_timeout_seconds": 180,
       "transport_attempts_per_model": 1,
@@ -2957,7 +2962,7 @@
     ],
     "dmg_compression": {
       "default_format": "ULFO",
-      "format_owner": "shells/aionui/packages/desktop/electron-builder.yml#dmg.format",
+      "format_owner": "shells/opl-studio/electron-builder.stable.yml#dmg.format",
       "electron_builder_version": "26.15.3",
       "electron_builder_supported_formats": [
         "UDBZ",
@@ -3984,6 +3989,29 @@
         "runtime_install_root_template": "~/Library/Application Support/opl-studio/runtime/current",
         "runtime_version_metadata_path": "~/Library/Application Support/opl-studio/runtime/current/.opl-studio-full-runtime-installed.json",
         "dmg_volume_name_template": "One Person Lab Preview ${version}",
+        "shell_runtime_path": null,
+        "shell_runtime_required": false,
+        "codex_carrier": "opl_codex_native",
+        "aioncore_required": false,
+        "full_runtime_codex_payload_allowed": false
+      },
+      "opl-studio-stable": {
+        "schema": "opl_app_full_payload_carrier_profile.v1",
+        "carrier_id": "opl-studio",
+        "version_policy": "stable_calendar",
+        "profile_id": "opl-studio-stable-full-first-install",
+        "product_name": "One Person Lab",
+        "app_bundle_name": "One Person Lab.app",
+        "bundle_id": "cn.onepersonlab.opl",
+        "package_kind": "opl_full_first_install_macos_arm64",
+        "artifact_name_template": "One-Person-Lab-Full-${version}-${arch}.dmg",
+        "runtime_artifact_name_template": "opl-runtime-full-${version}-macos-arm64.tar.zst",
+        "standard_artifact_name_template": "One-Person-Lab-${version}-${arch}.dmg",
+        "standard_zip_artifact_name_template": "One-Person-Lab-${version}-${arch}.zip",
+        "runtime_resource_dir": "opl-studio-full-runtime",
+        "runtime_install_root_template": "~/Library/Application Support/OPL/runtime/current",
+        "runtime_version_metadata_path": "~/Library/Application Support/OPL/runtime/current/.opl-full-runtime-installed.json",
+        "dmg_volume_name_template": "One Person Lab ${version}",
         "shell_runtime_path": null,
         "shell_runtime_required": false,
         "codex_carrier": "opl_codex_native",

@@ -106,6 +106,19 @@ const contract = readAppShellAdapterContract();
 const shellPaths = resolveActiveShellPaths({ contract });
 const shellRoot = shellPaths.shellRoot;
 
+if (contract.active_shell === 'opl-studio') {
+  if (!existsSync(shellPaths.packageManifestPath)) throw new Error(`Missing active Studio package: ${shellPaths.packageManifestPath}`);
+  const scripts = args.project === 'node' ? ['test:node-suite']
+    : args.project === 'dom' ? ['test:bun-suites']
+      : ['test:node-suite', 'test:bun-suites', 'validate:candidate'];
+  for (const script of scripts) {
+    const result = spawnSync('npm', ['run', script], { cwd: shellRoot, stdio: 'inherit', env: { ...process.env, OPL_APP_REPO_ROOT: root } });
+    if (result.error || result.status !== 0) throw new Error(`Studio ${script} failed: ${result.error?.message ?? result.status}`);
+  }
+  console.log(`Active Studio source tests passed (${scripts.join(', ')}).`);
+  process.exit(0);
+}
+
 if (!existsSync(shellPaths.vitestConfigPath)) {
   throw new Error(`Missing active shell Vitest config: ${path.relative(root, shellPaths.vitestConfigPath)}`);
 }

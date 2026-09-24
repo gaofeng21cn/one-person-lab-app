@@ -15,14 +15,14 @@ function readJson(relativePath: string): any {
   return JSON.parse(fs.readFileSync(path.join(appRoot, relativePath), 'utf8'));
 }
 
-test('active AionUI and candidate Studio resolve through one App-owned Client renderer admission profile', () => {
+test('active Studio and candidate Studio resolve through one App-owned Client renderer admission profile', () => {
   const profile = readJson('contracts/app-product-profile.json');
   const activeContract = readAppShellAdapterContract();
   const studioContract = readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json');
 
   assert.deepEqual(resolveClientRendererAdmission(activeContract, profile), {
     schema: 'opl_app_client_renderer_admission.v1',
-    rendererId: 'aionui',
+    rendererId: 'opl-studio',
     status: 'admitted_current_active_shell',
     selectionMode: 'active_release_adapter',
     compatibility: profile.client_renderer_compatibility,
@@ -35,7 +35,7 @@ test('active AionUI and candidate Studio resolve through one App-owned Client re
     compatibility: profile.client_renderer_compatibility,
   });
 
-  assert.equal(resolveActiveShellPaths({ contract: activeContract, shellRoot: '/tmp/aionui' }).clientRendererAdmission?.rendererId, 'aionui');
+  assert.equal(resolveActiveShellPaths({ contract: activeContract, shellRoot: '/tmp/opl-studio-stable' }).clientRendererAdmission?.rendererId, 'opl-studio');
   assert.equal(resolveActiveShellPaths({ contract: studioContract, shellRoot: '/tmp/opl-studio' }).clientRendererAdmission?.selectionMode, 'candidate_validation_only');
 });
 
@@ -96,7 +96,7 @@ test('active-shell command rejects an incompatible adapter before spawning its c
     );
 
     assert.notEqual(result.status, 0);
-    assert.match(`${result.stdout}\n${result.stderr}`, /Shell aionui is not compatible/);
+    assert.match(`${result.stdout}\n${result.stderr}`, /Shell opl-studio is not compatible/);
     assert.equal(fs.existsSync(spawnedMarker), false);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });

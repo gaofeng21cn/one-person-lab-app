@@ -1,5 +1,6 @@
 import { fileSha256, fs, os, path, sha256, spawnSync, writeExecutable, writeFile } from "./helpers-core.ts";
 import { buildFullPackageManifest } from "../../../scripts/full-first-install-package.ts";
+import { resolveFullCarrierProfile } from '../../../scripts/build-full-first-install-package/carrier-profile.ts';
 import { withFullPackageOptimization } from "../../../scripts/build-full-first-install-package/package-optimization.ts";
 
 const FULL_BUNDLED_EVIDENCE_ASSET_NAMES = [
@@ -307,6 +308,7 @@ export function writeStandardRemoteAssets(outDir, version, options = {}) {
 }
 
 export function writeFullRemoteAssets(outDir, version) {
+  const carrier = resolveFullCarrierProfile();
   const fullDmgName = `One-Person-Lab-Full-${version}-mac-arm64.dmg`;
   const forbiddenFrameworkCodexPaths = [
     "bin/codex",
@@ -315,8 +317,8 @@ export function writeFullRemoteAssets(outDir, version) {
     ".runtime-cache/codex-cli",
   ];
   const protectedPayloads = [
-    "Contents/Resources/opl-full-runtime",
-    "Contents/Resources/bundled-aioncore",
+    `Contents/Resources/${carrier.runtimeResourceDir}`,
+    ...(carrier.shellRuntimePath ? [carrier.shellRuntimePath] : []),
     "Contents/Resources/app.asar",
     "Contents/Frameworks/Electron Framework.framework",
   ];
@@ -341,11 +343,11 @@ export function writeFullRemoteAssets(outDir, version) {
     standard_app_boundary: { standard_package_allowed_to_contain_full_runtime: false },
     full_package_boundary: {
       contains_opl_full_runtime: true,
-      contains_shell_runtime: true,
-      aioncore_codex_carrier_present: true,
-      aioncore_codex_only_projection_present: true,
+      contains_shell_runtime: carrier.shellRuntimeRequired,
+      aioncore_codex_carrier_present: carrier.aioncoreRequired,
+      aioncore_codex_only_projection_present: carrier.aioncoreRequired,
       aioncore_claude_payload_absent: true,
-      aioncore_codex_only_projection_audit: {
+      aioncore_codex_only_projection_audit: carrier.aioncoreRequired ? {
         schema: "opl_aioncore_codex_only_projection_audit.v1",
         runtime_count: 1,
         runtimes: [{
@@ -370,13 +372,20 @@ export function writeFullRemoteAssets(outDir, version) {
         })),
         projection_present: true,
         claude_payload_absent: true,
+      } : {
+        schema: 'opl_codex_native_carrier_audit.v1',
+        runtime_count: 0,
+        runtimes: [],
+        required_absence_checks: [],
+        projection_present: false,
+        claude_payload_absent: true,
       },
       framework_codex_payload_absent: true,
       forbidden_framework_codex_paths: forbiddenFrameworkCodexPaths.map((relativePath) => ({
         path: relativePath,
         exists: false,
       })),
-      dedupe_policy: "aioncore_is_the_only_codex_carrier_in_the_aionui_app_bundle",
+      dedupe_policy: carrier.aioncoreRequired ? "aioncore_is_the_only_codex_carrier_in_the_aionui_app_bundle" : "opl_codex_native_is_the_only_codex_carrier_in_the_studio_app_bundle",
     },
     entries: {
       opl_full_runtime: {
@@ -386,14 +395,14 @@ export function writeFullRemoteAssets(outDir, version) {
         size_bytes: 128,
       },
       aionui_bundled_runtime: {
-        path: protectedPayloads[1],
+        path: "Contents/Resources/bundled-aioncore",
         owner: "active_shell",
-        exists: true,
+        exists: carrier.aioncoreRequired,
         size_bytes: 256,
       },
-      app_asar: { path: protectedPayloads[2], owner: "active_shell", exists: true, size_bytes: 64 },
+      app_asar: { path: "Contents/Resources/app.asar", owner: "active_shell", exists: true, size_bytes: 64 },
       electron_framework: {
-        path: protectedPayloads[3],
+        path: "Contents/Frameworks/Electron Framework.framework",
         owner: "active_shell/electron",
         exists: true,
         size_bytes: 512,

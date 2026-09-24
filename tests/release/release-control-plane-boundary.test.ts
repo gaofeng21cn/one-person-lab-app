@@ -32,6 +32,8 @@ const operationId = 'stable-frozen-cohort-42';
 function fixture(t: test.TestContext): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-boundary-'));
   fs.mkdirSync(path.join(root, '.github'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'contracts'), { recursive: true });
+  fs.copyFileSync(path.join(process.cwd(), 'contracts/app-shell-adapter.json'), path.join(root, 'contracts/app-shell-adapter.json'));
   fs.cpSync(path.join(process.cwd(), workflowDirectory), path.join(root, workflowDirectory), {
     recursive: true,
   });

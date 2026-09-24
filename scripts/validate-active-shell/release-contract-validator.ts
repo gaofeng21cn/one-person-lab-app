@@ -1304,7 +1304,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     },
     'Settings Runtime refresh production evidence policy',
   );
-  if (shellPaths) {
+  if (shellPaths?.contract.active_shell === 'aionui') {
     assertShellTextIncludesAll(
       shellPaths,
       'scripts/opl-first-run-vm-smoke.mjs',
@@ -2100,7 +2100,11 @@ function validateLocalDataLifecycle(lifecycle, shellPaths) {
     ['logs_root', 'dry_run_plan_id', 'deleted_paths', 'deleted_bytes', 'created_at'],
     'Local data lifecycle log rotation execute receipt fields',
   );
-  if (shellPaths) validateLocalDataLifecycleImplementation(shellPaths);
+  if (shellPaths?.contract.active_shell === 'aionui') validateLocalDataLifecycleImplementation(shellPaths);
+  if (shellPaths?.contract.active_shell === 'opl-studio') {
+    assertShellTextIncludesAll(shellPaths, 'scripts/webui-host/aion-migration-source.mjs', ['readFile', 'source'], 'Studio read-only legacy source');
+    assertShellTextIncludesAll(shellPaths, 'scripts/webui-host/aion-migration.mjs', ['CodexThreadAdapter', 'importedHistory', 'thread/read'], 'Studio canonical history migration');
+  }
 }
 
 function validateWebuiDataVolumeHostActionAbi(abi) {

@@ -405,7 +405,6 @@ function collectFrameworkCodexAbsenceIssues(
   manifest: PackagedManifest | null,
 ) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
-  if (!carrier.aioncoreRequired) return [];
   const issues: GateIssue[] = [];
   const declarations = manifest?.runtime_assertions?.declared_pruned_paths ?? [];
   const declarationByPath = new Map(declarations.map((entry) => [entry.path, entry]));

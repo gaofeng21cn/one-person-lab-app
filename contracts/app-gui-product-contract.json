@@ -1704,8 +1704,8 @@
     ],
     "missing_provider_or_transport_policy": "show_unavailable_without_fabricated_online_or_conversation_state_and_keep_desktop_workbench_usable"
   },
-  "active_shell": "aionui",
-  "implementation_carrier": "opl-aion-shell",
+  "active_shell": "opl-studio",
+  "implementation_carrier": "opl-studio",
   "product_authority": {
     "source_of_truth": "one-person-lab-app",
     "active_shell_role": "implementation_carrier",

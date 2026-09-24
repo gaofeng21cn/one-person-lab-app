@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -731,7 +732,7 @@ function buildFreezeRequest(values: AdapterOptionValues): JsonRecord {
     },
     sources: {
       app: { repo: 'gaofeng21cn/one-person-lab-app', source_commit: appRef },
-      shell: { repo: 'gaofeng21cn/opl-aion-shell', source_commit: shellRef },
+      shell: { repo: readActiveShellBuildProfile(appRoot).repository, source_commit: shellRef },
       framework: { repo: 'gaofeng21cn/one-person-lab', source_commit: frameworkRef },
     },
     identity_mode: appStandardIdentityMode,

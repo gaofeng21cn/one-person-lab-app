@@ -693,7 +693,7 @@ test('local data lifecycle separates runtime inventory from managed prune and ca
   const missingShellRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-local-data-shell-'));
   try {
     assert.throws(
-      () => validateReleaseChannelContract(release, { shellRoot: missingShellRoot }),
+      () => validateReleaseChannelContract(release, { shellRoot: missingShellRoot, contract: JSON.parse(fs.readFileSync(path.join(process.cwd(), 'contracts/shell-adapters/aionui.json'), 'utf8')) }),
       /Missing active shell implementation file .*localDataLifecycleBridge/,
     );
   } finally {

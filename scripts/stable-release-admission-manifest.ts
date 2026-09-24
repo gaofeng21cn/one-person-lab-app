@@ -22,7 +22,6 @@ import { classifyStableSourceOperation } from './stable-followup-router.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appRepository = 'gaofeng21cn/one-person-lab-app';
-const shellRepository = 'gaofeng21cn/opl-aion-shell';
 const frameworkRepository = 'gaofeng21cn/one-person-lab';
 const homebrewRepository = 'gaofeng21cn/homebrew-one-person-lab';
 const homebrewCaskPath = 'Casks/one-person-lab.rb';

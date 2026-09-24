@@ -5,6 +5,9 @@ import {
   runFullPackagePrecompressionGate,
 } from '../../../scripts/build-full-first-install-package/precompression.ts';
 
+import { resolveFullCarrierProfile } from '../../../scripts/build-full-first-install-package/carrier-profile.ts';
+
+const RUNTIME_RESOURCE_DIR = resolveFullCarrierProfile().runtimeResourceDir;
 const MATCHING_SHA = '1'.repeat(40);
 const OTHER_SHA = '2'.repeat(40);
 const FORBIDDEN_FRAMEWORK_CODEX_PATHS = [
@@ -33,7 +36,7 @@ function writePackagedManifest(
     appPath,
     'Contents',
     'Resources',
-    'opl-full-runtime',
+    RUNTIME_RESOURCE_DIR,
     'runtime',
     'current',
     'manifest',
@@ -153,7 +156,7 @@ test('Full precompression gate accepts portable packaged Python load paths and i
       fixture.appPath,
       'Contents',
       'Resources',
-      'opl-full-runtime',
+      RUNTIME_RESOURCE_DIR,
       'runtime',
       'current',
       'python',
@@ -190,7 +193,7 @@ test('Full precompression gate rejects a host LC_RPATH behind an @rpath dependen
   const previousPath = process.env.PATH;
   process.env.PATH = `${fixture.binDir}${path.delimiter}${previousPath ?? ''}`;
   try {
-    writeMachO(path.join(fixture.appPath, 'Contents', 'Resources', 'opl-full-runtime', 'bad-rpath'));
+    writeMachO(path.join(fixture.appPath, 'Contents', 'Resources', RUNTIME_RESOURCE_DIR, 'bad-rpath'));
 
     assert.throws(
       () => runFullPackagePrecompressionGate({
@@ -221,7 +224,7 @@ test('Full precompression gate rejects a Homebrew Cellar dependency before DMG c
   const previousPath = process.env.PATH;
   process.env.PATH = `${fixture.binDir}${path.delimiter}${previousPath ?? ''}`;
   try {
-    writeMachO(path.join(fixture.appPath, 'Contents', 'Resources', 'opl-full-runtime', 'bad-python'));
+    writeMachO(path.join(fixture.appPath, 'Contents', 'Resources', RUNTIME_RESOURCE_DIR, 'bad-python'));
 
     assert.throws(
       () => runFullPackagePrecompressionGate({
@@ -361,7 +364,7 @@ test('Full precompression gate rejects missing declarations or physical Framewor
         fixture.appPath,
         'Contents',
         'Resources',
-        'opl-full-runtime',
+        RUNTIME_RESOURCE_DIR,
         'runtime',
         'current',
       );

@@ -106,6 +106,7 @@ function fullPayloadAuthorityFixture(options: { nestedFramework?: boolean } = {}
   const officeRef = 'a'.repeat(40);
   const mineruRef = 'b'.repeat(40);
   const app = gitFixture(root, 'app', (directory) => {
+    jsonFile(path.join(directory, 'contracts', 'app-shell-adapter.json'), JSON.parse(fs.readFileSync(path.resolve('contracts/app-shell-adapter.json'), 'utf8')));
     jsonFile(path.join(directory, 'contracts', 'app-full-third-party-source-manifest.json'), {
       schema: 'opl_app_full_third_party_source_manifest.v1',
       sources: {

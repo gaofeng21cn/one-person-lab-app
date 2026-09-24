@@ -20,7 +20,7 @@ export type AppRuntimeForm =
 
 export type AppReleaseRoles = {
   current: {
-    shell: 'aionui';
+    shell: 'aionui' | 'opl-studio';
     adapter_ref: string;
     release_channel_ref: string;
     admitted_product_platforms: string[];

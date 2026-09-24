@@ -20,7 +20,7 @@ on:
         required: true
         type: string
       shell_ref:
-        description: Exact frozen opl-aion-shell SHA to bundle
+        description: Exact frozen active Shell SHA to bundle
         required: true
         type: string
       upload_full_package_artifact:
@@ -285,12 +285,17 @@ jobs:
           test "$GITHUB_REF" = 'refs/heads/main' || { echo "::error::Cache-only warmup is restricted to refs/heads/main."; exit 1; }
           test '${{ inputs.upload_full_package_artifact }}' = 'false' || { echo "::error::Cache-only warmup cannot upload a Full package."; exit 1; }
 
+      - name: Resolve frozen Full Shell profile
+        id: shell_profile
+        shell: bash
+        run: node --experimental-strip-types one-person-lab-app/scripts/active-shell-build-profile.ts --app-root one-person-lab-app --github-output "$GITHUB_OUTPUT"
+
       - name: Checkout active shell
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ steps.shell_profile.outputs.shell_repository }}
           ref: ${{ inputs.shell_ref }}
-          path: one-person-lab-app/shells/aionui
+          path: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
 
       - name: Checkout OPL Framework payload source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -387,7 +392,7 @@ jobs:
           set -euo pipefail
           required_paths=(
             one-person-lab/package.json
-            one-person-lab-app/shells/aionui/package.json
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/package.json
             med-autoscience/pyproject.toml
             mas-scholar-skills/.codex-plugin/plugin.json
             mas-scholar-skills/contracts/opl_capability_package_manifest.json
@@ -471,7 +476,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock') }}
+          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
           restore-keys: |
             bun-install-${{ runner.os }}-${{ runner.arch }}-
             bun-install-${{ runner.os }}-
@@ -486,7 +491,7 @@ jobs:
             ${{ runner.temp }}/.cache/electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-macos-arm64-arm64-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock') }}
+          key: electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
           restore-keys: |
             electron-cache-macos-arm64-arm64-
             electron-cache-macos-arm64-
@@ -660,11 +665,11 @@ jobs:
 
       - name: Install App shell dependencies
         if: ${{ !inputs.cache_only }}
-        working-directory: one-person-lab-app/shells/aionui
+        working-directory: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
         shell: bash
         run: |
           set -euo pipefail
-          bun install --frozen-lockfile
+          if [ '${{ steps.shell_profile.outputs.package_manager }}' = npm ]; then npm ci; else bun install --frozen-lockfile; fi
           echo "OPL_FULL_SHELL_NODE_DEPS_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Verify App product profile against Shell consumer
@@ -674,15 +679,24 @@ jobs:
           set -euo pipefail
           cd one-person-lab-app
           node --experimental-strip-types scripts/app-product-profile.ts
-          cd shells/aionui
-          bun vitest run tests/unit/common-config/oplProductProfile.test.ts
+          cd ${{ steps.shell_profile.outputs.shell_root }}
+          if [ '${{ steps.shell_profile.outputs.shell_id }}' = opl-studio ]; then
+            OPL_APP_REPO_ROOT="$GITHUB_WORKSPACE/one-person-lab-app" npm run validate:candidate
+          else
+            bun vitest run tests/unit/common-config/oplProductProfile.test.ts
+          fi
 
       - name: Verify Full bootstrap and Home readiness before packaging
         if: ${{ !inputs.cache_only }}
-        working-directory: one-person-lab-app/shells/aionui
+        working-directory: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
         shell: bash
         run: |
           set -euo pipefail
+          if [ '${{ steps.shell_profile.outputs.shell_id }}' = opl-studio ]; then
+            npm run test:desktop
+            npm run test:webui-host
+            npm run test:runtime-projection
+          else
           bun vitest run \
             tests/unit/opl-runtime/oplRuntimeBridge.test.ts \
             tests/unit/opl-runtime/firstRunVmSmoke.test.ts \
@@ -693,11 +707,12 @@ jobs:
             tests/unit/guid/HomeStarters.dom.test.tsx \
             tests/unit/guid/GuidPage.dom.test.tsx \
             tests/unit/guid/useGuidSend.oplWhitelist.dom.test.tsx
+          fi
 
       - name: Resolve App shell Electron version
         if: ${{ !inputs.cache_only }}
         id: shell-electron-version
-        working-directory: one-person-lab-app/shells/aionui
+        working-directory: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
         shell: bash
         run: |
           set -euo pipefail
@@ -711,7 +726,7 @@ jobs:
 
       - name: Rebuild App shell native modules for Electron
         if: ${{ !inputs.cache_only }}
-        working-directory: one-person-lab-app/shells/aionui
+        working-directory: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
         shell: bash
         env:
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
@@ -726,16 +741,16 @@ jobs:
           echo "OPL_FULL_SHELL_DEPS_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Restore Full shell Vite output cache
-        if: ${{ !inputs.cache_only }}
+        if: ${{ steps.shell_profile.outputs.shell_id == 'aionui' && (!inputs.cache_only) }}
         id: restore-shell-vite-output
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            one-person-lab-app/shells/aionui/out/main
-            one-person-lab-app/shells/aionui/out/preload
-            one-person-lab-app/shells/aionui/out/renderer
-            one-person-lab-app/shells/aionui/out/.build-hash
-          key: full-shell-vite-output-${{ runner.os }}-${{ runner.arch }}-${{ inputs.opl_version }}-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock', 'one-person-lab-app/shells/aionui/tsconfig.json', 'one-person-lab-app/shells/aionui/packages/desktop/electron.vite.config.ts', 'one-person-lab-app/shells/aionui/packages/desktop/src/**', 'one-person-lab-app/shells/aionui/public/**', 'one-person-lab-app/contracts/app-product-profile.json') }}
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/main
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/preload
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/renderer
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/.build-hash
+          key: full-shell-vite-output-${{ runner.os }}-${{ runner.arch }}-${{ inputs.opl_version }}-${{ hashFiles('one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/package.json', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/bun.lock', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/tsconfig.json', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/packages/desktop/electron.vite.config.ts', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/packages/desktop/src/**', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/public/**', 'one-person-lab-app/contracts/app-product-profile.json') }}
 
       - name: Prepare domain runtime dependencies
         shell: bash
@@ -775,7 +790,7 @@ jobs:
           export OPL_FULL_MINERU_DOCUMENT_EXTRACTOR_ROOT="$GITHUB_WORKSPACE/one-person-lab-app/assets/companion-skills/mineru-document-extractor"
           npm --silent run release:full -- \
             --version "$OPL_RELEASE_VERSION" \
-            --gui-root "$GITHUB_WORKSPACE/one-person-lab-app/shells/aionui" \
+            --gui-root "$GITHUB_WORKSPACE/one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}" \
             --out-dir "$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release" \
             --runtime-cache-dir "$cache_dir" \
             --runtime-cache-mode readwrite \
@@ -834,7 +849,7 @@ jobs:
             --workflow full-first-install-release.yml \
             --ref "$GITHUB_REF" \
             --app-sha "$(git rev-parse HEAD)" \
-            --shell-sha "$(git -C shells/aionui rev-parse HEAD)" \
+            --shell-sha "$(git -C ${{ steps.shell_profile.outputs.shell_root }} rev-parse HEAD)" \
             --framework-sha "$(git -C "$GITHUB_WORKSPACE/one-person-lab" rev-parse HEAD)" \
             --runner-os "$RUNNER_OS" \
             --runner-arch "$RUNNER_ARCH"
@@ -988,7 +1003,7 @@ jobs:
             npm run release:full --
             --version "$OPL_RELEASE_VERSION"
             --updater-version "$OPL_UPDATER_VERSION"
-            --gui-root "$GITHUB_WORKSPACE/one-person-lab-app/shells/aionui"
+            --gui-root "$GITHUB_WORKSPACE/one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}"
             --out-dir "$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
             --runtime-cache-dir "${{ steps.runtime-cache-keys.outputs.cache_dir }}"
             --runtime-cache-mode readwrite
@@ -1146,7 +1161,7 @@ jobs:
           EXPECTED_TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
           set -euo pipefail
-          app_path="$GITHUB_WORKSPACE/one-person-lab-app/shells/aionui/out/mac-arm64/One Person Lab.app"
+          app_path="$GITHUB_WORKSPACE/one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/mac-arm64/One Person Lab.app"
           dmg_path="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
           mounted_app_dir="$(mktemp -d)"
           mounted_app_path=""
@@ -1543,7 +1558,7 @@ jobs:
         continue-on-error: true
         with:
           path: ~/.bun/install/cache
-          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock') }}
+          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full Electron artifacts cache
         if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.electron-cache.outputs.cache-hit != 'true' }}
@@ -1555,7 +1570,7 @@ jobs:
             ${{ runner.temp }}/.cache/electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-macos-arm64-arm64-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock') }}
+          key: electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full uv artifacts cache
         if: ${{ github.ref == 'refs/heads/main' && steps.uv-cache.outputs.cache-hit != 'true' }}
@@ -1568,16 +1583,16 @@ jobs:
           key: full-uv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('med-autoscience/uv.lock', 'med-autoscience/pyproject.toml', 'med-autogrant/uv.lock', 'med-autogrant/pyproject.toml') }}
 
       - name: Save Full shell Vite output cache
-        if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.restore-shell-vite-output.outputs.cache-hit != 'true' }}
+        if: ${{ steps.shell_profile.outputs.shell_id == 'aionui' && (github.ref == 'refs/heads/main' && !inputs.cache_only && steps.restore-shell-vite-output.outputs.cache-hit != 'true') }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
         with:
           path: |
-            one-person-lab-app/shells/aionui/out/main
-            one-person-lab-app/shells/aionui/out/preload
-            one-person-lab-app/shells/aionui/out/renderer
-            one-person-lab-app/shells/aionui/out/.build-hash
-          key: full-shell-vite-output-${{ runner.os }}-${{ runner.arch }}-${{ inputs.opl_version }}-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock', 'one-person-lab-app/shells/aionui/tsconfig.json', 'one-person-lab-app/shells/aionui/packages/desktop/electron.vite.config.ts', 'one-person-lab-app/shells/aionui/packages/desktop/src/**', 'one-person-lab-app/shells/aionui/public/**', 'one-person-lab-app/contracts/app-product-profile.json') }}
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/main
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/preload
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/renderer
+            one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/.build-hash
+          key: full-shell-vite-output-${{ runner.os }}-${{ runner.arch }}-${{ inputs.opl_version }}-${{ hashFiles('one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/package.json', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/bun.lock', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/tsconfig.json', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/packages/desktop/electron.vite.config.ts', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/packages/desktop/src/**', 'one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/public/**', 'one-person-lab-app/contracts/app-product-profile.json') }}
 
       - name: Save Full toolchain runtime cache
         id: save-runtime-cache-toolchain
@@ -1764,13 +1779,13 @@ jobs:
             --packaged-tree "$packaged_tree" \
             --app-profile one-person-lab-app/contracts/app-product-profile.json \
             --gui-contract one-person-lab-app/contracts/app-gui-product-contract.json \
-            --smoke-harness one-person-lab-app/shells/aionui/scripts/opl-first-run-vm-smoke.mjs \
+            --smoke-harness one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/${{ steps.shell_profile.outputs.smoke_harness }} \
             --compiled-expectations one-person-lab-app/contracts/app-first-run-compiled-expectations.json \
             --qualification-input-manifest one-person-lab-app/contracts/app-release-qualification-input-manifest.json \
             --full-input-manifest one-person-lab-app/contracts/app-full-third-party-source-manifest.json \
             --full-toolchain-observation-receipt "$RUNNER_TEMP/opl-full-toolchain-observation-receipt.json" \
             --app-sha "$(git -C one-person-lab-app rev-parse HEAD)" \
-            --shell-sha "$(git -C one-person-lab-app/shells/aionui rev-parse HEAD)" \
+            --shell-sha "$(git -C one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }} rev-parse HEAD)" \
             --framework-sha "$(git -C one-person-lab rev-parse HEAD)" \
             --version "$OPL_RELEASE_VERSION" \
             --kind full \
@@ -1899,12 +1914,17 @@ jobs:
           path: one-person-lab-app
           ref: ${{ inputs.artifact_app_sha }}
 
+      - name: Resolve frozen Full Shell profile
+        id: shell_profile
+        shell: bash
+        run: node --experimental-strip-types one-person-lab-app/scripts/active-shell-build-profile.ts --app-root one-person-lab-app --github-output "$GITHUB_OUTPUT"
+
       - name: Checkout frozen Full content Shell source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ steps.shell_profile.outputs.shell_repository }}
           ref: ${{ inputs.shell_ref }}
-          path: one-person-lab-app/shells/aionui
+          path: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
 
       - name: Checkout canonical Full release executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -2291,7 +2311,7 @@ jobs:
             --packaged-tree "${packaged_trees[0]}" \
             --app-profile one-person-lab-app/contracts/app-product-profile.json \
             --gui-contract one-person-lab-app/contracts/app-gui-product-contract.json \
-            --smoke-harness one-person-lab-app/shells/aionui/scripts/opl-first-run-vm-smoke.mjs \
+            --smoke-harness one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/${{ steps.shell_profile.outputs.smoke_harness }} \
             --compiled-expectations one-person-lab-app/contracts/app-first-run-compiled-expectations.json \
             --qualification-input-manifest one-person-lab-app/contracts/app-release-qualification-input-manifest.json \
             --full-input-manifest one-person-lab-app/contracts/app-full-third-party-source-manifest.json \

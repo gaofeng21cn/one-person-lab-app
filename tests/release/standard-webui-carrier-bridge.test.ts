@@ -179,6 +179,7 @@ test('Standard identity v2 binds the exact Bundle cohort and first source run', 
 function bridgeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-bridge-'));
   const app = gitFixture(root, 'app', {
+    'contracts/app-shell-adapter.json': fs.readFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), 'utf8'),
     'scripts/validate-webui-runtime-image.ts': 'export const fixture = true;\n',
   });
   const shell = gitFixture(root, 'shell', {

@@ -381,12 +381,17 @@ jobs:
           name: ${{ inputs.stable_admission_artifact }}
           path: stable-admission-evidence
 
+      - name: Resolve frozen active Shell build profile
+        id: shell_profile
+        shell: bash
+        run: node --experimental-strip-types app-source/scripts/active-shell-build-profile.ts --app-root app-source --github-output "$GITHUB_OUTPUT"
+
       - name: Checkout Shell source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ steps.shell_profile.outputs.shell_repository }}
           ref: ${{ inputs.shell_ref || 'main' }}
-          path: app-source/shells/aionui
+          path: app-source/${{ steps.shell_profile.outputs.shell_root }}
 
       - name: Checkout Framework source and executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -430,7 +435,7 @@ jobs:
             *) echo "::error::Unsupported execute channel: $CHANNEL"; exit 1 ;;
           esac
           app_sha="$(git -C app-source rev-parse HEAD)"
-          shell_sha="$(git -C app-source/shells/aionui rev-parse HEAD)"
+          shell_sha="$(git -C app-source/${{ steps.shell_profile.outputs.shell_root }} rev-parse HEAD)"
           framework_sha="$(git -C framework-source rev-parse HEAD)"
           [ "$app_sha" = "$REQUESTED_APP_REF" ] || {
             echo "::error::App checkout differs from the admitted snapshot."
@@ -627,7 +632,7 @@ jobs:
       - name: Validate Bundle contracts before paid work
         working-directory: app-executor
         env:
-          OPL_APP_SHELL_ROOT: ../app-source/shells/aionui
+          OPL_APP_SHELL_ROOT: ../app-source/${{ steps.shell_profile.outputs.shell_root }}
         run: |
           npm run typecheck
           npm run validate:release-boundary
@@ -664,7 +669,7 @@ jobs:
             --version '${{ steps.identity.outputs.version }}' \
             --channel '${{ inputs.publication_channel || inputs.channel }}' \
             --repo "$GITHUB_REPOSITORY" \
-            --shell-root shells/aionui \
+            --shell-root ${{ steps.shell_profile.outputs.shell_root }} \
             --previous-tag '${{ steps.identity.outputs.previous_latest_tag }}' \
             --current-tag '${{ steps.identity.outputs.tag }}' \
             --current-app-ref '${{ steps.identity.outputs.app_sha }}' \
@@ -763,7 +768,7 @@ jobs:
             --version '${{ steps.identity.outputs.version }}' \
             --updater-version '${{ steps.identity.outputs.updater_version }}' \
             --app-root app-source \
-            --shell-root app-source/shells/aionui \
+            --shell-root app-source/${{ steps.shell_profile.outputs.shell_root }} \
             --framework-root framework-source \
             --notes "$notes_root/notes.md" \
             --notes-evidence "$notes_root/notes-evidence.json" \

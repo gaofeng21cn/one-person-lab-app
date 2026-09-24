@@ -4,6 +4,9 @@ run-name: OPL GUI First-Run VM
 on:
   workflow_call:
     secrets:
+      TEAM_ID:
+        description: Expected Developer ID team for exact installed Studio Stable signature verification.
+        required: false
       OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD:
         description: Password for the dedicated non-admin OPL Gateway release-test account used by Standard and Full qualification.
         required: false
@@ -72,11 +75,11 @@ on:
         required: false
         type: string
       shell_ref:
-        description: 'Product opl-aion-shell ref. Release-bound qualification requires the exact cohort SHA; diagnostics may omit it.'
+        description: 'Product opl-studio ref. Release-bound qualification requires the exact cohort SHA; diagnostics may omit it.'
         required: false
         type: string
       smoke_harness_ref:
-        description: 'Separately pinned opl-aion-shell ref containing the verification scripts. Empty uses shell_ref.'
+        description: 'Separately pinned opl-studio ref containing the verification scripts. Empty uses shell_ref.'
         required: false
         type: string
       framework_ref:
@@ -136,12 +139,12 @@ on:
         type: boolean
         default: false
       run_timeout_ms:
-        description: 'Outer Tart run timeout passed to opl-first-run-tart-smoke.mjs.'
+        description: 'Outer operation timeout for exact-candidate VM qualification.'
         required: false
         default: '3600000'
         type: string
       smoke_timeout_ms:
-        description: 'Guest smoke timeout passed to opl-first-run-tart-smoke.mjs.'
+        description: 'Guest smoke timeout passed to Studio stable-clean-vm.mjs.'
         required: false
         default: '3600000'
         type: string
@@ -595,7 +598,7 @@ jobs:
         run: |
           set -euo pipefail
           shell_ref="${{ steps.diagnostic_inputs.outputs.shell_ref }}"
-          repo_url="https://github.com/gaofeng21cn/opl-aion-shell.git"
+          repo_url="https://github.com/gaofeng21cn/opl-studio.git"
           shell_sha="$(git ls-remote "$repo_url" "refs/heads/$shell_ref" "refs/tags/$shell_ref" "$shell_ref" | awk 'NR==1 {print $1}')"
           if [[ "$shell_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
             echo "shell_sha=$shell_sha" >> "$GITHUB_OUTPUT"
@@ -618,7 +621,7 @@ jobs:
               exit 0
             fi
           fi
-          echo "::error::opl-aion-shell ref '$shell_ref' does not exist; fix shell_ref before occupying the first-run VM harness."
+          echo "::error::opl-studio ref '$shell_ref' does not exist; fix shell_ref before occupying the first-run VM harness."
           exit 1
 
       - name: Validate smoke harness ref before VM runner work
@@ -627,7 +630,7 @@ jobs:
         run: |
           set -euo pipefail
           shell_ref="${{ steps.diagnostic_inputs.outputs.smoke_harness_ref }}"
-          repo_url="https://github.com/gaofeng21cn/opl-aion-shell.git"
+          repo_url="https://github.com/gaofeng21cn/opl-studio.git"
           shell_sha="$(git ls-remote "$repo_url" "refs/heads/$shell_ref" "refs/tags/$shell_ref" "$shell_ref" | awk 'NR==1 {print $1}')"
           if [[ "$shell_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
             echo "shell_sha=$shell_sha" >> "$GITHUB_OUTPUT"
@@ -650,7 +653,7 @@ jobs:
               exit 0
             fi
           fi
-          echo "::error::opl-aion-shell smoke harness ref '$shell_ref' does not exist; fix smoke_harness_ref before occupying the first-run VM harness."
+          echo "::error::opl-studio smoke harness ref '$shell_ref' does not exist; fix smoke_harness_ref before occupying the first-run VM harness."
           exit 1
 
       - name: Checkout immutable qualification scope executor
@@ -797,14 +800,14 @@ jobs:
       - name: Checkout exact active shell source for VM handoff
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: gaofeng21cn/opl-studio
           ref: ${{ steps.smoke_harness_ref.outputs.shell_sha }}
-          path: .opl-vm-source-checkouts/aionui
+          path: .opl-vm-source-checkouts/opl-studio
           fetch-depth: 1
           filter: blob:limit=1m
           sparse-checkout: |
             /scripts/
-            /packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json
+            /package.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
@@ -863,12 +866,12 @@ jobs:
             "$workspace_root" \
             '${{ steps.verification_app.outputs.app_sha }}'
 
-          shell_source="$GITHUB_WORKSPACE/.opl-vm-source-checkouts/aionui"
-          shell_target="$workspace_root/shells/aionui"
+          shell_source="$GITHUB_WORKSPACE/.opl-vm-source-checkouts/opl-studio"
+          shell_target="$workspace_root/shells/opl-studio"
           mkdir -p "$shell_target"
           tar -C "$shell_source" -cf - \
             scripts \
-            packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json \
+            package.json \
             | tar -C "$shell_target" -xf -
 
           if [ -d "$GITHUB_WORKSPACE/.opl-vm-source-checkouts/framework/.git" ]; then
@@ -1031,8 +1034,8 @@ jobs:
 
           test "$(git rev-parse HEAD)" = '${{ needs.validate-vm-inputs.outputs.verification_app_sha }}'
           test -z "$(git status --porcelain --untracked-files=no)"
-          test -f shells/aionui/scripts/opl-first-run-vm-smoke.mjs
-          test -f shells/aionui/scripts/opl-first-run-tart-smoke.mjs
+          test -f shells/opl-studio/scripts/desktop/stable-smoke.mjs
+          test -f shells/opl-studio/scripts/desktop/stable-clean-vm.mjs
           if [ -d one-person-lab/.git ]; then
             test "$(git -C one-person-lab rev-parse HEAD)" = '${{ needs.validate-vm-inputs.outputs.framework_sha }}'
             test -z "$(git -C one-person-lab status --porcelain --untracked-files=no)"
@@ -1081,23 +1084,14 @@ jobs:
       - name: Validate smoke scripts
         shell: bash
         run: |
-          node --check shells/aionui/scripts/opl-first-run-vm-smoke.mjs
-          node --check shells/aionui/scripts/opl-first-run-tart-smoke.mjs
-          node --input-type=module -e "await import('./shells/aionui/scripts/opl-first-run-tart-smoke.mjs')"
-          NODE_ENV='test' node --use-system-ca --input-type=module <<'NODE'
-          import tls from 'node:tls';
-          import { __test } from './shells/aionui/scripts/opl-first-run-vm-smoke.mjs';
-          if (tls.getCACertificates('system').length > 0) {
-            const certificatePath = '/tmp/opl-qualification-runner-ca.pem';
-            const env = __test.buildPackagedAppLaunchBaseEnv({
-              NODE_EXTRA_CA_CERTS: certificatePath,
-              SSL_CERT_FILE: certificatePath,
-              NODE_TLS_REJECT_UNAUTHORIZED: '0',
-            });
-            if (env.NODE_EXTRA_CA_CERTS !== certificatePath || env.SSL_CERT_FILE !== certificatePath
-                || Object.hasOwn(env, 'NODE_TLS_REJECT_UNAUTHORIZED')) {
-              throw new Error('The selected VM harness cannot preserve runner CA trust without disabling TLS.');
-            }
+          node --check shells/opl-studio/scripts/desktop/stable-smoke.mjs
+          node --check shells/opl-studio/scripts/desktop/stable-clean-vm.mjs
+          node --input-type=module -e "await import('./shells/opl-studio/scripts/desktop/stable-clean-vm.mjs')"
+          node --use-system-ca --input-type=module <<'NODE'
+          import { buildGuestLaunchCommand } from './shells/opl-studio/scripts/desktop/qualify-clean-vm.mjs';
+          const command = buildGuestLaunchCommand({ appExecutable: '/Applications/One Person Lab.app/Contents/MacOS/One Person Lab', logPath: '/tmp/test.log', caBundle: '/tmp/runner-ca.pem' });
+          if (!command.includes('NODE_EXTRA_CA_CERTS=') || !command.includes('SSL_CERT_FILE=') || command.includes('NODE_TLS_REJECT_UNAUTHORIZED')) {
+            throw new Error('The selected VM harness cannot preserve runner CA trust without disabling TLS.');
           }
           NODE
 
@@ -2197,6 +2191,8 @@ jobs:
 
       - name: Run clean VM first launch smoke
         id: vm_smoke
+        env:
+          EXPECTED_TEAM_ID: ${{ secrets.TEAM_ID }}
         shell: bash
         run: |
           set -euo pipefail
@@ -2213,71 +2209,47 @@ jobs:
             SSH_KEY="${OPL_FIRST_RUN_GUEST_SSH_KEY:-}"
           fi
 
+          test "${{ steps.package_profile.outputs.install_mode }}" = dmg || {
+            echo "::error::Studio Homebrew VM qualification requires a dedicated Cask installation harness."
+            exit 1
+          }
+          manifest=artifacts/release-cohort/opl-build-cohort.json
+          test -f "$manifest"
+          display_version="$(jq -er .build.version "$manifest")"
+          channel=stable
+          if [[ "$display_version" == *-nightly* ]]; then channel=nightly; fi
+          machine_version="$(node --experimental-strip-types scripts/release-version.ts --channel "$channel" --version "$display_version" --json | jq -er .updater_version)"
+          dmg_sha256="$(jq -er .artifact.sha256 "$manifest")"
+          test -n "$EXPECTED_TEAM_ID" || { echo "::error::Expected Developer ID team is required."; exit 1; }
           CMD=(
-            node --use-system-ca shells/aionui/scripts/opl-first-run-tart-smoke.mjs
+            node --use-system-ca shells/opl-studio/scripts/desktop/stable-clean-vm.mjs
             --source-vm "$SOURCE_VM"
+            --vm-name "opl-studio-stable-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             --guest-user "$GUEST_USER"
-            --guest-workdir /private/tmp/opl-first-run-smoke
             --artifacts artifacts/opl-first-run-vm
-            --timeout-ms "${{ steps.operation_smoke_budget.outputs.run_timeout_ms || steps.vm_timeouts.outputs.run_timeout_ms }}"
-            --smoke-timeout-ms "${{ steps.operation_smoke_budget.outputs.smoke_timeout_ms || steps.vm_timeouts.outputs.smoke_timeout_ms }}"
-            --codex-install-phase-timeout-ms "${{ steps.operation_smoke_budget.outputs.codex_install_phase_timeout_ms || steps.vm_timeouts.outputs.codex_install_phase_timeout_ms }}"
-            --codex-readiness-phase-timeout-ms "${{ steps.operation_smoke_budget.outputs.codex_readiness_phase_timeout_ms || steps.vm_timeouts.outputs.codex_readiness_phase_timeout_ms }}"
-            --smoke-profile no-clt-clean-vm
-            --display 1920x1080px
+            --timeout-ms "${{ steps.operation_smoke_budget.outputs.smoke_timeout_ms || steps.vm_timeouts.outputs.smoke_timeout_ms }}"
             --runtime-profile "${{ steps.package_profile.outputs.runtime_profile }}"
-            --guest-node-root "${{ steps.host_node.outputs.node_root }}"
-            --compiled-expectations "${{ github.workspace }}/contracts/app-first-run-compiled-expectations.json"
+            --product-profile "${{ github.workspace }}/contracts/app-product-profile.json"
+            --dmg "${{ steps.dmg.outputs.dmg_path }}"
+            --expected-sha256 "$dmg_sha256"
+            --expected-version "$machine_version"
+            --expected-team-id "$EXPECTED_TEAM_ID"
+            --codex-platform-package-tarball "${{ steps.codex_package_preflight.outputs.platform_tarball_path }}"
+            --codex-version "${{ steps.codex_package_preflight.outputs.package_version }}"
+            --gateway-account-email-file "${{ steps.gateway_credentials.outputs.email_file }}"
+            --gateway-account-password-file "${{ steps.gateway_credentials.outputs.password_file }}"
           )
           if [ "${{ inputs.require_macos_gatekeeper }}" = "true" ]; then
             CMD+=(--require-gatekeeper)
           fi
           if [ -n "${{ steps.framework_source.outputs.archive_path }}" ]; then
             CMD+=(--framework-source-archive "${{ steps.framework_source.outputs.archive_path }}")
-            CMD+=(--framework-install-script "${{ steps.framework_source.outputs.install_script_path }}")
+            CMD+=(--framework-ref "${{ needs.validate-vm-inputs.outputs.framework_sha }}")
           fi
-          if [ "${{ needs.validate-vm-inputs.outputs.diagnostic_scope }}" != "bootstrap_only" ]; then
-            CMD+=(--codex-package-tarball "${{ steps.codex_package_preflight.outputs.tarball_path }}")
-            CMD+=(--codex-platform-package-tarball "${{ steps.codex_package_preflight.outputs.platform_tarball_path }}")
-            CMD+=(--codex-npm-cache-dir "${{ steps.codex_package_preflight.outputs.npm_cache_dir }}")
-            CMD+=(--settings-smoke)
-            CMD+=(--assistant-route-smoke)
-            CMD+=(--codex-functional-check)
-            if [ -n "${{ steps.mas_qualification_provisioning.outputs.workspace }}" ]; then
-              CMD+=(--mas-study-provisioning-workspace "${{ steps.mas_qualification_provisioning.outputs.workspace }}")
-              CMD+=(--mas-study-provisioning-receipt "${{ steps.mas_qualification_provisioning.outputs.receipt }}")
-            fi
-          fi
-          if [ "${{ steps.package_profile.outputs.install_mode }}" = "homebrew-cask" ]; then
-            if [ "${{ steps.package_profile.outputs.profile }}" = "homebrew-full" ]; then
-              CMD+=(--smoke-profile homebrew-full-cask)
-              CMD+=(--homebrew-cask-file "${{ steps.homebrew_candidate.outputs.cask_path }}")
-            elif [ "${{ steps.package_profile.outputs.profile }}" = "homebrew-nightly" ]; then
-              CMD+=(--smoke-profile homebrew-nightly-cask)
-              CMD+=(--homebrew-cask-file "${{ steps.homebrew_candidate.outputs.cask_path }}")
-            else
-              CMD+=(--smoke-profile homebrew-standard-cask)
-            fi
-            CMD+=(--install-mode homebrew-cask)
-            CMD+=(--homebrew-cask "${{ steps.package_profile.outputs.homebrew_cask }}")
-          else
-            CMD+=(--dmg "${{ steps.dmg.outputs.dmg_path }}")
-          fi
-          if [ -n "$SSH_KEY" ]; then
-            CMD+=(--ssh-key "$SSH_KEY")
-          fi
-          if [ "${{ inputs.no_graphics }}" = "true" ]; then
-            CMD+=(--no-graphics)
-          fi
-          if [ "${{ inputs.keep_vm }}" = "true" ]; then
-            CMD+=(--keep-vm)
-          fi
+          if [ -n "$SSH_KEY" ]; then CMD+=(--ssh-key "$SSH_KEY"); fi
+          if [ "${{ inputs.keep_vm }}" = "true" ]; then CMD+=(--keep-vm); fi
           if [ "${{ inputs.guide_screenshots }}" = "true" ]; then
-            CMD+=(--guide-screenshots)
-          fi
-          if [ -n "${{ steps.gateway_credentials.outputs.email_file }}" ]; then
-            CMD+=(--gateway-account-email-file "${{ steps.gateway_credentials.outputs.email_file }}")
-            CMD+=(--gateway-account-password-file "${{ steps.gateway_credentials.outputs.password_file }}")
+            CMD+=(--screenshots-dir artifacts/opl-first-run-vm/artifacts/guide-screenshots)
           fi
 
           mkdir -p artifacts/opl-first-run-vm
@@ -2290,9 +2262,36 @@ jobs:
           SMOKE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           SMOKE_STARTED_SECONDS="$(date +%s)"
           set +e
-          "${CMD[@]}" > >(tee "$STDOUT_LOG") 2> >(tee "$STDERR_LOG" >&2)
+          VM_RUN_TIMEOUT_MS="${{ steps.operation_smoke_budget.outputs.run_timeout_ms || steps.vm_timeouts.outputs.run_timeout_ms }}" \
+            node --input-type=module - "${CMD[@]}" > >(tee "$STDOUT_LOG") 2> >(tee "$STDERR_LOG" >&2) <<'NODE'
+          import { spawn } from 'node:child_process';
+          import fs from 'node:fs';
+          const [command, ...args] = process.argv.slice(2);
+          const budget = Number(process.env.VM_RUN_TIMEOUT_MS);
+          if (!Number.isSafeInteger(budget) || budget <= 0) throw new Error('VM operation budget is invalid');
+          const child = spawn(command, args, { stdio: 'inherit', detached: true });
+          let timedOut = false;
+          const timer = setTimeout(() => {
+            timedOut = true;
+            try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+          }, budget);
+          child.once('error', (error) => { clearTimeout(timer); console.error(error.message); process.exitCode = 1; });
+          child.once('close', (code) => {
+            clearTimeout(timer);
+            if (timedOut) {
+              const summaryPath = 'artifacts/opl-first-run-vm/tart-smoke-summary.json';
+              let prior = {}; try { prior = JSON.parse(fs.readFileSync(summaryPath, 'utf8')); } catch {}
+              fs.writeFileSync(summaryPath, JSON.stringify({ ...prior, surface_id: 'opl_tart_gui_first_run_smoke', status: 'failed', failure: { stage: 'operation_deadline_elapsed', message: 'Exact-candidate VM run exceeded the immutable remaining operation budget' } }, null, 2) + '\n');
+            }
+            process.exitCode = timedOut ? 124 : code ?? 1;
+          });
+          NODE
           SMOKE_STATUS="$?"
           set -e
+          if [ "${{ inputs.keep_vm }}" != true ]; then
+            tart stop "opl-studio-stable-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >/dev/null 2>&1 || true
+            tart delete "opl-studio-stable-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >/dev/null 2>&1 || true
+          fi
           SMOKE_ENDED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           SMOKE_ENDED_SECONDS="$(date +%s)"
           SMOKE_DURATION_MS="$(((SMOKE_ENDED_SECONDS - SMOKE_STARTED_SECONDS) * 1000))"
@@ -2338,8 +2337,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --experimental-strip-types scripts/validate-settings-smoke-runtime-evidence.ts \
-            --summary artifacts/opl-first-run-vm/artifacts/settings-smoke-summary.json \
+          node shells/opl-studio/scripts/desktop/stable-smoke.mjs \
+            --validate-runtime-evidence artifacts/opl-first-run-vm/artifacts/smoke-summary.json \
             > artifacts/opl-first-run-vm/artifacts/settings-runtime-refresh-verification.json
 
       - name: Write exact-artifact qualification receipt
@@ -2364,7 +2363,7 @@ jobs:
             --smoke-summary artifacts/opl-first-run-vm/tart-smoke-summary.json \
             --verification-app-sha "${{ steps.verification_app.outputs.app_sha }}" \
             --verification-shell-sha "${{ needs.validate-vm-inputs.outputs.smoke_harness_sha }}" \
-            --verification-smoke-harness shells/aionui/scripts/opl-first-run-vm-smoke.mjs \
+            --verification-smoke-harness shells/opl-studio/scripts/desktop/stable-smoke.mjs \
             --verification-scope-proof-base64 "${{ needs.validate-vm-inputs.outputs.qualification_scope_base64 }}"
           shasum -a 256 artifacts/opl-first-run-vm/artifact-qualification-receipt.json \
             > artifacts/opl-first-run-vm/artifact-qualification-receipt.sha256

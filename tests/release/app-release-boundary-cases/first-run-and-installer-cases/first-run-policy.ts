@@ -361,23 +361,10 @@ test("release boundary requires state-aware Standard launch admission and Full r
   const release = readJson("contracts/app-release-channel.json");
   const fullPolicy = release.release_acceleration.assistant_route_smoke_policy.full;
 
-  assert.ok(assistantSmoke.required.includes("homeAssistantStandardLaunchAdmissionExpression"));
-  assert.ok(assistantSmoke.required.includes("homeAssistantWorkspaceContextExpression"));
-  assert.ok(assistantSmoke.required.includes("homeAssistantRouteSendWithoutActivationExpression"));
-  assert.ok(assistantSmoke.required.includes("frameworkStageRuntimeActivationExpression"));
-  assert.ok(assistantSmoke.required.includes("activeConversationRouteReceiptExpression"));
-  assert.ok(
-    assistantSmoke.required.includes(
-      "workspace_guid_ui_send_without_shell_activation_then_conversation_get",
-    ),
-  );
-  assert.ok(assistantSmoke.required.includes("data-opl-workspace-path"));
-  assert.ok(assistantSmoke.required.includes("options.runtimeProfile !== 'full'"));
-  assert.ok(assistantSmoke.required.includes("verification_mode: 'state_aware_launch_admission'"));
-  assert.ok(assistantSmoke.required.includes("verification_mode: 'route_receipt'"));
-  assert.ok(assistantSmoke.required.includes("assistant_launch_admissions_checked"));
-  assert.ok(assistantSmoke.required.includes("not_applicable_standard"));
-  assert.ok(assistantSmoke.forbidden.includes("createAssistantRouteReceiptConversationExpression"));
+  assert.match(assistantSmoke.file, /scripts\/desktop\/stable-smoke\.mjs$/);
+  for (const token of ['runCodexReadiness', 'runFrameworkReadiness', 'requireGatewaySetup: true', 'generationRequested: false']) {
+    assert.ok(assistantSmoke.required.includes(token));
+  }
   assert.ok(assistantSmoke.forbidden.includes("POST /api/conversations"));
   assert.equal(
     release.release_acceleration.assistant_route_smoke_policy.target_fixture_ref,
@@ -409,60 +396,18 @@ test("release boundary requires state-aware Standard launch admission and Full r
   );
 });
 
-test("release boundary requires production Runtime refresh evidence for both routes", () => {
+test("release boundary requires Studio production Runtime refresh evidence", () => {
   const policy = requireReleaseBoundaryCheck("first_run_vm_runtime_refresh_production_evidence");
-
-  for (const token of [
-    "function buildRuntimeRefreshProbePlan(requestedHash, timeoutMs = DEFAULT_RUNTIME_REFRESH_TIMEOUT_MS)",
-    "requestedHash === '#/settings/runtime'",
-    "mode: 'settings-maintenance-updates'",
-    "aliasResolvedHash: '#/settings/environment'",
-    "refreshHash: '#/settings/environment?section=updates'",
-    "function settingsRuntimeAliasResolutionExpression(requestedHash, aliasResolvedHash)",
-    "function settingsMaintenanceUpdatesReadinessExpression(refreshHash)",
-    "function settingsUpdatesRefreshButtonIdleExpression()",
-    "function settingsUpdatesRefreshClickExpression()",
-    "const selector = '[data-testid=\"opl-managed-update-refresh\"]'",
-    "requestedHash === '#/runtime'",
-    "mode: 'runtime-v2'",
-    "resolvedHashPrefixes: ['#/runtime']",
-    "requested_hash: targetHash",
-    "alias_resolved_hash: aliasResolution.aliasResolvedHash ?? aliasResolution.hash",
-    "resolved_hash: resolvedHash",
-    "const runtimeRefreshTimeoutMs = Math.min(",
-    "options.codexReadinessPhaseTimeoutMs ?? options.timeoutMs",
-    "settingsRuntimeAliasResolutionExpression(probePlan.requestedHash, probePlan.aliasResolvedHash)",
-    "settingsMaintenanceUpdatesReadinessExpression(probePlan.refreshHash)",
-    "settingsUpdatesRefreshClickExpression()",
-    "const settingsRuntimeRefresh = await (hooks.exerciseRuntimeRefresh ?? exerciseRuntimeRefresh)(",
-    "const standaloneRuntimeRefresh = await (hooks.exerciseRuntimeRefresh ?? exerciseRuntimeRefresh)(",
-  ]) {
+  assert.match(policy.file, /scripts\/desktop\/stable-smoke\.mjs$/);
+  for (const token of ['runRuntimeRefresh', 'busyObserved', 'buttonReadyAfter', 'production_runtime_refresh_not_proven']) {
     assert.ok(policy.required.includes(token), `missing Runtime evidence source gate: ${token}`);
   }
-  assert.deepEqual(policy.forbidden, []);
 });
 
-test("release boundary keeps production Gatekeeper policy profile-aware", () => {
+test("release boundary requires Studio installed identity, signature and Gatekeeper", () => {
   const policy = requireReleaseBoundaryCheck("first_run_vm_local_authorization_policy");
-
-  assert.ok(policy.required.includes("gatekeeper_required: gatekeeperRequired"));
-  assert.ok(policy.required.includes("quarantine_removal_required: !gatekeeperRequired"));
-  assert.ok(
-    policy.required.includes(
-      "const gatekeeperRequired = hooks.requireGatekeeper === true || homebrewFullCask",
-    ),
-  );
-  assert.ok(
-    policy.required.includes(
-      "(hooks.countQuarantineAttributes ?? countQuarantineAttributes)(appPath)",
-    ),
-  );
-  assert.ok(policy.required.includes("if (!gatekeeperRequired && quarantineAttributeCount !== 0)"));
-  assert.ok(policy.required.includes("if (gatekeeperRequired && spctl.status !== 0)"));
-  assert.ok(policy.required.includes("if (!options.requireGatekeeper)"));
-  assert.ok(policy.required.includes("local_authorization_status: localAuthorizationStatus"));
-  assert.ok(policy.required.includes("quarantine_attribute_count: quarantineAttributeCount"));
-  assert.ok(policy.required.includes("xattr', ['-dr', 'com.apple.quarantine', targetApp]"));
-  assert.equal(policy.required.includes("gatekeeper_required: false"), false);
-  assert.equal(policy.required.includes("quarantine_removal_required: true"), false);
+  assert.match(policy.file, /scripts\/desktop\/stable-clean-vm\.mjs$/);
+  for (const token of ['codesign --verify', 'spctl --assess', 'expectedTeamId', 'requireGatekeeper']) {
+    assert.ok(policy.required.includes(token));
+  }
 });

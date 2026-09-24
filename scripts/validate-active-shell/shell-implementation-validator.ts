@@ -1,3 +1,4 @@
+import { validateStudioImplementation } from './studio-implementation-validator.ts';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -249,6 +250,10 @@ export function validateShellVisualTokenBindings({
 }
 
 export function validateActiveShellImplementation(shellPaths) {
+  if (shellPaths.contract.active_shell === 'opl-studio') {
+    validateStudioImplementation(shellPaths);
+    return;
+  }
   if (shellPaths.contract.shell_contract?.implementation_validation === 'contract_paths_only') {
     return;
   }

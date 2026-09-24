@@ -7,6 +7,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 import { classifyStableSourceOperation } from './stable-followup-router.ts';
 
 import {
@@ -30,11 +31,12 @@ import {
 type JsonRecord = Record<string, unknown>;
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const shellRoot = path.join(appRoot, 'shells', 'aionui');
+const activeShellBuild = readActiveShellBuildProfile(appRoot);
+const shellRoot = path.join(appRoot, activeShellBuild.root);
 const frameworkRoot = path.resolve(appRoot, '..', 'one-person-lab');
 const defaultRepository = 'gaofeng21cn/one-person-lab-app';
 const defaultWorkflow = '.github/workflows/release-stable.yml';
-const shellRemote = 'https://github.com/gaofeng21cn/opl-aion-shell.git';
+const shellRemote = `https://github.com/${activeShellBuild.repository}.git`;
 const frameworkRemote = 'https://github.com/gaofeng21cn/one-person-lab.git';
 const shaPattern = /^[0-9a-f]{40}$/;
 const runIdPattern = /^[1-9][0-9]*$/;
@@ -814,13 +816,15 @@ export function sourceGate(
         isolatedAppRoot,
       );
     }
+    const frozenShellProfile = readActiveShellBuildProfile(sourceRoot);
+    const sourceShellRoot = path.join(sourceRoot, frozenShellProfile.root);
     const output = path.join(tempRoot, 'source-gate.json');
     runRequired(
       runtime,
       process.execPath,
       [
         '--experimental-strip-types',
-        path.join(appRoot, 'scripts', 'validate-release-source-gate.ts'),
+        path.join(sourceRoot, 'scripts', 'validate-release-source-gate.ts'),
         '--operation-fingerprint', objectiveFingerprint,
         '--app-ref', appSha,
         '--shell-ref', shellSha,
@@ -828,7 +832,7 @@ export function sourceGate(
         '--require-shell-format', 'true',
         '--run-shell-tests', 'true',
         '--repo-root', sourceRoot,
-        '--shell-root', shellRoot,
+        '--shell-root', sourceShellRoot,
         '--framework-root', frameworkRoot,
         '--output', output,
         '--json',
@@ -1177,9 +1181,9 @@ Only new-product-release may allocate a tag, and it requires an explicit product
 export function validateShellSmokeHarness(runtime: Runtime, value: string): string {
   const expected = sha(value, 'smoke_harness_ref');
   const resolved = runRequired(runtime, 'gh', [
-    'api', `repos/gaofeng21cn/opl-aion-shell/git/commits/${expected}`, '--jq', '.sha',
-  ], 30_000, 'Resolve smoke_harness_ref in opl-aion-shell (an App commit is not a Shell harness)');
-  if (resolved.trim() !== expected) throw new Error('smoke_harness_ref must resolve to the exact opl-aion-shell commit.');
+    'api', `repos/${activeShellBuild.repository}/git/commits/${expected}`, '--jq', '.sha',
+  ], 30_000, `Resolve smoke_harness_ref in ${activeShellBuild.repository} (an App commit is not a Shell harness)`);
+  if (resolved.trim() !== expected) throw new Error(`smoke_harness_ref must resolve to the exact ${activeShellBuild.repository} commit.`);
   return expected;
 }
 

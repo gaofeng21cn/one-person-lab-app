@@ -2178,13 +2178,16 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
     failures += reportFailure(id, 'Full Homebrew reusable must remain isolated from Formula, Latest, WebUI, and manual entry paths');
   }
   const vmWorkflow = parseWorkflow(appRoot, '.github/workflows/opl-first-run-vm.yml', id);
-  if (
-    !vmWorkflow
-    || !vmWorkflow.text.includes('oplProductProfile/oplProductProfile.generated.json')
-  ) {
+  const activeShell = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), 'utf8')).active_shell;
+  const carriesOfficialProfile = activeShell === 'opl-studio'
+    ? Boolean(vmWorkflow?.text.includes('--product-profile "${{ github.workspace }}/contracts/app-product-profile.json"')
+      && vmWorkflow.text.includes('scripts/desktop/stable-clean-vm.mjs')
+      && vmWorkflow.text.includes("'${{ steps.verification_app.outputs.app_sha }}'"))
+    : Boolean(vmWorkflow?.text.includes('oplProductProfile/oplProductProfile.generated.json'));
+  if (!carriesOfficialProfile) {
     failures += reportFailure(
       id,
-      'Full Homebrew qualification must carry the generated Official Profile roots into the Shell harness checkout',
+      'Qualification must carry the exact App-owned Official Profile roots into the selected Shell harness',
     );
   }
   return failures;

@@ -26,7 +26,7 @@ function writeText(filePath: string, value: string): void {
 function carrierFixture(kind: 'aionui' | 'opl-studio') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `opl-desktop-release-${kind}-`));
   const contractPath = kind === 'aionui'
-    ? path.join(appRoot, 'contracts', 'app-shell-adapter.json')
+    ? path.join(appRoot, 'contracts', 'shell-adapters', 'aionui.json')
     : path.join(appRoot, 'contracts', 'shell-adapters', 'opl-studio.json');
   const contract = readAppShellAdapterContract(contractPath);
   const paths = contract.shell_contract.paths;

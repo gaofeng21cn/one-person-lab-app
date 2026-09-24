@@ -142,8 +142,8 @@ function manifestIdentity(value: Record<string, unknown>, label: string): Deskto
   };
 }
 
-function expectedPlatformAssetNames(platform: DesktopPlatformId, version: string): string[] {
-  if (platform === 'linux-x64') return [`One-Person-Lab-${version}-linux-x64.deb`];
+function expectedPlatformAssetNames(platform: DesktopPlatformId, version: string, linuxUpdaterMetadata = false): string[] {
+  if (platform === 'linux-x64') return [`One-Person-Lab-${version}-linux-x64.deb`, ...(linuxUpdaterMetadata ? ['latest-linux.yml'] : [])].sort(compareText);
   return [
     `One-Person-Lab-${version}-win-x64.exe`,
     `One-Person-Lab-${version}-win-x64.exe.blockmap`,
@@ -155,7 +155,7 @@ function expectedPlatformAssetNames(platform: DesktopPlatformId, version: string
 function assertPlatformAssets(platform: DesktopPlatformId, version: string, assets: ManifestAsset[]): void {
   const names = assets.map((asset) => asset.name).sort(compareText);
   if (new Set(names).size !== names.length) fail(`Desktop ${platform} manifest contains duplicate assets.`);
-  if (JSON.stringify(names) !== JSON.stringify(expectedPlatformAssetNames(platform, version))) {
+  if (JSON.stringify(names) !== JSON.stringify(expectedPlatformAssetNames(platform, version, names.includes('latest-linux.yml')))) {
     fail(`Desktop ${platform} manifest contains the wrong asset set.`);
   }
 }
@@ -206,7 +206,7 @@ export function validateDesktopArtifactManifest(value: unknown): DesktopArtifact
     fail('Desktop artifact manifest platform order or uniqueness is invalid.');
   }
   const assets = sortedAssets(candidate.assets.map((asset, index) => manifestAsset(asset, `Desktop artifact manifest.assets[${index}]`)));
-  const expectedNames = platforms.flatMap((platform) => expectedPlatformAssetNames(platform, identity.release.version)).sort();
+  const expectedNames = platforms.flatMap((platform) => expectedPlatformAssetNames(platform, identity.release.version, assets.some((asset) => asset.name === 'latest-linux.yml'))).sort();
   if (JSON.stringify(assets.map((asset) => asset.name)) !== JSON.stringify(expectedNames)) {
     fail('Desktop artifact manifest asset ownership is invalid.');
   }
@@ -241,7 +241,7 @@ export function mergeDesktopPlatformManifest(
     };
   }
   if (!sameManifestIdentity(existing, incoming)) fail('Desktop platform cohort conflicts with the published aggregate manifest.');
-  const expectedIncomingNames = new Set(expectedPlatformAssetNames(incoming.platform, incoming.release.version));
+  const expectedIncomingNames = new Set(expectedPlatformAssetNames(incoming.platform, incoming.release.version, incoming.assets.some((asset) => asset.name === 'latest-linux.yml')));
   const existingPlatformAssets = existing.assets.filter((asset) => expectedIncomingNames.has(asset.name));
   if (existing.platforms.includes(incoming.platform)) {
     if (!sameAssets(existingPlatformAssets, incoming.assets)) {

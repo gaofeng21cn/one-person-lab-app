@@ -10,7 +10,7 @@ const readAdapter = (relativePath: string): ShellAdapterContract =>
   JSON.parse(fs.readFileSync(relativePath, 'utf8')) as ShellAdapterContract;
 
 test('AionUI and Native share a carrier-neutral Codex executable boundary', () => {
-  const aionui = readAdapter('contracts/app-shell-adapter.json');
+  const aionui = readAdapter('contracts/shell-adapters/aionui.json');
   const native = readAdapter('contracts/shell-adapters/opl-studio.json');
 
   assert.doesNotThrow(() => validateCodexExecutableContract(aionui));
@@ -26,7 +26,7 @@ test('AionUI and Native share a carrier-neutral Codex executable boundary', () =
 });
 
 test('AionUI cannot restore the duplicate Framework Codex payload', () => {
-  const aionui = structuredClone(readAdapter('contracts/app-shell-adapter.json'));
+  const aionui = structuredClone(readAdapter('contracts/shell-adapters/aionui.json'));
   assert.ok(aionui.codex_executable_contract);
   aionui.codex_executable_contract.carrier.framework_managed_payload_in_app_bundle_allowed = true;
 
@@ -37,7 +37,7 @@ test('AionUI cannot restore the duplicate Framework Codex payload', () => {
 });
 
 test('AionUI composes the AionCore Node export with one official Codex carrier', () => {
-  const aionui = structuredClone(readAdapter('contracts/app-shell-adapter.json'));
+  const aionui = structuredClone(readAdapter('contracts/shell-adapters/aionui.json'));
   const target = aionui.codex_executable_contract?.carrier.target_packaging_policy;
 
   assert.equal(target?.implementation_status, 'verified_shell_composition_and_packaged_smoke');
@@ -90,7 +90,7 @@ test('AionUI composes the AionCore Node export with one official Codex carrier',
 });
 
 test('AionUI target cannot package Claude or introduce a second Codex authority', () => {
-  const withClaude = structuredClone(readAdapter('contracts/app-shell-adapter.json'));
+  const withClaude = structuredClone(readAdapter('contracts/shell-adapters/aionui.json'));
   assert.ok(withClaude.codex_executable_contract?.carrier.target_packaging_policy);
   withClaude.codex_executable_contract.carrier.target_packaging_policy
     .distributed_bundle.cli_names_exact.push('claude');
@@ -100,7 +100,7 @@ test('AionUI target cannot package Claude or introduce a second Codex authority'
     /official AionCore Node export/,
   );
 
-  const withoutArchiveGate = structuredClone(readAdapter('contracts/app-shell-adapter.json'));
+  const withoutArchiveGate = structuredClone(readAdapter('contracts/shell-adapters/aionui.json'));
   assert.ok(withoutArchiveGate.codex_executable_contract?.carrier.target_packaging_policy);
   withoutArchiveGate.codex_executable_contract.carrier.target_packaging_policy
     .distributed_bundle.required_absence_checks =
@@ -113,7 +113,7 @@ test('AionUI target cannot package Claude or introduce a second Codex authority'
     /official AionCore Node export/,
   );
 
-  const withSecondCarrier = structuredClone(readAdapter('contracts/app-shell-adapter.json'));
+  const withSecondCarrier = structuredClone(readAdapter('contracts/shell-adapters/aionui.json'));
   assert.ok(withSecondCarrier.codex_executable_contract?.carrier.target_packaging_policy);
   withSecondCarrier.codex_executable_contract.carrier.target_packaging_policy
     .second_codex_carrier_or_registry_allowed = true;

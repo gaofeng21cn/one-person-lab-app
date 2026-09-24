@@ -1002,7 +1002,7 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
     {
       platform: 'macos-arm64',
       os: 'macos-latest',
-      command: 'node scripts/build-with-builder.js arm64 --mac --arm64',
+      command: 'node scripts/desktop/build-release.mjs --platform darwin --arch arm64',
       'artifact-name': 'nightly-macos-arm64',
       arch: 'arm64',
       native_arch: 'arm64',

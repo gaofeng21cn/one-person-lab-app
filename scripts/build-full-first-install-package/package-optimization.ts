@@ -25,8 +25,15 @@ const STAGED_APP_TRIM_FILE_SUFFIXES =
   FULL_RUNTIME_PRUNE_POLICY.app_bundle_staging.trim_file_suffixes as string[];
 const STAGED_APP_TRIM_NODE_MODULE_DIRECTORY_BASENAMES =
   FULL_RUNTIME_PRUNE_POLICY.app_bundle_staging.trim_node_module_directory_basenames as string[];
-const PROTECTED_APP_BUNDLE_PAYLOADS =
-  FULL_RUNTIME_PRUNE_POLICY.app_bundle_staging.protected_payloads as string[];
+function protectedAppBundlePayloads(): string[] {
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  return [
+    `Contents/Resources/${carrier.runtimeResourceDir}`,
+    ...(carrier.shellRuntimePath ? [carrier.shellRuntimePath] : []),
+    ...(FULL_RUNTIME_PRUNE_POLICY.app_bundle_staging.protected_payloads as string[])
+      .filter((entry) => !['Contents/Resources/opl-full-runtime', 'Contents/Resources/bundled-aioncore'].includes(entry)),
+  ];
+}
 
 function normalizeBundleRelativePath(relativePath: string) {
   return relativePath.split(path.sep).join('/').replace(/^\/+/, '');
@@ -41,7 +48,7 @@ function pathHasSegment(relativePath: string, segment: string) {
 }
 
 function isInsideProtectedAppBundlePayload(relativePath: string) {
-  return PROTECTED_APP_BUNDLE_PAYLOADS.some((protectedPath) => {
+  return protectedAppBundlePayloads().some((protectedPath) => {
     return relativePath === protectedPath || relativePath.startsWith(`${protectedPath}/`);
   });
 }
@@ -117,7 +124,7 @@ export function trimFullAppBundleForDmg(appPath: string) {
     app_bundle_path: appPath,
     required_payload_boundary: {
       full_runtime_resource_dir: `Contents/Resources/${carrier.runtimeResourceDir}`,
-      protected_payloads: [...PROTECTED_APP_BUNDLE_PAYLOADS],
+      protected_payloads: protectedAppBundlePayloads(),
       preserved: true,
       rule: 'never trim the declared Full offline runtime payload from the App bundle staging pass',
     },

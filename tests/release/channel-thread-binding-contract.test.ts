@@ -97,7 +97,7 @@ test('runtime bridge validation rejects inferred, unknown, or mismatched binding
 
 test('both shell adapters persist exact bindings without owning thread or turn truth', () => {
   const cases = [
-    ['aionui', readJson('contracts/app-shell-adapter.json')],
+    ['aionui', readJson('contracts/shell-adapters/aionui.json')],
     ['opl-studio', readJson('contracts/shell-adapters/opl-studio.json')],
   ] as const;
 

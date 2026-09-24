@@ -3,12 +3,12 @@
   "owner": "one-person-lab-app",
   "purpose": "app_shell_candidate_registry",
   "state": "active_gui_route_policy",
-  "machine_boundary": "GUI shell candidate registry. The active App GUI shell is AionUI. OPL Studio is the only foreground alternative candidate.",
-  "active_shell_unchanged": "aionui",
+  "machine_boundary": "GUI shell role registry. OPL Studio is selected for the next Stable App. Preview remains an independent identity until its terminal handoff is qualified.",
+  "active_shell_unchanged": "opl-studio",
   "active_gui_mainline": {
-    "shell": "aionui",
-    "shell_root": "shells/aionui",
-    "source_repo": "gaofeng21cn/opl-aion-shell",
+    "shell": "opl-studio",
+    "shell_root": "shells/opl-studio",
+    "source_repo": "gaofeng21cn/opl-studio",
     "role": "stable_app_gui_mainline",
     "product_truth_owner": "one-person-lab-app"
   },

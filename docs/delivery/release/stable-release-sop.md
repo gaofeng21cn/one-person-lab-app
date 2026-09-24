@@ -16,7 +16,7 @@
 | “只发布／修复某一渠道” | 仅推进该渠道及必要依赖，不自动升级为全家族发布。 |
 | “优化流程／整理 SOP 或 Skill” | 修改并验证流程文件，不因此发布一个产品版本。 |
 
-渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。Studio 是独立产品；“OPL App 所有附加发布”不自动授权发布 Studio 或全部领域 Package。用户明确要求它们时，使用各 owner 的正式入口独立交付。Docker WebUI 也使用自己的 authority；不能因为 Desktop 已成功，就声称 Docker 已发布。
+渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。当前正式 Shell 已选择基于 DSH/Cordis 的 Studio，Stable 继续沿用既有 OPL App 标识与更新仓库。独立 Studio Preview 的终结桥版本使用自己的发布身份，把既有 Preview 用户迁入 Stable；它属于本次用户明确授权的升级迁移，不能因旧的独立候选定位而遗漏。领域 Package 与 Docker WebUI 保持各自 authority，Desktop 成功不代表它们已发布。
 
 已有 run 时先进入第 4 节；已有合格产物时进入第 5 节。不要默认从头开始构建。一次任务仅需在现有执行记录或简短进度中保留范围、owner run、候选和未完成渠道，不新增持久状态协议。
 
@@ -28,6 +28,8 @@
 4. 确认正式发布前提：授权、唯一 writer、可用的签名／公证环境、专用普通测试账号及其既有瞬态凭据桥。使用现有预检，不能把密码写到命令参数、仓库、GitHub Secrets、日志或回执，也不能换用管理员账号绕过失败。该账号无模型额度；VM 只做登录、就绪读回和不调用 LLM 的确定性检查，不自动执行 Codex AI self-check 或生成式模型探测。
 
 现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
+
+本次 Shell 切换需分别验收旧 AionUI Stable 和既有 Studio Preview 的真实升级、数据延续与后续更新源。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
 
 候选冻结后，普通文档修改或其他主线提交不要求当前发布追新。保持原候选，只在其不可构建、不可安装、不合法或必然验收失败，或用户明确改发新候选时重新选择。App／Shell／Framework 的兼容与身份检查仍由原 owner 执行。
 

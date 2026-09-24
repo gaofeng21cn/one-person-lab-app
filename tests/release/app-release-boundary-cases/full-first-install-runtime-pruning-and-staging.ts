@@ -213,7 +213,13 @@ test("Full domain copy keeps only contract-declared authority inventories from r
   }
 });
 
-test("Full App bundle staging trim removes non-runtime artifacts while preserving offline runtime payloads", async () => {
+test("legacy AionUI Full App bundle trim preserves its runtime and Codex-only composition", async (context) => {
+  const previousCarrier = process.env.OPL_FULL_CARRIER_ID;
+  process.env.OPL_FULL_CARRIER_ID = 'aionui';
+  context.after(() => {
+    if (previousCarrier === undefined) delete process.env.OPL_FULL_CARRIER_ID;
+    else process.env.OPL_FULL_CARRIER_ID = previousCarrier;
+  });
   const { trimFullAppBundleForDmg, auditFullPackageBundleBoundaries, withFullPackageOptimization } =
     await import("../../../scripts/build-full-first-install-package/package-optimization.ts");
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-app-bundle-trim-"));

@@ -1024,8 +1024,54 @@ const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
 ];
 
 
+// Each carrier has different implementation paths. Keep the same release
+// properties checked against the selected carrier's actual producer/consumer.
+const studioBoundaryChecks: Record<string, ReleaseBoundaryCheck> = {
+  first_run_vm_download_repo: {
+    ...legacyReleaseBoundaryChecks.find((check) => check.id === 'first_run_vm_download_repo')!,
+    required: [
+      ...legacyReleaseBoundaryChecks.find((check) => check.id === 'first_run_vm_download_repo')!.required!.filter((marker) => ![
+        'CMD+=(--framework-install-script "${{ steps.framework_source.outputs.install_script_path }}")',
+        '/packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json',
+        '--smoke-profile no-clt-clean-vm', '--display 1920x1080px', '--settings-smoke',
+        '--assistant-route-smoke', '--codex-functional-check', 'CMD+=(--guide-screenshots)',
+      ].includes(marker)),
+      'scripts/desktop/stable-clean-vm.mjs', 'scripts/desktop/stable-smoke.mjs',
+      '--validate-runtime-evidence', '--expected-sha256',
+    ],
+  },
+  update_bridge_repo: {
+    id: 'update_bridge_repo',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/electron-builder.stable.yml`,
+    required: ['appId: cn.onepersonlab.opl', 'productName: One Person Lab', 'repo: one-person-lab-app'],
+    forbidden: ['repo: one-person-lab\n'],
+  },
+  application_bridge_repo: {
+    id: 'application_bridge_repo',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/desktop/updater.mjs`,
+    required: ['checkForUpdates', 'quitAndInstall', 'beforeRestart', 'app_server_busy'],
+  },
+  first_run_vm_local_authorization_policy: {
+    id: 'first_run_vm_local_authorization_policy',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/scripts/desktop/stable-clean-vm.mjs`,
+    required: ['codesign --verify', 'spctl --assess', 'expectedTeamId', 'requireGatekeeper'],
+  },
+  first_run_vm_runtime_refresh_production_evidence: {
+    id: 'first_run_vm_runtime_refresh_production_evidence',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/scripts/desktop/stable-smoke.mjs`,
+    required: ['runRuntimeRefresh', 'busyObserved', 'buttonReadyAfter', 'production_runtime_refresh_not_proven'],
+  },
+  first_run_vm_profile_aware_assistant_smoke: {
+    id: 'first_run_vm_profile_aware_assistant_smoke',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/scripts/desktop/stable-smoke.mjs`,
+    required: ['runCodexReadiness', 'runFrameworkReadiness', 'requireGatewaySetup: true', 'generationRequested: false'],
+    forbidden: ['POST /api/conversations'],
+  },
+};
+
 export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
-  ...legacyReleaseBoundaryChecks,
+  ...legacyReleaseBoundaryChecks.map((check) => shellPaths.contract.active_shell === 'opl-studio'
+    ? studioBoundaryChecks[check.id] ?? check : check),
   {
     id: "audited_manual_build_and_stable_desktop_carrier",
     file: ".github/workflows/build-manual.yml",

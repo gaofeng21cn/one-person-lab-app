@@ -298,7 +298,7 @@ test('Full cache-only workflow freezes exact refs and cannot emit release assets
   assert.match(String(fullStep('Build Full first-install package')?.run), /--warm-runtime-cache-only/);
   assert.equal(
     fullStep('Restore Bun install cache')?.with?.key,
-    "bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock') }}",
+    "bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}",
   );
   for (const name of [
     'Restore Full toolchain runtime cache',
@@ -314,7 +314,7 @@ test('Full cache-only workflow freezes exact refs and cannot emit release assets
   }
   assert.equal(
     fullStep('Restore Electron artifacts cache')?.with?.key,
-    "electron-cache-macos-arm64-arm64-${{ hashFiles('one-person-lab-app/shells/aionui/package.json', 'one-person-lab-app/shells/aionui/bun.lock') }}",
+    "electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}",
   );
   assert.ok(
     fullSteps.indexOf(fullStep('Write exact-cohort Actions cache plan')!) <

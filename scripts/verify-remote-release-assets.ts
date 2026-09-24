@@ -648,6 +648,15 @@ function assertFullRuntimeCurrentnessProbe(downloadDir, manifest) {
 }
 
 function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
+  const carrier = manifest.carrier;
+  const studio = carrier?.carrier_id === 'opl-studio';
+  if (studio && (carrier.bundle_id !== 'cn.onepersonlab.opl' || carrier.codex_carrier !== 'opl_codex_native'
+    || carrier.aioncore_required !== false || carrier.runtime_resource_dir !== 'opl-studio-full-runtime')) {
+    throw new Error('Full manifest Studio Stable carrier identity is invalid.');
+  }
+  if (carrier && !['aionui', 'opl-studio'].includes(carrier.carrier_id)) throw new Error('Unsupported Full carrier identity.');
+  const runtimeResource = `Contents/Resources/${studio ? 'opl-studio-full-runtime' : 'opl-full-runtime'}`;
+
   const trimReport = readFullReleaseSection(
     downloadDir,
     "app_bundle_trim_report",
@@ -671,7 +680,7 @@ function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
   }
   if (
     trimReport.required_payload_boundary?.full_runtime_resource_dir !==
-    "Contents/Resources/opl-full-runtime"
+    runtimeResource
   ) {
     throw new Error(
       "Full app bundle trim report must identify Contents/Resources/opl-full-runtime as protected.",
@@ -679,8 +688,8 @@ function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
   }
   const protectedPayloads = trimReport.required_payload_boundary?.protected_payloads;
   for (const requiredPayload of [
-    "Contents/Resources/opl-full-runtime",
-    "Contents/Resources/bundled-aioncore",
+    runtimeResource,
+    ...(!studio ? ["Contents/Resources/bundled-aioncore"] : []),
     "Contents/Resources/app.asar",
     "Contents/Frameworks/Electron Framework.framework",
   ]) {
@@ -706,7 +715,7 @@ function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
       "Full package boundary audit must prove the Full package still contains the OPL Full runtime.",
     );
   }
-  if (boundaryAudit.full_package_boundary?.contains_shell_runtime !== true) {
+  if (boundaryAudit.full_package_boundary?.contains_shell_runtime !== !studio) {
     throw new Error(
       "Full package boundary audit must prove the Full package still contains the shell runtime.",
     );
@@ -714,6 +723,7 @@ function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
   assertFrameworkCodexCarrierBoundary(
     boundaryAudit.full_package_boundary,
     "Full package boundary audit",
+    studio,
   );
   if (boundaryAudit.entries?.app_asar?.exists !== true) {
     throw new Error(
@@ -752,6 +762,7 @@ function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
   assertFrameworkCodexCarrierBoundary(
     manifest.package_optimization?.package_boundary_audit,
     "Full manifest package_optimization",
+    studio,
   );
   return {
     app_bundle_trim: {
@@ -769,10 +780,10 @@ function assertFullPackageOptimizationArtifacts(downloadDir, manifest) {
   };
 }
 
-function assertFrameworkCodexCarrierBoundary(boundary, label) {
+function assertFrameworkCodexCarrierBoundary(boundary, label, studio = false) {
   if (
-    boundary?.aioncore_codex_carrier_present !== true
-    || boundary?.aioncore_codex_only_projection_present !== true
+    boundary?.aioncore_codex_carrier_present !== !studio
+    || boundary?.aioncore_codex_only_projection_present !== !studio
     || boundary?.aioncore_claude_payload_absent !== true
     || boundary?.framework_codex_payload_absent !== true
   ) {
@@ -788,7 +799,13 @@ function assertFrameworkCodexCarrierBoundary(boundary, label) {
     "claude_distribution_cache_entry",
     "raw_producer_manifest",
   ];
-  if (
+  if (studio) {
+    if (projectionAudit?.schema !== 'opl_codex_native_carrier_audit.v1' || projectionAudit.runtime_count !== 0
+      || !Array.isArray(projectionAudit.runtimes) || projectionAudit.runtimes.length !== 0
+      || projectionAudit.projection_present !== false || projectionAudit.claude_payload_absent !== true) {
+      throw new Error(`${label} Studio native Codex carrier evidence is incomplete.`);
+    }
+  } else if (
     projectionAudit?.schema !== "opl_aioncore_codex_only_projection_audit.v1"
     || !Number.isSafeInteger(projectionAudit?.runtime_count)
     || projectionAudit.runtime_count < 1

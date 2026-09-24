@@ -275,6 +275,12 @@ jobs:
             find selected-platform-assets -type f -name '*.deb' -exec cp {} desktop-platform-assets/ \;
             test "$(find desktop-platform-assets -maxdepth 1 -type f | wc -l | tr -d ' ')" = 1
             test -f "desktop-platform-assets/One-Person-Lab-${VERSION}-linux-x64.deb"
+            if [ "$(node -p "require('./contracts/app-shell-adapter.json').active_shell")" = opl-studio ]; then
+              find selected-platform-assets -type f -name 'latest-linux.yml' -exec cp {} desktop-platform-assets/ \;
+              test "$(find desktop-platform-assets -maxdepth 1 -type f | wc -l | tr -d ' ')" = 2
+              node --experimental-strip-types scripts/validate-linux-updater-assets.ts \
+                --artifact-dir desktop-platform-assets --release-version "$VERSION" --updater-version "$UPDATER_VERSION"
+            fi
           else
             find selected-platform-assets -type f \
               \( -name '*.exe' -o -name '*.exe.blockmap' -o -name 'latest.yml' -o -name 'opl-windows-updater-assets.json' \) \

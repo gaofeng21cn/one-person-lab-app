@@ -18,7 +18,7 @@ function readContracts() {
     gui: readJson('contracts/app-gui-product-contract.json'),
     matrix: readJson('contracts/app-page-state-matrix.json'),
     profile: readJson('contracts/app-product-profile.json'),
-    adapter: readJson('contracts/app-shell-adapter.json'),
+    adapter: readJson('contracts/shell-adapters/aionui.json'),
   };
 }
 

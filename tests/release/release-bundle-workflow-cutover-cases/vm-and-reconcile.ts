@@ -91,13 +91,13 @@ test('first-run VM imports the frozen Shell harness through the exact source han
   };
   const checkout = handoffStep('Checkout exact active shell source for VM handoff');
   assert.equal(checkout.with.ref, '${{ steps.smoke_harness_ref.outputs.shell_sha }}');
-  assert.equal(checkout.with.path, '.opl-vm-source-checkouts/aionui');
+  assert.equal(checkout.with.path, '.opl-vm-source-checkouts/opl-studio');
   assert.equal(checkout.with['filter'], 'blob:limit=1m');
   assert.deepEqual(
     String(checkout.with['sparse-checkout']).trim().split('\n'),
     [
       '/scripts/',
-      '/packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json',
+      '/package.json',
     ],
   );
   assert.equal(checkout.with['sparse-checkout-cone-mode'], false);
@@ -119,7 +119,7 @@ test('first-run VM imports the frozen Shell harness through the exact source han
   assert.equal(stepIndex('Install active shell harness dependencies'), -1);
 
   const validate = step('Validate smoke scripts');
-  assert.match(String(validate.run), /await import\('\.\/shells\/aionui\/scripts\/opl-first-run-tart-smoke\.mjs'\)/);
+  assert.match(String(validate.run), /await import\('\.\/shells\/opl-studio\/scripts\/desktop\/stable-clean-vm\.mjs'\)/);
   assert.ok(stepIndex('Validate smoke scripts') < stepIndex('Run clean VM first launch smoke'));
   assert.doesNotMatch(source, /git -C shells\/aionui sparse-checkout set/);
   assert.doesNotMatch(source, /\b(?:npm install|npm i|bun install|bun add)\b/);
@@ -145,7 +145,7 @@ test('release-gate VM qualification never falls back from the exact candidate to
   assert.match(run, /exit 1/);
 });
 
-test('first-run VM validates both production Runtime refresh routes before writing qualification evidence', () => {
+test('first-run VM validates Studio production Runtime refresh before writing qualification evidence', () => {
   const workflow = parseWorkflow('opl-first-run-vm.yml');
   const steps = workflow.jobs['clean-vm-first-run'].steps as Array<Record<string, any>>;
   const stepIndex = (name: string) => steps.findIndex((step) => step.name === name);
@@ -158,8 +158,8 @@ test('first-run VM validates both production Runtime refresh routes before writi
     validation.if,
     "${{ steps.vm_smoke.outcome == 'success' && needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' }}",
   );
-  assert.match(String(validation.run), /validate-settings-smoke-runtime-evidence\.ts/);
-  assert.match(String(validation.run), /settings-smoke-summary\.json/);
+  assert.match(String(validation.run), /stable-smoke\.mjs/);
+  assert.match(String(validation.run), /--validate-runtime-evidence artifacts\/opl-first-run-vm\/artifacts\/smoke-summary\.json/);
   assert.match(String(validation.run), /settings-runtime-refresh-verification\.json/);
   assert.ok(stepIndex('Run clean VM first launch smoke') < validationIndex);
   const receiptIndex = stepIndex('Write exact-artifact qualification receipt');
@@ -322,7 +322,7 @@ test('release-gate Gateway credentials stay file-bound and are scanned before ar
   assert.match(String(preflight.run), /gateway-release-test-account-qualification\.json/);
   assert.ok(steps.indexOf(prepare) < steps.indexOf(preflight));
   assert.ok(steps.indexOf(preflight) < steps.indexOf(smoke));
-  assert.equal(smoke.env, undefined);
+  assert.deepEqual(smoke.env, { EXPECTED_TEAM_ID: '${{ secrets.TEAM_ID }}' });
   assert.doesNotMatch(String(smoke.run), /secrets\.OPL_GATEWAY|GATEWAY_ACCOUNT_(?:EMAIL|PASSWORD)/);
   assert.match(String(smoke.run), /--gateway-account-email-file/);
   assert.match(String(smoke.run), /--gateway-account-password-file/);
@@ -461,7 +461,8 @@ test('release VM does not invoke the model with the zero-balance test account', 
   const smoke = workflow.jobs['clean-vm-first-run'].steps.find(
     (step: { name?: string }) => step.name === 'Run clean VM first launch smoke',
   );
-  assert.match(String(smoke?.run), /CMD\+=\(--codex-functional-check\)/);
+  assert.match(String(smoke?.run), /scripts\/desktop\/stable-clean-vm\.mjs/);
+  assert.doesNotMatch(String(smoke?.run), /--require-codex-turn|--codex-turn-prompt|--codex-functional-check/);
   assert.doesNotMatch(String(smoke?.run), /CMD\+=\(--codex-ai-self-check\)/);
 });
 

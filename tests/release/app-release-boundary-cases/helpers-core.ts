@@ -14,7 +14,10 @@ export { assert, crypto, fs, os, path, spawnSync, deflateSync, test };
 export const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 export const require = createRequire(import.meta.url);
 export const externalShellRoot = process.env.OPL_APP_SHELL_ROOT?.trim() ? path.resolve(appRoot, process.env.OPL_APP_SHELL_ROOT) : null;
-export const activeShellRoot = externalShellRoot ?? path.join(appRoot, "shells", "aionui");
+export const activeShellRoot = externalShellRoot ?? path.join(appRoot, JSON.parse(fs.readFileSync(path.join(appRoot, "contracts/app-shell-adapter.json"), "utf8")).shell_root);
+export const legacyAionShellRoot = process.env.OPL_AIONUI_TEST_SHELL_ROOT?.trim()
+  ? path.resolve(appRoot, process.env.OPL_AIONUI_TEST_SHELL_ROOT)
+  : path.join(appRoot, "shells", "aionui");
 
 export function runNode(args, options = {}) {
   return spawnSync(process.execPath, ["--experimental-strip-types", ...args], {

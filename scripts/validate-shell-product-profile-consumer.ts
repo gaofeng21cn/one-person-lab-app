@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
 import { appProductProfilePath } from './app-product-profile/paths.ts';
 
@@ -24,6 +25,7 @@ type CommandResult = {
 export type ShellProductProfileConsumerOptions = {
   shellRoot: string;
   expectedShellSha: string;
+  shellId?: 'aionui' | 'opl-studio';
 };
 
 export type ShellProductProfileConsumerReport = {
@@ -31,7 +33,7 @@ export type ShellProductProfileConsumerReport = {
   status: 'passed';
   shell_sha: string;
   app_product_profile_sha256: string;
-  consumer_test: typeof consumerTestPath;
+  consumer_test: string;
   projection: 'temporary_exact_shell_archive';
   source_shell_mutated: false;
 };
@@ -40,7 +42,7 @@ function run(command: string, args: string[], cwd: string, timeoutMs = 120_000):
   const result = spawnSync(command, args, {
     cwd,
     encoding: 'utf8',
-    env: process.env,
+    env: { ...process.env, OPL_APP_REPO_ROOT: path.resolve(path.dirname(appProductProfilePath), '..') },
     timeout: timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
@@ -69,6 +71,8 @@ export function runShellProductProfileConsumerGate(
   options: ShellProductProfileConsumerOptions,
 ): ShellProductProfileConsumerReport {
   const shellRoot = fs.realpathSync(options.shellRoot);
+  const buildProfile = { ...readActiveShellBuildProfile(), ...(options.shellId ? { id: options.shellId } : {}) };
+  const consumerTest = buildProfile.id === 'opl-studio' ? 'scripts/validate-opl-studio-candidate.mjs' : consumerTestPath;
   const expectedShellSha = options.expectedShellSha.trim().toLowerCase();
   if (!fullShaPattern.test(expectedShellSha)) {
     throw new Error('Shell product-profile consumer gate requires a full expected Shell SHA.');
@@ -101,11 +105,12 @@ export function runShellProductProfileConsumerGate(
     if (!sync.synced || !sync.verified) {
       throw new Error('Current App product profile was not projected into the isolated Shell consumer.');
     }
-    const consumerBinary = path.join(temporaryRoot, 'node_modules', '.bin', 'vitest');
+    const consumerBinary = buildProfile.id === 'opl-studio'
+      ? process.execPath : path.join(temporaryRoot, 'node_modules', '.bin', 'vitest');
     if (!fs.existsSync(consumerBinary)) {
-      throw new Error('Frozen Shell consumer dependencies do not expose node_modules/.bin/vitest.');
+      throw new Error('Frozen Shell consumer dependencies do not expose the required consumer runner.');
     }
-    const consumer = run(consumerBinary, ['run', consumerTestPath], temporaryRoot);
+    const consumer = run(consumerBinary, buildProfile.id === 'opl-studio' ? [consumerTest] : ['run', consumerTest], temporaryRoot);
     if (consumer.status !== 0) {
       const detail = [consumer.stdout, consumer.stderr, consumer.error?.message].filter(Boolean).join('\n').trim();
       throw new Error(`Current App product profile failed the exact Shell consumer test${detail ? `:\n${detail}` : ''}`);
@@ -130,7 +135,7 @@ export function runShellProductProfileConsumerGate(
     status: 'passed',
     shell_sha: shellHead,
     app_product_profile_sha256: fileSha256(appProductProfilePath),
-    consumer_test: consumerTestPath,
+    consumer_test: consumerTest,
     projection: 'temporary_exact_shell_archive',
     source_shell_mutated: false,
   };

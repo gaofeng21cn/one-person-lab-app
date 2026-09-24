@@ -3,6 +3,7 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 import { assertAppRootBoundary } from './app-root-boundary.ts';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import {
@@ -53,12 +54,14 @@ export function resolveActiveShellEnvironment(
   env: NodeJS.ProcessEnv = process.env,
   repositoryRoot = appRoot,
 ): NodeJS.ProcessEnv {
+  const profile = readActiveShellBuildProfile(repositoryRoot);
   const releaseIconPath = env.OPL_APP_RELEASE_ICON_ICNS
-    || path.join(repositoryRoot, 'shells', 'aionui', 'resources', 'app.icns');
+    || path.join(repositoryRoot, profile.root, profile.id === 'opl-studio' ? 'assets/branding/opl-studio.icns' : 'resources/app.icns');
   const buildVersions = resolveOplBuildVersions(env);
   return {
     ...env,
     OPL_APP_REPO_ROOT: path.resolve(repositoryRoot),
+    OPL_DESKTOP_RELEASE_IDENTITY: profile.id === 'opl-studio' ? 'stable' : env.OPL_DESKTOP_RELEASE_IDENTITY,
     OPL_APP_RELEASE_ICON_ICNS: releaseIconPath,
     OPL_RELEASE_VERSION: buildVersions.displayVersion,
     OPL_UPDATER_VERSION: buildVersions.updaterVersion,

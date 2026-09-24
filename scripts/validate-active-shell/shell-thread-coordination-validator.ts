@@ -1,3 +1,4 @@
+import { validateStudioThreadCoordination } from './studio-implementation-validator.ts';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -24,6 +25,10 @@ const retiredPaths = [
 ];
 
 export function validateShellThreadCoordination(shellPaths): void {
+  if (shellPaths.contract.active_shell === 'opl-studio') {
+    validateStudioThreadCoordination(shellPaths);
+    return;
+  }
   if (shellPaths.contract?.shell_contract?.implementation_validation === 'contract_paths_only') {
     return;
   }

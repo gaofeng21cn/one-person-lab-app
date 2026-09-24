@@ -3,7 +3,7 @@ description: Checkout the active shell and prepare Node/Bun dependencies for App
 
 inputs:
   shell-ref:
-    description: opl-aion-shell ref to checkout for the active shell. Empty means main.
+    description: Active Shell ref to checkout for the active shell. Empty means main.
     required: false
     default: main
   fetch-depth:
@@ -11,7 +11,7 @@ inputs:
     required: false
     default: '1'
   install-dependencies:
-    description: Whether to run bun install in shells/aionui.
+    description: Whether to install the active Shell from its locked package manifest.
     required: false
     default: 'true'
   run-postinstall:
@@ -22,18 +22,32 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Resolve active Shell build profile
+      id: profile
+      shell: bash
+      run: node --experimental-strip-types scripts/active-shell-build-profile.ts --github-output "$GITHUB_OUTPUT"
+
     - name: Checkout active shell
       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       with:
-        repository: gaofeng21cn/opl-aion-shell
+        repository: ${{ steps.profile.outputs.shell_repository }}
         ref: ${{ inputs.shell-ref || 'main' }}
-        path: shells/aionui
+        path: ${{ steps.profile.outputs.shell_root }}
         fetch-depth: ${{ inputs.fetch-depth }}
+
+    - name: Checkout frozen legacy upgrade and regression source
+      if: ${{ steps.profile.outputs.shell_id == 'opl-studio' }}
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      with:
+        repository: gaofeng21cn/opl-aion-shell
+        ref: 7f574278c1076545f7a7e6a3f06babc40f3a3a15
+        path: shells/aionui
+        fetch-depth: 1
 
     - name: Setup Node.js
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
       with:
-        node-version: '22'
+        node-version: '24'
 
     - name: Setup bun
       uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
@@ -46,7 +60,7 @@ runs:
       uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
       with:
         path: ~/.bun/install/cache
-        key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
+        key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('{0}/package.json', steps.profile.outputs.shell_root), format('{0}/{1}', steps.profile.outputs.shell_root, steps.profile.outputs.package_lock)) }}
         restore-keys: |
           bun-install-${{ runner.os }}-${{ runner.arch }}-
           bun-install-${{ runner.os }}-
@@ -54,13 +68,18 @@ runs:
     - name: Install dependencies
       if: ${{ inputs.install-dependencies == 'true' }}
       shell: bash
-      working-directory: shells/aionui
-      run: bun install --frozen-lockfile
+      working-directory: ${{ steps.profile.outputs.shell_root }}
+      run: |
+        if [ '${{ steps.profile.outputs.package_manager }}' = npm ]; then
+          npm ci
+        else
+          bun install --frozen-lockfile
+        fi
 
     - name: Run postinstall
-      if: ${{ inputs.install-dependencies == 'true' && inputs.run-postinstall == 'true' }}
+      if: ${{ inputs.install-dependencies == 'true' && inputs.run-postinstall == 'true' && steps.profile.outputs.shell_id == 'aionui' }}
       shell: bash
-      working-directory: shells/aionui
+      working-directory: ${{ steps.profile.outputs.shell_root }}
       run: bun run postinstall || true
 
     - name: Save Bun install cache
@@ -68,4 +87,4 @@ runs:
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
       with:
         path: ~/.bun/install/cache
-        key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
+        key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('{0}/package.json', steps.profile.outputs.shell_root), format('{0}/{1}', steps.profile.outputs.shell_root, steps.profile.outputs.package_lock)) }}

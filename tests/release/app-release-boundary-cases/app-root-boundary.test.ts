@@ -25,7 +25,7 @@ const requiredScripts = {
   'release:bind-standard': 'node --experimental-strip-types scripts/bind-standard-release-track.ts',
   'release:historical-candidate-record:status': 'node --experimental-strip-types scripts/validate-release-candidate-record.ts --status',
   'release:historical-bundle:status': 'node --experimental-strip-types scripts/release-bundle.ts status',
-  'build-mac:arm64': 'node --experimental-strip-types scripts/prepare-standard-release-payload.ts && node --experimental-strip-types scripts/run-active-shell-command.ts bun run build-mac:arm64',
+  'build-mac:arm64': 'node --experimental-strip-types scripts/prepare-standard-release-payload.ts && node --experimental-strip-types scripts/run-active-shell-command.ts npm run build-mac:arm64',
 };
 
 function writeRootPackage(root: string, overrides = {}): void {
@@ -103,7 +103,9 @@ test('active-shell wrapper binds each display channel to its canonical updater m
 });
 
 test('active-shell wrapper binds Shell contract reads to the current App worktree', () => {
-  const repositoryRoot = path.join(os.tmpdir(), 'opl-app-current-worktree');
+  const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-app-current-worktree-'));
+  fs.mkdirSync(path.join(repositoryRoot, 'contracts'));
+  fs.copyFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), path.join(repositoryRoot, 'contracts/app-shell-adapter.json'));
   const environment = resolveActiveShellEnvironment(
     { OPL_RELEASE_VERSION: '26.8.19', OPL_APP_REPO_ROOT: '/stale/app/root' },
     repositoryRoot,
@@ -111,7 +113,7 @@ test('active-shell wrapper binds Shell contract reads to the current App worktre
   assert.equal(environment.OPL_APP_REPO_ROOT, path.resolve(repositoryRoot));
   assert.equal(
     environment.OPL_APP_RELEASE_ICON_ICNS,
-    path.join(path.resolve(repositoryRoot), 'shells', 'aionui', 'resources', 'app.icns'),
+    path.join(path.resolve(repositoryRoot), 'shells', 'opl-studio', 'assets', 'branding', 'opl-studio.icns'),
   );
 });
 
@@ -135,7 +137,8 @@ test('App verification owns one parallel release plan and one full shell executi
 
   const adapter = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts', 'app-shell-adapter.json'), 'utf8'));
   assert.equal(
-    adapter.validation_commands.filter((entry: { command?: string }) => entry.command === 'bun run test:full').length,
+    adapter.validation_commands.filter((entry: { command?: string }) => entry.command === 'npm run test:node-suite').length,
     1,
   );
+  assert.equal(adapter.validation_commands.filter((entry: { command?: string }) => entry.command === 'npm run test:bun-suites').length, 1);
 });

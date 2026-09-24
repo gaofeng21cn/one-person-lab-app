@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readActiveShellBuildProfile } from '../active-shell-build-profile.ts';
 import { assertDeepEqualJson } from '../validate-active-shell/assertions.ts';
 import type {
   ShellCandidateRegistry,
@@ -24,14 +25,15 @@ export function validateRegistryShape(registry: ShellCandidateRegistry): void {
   if (registry.state !== 'active_gui_route_policy') {
     throw new Error(`Unexpected candidate registry state: ${registry.state}`);
   }
-  if (registry.active_shell_unchanged !== 'aionui') {
-    throw new Error('candidate registry must not change active shell away from aionui');
+  const activeBuild = readActiveShellBuildProfile(root);
+  if (registry.active_shell_unchanged !== activeBuild.id) {
+    throw new Error('candidate registry must match the App-selected active Shell');
   }
   const mainline = registry.active_gui_mainline;
   if (
-    mainline?.shell !== 'aionui' ||
-    mainline.shell_root !== 'shells/aionui' ||
-    mainline.source_repo !== 'gaofeng21cn/opl-aion-shell' ||
+    mainline?.shell !== activeBuild.id ||
+    mainline.shell_root !== activeBuild.root ||
+    mainline.source_repo !== activeBuild.repository ||
     mainline.role !== 'stable_app_gui_mainline' ||
     mainline.product_truth_owner !== 'one-person-lab-app'
   ) {
@@ -130,13 +132,13 @@ export function validateRegistryShape(registry: ShellCandidateRegistry): void {
 export function validateShellTransitionPolicy(policy: ShellTransitionPolicy): void {
   if (
     policy?.schema !== 'opl_app_shell_transition_policy.v1'
-    || policy.state !== 'planned_not_authorized'
+    || !['planned_not_authorized', 'authorized_implementation_in_progress'].includes(policy.state)
     || policy.authority_owner !== 'one-person-lab-app'
     || policy.initial_carrier !== 'macos_arm64'
     || policy.current_active_shell !== 'aionui'
     || policy.current_candidate_shell !== 'opl-studio'
     || policy.target_active_shell !== 'opl-studio'
-    || policy.execution_requires_separate_authorization !== true
+    || policy.execution_requires_separate_authorization !== (policy.state === 'planned_not_authorized')
   ) {
     throw new Error('shell transition policy must remain an App-owned, non-authorized macOS plan from AionUI to OPL Studio');
   }
@@ -310,7 +312,7 @@ function validateInteractiveLauncherPolicy(registry: ShellCandidateRegistry): vo
   }
   const activeShell = registry.active_gui_mainline?.shell;
   const foregroundShell = registry.alternative_gui_policy?.only_foreground_alternative;
-  const expectedShells = [activeShell, foregroundShell];
+  const expectedShells = ['aionui', 'opl-studio'];
   const selectableShells = launcher?.selectable_shells ?? [];
   if (
     !activeShell ||
@@ -669,10 +671,11 @@ export function validateActiveShellUnaffected(): void {
   }>(runtimeBridgePath);
   const guiContract = readJson<{ active_shell: string; implementation_carrier: string }>(guiContractPath);
 
-  if (activeAdapter.active_shell !== 'aionui' || activeAdapter.shell_root !== 'shells/aionui') {
+  const activeBuild = readActiveShellBuildProfile(root);
+  if (activeAdapter.active_shell !== activeBuild.id || activeAdapter.shell_root !== activeBuild.root) {
     throw new Error('active shell adapter must remain aionui at shells/aionui');
   }
-  if (activeAdapter.shell_source.owner_repo !== 'gaofeng21cn/opl-aion-shell') {
+  if (activeAdapter.shell_source.owner_repo !== activeBuild.repository) {
     throw new Error('active release shell source must remain gaofeng21cn/opl-aion-shell');
   }
   if (activeAdapter.release_role !== 'stable_app_shell') {
@@ -685,7 +688,7 @@ export function validateActiveShellUnaffected(): void {
   ) {
     throw new Error('runtime bridge default adapter must continue matching the active shell adapter');
   }
-  if (guiContract.active_shell !== activeAdapter.active_shell || guiContract.implementation_carrier !== 'opl-aion-shell') {
+  if (guiContract.active_shell !== activeAdapter.active_shell || guiContract.implementation_carrier !== activeBuild.repository.split('/')[1]) {
     throw new Error('GUI product contract must still point at the active AionUI implementation carrier');
   }
 }

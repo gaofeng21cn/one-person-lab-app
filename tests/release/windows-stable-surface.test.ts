@@ -29,7 +29,7 @@ test('manual Windows builds are build-only while Windows x64 Stable uses the sam
     [{
       platform: 'windows-x64',
       os: 'windows-latest',
-      command: 'node scripts/build-with-builder.js x64 --win --x64',
+      command: 'node scripts/desktop/build-release.mjs --platform win32 --arch x64',
       'artifact-name': 'windows-build-x64',
       arch: 'x64',
     }],
@@ -185,9 +185,9 @@ test('ordinary Desktop install docs use Latest URLs instead of fixed release ver
   }
 });
 
-test('packaged installation-integrity recovery remains bounded and readback-based', () => {
+test('legacy AionUI packaged installation-integrity recovery remains bounded and readback-based', () => {
   const adapter = JSON.parse(
-    fs.readFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), 'utf8'),
+    fs.readFileSync(path.join(appRoot, 'contracts/shell-adapters/aionui.json'), 'utf8'),
   );
   const recovery = adapter.startup_installation_integrity_recovery;
 

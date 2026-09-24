@@ -834,8 +834,8 @@ function assertAdapterContractIdentity(contract: ShellAdapterContract, options: 
   }
   const adapterIdentity = resolveShellAdapterIdentity(contract);
   if (!options.explicitOverride) {
-    if (contract.active_shell !== 'aionui' || adapterIdentity !== 'aionui') {
-      throw new Error(`Default active shell adapter must remain aionui: ${adapterIdentity}`);
+    if (!['aionui', 'opl-studio'].includes(contract.active_shell ?? '') || adapterIdentity !== contract.active_shell) {
+      throw new Error(`Default active shell adapter identity is invalid: ${adapterIdentity}`);
     }
     if (contract.candidate_shell || contract.adapter_id || contract.adapter_role) {
       throw new Error('Default active shell adapter must not declare foreground candidate identity');

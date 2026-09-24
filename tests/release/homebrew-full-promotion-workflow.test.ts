@@ -293,12 +293,12 @@ test('append_full resume recognizes only exact GitHub Full or Full Cask unknown 
   assert.doesNotMatch(reconcileRun, /github-inspect[\s\S]*outcome=complete/);
 });
 
-test('VM harness retains an isolated Full Homebrew probe outside the publication DAG', () => {
+test('Studio VM fails closed for an unsupported Full Homebrew installation outside the publication DAG', () => {
   const source = read('opl-first-run-vm.yml');
   assert.match(source, /homebrew_candidate_artifact/);
   assert.match(source, /package_profile=homebrew-full requires an exact pre-publication Cask artifact/);
-  assert.match(source, /--smoke-profile homebrew-full-cask/);
-  assert.match(source, /--homebrew-cask-file/);
-  assert.match(source, /oplProductProfile\/oplProductProfile\.generated\.json/);
+  assert.match(source, /Studio Homebrew VM qualification requires a dedicated Cask installation harness/);
+  assert.match(source, /install_mode \}\}" = dmg/);
+  assert.match(source, /--product-profile "\$\{\{ github\.workspace \}\}\/contracts\/app-product-profile\.json"/);
   assert.match(source, /inputs\.package_profile != 'homebrew-full'/);
 });

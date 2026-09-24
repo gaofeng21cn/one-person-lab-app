@@ -4,7 +4,7 @@ import { validateProductProfile } from '../../../scripts/validate-active-shell/p
 import { assert, fs, path, test, appRoot } from './helpers.ts';
 
 function readContract() {
-  return JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts', 'app-shell-adapter.json'), 'utf8'));
+  return JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts', 'shell-adapters', 'aionui.json'), 'utf8'));
 }
 
 function readJson(relativePath: string) {

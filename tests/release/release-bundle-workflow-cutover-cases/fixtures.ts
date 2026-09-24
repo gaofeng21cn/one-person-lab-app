@@ -120,6 +120,8 @@ export function gitFixture(root: string, name: string) {
 export function adapterFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-adapter-'));
   const appRoot = gitFixture(root, 'app');
+  fs.mkdirSync(path.join(appRoot, 'contracts'), { recursive: true });
+  fs.copyFileSync(path.join(process.cwd(), 'contracts/app-shell-adapter.json'), path.join(appRoot, 'contracts/app-shell-adapter.json'));
   const shellRoot = gitFixture(root, 'shell');
   const frameworkRoot = gitFixture(root, 'framework');
   const notesPath = path.join(root, 'notes.md');

@@ -272,7 +272,10 @@ export function createGuiLaunchPlan(options: {
   const profiles = validateLauncherContracts(registry, activeAdapter);
   const shell = options.args.shell ?? activeAdapter.active_shell;
   assertGuiShell(shell);
-  const profile = profiles[shell];
+  const activeStudioDefault = !options.args.shell && activeAdapter.active_shell === 'opl-studio';
+  const profile: LaunchProfile = activeStudioDefault
+    ? { adapter_contract: 'contracts/app-shell-adapter.json', default_mode: 'packaged', supported_modes: ['packaged', 'dev'], bundle_id: 'cn.onepersonlab.opl', packaged_app_path: '/Applications/One Person Lab.app', dev_command: ['npm', 'run', 'dev:desktop'] }
+    : profiles[shell];
   const mode = options.args.mode ?? profile.default_mode;
   if (!profile.supported_modes.includes(mode)) {
     throw new Error(`GUI shell ${shell} does not support ${mode} mode`);
@@ -298,7 +301,7 @@ export function createGuiLaunchPlan(options: {
     }
     [executable, ...commandArgs] = profile.dev_command;
     commandCwd = shellRoot;
-  } else if (shell === 'aionui') {
+  } else if (shell === 'aionui' || activeStudioDefault) {
     appPath = profile.packaged_app_path ?? null;
     if (!appPath || !fs.existsSync(appPath)) {
       throw new Error(`Installed mainline GUI is missing at ${appPath ?? 'an unspecified path'}`);
@@ -343,7 +346,7 @@ export function createGuiLaunchPlan(options: {
     build_required: buildRequired,
     rebuild_requested: options.args.rebuild,
     workspace,
-    candidate_actions: shell === 'opl-studio'
+    candidate_actions: shell === 'opl-studio' && !activeStudioDefault
       ? (options.args.allowActions ? 'explicitly_allowed' : 'dry_run_only')
       : 'not_applicable',
     runtime_identity: runtimeIdentity,

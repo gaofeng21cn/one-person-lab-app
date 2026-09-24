@@ -16,7 +16,7 @@ on:
         type: string
         default: ''
       shell_ref:
-        description: 'opl-aion-shell ref to checkout for the active shell. Empty means main.'
+        description: 'Active Shell ref to checkout for the active shell. Empty means main.'
         type: string
         default: main
       framework_ref:
@@ -91,19 +91,35 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       shell_sha: ${{ steps.resolve.outputs.shell_sha }}
+      shell_id: ${{ steps.profile.outputs.shell_id }}
+      shell_repository: ${{ steps.profile.outputs.shell_repository }}
+      shell_root: ${{ steps.profile.outputs.shell_root }}
+      package_manager: ${{ steps.profile.outputs.package_manager }}
+      package_lock: ${{ steps.profile.outputs.package_lock }}
+      builder_config: ${{ steps.profile.outputs.builder_config }}
+      smoke_harness: ${{ steps.profile.outputs.smoke_harness }}
     steps:
+      - name: Checkout requested App build authority
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Resolve active Shell build profile
+        id: profile
+        run: node --experimental-strip-types scripts/active-shell-build-profile.ts --github-output "$GITHUB_OUTPUT"
+
       - name: Checkout requested active shell ref
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ steps.profile.outputs.shell_repository }}
           ref: ${{ inputs.shell_ref || 'main' }}
-          path: shells/aionui
+          path: ${{ steps.profile.outputs.shell_root }}
           fetch-depth: 1
 
       - name: Export immutable active Shell SHA
         id: resolve
         shell: bash
-        working-directory: shells/aionui
+        working-directory: ${{ steps.profile.outputs.shell_root }}
         run: |
           set -euo pipefail
           shell_sha="$(git rev-parse HEAD)"
@@ -145,7 +161,7 @@ jobs:
     if: ${{ !inputs.skip_code_quality }}
     defaults:
       run:
-        working-directory: shells/aionui
+        working-directory: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
 
     steps:
       - name: Checkout App repo
@@ -158,11 +174,18 @@ jobs:
         with:
           shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
 
-      - name: Run ESLint
-        run: bun run lint
-
-      - name: Check Prettier formatting
-        run: bun run format:check
+      - name: Run active Shell source checks
+        shell: bash
+        run: |
+          if [ '${{ needs.resolve-active-shell-ref.outputs.shell_id }}' = opl-studio ]; then
+            npm run typecheck
+            npm run validate:candidate
+          else
+            bun run lint
+            bun run format:check
+          fi
+        env:
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}
 
   typecheck:
     name: TypeScript type check
@@ -195,9 +218,11 @@ jobs:
         with:
           shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
 
-      - name: TypeScript type check (AionUI shell)
-        working-directory: shells/aionui
-        run: bunx tsc --noEmit
+      - name: TypeScript type check (active Shell)
+        working-directory: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
+        shell: bash
+        run: |
+          if [ '${{ needs.resolve-active-shell-ref.outputs.shell_id }}' = opl-studio ]; then npm run typecheck; else bunx tsc --noEmit; fi
 
   release-boundary:
     name: App release-boundary tests
@@ -259,7 +284,7 @@ jobs:
     name: Prepare Windows Linux runtime
     runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
-    if: ${{ contains(inputs.matrix, 'windows') }}
+    if: ${{ contains(inputs.matrix, 'windows') && needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' }}
 
     steps:
       - name: Checkout App repo
@@ -270,9 +295,9 @@ jobs:
       - name: Checkout active shell
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ needs.resolve-active-shell-ref.outputs.shell_repository }}
           ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
-          path: shells/aionui
+          path: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -284,7 +309,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           node --experimental-strip-types scripts/bind-windows-framework-manifest.ts \
-            --manifest shells/aionui/resources/opl-linux/product.json \
+            --manifest ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/resources/opl-linux/product.json \
             --framework-ref "${{ inputs.framework_ref }}"
 
       - name: Prepare target-executed Linux runtime
@@ -295,12 +320,12 @@ jobs:
           const path = require('node:path');
           const {
             prepareAioncore,
-          } = require('./shells/aionui/packages/shared-scripts/src/prepare-aioncore.js');
+          } = require('./${{ needs.resolve-active-shell-ref.outputs.shell_root }}/packages/shared-scripts/src/prepare-aioncore.js');
           const {
             resolveAioncoreVersion,
-          } = require('./shells/aionui/scripts/resolveAioncoreVersion.js');
+          } = require('./${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/resolveAioncoreVersion.js');
 
-          const projectRoot = path.resolve('shells/aionui');
+          const projectRoot = path.resolve('${{ needs.resolve-active-shell-ref.outputs.shell_root }}');
           prepareAioncore({
             projectRoot,
             platform: 'linux',
@@ -314,7 +339,35 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: opl-windows-linux-runtime-${{ github.run_id }}
-          path: shells/aionui/resources/bundled-aioncore/linux-x64
+          path: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/resources/bundled-aioncore/linux-x64
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+
+  prepare-studio-wsl-host:
+    name: Prepare Studio Windows guest Host
+    runs-on: ubuntu-latest
+    needs: [resolve-active-shell-ref]
+    if: ${{ contains(inputs.matrix, 'windows') && needs.resolve-active-shell-ref.outputs.shell_id == 'opl-studio' }}
+    steps:
+      - name: Checkout frozen Studio guest Host source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ needs.resolve-active-shell-ref.outputs.shell_repository }}
+          ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
+      - name: Setup Linux Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Build and execute Linux production Host closure
+        env:
+          OPL_SHELL_SOURCE_REF: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
+        run: node scripts/desktop/prepare-wsl-host-payload.mjs
+      - name: Upload qualified Linux guest Host
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-wsl-host-${{ github.run_id }}
+          path: resources/opl-wsl-host
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 7
@@ -374,12 +427,13 @@ jobs:
     # Build isolated artifacts while source checks run; build-summary joins all gates.
     needs:
       - prepare-windows-linux-runtime
+      - prepare-studio-wsl-host
       - macos-signing-preflight
       - resolve-active-shell-ref
-    if: ${{ !cancelled() && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') }}
+    if: ${{ !cancelled() && needs['resolve-active-shell-ref'].result == 'success' && (needs['prepare-windows-linux-runtime'].result == 'success' || needs['prepare-windows-linux-runtime'].result == 'skipped') && (needs['prepare-studio-wsl-host'].result == 'success' || needs['prepare-studio-wsl-host'].result == 'skipped') && (needs['macos-signing-preflight'].result == 'success' || needs['macos-signing-preflight'].result == 'skipped') }}
     defaults:
       run:
-        working-directory: shells/aionui
+        working-directory: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
 
     outputs:
       commit-short: ${{ steps.commit.outputs.short }}
@@ -450,12 +504,26 @@ jobs:
       - name: Checkout active shell
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ needs.resolve-active-shell-ref.outputs.shell_repository }}
           ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
-          path: shells/aionui
+          path: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
+
+      - name: Download qualified Studio Linux guest Host
+        if: startsWith(matrix.platform, 'windows') && needs.resolve-active-shell-ref.outputs.shell_id == 'opl-studio'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: opl-studio-wsl-host-${{ github.run_id }}
+          path: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/resources/opl-wsl-host
+
+      - name: Validate frozen Studio Linux guest Host
+        if: startsWith(matrix.platform, 'windows') && needs.resolve-active-shell-ref.outputs.shell_id == 'opl-studio'
+        shell: bash
+        env:
+          OPL_SHELL_SOURCE_REF: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
+        run: node scripts/desktop/prepare-wsl-host-payload.mjs --validate resources/opl-wsl-host
 
       - name: Download target-executed Linux runtime
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: opl-windows-linux-runtime-${{ github.run_id }}
@@ -581,7 +649,7 @@ jobs:
             ~/.cache/electron
             ~/.cache/electron-builder
             ${{ env.LOCALAPPDATA }}\electron-builder\Cache
-          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
+          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles(format('{0}/package.json', needs.resolve-active-shell-ref.outputs.shell_root), format('{0}/{1}', needs.resolve-active-shell-ref.outputs.shell_root, needs.resolve-active-shell-ref.outputs.package_lock)) }}
           restore-keys: |
             electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
             electron-cache-${{ matrix.platform }}-
@@ -592,7 +660,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
+          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('{0}/package.json', needs.resolve-active-shell-ref.outputs.shell_root), format('{0}/{1}', needs.resolve-active-shell-ref.outputs.shell_root, needs.resolve-active-shell-ref.outputs.package_lock)) }}
           restore-keys: |
             bun-install-${{ runner.os }}-${{ runner.arch }}-
             bun-install-${{ runner.os }}-
@@ -608,13 +676,14 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: bun install --cwd shells/aionui --frozen-lockfile
+          command: ${{ needs.resolve-active-shell-ref.outputs.package_manager == 'npm' && format('npm ci --prefix {0}', needs.resolve-active-shell-ref.outputs.shell_root) || format('bun install --cwd {0} --frozen-lockfile', needs.resolve-active-shell-ref.outputs.shell_root) }}
 
       - name: Install App release tooling dependencies
         working-directory: ${{ github.workspace }}
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Run postinstall
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' }}
         run: bun run postinstall || true
 
       - name: Prepare standard App payload
@@ -625,24 +694,32 @@ jobs:
         run: node --experimental-strip-types scripts/prepare-standard-release-payload.ts
 
       - name: Bind Windows Framework manifest
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
           node --experimental-strip-types scripts/bind-windows-framework-manifest.ts \
-            --manifest shells/aionui/resources/opl-linux/product.json \
+            --manifest ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/resources/opl-linux/product.json \
             --framework-ref "${{ inputs.framework_ref }}"
 
       - name: Validate synced App product profile consumer
-        working-directory: shells/aionui
-        run: bunx vitest run tests/unit/common-config/oplProductProfile.test.ts
+        working-directory: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
+        shell: bash
+        env:
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}
+        run: |
+          if [ '${{ needs.resolve-active-shell-ref.outputs.shell_id }}' = opl-studio ]; then
+            npm run validate:candidate
+          else
+            bunx vitest run tests/unit/common-config/oplProductProfile.test.ts
+          fi
 
       - name: Setup Windows native dependencies (Windows only)
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         run: bun install --global node-gyp
 
       - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
-        if: matrix.platform == 'windows-arm64'
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (matrix.platform == 'windows-arm64') }}
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 20
@@ -653,20 +730,20 @@ jobs:
             choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
 
       - name: Setup Windows build environment (Windows only)
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         shell: pwsh
         run: |
           Write-Host "Setting Windows SDK version for ConPty support"
           "WindowsTargetPlatformVersion=10.0.19041.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup MSBuild (Windows only)
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
         with:
           vs-version: '17.0'
 
       - name: Rebuild native modules for Electron
-        if: "!startsWith(matrix.platform, 'windows')"
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (!startsWith(matrix.platform, 'windows')) }}
         run: bunx electron-builder install-app-deps
         env:
           npm_config_runtime: electron
@@ -731,7 +808,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
       - name: Rebuild native modules for Electron (Windows)
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && startsWith(matrix.platform, 'windows') }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -777,7 +854,7 @@ jobs:
           GYP_MSVS_VERSION: 2022
 
       - name: Build Windows Vite bundles with the configured Node runtime
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         timeout-minutes: 5
         shell: pwsh
         run: |
@@ -797,7 +874,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $Command = $env:WINDOWS_BUILD_COMMAND + ' --skip-vite'
+          $Command = $env:WINDOWS_BUILD_COMMAND
+          if ('${{ needs.resolve-active-shell-ref.outputs.shell_id }}' -eq 'aionui') { $Command += ' --skip-vite' }
           if ($env:OPL_REQUIRE_WINDOWS_UPDATER_ASSETS -eq 'true') {
             if ('${{ matrix.platform }}' -ne 'windows-x64') {
               throw 'Windows updater assets are supported only for windows-x64.'
@@ -811,6 +889,7 @@ jobs:
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           OPL_REQUIRE_WINDOWS_UPDATER_ASSETS: ${{ inputs.require_windows_updater_assets }}
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}
           AIONUI_PREPARED_AIONCORE_RUNTIME_DIR: ${{ runner.temp }}/opl-windows-linux-runtime
           NODE_OPTIONS: '--max-old-space-size=8192'
           npm_config_arch: ${{ matrix.native_arch || matrix.arch }}
@@ -842,10 +921,10 @@ jobs:
         run: |
           set -euo pipefail
           node --experimental-strip-types scripts/validate-windows-updater-assets.ts \
-            --artifact-dir shells/aionui/out \
+            --artifact-dir ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out \
             --release-version "$OPL_RELEASE_VERSION" \
             --updater-version "$OPL_UPDATER_VERSION" \
-            --output shells/aionui/out/opl-windows-updater-assets.json
+            --output ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/opl-windows-updater-assets.json
 
       - name: Verify timestamped Windows Authenticode signature
         if: matrix.platform == 'windows-x64' && inputs.require_windows_authenticode
@@ -857,7 +936,7 @@ jobs:
             throw 'Windows Authenticode verification requires the exact updater asset gate.'
           }
           $installerName = "One-Person-Lab-$env:OPL_RELEASE_VERSION-win-x64.exe"
-          $installers = @(Get-ChildItem -LiteralPath 'shells/aionui/out' -Filter $installerName -File)
+          $installers = @(Get-ChildItem -LiteralPath '${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out' -Filter $installerName -File)
           if ($installers.Count -ne 1) {
             throw "Expected exactly one Windows x64 installer named $installerName."
           }
@@ -897,12 +976,12 @@ jobs:
           [System.IO.File]::WriteAllText($output, $json, [System.Text.UTF8Encoding]::new($false))
 
       - name: Bind packaged Windows Framework manifest
-        if: startsWith(matrix.platform, 'windows')
+        if: ${{ needs.resolve-active-shell-ref.outputs.shell_id == 'aionui' && (startsWith(matrix.platform, 'windows')) }}
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
           node --experimental-strip-types scripts/bind-windows-framework-manifest.ts \
-            --manifest shells/aionui/out/win-unpacked/resources/opl-linux/product.json \
+            --manifest ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/win-unpacked/resources/opl-linux/product.json \
             --framework-ref "${{ inputs.framework_ref }}"
 
       # Clean up any stale disk images before DMG creation (macOS only)
@@ -1062,6 +1141,7 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OPL_REQUIRE_MACOS_GATEKEEPER: ${{ inputs.require_macos_gatekeeper }}
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}
 
       - name: Verify signed macOS App before distributable finalization
         if: startsWith(matrix.platform, 'macos') && inputs.require_macos_gatekeeper
@@ -1073,13 +1153,12 @@ jobs:
             find out -maxdepth 2 -type d -name 'One Person Lab.app' -print | LC_ALL=C sort
           )
           if [ "${#app_paths[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one packaged One Person Lab.app bundle under shells/aionui/out; found ${#app_paths[@]}."
+            echo "::error::Expected exactly one packaged One Person Lab.app bundle under ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out; found ${#app_paths[@]}."
             exit 1
           fi
           app_path="${app_paths[0]}"
           test -d "$app_path" && test ! -L "$app_path"
           codesign --verify --deep --strict --verbose=2 "$app_path"
-          spctl --assess --type execute --verbose=4 "$app_path"
 
       - name: Write macOS Stable local authorization policy
         if: startsWith(matrix.platform, 'macos') && !inputs.require_macos_gatekeeper
@@ -1091,7 +1170,7 @@ jobs:
             find out -maxdepth 2 -type d -name 'One Person Lab.app' -print | LC_ALL=C sort
           )
           if [ "${#app_paths[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one packaged One Person Lab.app bundle under shells/aionui/out; found ${#app_paths[@]}."
+            echo "::error::Expected exactly one packaged One Person Lab.app bundle under ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out; found ${#app_paths[@]}."
             exit 1
           fi
           app_path="${app_paths[0]}"
@@ -1128,7 +1207,7 @@ jobs:
 
           echo "::warning title=Missing standard updater ZIP::${expected_zip} was not produced by the primary macOS build; rebuilding macOS dmg+zip updater targets from ${app_path}."
           bunx electron-builder \
-            --config packages/desktop/electron-builder.yml \
+            --config ${{ needs.resolve-active-shell-ref.outputs.builder_config }} \
             --mac dmg zip \
             "--${target_arch}" \
             --prepackaged "$app_path" \
@@ -1176,7 +1255,7 @@ jobs:
         run: |
           set -euo pipefail
           target_arch="${{ matrix.native_arch || matrix.arch }}"
-          dmg_path="shells/aionui/out/One-Person-Lab-${OPL_RELEASE_VERSION}-mac-${target_arch}.dmg"
+          dmg_path="${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/One-Person-Lab-${OPL_RELEASE_VERSION}-mac-${target_arch}.dmg"
           test -f "$dmg_path"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -d user -s build.keychain
@@ -1187,10 +1266,10 @@ jobs:
           }
           node --experimental-strip-types scripts/notarize-macos-dmg.ts \
             --dmg "$dmg_path" \
-            --output shells/aionui/out/standard-apple-notarization-receipt.json
+            --output ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json
           node --experimental-strip-types scripts/update-electron-updater-metadata.ts \
             --artifact "$dmg_path" \
-            --metadata-dir shells/aionui/out
+            --metadata-dir ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out
 
       - name: Verify Standard final distribution trust
         if: startsWith(matrix.platform, 'macos') && inputs.require_macos_gatekeeper
@@ -1201,9 +1280,16 @@ jobs:
         run: |
           set -euo pipefail
           target_arch="${{ matrix.native_arch || matrix.arch }}"
-          dmg_path="shells/aionui/out/One-Person-Lab-${OPL_RELEASE_VERSION}-mac-${target_arch}.dmg"
-          receipt="shells/aionui/out/standard-apple-notarization-receipt.json"
+          dmg_path="${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/One-Person-Lab-${OPL_RELEASE_VERSION}-mac-${target_arch}.dmg"
+          receipt="${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json"
           test -f "$dmg_path" && test -f "$receipt"
+          app_paths=()
+          while IFS= read -r candidate; do app_paths+=("$candidate"); done < <(
+            find '${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out' -maxdepth 2 -type d -name 'One Person Lab.app' -print | LC_ALL=C sort
+          )
+          test "${#app_paths[@]}" -eq 1
+          app_path="${app_paths[0]}"
+          spctl --assess --type execute --verbose=4 "$app_path"
           codesign --verify --strict --verbose=2 "$dmg_path"
           xcrun stapler validate "$dmg_path"
           spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
@@ -1223,7 +1309,7 @@ jobs:
           const fs = require('node:fs');
           const receiptPath = process.argv[2];
           const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
-          fs.writeFileSync('shells/aionui/out/standard-gatekeeper-launch-policy.json', `${JSON.stringify({
+          fs.writeFileSync('${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-gatekeeper-launch-policy.json', `${JSON.stringify({
             schema: 'opl_gatekeeper_launch_policy.v1',
             package_kind: 'app_standard',
             distribution_mode: 'developer_id_notarized',
@@ -1247,7 +1333,7 @@ jobs:
           timeout_minutes: 60
           max_attempts: 2
           retry_wait_seconds: 60
-          command: cd shells/aionui && ${{ matrix.command }}
+          command: cd ${{ needs.resolve-active-shell-ref.outputs.shell_root }} && ${{ matrix.command }}
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
           npm_config_arch: ${{ matrix.native_arch || matrix.arch }}
@@ -1262,10 +1348,21 @@ jobs:
           npm_config_target_arch: ${{ matrix.native_arch || matrix.arch }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          OPL_APP_REPO_ROOT: ${{ github.workspace }}
 
-      - name: Verify packaged bundled bun assets
+      - name: Verify packaged active Shell assets
         working-directory: ${{ github.workspace }}
-        run: bun run validate:opl-package
+        shell: bash
+        run: |
+          if [ '${{ needs.resolve-active-shell-ref.outputs.shell_id }}' = opl-studio ]; then
+            node ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/validate-desktop-package.mjs --distribution --identity stable --version "$OPL_RELEASE_VERSION"
+            if [ "${{ runner.os }}" = macOS ] && [ "${{ inputs.require_macos_gatekeeper }}" = true ]; then
+              OPL_DESKTOP_RELEASE_IDENTITY=stable OPL_UPDATER_VERSION="$OPL_UPDATER_VERSION" \
+                node ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/desktop/macos-distribution.mjs --require-release-trust
+            fi
+          else
+            bun run validate:opl-package
+          fi
 
       - name: Save Electron artifacts cache
         if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}
@@ -1277,14 +1374,14 @@ jobs:
             ~/.cache/electron
             ~/.cache/electron-builder
             ${{ env.LOCALAPPDATA }}\electron-builder\Cache
-          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
+          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles(format('{0}/package.json', needs.resolve-active-shell-ref.outputs.shell_root), format('{0}/{1}', needs.resolve-active-shell-ref.outputs.shell_root, needs.resolve-active-shell-ref.outputs.package_lock)) }}
 
       - name: Save Bun install cache
         if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('shells/aionui/package.json', 'shells/aionui/bun.lock') }}
+          key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('{0}/package.json', needs.resolve-active-shell-ref.outputs.shell_root), format('{0}/{1}', needs.resolve-active-shell-ref.outputs.shell_root, needs.resolve-active-shell-ref.outputs.package_lock)) }}
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
@@ -1340,6 +1437,10 @@ jobs:
             rm -f out/*.zip out/builder-debug.yml 2>/dev/null || true
             find out -maxdepth 1 -type f -name '*.yml' ! -name 'latest.yml' -delete
             find out -maxdepth 1 -type f -name '*.blockmap' ! -name "One-Person-Lab-${OPL_RELEASE_VERSION}-win-x64.exe.blockmap" -delete
+          elif [ '${{ needs.resolve-active-shell-ref.outputs.shell_id }}' = opl-studio ] && [ '${{ matrix.platform }}' = linux-x64 ]; then
+            rm -f out/*.zip out/*.blockmap out/builder-debug.yml 2>/dev/null || true
+            find out -maxdepth 1 -type f -name '*.yml' ! -name 'latest-linux.yml' -delete
+            test -s out/latest-linux.yml
           else
             rm -f out/*.blockmap out/*.zip out/*.yml out/builder-debug.yml 2>/dev/null || true
           fi
@@ -1377,7 +1478,7 @@ jobs:
             --packaged-tree "$packaged_tree" \
             --app-profile ../../contracts/app-product-profile.json \
             --gui-contract ../../contracts/app-gui-product-contract.json \
-            --smoke-harness scripts/opl-first-run-vm-smoke.mjs \
+            --smoke-harness ${{ needs.resolve-active-shell-ref.outputs.smoke_harness }} \
             --compiled-expectations ../../contracts/app-first-run-compiled-expectations.json \
             --qualification-input-manifest ../../contracts/app-release-qualification-input-manifest.json \
             --app-sha "$(git -C ../.. rev-parse HEAD)" \
@@ -1396,7 +1497,7 @@ jobs:
         if: success() && startsWith(matrix.platform, 'macos')
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}-dmg-cohort', matrix.artifact-name, steps.commit.outputs.short) || format('{0}-dmg-cohort', matrix.artifact-name) }}
-          path: shells/aionui/out/opl-build-cohort.json
+          path: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/opl-build-cohort.json
           if-no-files-found: error
           retention-days: 7
 
@@ -1406,18 +1507,18 @@ jobs:
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
           path: |
-            shells/aionui/out/*.exe
-            shells/aionui/out/*.msi
-            shells/aionui/out/*.dmg
-            shells/aionui/out/*.deb
-            shells/aionui/out/*.zip
-            shells/aionui/out/*.blockmap
-            shells/aionui/out/*.yml
-            shells/aionui/out/opl-windows-updater-assets.json
-            shells/aionui/out/opl-windows-authenticode-receipt.json
-            shells/aionui/out/standard-local-authorization-policy.json
-            shells/aionui/out/standard-gatekeeper-launch-policy.json
-            shells/aionui/out/standard-apple-notarization-receipt.json
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.exe
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.msi
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.dmg
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.deb
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.zip
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.blockmap
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.yml
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/opl-windows-updater-assets.json
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/opl-windows-authenticode-receipt.json
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-local-authorization-policy.json
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-gatekeeper-launch-policy.json
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json
           if-no-files-found: warn
           retention-days: 7
 
@@ -1427,8 +1528,8 @@ jobs:
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}-dmg', matrix.artifact-name, steps.commit.outputs.short) || format('{0}-dmg', matrix.artifact-name) }}
           path: |
-            shells/aionui/out/*.dmg
-            shells/aionui/out/opl-build-cohort.json
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.dmg
+            ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/opl-build-cohort.json
           if-no-files-found: error
           retention-days: 7
 

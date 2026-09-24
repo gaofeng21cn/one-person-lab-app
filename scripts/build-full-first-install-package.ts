@@ -63,7 +63,10 @@ import {
 const MANUAL_LOCAL_BUILD_ID_ENV = 'OPL_MANUAL_LOCAL_BUILD_ID';
 const MANUAL_LOCAL_SOURCE_PROVENANCE_ENV = 'OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256';
 const MANUAL_LOCAL_SOURCE_LOCK_ENV = 'OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256';
-const FULL_RUNTIME_SIGN_IGNORE_PATTERN = '/Contents/Resources/opl-full-runtime(?:/|$)';
+function fullRuntimeSignIgnorePattern() {
+  const carrier = resolveFullCarrierProfile();
+  return `/Contents/Resources/${carrier.runtimeResourceDir}(?:/|$)`;
+}
 
 export function assertFullCarrierReleaseVersions(carrier, version, updaterVersion) {
   if (carrier.versionPolicy === 'stable_calendar') {
@@ -202,7 +205,7 @@ export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
   if (/^[ \t]+signIgnore\s*:/m.test(originalConfig.slice(macStart, macEnd))) {
     throw new Error('Shell electron-builder config already defines mac.signIgnore; merge it in the Shell owner before releasing.');
   }
-  const signIgnore = `${macHeaders[0][0].endsWith(newline) ? '' : newline}  signIgnore:${newline}    - ${FULL_RUNTIME_SIGN_IGNORE_PATTERN}${newline}`;
+  const signIgnore = `${macHeaders[0][0].endsWith(newline) ? '' : newline}  signIgnore:${newline}    - ${fullRuntimeSignIgnorePattern()}${newline}`;
   const releaseConfig = `${originalConfig.slice(0, macStart)}${signIgnore}${originalConfig.slice(macStart)}`;
 
   const runtimeRoot = shellPaths.packagedRuntimeRoot;
@@ -356,6 +359,8 @@ function main() {
         cwd: options.guiRoot,
         env: {
           ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
+          OPL_APP_REPO_ROOT: appRepoRoot,
+          OPL_DESKTOP_RELEASE_IDENTITY: carrier.bundleId === 'cn.onepersonlab.opl' ? 'stable' : 'preview',
           OPL_RELEASE_VERSION: options.version,
           OPL_UPDATER_VERSION: options.updaterVersion,
           OPL_REQUIRE_FULL_RUNTIME: '1',

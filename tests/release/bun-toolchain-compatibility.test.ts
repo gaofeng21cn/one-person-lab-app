@@ -29,6 +29,7 @@ test('release boundary rejects a Bun version older than the active Shell lockfil
     );
     const shellRoot = path.join(root, 'shell');
     fs.mkdirSync(shellRoot, { recursive: true });
+    fs.writeFileSync(path.join(shellRoot, 'package.json'), JSON.stringify({ name: 'one-person-lab-aion-shell' }));
     fs.writeFileSync(
       path.join(shellRoot, 'bun.lock'),
       '{\n  "lockfileVersion": 3,\n}\n',
@@ -66,6 +67,7 @@ test('release boundary rejects a WebUI Dockerfile Bun version older than the act
     );
     const shellRoot = path.join(root, 'shell');
     fs.mkdirSync(shellRoot, { recursive: true });
+    fs.writeFileSync(path.join(shellRoot, 'package.json'), JSON.stringify({ name: 'one-person-lab-aion-shell' }));
     fs.writeFileSync(path.join(shellRoot, 'bun.lock'), '{\n  "lockfileVersion": 3,\n}\n');
     fs.writeFileSync(path.join(shellRoot, 'Dockerfile'), 'ARG OPL_WEBUI_BUN_VERSION=1.3.14\n');
 

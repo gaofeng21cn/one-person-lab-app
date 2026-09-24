@@ -5,6 +5,7 @@ import {
   githubApplyFullRequiredOptionNames,
   githubApplyRequiredOptionNames,
 } from '../framework-release-adapter.ts';
+import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 import type { ReleaseValidationProfile } from './release-checks.ts';
 
 const requiredHomebrewStandardCaskRef = 'gaofeng21cn/one-person-lab/one-person-lab';
@@ -1092,15 +1093,12 @@ function validatePreparedNotesTransportPolicy(releaseContract: Record<string, an
 function validateStandardUpdaterCompressionPolicy(appRoot: string, releaseContract: Record<string, any>): number {
   let failures = 0;
   const compression = releaseContract.standard_updater?.dmg_compression;
-  const activeShellRoot = process.env.OPL_APP_SHELL_ROOT || process.env.OPL_AION_SHELL_ROOT || path.join(appRoot, 'shells/aionui');
-  const electronBuilderConfig = fs.readFileSync(
-    path.join(activeShellRoot, 'packages/desktop/electron-builder.yml'),
-    'utf8',
-  );
+  const shellPaths = resolveActiveShellPaths();
+  const electronBuilderConfig = fs.readFileSync(shellPaths.electronBuilderConfigPath, 'utf8');
 
   if (
     compression?.default_format !== 'ULFO' ||
-    compression?.format_owner !== 'shells/aionui/packages/desktop/electron-builder.yml#dmg.format' ||
+    compression?.format_owner !== `${shellPaths.contract.shell_root}/${shellPaths.contract.shell_contract.paths.electron_builder_config}#dmg.format` ||
     compression?.electron_builder_version !== '26.15.3' ||
     compression?.ulmo_standard_default_allowed !== false ||
     compression?.ulmo_postprocess_status !== 'separate_experiment_required' ||

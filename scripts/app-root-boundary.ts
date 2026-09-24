@@ -40,7 +40,7 @@ const requiredRootScripts = {
   'release:bind-standard': 'node --experimental-strip-types scripts/bind-standard-release-track.ts',
   'release:historical-candidate-record:status': 'node --experimental-strip-types scripts/validate-release-candidate-record.ts --status',
   'release:historical-bundle:status': 'node --experimental-strip-types scripts/release-bundle.ts status',
-  'build-mac:arm64': 'node --experimental-strip-types scripts/prepare-standard-release-payload.ts && node --experimental-strip-types scripts/run-active-shell-command.ts bun run build-mac:arm64',
+  'build-mac:arm64': 'node --experimental-strip-types scripts/prepare-standard-release-payload.ts && node --experimental-strip-types scripts/run-active-shell-command.ts npm run build-mac:arm64',
 };
 
 const forbiddenRootBuildArtifacts = [

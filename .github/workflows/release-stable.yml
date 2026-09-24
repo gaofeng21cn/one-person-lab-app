@@ -633,12 +633,17 @@ jobs:
           path: app-source
           fetch-depth: 0
 
+      - name: Resolve frozen active Shell build profile
+        id: shell_profile
+        shell: bash
+        run: node --experimental-strip-types app-source/scripts/active-shell-build-profile.ts --app-root app-source --github-output "$GITHUB_OUTPUT"
+
       - name: Checkout frozen Shell authority cohort
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ steps.shell_profile.outputs.shell_repository }}
           ref: ${{ steps.authority.outputs.shell_ref }}
-          path: app-source/shells/aionui
+          path: app-source/${{ steps.shell_profile.outputs.shell_root }}
           fetch-depth: 0
 
       - name: Checkout frozen Framework authority cohort
@@ -663,7 +668,7 @@ jobs:
         run: |
           set -euo pipefail
           app_sha="$(git -C app-source rev-parse HEAD)"
-          shell_sha="$(git -C app-source/shells/aionui rev-parse HEAD)"
+          shell_sha="$(git -C app-source/${{ steps.shell_profile.outputs.shell_root }} rev-parse HEAD)"
           framework_sha="$(git -C framework-source rev-parse HEAD)"
           for value in "$app_sha" "$shell_sha" "$framework_sha"; do
             [[ "$value" =~ ^[0-9a-f]{40}$ ]]

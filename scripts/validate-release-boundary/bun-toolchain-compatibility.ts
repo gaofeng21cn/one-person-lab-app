@@ -75,7 +75,9 @@ export function collectBunToolchainCompatibilityViolations(
     ),
   ) as JsonRecord;
   const appBunVersion = manifest.toolchain?.bun?.version;
-  const lockfileVersion = shellLockfileVersion(shellRoot);
+  const shellPackage = JSON.parse(fs.readFileSync(path.join(shellRoot, 'package.json'), 'utf8'));
+  const studio = shellPackage.name === 'opl-studio';
+  const lockfileVersion = studio ? null : shellLockfileVersion(shellRoot);
   const minimumBunVersion =
     lockfileVersion === null
       ? null
@@ -134,7 +136,12 @@ export function collectBunToolchainCompatibilityViolations(
     );
     return violations;
   }
-  if (lockfileVersion === null) {
+  if (studio) {
+    const lock = JSON.parse(fs.readFileSync(path.join(shellRoot, 'package-lock.json'), 'utf8'));
+    if (lock.lockfileVersion !== 3 || lock.packages?.['']?.name !== shellPackage.name || lock.packages?.['']?.version !== shellPackage.version) {
+      violations.push('Studio package-lock.json must be npm lockfile v3 and match the selected package identity.');
+    }
+  } else if (lockfileVersion === null) {
     violations.push(
       'Active Shell bun.lock must declare a numeric lockfileVersion.',
     );
@@ -148,6 +155,7 @@ export function collectBunToolchainCompatibilityViolations(
     );
   }
   for (const caller of callers) {
+    if (studio && ['webui-dockerfile', 'windows-updater-package-validation'].includes(caller.id)) continue;
     if (caller.version !== appBunVersion) {
       violations.push(
         `${caller.id} Bun version ${caller.version || '(missing)'} must equal ${appBunVersion}.`,

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 
 type ArtifactProfile =
   | 'stable_required'
@@ -92,7 +93,9 @@ function matrixEntry(
   return {
     platform,
     os: capability.build.os,
-    command: capability.build.artifact_commands?.[artifactProfile] ?? capability.build.command,
+    command: readActiveShellBuildProfile().id === 'opl-studio'
+      ? `node scripts/desktop/build-release.mjs --platform ${platform.startsWith('macos') ? 'darwin' : platform.startsWith('windows') ? 'win32' : 'linux'} --arch ${capability.build.arch}`
+      : capability.build.artifact_commands?.[artifactProfile] ?? capability.build.command,
     'artifact-name': artifactName,
     arch: capability.build.arch,
     ...(capability.build.native_arch ? { native_arch: capability.build.native_arch } : {}),

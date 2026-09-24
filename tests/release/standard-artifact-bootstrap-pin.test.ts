@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -7,6 +8,7 @@ import test from 'node:test';
 import { parse as parseYaml } from 'yaml';
 import {
   materializePinnedStandardBootstrapInstaller,
+  materializeStudioStandardBootstrapPayload,
   resolveStandardFrameworkBootstrapPin,
 } from '../../scripts/prepare-standard-release-payload.ts';
 
@@ -155,4 +157,23 @@ test('Studio release workflow checks out and materializes the exact Standard boo
   assert.match(materialize.run, /prepare-standard-release-payload\.ts"? studio/);
   assert.match(materialize.run, /--framework-ref "\$FRAMEWORK_REF"/);
   assert.match(materialize.run, /resources\/opl-framework-bootstrap\/manifest\.json/);
+});
+
+test('Studio packages the exact Official Profile and helper bytes with verified digests', () => {
+  const targetRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-studio-profile-'));
+  try {
+    materializeStudioStandardBootstrapPayload({ targetRoot, frameworkPin: { frameworkRef, installerUrl, archiveUrl } });
+    const directory = path.join(targetRoot, 'resources', 'opl-official-profile');
+    const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'manifest.json'), 'utf8'));
+    assert.equal(manifest.schema, 'opl_app_official_profile_resources.v1');
+    assert.equal(manifest.authority, 'one-person-lab-app');
+    for (const [name, source, digest] of [
+      ['official-profile-package-apply.ts', 'scripts/official-profile-package-apply.ts', 'helper_sha256'],
+      ['app-product-profile.json', 'contracts/app-product-profile.json', 'profile_sha256'],
+    ]) {
+      const bytes = fs.readFileSync(path.join(directory, name));
+      assert.deepEqual(bytes, fs.readFileSync(path.join(appRoot, source)));
+      assert.equal(manifest[digest], crypto.createHash('sha256').update(bytes).digest('hex'));
+    }
+  } finally { fs.rmSync(targetRoot, { recursive: true, force: true }); }
 });

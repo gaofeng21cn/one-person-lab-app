@@ -92,8 +92,8 @@
       "shell_inferred_canonical_thread_binding"
     ]
   },
-  "active_shell": "aionui",
-  "shell_root": "shells/aionui",
+  "active_shell": "opl-studio",
+  "shell_root": "shells/opl-studio",
   "pages": [
     {
       "id": "guid_home",

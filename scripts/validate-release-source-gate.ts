@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs as parseNodeArgs } from 'node:util';
 import { ensureActiveShellCheckout, isGitCheckout } from './active-shell-checkout.ts';
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 import { parseStrictBoolean } from './release-readiness-args.ts';
 
 const defaultRepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -208,10 +209,10 @@ Options:
   --expected-app-head <sha>        Alias for --app-ref.
   --shell-ref <ref>                Active shell ref to resolve in shells/aionui. Default: main.
   --framework-ref <ref>            OPL Framework ref to resolve. Default: main.
-  --require-shell-format <bool>    Run bun run format:check in the active shell. Default: false.
+  --require-shell-format <bool>    Run the active Shell source-quality check. Default: false.
   --run-shell-tests <bool>         Run active shell node/dom tests before expensive release jobs. Default: false.
   --repo-root <path>               App repository root. Default: current script repository.
-  --shell-root <path>              Active shell checkout root. Default: <repo-root>/shells/aionui.
+  --shell-root <path>              Active shell checkout root. Default: frozen App adapter checkout path.
   --framework-root <path>          OPL Framework checkout root. Default: ../one-person-lab.
   --output <path>                  Write source gate JSON report.
   --json                          Print the JSON report to stdout.
@@ -229,7 +230,7 @@ function defaultOptions(): ReleaseSourceGateOptions {
     requireShellFormat: parseStrictBoolean(process.env.OPL_REQUIRE_SHELL_FORMAT, false),
     runShellTests: parseStrictBoolean(process.env.OPL_RELEASE_SOURCE_GATE_RUN_SHELL_TESTS, false),
     repoRoot: defaultRepoRoot,
-    shellRoot: process.env.OPL_SHELL_ROOT || path.join(defaultRepoRoot, 'shells', 'aionui'),
+    shellRoot: process.env.OPL_SHELL_ROOT || path.join(defaultRepoRoot, readActiveShellBuildProfile(defaultRepoRoot).root),
     frameworkRoot: process.env.OPL_FRAMEWORK_ROOT || path.resolve(defaultRepoRoot, '..', 'one-person-lab'),
     output: process.env.OPL_RELEASE_SOURCE_GATE_OUTPUT || '',
     json: false,
@@ -277,7 +278,7 @@ export function parseReleaseSourceGateArgs(argv: string[]): ReleaseSourceGateOpt
     parsed.runShellTests = parseStrictBoolean(values['run-shell-tests']);
   }
   parsed.repoRoot = values['repo-root'] ?? parsed.repoRoot;
-  parsed.shellRoot = values['shell-root'] ?? parsed.shellRoot;
+  parsed.shellRoot = values['shell-root'] ?? process.env.OPL_SHELL_ROOT ?? path.join(parsed.repoRoot, readActiveShellBuildProfile(parsed.repoRoot).root);
   parsed.frameworkRoot = values['framework-root'] ?? parsed.frameworkRoot;
   parsed.output = values.output ?? parsed.output;
   parsed.json = values.json ?? parsed.json;
@@ -727,6 +728,7 @@ function buildCommandEnvironment(source: NodeJS.ProcessEnv, options: ReleaseSour
   if (options.operationFingerprint !== null) {
     commandEnvironment.OPL_RELEASE_OPERATION_FINGERPRINT = options.operationFingerprint;
   }
+  commandEnvironment.OPL_APP_REPO_ROOT = options.repoRoot;
   commandEnvironment.OPL_EXPECTED_APP_HEAD = options.expectedAppHead;
   commandEnvironment.OPL_SHELL_ROOT = options.shellRoot;
   commandEnvironment.OPL_APP_SHELL_ROOT = options.shellRoot;
@@ -847,6 +849,10 @@ export function buildReleaseSourceGateReport(
   const sourceEnvironment = environment.variables ?? process.env;
   const commandEnvironment = buildCommandEnvironment(sourceEnvironment, options);
   const shellRoot = options.shellRoot;
+  const buildProfile = readActiveShellBuildProfile(options.repoRoot, readJson);
+  const formatCommand = buildProfile.id === 'opl-studio'
+    ? { executable: 'npm', args: ['run', 'typecheck'], label: 'npm run typecheck' }
+    : { executable: 'bun', args: ['run', 'format:check'], label: 'bun run format:check' };
   const frameworkRoot = options.frameworkRoot;
   let appHead = '';
   let shellSha: string | null = null;
@@ -881,7 +887,7 @@ export function buildReleaseSourceGateReport(
     {
       id: 'active_shell_format_check',
       required: true,
-      command: 'bun run format:check',
+      command: formatCommand.label,
       cwd: shellRoot,
       executed: false,
       reason: 'Release source gate must prove or require active shell formatting before expensive release work.',
@@ -1208,11 +1214,11 @@ export function buildReleaseSourceGateReport(
       const packageJson = readJson(path.join(shellRoot, 'package.json')) as { name?: unknown };
       addCheck(checks, {
         id: 'active_shell_type',
-        status: packageJson?.name === 'one-person-lab-aion-shell' ? 'passed' : 'failed',
-        message: packageJson?.name === 'one-person-lab-aion-shell'
-          ? 'Active shell package type is one-person-lab-aion-shell.'
-          : `Active shell package name must be one-person-lab-aion-shell, got ${String(packageJson?.name ?? 'missing')}.`,
-        expected: 'one-person-lab-aion-shell',
+        status: packageJson?.name === buildProfile.packageName ? 'passed' : 'failed',
+        message: packageJson?.name === buildProfile.packageName
+          ? `Active shell package type is ${buildProfile.packageName}.`
+          : `Active shell package name must be ${buildProfile.packageName}, got ${String(packageJson?.name ?? 'missing')}.`,
+        expected: buildProfile.packageName,
         actual: typeof packageJson?.name === 'string' ? packageJson.name : undefined,
       });
     } catch (error) {
@@ -1220,7 +1226,7 @@ export function buildReleaseSourceGateReport(
         id: 'active_shell_type',
         status: 'failed',
         message: `Unable to read active shell package.json.${error instanceof Error ? ` ${error.message}` : ''}`,
-        expected: 'one-person-lab-aion-shell',
+        expected: buildProfile.packageName,
       });
     }
   }
@@ -1445,14 +1451,14 @@ export function buildReleaseSourceGateReport(
   }
 
   requiredGates[3].executed = true;
-  const formatResult = runner('bun', ['run', 'format:check'], { cwd: shellRoot, env: commandEnvironment });
+  const formatResult = runner(formatCommand.executable, formatCommand.args, { cwd: shellRoot, env: commandEnvironment });
   addCheck(checks, {
     id: 'active_shell_format_check',
     status: formatResult.status === 0 ? 'passed' : 'failed',
     message: formatResult.status === 0
       ? 'Active shell format check passed.'
       : `Active shell format check failed.${commandDetail(formatResult) ? `\n${commandDetail(formatResult)}` : ''}`,
-    command: 'bun run format:check',
+    command: formatCommand.label,
   });
   if (formatResult.status !== 0) {
     blockRequiredGate('active_shell_node_dom_tests', 'Blocked because the preceding active shell format gate failed.');
@@ -1513,9 +1519,9 @@ export function prepareReleaseSourceShell(
   // Preserve an existing non-Git projection so the source-gate report can reject it with typed evidence.
   if (fs.existsSync(options.shellRoot) && !isGitCheckout(options.shellRoot)) return;
   const commandEnvironment = buildCommandEnvironment(sourceEnvironment, options);
-  ensureActiveShellCheckout({
+  const prepared = ensureActiveShellCheckout({
     shellRoot: options.shellRoot,
-    repo: sourceEnvironment.OPL_APP_SHELL_REPO || 'git@github.com:gaofeng21cn/opl-aion-shell.git',
+    repo: sourceEnvironment.OPL_APP_SHELL_REPO || `https://github.com/${readActiveShellBuildProfile(options.repoRoot).repository}.git`,
     ref: options.shellRef,
     alignRef: true,
     runner: (command, args, commandOptions = {}) => run(command, args, {
@@ -1523,6 +1529,12 @@ export function prepareReleaseSourceShell(
       env: commandEnvironment,
     }),
   });
+  if (prepared.materialized || !fs.existsSync(path.join(options.shellRoot, 'node_modules'))) {
+    const profile = readActiveShellBuildProfile(options.repoRoot);
+    const args = profile.packageManager === 'npm' ? ['ci'] : ['install', '--frozen-lockfile'];
+    const installed = run(profile.packageManager, args, { cwd: options.shellRoot, env: commandEnvironment });
+    if (installed.status !== 0) throw new Error(`Frozen active Shell dependency install failed: ${commandDetail(installed)}`);
+  }
 }
 
 function isMainModule(): boolean {

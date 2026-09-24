@@ -26,7 +26,7 @@ test('Stable and Nightly core publication require only macOS ARM64', () => {
       {
         platform: 'macos-arm64',
         os: 'macos-latest',
-        command: 'node scripts/build-with-builder.js arm64 --mac --arm64',
+        command: 'node scripts/desktop/build-release.mjs --platform darwin --arch arm64',
         'artifact-name': 'macos-build-arm64',
         arch: 'arm64',
         native_arch: 'arm64',
@@ -169,7 +169,7 @@ test('resolver accepts only audited policy and platform IDs', () => {
     [{
       platform: 'windows-x64',
       os: 'windows-latest',
-      command: 'node scripts/build-with-builder.js x64 --win nsis --x64',
+      command: 'node scripts/desktop/build-release.mjs --platform win32 --arch x64',
       'artifact-name': 'stable-desktop-windows-x64',
       arch: 'x64',
     }],
@@ -178,7 +178,7 @@ test('resolver accepts only audited policy and platform IDs', () => {
 
 test('manual Windows builds retain their general distribution targets', () => {
   const matrix = resolveReleasePlatformMatrix({ policy: 'manual_all', platform: 'windows-x64' });
-  assert.equal(matrix.include[0].command, 'node scripts/build-with-builder.js x64 --win --x64');
+  assert.equal(matrix.include[0].command, 'node scripts/desktop/build-release.mjs --platform win32 --arch x64');
 });
 
 test('workflow callers consume resolver output while reusable build keeps generic matrix input', () => {

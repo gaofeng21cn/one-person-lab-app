@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { stageStudioStandardAssets } from './stage-standard-shell-assets.ts';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,6 +14,9 @@ const shellPaths = resolveActiveShellPaths();
 const expectedVersion = process.env.OPL_RELEASE_VERSION?.trim() || '';
 const skipLinuxDesktopPayload = process.argv.includes('--skip-linux-desktop-payload');
 
+if (shellPaths.contract.active_shell === 'opl-studio') {
+  stageStudioStandardAssets(artifactsDir, outputDir);
+} else {
 const result = spawnSync('bash', [shellPaths.releasePrepareScriptPath, artifactsDir, outputDir], {
   cwd: shellPaths.shellRoot,
   stdio: 'inherit',
@@ -21,6 +25,8 @@ const result = spawnSync('bash', [shellPaths.releasePrepareScriptPath, artifacts
 
 if (result.status !== 0) {
   process.exit(result.status ?? 1);
+}
+
 }
 
 function escapeRegExp(value: string): string {
