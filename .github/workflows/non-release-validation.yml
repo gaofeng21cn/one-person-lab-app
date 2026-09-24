@@ -63,14 +63,13 @@ jobs:
       - name: Install App validation dependencies
         run: npm ci --ignore-scripts
 
-      # The release boundary validator and suite read a few active Shell files.
-      # A sparse, blob-filtered checkout provides them in seconds without
-      # pulling the 457 MB resources directory or the full history.
+      # Cone mode includes root files and only the nested Shell folders the
+      # release boundary validator reads, without pulling the resources tree.
       - name: Materialize the active Shell sources
         run: |
           git clone --depth 1 --filter=blob:none --sparse \
             https://github.com/gaofeng21cn/opl-aion-shell.git "$RUNNER_TEMP/opl-aion-shell"
-          git -C "$RUNNER_TEMP/opl-aion-shell" sparse-checkout set --no-cone '/*' '!/resources'
+          git -C "$RUNNER_TEMP/opl-aion-shell" sparse-checkout set --cone desktop scripts/desktop
 
       # The suite owns App release admission, dispatch guards, notes, carriers
       # and installers. It used to run only under the manual release workflows,

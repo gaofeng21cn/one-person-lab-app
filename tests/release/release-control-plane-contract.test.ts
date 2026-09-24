@@ -361,6 +361,13 @@ test('release operations are one-shot, deadline-bound, and fail closed before pu
   assert.equal(resilience.homebrew_retry_push_on_unknown_allowed, false);
 });
 
+test('source-validation sparse checkout includes nested active-shell files without resources', () => {
+  const workflow = fs.readFileSync(path.join(appRoot, '.github/workflows/non-release-validation.yml'), 'utf8');
+  assert.match(workflow, /sparse-checkout set --cone desktop scripts\/desktop/);
+  assert.doesNotMatch(workflow, /sparse-checkout set --no-cone '\/\*'/);
+  assert.match(workflow, /OPL_APP_SHELL_ROOT: \$\{\{ runner\.temp \}\}\/opl-aion-shell/);
+});
+
 test('Stable attempt results are deterministic observations and unchanged fingerprints stop before dispatch', () => {
   const release = readJson('contracts/app-release-channel.json');
   const stageResult = release.release_preflight.stable_stage_result;
