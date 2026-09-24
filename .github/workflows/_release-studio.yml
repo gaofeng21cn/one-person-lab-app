@@ -45,6 +45,8 @@ on:
         required: false
       OPL_GITHUB_RELEASE_ADMIN_TOKEN:
         required: false
+      OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD:
+        required: false
 
 permissions:
   contents: read
@@ -452,11 +454,30 @@ jobs:
       qualification_present: ${{ steps.resolve.outputs.qualification_present }}
       restore_required: ${{ steps.resolve.outputs.restore_required }}
       studio_version: ${{ steps.resolve.outputs.studio_version }}
+      terminal_preview: ${{ steps.terminal.outputs.enabled }}
     steps:
       - name: Checkout canonical Studio release executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.app_ref }}
+
+      - name: Checkout exact Preview transition source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/opl-studio
+          ref: ${{ inputs.studio_sha }}
+          path: studio-transition-source
+          persist-credentials: false
+
+      - name: Resolve terminal Preview qualification isolation
+        id: terminal
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan=studio-transition-source/resources/preview-handoff.json
+          test -f "$plan"
+          enabled="$(jq -er 'if .schema == "opl_studio_preview_handoff_plan.v1" and (.enabled | type) == "boolean" then .enabled | tostring else error("invalid Preview handoff plan") end' "$plan")"
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
 
       - name: Resolve same-run or prior-run Studio checkpoint
         id: resolve
@@ -502,6 +523,9 @@ jobs:
               qualification_present=true
             fi
           fi
+          # Terminal handoff always requalifies the two public source baselines;
+          # an old host updater receipt cannot admit cross-identity installation.
+          if [ '${{ steps.terminal.outputs.enabled }}' = true ]; then qualification_present=false; fi
           {
             echo "source_checkpoint_run_id=$source_checkpoint_run_id"
             echo "checkpoint_app_ref=$checkpoint_app_ref"
@@ -588,8 +612,8 @@ jobs:
   qualify-checkpoint:
     needs: [resolve-checkpoint, restore-checkpoint]
     if: ${{ always() && needs.resolve-checkpoint.result == 'success' && (needs.restore-checkpoint.result == 'success' || needs.restore-checkpoint.result == 'skipped') && needs.resolve-checkpoint.outputs.qualification_present != 'true' }}
-    runs-on: macos-15
-    timeout-minutes: 30
+    runs-on: ${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && fromJSON('["self-hosted","macOS","ARM64","opl-cert-mac-tart"]') || fromJSON('["macos-15"]') }}
+    timeout-minutes: 75
     permissions:
       actions: read
       contents: read
@@ -612,6 +636,38 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Checkout exact Framework for isolated terminal Preview qualification
+        if: ${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab
+          ref: ${{ inputs.framework_ref }}
+          path: framework-source
+          persist-credentials: false
+
+      - name: Prepare isolated terminal Preview runtime and credential inputs
+        id: preview_vm_inputs
+        if: ${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' }}
+        env:
+          GATEWAY_ACCOUNT_EMAIL: ${{ vars.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_EMAIL }}
+          GATEWAY_ACCOUNT_PASSWORD: ${{ secrets.OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GATEWAY_ACCOUNT_EMAIL" && test -n "$GATEWAY_ACCOUNT_PASSWORD"
+          credential_dir="$RUNNER_TEMP/opl-preview-gateway-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          mkdir -p "$credential_dir"
+          chmod 700 "$credential_dir"
+          printf '%s' "$GATEWAY_ACCOUNT_EMAIL" > "$credential_dir/email"
+          printf '%s' "$GATEWAY_ACCOUNT_PASSWORD" > "$credential_dir/password"
+          chmod 600 "$credential_dir/email" "$credential_dir/password"
+          echo "credential_dir=$credential_dir" >> "$GITHUB_OUTPUT"
+          git -C framework-source archive --format=tar.gz --prefix=one-person-lab/ HEAD -o "$RUNNER_TEMP/opl-preview-framework-${GITHUB_RUN_ID}.tar.gz"
+          echo "framework_archive=$RUNNER_TEMP/opl-preview-framework-${GITHUB_RUN_ID}.tar.gz" >> "$GITHUB_OUTPUT"
+          cd app-source
+          OPL_CODEX_PREWARM_MANIFEST=contracts/app-release-qualification-input-manifest.json \
+            node scripts/prefetch-codex-package-install-assets.mjs
+
       - name: Download exact signed and notarized Studio checkpoint
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -628,6 +684,10 @@ jobs:
           STUDIO_TAG: ${{ inputs.studio_tag }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
           OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-source
+          GH_TOKEN: ${{ github.token }}
+          OPL_FIRST_RUN_TART_SOURCE: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
+          OPL_FIRST_RUN_GUEST_USER: ${{ vars.OPL_FIRST_RUN_GUEST_USER }}
+          OPL_FIRST_RUN_GUEST_SSH_KEY: ${{ vars.OPL_FIRST_RUN_GUEST_SSH_KEY }}
         shell: bash
         run: |
           set -euo pipefail
@@ -638,6 +698,23 @@ jobs:
             --studio-tree "$STUDIO_TREE" --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
           mkdir -p studio-source/out studio-release-qualification
           cp studio-release-checkpoint/assets/* studio-source/out/
+          if [ '${{ needs.resolve-checkpoint.outputs.terminal_preview }}' = true ]; then
+            test -n "$OPL_FIRST_RUN_TART_SOURCE" && test -n "$OPL_FIRST_RUN_GUEST_SSH_KEY"
+            node --use-system-ca studio-source/scripts/desktop/stable-qualify-preview-upgrade.mjs \
+              --checkpoint-root studio-release-checkpoint \
+              --checkpoint-sha256 "$(shasum -a 256 studio-release-checkpoint/checkpoint.json | awk '{print $1}')" \
+              --source-vm "$OPL_FIRST_RUN_TART_SOURCE" \
+              --guest-user "${OPL_FIRST_RUN_GUEST_USER:-runner}" \
+              --ssh-key "$OPL_FIRST_RUN_GUEST_SSH_KEY" \
+              --artifacts studio-preview-vm-evidence \
+              --framework-source-archive '${{ steps.preview_vm_inputs.outputs.framework_archive }}' \
+              --framework-ref "$FRAMEWORK_REF" \
+              --codex-platform-package-tarball '${{ github.workspace }}/app-source/${{ steps.preview_vm_inputs.outputs.platform_tarball_path }}' \
+              --codex-version '${{ steps.preview_vm_inputs.outputs.package_version }}' \
+              --gateway-account-email-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/email' \
+              --gateway-account-password-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/password'
+            export OPL_PREVIEW_UPGRADE_VM_RECEIPT="$GITHUB_WORKSPACE/studio-preview-vm-evidence/preview-upgrade-qualification.json"
+          fi
           (cd studio-source && node scripts/desktop/macos-distribution.mjs --require-release-trust)
           cp studio-source/out/macos-distribution-qualification.json \
             studio-release-qualification/prepublication-qualification.json
@@ -646,6 +723,23 @@ jobs:
             --qualification-root studio-release-qualification \
             --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" --studio-tree "$STUDIO_TREE" \
             --studio-tag "$STUDIO_TAG" --framework-ref "$FRAMEWORK_REF" >/dev/null
+
+      - name: Remove transient terminal Preview credentials
+        if: ${{ always() && needs.resolve-checkpoint.outputs.terminal_preview == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          credential_dir="$RUNNER_TEMP/opl-preview-gateway-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          rm -rf "$credential_dir"
+
+      - name: Upload terminal Preview isolated VM evidence
+        if: ${{ always() && needs.resolve-checkpoint.outputs.terminal_preview == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-studio-terminal-preview-vm-${{ inputs.studio_sha }}-${{ github.run_id }}
+          path: studio-preview-vm-evidence
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Upload reusable Studio qualification
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
