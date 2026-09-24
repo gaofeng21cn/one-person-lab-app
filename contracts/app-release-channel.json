@@ -2876,8 +2876,8 @@
     "public_asset_policy": "Release-note evidence JSON and technical audit output are operator evidence, not public download assets; the public GitHub Release asset list stays focused on install, update, checksum, and manifest entrypoints.",
     "rule": "Public release notes use prepared user copy derived from script-generated evidence before the expensive release train starts. Publish and promote jobs must not call AI to generate or replace notes on the critical path. The body leads with user scenarios, upgrade value, and action items; commit logs, refs, workflow facts, changelog details, and packaging audit material belong in Technical details or evidence artifacts instead of the main narrative."
   },
-  "active_shell": "aionui",
-  "shell_root": "shells/aionui",
+  "active_shell": "opl-studio",
+  "shell_root": "shells/opl-studio",
   "standard_updater": {
     "background_checks": {
       "startup_delay_ms": 3000,

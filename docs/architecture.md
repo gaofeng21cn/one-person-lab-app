@@ -15,8 +15,8 @@ fixed source directory, Package, plugin or release artifact.
 Package capabilities and declarative App contributions
   -> Framework Host: runtime, Package graph, App state/action projection
     -> App product profile, Client/GUI ABI and release policy
-      -> AionUI: current Stable Shell
-      -> Studio: independent DSH Application Host and candidate Shell
+      -> Studio: selected Desktop Shell on the DSH Application Host
+      -> AionUI: independently pinned Docker WebUI and historical Desktop source
 ```
 
 App owns product semantics, first-run behavior, GUI contracts, accessibility,
@@ -38,8 +38,11 @@ Neither Shell becomes another Framework runtime, Package manager or release owne
 [`app-shell-adapter.json`](../contracts/app-shell-adapter.json) selects the active
 release Shell. [`app-shell-candidates.json`](../contracts/app-shell-candidates.json)
 owns candidate selection and adoption gates. Per-launch GUI selection is independent
-of release adoption. AionUI and Studio keep separate bundles, dependencies, UI data,
-preferences and caches; sequential launch does not prove simultaneous write safety.
+of release adoption. Stable Studio preserves the canonical OPL App identity,
+installation path and update feed. Studio Preview keeps its separate identity
+until a signed terminal handoff installs the exact Stable target and imports
+allowlisted Shell state. Canonical Codex and Framework state remain with their
+existing owners. Sequential launch does not prove simultaneous write safety.
 
 App wrappers validate `client_renderer_compatibility` before launching a selected
 adapter. Both clients consume the same Host graph, App allowlist, contribution ABI,

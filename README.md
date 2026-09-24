@@ -86,9 +86,12 @@ release-integrity checks.
 This repository owns App product behavior, packaging and release qualification.
 [One Person Lab Framework](https://github.com/gaofeng21cn/one-person-lab) owns
 runtime and Package projections; domain Packages own professional decisions and
-artifacts. AionUI is the active Shell implementation, and OPL Studio is the
-foreground candidate. Both remain external checkouts with independent source
-history. AionCore is an unmodified official dependency.
+artifacts. OPL Studio, based on the pinned DSH/Cordis Host, is the selected
+Desktop Shell for the next Stable release. Stable preserves the OPL App identity
+and update feed; existing Studio Preview installations move through a signed
+terminal handoff release. AionUI remains the independently pinned Docker WebUI
+implementation and the source for legacy upgrade checks. Shells retain their
+independent source history; Studio has no AionCore dependency.
 
 The [App whitepaper](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)
 explains the product rationale. Maintainers start at the
