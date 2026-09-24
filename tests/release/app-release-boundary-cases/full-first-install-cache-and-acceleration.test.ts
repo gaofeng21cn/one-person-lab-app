@@ -175,7 +175,7 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
   ].join("\n");
   fs.mkdirSync(configDir, { recursive: true });
   fs.writeFileSync(configPath, originalConfig);
-  const runtimeRoot = path.join(shellRoot, "packaged-runtimes", "opl-full-runtime");
+  const runtimeRoot = path.join(shellRoot, "packaged-runtimes", "opl-studio-full-runtime");
   fs.mkdirSync(runtimeRoot, { recursive: true });
   fs.writeFileSync(path.join(runtimeRoot, "manifest.json"), "preserve this payload");
   context.after(() => fs.rmSync(shellRoot, { recursive: true, force: true }));
