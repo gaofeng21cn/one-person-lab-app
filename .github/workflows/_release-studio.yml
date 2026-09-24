@@ -712,7 +712,8 @@ jobs:
               --codex-platform-package-tarball '${{ github.workspace }}/app-source/${{ steps.preview_vm_inputs.outputs.platform_tarball_path }}' \
               --codex-version '${{ steps.preview_vm_inputs.outputs.package_version }}' \
               --gateway-account-email-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/email' \
-              --gateway-account-password-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/password'
+              --gateway-account-password-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/password' \
+              --product-profile app-source/contracts/app-product-profile.json
             export OPL_PREVIEW_UPGRADE_VM_RECEIPT="$GITHUB_WORKSPACE/studio-preview-vm-evidence/preview-upgrade-qualification.json"
           fi
           (cd studio-source && node scripts/desktop/macos-distribution.mjs --require-release-trust)
