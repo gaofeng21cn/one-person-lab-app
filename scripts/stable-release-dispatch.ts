@@ -868,7 +868,12 @@ export function buildStandardPlan(input: {
   if (input.smokeHarnessSha && !input.priorStandardArtifactRunId) {
     throw new Error('A Standard verification harness override requires an existing signed artifact run.');
   }
-  const objectiveFingerprint = 'opl-desktop-stable-release';
+  const smokeHarnessSha = input.smokeHarnessSha
+    ? sha(input.smokeHarnessSha, 'smoke_harness_ref')
+    : undefined;
+  const objectiveFingerprint = smokeHarnessSha
+    ? `opl-desktop-stable-release:smoke-harness:${smokeHarnessSha}`
+    : 'opl-desktop-stable-release';
   const criticalBlobs = stableOperationCriticalBlobs(appRoot);
   const operationId = stableOperationIdForFrozenCohort({
     objectiveFingerprint,
@@ -879,7 +884,11 @@ export function buildStandardPlan(input: {
   });
   const nonce = input.runtime.randomBytes(16).toString('hex');
   const authorityId = `authority-${operationId}-${nonce.slice(0, 8)}`;
-  const report = input.reusableSourceGate ?? sourceGate(
+  const reusableSourceGate = input.reusableSourceGate
+    && record(input.reusableSourceGate, 'reusable_source_gate').operation_fingerprint === objectiveFingerprint
+    ? input.reusableSourceGate
+    : undefined;
+  const report = reusableSourceGate ?? sourceGate(
     input.runtime,
     input.appSha,
     input.shellSha,
@@ -936,7 +945,7 @@ export function buildStandardPlan(input: {
   };
   if (priorStandardArtifactRunId) {
     workflowInputs.prior_standard_artifact_run_id = priorStandardArtifactRunId;
-    if (input.smokeHarnessSha) workflowInputs.smoke_harness_ref = sha(input.smokeHarnessSha, 'smoke_harness_ref');
+    if (smokeHarnessSha) workflowInputs.smoke_harness_ref = smokeHarnessSha;
   }
   return {
     schema: 'opl_app_stable_dispatch_plan.v1',
@@ -950,7 +959,7 @@ export function buildStandardPlan(input: {
       requested_run_id: priorStandardArtifactRunId,
       artifact_producer_run_id: priorStandardArtifactRunId,
       qualification_run_id: null,
-      smoke_harness_ref: input.smokeHarnessSha ? sha(input.smokeHarnessSha, 'smoke_harness_ref') : null,
+      smoke_harness_ref: smokeHarnessSha ?? null,
       verification_app_ref: null,
     },
     cohort: authority.cohort,

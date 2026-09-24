@@ -28,6 +28,7 @@ import {
 import {
   stableOperationCriticalBlobs,
   stableOperationCriticalBlobPaths,
+  stableOperationIdForFrozenCohort,
 } from '../../scripts/stable-operation-control.ts';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
@@ -132,10 +133,11 @@ test('Standard recovery preserves the failed source tag and binds its signed art
       if (command === process.execPath) {
         repeatedSourceGate = true;
         const outputIndex = args.indexOf('--output');
+        const operationFingerprint = args[args.indexOf('--operation-fingerprint') + 1];
         fs.writeFileSync(args[outputIndex + 1]!, JSON.stringify({
           schema: 'opl_app_release_source_gate.v1',
           status: 'passed',
-          operation_fingerprint: 'opl-desktop-stable-release',
+          operation_fingerprint: operationFingerprint,
           typed_blocker: null,
           admission: {
             status: 'passed',
@@ -179,10 +181,24 @@ test('Standard recovery preserves the failed source tag and binds its signed art
   assert.equal(plan.workflow_inputs.prior_standard_artifact_run_id, '33728918457');
   assert.equal(plan.recovery.requested_run_id, '33728918457');
   assert.equal(plan.recovery.artifact_producer_run_id, '33728918457');
-  assert.equal(repeatedSourceGate, false);
+  assert.equal(repeatedSourceGate, true);
   assert.equal(plan.workflow_inputs.smoke_harness_ref, 'e'.repeat(40));
   assert.equal(plan.recovery.smoke_harness_ref, 'e'.repeat(40));
   assert.equal(plan.cohort?.shell_sha, shellSha);
+  assert.equal(plan.authority?.operation_id, stableOperationIdForFrozenCohort({
+    objectiveFingerprint: `opl-desktop-stable-release:smoke-harness:${'e'.repeat(40)}`,
+    appSha,
+    shellSha,
+    frameworkSha,
+    criticalBlobs: stableOperationCriticalBlobs(appRoot),
+  }));
+  assert.notEqual(plan.authority?.operation_id, stableOperationIdForFrozenCohort({
+    objectiveFingerprint: 'opl-desktop-stable-release',
+    appSha,
+    shellSha,
+    frameworkSha,
+    criticalBlobs: stableOperationCriticalBlobs(appRoot),
+  }));
   assert.throws(() => buildStandardPlan({
     runtime,
     workflow: '.github/workflows/release-stable.yml',
