@@ -166,12 +166,15 @@ test('first-run VM validates Studio production Runtime refresh before writing qu
   const legacy = steps[legacyIndex];
   assert.ok(legacy, 'release-gate VM is missing the public Aion to Studio upgrade qualification');
   assert.equal(legacy.id, 'legacy_upgrade');
+  assert.match(String(legacy.if), /inputs\.standard_identity_sha256 != ''/);
+  assert.match(String(legacy.if), /inputs\.diagnostic_scope == 'release_gate'/);
   assert.match(String(legacy.run), /stable-qualify-legacy-upgrade\.mjs/);
   assert.match(String(legacy.run), /--standard-identity-sha256/);
   assert.match(String(legacy.run), /--candidate-root standard-identity-input/);
   assert.ok(legacyIndex < validationIndex, 'legacy upgrade qualification must follow the fresh Studio clean VM');
   const receiptIndex = stepIndex('Write exact-artifact qualification receipt');
   assert.ok(legacyIndex < receiptIndex);
+  assert.match(String(steps[receiptIndex].run), /steps\.legacy_upgrade\.outcome/);
   assert.match(String(steps[receiptIndex].if), /steps\.settings_runtime_evidence\.outcome == 'success'/);
 });
 
