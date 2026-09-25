@@ -1,5 +1,5 @@
-import { materializeStudioOfficialProfileResources } from './studio-official-profile-resources.ts';
 #!/usr/bin/env node
+import { materializeStudioOfficialProfileResources } from './studio-official-profile-resources.ts';
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
