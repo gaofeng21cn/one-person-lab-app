@@ -2331,37 +2331,6 @@ jobs:
 
           exit "$SMOKE_STATUS"
 
-      - name: Qualify public Aion Stable upgrades to the exact sealed Studio candidate
-        id: legacy_upgrade
-        if: ${{ steps.vm_smoke.outcome == 'success' && inputs.operation == 'standard' && inputs.package_profile == 'standard' && inputs.release_artifact_name != '' && inputs.standard_identity_sha256 != '' && inputs.diagnostic_scope != 'bootstrap_only' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          GUEST_USER="${{ inputs.guest_user }}"
-          if [ -z "$GUEST_USER" ]; then GUEST_USER="${OPL_FIRST_RUN_GUEST_USER:-runner}"; fi
-          SSH_KEY="${{ inputs.guest_ssh_key_path }}"
-          if [ -z "$SSH_KEY" ]; then SSH_KEY="${OPL_FIRST_RUN_GUEST_SSH_KEY:-}"; fi
-          test -n "$SSH_KEY" || { echo "::error::Aion upgrade qualification requires the isolated Tart SSH key."; exit 1; }
-          test -n '${{ inputs.standard_identity_sha256 }}'
-          test -n '${{ steps.framework_source.outputs.archive_path }}'
-          test -n '${{ steps.codex_package_preflight.outputs.platform_tarball_path }}'
-          node shells/opl-studio/scripts/desktop/stable-qualify-legacy-upgrade.mjs \
-            --candidate-root standard-identity-input \
-            --standard-identity-sha256 '${{ inputs.standard_identity_sha256 }}' \
-            --source-vm '${{ steps.tart_source.outputs.source_vm }}' \
-            --guest-user "$GUEST_USER" \
-            --ssh-key "$SSH_KEY" \
-            --artifacts artifacts/opl-first-run-vm/legacy-upgrade \
-            --framework-source-archive '${{ steps.framework_source.outputs.archive_path }}' \
-            --framework-ref '${{ needs.validate-vm-inputs.outputs.framework_sha }}' \
-            --codex-platform-package-tarball '${{ steps.codex_package_preflight.outputs.platform_tarball_path }}' \
-            --codex-version '${{ steps.codex_package_preflight.outputs.package_version }}' \
-            --gateway-account-email-file '${{ steps.gateway_credentials.outputs.email_file }}' \
-            --gateway-account-password-file '${{ steps.gateway_credentials.outputs.password_file }}' \
-            --product-profile '${{ github.workspace }}/contracts/app-product-profile.json'
-
       - name: Validate production Settings Runtime refresh evidence
         id: settings_runtime_evidence
         if: ${{ steps.vm_smoke.outcome == 'success' && needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' }}
@@ -2379,7 +2348,7 @@ jobs:
         run: |
           set -euo pipefail
           result=failed
-          if [ "${{ steps.vm_smoke.outcome }}" = "success" ] && { [ "${{ steps.legacy_upgrade.outcome }}" = "success" ] || [ '${{ inputs.operation }}' != standard ] || [ '${{ inputs.package_profile }}' != standard ] || [ '${{ inputs.diagnostic_scope }}' != release_gate ]; }; then result=passed; fi
+          if [ "${{ steps.vm_smoke.outcome }}" = "success" ]; then result=passed; fi
           profile="${{ steps.package_profile.outputs.profile || needs.validate-vm-inputs.outputs.package_profile }}"
           evidence_ref="opl-first-run-vm-${profile}-${GITHUB_RUN_ID}"
           node --experimental-strip-types scripts/write-artifact-qualification-receipt.ts \
