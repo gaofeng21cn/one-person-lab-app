@@ -113,7 +113,7 @@ jobs:
           }
           NODE
           grep -E -q 'working-directory: release-executor' .github/workflows/full-first-install-release.yml
-          grep -E -q -- '--gui-root "\$GITHUB_WORKSPACE/one-person-lab-app/shells/aionui"' .github/workflows/full-first-install-release.yml
+          grep -E -q -- '--gui-root "\$GITHUB_WORKSPACE/one-person-lab-app/[^"]*steps[.]shell_profile[.]outputs[.]shell_root[^"]*"' .github/workflows/full-first-install-release.yml
           grep -E -q -- '--out-dir "\$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"' .github/workflows/full-first-install-release.yml
 
       - name: Admit one-shot Full append operation

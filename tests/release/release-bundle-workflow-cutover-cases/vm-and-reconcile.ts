@@ -771,6 +771,9 @@ test('Full append admission uses runner-portable static checks', () => {
   assert.equal((admission.match(/grep -E -q/g) ?? []).length, 3);
   assert.doesNotMatch(admission, /\brg\s+-q\b/);
   assert.match(admission, /working-directory: release-executor/);
-  assert.match(admission, /--gui-root "\\\$GITHUB_WORKSPACE\/one-person-lab-app\/shells\/aionui"/);
+  assert.doesNotMatch(admission, /shells\/aionui/);
+  const commands = admission.split('\n').filter((line) => line.trim().startsWith('grep -E -q'));
+  const result = spawnSync('/bin/bash', ['-euo', 'pipefail', '-c', commands.join('\n')], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || 'Full admission must accept the current active-shell workflow');
   assert.match(admission, /--out-dir "\\\$GITHUB_WORKSPACE\/one-person-lab-app\/dist\/opl-full-release"/);
 });
