@@ -1697,7 +1697,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.unsigned_publication_allowed !== true
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.code_signing_status_must_be_explicit !== true
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.runtime_resolver !==
-      'opl-aion-shell/packages/desktop/src/process/bridge/updateBridge.ts'
+      'opl-studio/desktop/updater.mjs'
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.base_stable_asset_append_allowed !== true
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.latest_pointer_mutation_allowed !== false
     || platformMatrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.upgrade_vm_qualification?.workflow !==

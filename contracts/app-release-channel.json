@@ -1253,7 +1253,7 @@
         ],
         "metadata_binding": "latest_yml_version_name_size_and_sha512_match_exact_installer_bytes",
         "runtime_feed_authority": "active_shell resolves updater metadata from the same exact Stable Release tag as the Desktop installers",
-        "runtime_resolver": "opl-aion-shell/packages/desktop/src/process/bridge/updateBridge.ts",
+        "runtime_resolver": "opl-studio/desktop/updater.mjs",
         "base_stable_asset_append_allowed": true,
         "latest_pointer_mutation_allowed": false,
         "upgrade_vm_qualification": {

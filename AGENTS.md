@@ -4,7 +4,7 @@
 
 - App 侧核心机器边界是 `contracts/app-gui-product-contract.json`、`contracts/app-page-state-matrix.json`、`contracts/app-shell-adapter.json` 和 `contracts/app-release-channel.json`。
 - OPL Framework 持有通用 runtime、installed discovery/status aggregation 与平台 adapter；领域 task、artifact 和交付 authority 归对应 domain owner。App 只消费其 contracts、CLI JSON 和 projections。
-- `opl-aion-shell` 承载当前 AionUI renderer、process、package、测试和 upstream intake；`opl-studio` 独立实现 DSH/Cordis Application Host、原生 Codex 集成和三种 delivery carrier。App 定义两者共同的产品行为、active-shell、adoption 与验收，不得把任一实现或 upstream 默认值变成 App authority。
+- `opl-studio` 是当前 Desktop、WebUI 和 Docker 发布实现，提供 DSH/Cordis Application Host 与原生 Codex 集成。`opl-aion-shell` 仅保留旧版迁移基线、固定历史测试夹具和源码历史；不得恢复为生产构建来源。App 持有产品行为、active-shell、adoption 与验收 authority。
 - AionCore 是只读上游依赖。不得为 OPL 建立或维护 AionCore fork、PR 或 patch，也不得单独替换 `/Applications/One Person Lab.app` 内嵌的 AionCore；升级只能由 App/Shell 合同选择官方 release，并通过完整 OPL App 构建、安装和运行时版本回读闭环。
 - 用户可见行为、页面状态、模型/引导策略或 release-ready 边界变化时，先更新 App contract、docs 和 tests，再实现 Shell；上游 fork body 默认只读。
 - Package、carrier 与 executor 是独立角色。App/Shell 从动态 projection 渲染，不维护固定 Package/Agent 清单、依赖图、版本解析、lock、payload、receipt 或 currentness 镜像。
