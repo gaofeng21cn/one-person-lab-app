@@ -526,11 +526,26 @@ jobs:
             test "$(grep -Fxc "$source_checkpoint_artifact_name" <<< "$artifact_names")" -eq 1
             if [ "$(grep -Fxc "$source_qualification_artifact_name" <<< "$artifact_names")" -eq 1 ]; then
               qualification_present=true
+              gh run download "$PRIOR_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+                --name "$source_qualification_artifact_name" --dir resolved-qualification
+              checkpoint_app_ref="$(jq -er .app_executor_sha resolved-qualification/qualification.json)"
+              if [ '${{ steps.terminal.outputs.enabled }}' = true ]; then
+                jq -e --arg sha "$STUDIO_SHA" --arg version "$studio_version" \
+                  --slurpfile identity resolved-qualification/qualification.json '
+                  .prepublicationUpdate as $proof |
+                  $proof.schema == "opl_studio_preview_upgrade_qualification.v1" and $proof.status == "passed"
+                  and $proof.verification_source_commit == $sha and $proof.previewVersion == $version
+                  and $proof.checkpointSha256 == $identity[0].checkpoint_manifest_sha256
+                  and ($proof.routes | length) >= 2 and all($proof.routes[]; .status == "passed" and .nativeUpdater and .terminalHandoff and .storagePreserved)
+                ' resolved-qualification/prepublication-qualification.json >/dev/null || qualification_present=false
+              fi
+            else
+              gh run download "$PRIOR_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+                --name "$source_checkpoint_artifact_name" --dir resolved-checkpoint
+              checkpoint_app_ref="$(jq -er .app_executor_sha resolved-checkpoint/checkpoint.json)"
             fi
+            [[ "$checkpoint_app_ref" =~ ^[0-9a-f]{40}$ ]]
           fi
-          # Terminal handoff always requalifies the two public source baselines;
-          # an old host updater receipt cannot admit cross-identity installation.
-          if [ '${{ steps.terminal.outputs.enabled }}' = true ]; then qualification_present=false; fi
           {
             echo "source_checkpoint_run_id=$source_checkpoint_run_id"
             echo "checkpoint_app_ref=$checkpoint_app_ref"

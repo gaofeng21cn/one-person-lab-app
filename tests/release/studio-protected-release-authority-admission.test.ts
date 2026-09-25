@@ -204,7 +204,9 @@ test('Studio execution keeps build, qualification, publication, and public readb
   assert.equal(qualify.environment, "${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && 'release-stable' || null }}");
   assert.equal(resolve.outputs.terminal_preview, '${{ steps.terminal.outputs.enabled }}');
   assert.match(String(qualify['runs-on']), /terminal_preview == 'true'.*opl-cert-mac-tart.*macos-15/);
-  assert.match(JSON.stringify(resolve), /terminal\.outputs\.enabled.*qualification_present=false/);
+  assert.match(JSON.stringify(resolve), /prepublicationUpdate/);
+  assert.match(JSON.stringify(resolve), /checkpoint_manifest_sha256/);
+  assert.match(JSON.stringify(resolve), /resolved-qualification\/qualification\.json/);
   assert.match(JSON.stringify(qualify), /stable-qualify-preview-upgrade\.mjs/);
   assert.match(JSON.stringify(qualify), /OPL_PREVIEW_UPGRADE_VM_RECEIPT/);
   assert.deepEqual(publish.concurrency, {
