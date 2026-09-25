@@ -121,8 +121,15 @@ macOS Standard 已通过公开前签名、公证、Gateway 登录、Official Pro
 旧 AionUI 与 Studio Preview 的真实升级、数据延续和后续更新源是独立的待收尾验收，
 不改写为已经完成。Full、Nightly 及其他平台分别保留自身公开回读，不能由 Standard 代替。
 
-归档 `opl-aion-shell` 前须确认 Stable、Full、Nightly、发布说明和 CI 不再从该仓库获取当前
-生产源码，保留旧安装包和只读源码用于迁移及历史追溯。归档不删除旧用户数据或旧 Release。
+Desktop Stable 和 Nightly 已使用 Studio。独立 Docker WebUI 当前仍按
+`app-release-channel.json#webui_ghcr_image.shell_source` 固定到 Aion Shell；
+`_release-webui-carrier.yml` 仍从该仓库构建生产镜像。共享 Studio renderer 的实现能力
+不代表这个独立镜像已完成迁移。
+
+因此当前保留 `opl-aion-shell`，不宣布所有发布载体均已切换。归档前应完成两条旧版迁移
+验收，明确 Docker WebUI 的后续实现，并处理仍使用旧 Shell 的源码预检及平台诊断入口。
+只读历史 checkout 和迁移 fixture 可以在归档后继续使用，无需删除。归档不删除旧用户
+数据、旧安装包或旧 Release。
 
 ## Canonical References
 

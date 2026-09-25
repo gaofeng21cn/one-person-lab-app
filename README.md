@@ -95,8 +95,8 @@ release-integrity checks.
 This repository owns App product behavior, packaging and release qualification.
 [One Person Lab Framework](https://github.com/gaofeng21cn/one-person-lab) owns
 runtime and Package projections; domain Packages own professional decisions and
-artifacts. OPL Studio, based on the pinned DSH/Cordis Host, is the selected
-Desktop Shell for the next Stable release. Stable preserves the OPL App identity
+artifacts. OPL Studio, based on the pinned DSH/Cordis Host, is the current
+macOS Stable Desktop Shell. Stable preserves the OPL App identity
 and update feed; existing Studio Preview installations move through a signed
 terminal handoff release. AionUI remains the independently pinned Docker WebUI
 implementation and the source for legacy upgrade checks. Shells retain their

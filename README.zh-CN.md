@@ -81,8 +81,8 @@ open -a "One Person Lab"
 
 本仓负责 App 产品行为、打包与发布验收。
 [One Person Lab Framework](https://github.com/gaofeng21cn/one-person-lab)
-负责运行与 Package 投影，领域 Packages 负责专业判断和交付物。下一正式版的
-桌面 Shell 已选择基于固定 DSH/Cordis Host 的 OPL Studio，沿用既有 OPL App
+负责运行与 Package 投影，领域 Packages 负责专业判断和交付物。当前 macOS Stable 的
+桌面 Shell 使用基于固定 DSH/Cordis Host 的 OPL Studio，沿用既有 OPL App
 身份和更新源；Studio Preview 通过签名过渡版迁入正式版。AionUI 继续用于
 独立固定版本的 Docker WebUI 和旧版升级检查。各 Shell 保留独立源码历史，
 Studio 不依赖 AionCore。
