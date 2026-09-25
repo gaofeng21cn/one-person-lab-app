@@ -178,3 +178,8 @@ Skill 的版本化源是 `skills/opl-app-release`。本机 `~/.codex/skills/opl-
 机器版本和已完成的构建 run。已有平台资产不可在追加时覆盖；不同字节的替换继续使用
 同 tag 资产 CAS。签名、包完整性和平台运行验收按该平台合同执行，不能把原 Standard
 通过当作修复包通过。
+
+同 tag 替换后的 Standard Homebrew 更新由 App 的 `scripts/update-homebrew-tap.ts`
+生成，传入公开回读的 `--component-manifest <file>`，使机器版本、DMG URL 和摘要绑定该已验收
+替换包，而不是重新从显示版本推导旧机器版本。继续使用当前 Cask 摘要 CAS，验证公开 Release
+资产与 manifest 后写入下游；不得仅改 Cask 版本或校验和。

@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs as parseNodeArgs } from 'node:util';
+import { readAppComponentManifestIdentity } from './read-opl-app-component-manifest-identity.ts';
 import {
   assertReleaseVersionNotFuture,
   assertUpdaterVersionMatchesDisplay,
@@ -30,6 +31,7 @@ type Options = {
   remoteWriteMode: string;
   expectedCurrentCaskSha256: string | null;
   selfCheck: boolean;
+  componentManifest?: string;
 };
 
 type ResolvedOptions = Omit<Options, 'packageKind'> & {
@@ -74,6 +76,7 @@ function parseArgs(argv: string[]): Options {
     args: argv,
     options: {
       'self-check': { type: 'boolean' },
+      'component-manifest': { type: 'string' },
       write: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
       channel: { type: 'string' },
@@ -111,6 +114,7 @@ function parseArgs(argv: string[]): Options {
     selfCheck: false,
   };
 
+  if (values['component-manifest']) parsed.componentManifest = path.resolve(values['component-manifest']);
   if (values.channel !== undefined) {
     if (values.channel !== 'stable' && values.channel !== 'nightly') {
       throw new Error('--channel must be stable or nightly.');
@@ -231,7 +235,25 @@ function validateOptions(options: Options): ResolvedOptions {
     }
     throw new Error('Stable Homebrew tap updates must use YY.M.D or YY.M.D-r1 through r9.');
   }
-  assertUpdaterVersionMatchesDisplay(options.channel, options.version, options.updaterVersion);
+  if (options.componentManifest) {
+    if (options.channel !== 'stable' || packageKind !== 'app_standard') {
+      throw new Error('Component manifest replacement is limited to Stable Standard.');
+    }
+    const manifest = JSON.parse(fs.readFileSync(options.componentManifest, 'utf8'));
+    const tag = `v${options.version}`;
+    const identity = readAppComponentManifestIdentity(manifest, tag, false,
+      manifest.same_tag_replacement?.tag_source_commit ?? manifest.source_commit);
+    const base = `https://github.com/gaofeng21cn/one-person-lab-app/releases/download/${tag}`;
+    if (identity.updater_version !== options.updaterVersion
+      || options.manifestUrl !== `${base}/opl-app-component-manifest.json`
+      || manifest.primary_artifact.ref !== options.downloadUrl
+      || manifest.primary_artifact.digest !== `sha256:${options.checksumSha256}`
+      || options.downloadUrl !== `${base}/One-Person-Lab-${options.version}-mac-arm64.dmg`) {
+      throw new Error('Homebrew inputs must match the exact qualified component manifest.');
+    }
+  } else {
+    assertUpdaterVersionMatchesDisplay(options.channel, options.version, options.updaterVersion);
+  }
   if (packageKind === 'app_full_first_install' && options.channel !== 'stable') {
     throw new Error('Full first-install Homebrew cask updates must stay on the stable channel.');
   }
