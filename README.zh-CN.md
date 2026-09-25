@@ -18,6 +18,14 @@ Machine boundary: 当前合同、源码和精确发布/安装证据。
 
 ![One Person Lab App 用户旅程](assets/branding/opl-app-user-journey-v2.png)
 
+## 当前应用架构
+
+从 26.9.25 起，macOS Stable 使用基于 DSH/Cordis 的 Studio 应用 Host，原生接入
+Codex 会话，由 Framework 提供运行时与 Package 状态。产品仍是 **One Person Lab App**：
+Studio 是实现架构，Stable/Nightly 是发布渠道，Standard/Full 是安装包选择。
+[9 月架构切换说明](https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.9.25-r1)
+说明了相对 26.9.23 的变化，以及迁移和附加发布的当前状态。
+
 ## 工作台
 
 App 将对话、项目上下文、文件、长期任务和专业入口放在同一个工作空间。首页入口

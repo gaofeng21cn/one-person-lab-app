@@ -19,6 +19,15 @@ Machine boundary: Current contracts, source and exact release/installed evidence
 
 ![One Person Lab App user journey](assets/branding/opl-app-user-journey-v2.png)
 
+## Current Application Architecture
+
+Since 26.9.25, macOS Stable uses the Studio application Host built on DSH/Cordis,
+with native Codex conversations and Framework-owned runtime and Package state.
+The product remains **One Person Lab App**. Studio is its implementation;
+Stable/Nightly are release channels, and Standard/Full are installation choices.
+The [September architecture-transition notes](https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.9.25-r1)
+describe the changes since 26.9.23 and the current migration and delivery status.
+
 ## Workbench
 
 The App brings conversation, project context, files, long-running work and
