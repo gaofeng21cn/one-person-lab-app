@@ -343,3 +343,26 @@ test('Standard publisher keeps Stable qualification separate from protected Prev
     /needs\.restore\.outputs\.channel == 'preview' && needs\.homebrew-standard-readback\.result == 'success'/,
   );
 });
+
+
+test('same-tag Stable repair binds its new source and machine version without moving the tag', () => {
+  const replacement = {
+    schema: 'opl_app_same_tag_replacement.v1', tag_source_commit: sha('a'),
+    previous_updater_version: '26.9.2592', previous_manifest_digest: `sha256:${'a'.repeat(64)}`,
+    build_run_id: '36102406957', qualification_run_id: '36103309287',
+    qualification_receipt_sha256: `sha256:${'b'.repeat(64)}`,
+  };
+  const manifest = currentManifest({
+    version: '26.9.25-r1', release_version: '26.9.25-r1', release_tag: 'v26.9.25-r1',
+    updater_version: '26.9.2593', quality_status: 'stable', preview_kind: null,
+    source_commit: sha('d'), source_cohort: {app_sha: sha('d'), shell_sha: sha('b'), framework_sha: sha('c')},
+    distribution_pointer_policy: {pointer: 'latest', automatic_writer: 'qualified_stable_default', explicit_override: 'protected_single_use_exact_version', quality_unchanged: true, stable_reclaim: 'next_qualified_stable'},
+    qualification_disclosure: {stable_qualified: true, passed_gates: ['standard_vm'], skipped_gates: [], failed_gates: [], non_stable_notice: false},
+    same_tag_replacement: replacement,
+  });
+  assert.equal(readAppComponentManifestIdentity(manifest, 'v26.9.25-r1', false, sha('a')).updater_version, '26.9.2593');
+  for (const bad of [{updater_version: '26.9.2592'}, {same_tag_replacement: {...replacement, tag_source_commit: sha('e')}}, {same_tag_replacement: {...replacement, qualification_receipt_sha256: ''}}]) {
+    const {component_manifest_digest, ...core} = manifest;
+    assert.throws(() => readAppComponentManifestIdentity(sealManifest({...core,...bad}), 'v26.9.25-r1', false, sha('a')), /Same-tag replacement/);
+  }
+});

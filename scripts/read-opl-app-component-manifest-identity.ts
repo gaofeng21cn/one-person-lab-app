@@ -74,7 +74,31 @@ export function readAppComponentManifestIdentity(
   if (requireString(manifest.version, 'version') !== displayVersion) {
     throw new Error('App component manifest version does not match GitHub Latest.');
   }
-  if (requireString(manifest.source_commit, 'source_commit') !== expectedSourceCommit) {
+  const replacement = manifest.same_tag_replacement === undefined ? null
+    : requireRecord(manifest.same_tag_replacement, 'same_tag_replacement');
+  const sourceCommit = requireString(manifest.source_commit, 'source_commit');
+  if (replacement) {
+    const previous = String(replacement.previous_updater_version).split('.').map(Number);
+    const next = String(manifest.updater_version).split('.').map(Number);
+    const floor = resolveReleaseVersionIdentity('stable', displayVersion).updaterVersion.split('.').map(Number);
+    if (replacement.schema !== 'opl_app_same_tag_replacement.v1'
+      || manifest.quality_status !== 'stable' || manifest.preview_kind !== null
+      || replacement.tag_source_commit !== expectedSourceCommit
+      || !shaPattern.test(sourceCommit)
+      || !/^\d+\.\d+\.\d+$/.test(String(replacement.previous_updater_version))
+      || !/^\d+\.\d+\.\d+$/.test(String(manifest.updater_version))
+      || previous[0] !== floor[0] || previous[1] !== floor[1] || previous[2] < floor[2]
+      || Math.floor(previous[2] / 100) !== Math.floor(floor[2] / 100)
+      || Math.floor(next[2] / 100) !== Math.floor(floor[2] / 100)
+      || next[0] !== previous[0] || next[1] !== previous[1] || next[2] !== previous[2] + 1
+      || !digestPattern.test(String(replacement.previous_manifest_digest))
+      || !digestPattern.test(String(replacement.qualification_receipt_sha256))
+      || !/^[1-9][0-9]*$/.test(String(replacement.build_run_id))
+      || !/^[1-9][0-9]*$/.test(String(replacement.qualification_run_id))) {
+      throw new Error('Same-tag replacement must bind a qualified monotonic machine revision to the original tag.');
+    }
+  }
+  if (!replacement && sourceCommit !== expectedSourceCommit) {
     throw new Error('App component manifest source_commit does not match the GitHub Release target.');
   }
   const manifestDigest = verifyManifestDigest(manifest);
@@ -152,7 +176,7 @@ export function readAppComponentManifestIdentity(
       : previewKind === 'nightly'
         ? 'nightly'
         : 'preview';
-    assertUpdaterVersionMatchesDisplay(versionChannel, displayVersion, updaterVersion);
+    if (!replacement) assertUpdaterVersionMatchesDisplay(versionChannel, displayVersion, updaterVersion);
     distributionPointerPolicy = requireRecord(
       manifest.distribution_pointer_policy,
       'distribution_pointer_policy',
@@ -181,7 +205,7 @@ export function readAppComponentManifestIdentity(
     );
     const sourceCohort = requireRecord(manifest.source_cohort, 'source_cohort');
     if (
-      sourceCohort.app_sha !== expectedSourceCommit
+      sourceCohort.app_sha !== sourceCommit
       || typeof sourceCohort.shell_sha !== 'string'
       || !shaPattern.test(sourceCohort.shell_sha)
       || typeof sourceCohort.framework_sha !== 'string'

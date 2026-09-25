@@ -503,7 +503,11 @@ function assertStandardDistributionTrust(downloadDir, options, verifiedAssets) {
     || !/^sha256:[0-9a-f]{64}$/.test(attestation.release?.bundle_digest ?? "")
     || attestation.protection?.github_native_immutable !== false
     || attestation.protection?.retroactive_lock_claimed !== false
-    || attestation.protection?.standard_asset_policy !== "sealed_name_size_digest_set_no_overwrite_or_delete"
+    || !(attestation.protection?.standard_asset_policy === "sealed_name_size_digest_set_no_overwrite_or_delete"
+      || (attestation.protection?.standard_asset_policy === "qualified_same_tag_compare_and_swap"
+        && attestation.publication_record?.schema === "opl_app_same_tag_replacement_publication_record.v1"
+        && attestation.same_tag_replacement?.schema === "opl_app_same_tag_replacement.v1"
+        && /^sha256:[0-9a-f]{64}$/.test(attestation.same_tag_replacement?.qualification_receipt_sha256 ?? '')))
     || JSON.stringify(attestation.superseded_public_assets) !== JSON.stringify([
       "stable-operation-publication-record.json",
       "standard-apple-notarization-receipt.json",
