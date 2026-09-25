@@ -604,22 +604,15 @@ function frozenBuildInputs(input: {
   const dockerfileRef = 'Dockerfile';
   const dockerfileBytes = gitFileBytes(input.shellRoot, input.shellRef, dockerfileRef, 'Shell Dockerfile');
   const dockerfile = dockerfileBytes.toString('utf8');
-  if (!dockerfile.includes('FROM node:22-bookworm-slim')) {
-    throw new Error('Exact Shell Dockerfile no longer contains FROM node:22-bookworm-slim.');
+  if (!dockerfile.includes('ARG NODE_IMAGE=node:22-bookworm-slim@sha256:')) {
+    throw new Error('Exact Studio Dockerfile must bind a digest-pinned Node base.');
   }
-  const intakeBytes = gitFileBytes(
-    input.shellRoot,
-    input.shellRef,
-    'contracts/aionui-upstream-intake.json',
-    'Shell upstream intake contract',
-  );
-  const intake = JSON.parse(intakeBytes.toString('utf8')) as JsonRecord;
-  if (intake.managed_runtime?.codex_cli?.package !== '@openai/codex') {
-    throw new Error('Shell intake contract does not bind @openai/codex.');
-  }
-  const codexVersion = String(intake.managed_runtime?.codex_cli?.version ?? '');
-  if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(codexVersion)) {
-    throw new Error('Shell intake contract does not bind an exact Codex version.');
+  const intake = JSON.parse(gitFileBytes(input.appRoot, input.appRef,
+    'contracts/app-release-qualification-input-manifest.json', 'App runtime input contract').toString('utf8')) as JsonRecord;
+  const codexVersion = String(intake.runtime_payloads?.codex_cli?.version ?? '');
+  if (intake.runtime_payloads?.codex_cli?.package !== '@openai/codex'
+    || !/^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(codexVersion)) {
+    throw new Error('App runtime input contract must bind an exact Codex version.');
   }
   const codexBytes = verifyCodexTarball(
     path.resolve(requireOption(input.values, 'frozen-codex-tarball')),
@@ -636,7 +629,7 @@ function frozenBuildInputs(input: {
     gitArchiveDescriptor(input.appRoot, input.appRef, 'app_source'),
     frozenBaseImageDescriptor(requireOption(input.values, 'base-image-index'), input.architecture),
     fileDescriptor('codex_cli', `@openai/codex@${codexVersion}`, codexBytes),
-    fileDescriptor('dockerfile', 'shells/aionui/Dockerfile', dockerfileBytes),
+    fileDescriptor('dockerfile', 'shells/studio/Dockerfile', dockerfileBytes),
     gitArchiveDescriptor(input.frameworkRoot, input.frameworkRef, 'framework_seed'),
     fileDescriptor('qualification_harness', qualificationHarnessRef, qualificationHarnessBytes),
     gitArchiveDescriptor(input.shellRoot, input.shellRef, 'shell_webui_source'),

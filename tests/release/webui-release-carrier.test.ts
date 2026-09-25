@@ -48,7 +48,7 @@ function draftBuildInput(architecture: Architecture = 'amd64') {
   const refs: Record<string, string> = {
     app_source: appSha,
     shell_webui_source: shellSha,
-    dockerfile: 'shells/aionui/Dockerfile',
+    dockerfile: 'shells/studio/Dockerfile',
     framework_seed: frameworkSha,
     codex_cli: '@openai/codex@1.2.3',
     base_image: `docker.io/library/node@${baseDigest}`,
@@ -299,7 +299,7 @@ test('WebUI build input sealing is canonical, repeatable, and identity-bound', (
   assert.equal(sealed.inputs.some((input: { id: string }) => input.id === 'opl_flow'), false);
 });
 
-test('WebUI runtime validation binds each native image to its matching AionCore payload', () => {
+test('WebUI runtime validation binds each native image to its Studio runtime', () => {
   for (const [architecture, runtimeKey] of [
     ['amd64', 'linux-x64'],
     ['arm64', 'linux-arm64'],
@@ -310,13 +310,14 @@ test('WebUI runtime validation binds each native image to its matching AionCore 
       Os: 'linux',
       Architecture: architecture,
       Config: {
+        User: 'node', Cmd: ['node', 'scripts/headless/run.mjs'],
         Labels: {
           'org.opencontainers.image.source': 'https://github.com/gaofeng21cn/one-person-lab-app',
           'org.opencontainers.image.revision': appSha,
         },
         Env: [
           'HOME=/data',
-          'AIONUI_DATA_DIR=/data',
+          'CODEX_HOME=/data/codex',
           'OPL_DATA_DIR=/data',
           'OPL_PROJECTS_DIR=/projects',
           'OPL_WORKSPACE_ROOT=/projects',
@@ -327,12 +328,12 @@ test('WebUI runtime validation binds each native image to its matching AionCore 
       },
     }]);
     const imageManifestPath = writeJson(root, 'image-manifest.json', {
-      schema: 'dev.onepersonlab.opl-webui-image-manifest.v1',
+      schema: 'dev.onepersonlab.opl-webui-image-manifest.v2',
       image_role: 'opl_webui_runtime_image',
       image_profile: 'webui-slim',
       base_image_family: 'node:22-bookworm-slim',
-      webui_package: { name: '@aionui/web-cli', version: '1.9.25' },
-      bundled_aioncore: { platforms: [runtimeKey], path: 'bundled-aioncore' },
+      webui_package: { name: 'opl-studio', source_commit: shellSha },
+      application_host: 'opl-studio',
       data_dir: '/data',
       projects_dir: '/projects',
       seed_strategy: 'metadata_only',
@@ -340,7 +341,7 @@ test('WebUI runtime validation binds each native image to its matching AionCore 
       seed_metadata: '/opt/opl/seed/metadata.json',
     });
     const seedMetadataPath = writeJson(root, 'seed-metadata.json', {
-      schema: 'dev.onepersonlab.opl-webui-image-seed.v1',
+      schema: 'dev.onepersonlab.opl-webui-image-seed.v2',
       strategy: 'metadata_only',
       data_dir: '/data',
       projects_dir: '/projects',
@@ -358,7 +359,7 @@ test('WebUI runtime validation binds each native image to its matching AionCore 
     assert.equal(result.status, 0, result.stderr || result.stdout);
     const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
     assert.deepEqual(summary.platform, { os: 'linux', architecture });
-    assert.equal(summary.bundled_aioncore_runtime_key, runtimeKey);
+    assert.equal(summary.application_host, 'opl-studio');
   }
 });
 
@@ -821,13 +822,7 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
   assert.match(buildRun, /docker-context-policy-verification\.json/);
   assert.match(buildRun, /\.opl-frozen-inputs\/codex-cli\.tgz/);
   assert.match(buildRun, /COPY \.opl-frozen-inputs\/codex-cli\.tgz \/tmp\/codex-cli\.tgz/);
-  assert.match(buildRun, /npm install -g --prefix \/opt\/codex-cli \/tmp\/codex-cli\.tgz/);
-  assert.match(buildRun, /materialize-webui-seed-symlinks\.ts --root \/opt\/codex-cli/);
-  assert.match(buildRun, /find \/opt\/codex-cli -type l -print -quit/);
-  assert.match(buildRun, /webui-executor-source\/scripts\/materialize-webui-seed-symlinks\.ts/);
-  assert.match(buildRun, /COPY \.opl-frozen-inputs\/materialize-webui-seed-symlinks\.ts \/tmp\/materialize-webui-seed-symlinks\.ts/);
-  assert.match(buildRun, /materialize-webui-seed-symlinks\.ts --root node_modules --workspace-root \./);
-  assert.match(buildRun, /find node_modules -type l -print -quit/);
+  assert.match(buildRun, /npm install --global --prefix \/opt\/codex \/tmp\/codex-cli\.tgz/);
   assert.match(buildRun, /framework-release-adapter\.ts webui-build-input/);
   assert.match(buildRun, /oras manifest fetch/);
   assert.match(buildRun, /npm view/);

@@ -100,7 +100,6 @@ const imageArchitecture = image.Architecture;
 if (imageOs !== 'linux' || (imageArchitecture !== 'amd64' && imageArchitecture !== 'arm64')) {
   throw new Error(`Docker/WebUI image platform must be linux/amd64 or linux/arm64, got ${String(imageOs)}/${String(imageArchitecture)}.`);
 }
-const expectedAioncoreRuntimeKey = imageArchitecture === 'amd64' ? 'linux-x64' : 'linux-arm64';
 const config = asRecord(image.Config, 'Docker image inspect Config');
 const labels = asRecord(config.Labels, 'Docker image inspect labels');
 const env = envMap(config.Env);
@@ -127,7 +126,7 @@ for (const volume of ['/data', '/projects']) {
 }
 for (const [key, expected] of Object.entries({
   HOME: '/data',
-  AIONUI_DATA_DIR: '/data',
+  CODEX_HOME: '/data/codex',
   OPL_DATA_DIR: '/data',
   OPL_PROJECTS_DIR: '/projects',
   OPL_WORKSPACE_ROOT: '/projects',
@@ -147,14 +146,14 @@ const pathEnv = env.get('PATH') ?? '';
 if (args.expectedProfile === 'webui-full') {
   assertStringArrayIncludes(
     pathEnv.split(':'),
-    ['/opt/opl/seed/payload/opl_framework/bin', '/opt/opl/seed/payload/codex_cli/bin'],
+    ['/opt/opl-framework/bin', '/opt/codex/bin'],
     'webui-full Docker PATH',
   );
 }
 
 assertExpectedFields(
   [
-    { actual: imageManifest.schema, expected: 'dev.onepersonlab.opl-webui-image-manifest.v1' },
+    { actual: imageManifest.schema, expected: 'dev.onepersonlab.opl-webui-image-manifest.v2' },
     { actual: imageManifest.image_role, expected: 'opl_webui_runtime_image' },
     { actual: imageManifest.data_dir, expected: '/data' },
     { actual: imageManifest.projects_dir, expected: '/projects' },
@@ -167,15 +166,17 @@ if (typeof imageManifest.base_image_family !== 'string' || /alpine/i.test(imageM
   throw new Error('Docker/WebUI runtime image must use a glibc LTS/slim base, not Alpine.');
 }
 const webuiPackage = asRecord(imageManifest.webui_package, 'image manifest webui_package');
-if (webuiPackage.name !== '@aionui/web-cli' || typeof webuiPackage.version !== 'string') {
-  throw new Error('Image manifest must identify the bundled @aionui/web-cli package.');
+if (webuiPackage.name !== 'opl-studio' || !/^[a-f0-9]{40}$/.test(String(webuiPackage.source_commit))
+  || imageManifest.application_host !== 'opl-studio') {
+  throw new Error('Image manifest must identify the exact Studio application host.');
 }
-const bundledAioncore = asRecord(imageManifest.bundled_aioncore, 'image manifest bundled_aioncore');
-assertStringArrayIncludes(bundledAioncore.platforms, [expectedAioncoreRuntimeKey], 'bundled AionCore platforms');
+if (config.User !== 'node' || JSON.stringify(config.Cmd) !== JSON.stringify(['node', 'scripts/headless/run.mjs'])) {
+  throw new Error('Studio WebUI must run the non-root Node headless host.');
+}
 
 assertExpectedFields(
   [
-    { actual: seedMetadata.schema, expected: 'dev.onepersonlab.opl-webui-image-seed.v1' },
+    { actual: seedMetadata.schema, expected: 'dev.onepersonlab.opl-webui-image-seed.v2' },
     { actual: seedMetadata.data_dir, expected: '/data' },
     { actual: seedMetadata.projects_dir, expected: '/projects' },
   ],
@@ -193,7 +194,7 @@ if (args.expectedProfile === 'webui-full') {
   const componentIds = requiredComponentIds(seedMetadata);
   assertStringArrayIncludes(
     componentIds,
-    ['opl_framework', 'codex_cli', 'companion_skills', 'domain_modules'],
+    ['opl_framework', 'codex_cli'],
     'webui-full seed metadata components',
   );
 } else if (seedStrategy !== 'metadata_only') {
@@ -204,7 +205,7 @@ const summary = {
   status: 'passed',
   expected_profile: args.expectedProfile,
   platform: { os: imageOs, architecture: imageArchitecture },
-  bundled_aioncore_runtime_key: expectedAioncoreRuntimeKey,
+  application_host: 'opl-studio',
   image_id: image.Id,
   created: image.Created,
   oci_revision: labels['org.opencontainers.image.revision'],

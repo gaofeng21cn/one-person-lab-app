@@ -98,9 +98,10 @@ runtime and Package projections; domain Packages own professional decisions and
 artifacts. OPL Studio, based on the pinned DSH/Cordis Host, is the current
 macOS Stable Desktop Shell. Stable preserves the OPL App identity
 and update feed; existing Studio Preview installations move through a signed
-terminal handoff release. AionUI remains the independently pinned Docker WebUI
-implementation and the source for legacy upgrade checks. Shells retain their
-independent source history; Studio has no AionCore dependency.
+terminal handoff release. All current carrier source paths, including Docker WebUI,
+use Studio. The Docker release is qualified independently on native amd64 and arm64
+runners. AionUI is retained for legacy upgrade checks and source history; Studio
+has no AionCore dependency.
 
 The [App whitepaper](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)
 explains the product rationale. Maintainers start at the

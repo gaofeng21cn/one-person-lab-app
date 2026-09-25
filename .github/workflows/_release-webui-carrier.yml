@@ -131,9 +131,9 @@ jobs:
       - name: Checkout exact independent WebUI Shell source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: gaofeng21cn/opl-studio
           ref: ${{ inputs.shell_ref }}
-          path: shells/aionui
+          path: shells/studio
           fetch-depth: 1
 
       - name: Checkout exact Framework source
@@ -169,11 +169,9 @@ jobs:
             || test '${{ inputs.authority_mode }}' = independent_preview
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git -C frozen-app-source rev-parse HEAD)" = '${{ inputs.app_ref }}'
-          test "$(git -C shells/aionui rev-parse HEAD)" = '${{ inputs.shell_ref }}'
+          test "$(git -C shells/studio rev-parse HEAD)" = '${{ inputs.shell_ref }}'
           test "$(git -C framework-source rev-parse HEAD)" = '${{ inputs.framework_ref }}'
           test "$(git -C webui-executor-source rev-parse HEAD)" = "$GITHUB_SHA"
-          test -f webui-executor-source/scripts/materialize-webui-seed-symlinks.ts
-          test ! -L webui-executor-source/scripts/materialize-webui-seed-symlinks.ts
           test '${{ inputs.app_ref }}' != '${{ inputs.shell_ref }}'
           test '${{ inputs.framework_ref }}' != '${{ inputs.shell_ref }}'
 
@@ -200,7 +198,7 @@ jobs:
             validate --input "$source_authority" \
             > webui-carrier/source-authority-verification.json
           cp "$source_authority" webui-carrier/source-authority.json
-          test "$(jq -er .sources.shell.repo webui-carrier/source-authority.json)" = gaofeng21cn/opl-aion-shell
+          test "$(jq -er .sources.shell.repo webui-carrier/source-authority.json)" = gaofeng21cn/opl-studio
           test "$(jq -er .sources.shell.source_commit webui-carrier/source-authority.json)" = '${{ inputs.shell_ref }}'
           test "$(jq -er .sources.app.source_commit webui-carrier/source-authority.json)" = '${{ inputs.app_ref }}'
           test "$(jq -er .sources.framework.source_commit webui-carrier/source-authority.json)" = '${{ inputs.framework_ref }}'
@@ -212,8 +210,8 @@ jobs:
           oras manifest fetch \
             --output webui-carrier/base-image-index.json \
             docker.io/library/node:22-bookworm-slim
-          codex_version="$(jq -er '.managed_runtime.codex_cli.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"))' \
-            shells/aionui/contracts/aionui-upstream-intake.json)"
+          codex_version="$(jq -er '.runtime_payloads.codex_cli.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"))' \
+            frozen-app-source/contracts/app-release-qualification-input-manifest.json)"
           codex_tarball_url="$(npm view --json "@openai/codex@${codex_version}" dist.tarball \
             | jq -er 'select(type == "string" and startswith("https://"))')"
           curl -L --fail --silent --show-error "$codex_tarball_url" \
@@ -222,7 +220,7 @@ jobs:
           node --experimental-strip-types scripts/framework-release-adapter.ts webui-build-input \
             --source-authority "webui-carrier/source-authority.json" \
             --app-root frozen-app-source \
-            --shell-root shells/aionui \
+            --shell-root shells/studio \
             --framework-root framework-source \
             --source-cutoff-observed-at "$source_cutoff_observed_at" \
             --base-image-index webui-carrier/base-image-index.json \
@@ -263,18 +261,14 @@ jobs:
             > webui-carrier/codex-artifact-verification.json
           node --experimental-strip-types scripts/release-webui-carrier.ts \
             verify-docker-context-policy \
-            --dockerignore shells/aionui/.dockerignore \
+            --dockerignore shells/studio/.dockerignore \
             > webui-carrier/docker-context-policy-verification.json
-          rm -rf shells/aionui/.opl-frozen-inputs
-          mkdir -p shells/aionui/.opl-frozen-inputs
+          rm -rf shells/studio/.opl-frozen-inputs
+          mkdir -p shells/studio/.opl-frozen-inputs
           cp webui-carrier/frozen-codex/codex-cli.tgz \
-            shells/aionui/.opl-frozen-inputs/codex-cli.tgz
+            shells/studio/.opl-frozen-inputs/codex-cli.tgz
           cmp -s webui-carrier/frozen-codex/codex-cli.tgz \
-            shells/aionui/.opl-frozen-inputs/codex-cli.tgz
-          cp webui-executor-source/scripts/materialize-webui-seed-symlinks.ts \
-            shells/aionui/.opl-frozen-inputs/materialize-webui-seed-symlinks.ts
-          cmp -s webui-executor-source/scripts/materialize-webui-seed-symlinks.ts \
-            shells/aionui/.opl-frozen-inputs/materialize-webui-seed-symlinks.ts
+            shells/studio/.opl-frozen-inputs/codex-cli.tgz
           rm -rf webui-carrier/frozen-codex
 
       - name: Resolve frozen build arguments and materialize digest-pinned Dockerfile
@@ -290,7 +284,7 @@ jobs:
           const inputs = new Map(manifest.inputs.map((input) => [input.id, input]));
           const digest = (bytes) => `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
           for (const [id, file] of [
-            ['dockerfile', 'shells/aionui/Dockerfile'],
+            ['dockerfile', 'shells/studio/Dockerfile'],
             ['qualification_harness', 'scripts/validate-webui-runtime-image.ts'],
           ]) {
             const bytes = fs.readFileSync(file);
@@ -300,49 +294,16 @@ jobs:
             }
           }
           const baseRef = inputs.get('base_image').ref;
-          const dockerfile = fs.readFileSync('shells/aionui/Dockerfile', 'utf8');
-          const marker = 'FROM node:22-bookworm-slim';
-          if (!dockerfile.includes(marker)) throw new Error(`Shell Dockerfile no longer contains ${marker}`);
-          const onlineCodexInstall = [
-            'RUN npm install -g --prefix /opt/codex-cli "${OPL_CODEX_NPM_SPEC}" \\',
-            '  && npm cache clean --force \\',
-            '  && printf \'%s\\n\' "${OPL_CODEX_NPM_SPEC}" > /opt/codex-cli/OPL_CODEX_NPM_SPEC',
-          ].join('\n');
-          const frozenCodexInstall = [
-            'COPY .opl-frozen-inputs/materialize-webui-seed-symlinks.ts /tmp/materialize-webui-seed-symlinks.ts',
-            'COPY .opl-frozen-inputs/codex-cli.tgz /tmp/codex-cli.tgz',
-            'RUN npm install -g --prefix /opt/codex-cli /tmp/codex-cli.tgz \\',
-            '  && node --experimental-strip-types /tmp/materialize-webui-seed-symlinks.ts --root /opt/codex-cli \\',
-            '  && rm -f /tmp/codex-cli.tgz /tmp/materialize-webui-seed-symlinks.ts \\',
-            '  && test -z "$(find /opt/codex-cli -type l -print -quit)" \\',
-            '  && npm cache clean --force \\',
-            '  && printf \'%s\\n\' "${OPL_CODEX_NPM_SPEC}" > /opt/codex-cli/OPL_CODEX_NPM_SPEC',
-          ].join('\n');
-          const frameworkInstall = [
-            'RUN npm ci \\',
-            '  && npm run build \\',
-            '  && npm prune --omit=dev',
-          ].join('\n');
-          const materializedFrameworkInstall = [
-            'COPY .opl-frozen-inputs/materialize-webui-seed-symlinks.ts /tmp/materialize-webui-seed-symlinks.ts',
-            frameworkInstall,
-            'RUN node --experimental-strip-types /tmp/materialize-webui-seed-symlinks.ts --root node_modules --workspace-root . \\',
-            '  && rm -f /tmp/materialize-webui-seed-symlinks.ts \\',
-            '  && test -z "$(find node_modules -type l -print -quit)"',
-          ].join('\n');
-          if (dockerfile.split(onlineCodexInstall).length !== 2) {
-            throw new Error('Shell Dockerfile must contain exactly one online Codex install block');
+          const dockerfile = fs.readFileSync('shells/studio/Dockerfile', 'utf8');
+          const marker = /^ARG NODE_IMAGE=.+$/m;
+          const onlineCodexInstall = 'npm install --global --prefix /opt/codex "${OPL_CODEX_NPM_SPEC}"';
+          if (!marker.test(dockerfile) || dockerfile.split(onlineCodexInstall).length !== 2) {
+            throw new Error('Studio Dockerfile frozen input seam changed');
           }
-          if (dockerfile.split(frameworkInstall).length !== 2) {
-            throw new Error('Shell Dockerfile must contain exactly one Framework install block');
-          }
-          fs.writeFileSync(
-            'webui-carrier/Dockerfile.frozen',
-            dockerfile
-              .replaceAll(marker, `FROM ${baseRef}`)
-              .replace(frameworkInstall, materializedFrameworkInstall)
-              .replace(onlineCodexInstall, frozenCodexInstall),
-          );
+          fs.writeFileSync('webui-carrier/Dockerfile.frozen', dockerfile
+            .replace(marker, `ARG NODE_IMAGE=${baseRef}`)
+            .replace('RUN ' + onlineCodexInstall,
+              'COPY .opl-frozen-inputs/codex-cli.tgz /tmp/codex-cli.tgz\nRUN npm install --global --prefix /opt/codex /tmp/codex-cli.tgz'));
           const outputs = {
             base_ref: baseRef,
             codex_ref: inputs.get('codex_cli').ref,
@@ -362,6 +323,8 @@ jobs:
             --platform 'linux/${{ matrix.architecture }}' \
             --file webui-carrier/Dockerfile.frozen \
             --build-arg 'OPL_FRAMEWORK_REF=${{ inputs.framework_ref }}' \
+            --build-arg 'OPL_APP_REF=${{ inputs.app_ref }}' \
+            --build-arg 'OPL_SOURCE_REVISION=${{ inputs.shell_ref }}' \
             --build-arg 'OPL_CODEX_NPM_SPEC=${{ steps.build-inputs.outputs.codex_ref }}' \
             --build-arg OPL_WEBUI_IMAGE_PROFILE=webui-full \
             --label org.opencontainers.image.source=https://github.com/gaofeng21cn/one-person-lab-app \
@@ -374,7 +337,7 @@ jobs:
             --label 'dev.onepersonlab.release.shell-revision=${{ inputs.shell_ref }}' \
             --label 'dev.onepersonlab.release.framework-revision=${{ inputs.framework_ref }}' \
             --tag "$local_image" \
-            shells/aionui
+            shells/studio
           printf '%s\n' "$local_image" > webui-carrier/local-image-ref.txt
           docker image inspect "$local_image" > webui-carrier/image-inspect.json
           docker image inspect --format '{{.Size}}' "$local_image" > webui-carrier/image-size.txt
@@ -382,7 +345,7 @@ jobs:
       - name: Remove frozen Codex Docker context input
         if: ${{ always() }}
         shell: bash
-        run: rm -rf shells/aionui/.opl-frozen-inputs
+        run: rm -rf shells/studio/.opl-frozen-inputs
 
       - name: Qualify exact local runtime before any registry tag is written
         id: qualify
@@ -403,6 +366,7 @@ jobs:
           data_dir="$RUNNER_TEMP/webui-data"
           projects_dir="$RUNNER_TEMP/webui-projects"
           mkdir -p "$data_dir" "$projects_dir"
+          sudo chown -R 1000:1000 "$data_dir" "$projects_dir"
           capture_runtime_diagnostics() {
             docker inspect "$container_name" > webui-carrier/container-inspect.json \
               2> webui-carrier/container-inspect.stderr || true
@@ -439,12 +403,19 @@ jobs:
 
           persistence_marker="${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${{ matrix.architecture }}"
           docker exec "$container_name" sh -c \
-            'printf "%s\n" "$1" > /data/opl/qualification-persistence-marker.txt' \
+            'mkdir -p /data/opl; printf "%s\n" "$1" > /data/opl/qualification-persistence-marker.txt' \
             sh "$persistence_marker"
           docker exec "$container_name" sh -c \
             'printf "%s\n" "$1" > /projects/.opl-qualification-persistence-marker' \
             sh "$persistence_marker"
-          docker exec "$container_name" test -s /data/opl/state/install-manifest.json
+          docker exec "$container_name" node --input-type=module -e '
+            const ready = await fetch("http://127.0.0.1:3000/readyz");
+            if (!ready.ok || (await ready.json()).status !== "ready") process.exit(1);
+            const response = await fetch("http://127.0.0.1:3000/api/opl/state?profile=fast");
+            const state = await response.json();
+            if (!response.ok || state.readback?.exitCode !== 0 || !state.app_state) process.exit(1);'
+          docker exec "$container_name" codex --version
+          docker exec "$container_name" opl --version
 
           docker rm -f "$container_name" >/dev/null
           docker run -d --name "$container_name" \
@@ -456,7 +427,14 @@ jobs:
           wait_for_http
           test "$(docker exec "$container_name" cat /data/opl/qualification-persistence-marker.txt)" = "$persistence_marker"
           test "$(docker exec "$container_name" cat /projects/.opl-qualification-persistence-marker)" = "$persistence_marker"
-          docker exec "$container_name" test -s /data/opl/state/install-manifest.json
+          docker exec "$container_name" node --input-type=module -e '
+            const ready = await fetch("http://127.0.0.1:3000/readyz");
+            if (!ready.ok || (await ready.json()).status !== "ready") process.exit(1);
+            const response = await fetch("http://127.0.0.1:3000/api/opl/state?profile=fast");
+            const state = await response.json();
+            if (!response.ok || state.readback?.exitCode !== 0 || !state.app_state) process.exit(1);'
+          docker exec "$container_name" codex --version
+          docker exec "$container_name" opl --version
           printf '%s\n' passed > webui-carrier/persistence-restart.txt
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
@@ -465,7 +443,7 @@ jobs:
           summary.runtime_cli_shims = { opl: 'passed', codex: 'passed' };
           summary.persistence_restart = {
             status: fs.readFileSync('webui-carrier/persistence-restart.txt', 'utf8').trim(),
-            surfaces: ['/data', '/projects', '/data/opl/state/install-manifest.json'],
+            surfaces: ['/data', '/projects', 'Framework app state'],
           };
           fs.writeFileSync('webui-carrier/runtime-summary.json', `${JSON.stringify(summary)}\n`);
           NODE

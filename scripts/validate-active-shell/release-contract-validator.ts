@@ -1825,19 +1825,19 @@ function validateWebuiGhcrImage(webuiImage) {
   assertIncludesAll(
     contract.required_runtime_contents,
     [
-      'webui_static_assets',
-      'aionui_web_standalone_launcher',
-      'bundled_aioncore',
-      'opl_bootstrap_installer',
+      'shared_studio_renderer',
+      'studio_headless_host',
+      'codex_app_server',
+      'opl_framework',
       'image_manifest',
       'opl_seed_metadata',
-      'preheated_seed_payload',
+      'official_profile_resources',
     ],
     'Docker/WebUI runtime image required contents',
   );
   assertIncludesAll(
     contract.profiles.webui_full?.required_seed_components,
-    ['opl_framework', 'codex_cli', 'companion_skills', 'domain_modules'],
+    ['opl_framework', 'codex_cli'],
     'Docker/WebUI full image seed components',
   );
   assertDeepEqualJson(

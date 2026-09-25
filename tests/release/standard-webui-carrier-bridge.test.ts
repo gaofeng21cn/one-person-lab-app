@@ -180,10 +180,11 @@ function bridgeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-bridge-'));
   const app = gitFixture(root, 'app', {
     'contracts/app-shell-adapter.json': fs.readFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), 'utf8'),
+    'contracts/app-release-qualification-input-manifest.json': JSON.stringify({runtime_payloads:{codex_cli:{package:'@openai/codex',version:'1.2.3'}}}),
     'scripts/validate-webui-runtime-image.ts': 'export const fixture = true;\n',
   });
   const shell = gitFixture(root, 'shell', {
-    Dockerfile: 'FROM node:22-bookworm-slim\n',
+    Dockerfile: 'ARG NODE_IMAGE=node:22-bookworm-slim@sha256:' + 'a'.repeat(64) + '\nFROM ${NODE_IMAGE}\n',
     'contracts/aionui-upstream-intake.json': `${JSON.stringify({
       managed_runtime: { codex_cli: { package: '@openai/codex', version: '1.2.3' } },
     })}\n`,

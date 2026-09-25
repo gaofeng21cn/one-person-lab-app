@@ -201,7 +201,7 @@ test('Studio execution keeps build, qualification, publication, and public readb
     restore.if,
     "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.resolve-checkpoint.outputs.restore_required == 'true' }}",
   );
-  assert.equal(qualify.environment, undefined);
+  assert.equal(qualify.environment, "${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && 'release-stable' || null }}");
   assert.equal(resolve.outputs.terminal_preview, '${{ steps.terminal.outputs.enabled }}');
   assert.match(String(qualify['runs-on']), /terminal_preview == 'true'.*opl-cert-mac-tart.*macos-15/);
   assert.match(JSON.stringify(resolve), /terminal\.outputs\.enabled.*qualification_present=false/);

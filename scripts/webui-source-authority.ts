@@ -16,25 +16,20 @@ const stableVersionPattern = /^[0-9]{2}\.(?:[1-9]|1[0-2])\.(?:[1-9]|[12][0-9]|3[
 
 const sourceRepos = {
   app: 'gaofeng21cn/one-person-lab-app',
-  shell: 'gaofeng21cn/opl-aion-shell',
+  shell: 'gaofeng21cn/opl-studio',
   framework: 'gaofeng21cn/one-person-lab',
 } as const;
 
 export function resolveWebuiShellSource(appRoot: string, desktopShellSha: string): { repository: string; source_commit: string; checkout_path: string } {
   sha(desktopShellSha, 'Desktop Shell source SHA');
   const adapter = readJson(path.join(appRoot, 'contracts/app-shell-adapter.json')) as JsonRecord;
-  if (adapter.active_shell === 'aionui' && adapter.shell_source?.owner_repo === sourceRepos.shell) {
-    return { repository: sourceRepos.shell, source_commit: desktopShellSha, checkout_path: 'shells/aionui' };
-  }
   const release = readJson(path.join(appRoot, 'contracts/app-release-channel.json')) as JsonRecord;
   const source = release.webui_ghcr_image?.shell_source;
   if (adapter.active_shell !== 'opl-studio' || source?.repository !== sourceRepos.shell
-    || source?.checkout_path !== 'shells/aionui' || source?.policy !== 'independent_pinned_webui_source') {
-    throw new Error('Frozen App must explicitly bind the independent WebUI Shell source.');
+    || source?.checkout_path !== 'shells/studio' || source?.policy !== 'active_studio_source') {
+    throw new Error('Frozen App must bind the active Studio WebUI source.');
   }
-  const sourceCommit = sha(source.source_commit, 'Independent WebUI Shell source SHA');
-  if (sourceCommit === desktopShellSha) throw new Error('Studio Desktop SHA cannot be used as the AionUI WebUI source.');
-  return { repository: sourceRepos.shell, source_commit: sourceCommit, checkout_path: source.checkout_path };
+  return { repository: sourceRepos.shell, source_commit: desktopShellSha, checkout_path: source.checkout_path };
 }
 
 export type WebuiSourceAuthorityOrigin = 'manual_webui' | 'stable_standard';

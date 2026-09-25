@@ -3451,14 +3451,13 @@
     "registry": "ghcr.io",
     "image": "ghcr.io/<owner>/one-person-lab-webui",
     "version_tag": "<app_or_opl_version>",
-    "source": "shells/aionui Dockerfile",
+    "source": "shells/studio Dockerfile",
     "shell_source": {
-      "repository": "gaofeng21cn/opl-aion-shell",
-      "source_commit": "7f574278c1076545f7a7e6a3f06babc40f3a3a15",
-      "checkout_path": "shells/aionui",
-      "policy": "independent_pinned_webui_source",
-      "desktop_shell_ref_reuse_allowed": false,
-      "rule": "The Docker WebUI retains its existing AionUI container implementation and persisted /data ABI during the Studio Desktop cutover. The frozen App contract pins its exact Shell source; Desktop Studio refs are never interpreted as AionUI refs. App, Framework, date version, and Stable Bundle linkage remain shared."
+      "repository": "gaofeng21cn/opl-studio",
+      "checkout_path": "shells/studio",
+      "policy": "active_studio_source",
+      "desktop_shell_ref_reuse_allowed": true,
+      "rule": "All current App carriers use Studio. Each release freezes an exact Studio SHA; WebUI retains /data and /projects and imports legacy history without modifying its source."
     },
     "source_repository": "https://github.com/gaofeng21cn/one-person-lab-app",
     "distribution_role": "preheated_webui_runtime_image_not_desktop_app_gui_shell",
@@ -3486,13 +3485,13 @@
       },
       "base_os_policy": "slim_lts_linux_base_with_only_runtime_required_packages",
       "required_runtime_contents": [
-        "webui_static_assets",
-        "aionui_web_standalone_launcher",
-        "bundled_aioncore",
-        "opl_bootstrap_installer",
+        "shared_studio_renderer",
+        "studio_headless_host",
+        "codex_app_server",
+        "opl_framework",
         "image_manifest",
         "opl_seed_metadata",
-        "preheated_seed_payload"
+        "official_profile_resources"
       ],
       "profiles": {
         "webui_full": {
@@ -3508,12 +3507,10 @@
           ],
           "required_seed_components": [
             "opl_framework",
-            "codex_cli",
-            "companion_skills",
-            "domain_modules"
+            "codex_cli"
           ],
           "metadata_only_allowed": false,
-          "rule": "Latest and its Stable compatibility alias must point to the same qualified payload-capable WebUI runtime image. A metadata-only image may not be promoted as the beginner default."
+          "rule": "The default image embeds Framework and Codex and carries the App-owned Official Profile for first install. Existing Package choices are preserved."
         },
         "webui_slim": {
           "developer_or_ci_only": true,
@@ -3523,7 +3520,7 @@
           ],
           "stable_channel_allowed": false,
           "moving_tags_allowed": false,
-          "rule": "Slim images may carry only WebUI, AionCore, bootstrap, and seed metadata, but must not be tagged stable or documented as the default beginner path."
+          "rule": "Developer-only images must not be promoted as the default beginner path."
         }
       },
       "persistent_mounts": {
@@ -3535,15 +3532,14 @@
         "canonical_path": "/opt/opl/image-manifest.json",
         "path_env": "OPL_IMAGE_MANIFEST_PATH",
         "seed_dir_env": "OPL_IMAGE_SEED_DIR",
-        "data_dir_env": "AIONUI_DATA_DIR",
+        "data_dir_env": "OPL_DATA_DIR",
         "projects_dir_env": "OPL_PROJECTS_DIR",
         "must_describe": [
           "schema",
           "image_role",
           "base_image_family",
           "webui_package",
-          "bundled_aioncore_platforms",
-          "bootstrap_path",
+          "application_host",
           "data_dir",
           "projects_dir",
           "seed_strategy"
@@ -3562,9 +3558,7 @@
         ],
         "full_profile_required_components": [
           "opl_framework",
-          "codex_cli",
-          "companion_skills",
-          "domain_modules"
+          "codex_cli"
         ]
       },
       "publish_gate": {

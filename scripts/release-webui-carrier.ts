@@ -307,7 +307,7 @@ function validateInputs(value: unknown, cohort: JsonRecord): JsonRecord[] {
   exactString(byId.get('app_source')?.ref, String(cohort.app_sha), 'inputs.app_source.ref');
   exactString(byId.get('shell_webui_source')?.ref, String(cohort.shell_sha), 'inputs.shell_webui_source.ref');
   exactString(byId.get('framework_seed')?.ref, String(cohort.framework_sha), 'inputs.framework_seed.ref');
-  exactString(byId.get('dockerfile')?.ref, 'shells/aionui/Dockerfile', 'inputs.dockerfile.ref');
+  exactString(byId.get('dockerfile')?.ref, 'shells/studio/Dockerfile', 'inputs.dockerfile.ref');
   exactString(
     byId.get('qualification_harness')?.ref,
     'scripts/validate-webui-runtime-image.ts',
