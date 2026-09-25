@@ -690,7 +690,7 @@ function validateReleaseAssetIntegrity(releaseContract: Record<string, any>): nu
       'updater_metadata_unchanged',
       'anonymous_public_asset_readback',
     ]) ||
-    nightly?.status !== 'implemented_pending_first_publication_readback' ||
+    nightly?.status !== 'implemented' ||
     nightly?.publication_available !== true ||
     nightly?.mutation_available !== true ||
     nightly?.new_version_allocation_allowed !== true ||
@@ -1971,7 +1971,7 @@ export function validateReleaseAccelerationPolicy(
     failures += 1;
   }
   if (
-    publication?.nightly?.status !== 'implemented_pending_first_publication_readback' ||
+    publication?.nightly?.status !== 'implemented' ||
     publication?.nightly?.publication_available !== true ||
     publication?.nightly?.mutation_available !== true ||
     publication?.nightly?.historical_readback_allowed !== true ||

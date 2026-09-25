@@ -16,7 +16,7 @@ on:
         type: string
         required: true
       shell_ref:
-        description: Exact independent AionUI WebUI Shell SHA from the source authority; never the Studio Desktop ref.
+        description: Exact Studio WebUI Shell SHA bound by the source authority; may share the frozen Desktop Studio commit.
         type: string
         required: true
       framework_ref:

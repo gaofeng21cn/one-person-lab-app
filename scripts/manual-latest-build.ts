@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
+import { resolveFullCarrierProfile, type FullCarrierProfile } from './build-full-first-install-package/carrier-profile.ts';
 import { findBuiltApp } from './build-full-first-install-package/archive-output.ts';
 import {
   assertReleaseVersionNotFuture,
@@ -491,9 +492,24 @@ function prepareAioncoreManagedCodexBinding(shellRoot: string) {
 }
 
 export function buildManualRuntimeDependencyLock(
-  binding: ReturnType<typeof resolveAioncoreManagedCodexBinding>,
+  binding: ReturnType<typeof resolveAioncoreManagedCodexBinding> | null,
+  carrier: FullCarrierProfile = resolveFullCarrierProfile(),
 ) {
-  return { aioncore_managed_codex: binding };
+  if (binding) return { aioncore_managed_codex: binding };
+  if (carrier.aioncoreRequired) throw new Error('AionUI requires its exact managed Codex binding.');
+  return { opl_codex_native: {
+    carrier_id: carrier.carrierId,
+    codex_carrier: carrier.codexCarrier,
+    runtime_owner: 'one-person-lab',
+    resolution: 'framework_managed_runtime_at_install_or_launch',
+    embedded_codex_payload: false,
+    aioncore_required: false,
+  } };
+}
+
+export function prepareManualRuntimeDependencies(shellRoot: string, carrier = resolveFullCarrierProfile()) {
+  const binding = carrier.aioncoreRequired ? prepareAioncoreManagedCodexBinding(shellRoot) : null;
+  return { binding, lock: buildManualRuntimeDependencyLock(binding, carrier) };
 }
 
 export function assertFullDmgCodexCarrierBoundary(manifest: any) {
@@ -501,41 +517,55 @@ export function assertFullDmgCodexCarrierBoundary(manifest: any) {
     throw new Error('Full manifest must not contain components.codex.');
   }
   const boundary = manifest?.package_optimization?.package_boundary_audit;
-  if (
-    boundary?.aioncore_codex_carrier_present !== true
-    || boundary?.aioncore_codex_only_projection_present !== true
-    || boundary?.aioncore_claude_payload_absent !== true
-    || boundary?.framework_codex_payload_absent !== true
-  ) {
-    throw new Error(
-      'Full manifest must prove the AionCore Codex-only projection is present and both Claude and Framework Codex payloads are absent.',
-    );
-  }
-  const projectionAudit = boundary.aioncore_codex_only_projection_audit;
-  const expectedAbsenceChecks = [
-    'managed_claude_subtree',
-    'claude_executable_or_symlink',
-    'anthropic_package_or_archive',
-    'claude_distribution_cache_entry',
-    'raw_producer_manifest',
-  ];
-  if (
-    projectionAudit?.schema !== 'opl_aioncore_codex_only_projection_audit.v1'
-    || !Number.isSafeInteger(projectionAudit?.runtime_count)
-    || projectionAudit.runtime_count < 1
-    || !Array.isArray(projectionAudit?.runtimes)
-    || projectionAudit.runtimes.length !== projectionAudit.runtime_count
-    || projectionAudit.runtimes.some((runtime) => runtime?.projection_valid !== true)
-    || !Array.isArray(projectionAudit?.required_absence_checks)
-    || JSON.stringify(projectionAudit.required_absence_checks.map((check) => check?.id))
-      !== JSON.stringify(expectedAbsenceChecks)
-    || projectionAudit.required_absence_checks.some((check) =>
-      check?.expected_match_count !== 0
-      || check?.match_count !== 0
-      || !Array.isArray(check?.matches)
-      || check.matches.length !== 0)
-  ) {
-    throw new Error('Full manifest AionCore Codex-only projection evidence is incomplete.');
+  if (manifest?.carrier?.carrier_id === 'opl-studio') {
+    if (manifest.carrier.codex_carrier !== 'opl_codex_native'
+      || manifest.carrier.aioncore_required !== false
+      || boundary?.contains_opl_full_runtime !== true
+      || boundary?.contains_shell_runtime !== false
+      || boundary?.aioncore_codex_carrier_present !== false
+      || boundary?.aioncore_codex_only_projection_present !== false
+      || boundary?.aioncore_claude_payload_absent !== true
+      || boundary?.framework_codex_payload_absent !== true
+      || boundary?.aioncore_codex_only_projection_audit?.schema !== 'opl_codex_native_carrier_audit.v1') {
+      throw new Error('Studio Full must prove native Codex ownership without AionCore or duplicate Codex payloads.');
+    }
+  } else {
+    if (
+      boundary?.aioncore_codex_carrier_present !== true
+      || boundary?.aioncore_codex_only_projection_present !== true
+      || boundary?.aioncore_claude_payload_absent !== true
+      || boundary?.framework_codex_payload_absent !== true
+    ) {
+      throw new Error(
+        'Full manifest must prove the AionCore Codex-only projection is present and both Claude and Framework Codex payloads are absent.',
+      );
+    }
+    const projectionAudit = boundary.aioncore_codex_only_projection_audit;
+    const expectedAbsenceChecks = [
+      'managed_claude_subtree',
+      'claude_executable_or_symlink',
+      'anthropic_package_or_archive',
+      'claude_distribution_cache_entry',
+      'raw_producer_manifest',
+    ];
+    if (
+      projectionAudit?.schema !== 'opl_aioncore_codex_only_projection_audit.v1'
+      || !Number.isSafeInteger(projectionAudit?.runtime_count)
+      || projectionAudit.runtime_count < 1
+      || !Array.isArray(projectionAudit?.runtimes)
+      || projectionAudit.runtimes.length !== projectionAudit.runtime_count
+      || projectionAudit.runtimes.some((runtime) => runtime?.projection_valid !== true)
+      || !Array.isArray(projectionAudit?.required_absence_checks)
+      || JSON.stringify(projectionAudit.required_absence_checks.map((check) => check?.id))
+        !== JSON.stringify(expectedAbsenceChecks)
+      || projectionAudit.required_absence_checks.some((check) =>
+        check?.expected_match_count !== 0
+        || check?.match_count !== 0
+        || !Array.isArray(check?.matches)
+        || check.matches.length !== 0)
+    ) {
+      throw new Error('Full manifest AionCore Codex-only projection evidence is incomplete.');
+    }
   }
   const forbidden = boundary.forbidden_framework_codex_paths;
   const expected = ['bin/codex', 'bin/rg', 'vendor/codex', '.runtime-cache/codex-cli'];
@@ -901,9 +931,7 @@ function main() {
   let outputPromoted = false;
   try {
     const snapshots = repoSnapshots(options);
-    const aioncoreBinding = prepareAioncoreManagedCodexBinding(
-      snapshots.shellRoot,
-    );
+    const runtimeDependencies = prepareManualRuntimeDependencies(snapshots.shellRoot);
     const upstreams = prepareLatestUpstreams(path.join(options.cacheRoot, 'upstreams'));
     const sourceProvenance = {
       schema: 'opl_manual_latest_build_source_lock.v1',
@@ -920,7 +948,7 @@ function main() {
         framework: snapshots.framework,
         ...snapshots.owners,
       },
-      runtime_dependencies: buildManualRuntimeDependencyLock(aioncoreBinding),
+      runtime_dependencies: runtimeDependencies.lock,
       upstreams,
     };
     const localAppIdentity = deriveManualLocalAppIdentity(
@@ -963,10 +991,12 @@ function main() {
     } finally {
       restoreShellBuildProjection(shellBuildProjection);
     }
-    assertAioncoreManagedCodexBindingUnchanged(
-      aioncoreBinding,
-      resolveAioncoreManagedCodexBinding(snapshots.shellRoot),
-    );
+    if (runtimeDependencies.binding) {
+      assertAioncoreManagedCodexBindingUnchanged(
+        runtimeDependencies.binding,
+        resolveAioncoreManagedCodexBinding(snapshots.shellRoot),
+      );
+    }
     let installation = null;
     if (options.mode === 'local-app') {
       assertDevelopmentRepoSnapshotsUnchanged(developmentRepoSnapshots(snapshots));

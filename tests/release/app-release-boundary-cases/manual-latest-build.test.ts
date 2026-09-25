@@ -23,6 +23,7 @@ import {
 import {
   assertFullDmgCodexCarrierBoundary,
   buildManualRuntimeDependencyLock,
+  prepareManualRuntimeDependencies,
   resolveAioncoreManagedCodexBinding,
 } from '../../../scripts/manual-latest-build.ts';
 import {
@@ -1138,4 +1139,24 @@ test('manual latest build does not require the retired UI UX Pro Max companion s
     'utf8',
   );
   assert.doesNotMatch(source, /ui-ux-pro-max|uiUxProMax|ui_ux_pro_max/);
+});
+
+
+test('Studio manual builds resolve native runtime ownership without an AionCore preparer', () => {
+  const selected = prepareManualRuntimeDependencies('/nonexistent-aioncore-resources');
+  assert.equal(selected.binding, null);
+  assert.equal(selected.lock.opl_codex_native?.carrier_id, 'opl-studio');
+  assert.equal(selected.lock.opl_codex_native?.embedded_codex_payload, false);
+  const boundary = {
+    contains_opl_full_runtime: true, contains_shell_runtime: false,
+    aioncore_codex_carrier_present: false, aioncore_codex_only_projection_present: false,
+    aioncore_claude_payload_absent: true, framework_codex_payload_absent: true,
+    aioncore_codex_only_projection_audit: { schema: 'opl_codex_native_carrier_audit.v1' },
+    forbidden_framework_codex_paths: ['bin/codex', 'bin/rg', 'vendor/codex', '.runtime-cache/codex-cli'].map(path => ({ path, exists: false })),
+  };
+  const manifest = { carrier: { carrier_id: 'opl-studio', codex_carrier: 'opl_codex_native', aioncore_required: false },
+    package_optimization: { package_boundary_audit: boundary } };
+  assertFullDmgCodexCarrierBoundary(manifest);
+  assert.throws(() => assertFullDmgCodexCarrierBoundary({ ...manifest, package_optimization: { package_boundary_audit: { ...boundary, contains_shell_runtime: true } } }), /Studio Full/);
+  assert.throws(() => assertFullDmgCodexCarrierBoundary({ ...manifest, components: { codex: {} } }), /components.codex/);
 });

@@ -73,15 +73,20 @@ Build the distributable Full DMG:
 npm run manual:full-dmg
 ```
 
-By default, versions are allocated from the current Asia/Shanghai date. For
-example, `26.7.21` is the display/UI version and `26.7.2100` is the monotonic
-Electron/updater version used by `app.getVersion()` and both CFBundle version
-fields. A later formal `26.7.21-r1` build uses `26.7.2101`, so the manual App can
-update forward through the normal updater.
+By default, the current App version resolver allocates the display and machine
+versions from the Asia/Shanghai date. Treat the resolved pair in the source lock as
+authoritative; Stable revision slots and same-tag replacement versions follow the
+release contract and must not be inferred from a display suffix.
+
+Studio uses `opl_codex_native`; Framework resolves its managed Codex runtime at
+installation or launch. The local Full dependency lock records that ownership and
+does not require AionCore preparation or embed a second Codex payload. Both local
+lanes use the same carrier profile and Full package boundary checks as the formal
+Full builder.
 
 Useful options:
 
-- `--version <YY.M.D>` and `--updater-version <YY.M.D00>` override the bound
+- `--version <YY.M.D>` and `--updater-version <machine-version>` override the bound
   version pair; the release contract validates the pair.
 - `--no-launch` installs the local App without opening it.
 - `--install-path <path.app>` changes the local App destination.

@@ -27,7 +27,7 @@ historical DEB-only receipts while new Studio publication requires the feed.
 
 
 For operator sequencing, monitoring, recovery decisions and closeout, start with the
-[release SOP](stable-release-sop.md). This guide is the technical reference; the
+[release paths and matrix](release-paths.md) and [release SOP](stable-release-sop.md). This guide is the technical reference; the
 [release Skill](../../../skills/opl-app-release/SKILL.md) routes to that same SOP.
 
 ## Authority
@@ -41,12 +41,13 @@ The public App release product is Desktop. A Stable version becomes valid when i
 notarized macOS arm64 primary release passes publication and public readback. The same mutable GitHub
 Release/tag then receives Full macOS, Linux x64, Windows x64 and installer deliveries additively.
 Independent WebUI archives, qualification archives and follower Releases are retired.
-Docker WebUI is a separate GHCR product line and never consumes Desktop Stable authority.
-It is a manual, non-blocking additional release line. The default `qualify` operation builds and
-runs `linux/amd64` and `linux/arm64` on native GitHub runners without registry mutation, including
-same-volume container restart and state readback. The separately protected `publish` operation may
-create one OCI index only when both platform qualifications pass. Neither operation is part of
-PR/main CI or blocks the primary macOS arm64 Desktop release.
+Docker WebUI is a separate GHCR carrier of the same Stable App/Framework cohort and date
+version. Stable automatically qualifies both `linux/amd64` and `linux/arm64`, including
+same-volume restart and state readback, then publishes the immutable OCI version and promotes
+`:stable` and `:latest`. Its failure does not block the primary macOS publication, but a complete
+matrix delivery includes Docker publication and pointer readback. The manual workflow remains
+available for qualification, explicit Preview publication and same-version recovery. These
+publication operations are not part of PR/main CI.
 
 ## Release acceleration
 
@@ -63,15 +64,14 @@ Preview VM qualification also probes the runner Node TLS path using this same te
 before downloading either public DMG. Missing runner trust or a failed Gateway TLS handshake now
 fails at the small input stage; the installed App still performs the real Gateway login in each VM.
 
-The clean-VM Codex turn is a **connectivity probe, not a model-generation check**. The release-test
-account is expected to carry no balance, so the accepted outcomes are a non-simulated turn that
-completes with a final message, or a non-simulated turn that reaches the configured provider and
-returns a structured `INSUFFICIENT_BALANCE` response. The second outcome is recorded as
-`codex_turn.status=connectivity_confirmed` with `connectivity=confirmed` and `scope=connectivity_not_generation`
-inside `opl_app_studio_preview_vm_qualification.v1`. Generic 403 authentication or authorization errors,
-transport failures, timeouts, missing turn identities and simulated turns still fail the lane. Do not
-report an expected `INSUFFICIENT_BALANCE` response as a product defect, carrier blocker or release
-retrospective item; the policy owner is `codex_turn_policy` in `contracts/app-release-channel.json`.
+The Studio Preview clean-VM turn follows `successor_delivery_target.public_clean_vm_qualification.codex_turn_policy`
+in `contracts/app-release-channel.json`: it proves provider connectivity, accepting either a real
+completed turn or a structured `INSUFFICIENT_BALANCE` response. Generic authorization errors,
+transport failures, timeouts, missing turn identities and simulated turns fail. This policy does
+not require model generation from the release account. Standard first-install qualification checks
+real account login, Official Profile convergence and Codex readiness without requiring a funded
+model turn. Apply each lane's actual contract rather than transferring Preview turn requirements
+to every release or treating account balance as a packaging defect.
 
 Source checks and artifact construction run concurrently. The reusable build summary rejects
 any required check that failed, was cancelled, skipped or is missing, even when packaging succeeded.
@@ -100,7 +100,8 @@ and elapsed time are logged without prompts, credentials or response bodies.
 
 After Standard publication and public readback, the same run calls the Stable follow-up hub.
 Full, Linux, Windows and Homebrew follow-up lanes do not wait for the whole
-Stable workflow to finish. Docker operations use their independent workflow.
+Stable workflow to finish. The Stable workflow also runs the Docker source, carrier and
+promotion jobs; their publication and recovery remain independent of Desktop asset mutation.
 The completion event is observation-only.
 Manual reconciliation still selects one exact lane and retains its existing owner and asset CAS.
 A checkpoint alone cannot authorize an append before its Standard Release is public.
@@ -296,14 +297,16 @@ Their separately protected preview publication and cleanup use the
 `.github/workflows/release-webui-development.yml` is the only operator entry for independent Docker
 WebUI operations. Select `operation=qualify|publish|promote`; `publish` creates an exact Stable or
 Preview version bound to an OCI digest and durable GHCR publication record, while `promote` consumes
-that record:
+that record. Stable `publish` already invokes promotion on success; do not repeat it:
 
 - `move-docker-stable-and-latest:<version>` moves `:stable` and `:latest` once;
 - `move-docker-latest:<version>` moves only `:latest` once.
 
-Both routes bind an independent source authority, exact OCI digest, runtime qualification and
-anonymous readback. Desktop Stable run ids, production follower recovery and transient carrier
-artifact selection are not accepted authority.
+Both routes bind a WebUI source authority, exact OCI digest, runtime qualification and anonymous
+readback. The automatic Stable route creates that authority from its frozen cohort; a bare Desktop
+run ID is insufficient. Manual recovery can reuse exact qualified artifacts through
+`qualified_artifact_run_id`, with their source authority verified. Promotion consumes the durable
+GHCR publication record rather than treating a transient artifact as publication authority.
 
 The WebUI workflows do not serialize source admission, native multi-architecture build,
 qualification, canary, or public readback. `opl-webui-independent-publication-global` belongs only to

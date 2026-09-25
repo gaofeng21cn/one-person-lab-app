@@ -14,11 +14,6 @@ import {
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appRepository = 'gaofeng21cn/one-person-lab-app';
-const repositoryRemotes = {
-  app: 'origin',
-  shell: 'https://github.com/gaofeng21cn/opl-aion-shell.git',
-  framework: 'https://github.com/gaofeng21cn/one-person-lab.git',
-} as const;
 const fullShaPattern = /^[0-9a-f]{40}$/i;
 const activeRunStatuses = new Set(['queued', 'in_progress', 'waiting', 'pending']);
 const defaultMaxReadAttempts = 3;

@@ -129,30 +129,19 @@ runs:
         ' "$handoff" >/dev/null
 
         version="$(jq -er .release.version "$handoff")"
-        updater_version="$(jq -er .release.updater_version "$handoff")"
         tag="$(jq -er .release.tag "$handoff")"
-        release_id="$(jq -er .release.id "$handoff")"
-        release_target="$(jq -er .release.target_commitish "$handoff")"
         dmg_name="$(jq -er .standard_dmg.name "$handoff")"
-        dmg_digest="$(jq -er .standard_dmg.sha256 "$handoff")"
-        dmg_size="$(jq -er .standard_dmg.size_bytes "$handoff")"
         manifest_name="$(jq -er .component_manifest.name "$handoff")"
-        manifest_digest="$(jq -er .component_manifest.sha256 "$handoff")"
-        manifest_size="$(jq -er .component_manifest.size_bytes "$handoff")"
         gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > public-release.json
-        jq -e --argjson id "$release_id" --arg tag "$tag" --arg target "$release_target" \
-          --arg dmg "$dmg_name" --arg dmg_digest "$dmg_digest" --argjson dmg_size "$dmg_size" \
-          --arg manifest "$manifest_name" --arg manifest_digest "$manifest_digest" --argjson manifest_size "$manifest_size" '
-            .id == $id and .tag_name == $tag and .draft == false and .prerelease == false
-            and .immutable == false and .target_commitish == $target
-            and ([.assets[] | select(.name == $dmg and .digest == $dmg_digest and .size == $dmg_size)] | length == 1)
-            and ([.assets[] | select(.name == $manifest and .digest == $manifest_digest and .size == $manifest_size)] | length == 1)
-          ' public-release.json >/dev/null
-
         release_base="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag"
         curl --fail --location --retry 2 --retry-all-errors \
           "$release_base/$manifest_name" --output public-component-manifest.json
-        test "sha256:$(shasum -a 256 public-component-manifest.json | awk '{print $1}')" = "$manifest_digest"
+        node --experimental-strip-types scripts/resolve-homebrew-standard-publication.ts \
+          --handoff "$handoff" --release public-release.json --manifest public-component-manifest.json \
+          > current-standard-publication.json
+        updater_version="$(jq -er .updater_version current-standard-publication.json)"
+        dmg_digest="$(jq -er .dmg_digest current-standard-publication.json)"
+        manifest_digest="$(jq -er .manifest_digest current-standard-publication.json)"
 
         tap_base="$(git -C tap-source rev-parse HEAD)"
         current_cask=absent
@@ -163,7 +152,7 @@ runs:
           git -C tap-source show "HEAD:Casks/$sibling" > "before-$sibling"
         done
         node --experimental-strip-types scripts/update-homebrew-tap.ts \
-          --channel stable --package-kind app_standard \
+          --channel stable --package-kind app_standard --component-manifest public-component-manifest.json \
           --version "$version" --updater-version "$updater_version" \
           --tap-root tap-source --cask Casks/one-person-lab.rb \
           --manifest-url "$release_base/$manifest_name" \
@@ -179,7 +168,7 @@ runs:
         candidate_commit="$tap_base"
         if [ "$decision" = write_once ]; then
           node --experimental-strip-types scripts/update-homebrew-tap.ts \
-            --channel stable --package-kind app_standard \
+            --channel stable --package-kind app_standard --component-manifest public-component-manifest.json \
             --version "$version" --updater-version "$updater_version" \
             --tap-root tap-source --cask Casks/one-person-lab.rb \
             --manifest-url "$release_base/$manifest_name" \
@@ -243,5 +232,6 @@ runs:
           homebrew-standard-receipt.json
           homebrew-standard-failure.json
           standard-cask-readback.rb
+          current-standard-publication.json
         if-no-files-found: warn
         retention-days: 30

@@ -1,6 +1,6 @@
 # OPL App 发布 SOP
 
-本文件是 OPL App 发布的统一操作规程，覆盖新发布、跟进、同版本恢复和最终验收。用户当前请求决定范围与授权；[发布合同](../../../contracts/app-release-channel.json)与真实 owner 决定可执行事实；[发布技术参考](README.md)解释 CLI、workflow 和恢复参数。遇到不一致，先核对合同与真实调用链并修正过时规程，不按旧文档盲目执行。
+本文件是 OPL App 发布的统一操作规程，覆盖 Stable、Nightly、明确指定的 Preview、附加发布、同版本恢复和最终验收。先从 [发布路径与矩阵](release-paths.md) 选择真实入口。用户当前请求决定范围与授权；[发布合同](../../../contracts/app-release-channel.json)与真实 owner 决定可执行事实；[发布技术参考](README.md)解释 CLI、workflow 和恢复参数。遇到不一致，先核对合同与真实调用链并修正过时规程，不按旧文档盲目执行。
 
 [发布 Skill](../../../skills/opl-app-release/SKILL.md)只负责加载本规程和选择入口。App CLI 与 GitHub Actions 继续执行发布；Framework 继续持有 Bundle、checkpoint、operation 和 runtime projection。这里不建立第二个版本表、发布控制器或状态账本。
 
@@ -16,7 +16,7 @@
 | “只发布／修复某一渠道” | 仅推进该渠道及必要依赖，不自动升级为全家族发布。 |
 | “优化流程／整理 SOP 或 Skill” | 修改并验证流程文件，不因此发布一个产品版本。 |
 
-渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。当前正式 Shell 已选择基于 DSH/Cordis 的 Studio，Stable 继续沿用既有 OPL App 标识与更新仓库。独立 Studio Preview 的终结桥版本使用自己的发布身份，把既有 Preview 用户迁入 Stable；它属于本次用户明确授权的升级迁移，不能因旧的独立候选定位而遗漏。领域 Package 与 Docker WebUI 保持各自 authority，Desktop 成功不代表它们已发布。
+渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。当前正式 Shell 已选择基于 DSH/Cordis 的 Studio，Stable 继续沿用既有 OPL App 标识与更新仓库。历史 Studio Preview 通过独立身份的终结桥迁入 Stable；普通后续发布使用正式 App 入口，只在明确维护交接时进入 Preview 桥路径。领域 Package 与 Docker WebUI 保持各自 authority，Desktop 成功不代表它们已发布。
 
 已有 run 时先进入第 4 节；已有合格产物时进入第 5 节。不要默认从头开始构建。一次任务仅需在现有执行记录或简短进度中保留范围、owner run、候选和未完成渠道，不新增持久状态协议。
 
@@ -29,13 +29,16 @@
 
 现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
 
-本次 Shell 切换需分别验收旧 AionUI Stable 和既有 Studio Preview 的真实升级、数据延续与后续更新源。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
+影响 Shell 身份、迁移或更新协议时，分别覆盖受影响的 AionUI Stable 与 Studio Preview 路径、数据延续和后续更新源；普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
 
 Stable 的 Standard 首次安装、Gateway 登录、Official Profile 首次收敛和运行就绪读回，必须在该准确候选公开前通过，属于发布阻断门禁。AionUI Stable 到 Studio Stable、Studio Preview 到 Stable 的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
 
 候选冻结后，普通文档修改或其他主线提交不要求当前发布追新。保持原候选，只在其不可构建、不可安装、不合法或必然验收失败，或用户明确改发新候选时重新选择。App／Shell／Framework 的兼容与身份检查仍由原 owner 执行。
 
-## 3. 使用正式入口派发
+## 3. 使用所选渠道的正式入口派发
+
+本节 controller 命令属于 Desktop Stable；Nightly、Docker、Manual Preview 与本地构建使用
+[路径表](release-paths.md#正式入口和附加发布) 的各自入口，不套用 Stable 版本分配或 authority。
 
 以下命令在已核实的 App 仓库执行；尖括号是说明用占位符，必须替换为真实值。`--execute` 只用于用户已授权的动作。
 
@@ -125,6 +128,9 @@ Linux／Windows／Homebrew 的独立恢复使用 [现有 follow-up workflow](../
 该入口读取原 tag 和公开更新元数据：显示版本和资产名保留，内部 updater patch 递增，
 使已安装同一显示版本的用户也能收到修复。它只生成候选，不创建或公开 Release。
 新字节仍须签名、公证及公开前首装验收；迁移缺陷须由对应升级路径验证。
+恢复已有签名候选时传 `replacement_candidate_run_id` 和原 App/Shell/Framework SHA；无验证脚本
+变更时 `verification_app_ref` 使用原 App SHA，不能因 main 前进把其他合同或文档改动混入
+同字节验证。检查 Tart 运行名额，保留其他任务的 VM。
 
 候选通过后，在原 tag 下替换资产，使用通用
 `bun scripts/replace-same-tag-release-assets.ts --plan <json> --stage` 暂存候选；计划逐项给出
@@ -169,7 +175,7 @@ Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同
 
 ## 维护和安装
 
-实现或合同改变时，同一改动更新本 SOP 与受影响的技术参考，复用现有回归验证。Skill 保持薄层，只链接本文件；通用开发与 worktree 流程分别复用现有 Skill，不复制其正文。App 专属操作留在 App 仓库；只有新增通用工作流行为时才向 OPL Flow owner 投影。
+实现或合同改变时，同一改动更新本 SOP 与受影响的技术参考，复用现有回归验证。Skill 保持薄层，链接本文件和发布路径索引；通用开发与 worktree 流程分别复用现有 Skill，不复制其正文。App 专属操作留在 App 仓库；只有新增通用工作流行为时才向 OPL Flow owner 投影。
 
 Skill 的版本化源是 `skills/opl-app-release`。本机 `~/.codex/skills/opl-app-release` 指向主线工作区中的这个目录；新机器可在核实仓库后建立相同链接。已有同名安装先检查并保留其改动，再切换链接。发布、新 run 跟进和故障恢复统一使用 `opl-app-release`，不保留单独的故障 Skill。
 

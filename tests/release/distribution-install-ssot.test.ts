@@ -23,7 +23,7 @@ test('distribution/install SSOT validates the current and approved state split',
   assert.doesNotThrow(() => validateDistributionInstallSsot(release, install));
   assert.equal(
     release.distribution_semantics.publication_history.desktop_nightly.new_publication_status,
-    'implemented_pending_first_publication_readback',
+    'implemented',
   );
   assert.equal(release.distribution_semantics.topology_counts.current_publication_carrier_families, 3);
   assert.equal(release.distribution_semantics.topology_counts.current_production_publication_paths, 4);
@@ -117,7 +117,7 @@ test('distribution/install SSOT validates the current and approved state split',
   assert.equal(install.distribution_install_model.runtime_forms.desktop.browser_webui_mode, 'packaged_desktop_bytes');
   assert.equal(
     release.distribution_semantics.approved_targets.homebrew_full.generation_status,
-    'implemented_pending_first_protected_follower_readback',
+    'implemented',
   );
   assert.equal(
     release.homebrew_tap_distribution.tap_update_policy.full.homebrew_publish_allowed,

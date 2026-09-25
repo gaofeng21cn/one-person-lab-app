@@ -4,10 +4,6 @@ import path from 'node:path';
 import test from 'node:test';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
-const releaseGuide = fs.readFileSync(
-  path.join(appRoot, 'docs', 'delivery', 'release', 'README.md'),
-  'utf8',
-);
 const releaseContract = JSON.parse(
   fs.readFileSync(path.join(appRoot, 'contracts', 'app-release-channel.json'), 'utf8'),
 );
@@ -33,15 +29,6 @@ test('release contract exposes only the three Stable operations and validation-o
   assert.equal(control.validation_canary.build_or_vm_execution_allowed, false);
   assert.equal(control.validation_canary.external_write_allowed, false);
   assert.equal(control.validation_canary.stable_mutation_allowed, false);
-});
-
-test('release guide separates independent Docker authority from Desktop Stable', () => {
-  assert.match(releaseGuide, /release-webui-development\.yml/);
-  assert.match(releaseGuide, /operation=qualify\|publish\|promote/);
-  assert.doesNotMatch(releaseGuide, /release-webui-development-promote\.yml/);
-  assert.match(releaseGuide, /independent source authority/);
-  assert.match(releaseGuide, /not accepted authority/);
-  assert.doesNotMatch(releaseGuide, /release-webui-follower\.yml/);
 });
 
 test('release contract retires broker session and operator mutation authority', () => {

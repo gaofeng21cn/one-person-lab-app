@@ -207,7 +207,7 @@ Options:
   --operation-fingerprint <value>  Version-independent admitted operation identity.
   --app-ref <sha>                  Expected App repository HEAD commit.
   --expected-app-head <sha>        Alias for --app-ref.
-  --shell-ref <ref>                Active shell ref to resolve in shells/aionui. Default: main.
+  --shell-ref <ref>                Active Shell ref resolved through the App adapter. Default: main.
   --framework-ref <ref>            OPL Framework ref to resolve. Default: main.
   --require-shell-format <bool>    Run the active Shell source-quality check. Default: false.
   --run-shell-tests <bool>         Run active shell node/dom tests before expensive release jobs. Default: false.

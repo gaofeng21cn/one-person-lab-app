@@ -244,7 +244,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   requireEqual(release.terms?.nightly?.product_channel_semantics, 'retained', 'Nightly product semantics');
   requireEqual(
     release.terms?.nightly?.current_publication_implementation,
-    'implemented_pending_first_publication_readback',
+    'implemented',
     'Nightly publication implementation',
   );
   requireEqual(release.terms?.nightly?.default_payload_density, 'standard', 'Nightly payload density');
@@ -398,7 +398,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
 
   requireEqual(
     releaseChannel.nightly_standard?.status,
-    'implemented_pending_first_publication_readback',
+    'implemented',
     'Current Nightly publication state',
   );
   requireEqual(releaseChannel.nightly_standard?.full_first_install_allowed, false, 'Current Nightly Full policy');
@@ -417,7 +417,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   requireEqual(
     release.implementation_state?.desktop_nightly,
-    'implemented_pending_first_publication_readback',
+    'implemented',
     'Distribution Nightly implementation state',
   );
   requireEqual(
@@ -442,11 +442,11 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   requireEqual(
     release.publication_history?.desktop_nightly?.new_publication_status,
-    'implemented_pending_first_publication_readback',
+    'implemented',
     'Nightly new publication status',
   );
   const nightlyTarget = release.approved_targets?.desktop_nightly;
-  requireEqual(nightlyTarget?.status, 'implemented_pending_first_publication_readback', 'Nightly target status');
+  requireEqual(nightlyTarget?.status, 'implemented', 'Nightly target status');
   requireEqual(nightlyTarget?.quality_status, 'preview', 'Nightly target quality');
   requireEqual(nightlyTarget?.build_trigger, 'automated', 'Nightly target trigger');
   requireEqual(nightlyTarget?.preview_kind, 'nightly', 'Nightly target Preview kind');
@@ -459,7 +459,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   const releaseHomebrew = releaseChannel.homebrew_tap_distribution;
   requireEqual(
     release.implementation_state?.homebrew_full,
-    'implemented_pending_first_protected_follower_readback',
+    'implemented',
     'Full Cask current release state',
   );
   requireEqual(releaseHomebrew?.excluded_casks?.includes('one-person-lab-full'), false, 'Approved Full Cask exclusion');
@@ -477,7 +477,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   );
   requireEqual(
     release.approved_targets?.homebrew_full?.generation_status,
-    'implemented_pending_first_protected_follower_readback',
+    'implemented',
     'Full Cask target generator status',
   );
   requireEqual(
@@ -551,7 +551,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   const linuxDesktop = release.approved_targets?.desktop_linux_x86_64;
   requireEqual(
     linuxDesktop?.status,
-    'implemented_pending_first_publication_readback',
+    'implemented',
     'Linux Desktop release target status',
   );
   requireEqual(
@@ -759,7 +759,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   requireEqual(installHomebrew?.nightly?.full_by_default, false, 'Nightly Cask Full default');
   requireEqual(
     installHomebrew?.nightly?.new_publication_status,
-    'implemented_pending_first_follower_readback',
+    'implemented',
     'Nightly Cask new publication status',
   );
   requireEqual(
@@ -773,7 +773,7 @@ export function validateDistributionInstallSsot(releaseChannel, installExposureP
   requireEqual(installHomebrew?.full?.formula_dependency_target, false, 'Full Cask target Formula dependency');
   requireEqual(
     installHomebrew?.full?.target_generation_status,
-    'implemented_pending_first_protected_follower_readback',
+    'implemented',
     'Full Cask install target generator status',
   );
   requireEqual(

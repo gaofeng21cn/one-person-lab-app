@@ -49,7 +49,7 @@
       "desktop": {
         "current_status": "supported_macos_arm64_carrier_linux_x86_64_implementation_pending_first_publication_readback",
         "platform_preview_status": {
-        "linux_x86_64": "implemented_pending_first_publication_readback",
+        "linux_x86_64": "implemented",
         "windows_x64": "authorized_rc_preview_pending_first_publication_readback"
         },
         "electron_required": true,
@@ -75,7 +75,7 @@
       "current_default_runtime_form": "desktop",
       "browser_webui_mode": "packaged_desktop_bytes",
       "approved_default_runtime_form": "desktop",
-      "target_status": "implemented_pending_first_publication_readback"
+      "target_status": "implemented"
       },
       "server_or_isolated": {
         "current_and_target_runtime_form": "container_webui"
@@ -281,12 +281,12 @@
       "nightly": {
         "cask": "one-person-lab-nightly",
         "dmg_profile": "standard_nightly",
-        "publication_status": "implemented_pending_first_follower_readback",
+        "publication_status": "implemented",
         "product_channel_semantics": "retained_standard_prerelease",
         "full_by_default": false,
         "formula_dependency_current": true,
         "formula_dependency_required": true,
-        "new_publication_status": "implemented_pending_first_follower_readback",
+        "new_publication_status": "implemented",
         "publication_workflow": ".github/workflows/release-nightly-followups.yml",
         "publication_operation": "reconcile_homebrew",
         "stable_cask_mutation_allowed": false
@@ -299,7 +299,7 @@
         "formula_dependency_current": true,
         "duplicate_base_carrier_risk_current": true,
         "formula_dependency_target": false,
-        "target_generation_status": "implemented_pending_first_protected_follower_readback",
+        "target_generation_status": "implemented",
         "target_generator_ref": "scripts/update-homebrew-tap.ts",
         "target_framework_carrier": "full_dmg_embedded_opl_base",
         "target_digest_cas_required": true,

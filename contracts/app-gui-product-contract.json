@@ -6169,7 +6169,7 @@
     "nightly": {
       "channel_id": "nightly_standard",
       "source": "contracts/app-release-channel.json#release_validation_profiles.nightly_standard",
-      "status": "implemented_pending_first_publication_readback",
+      "status": "implemented",
       "selectable": false,
       "publication_available": true,
       "mutation_available": true,

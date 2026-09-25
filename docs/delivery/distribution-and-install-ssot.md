@@ -7,7 +7,9 @@ macOS 与 Linux Desktop 可在无图形会话中运行，并通过 Desktop 自�
 
 `--headless` 只安装 Framework Base/CLI，不安装 App，因此不属于 Desktop 发布产品。
 Docker WebUI 保留为独立容器产品线，使用 GHCR 自己的版本、资格与移动标签；它不是
-Desktop Stable 的 follower，也不参与 Desktop GitHub Release 的资产集合。
+Desktop GitHub Release 的附加资产。Stable 自动以同一 App/Framework cohort 和日期版本
+发布 Docker；它独立验收与恢复，不阻塞 macOS 主发布。完整入口见
+[发布路径与矩阵](release/release-paths.md)。
 
 ## Codex 插件安装范围
 
@@ -26,16 +28,15 @@ Framework descriptor 可读取，再原生卸载系统 Codex 的旧条目。历�
 ## GUI 演进与升级路线
 
 机器真值位于
-`contracts/app-release-channel.json#shell_transition_policy`。当前阶段只发布和测试
-独立的 **One Person Lab Preview**，不修改 OPL App Stable 的 active shell、bundle、
-安装路径、user-data 或更新 feed。最终切换必须收敛为一个正式 Desktop 身份，而不是
-长期维护两个同名 App 或两个 Stable feed。
+`contracts/app-release-channel.json#shell_transition_policy`。当前正式 Desktop、Nightly 和
+Docker WebUI 均使用 Studio。正式 App 保留既有安装身份与 Stable feed；旧 Aion Shell
+已归档，仅保留迁移基线、历史发布与固定测试夹具。
 
-| 阶段身份 | Bundle ID / 安装路径 | 更新 authority | 终态 |
+| 身份 | Bundle ID / 安装路径 | 更新 authority | 当前用途 |
 | --- | --- | --- | --- |
-| 当前 OPL App（AionUI） | `cn.onepersonlab.opl` / `/Applications/One Person Lab.app` | `gaofeng21cn/one-person-lab-app` Stable feed | 保留此正式身份，未来只替换 Shell |
-| OPL Studio Preview | `cn.onepersonlab.opl.studio.preview` / `/Applications/One Person Lab Preview.app` | `gaofeng21cn/opl-studio` Preview feed | 功能测试期独立更新，切换时发布 terminal handoff |
-| 切换后的 OPL App（Studio） | `cn.onepersonlab.opl` / `/Applications/One Person Lab.app` | 继续使用 App Stable feed | 唯一正式身份 |
+| 历史 OPL App（AionUI） | `cn.onepersonlab.opl` / `/Applications/One Person Lab.app` | App Stable feed | 自动升级到 Studio 实现 |
+| 历史 OPL Studio Preview | `cn.onepersonlab.opl.studio.preview` / `/Applications/One Person Lab Preview.app` | Studio Preview feed | terminal handoff 转入正式 App |
+| 正式 OPL App（Studio） | `cn.onepersonlab.opl` / `/Applications/One Person Lab.app` | App Stable feed | 唯一正式 Desktop 身份 |
 
 因此有两条不同但最终汇合的升级路线：
 
@@ -52,17 +53,18 @@ Framework descriptor 可读取，再原生卸载系统 Codex 的旧条目。历�
 状态分两类处理：
 
 - Codex 对话、Gateway 凭据/账户、Framework Package/runtime/receipt、Workspace source 与
-  domain artifact 都继续从原 owner 读取，**不复制、不迁库**。
+  domain artifact 继续从原 owner 读取。旧 AionUI 历史通过只读、幂等导入接入原生
+  Codex；源数据库保留，不将旧 backend 数据库整体搬成新运行时数据库。
 - 只有 Shell 私有且不可重建的配置需要版本化迁移：语言、主题与无障碍偏好，非敏感的
   模型/推理/权限偏好，工作区选择与标签，canonical thread keyed UI metadata，未发送草稿，
   通知与日志位置。迁移清单不得包含密码、API key、token、cookie、Keychain material、
   AionCore/AionUI backend database、Codex 消息正文、Framework 状态或 Electron cache。
 
-落地顺序固定为：Preview 功能基线和内测；Preview 签名、公证、公开更新链资格；两条迁移
-路径实现和 supported-source window 冻结；AionUI 原地更新与 Preview handoff 的 clean-VM
-验收；显式 active-shell/release authority 切换；正式 App 与 terminal Preview handoff 发布；
-最后才进行旧数据和 Preview 的有界清理。任何一步的 source、candidate 或本机测试都不能
-替代下一步的 public/installed/owner readback。
+新候选先完成签名、公证与准确字节首装验收，再公开 Standard；随后验收真实升级链路，
+必要时在同一可变 tag 修复资产并递增机器版本。迁移问题须修实现，不能仅扩大测试等待。
+两条用户来源的升级与数据延续都要完成验证，但不把全部历史迁移测试设为每次普通发布的
+重复前置条件。涉及升级身份、数据迁移或运行时协议的改动覆盖相应路线。源数据或 Preview
+清理必须在正式 App 成功启动与 owner 回读后进行，固定 handoff 依赖的资产继续保留。
 
 ## Stable Desktop artifact
 
@@ -130,8 +132,8 @@ Linux 使用 exact Stable tag 中的 `.deb`、`opl-install.sh`、
 ### Windows
 
 Windows x64 installer、blockmap、`latest.yml` 与 updater receipt 均属于同一个 Stable
-Release/tag。Windows Preview/RC 是独立的非 Stable 验证通道，不能变成第二个 Stable
-Release，也不能替代同 tag Stable 资产。
+Release/tag。旧独立 Windows Preview/RC 发布入口已退役；当前通过同 tag 附加发布
+交付 Windows。未签名状态与真实旧版升级是否通过认证须分别披露。
 
 ## 质量与指针
 
@@ -141,10 +143,12 @@ Desktop GitHub Latest 只由合格的 macOS arm64 主发布激活。Full、Linux
 
 Docker WebUI 使用独立的 `independent_stable` 与 `independent_preview` authority：
 
-- Stable 发布不可变版本，并在显式确认后以一次 CAS 同时移动 `:stable` 与 `:latest`；
+- Stable 自动发布与主 Desktop 相同 cohort/日期版本的不可变镜像，随后以一次 CAS 同时
+  移动 `:stable` 与 `:latest`；手动 Stable 修复仍使用同版本并接续 promotion；
 - Preview 发布不可变版本，并在显式确认后只移动 `:latest`，保持 `:stable` 不变；
-- 两者都消费 durable GHCR publication record 和独立 source authority，不接受 Desktop
-  Stable run、短期 Actions artifact 或 recovery chain 作为发布 authority。
+- 两者都绑定 WebUI source authority，promotion 消费 durable GHCR publication record。
+  自动路径从 Stable 冻结 cohort 生成该 authority；仅有 Desktop run ID 或短期 artifact
+  不能替代它。手动恢复可复用已合格镜像，但须核验其准确源码和资格来源。
 
 ## 真实完成
 

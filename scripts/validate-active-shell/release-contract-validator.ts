@@ -1099,7 +1099,7 @@ function validateReleaseExecutionPolicy(releaseChannel, shellPaths, validationPr
     throw new Error('Stable primary publication and protected same-tag installer repair must remain separate bounded manual entries');
   }
   if (
-    publication?.nightly?.status !== 'implemented_pending_first_publication_readback' ||
+    publication?.nightly?.status !== 'implemented' ||
     publication?.nightly?.publication_available !== true ||
     publication?.nightly?.mutation_available !== true ||
     publication?.nightly?.historical_readback_allowed !== true ||

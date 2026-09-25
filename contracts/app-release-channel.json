@@ -689,7 +689,7 @@
         },
         "independent_quality_level": false,
         "product_channel_semantics": "retained",
-        "current_publication_implementation": "implemented_pending_first_publication_readback",
+        "current_publication_implementation": "implemented",
         "default_payload_density": "standard",
         "full_by_default": false,
         "scheduled_writer_may_move_latest": false,
@@ -839,16 +839,16 @@
     "implementation_state": {
       "desktop_stable": "live",
       "desktop_latest": "live_qualified_stable_default_with_protected_preview_override",
-      "desktop_dev_preview": "implemented_pending_first_publication_readback",
-      "desktop_nightly": "implemented_pending_first_publication_readback",
+      "desktop_dev_preview": "implemented",
+      "desktop_nightly": "implemented",
       "manual_full_preview": "live_non_latest_temporary_lane",
       "windows_x64_rc_preview": "retired_no_public_release_or_tag_stable_same_tag_successor",
       "full": "live_additive_first_install_asset_not_channel",
       "container_webui": "live_separate_development_and_production_carrier_with_independent_preview_publication",
-      "desktop_linux_x86_64": "implemented_pending_first_publication_readback",
+      "desktop_linux_x86_64": "implemented",
       "homebrew_standard": "live_managed",
-      "homebrew_nightly": "implemented_pending_first_follower_readback",
-      "homebrew_full": "implemented_pending_first_protected_follower_readback"
+      "homebrew_nightly": "implemented",
+      "homebrew_full": "implemented"
     },
     "publication_history": {
       "desktop_nightly": {
@@ -856,7 +856,7 @@
         "historical_payload_density": "standard",
         "historical_full_by_default": false,
         "current_publication_workflow_present": true,
-        "new_publication_status": "implemented_pending_first_publication_readback"
+        "new_publication_status": "implemented"
       },
       "windows_x64_rc_preview": {
         "state": "retired",
@@ -870,7 +870,7 @@
     "approved_targets": {
       "desktop_nightly": {
         "target": "automated_opt_in_standard_desktop_prerelease",
-        "status": "implemented_pending_first_publication_readback",
+        "status": "implemented",
         "quality_status": "preview",
         "build_trigger": "automated",
         "preview_kind": "nightly",
@@ -895,7 +895,7 @@
       "homebrew_full": {
         "target": "managed_stable_full_dmg_cask",
         "homebrew_cask": "one-person-lab-full",
-        "generation_status": "implemented_pending_first_protected_follower_readback",
+        "generation_status": "implemented",
         "generator": "scripts/update-homebrew-tap.ts",
         "package_kind": "app_full_first_install",
         "formula_dependency_target": false,
@@ -917,7 +917,7 @@
       },
       "desktop_linux_x86_64": {
         "target": "opl_owned_immutable_linux_desktop_distribution",
-        "status": "implemented_pending_first_publication_readback",
+        "status": "implemented",
         "publication_carrier": "app_github_release_assets",
         "desktop_asset": "One-Person-Lab-<version>-linux-x64.deb",
         "installer_asset": "opl-install.sh",
@@ -2451,7 +2451,7 @@
         }
       },
       "nightly": {
-        "status": "implemented_pending_first_publication_readback",
+        "status": "implemented",
         "publication_available": true,
         "mutation_available": true,
         "historical_readback_allowed": true,
@@ -3394,7 +3394,7 @@
     }
   },
   "nightly_standard": {
-    "status": "implemented_pending_first_publication_readback",
+    "status": "implemented",
     "selectable": false,
     "publication_available": true,
     "mutation_available": true,
@@ -6112,7 +6112,7 @@
   },
   "release_validation_profiles": {
     "nightly_standard": {
-      "status": "implemented_pending_first_publication_readback",
+      "status": "implemented",
       "selectable": false,
       "publication_available": true,
       "mutation_available": true,
