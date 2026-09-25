@@ -47,7 +47,7 @@ on:
         default: ''
         type: string
       shell_ref:
-        description: opl-aion-shell ref containing the first-run smoke scripts
+        description: Active Shell ref containing the first-run smoke scripts
         required: false
         default: main
         type: string
@@ -168,7 +168,7 @@ on:
         default: ''
         type: string
       shell_ref:
-        description: opl-aion-shell ref containing the first-run smoke scripts
+        description: Active Shell ref containing the first-run smoke scripts
         required: false
         default: main
         type: string

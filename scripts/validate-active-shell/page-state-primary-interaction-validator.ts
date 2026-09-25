@@ -61,7 +61,7 @@ function validateGuidHomePageSource(guidHomePage) {
 function validateGuidHomeViewModelFields(homeViewModel) {
   const expectedFields = {
     authority: 'app_repo_owned_product_truth',
-    implementation_carrier: 'opl-aion-shell',
+    implementation_carrier: 'opl-studio',
     state_source: 'opl app state --profile fast --json',
     refresh_source: 'opl app state --profile fast --json',
     executor_policy_ref: 'contracts/app-gui-product-contract.json#executor_policy',

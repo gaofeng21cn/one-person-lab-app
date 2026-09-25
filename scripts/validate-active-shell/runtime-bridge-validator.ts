@@ -1615,7 +1615,7 @@ function validatePackageReadinessProjection(runtimeBridge) {
     || runtimeRow.aion_display_role !==
       'minimal WorkItem status, Stage, Attempt, Token, next action, and archive/restore'
     || runtimeRow.workbench_display_role !== 'core Runtime consumer required before shell adoption'
-    || nativeShellRole !== 'foreground_candidate_must_implement_core_runtime_before_adoption'
+    || nativeShellRole !== 'active_release_shell_thin_display_consumer'
   ) {
     throw new Error('Runtime bridge canonical Runtime row must preserve the Framework producer and require the core route in every adopted shell');
   }

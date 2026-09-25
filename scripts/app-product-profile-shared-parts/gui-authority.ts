@@ -10,8 +10,8 @@ export function assertAppProductProfileGuiAuthority(
   if (profile.gui?.authority !== 'app_repo_owned_product_truth') {
     throw new Error(`${label} GUI authority must be App-owned`);
   }
-  if (profile.gui?.implementation_carrier !== 'opl-aion-shell') {
-    throw new Error(`${label} GUI implementation carrier must be opl-aion-shell`);
+  if (profile.gui?.implementation_carrier !== 'opl-studio') {
+    throw new Error(`${label} GUI implementation carrier must be opl-studio`);
   }
   if (
     profile.gui.appearance?.default_css_theme_id !== 'default-theme' ||

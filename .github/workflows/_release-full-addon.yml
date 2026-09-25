@@ -43,7 +43,7 @@ on:
         default: ''
         type: string
       smoke_harness_ref:
-        description: Exact opl-aion-shell verification ref for unchanged Full checkpoint requalification; empty uses the frozen product Shell ref
+        description: Exact active Shell verification ref for unchanged Full checkpoint requalification; empty uses the frozen product Shell ref
         required: false
         default: ''
         type: string

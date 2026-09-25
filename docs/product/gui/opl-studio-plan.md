@@ -22,7 +22,8 @@ Release 中提供预置 runtime 与 Package 的首次安装包；Nightly 不代�
 macOS Stable 从 26.9.25 起采用 Studio，保留原 App bundle identity 和更新入口。
 Studio Preview 保留独立身份，终结桥通过经过签名验证的目标包交接到正式 App；该桥的公开
 发布已完成：Preview 0.1.17、0.1.18 均通过原生更新到 0.1.19 再交接 Stable 的隔离 VM 验收。
-AionUI 的公开更新链路继续独立验收，不能由新装成功推定。Windows x64 安装器、blockmap、
+AionUI 26.9.23、26.8.8 的公开原生更新安装已成功；Codex 0.157 空分页线程暴露的历史读取
+缺陷已在 Studio 主线修复，修复包正在公开前验收。Windows x64 安装器、blockmap、
 更新元数据和实际构建来源已追加至同一 Stable Release；未签名状态明确，真实 Windows 升级认证
 仍独立记录，不阻塞附加包发布。
 Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史 Aion 仓库。
@@ -122,18 +123,22 @@ Codex ID 直接关联，旧后端专有会话通过公开接口关联新的 Code
 
 macOS 自动发现既有数据位置；Docker 必须挂载旧数据卷，可用 `OPL_AIONUI_DATA_DIR` 指定
 只读挂载目录。来源保留、绑定持久化、失败可重试以及删除后不重新导入属于同一迁移行为。
+Studio 创建线程时显式选择公开 `legacy` 历史模式，避免 Codex 0.157 空分页线程不可恢复。
+对先前已完成导入的空分页绑定，只有 Codex 明确返回尚未 materialize 才建立新绑定，
+保留旧 thread ID 与来源历史；已有原生历史或其他读取错误不得触发替换。
 这些首次启动能力可先进入独立 Preview，不替代正式 App identity 切换的签名与迁移验收。
 
 发布状态以 App 合同与准确公开产物为准：`active_shell_adopted=true` 已进入主线，
 macOS Standard 已通过公开前签名、公证、Gateway 登录、Official Profile 首装和运行就绪验收。
-旧 AionUI 与 Studio Preview 的真实升级、数据延续和后续更新源是独立的待收尾验收，
-不改写为已经完成。Full、Nightly 及其他平台分别保留自身公开回读，不能由 Standard 代替。
+Preview 的两条基线交接验收已完成；旧 AionUI 的更新安装已成功，历史延续仍需在修复后的
+公开 App 中回读。Full 已在运行 `36114062851` 发布，并通过准确签名包的首装与 Temporal
+生命周期验收。Nightly 及其他平台分别保留自身公开回读，不能由 Standard 代替。
 
 Desktop Stable 和 Nightly 已使用 Studio。Docker WebUI 的源码选择、构建和运行验收也统一到
 Studio；沿用 GHCR 版本标签、Stable/Latest 指针、原生 amd64/arm64 验收以及 `/data`、
 `/projects` 持久化约定。镜像嵌入 Framework 和 Codex，首次安装使用 App Official Profile，
-已有数据卷保留原 Package 选择并只读导入历史。源码切换不等于公开镜像已经替换，发布完成
-以双架构镜像与公开指针回读为准。
+已有数据卷保留原 Package 选择并只读导入历史。`26.9.25-r1`、`stable`、`latest` 已回读为
+同一 Studio 双架构 digest；原生验收覆盖登录、上传、Framework/Codex 就绪和数据卷重启持久化。
 
 旧仓库在全部生产入口发布完成、旧版升级验收通过后归档；历史源码和 Release 继续保留。
 

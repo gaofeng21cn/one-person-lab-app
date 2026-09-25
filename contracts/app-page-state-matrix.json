@@ -102,7 +102,7 @@
       "page_contract": "guid_home_entry",
       "home_view_model": {
         "authority": "app_repo_owned_product_truth",
-        "implementation_carrier": "opl-aion-shell",
+        "implementation_carrier": "opl-studio",
         "primary_input_surface": "single_card",
         "nested_input_card_frames_allowed": false,
         "appearance_default_css_theme_id": "default-theme",

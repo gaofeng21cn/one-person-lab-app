@@ -352,11 +352,11 @@
     },
     "shells": {
       "aionui": {
-        "role": "active_release_shell_thin_display_consumer",
+        "role": "legacy_migration_reference_only",
         "implementation_carrier": "opl-aion-shell"
       },
       "opl_studio": {
-        "role": "foreground_candidate_must_implement_core_runtime_before_adoption",
+        "role": "active_release_shell_thin_display_consumer",
         "implementation_carrier": "opl-studio"
       }
     },

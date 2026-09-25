@@ -823,7 +823,7 @@
   },
   "gui": {
     "authority": "app_repo_owned_product_truth",
-    "implementation_carrier": "opl-aion-shell",
+    "implementation_carrier": "opl-studio",
     "appearance": {
       "default_css_theme_id": "default-theme",
       "default_css_theme_name": "Default",

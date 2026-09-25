@@ -445,7 +445,7 @@ test('Runtime keeps its Framework producer and is required for every adopted she
   assert.equal(runtimeRow.adopted_shell_route_required, true);
   assert.equal(
     runtimeBridge.canonical_state_display_action_map.shells.opl_studio.role,
-    'foreground_candidate_must_implement_core_runtime_before_adoption',
+    'active_release_shell_thin_display_consumer',
   );
   assert.doesNotThrow(() => validateRuntimeBridgeContract(runtimeBridge, activeAdapter));
 
