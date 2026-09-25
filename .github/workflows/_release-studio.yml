@@ -1031,9 +1031,8 @@ jobs:
 
           latest_ready=false
           for _ in {1..12}; do
-            if curl -fsSL \
-              "https://api.github.com/repos/$STUDIO_REPOSITORY/releases/latest" \
-              -o "$RUNNER_TEMP/studio-latest-public.json" \
+            if gh api "repos/$STUDIO_REPOSITORY/releases/latest" \
+              > "$RUNNER_TEMP/studio-latest-public.json" \
               && jq -e --arg tag "$STUDIO_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' \
                 "$RUNNER_TEMP/studio-latest-public.json" >/dev/null; then
               latest_ready=true
