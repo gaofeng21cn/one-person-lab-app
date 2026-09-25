@@ -22,8 +22,9 @@ Release 中提供预置 runtime 与 Package 的首次安装包；Nightly 不代�
 macOS Stable 从 26.9.25 起采用 Studio，保留原 App bundle identity 和更新入口。
 Studio Preview 保留独立身份，终结桥通过经过签名验证的目标包交接到正式 App；该桥的公开
 发布已完成：Preview 0.1.17、0.1.18 均通过原生更新到 0.1.19 再交接 Stable 的隔离 VM 验收。
-AionUI 的公开更新链路继续独立验收，不能由新装成功推定。Windows 安装器已完成 Studio 构建，
-发布与真实 Windows 升级认证分别记录。
+AionUI 的公开更新链路继续独立验收，不能由新装成功推定。Windows x64 安装器、blockmap、
+更新元数据和实际构建来源已追加至同一 Stable Release；未签名状态明确，真实 Windows 升级认证
+仍独立记录，不阻塞附加包发布。
 Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史 Aion 仓库。
 
 ## Repository Relationship

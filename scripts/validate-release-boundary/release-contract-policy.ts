@@ -2542,7 +2542,7 @@ export function validateReleasePlatformMatrix(
     || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.unsigned_publication_allowed !== true
     || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.code_signing_status_must_be_explicit !== true
     || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.runtime_resolver !==
-      'opl-aion-shell/packages/desktop/src/process/bridge/updateBridge.ts'
+      'opl-studio/desktop/updater.mjs'
     || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.base_stable_asset_append_allowed !== true
     || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.latest_pointer_mutation_allowed !== false
     || releaseContract.release_platform_matrix?.validation_ownership?.stable?.excluded_profile !==
