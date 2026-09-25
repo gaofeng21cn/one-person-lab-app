@@ -943,7 +943,8 @@ test('manual WebUI entry separates qualification, publication, and promotion', (
   );
   assert.equal(qualification.permissions.packages, 'write');
   assert.equal(publication.if, "${{ inputs.operation == 'publish' }}");
-  assert.equal(publication.with.mode, 'execute');
+  assert.equal(publication.with.mode, "${{ inputs.qualified_artifact_run_id != '' && 'publish-prequalified' || 'execute' }}");
+  assert.equal(publication.with.qualified_artifact_run_id, '${{ inputs.qualified_artifact_run_id }}');
   assert.equal(
     publication.with.source_cutoff_observed_at,
     '${{ needs.source-authority.outputs.source_cutoff_observed_at }}',
