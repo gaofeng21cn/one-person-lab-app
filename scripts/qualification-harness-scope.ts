@@ -228,6 +228,7 @@ export function buildQualificationHarnessScopeProof(input: {
   const appDiffers = appChangedPaths.length > 0;
   const shellDiffers = shellChangedPaths.length > 0;
   const appHarnessMechanicsPaths = [
+    '.github/workflows/build-manual.yml',
     '.github/workflows/_release-full-addon.yml',
     '.github/workflows/opl-first-run-vm.yml',
     '.github/workflows/opl-studio-candidate-carriers.yml',

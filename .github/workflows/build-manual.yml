@@ -89,6 +89,16 @@ on:
         required: false
         type: string
         default: ''
+      app_ref:
+        description: 'Exact App source SHA for an existing replacement candidate; empty uses this workflow commit.'
+        required: false
+        type: string
+        default: ''
+      replacement_candidate_run_id:
+        description: 'Qualify an existing signed replacement candidate without rebuilding; requires replacement_tag and exact app_ref.'
+        required: false
+        type: string
+        default: ''
       replacement_tag:
         description: 'Build a signed macOS arm64 replacement candidate for an existing mutable Stable tag; never publishes. The machine version advances independently.'
         required: false
@@ -151,6 +161,8 @@ jobs:
           CANDIDATE_PLATFORM: ${{ inputs.platform }}
           CANDIDATE_SHELL: ${{ inputs.shell_ref }}
           CANDIDATE_FRAMEWORK: ${{ inputs.framework_ref }}
+          CANDIDATE_RUN: ${{ inputs.replacement_candidate_run_id }}
+          CANDIDATE_APP: ${{ inputs.app_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -160,6 +172,10 @@ jobs:
           [[ "$REPLACEMENT_TAG" =~ ^v[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[0-9]+)?$ ]]
           [[ "$CANDIDATE_SHELL" =~ ^[0-9a-f]{40}$ ]]
           [[ "$CANDIDATE_FRAMEWORK" =~ ^[0-9a-f]{40}$ ]]
+          if [ -n "$CANDIDATE_RUN" ]; then
+            [[ "$CANDIDATE_RUN" =~ ^[1-9][0-9]*$ ]]
+            [[ "$CANDIDATE_APP" =~ ^[0-9a-f]{40}$ ]]
+          fi
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$REPLACEMENT_TAG" > replacement-release.json
           jq -e '.draft == false and .prerelease == false and .immutable != true' replacement-release.json >/dev/null
           mkdir replacement-feed
@@ -252,7 +268,7 @@ jobs:
           rm -rf .release-control
 
   build-pipeline:
-    if: ${{ needs.prepare-matrix.outputs.platform_count != '0' }}
+    if: ${{ needs.prepare-matrix.outputs.platform_count != '0' && inputs.replacement_candidate_run_id == '' }}
     needs: prepare-matrix
     uses: ./.github/workflows/_build-reusable.yml
     with:
@@ -272,4 +288,23 @@ jobs:
       cache_role: ${{ inputs.invocation_mode == 'stable_app_build' && 'stable_desktop_additional' || '' }}
       release_bundle_digest: ${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}
       release_cohort_ref: ${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}
+    secrets: inherit
+
+
+  qualify-replacement:
+    name: Qualify the signed same-tag replacement
+    needs: [prepare-matrix, build-pipeline]
+    if: ${{ always() && inputs.replacement_tag != '' && needs.prepare-matrix.result == 'success' && (needs.build-pipeline.result == 'success' || inputs.replacement_candidate_run_id != '') }}
+    uses: ./.github/workflows/opl-first-run-vm.yml
+    with:
+      release_artifact_name: macos-build-arm64-dmg
+      release_artifact_run_id: ${{ inputs.replacement_candidate_run_id || github.run_id }}
+      artifact_app_ref: ${{ needs.prepare-matrix.outputs.app_ref }}
+      verification_app_ref: ${{ github.sha }}
+      shell_ref: ${{ inputs.shell_ref }}
+      framework_ref: ${{ inputs.framework_ref }}
+      package_profile: standard
+      diagnostic_scope: release_gate
+      require_macos_gatekeeper: true
+      expected_updater_version: ${{ needs.prepare-matrix.outputs.candidate_updater_version }}
     secrets: inherit

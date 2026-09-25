@@ -47,6 +47,11 @@ on:
         required: false
         default: ''
         type: string
+      expected_updater_version:
+        description: 'Exact machine version for a same-tag replacement whose display version is unchanged.'
+        required: false
+        default: ''
+        type: string
       standard_identity_sha256:
         description: 'Exact digest of the sealed Standard identity receipt for release-bound qualification.'
         required: false
@@ -2218,7 +2223,11 @@ jobs:
           display_version="$(jq -er .build.version "$manifest")"
           channel=stable
           if [[ "$display_version" == *-nightly* ]]; then channel=nightly; fi
-          machine_version="$(node --experimental-strip-types scripts/release-version.ts --channel "$channel" --version "$display_version" --json | jq -er .updater_version)"
+          machine_version='${{ inputs.expected_updater_version }}'
+          if [ -z "$machine_version" ]; then
+            machine_version="$(node --experimental-strip-types scripts/release-version.ts --channel "$channel" --version "$display_version" --json | jq -er .updater_version)"
+          fi
+          [[ "$machine_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           dmg_sha256="$(jq -er .artifact.sha256 "$manifest")"
           test -n "$EXPECTED_TEAM_ID" || { echo "::error::Expected Developer ID team is required."; exit 1; }
           CMD=(
