@@ -1478,6 +1478,7 @@ export function inspectRelease(
   repo: string,
   tag: string,
   runtime: GitHubAdapterRuntime = defaultGitHubRuntime,
+  includeBody = false,
 ): JsonRecord {
   const release = ghRead(
     ['api', `repos/${repo}/releases/tags/${tag}`],
@@ -1527,7 +1528,7 @@ export function inspectRelease(
       draft: release.draft,
       prerelease: release.prerelease,
       ...targetIdentity,
-      body: String(release.body ?? ''),
+      ...(includeBody ? { body: String(release.body ?? '') } : {}),
       body_sha256: sha256Bytes(String(release.body ?? '')),
       immutable: release.immutable === true,
     },
@@ -1580,7 +1581,6 @@ function inspectReleaseById(
       draft: release.draft,
       prerelease: release.prerelease,
       ...targetIdentity,
-      body: String(release.body ?? ''),
       body_sha256: sha256Bytes(String(release.body ?? '')),
       immutable: release.immutable === true,
     },
@@ -1713,9 +1713,9 @@ function assertCanonicalStandardPublicationBoundary(
   }
 }
 
-function inspectReleaseForReconcile(repo: string, tag: string, runtime: GitHubAdapterRuntime): JsonRecord {
+function inspectReleaseForReconcile(repo: string, tag: string, runtime: GitHubAdapterRuntime, includeBody = false): JsonRecord {
   try {
-    return { status: 'complete', observation: inspectRelease(repo, tag, runtime) };
+    return { status: 'complete', observation: inspectRelease(repo, tag, runtime, includeBody) };
   } catch (error) {
     return {
       status: 'inspect_failed',
@@ -2401,7 +2401,7 @@ function applyFullAddonPlan(input: {
   const repo = String(input.bundle.sources?.app?.repo ?? '');
   const tag = String(addon.tag);
   const targetCommitish = publicationTagTargetCommitish(input.values, input.bundle, addon);
-  const preexisting = inspectReleaseForReconcile(repo, tag, input.runtime);
+  const preexisting = inspectReleaseForReconcile(repo, tag, input.runtime, true);
   const currentBody = preexisting.status === 'complete' ? preexisting.observation.release.body : undefined;
   if (input.publicationStatus === 'reconcile_only') {
     const observation = preexisting;

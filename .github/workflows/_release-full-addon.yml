@@ -749,6 +749,7 @@ jobs:
             local digest_name="$3"
             local expected_run_id="$4"
             local expected_artifact="$5"
+            local expected_source_run_id="${6:-$expected_run_id}"
             local receipts=()
             local digests=()
             while IFS= read -r item; do receipts+=("$item"); done < <(
@@ -773,6 +774,7 @@ jobs:
               --arg profile "$profile" \
               --arg run_id "$expected_run_id" \
               --arg artifact "$expected_artifact" \
+              --arg source_run_id "$expected_source_run_id" \
               --arg bundle "$bundle_digest" \
               --arg app "$app_sha" \
               --arg shell "$shell_sha" \
@@ -782,7 +784,7 @@ jobs:
                 and .package_profile == $profile
                 and .release_cohort_ref == $bundle
                 and .qualification.run_id == $run_id
-                and .qualification.source_artifact_run_id == $run_id
+                and .qualification.source_artifact_run_id == $source_run_id
                 and .qualification.source_artifact_name == $artifact
                 and .qualification.result == "passed"
                 and .cohort == {
@@ -799,12 +801,17 @@ jobs:
             "$standard_run_id" \
             "opl-release-standard-vm-bound-${standard_run_id}"
           if [ "$stage" = full_qualified ]; then
+            # Full is independently built; its VM run and artifact producer are distinct.
+            app_sha='${{ inputs.full_content_app_ref }}'
+            shell_sha='${{ inputs.full_content_shell_ref }}'
+            framework_sha='${{ inputs.full_content_framework_ref }}'
             verify_sidecar \
               full \
               full-clean-vm-qualification-receipt.json \
               full-clean-vm-qualification-receipt.sha256 \
               "$SOURCE_RUN_ID" \
-              "opl-full-first-install-dmg-${version}-mac-arm64"
+              "opl-full-first-install-dmg-${version}-mac-arm64" \
+              '${{ steps.operation.outputs.full_artifact_producer_run_id }}'
           fi
 
       - name: Upload independent Full operation checkpoint
@@ -817,6 +824,8 @@ jobs:
             checkpoint-identity-bootstrap/**/standard-identity-receipt.json
             checkpoint-identity-bootstrap/**/standard-clean-vm-qualification-receipt.json
             checkpoint-identity-bootstrap/**/standard-clean-vm-qualification-receipt.sha256
+            checkpoint-identity-bootstrap/**/full-clean-vm-qualification-receipt.json
+            checkpoint-identity-bootstrap/**/full-clean-vm-qualification-receipt.sha256
             standard-build-receipt.json
             full-build-receipt.json
             append-operation-status-before.json
