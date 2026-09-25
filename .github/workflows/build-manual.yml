@@ -94,6 +94,11 @@ on:
         required: false
         type: string
         default: ''
+      verification_app_ref:
+        description: 'Exact App verification-only commit for an existing replacement candidate; empty uses this workflow commit.'
+        required: false
+        type: string
+        default: ''
       replacement_candidate_run_id:
         description: 'Qualify an existing signed replacement candidate without rebuilding; requires replacement_tag and exact app_ref.'
         required: false
@@ -300,7 +305,7 @@ jobs:
       release_artifact_name: macos-build-arm64-dmg
       release_artifact_run_id: ${{ inputs.replacement_candidate_run_id || github.run_id }}
       artifact_app_ref: ${{ needs.prepare-matrix.outputs.app_ref }}
-      verification_app_ref: ${{ github.sha }}
+      verification_app_ref: ${{ inputs.verification_app_ref || github.sha }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       package_profile: standard
