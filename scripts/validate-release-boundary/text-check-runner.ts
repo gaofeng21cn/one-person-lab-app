@@ -967,7 +967,7 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
       || restore.if !== "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.resolve-checkpoint.outputs.restore_required == 'true' }}"
       || !qualify
       || !needsExactly(qualify, ['resolve-checkpoint', 'restore-checkpoint'])
-      || qualify.environment !== undefined
+      || qualify.environment !== "${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && 'release-stable' || null }}"
       || qualify['runs-on'] !== "${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && fromJSON('[\"self-hosted\",\"macOS\",\"ARM64\",\"opl-cert-mac-tart\"]') || fromJSON('[\"macos-15\"]') }}"
       || resolve.outputs?.terminal_preview !== '${{ steps.terminal.outputs.enabled }}'
       || !qualifyEvidence.includes('scripts/desktop/stable-qualify-preview-upgrade.mjs')

@@ -170,7 +170,7 @@ if (webuiPackage.name !== 'opl-studio' || !/^[a-f0-9]{40}$/.test(String(webuiPac
   || imageManifest.application_host !== 'opl-studio') {
   throw new Error('Image manifest must identify the exact Studio application host.');
 }
-if (config.User !== 'node' || JSON.stringify(config.Cmd) !== JSON.stringify(['node', 'scripts/headless/run.mjs'])) {
+if (config.User !== 'root' || JSON.stringify(config.Entrypoint) !== JSON.stringify(['/usr/local/bin/opl-webui-entrypoint']) || JSON.stringify(config.Cmd) !== JSON.stringify(['node', 'scripts/headless/run.mjs'])) {
   throw new Error('Studio WebUI must run the non-root Node headless host.');
 }
 

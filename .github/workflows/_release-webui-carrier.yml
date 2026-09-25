@@ -366,7 +366,8 @@ jobs:
           data_dir="$RUNNER_TEMP/webui-data"
           projects_dir="$RUNNER_TEMP/webui-projects"
           mkdir -p "$data_dir" "$projects_dir"
-          sudo chown -R 1000:1000 "$data_dir" "$projects_dir"
+          # Exercise compatibility with root-owned volumes from the legacy image.
+          sudo chown -R 0:0 "$data_dir" "$projects_dir"
           capture_runtime_diagnostics() {
             docker inspect "$container_name" > webui-carrier/container-inspect.json \
               2> webui-carrier/container-inspect.stderr || true
@@ -399,6 +400,7 @@ jobs:
           }
           printf '%s\n' initial_start > webui-carrier/container-phase.txt
           wait_for_http
+          docker exec "$container_name" node -e 'const s=require("fs").readFileSync("/proc/1/status","utf8"); if(!/^Uid:\s+1000\s/m.test(s))process.exit(1)'
           printf '%s\n' passed > webui-carrier/http-health.txt
 
           persistence_marker="${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${{ matrix.architecture }}"

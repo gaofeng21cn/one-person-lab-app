@@ -310,7 +310,7 @@ test('WebUI runtime validation binds each native image to its Studio runtime', (
       Os: 'linux',
       Architecture: architecture,
       Config: {
-        User: 'node', Cmd: ['node', 'scripts/headless/run.mjs'],
+        User: 'root', Entrypoint: ['/usr/local/bin/opl-webui-entrypoint'], Cmd: ['node', 'scripts/headless/run.mjs'],
         Labels: {
           'org.opencontainers.image.source': 'https://github.com/gaofeng21cn/one-person-lab-app',
           'org.opencontainers.image.revision': appSha,
