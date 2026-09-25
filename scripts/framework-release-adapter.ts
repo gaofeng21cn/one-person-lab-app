@@ -132,7 +132,7 @@ function bundlePublicReleaseBody(bundle: JsonRecord): string {
   return projectPublicReleaseBody(String(bundle.prepared_notes?.markdown ?? ''), releaseName);
 }
 
-export function fullAddonPublicReleaseBody(bundle: JsonRecord, addon: JsonRecord): string {
+export function fullAddonPublicReleaseBody(bundle: JsonRecord, addon: JsonRecord, currentBody?: string): string {
   const repository = String(bundle.sources?.app?.repo ?? '');
   const tag = String(addon.tag ?? '');
   const artifact = addon.artifact as JsonRecord | undefined;
@@ -160,7 +160,8 @@ export function fullAddonPublicReleaseBody(bundle: JsonRecord, addon: JsonRecord
     `- Size: ${artifact.size_bytes} bytes`,
     `- [Full release manifest](${downloadBase}/opl-release-manifest.json)`,
   ].join('\n');
-  const standardBody = bundlePublicReleaseBody(bundle)
+  if (currentBody?.startsWith(`${fullSection}\n\n`)) return currentBody;
+  const standardBody = (currentBody ?? bundlePublicReleaseBody(bundle))
     .replaceAll(sameStableFullAddonGuidance, sameStableFullAvailableGuidance)
     .replaceAll(sameStableFullAddonGuidanceZh, sameStableFullAvailableGuidanceZh);
   return `${fullSection}\n\n${standardBody}`;
@@ -1526,6 +1527,7 @@ export function inspectRelease(
       draft: release.draft,
       prerelease: release.prerelease,
       ...targetIdentity,
+      body: String(release.body ?? ''),
       body_sha256: sha256Bytes(String(release.body ?? '')),
       immutable: release.immutable === true,
     },
@@ -1578,6 +1580,7 @@ function inspectReleaseById(
       draft: release.draft,
       prerelease: release.prerelease,
       ...targetIdentity,
+      body: String(release.body ?? ''),
       body_sha256: sha256Bytes(String(release.body ?? '')),
       immutable: release.immutable === true,
     },
@@ -2086,6 +2089,7 @@ function mutableStandardIdentityState(
   inspection: JsonRecord,
   bundle: JsonRecord,
   addon: JsonRecord,
+  currentBody?: string,
 ): 'standard_notes' | 'full_visible' {
   const target = addon.target_standard_release as JsonRecord;
   if (
@@ -2101,8 +2105,8 @@ function mutableStandardIdentityState(
     throw new Error('Full append target is not the exact published mutable Standard Release.');
   }
   const bodySha256 = String(inspection.release?.body_sha256 ?? '');
-  if (bodySha256 === sha256Bytes(bundlePublicReleaseBody(bundle))) return 'standard_notes';
-  if (bodySha256 === sha256Bytes(fullAddonPublicReleaseBody(bundle, addon))) return 'full_visible';
+  if (bodySha256 === sha256Bytes(fullAddonPublicReleaseBody(bundle, addon, currentBody))) return 'full_visible';
+  if (bodySha256 === sha256Bytes(currentBody ?? bundlePublicReleaseBody(bundle))) return 'standard_notes';
   throw new Error('Full append target has unrecognized Release notes.');
 }
 
@@ -2397,8 +2401,10 @@ function applyFullAddonPlan(input: {
   const repo = String(input.bundle.sources?.app?.repo ?? '');
   const tag = String(addon.tag);
   const targetCommitish = publicationTagTargetCommitish(input.values, input.bundle, addon);
+  const preexisting = inspectReleaseForReconcile(repo, tag, input.runtime);
+  const currentBody = preexisting.status === 'complete' ? preexisting.observation.release.body : undefined;
   if (input.publicationStatus === 'reconcile_only') {
-    const observation = inspectReleaseForReconcile(repo, tag, input.runtime);
+    const observation = preexisting;
     if (observation.status !== 'complete') {
       return {
         surface_kind: 'opl_app_github_same_tag_full_reconcile.v1',
@@ -2413,7 +2419,7 @@ function applyFullAddonPlan(input: {
       };
     }
     try {
-      const notesState = mutableStandardIdentityState(observation.observation, input.bundle, addon);
+      const notesState = mutableStandardIdentityState(observation.observation, input.bundle, addon, currentBody);
       assertSameTagFullAssetPolicy(observation.observation, addon, input.uploadActions, false);
       const missing = input.uploadActions
         .filter((action) => !observation.observation.assets.some(
@@ -2458,11 +2464,10 @@ function applyFullAddonPlan(input: {
       };
     }
   }
-  const preexisting = inspectReleaseForReconcile(repo, tag, input.runtime);
   if (preexisting.status !== 'complete') {
     throw new Error('Full append requires a complete read-only inspection of the exact Standard Release.');
   }
-  const preexistingNotesState = mutableStandardIdentityState(preexisting.observation, input.bundle, addon);
+  const preexistingNotesState = mutableStandardIdentityState(preexisting.observation, input.bundle, addon, currentBody);
   assertSameTagFullAssetPolicy(preexisting.observation, addon, input.uploadActions, false);
   const preexistingMissing = input.uploadActions.filter((action) => !preexisting.observation.assets.some(
     (asset: JsonRecord) => asset.name === action.name,
@@ -2490,7 +2495,7 @@ function applyFullAddonPlan(input: {
       })),
       preexisting_release: preexisting.observation.release,
       release_notes_patch_required: preexistingNotesState !== 'full_visible',
-      release_notes_sha256: digestRef(sha256Bytes(fullAddonPublicReleaseBody(input.bundle, addon))),
+      release_notes_sha256: digestRef(sha256Bytes(fullAddonPublicReleaseBody(input.bundle, addon, currentBody))),
       addon,
       forbidden_mutations: ['tag_reserve', 'release_create', 'release_publish', 'latest_patch'],
     };
@@ -2500,7 +2505,7 @@ function applyFullAddonPlan(input: {
   const releaseId = Number(addon.target_standard_release.release_id);
   for (const action of input.uploadActions) {
     const before = inspectReleaseById(repo, tag, releaseId, input.runtime);
-    const notesState = mutableStandardIdentityState(before, input.bundle, addon);
+    const notesState = mutableStandardIdentityState(before, input.bundle, addon, currentBody);
     assertSameTagFullAssetPolicy(before, addon, input.uploadActions, false);
     const missingBefore = input.uploadActions.filter((candidate) => !before.assets.some(
       (asset: JsonRecord) => asset.name === candidate.name,
@@ -2549,7 +2554,7 @@ function applyFullAddonPlan(input: {
     }
     const after = reconciliation.observation;
     try {
-      mutableStandardIdentityState(after, input.bundle, addon);
+      mutableStandardIdentityState(after, input.bundle, addon, currentBody);
       assertSameTagFullAssetPolicy(after, addon, input.uploadActions, false);
     } catch (error) {
       return unknownAfterAcceptedMutation({
@@ -2584,11 +2589,11 @@ function applyFullAddonPlan(input: {
     });
   }
   let finalInspection = inspectReleaseById(repo, tag, releaseId, input.runtime);
-  const notesState = mutableStandardIdentityState(finalInspection, input.bundle, addon);
+  const notesState = mutableStandardIdentityState(finalInspection, input.bundle, addon, currentBody);
   assertSameTagFullAssetPolicy(finalInspection, addon, input.uploadActions, true);
   let releaseNotesPatchApplied = false;
   if (notesState !== 'full_visible') {
-    const desiredBody = fullAddonPublicReleaseBody(input.bundle, addon);
+    const desiredBody = fullAddonPublicReleaseBody(input.bundle, addon, currentBody);
     const remoteTarget = `github-release:${repo}@${tag}`;
     const attempt = runGitHubMutation({
       mutation: 'release_notes_patch',
@@ -2630,7 +2635,7 @@ function applyFullAddonPlan(input: {
     }
     finalInspection = reconciliation.observation;
     try {
-      if (mutableStandardIdentityState(finalInspection, input.bundle, addon) !== 'full_visible') {
+      if (mutableStandardIdentityState(finalInspection, input.bundle, addon, currentBody) !== 'full_visible') {
         throw new Error('Full availability notes digest did not match.');
       }
       assertSameTagFullAssetPolicy(finalInspection, addon, input.uploadActions, true);
@@ -2666,7 +2671,7 @@ function applyFullAddonPlan(input: {
     standard_assets_modified: false,
     release_notes_modified: true,
     release_notes_patch_applied: releaseNotesPatchApplied,
-    release_notes_sha256: digestRef(sha256Bytes(fullAddonPublicReleaseBody(input.bundle, addon))),
+    release_notes_sha256: digestRef(sha256Bytes(fullAddonPublicReleaseBody(input.bundle, addon, currentBody))),
     latest_modified: false,
     updater_metadata_modified: false,
   };

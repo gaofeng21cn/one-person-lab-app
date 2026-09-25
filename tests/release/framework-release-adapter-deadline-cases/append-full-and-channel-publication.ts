@@ -717,3 +717,28 @@ test('canonical Stable publication consumes internal authority evidence without 
   assert.equal(result.inspection.release.immutable, false);
   assert.equal(result.github_native_immutable, false);
 });
+
+
+test('Full append preserves edited product notes and remains idempotent', () => {
+  const files = fixture([], 'append_full');
+  const initialBody = 'Architecture cutover: Studio now powers every carrier.\n\nEdited release details.';
+  const simulated = fullPublicationRuntime(files, { initialBody });
+  const input = { ...mutationAdmission('append_full', 'full'), bundle: files.bundlePath,
+    plan: files.planPath, 'standard-attestation': files.standardAttestationPath,
+    'operation-deadline-at': deadlineAt };
+  const result = applyPublishPlan(input, simulated.runtime);
+  assert.equal(result.status, 'complete');
+  assert.ok(JSON.parse(simulated.mutationInputs[0]).body.endsWith(initialBody));
+  assert.equal(applyPublishPlan(input, simulated.runtime).release_notes_patch_applied, false);
+});
+
+test('Full append rejects concurrent edits to the captured Release body', () => {
+  const files = fixture([], 'append_full');
+  const simulated = fullPublicationRuntime(files, { initialBody: 'Reviewed product notes',
+    bodyDriftAfterFirstUpload: 'Concurrent user edit' });
+  const result = applyPublishPlan({ ...mutationAdmission('append_full', 'full'), bundle: files.bundlePath,
+    plan: files.planPath, 'standard-attestation': files.standardAttestationPath,
+    'operation-deadline-at': deadlineAt }, simulated.runtime);
+  assert.notEqual(result.status, 'complete');
+  assert.equal(simulated.mutationInputs.length, 0);
+});

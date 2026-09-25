@@ -886,14 +886,14 @@ export function tagRefResponse(releaseTag: string, targetCommitish = sourceCommi
 
 export function fullPublicationRuntime(
   files: ReturnType<typeof fixture>,
-  options: { targetDriftAfterFirstUpload?: string; additionalAssets?: Asset[] } = {},
+  options: { targetDriftAfterFirstUpload?: string; additionalAssets?: Asset[]; initialBody?: string; bodyDriftAfterFirstUpload?: string } = {},
 ) {
   const bundle = JSON.parse(fs.readFileSync(files.bundlePath, 'utf8'));
   const addon = fullAddonIdentity(bundle, files.uploadActions, files.standardAttestationPath);
   const calls: string[][] = [];
   const mutationInputs: string[] = [];
   const remoteAssets: Asset[] = [...files.standardAssets, ...(options.additionalAssets ?? [])];
-  let remoteBody = notes;
+  let remoteBody = options.initialBody ?? notes;
   const response = () => ({
     id: 12345,
     tag_name: addon.tag,
@@ -923,6 +923,7 @@ export function fullPublicationRuntime(
         const uploaded = files.uploadActions.find((asset) => asset.source_path === args[3]);
         assert.ok(uploaded, `unexpected upload ${args[3]}`);
         remoteAssets.push(uploaded);
+        if (options.bodyDriftAfterFirstUpload) remoteBody = options.bodyDriftAfterFirstUpload;
         return success();
       }
       if (
