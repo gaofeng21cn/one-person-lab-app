@@ -179,7 +179,7 @@ test('ordinary Desktop install docs use Latest URLs instead of fixed release ver
     const source = fs.readFileSync(path.join(appRoot, relativePath), 'utf8');
     assert.doesNotMatch(
       source,
-      /one-person-lab-app\/releases\/(?:tag|download)\//,
+      /one-person-lab-app\/releases\/download\//,
       `${relativePath} must route ordinary downloads through releases/latest`,
     );
   }

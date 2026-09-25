@@ -34,7 +34,7 @@ const managedUpdateProviders = {
 };
 
 function readSourceJson(candidatePath: string, shellName = 'one-person-lab-aion-shell'): any {
-  if (candidatePath.endsWith('app-shell-adapter.json')) return { active_shell: 'aionui', shell_root: 'shells/aionui', shell_source: { owner_repo: 'gaofeng21cn/opl-aion-shell', checkout_path: 'shells/aionui' }, shell_contract: { paths: { electron_builder_config: 'packages/desktop/electron-builder.yml' } } };
+  if (candidatePath.endsWith('app-shell-adapter.json')) return { active_shell: 'aionui', shell_root: 'shells/aionui', shell_source: { owner_repo: 'gaofeng21cn/opl-aion-shell', checkout_path: 'shells/aionui' }, shell_contract: { paths: { electron_builder_config: 'packages/desktop/electron-builder.yml', packaged_runtime_root: 'resources/opl-full-runtime' } } };
   if (candidatePath.endsWith('package.json')) return { name: shellName };
   if (candidatePath.endsWith('app-release-channel.json')) {
     return {
