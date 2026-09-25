@@ -52,7 +52,7 @@ function observation(ref: string, status: 'present' | 'absent' | 'unknown', obse
   };
 }
 
-function fixture(mode: 'independent_stable' | 'independent_preview') {
+function fixture(mode: 'independent_stable' | 'independent_preview', qualifiedArtifactRunId?: string) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-independent-webui-'));
   const version = mode === 'independent_stable' ? '26.8.5' : '26.8.5-preview.r1';
   const carrierRunId = '302';
@@ -62,8 +62,8 @@ function fixture(mode: 'independent_stable' | 'independent_preview') {
     appSha,
     shellSha,
     frameworkSha,
-    runId: carrierRunId,
-    executorSha: carrierExecutorSha,
+    runId: qualifiedArtifactRunId || carrierRunId,
+    executorSha: qualifiedArtifactRunId ? 'f'.repeat(40) : carrierExecutorSha,
   });
   const carrierReceipt = {
     schema: 'opl_app_webui_release_carrier.v1',
@@ -186,6 +186,7 @@ function fixture(mode: 'independent_stable' | 'independent_preview') {
     carrierReceiptSha256: digest('a'),
     versionReadback,
     versionReadbackSha256: digest('b'),
+    qualifiedArtifactRunId,
     publicationRunId: carrierRunId,
     publicationRunAttempt: 1,
     publicationExecutorSha: carrierExecutorSha,
@@ -345,4 +346,11 @@ test('durable publication evidence paths are digest-bound', () => {
   const { input } = fixture('independent_stable');
   const admission = admitWebuiStablePromotion(input);
   assert.equal(admission.evidence.publication_record_sha256, fileDigest(input.publicationRecordPath!));
+});
+
+ test('recovered publication promotes the exact previously qualified source', () => {
+  const { input } = fixture('independent_stable', '301');
+  assert.deepEqual(admitWebuiStablePromotion(input).target.promotion_tags, ['stable', 'latest']);
+  input.publicationRecord!.authority.qualified_artifact_run_id = '300';
+  assert.throws(() => admitWebuiStablePromotion(input), /qualified source authority run id/);
 });

@@ -1,3 +1,4 @@
+import { after } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -57,6 +58,12 @@ export type {
 export type Asset = { name: string; size_bytes: number; sha256: string; source_path: string };
 
 
+
+const ownedFixtureRoots = new Set<string>();
+after(() => {
+  for (const root of ownedFixtureRoots) fs.rmSync(root, { recursive: true, force: true });
+  ownedFixtureRoots.clear();
+});
 
 export const repo = 'example/one-person-lab-app';
 
@@ -557,6 +564,7 @@ export function fixture(
   releaseOperation: 'standard' | 'append_full' = 'standard',
 ) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-github-deadline-'));
+  ownedFixtureRoots.add(root);
   const standardAttestation = releaseOperation === 'append_full'
     ? writeStandardAttestation(root)
     : null;

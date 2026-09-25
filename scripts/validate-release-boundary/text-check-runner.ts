@@ -2887,7 +2887,8 @@ export function validateWorkflowDispatchWriteAuthority(appRoot: string): number 
         && job.uses === './.github/workflows/_release-webui-carrier.yml'
         && needsExactly(job, ['source-authority'])
         && exactObject(job.permissions, exactWebUiCompileCeilingPermissions)
-        && job.with?.mode === 'execute'
+        && job.with?.mode === "${{ inputs.qualified_artifact_run_id != '' && 'publish-prequalified' || 'execute' }}"
+        && job.with?.qualified_artifact_run_id === '${{ inputs.qualified_artifact_run_id }}'
         && job.with?.authority_mode === '${{ needs.source-authority.outputs.authority_mode }}'
         && steps.length === 0
       ) {
@@ -2955,11 +2956,11 @@ export function validateIndependentWebuiPreviewTopology(appRoot: string): number
     'operation',
     'operator_confirmation',
     'publication_record_ref',
+    'qualified_artifact_run_id',
     'shell_ref',
     'version',
   ];
-  const expectedCarrierWith = {
-    mode: 'execute',
+  const expectedCarrierCommonWith = {
     authority_mode: '${{ needs.source-authority.outputs.authority_mode }}',
     app_ref: '${{ needs.source-authority.outputs.app_ref }}',
     shell_ref: '${{ needs.source-authority.outputs.shell_ref }}',
@@ -3006,14 +3007,18 @@ export function validateIndependentWebuiPreviewTopology(appRoot: string): number
     || !needsExactly(carrier, ['source-authority'])
     || carrier.uses !== './.github/workflows/_release-webui-carrier.yml'
     || !exactObject(carrier.permissions, exactWebUiCompileCeilingPermissions)
-    || !exactObject(carrier.with, expectedCarrierWith)
+    || !exactObject(carrier.with, {
+      ...expectedCarrierCommonWith,
+      mode: "${{ inputs.qualified_artifact_run_id != '' && 'publish-prequalified' || 'execute' }}",
+      qualified_artifact_run_id: '${{ inputs.qualified_artifact_run_id }}',
+    })
     || carrier.if !== "${{ inputs.operation == 'publish' }}"
     || !qualification
     || !needsExactly(qualification, ['source-authority'])
     || qualification.uses !== './.github/workflows/_release-webui-carrier.yml'
     || !exactObject(qualification.permissions, exactWebUiCompileCeilingPermissions)
     || qualification.if !== "${{ inputs.operation == 'qualify' }}"
-    || !exactObject(qualification.with, { ...expectedCarrierWith, mode: 'qualify' })
+    || !exactObject(qualification.with, { ...expectedCarrierCommonWith, mode: 'qualify' })
     || !promotion
     || !String(promotion.if).includes("inputs.operation == 'publish'")
     || !String(promotion.if).includes("needs.webui-carrier.result == 'success'")

@@ -1,3 +1,4 @@
+import { after } from 'node:test';
 import { validateGuiDesignSystem } from '../../../scripts/validate-gui-design-system.ts';
 import {
   resolveShellDshVisualSourceMode,
@@ -6,6 +7,12 @@ import {
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { assert, fs, os, path, test, appRoot } from './helpers.ts';
+
+const ownedFixtureRoots = new Set<string>();
+after(() => {
+  for (const root of ownedFixtureRoots) fs.rmSync(root, { recursive: true, force: true });
+  ownedFixtureRoots.clear();
+});
 
 const interactionReference = 'historical ChatGPT Codex macOS workflow and spatial interaction observation';
 const pixelReference = 'opl-app-approved-visual-baseline-v1 (App-owned)';
@@ -41,6 +48,7 @@ function refreshSourceManifestHash(root: string): void {
 
 function createFixture(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-gui-design-system-'));
+  ownedFixtureRoots.add(root);
   for (const relativePath of [
     'docs/product/gui/README.md',
     'docs/product/gui/ideal-interaction-spec.md',

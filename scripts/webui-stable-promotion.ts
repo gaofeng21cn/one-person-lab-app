@@ -293,10 +293,15 @@ function validateIndependentSourceAuthority(
   cohort: JsonRecord,
   carrierFollowerRunId: string,
   carrierExecutorAppSha: string,
+  qualifiedArtifactRunId?: string,
 ): JsonRecord {
   const authority = validateWebuiSourceAuthority(authorityInput);
-  exact(authority.authorization.run_id, carrierFollowerRunId, 'source authority authorization.run_id');
-  exact(authority.authorization.executor_sha, carrierExecutorAppSha, 'source authority authorization.executor_sha');
+  if (qualifiedArtifactRunId) {
+    exact(authority.authorization.run_id, qualifiedArtifactRunId, 'qualified source authority authorization.run_id');
+  } else {
+    exact(authority.authorization.run_id, carrierFollowerRunId, 'source authority authorization.run_id');
+    exact(authority.authorization.executor_sha, carrierExecutorAppSha, 'source authority authorization.executor_sha');
+  }
   exact(authority.release.version, release.version, 'source authority release.version');
   exact(
     authority.release.bundle_digest ?? authority.source_authority_digest,
@@ -455,6 +460,7 @@ export function admitWebuiStablePromotion(input: WebuiStableAdmissionInput): Jso
         cohort,
         input.carrierFollowerRunId,
         carrierExecutorAppSha,
+        durablePublication.publication.authority.qualified_artifact_run_id,
       );
   const latestOperatorAuthorization = operatorAuthorization(
     mode,
