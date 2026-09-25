@@ -73,11 +73,25 @@ function parseJsonOutput(output: string): unknown {
   }
 }
 
+function parseErrorOutput(output: string): unknown {
+  const direct = parseJsonOutput(output);
+  if (direct !== null) return direct;
+  // Node can append runtime warnings after Framework's pretty-printed JSON.
+  // Parse only a complete JSON object, never expose the mixed raw stream.
+  const start = output.indexOf('{');
+  if (start < 0) return null;
+  for (let end = output.lastIndexOf('}'); end > start; end = output.lastIndexOf('}', end - 1)) {
+    const candidate = parseJsonOutput(output.slice(start, end + 1));
+    if (isRecord(candidate) && isRecord(candidate.error)) return candidate;
+  }
+  return null;
+}
+
 function parseJsonResult(result: OplExecution, args: string[]) {
   const parsed = parseJsonOutput(result.stdout);
   const command = `opl ${args.slice(0, args[1] === 'action' ? 3 : 2).join(' ')}`;
   if (result.error || result.status !== 0) {
-    const stderrJson = parseJsonOutput(result.stderr);
+    const stderrJson = parseErrorOutput(result.stderr);
     const error = [parsed, stderrJson]
       .filter(isRecord)
       .map((payload) => payload.error)

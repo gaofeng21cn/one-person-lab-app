@@ -574,7 +574,7 @@ test('Official Profile bounds diagnostic messages and redacts credentials before
   }
 });
 
-test('Official Profile extracts and redacts pretty Framework stderr JSON without leaking response bodies', () => {
+test('Official Profile extracts Framework stderr JSON followed by Node warnings without leaking response bodies', () => {
   const result = applyOfficialProfilePackages({
     intent: 'first_install',
     rootPackageIds: ['obf'],
@@ -592,7 +592,7 @@ test('Official Profile extracts and redacts pretty Framework stderr JSON without
           },
           null,
           2,
-        ),
+        ) + '\n(node:42) ExperimentalWarning: SQLite is an experimental feature\n',
       }),
     },
   });
