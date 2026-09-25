@@ -42,6 +42,11 @@ on:
         required: false
         default: ''
         type: string
+      qualified_artifact_run_id:
+        description: "Publish only: reuse both natively qualified images from this completed run."
+        required: false
+        default: ''
+        type: string
       publication_record_ref:
         description: "Promote only: exact durable GHCR WebUI publication-record reference."
         required: false
@@ -93,6 +98,7 @@ jobs:
           APP_REF: ${{ inputs.app_ref }}
           SHELL_REF: ${{ inputs.shell_ref }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          QUALIFIED_RUN_ID: ${{ inputs.qualified_artifact_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -115,16 +121,30 @@ jobs:
           canonical_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
           test "$canonical_sha" = "$GITHUB_SHA"
           source_cutoff_observed_at="$(node -e 'process.stdout.write(new Date().toISOString())')"
-          node --experimental-strip-types scripts/webui-source-authority.ts \
-            create \
-            --version "$VERSION" \
-            --app-sha "$APP_REF" \
-            --shell-sha "$SHELL_REF" \
-            --framework-sha "$FRAMEWORK_REF" \
-            --run-id "$GITHUB_RUN_ID" \
-            --executor-sha "$GITHUB_SHA" \
-            --output source-authority.json \
-            > source-authority-create.json
+          if [ -n "$QUALIFIED_RUN_ID" ]; then
+            [[ "$QUALIFIED_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test '${{ inputs.operation }}' = publish
+            gh run view "$QUALIFIED_RUN_ID" --repo "$GITHUB_REPOSITORY" --json status --jq .status | grep -Fx completed
+            gh run download "$QUALIFIED_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --name "opl-webui-source-authority-$QUALIFIED_RUN_ID" --dir source-recovery
+            cp source-recovery/source-authority.json source-authority.json
+            jq -e --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" --arg version "$VERSION" '
+              .sources.app.source_commit == $app and .sources.shell.source_commit == $shell
+              and .sources.framework.source_commit == $framework and .release.version == $version
+            ' source-authority.json >/dev/null
+            cp source-recovery/source-authority-create.json source-authority-create.json
+          else
+            node --experimental-strip-types scripts/webui-source-authority.ts \
+              create \
+              --version "$VERSION" \
+              --app-sha "$APP_REF" \
+              --shell-sha "$SHELL_REF" \
+              --framework-sha "$FRAMEWORK_REF" \
+              --run-id "$GITHUB_RUN_ID" \
+              --executor-sha "$GITHUB_SHA" \
+              --output source-authority.json \
+              > source-authority-create.json
+          fi
           node --experimental-strip-types scripts/webui-source-authority.ts \
             validate --input source-authority.json \
             > source-authority-verification.json
@@ -161,7 +181,8 @@ jobs:
       packages: write
     uses: ./.github/workflows/_release-webui-carrier.yml
     with:
-      mode: execute
+      mode: ${{ inputs.qualified_artifact_run_id != '' && 'publish-prequalified' || 'execute' }}
+      qualified_artifact_run_id: ${{ inputs.qualified_artifact_run_id }}
       authority_mode: ${{ needs.source-authority.outputs.authority_mode }}
       app_ref: ${{ needs.source-authority.outputs.app_ref }}
       shell_ref: ${{ needs.source-authority.outputs.shell_ref }}

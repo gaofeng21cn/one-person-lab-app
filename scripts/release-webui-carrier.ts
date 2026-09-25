@@ -424,7 +424,9 @@ function validateRuntimeSummary(raw: unknown, image: JsonRecord, appSha: string)
   exactString(runtimeCliShims.codex, 'passed', 'runtime summary.runtime_cli_shims.codex');
   const persistenceRestart = record(summary.persistence_restart, 'runtime summary.persistence_restart');
   exactString(persistenceRestart.status, 'passed', 'runtime summary.persistence_restart.status');
-  const expectedPersistenceSurfaces = ['/data', '/projects', '/data/opl/state/install-manifest.json'];
+  const expectedPersistenceSurfaces = summary.application_host === 'opl-studio'
+    ? ['/data', '/projects', 'Framework app state']
+    : ['/data', '/projects', '/data/opl/state/install-manifest.json'];
   if (canonicalJson(persistenceRestart.surfaces) !== canonicalJson(expectedPersistenceSurfaces)) {
     fail('runtime summary.persistence_restart.surfaces must bind /data, /projects, and the install manifest');
   }
