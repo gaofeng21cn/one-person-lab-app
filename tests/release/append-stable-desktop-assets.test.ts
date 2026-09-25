@@ -205,3 +205,16 @@ test('Linux updater validates exact DEB bytes and rejects stale version or diges
     assert.throws(() => validateLinuxUpdaterAssets({ artifactDir, releaseVersion, updaterVersion }), /exact release DEB/);
   } finally { fs.rmSync(artifactDir, { recursive: true, force: true }); }
 });
+
+test('a repaired platform preserves the Standard binding and records its actual build independently', () => {
+  const linux = validateDesktopPlatformManifest({schema:'opl_app_desktop_platform_manifest.v1', ...desktopIdentity, platform:'linux-x64', assets:[linuxAsset]}, [linuxAsset]);
+  const build = {app_sha:'a'.repeat(40),shell_sha:'b'.repeat(40),framework_sha:desktopIdentity.cohort.framework_sha,updater_version:'26.8.221',build_run_id:'321'};
+  const windows = validateDesktopPlatformManifest({schema:'opl_app_desktop_platform_manifest.v1', ...desktopIdentity, platform:'windows-x64', assets:windowsAssets,build_provenance:build}, windowsAssets);
+  const merged = mergeDesktopPlatformManifest(mergeDesktopPlatformManifest(null,linux).manifest,windows).manifest;
+  const readback = validateDesktopArtifactManifest(merged);
+  assert.deepEqual(readback.cohort,desktopIdentity.cohort);
+  assert.deepEqual(readback.platform_build_provenance?.['windows-x64'],build);
+  assert.equal(mergeDesktopPlatformManifest(readback,windows).changed,false);
+  assert.throws(()=>mergeDesktopPlatformManifest(readback,{...windows,build_provenance:{...build,build_run_id:'322'}}),/conflicts/);
+  assert.throws(()=>validateDesktopArtifactManifest({...merged,platform_build_provenance:{'macos-x64':build}}),/absent platform/);
+});

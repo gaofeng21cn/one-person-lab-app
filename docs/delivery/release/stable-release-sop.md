@@ -172,3 +172,9 @@ Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同
 实现或合同改变时，同一改动更新本 SOP 与受影响的技术参考，复用现有回归验证。Skill 保持薄层，只链接本文件；通用开发与 worktree 流程分别复用现有 Skill，不复制其正文。App 专属操作留在 App 仓库；只有新增通用工作流行为时才向 OPL Flow owner 投影。
 
 Skill 的版本化源是 `skills/opl-app-release`。本机 `~/.codex/skills/opl-app-release` 指向主线工作区中的这个目录；新机器可在核实仓库后建立相同链接。已有同名安装先检查并保留其改动，再切换链接。发布、新 run 跟进和故障恢复统一使用 `opl-app-release`，不保留单独的故障 Skill。
+
+同 tag 的独立平台修复保留 aggregate manifest 的原 Standard `source` / `cohort` 绑定，
+在 `platform_build_provenance.<platform>` 记录实际构建的 App、Shell、Framework SHA、
+机器版本和已完成的构建 run。已有平台资产不可在追加时覆盖；不同字节的替换继续使用
+同 tag 资产 CAS。签名、包完整性和平台运行验收按该平台合同执行，不能把原 Standard
+通过当作修复包通过。

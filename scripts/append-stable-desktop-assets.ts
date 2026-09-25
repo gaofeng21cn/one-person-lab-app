@@ -28,13 +28,19 @@ type DesktopManifestIdentity = {
   source: { run_id: string; bundle_digest: string };
   cohort: { app_sha: string; shell_sha: string; framework_sha: string };
 };
+type PlatformBuildProvenance = {
+  app_sha: string; shell_sha: string; framework_sha: string;
+  updater_version: string; build_run_id: string;
+};
 export type DesktopPlatformManifest = DesktopManifestIdentity & {
   schema: 'opl_app_desktop_platform_manifest.v1';
+  build_provenance?: PlatformBuildProvenance;
   platform: DesktopPlatformId;
   assets: ManifestAsset[];
 };
 export type DesktopArtifactManifest = DesktopManifestIdentity & {
   schema: 'opl_app_desktop_artifact_manifest.v1';
+  platform_build_provenance?: Partial<Record<DesktopPlatformId, PlatformBuildProvenance>>;
   platforms: DesktopPlatformId[];
   assets: ManifestAsset[];
 };
@@ -168,6 +174,17 @@ function sameAssets(left: ManifestAsset[], right: ManifestAsset[]): boolean {
   return JSON.stringify(sortedAssets(left)) === JSON.stringify(sortedAssets(right));
 }
 
+function buildProvenance(value: unknown): PlatformBuildProvenance {
+  const p = record(value, 'Platform build provenance');
+  return {
+    app_sha: requiredString(p.app_sha, 'Build App SHA', /^[0-9a-f]{40}$/),
+    shell_sha: requiredString(p.shell_sha, 'Build Shell SHA', /^[0-9a-f]{40}$/),
+    framework_sha: requiredString(p.framework_sha, 'Build Framework SHA', /^[0-9a-f]{40}$/),
+    updater_version: requiredString(p.updater_version, 'Build updater version', /^[0-9]+\.[0-9]+\.[0-9]+$/),
+    build_run_id: requiredString(p.build_run_id, 'Build run', /^[1-9][0-9]*$/),
+  };
+}
+
 export function validateDesktopPlatformManifest(
   value: unknown,
   localAssets: ManifestAsset[],
@@ -184,6 +201,7 @@ export function validateDesktopPlatformManifest(
   return {
     schema: 'opl_app_desktop_platform_manifest.v1',
     ...identity,
+    ...(candidate.build_provenance ? { build_provenance: buildProvenance(candidate.build_provenance) } : {}),
     platform,
     assets,
   };
@@ -213,6 +231,12 @@ export function validateDesktopArtifactManifest(value: unknown): DesktopArtifact
   return {
     schema: 'opl_app_desktop_artifact_manifest.v1',
     ...identity,
+    ...(candidate.platform_build_provenance ? { platform_build_provenance: Object.fromEntries(
+      Object.entries(record(candidate.platform_build_provenance, 'Platform build provenance')).map(([id, build]) => {
+        if (!platforms.includes(id as DesktopPlatformId)) fail('Build provenance names an absent platform.');
+        return [id, buildProvenance(build)];
+      })
+    ) } : {}),
     platforms,
     assets,
   };
@@ -234,6 +258,7 @@ export function mergeDesktopPlatformManifest(
         release: incoming.release,
         source: incoming.source,
         cohort: incoming.cohort,
+        ...(incoming.build_provenance ? { platform_build_provenance: { [incoming.platform]: incoming.build_provenance } } : {}),
         platforms: [incoming.platform],
         assets: incoming.assets,
       },
@@ -244,7 +269,7 @@ export function mergeDesktopPlatformManifest(
   const expectedIncomingNames = new Set(expectedPlatformAssetNames(incoming.platform, incoming.release.version, incoming.assets.some((asset) => asset.name === 'latest-linux.yml')));
   const existingPlatformAssets = existing.assets.filter((asset) => expectedIncomingNames.has(asset.name));
   if (existing.platforms.includes(incoming.platform)) {
-    if (!sameAssets(existingPlatformAssets, incoming.assets)) {
+    if (!sameAssets(existingPlatformAssets, incoming.assets) || JSON.stringify(existing.platform_build_provenance?.[incoming.platform]) !== JSON.stringify(incoming.build_provenance)) {
       fail(`Published Desktop ${incoming.platform} manifest conflicts with the requested bytes.`);
     }
     return { manifest: existing, changed: false };
@@ -256,6 +281,9 @@ export function mergeDesktopPlatformManifest(
       release: existing.release,
       source: existing.source,
       cohort: existing.cohort,
+      ...((existing.platform_build_provenance || incoming.build_provenance) ? { platform_build_provenance: {
+        ...existing.platform_build_provenance, ...(incoming.build_provenance ? { [incoming.platform]: incoming.build_provenance } : {})
+      } } : {}),
       platforms: desktopPlatformOrder.filter((platform) => [...existing.platforms, incoming.platform].includes(platform)),
       assets: sortedAssets([...existing.assets, ...incoming.assets]),
     },
