@@ -12,6 +12,7 @@ export type ActiveShellBuildProfile = {
   lockfile: string;
   builderConfig: string;
   smokeHarness: string;
+  fullRuntimeResourceDir: string;
 };
 
 export function readActiveShellBuildProfile(repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), readJson = (file: string) => JSON.parse(fs.readFileSync(file, 'utf8'))): ActiveShellBuildProfile {
@@ -32,6 +33,7 @@ export function readActiveShellBuildProfile(repositoryRoot = path.resolve(path.d
     packageManager: id === 'opl-studio' ? 'npm' : 'bun',
     lockfile: id === 'opl-studio' ? 'package-lock.json' : 'bun.lock',
     builderConfig,
+    fullRuntimeResourceDir: path.posix.basename(adapter.shell_contract.paths.packaged_runtime_root),
     smokeHarness: id === 'opl-studio' ? 'scripts/desktop/stable-smoke.mjs' : 'scripts/opl-first-run-vm-smoke.mjs',
   };
 }
@@ -44,6 +46,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       shell_id: profile.id, shell_repository: profile.repository, shell_root: profile.root,
       package_manager: profile.packageManager, package_lock: profile.lockfile,
       builder_config: profile.builderConfig, smoke_harness: profile.smokeHarness,
+      full_runtime_resource_dir: profile.fullRuntimeResourceDir,
     }).map(([key, value]) => `${key}=${value}\n`).join(''));
   }
   process.stdout.write(`${JSON.stringify(profile, null, 2)}\n`);

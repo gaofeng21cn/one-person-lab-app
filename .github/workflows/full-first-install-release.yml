@@ -1094,7 +1094,7 @@ jobs:
           )
           test "${#app_paths[@]}" -eq 1 || { echo "::error::Full finalizer input must contain exactly one App bundle."; exit 1; }
           mounted_app_path="${app_paths[0]}"
-          mounted_runtime_root="$mounted_app_path/Contents/Resources/opl-full-runtime/runtime/current"
+          mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
           codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
           node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/assert-full-runtime-currentness.ts" \
             --runtime-root "$mounted_runtime_root" \
@@ -1185,7 +1185,7 @@ jobs:
           fi
           mounted_app_path="${mounted_app_paths[0]}"
           test -d "$mounted_app_path" && test ! -L "$mounted_app_path"
-          mounted_runtime_root="$mounted_app_path/Contents/Resources/opl-full-runtime/runtime/current"
+          mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
           node --experimental-strip-types one-person-lab-app/scripts/assert-full-runtime-currentness.ts \
             --runtime-root "$mounted_runtime_root" \
             --framework-root "$GITHUB_WORKSPACE/one-person-lab" \
@@ -2147,7 +2147,7 @@ jobs:
           )
           test "${#app_paths[@]}" -eq 1 || { echo "::error::ARM-finalized Full DMG must contain exactly one App bundle."; exit 1; }
           mounted_app_path="${app_paths[0]}"
-          mounted_runtime_root="$mounted_app_path/Contents/Resources/opl-full-runtime/runtime/current"
+          mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
           codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
           codesign --verify --strict --verbose=2 "$dmg_path"
           xcrun stapler validate "$dmg_path"
