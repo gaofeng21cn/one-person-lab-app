@@ -252,6 +252,7 @@ export function buildQualificationHarnessScopeProof(input: {
   ];
   const shellHarnessMechanicsPaths = shellRepository === 'gaofeng21cn/opl-studio' ? [
     'scripts/desktop/qualify-clean-vm.mjs',
+    'scripts/desktop/stable-clean-vm.mjs',
     'scripts/desktop/stable-smoke.mjs',
     'scripts/desktop/stable-upgrade-vm.mjs',
   ] : [
