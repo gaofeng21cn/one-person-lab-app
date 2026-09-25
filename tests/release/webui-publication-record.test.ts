@@ -127,7 +127,7 @@ function createSourceAuthority(version: string, runId = '302') {
   });
 }
 
-function createPreviewRecord() {
+function createPreviewRecord(overrides = {}) {
   const version = '26.7.28-preview.r1';
   const sourceAuthority = createSourceAuthority(version);
   return createWebuiPublicationRecord({
@@ -142,6 +142,7 @@ function createPreviewRecord() {
     publicationExecutorSha: executorSha,
     sourceAuthority,
     sourceAuthoritySha256: evidenceDigest('source-authority'),
+    ...overrides,
   });
 }
 
@@ -275,4 +276,13 @@ test('durable WebUI publication record supports an exact validated non-default G
   assert.equal(publication.image.repository, repository);
   assert.equal(publication.authority.publication_run_attempt, 2);
   assert.deepEqual(validateWebuiPublicationRecord(publication), publication);
+});
+
+test('recovery preserves qualified source authority while binding a new publication run', () => {
+  const publication = createPreviewRecord({ publicationRunId: '303', publicationExecutorSha: 'e'.repeat(40), qualifiedArtifactRunId: '302' });
+  assert.deepEqual(validateWebuiPublicationRecord(publication), publication);
+  assert.equal(publication.authority.source_authority.authorization.run_id, '302');
+  assert.equal(publication.authority.publication_run_id, '303');
+  assert.throws(() => createPreviewRecord({ publicationRunId: '303' }), /source authority publication run id/);
+  assert.throws(() => createPreviewRecord({ publicationRunId: '303', qualifiedArtifactRunId: '304' }), /qualified source authority run id/);
 });

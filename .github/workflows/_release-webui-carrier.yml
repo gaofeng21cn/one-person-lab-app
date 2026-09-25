@@ -1009,6 +1009,9 @@ jobs:
             --publication-run-attempt "$GITHUB_RUN_ATTEMPT"
             --publication-executor-sha "$GITHUB_SHA"
           )
+          if [ '${{ inputs.mode }}' = publish-prequalified ]; then
+            create_args+=(--qualified-artifact-run-id '${{ inputs.qualified_artifact_run_id }}')
+          fi
           test '${{ inputs.authority_mode }}' = independent_stable \
             || test '${{ inputs.authority_mode }}' = independent_preview
           source_authority_path='webui-carrier/source-authority.json'

@@ -285,6 +285,7 @@ export type CreateWebuiPublicationRecordInput = {
   publicationRunId: string;
   publicationRunAttempt: number;
   publicationExecutorSha: string;
+  qualifiedArtifactRunId?: string;
   sourceAuthority?: JsonRecord;
   sourceAuthoritySha256?: string;
 };
@@ -329,8 +330,12 @@ export function createWebuiPublicationRecord(input: CreateWebuiPublicationRecord
   exact(sourceAuthority.sources.app.source_commit, cohort.app_sha, 'source authority App SHA');
   exact(sourceAuthority.sources.shell.source_commit, cohort.shell_sha, 'source authority Shell SHA');
   exact(sourceAuthority.sources.framework.source_commit, cohort.framework_sha, 'source authority Framework SHA');
-  exact(sourceAuthority.authorization.run_id, publicationRun, 'source authority publication run id');
-  exact(sourceAuthority.authorization.executor_sha, publicationExecutorSha, 'source authority executor SHA');
+  if (input.qualifiedArtifactRunId) {
+    exact(sourceAuthority.authorization.run_id, runId(input.qualifiedArtifactRunId, 'qualified artifact run id'), 'qualified source authority run id');
+  } else {
+    exact(sourceAuthority.authorization.run_id, publicationRun, 'source authority publication run id');
+    exact(sourceAuthority.authorization.executor_sha, publicationExecutorSha, 'source authority executor SHA');
+  }
 
   const classification = publicationClassification(mode, sourceAuthority);
   const disclosure = qualificationDisclosure(mode, qualification, sourceAuthority);
@@ -368,6 +373,7 @@ export function createWebuiPublicationRecord(input: CreateWebuiPublicationRecord
       publication_run_id: publicationRun,
       publication_run_attempt: publicationRunAttempt,
       publication_executor_sha: publicationExecutorSha,
+      ...(input.qualifiedArtifactRunId ? { qualified_artifact_run_id: input.qualifiedArtifactRunId } : {}),
       source_authority: sourceAuthority,
     },
     evidence: {
@@ -429,6 +435,7 @@ export function validateWebuiPublicationRecord(value: unknown): JsonRecord {
     publicationRunId: authority.publication_run_id,
     publicationRunAttempt: authority.publication_run_attempt,
     publicationExecutorSha: authority.publication_executor_sha,
+    qualifiedArtifactRunId: authority.qualified_artifact_run_id,
     sourceAuthority: authority.source_authority ?? undefined,
     sourceAuthoritySha256: evidence.source_authority_sha256 ?? undefined,
   });
@@ -460,6 +467,7 @@ function main(argv: string[]): void {
       'publication-run-id': { type: 'string' },
       'publication-run-attempt': { type: 'string' },
       'publication-executor-sha': { type: 'string' },
+      'qualified-artifact-run-id': { type: 'string' },
       'image-repository': { type: 'string' },
       'source-authority': { type: 'string' },
       input: { type: 'string' },
@@ -483,6 +491,7 @@ function main(argv: string[]): void {
         'publication run attempt',
       ),
       publicationExecutorSha: required(values['publication-executor-sha'], 'publication-executor-sha'),
+      qualifiedArtifactRunId: values['qualified-artifact-run-id'] || undefined,
       sourceAuthority: sourceAuthorityPath ? readJson(sourceAuthorityPath, 'source authority') : undefined,
       sourceAuthoritySha256: sourceAuthorityPath
         ? fileDigest(sourceAuthorityPath, 'source authority')
