@@ -14,35 +14,15 @@
   "pdf_engine": "xelatex",
   "pdf_engine_reason": "Quarto 1.9.38 Typst Book route currently fails in the default orange-book template on local smoke; xelatex remains the stable Chinese PDF engine until the OPL Typst template is hardened.",
   "pdf_layout": "quarto_portrait_ebook",
-  "pdf_pages": 8,
+  "pdf_pages": 9,
   "pdf_page_size_pts": {
     "width": 595.28,
     "height": 841.89
   },
-  "rendered_pages": 8,
+  "rendered_pages": 9,
   "rendered_dir": "tmp/quarto-guides/macos-app-install/rendered",
-  "html_bytes": 2736554,
+  "html_bytes": 3881228,
   "screenshot_assets": [
-    {
-      "role": "download_release",
-      "description": "Live v26.8.22 GitHub Release Assets list showing the macOS DMG and public installer among the release files.",
-      "file": "docs/guides/macos-app-install/screenshots/01-download-release.png",
-      "public_file": "screenshots/01-download-release.png",
-      "width": 1102,
-      "height": 820,
-      "sha256": "3e2908f3a7a3d5c82fdfd339accd98cc427806dd76d782b7a1c53c5b4c663492",
-      "referenced": false,
-      "source_kind": "live_github_release_playwright_capture",
-      "source": "https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.8.22",
-      "locale": "zh-CN",
-      "browser_size": "1200x1600",
-      "expected_ui_text": [
-        "Assets",
-        "One-Person-Lab-26.8.22-mac-arm64.dmg",
-        "opl-install.sh"
-      ],
-      "note": "The full live Assets group is retained so users can distinguish the macOS installer from updater metadata, manifests, and source archives."
-    },
     {
       "role": "install_dmg",
       "description": "Focused DMG installation view without unrelated browser and desktop content.",
@@ -62,91 +42,81 @@
     },
     {
       "role": "configure_access",
-      "description": "First-run model access screen with account login as the default, API Key as a compatibility method, and existing configuration recheck as a separate action.",
+      "description": "Account and model access",
       "file": "docs/guides/macos-app-install/screenshots/03-codex-config-needed.png",
       "public_file": "screenshots/03-codex-config-needed.png",
-      "width": 1536,
-      "height": 912,
-      "sha256": "bb37d3a45ec9706af4a39bf8fe0ffa1ae316e2e2bd7e524c526c8394459c773f",
+      "width": 2880,
+      "height": 1800,
+      "sha256": "dc459033587d6824ddc7a058881242c963de2a9ff5948278f3ecdf5c93d6a1eb",
       "referenced": true,
-      "source_kind": "release_cohort_shell_electron_playwright_capture",
-      "source": "opl-aion-shell@ccb5e2ed426d75a64a82ecb30f78413ed57fd2f3 FirstRun renderer with deterministic p19.stage-runtime contract fixture.",
+      "source_kind": "isolated_studio_electron_cua_capture",
+      "source": "opl-studio@c5136041ea03c0c2e16114f267e9bab0511a3e0a with deterministic non-secret Framework and Codex fixtures",
       "locale": "zh-CN",
-      "browser_size": "1536x912",
       "expected_ui_text": [
-        "连接模型服务",
-        "账户登录",
+        "账户与模型",
         "邮箱",
         "密码",
-        "登录并继续",
-        "API Key",
-        "重新检测已有配置",
-        "进入 OPL"
+        "登录"
       ],
-      "note": "The screenshot contains no credentials. Account login is the default and existing configuration recheck remains an independent secondary action."
+      "note": "UI illustration only; not production account or clean-install acceptance evidence."
     },
     {
       "role": "first_run_check",
-      "description": "First-run device check pending screen from the v26.8.22 Shell cohort.",
+      "description": "Local preparation",
       "file": "docs/guides/macos-app-install/screenshots/04-first-run-checking.png",
       "public_file": "screenshots/04-first-run-checking.png",
-      "width": 1536,
-      "height": 912,
-      "sha256": "aa48fccfb620369051e93177e0dd713fa8595038af2f88b139373cdc2dc90550",
+      "width": 2880,
+      "height": 1800,
+      "sha256": "983c429d61046ebbb6de3f8e88aa02eb85b162b5322cd4a1ba2843d6a8cff5d3",
       "referenced": true,
-      "source_kind": "release_cohort_shell_electron_playwright_capture",
-      "source": "opl-aion-shell@ccb5e2ed426d75a64a82ecb30f78413ed57fd2f3 FirstRun renderer with deterministic p19.stage-runtime contract fixture.",
+      "source_kind": "isolated_studio_electron_cua_capture",
+      "source": "opl-studio@c5136041ea03c0c2e16114f267e9bab0511a3e0a with deterministic non-secret Framework and Codex fixtures",
       "locale": "zh-CN",
-      "browser_size": "1536x912",
       "expected_ui_text": [
-        "正在检查这台设备",
-        "当前检查",
-        "正在检查",
-        "进入 OPL"
-      ]
-    },
-    {
-      "role": "confirm_gateway_model_access",
-      "description": "The v26.8.22 post-login confirmation that keeps account authentication separate from changing the model access method.",
-      "file": "docs/guides/macos-app-install/screenshots/05-gateway-model-access-confirm.png",
-      "public_file": "screenshots/05-gateway-model-access-confirm.png",
-      "width": 1536,
-      "height": 912,
-      "sha256": "c09d4c1cdf2b2c7fdc640a7442fd1a0c954f9bccab793fd4294086268db4edff",
-      "referenced": true,
-      "source_kind": "release_cohort_shell_electron_playwright_capture",
-      "source": "opl-aion-shell@ccb5e2ed426d75a64a82ecb30f78413ed57fd2f3 FirstRun renderer with deterministic p19.stage-runtime contract fixture.",
-      "locale": "zh-CN",
-      "browser_size": "1536x912",
-      "expected_ui_text": [
-        "已登录 OPL Gateway",
-        "确认模型访问方式后即可完成设置",
-        "设为模型访问方式",
-        "重新检测已有配置"
+        "完成本机准备",
+        "工作目录",
+        "重新检查",
+        "稍后处理"
       ],
-      "note": "The state is driven by a deterministic non-secret fixture. It does not represent a real user account or provider mutation."
+      "note": "UI illustration only; not production account or clean-install acceptance evidence."
     },
     {
       "role": "workbench_entry",
-      "description": "Ready v26.8.22 workbench whose visible starters come from the Framework Package directory projection.",
+      "description": "Native Codex workbench",
       "file": "docs/guides/macos-app-install/screenshots/05-opl-ready-dynamic-entries.png",
       "public_file": "screenshots/05-opl-ready-dynamic-entries.png",
-      "width": 1536,
-      "height": 912,
-      "sha256": "ad4cda510657fec7c1ff177b82ebebf6667f9ab3b835ecbaf3e885424bf75b63",
+      "width": 2880,
+      "height": 1800,
+      "sha256": "29ffa6637240cd74e94ec562cd3a29beb8633053d0624e9b7d143c564654e8d2",
       "referenced": true,
-      "source_kind": "release_cohort_shell_electron_playwright_capture",
-      "source": "opl-aion-shell@ccb5e2ed426d75a64a82ecb30f78413ed57fd2f3 workbench renderer with deterministic p19.stage-runtime Package directory fixture.",
+      "source_kind": "isolated_studio_electron_cua_capture",
+      "source": "opl-studio@c5136041ea03c0c2e16114f267e9bab0511a3e0a with deterministic non-secret Framework and Codex fixtures",
       "locale": "zh-CN",
-      "browser_size": "1536x912",
       "expected_ui_text": [
+        "新任务",
         "One Person Lab",
-        "开展科研工作",
-        "开展基金申请工作",
-        "制作视觉交付物",
-        "构建与迭代智能体"
+        "日常工作"
       ],
-      "note": "The four entries are current owner-projected examples, not an App-maintained fixed Package list."
+      "note": "UI illustration only; not production account or clean-install acceptance evidence."
+    },
+    {
+      "role": "runtime_overview",
+      "description": "Overview with collapsed diagnostics",
+      "file": "docs/guides/macos-app-install/screenshots/08-opl-runtime-status.png",
+      "public_file": "screenshots/08-opl-runtime-status.png",
+      "width": 2880,
+      "height": 1800,
+      "sha256": "ed3c0d211e77d069daeccc48919de1716537b71744608b684a0f6e97f576a354",
+      "referenced": true,
+      "source_kind": "isolated_studio_electron_cua_capture",
+      "source": "opl-studio@c5136041ea03c0c2e16114f267e9bab0511a3e0a with deterministic non-secret Framework and Codex fixtures",
+      "locale": "zh-CN",
+      "expected_ui_text": [
+        "概览",
+        "当前运行状态",
+        "功能诊断"
+      ],
+      "note": "UI illustration only; not production account or clean-install acceptance evidence."
     }
   ],
   "unresolved_templates_status": "absent",
