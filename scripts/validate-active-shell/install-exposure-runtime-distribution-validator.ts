@@ -397,6 +397,7 @@ function validateReleaseValidation(validation) {
   assertDeepEqualJson(
     validation?.post_publication_optional_certification_surfaces,
     [
+      'stable_shell_upgrade_routes',
       'homebrew_standard_cask_clean_vm_smoke',
       'one_shot_app_installer_fresh_install_smoke',
     ],

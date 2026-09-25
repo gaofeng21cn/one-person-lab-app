@@ -217,6 +217,9 @@ test('Stable Standard publication binds one Desktop carrier without a retired Na
     workflow.jobs['checkpoint-standard'].needs,
     ['admission', 'freeze', 'seal-standard-identity', 'standard-clean-vm-qualification'],
   );
+  assert.deepEqual(workflow.jobs['standard-clean-vm-qualification'].needs, ['freeze', 'seal-standard-identity', 'prepare-standard-vm-inputs']);
+  assert.equal(workflow.jobs['standard-clean-vm-qualification']['continue-on-error'], undefined);
+  assert.equal(workflow.jobs['standard-clean-vm-qualification'].with.diagnostic_scope, 'release_gate');
   assert.deepEqual(workflow.jobs['publish-standard'].needs, ['freeze', 'checkpoint-standard']);
   assert.equal(workflow.jobs['full-candidate']['continue-on-error'], undefined);
   assert.equal(

@@ -80,7 +80,7 @@ test('automatic routing does not couple independent follower outcomes', () => {
   assert.equal(workflow.jobs['publish-homebrew-full'].uses, './.github/workflows/_release-homebrew-full-publish.yml');
 });
 
-test('VM preparation overlaps build while final qualification still consumes sealed bytes', () => {
+test('VM preparation overlaps build while qualification still consumes sealed bytes', () => {
   const read = (name: string) => parseYaml(fs.readFileSync(path.join(appRoot, '.github/workflows', name), 'utf8'));
   const standard = read('_release-bundle.yml').jobs;
   assert.deepEqual(standard['prepare-standard-vm-inputs'].needs, ['freeze']);

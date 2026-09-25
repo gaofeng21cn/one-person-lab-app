@@ -31,6 +31,8 @@
 
 本次 Shell 切换需分别验收旧 AionUI Stable 和既有 Studio Preview 的真实升级、数据延续与后续更新源。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
 
+Stable 的 Standard 首次安装、Gateway 登录、Official Profile 首次收敛和运行就绪读回，必须在该准确候选公开前通过，属于发布阻断门禁。AionUI Stable 到 Studio Stable、Studio Preview 到 Stable 的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
+
 候选冻结后，普通文档修改或其他主线提交不要求当前发布追新。保持原候选，只在其不可构建、不可安装、不合法或必然验收失败，或用户明确改发新候选时重新选择。App／Shell／Framework 的兼容与身份检查仍由原 owner 执行。
 
 ## 3. 使用正式入口派发

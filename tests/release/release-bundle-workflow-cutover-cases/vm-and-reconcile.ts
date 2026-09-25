@@ -167,7 +167,7 @@ test('first-run VM validates Studio production Runtime refresh before writing qu
   assert.ok(legacy, 'release-gate VM is missing the public Aion to Studio upgrade qualification');
   assert.equal(legacy.id, 'legacy_upgrade');
   assert.match(String(legacy.if), /inputs\.standard_identity_sha256 != ''/);
-  assert.match(String(legacy.if), /inputs\.diagnostic_scope == 'release_gate'/);
+  assert.match(String(legacy.if), /inputs\.diagnostic_scope != 'bootstrap_only'/);
   assert.match(String(legacy.run), /stable-qualify-legacy-upgrade\.mjs/);
   assert.match(String(legacy.run), /--standard-identity-sha256/);
   assert.match(String(legacy.run), /--candidate-root standard-identity-input/);
@@ -210,7 +210,7 @@ test('active release workflows fail closed on duplicate critical evidence instea
   assert.doesNotMatch(standardHomebrewAction, /find[^\n]*\|[^\n]*head\s+-n?\s*1/);
   assert.match(standardHomebrewAction, /LC_ALL=C sort/);
 
-  assert.match(readWorkflow('_release-bundle.yml'), /exactly one clean-VM qualification receipt/);
+  assert.match(readWorkflow('_release-bundle.yml'), /Standard release requires exactly one clean-VM qualification receipt/);
   assert.match(readWorkflow('_release-full-addon.yml'), /must contain at most one Full build receipt/);
   assert.match(readWorkflow('_release-standard-publish.yml'), /exactly one App-owned standard-build-receipt/);
   assert.match(standardHomebrewAction, /test "\$\{#handoffs\[@\]\}" -eq 1/);
@@ -300,6 +300,28 @@ test('Standard publish restore rejects a missing or digest-mismatched clean-VM s
   assert.equal(valid.status, 0, valid.stderr || valid.stdout);
   assert.notEqual(runFixture('missing').status, 0);
   assert.notEqual(runFixture('digest-mismatch').status, 0);
+});
+
+test('Standard publication requires a protected exact-candidate clean-VM receipt', () => {
+  const bundle = parseWorkflow('_release-bundle.yml');
+  assert.deepEqual(bundle.jobs['checkpoint-standard'].needs, [
+    'admission',
+    'freeze',
+    'seal-standard-identity',
+    'standard-clean-vm-qualification',
+  ]);
+  assert.deepEqual(bundle.jobs['standard-clean-vm-qualification'].needs, [
+    'freeze',
+    'seal-standard-identity',
+    'prepare-standard-vm-inputs',
+  ]);
+  assert.equal(bundle.jobs['standard-clean-vm-qualification']['continue-on-error'], undefined);
+  assert.equal(bundle.jobs['standard-clean-vm-qualification'].with.diagnostic_scope, 'release_gate');
+  assert.equal(
+    workflowStep('_release-standard-publish.yml', 'restore', 'Verify protected Standard clean-VM checkpoint sidecar').if,
+    "${{ inputs.publication_channel == 'stable' }}",
+  );
+  assert.match(readWorkflow('_release-standard-publish.yml'), /standard-clean-vm-qualification-receipt\.json/);
 });
 
 test('release-gate Gateway credentials stay file-bound and are scanned before artifact upload', () => {

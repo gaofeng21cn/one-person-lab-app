@@ -966,6 +966,7 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
     'standard_dmg_clean_vm_smoke',
     'full_dmg_clean_vm_smoke',
   ]);
+  assert.ok(stableValidation.post_publication_optional_certification_surfaces.includes('stable_shell_upgrade_routes'));
   assert.equal(
     stableValidation.post_publication_optional_certification_surfaces.includes('full_dmg_clean_vm_smoke'),
     false,

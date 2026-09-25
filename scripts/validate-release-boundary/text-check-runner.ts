@@ -1397,6 +1397,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     !standardCleanVm
     || !needsExactly(standardCleanVm, ['freeze', 'seal-standard-identity', 'prepare-standard-vm-inputs'])
     || standardCleanVm.if !== "${{ always() && inputs.channel == 'stable' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' }}"
+    || Object.prototype.hasOwnProperty.call(standardCleanVm, 'continue-on-error')
     || standardCleanVm.with?.release_artifact_name !==
       '${{ needs.seal-standard-identity.outputs.standard_vm_artifact_name }}'
     || standardCleanVm.with?.release_artifact_run_id !==
@@ -1408,7 +1409,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   ) {
     failures += reportFailure(
       id,
-      'Standard clean-VM qualification must consume the sealed exact candidate under the protected release gate',
+      'Standard clean-install qualification must consume the exact sealed candidate before publication',
     );
   }
   failures += validateReusableCall(
@@ -1435,7 +1436,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       'checkpoint-standard',
     ])
   ) {
-    failures += reportFailure(id, 'Standard checkpoint must depend only on admission, freeze, sealed identity, and protected clean-VM qualification');
+    failures += reportFailure(id, 'Standard checkpoint must require protected clean-VM qualification before publication');
   }
   if (/\bopl\s+release\s+(?:publish|reconcile|status)\b/.test(bundle.text)) {
     failures += reportFailure(id, '_release-bundle.yml must delegate publish/reconcile/status to Standard publish');

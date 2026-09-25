@@ -2333,7 +2333,7 @@ jobs:
 
       - name: Qualify public Aion Stable upgrades to the exact sealed Studio candidate
         id: legacy_upgrade
-        if: ${{ steps.vm_smoke.outcome == 'success' && inputs.operation == 'standard' && inputs.package_profile == 'standard' && inputs.release_artifact_name != '' && inputs.standard_identity_sha256 != '' && inputs.diagnostic_scope == 'release_gate' }}
+        if: ${{ steps.vm_smoke.outcome == 'success' && inputs.operation == 'standard' && inputs.package_profile == 'standard' && inputs.release_artifact_name != '' && inputs.standard_identity_sha256 != '' && inputs.diagnostic_scope != 'bootstrap_only' }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

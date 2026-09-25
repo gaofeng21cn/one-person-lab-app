@@ -855,7 +855,7 @@ function validatePhysicalVmOptionalCertificationPolicy(releaseContract: Record<s
       ])
     )
   ) {
-    console.error('FAIL release_vm_required_policy: Standard and Full clean-VM gates must fail closed on the exact same candidate');
+    console.error('FAIL release_vm_required_policy: Standard and Full clean-VM must remain the prepublication physical VM gates');
     failures += 1;
   }
   const optionalVmGate = vmGates.find((gate) => gate?.id === 'homebrew_standard_cask_clean_vm_smoke');
@@ -936,13 +936,11 @@ function validatePhysicalVmOptionalCertificationPolicy(releaseContract: Record<s
     stableValidation?.diagnostic_lanes?.includes('full_dmg_clean_vm_smoke') ||
     !stableValidation?.required_lanes?.includes('standard_dmg_clean_vm_smoke') ||
     !sameStringSet(stableValidation?.post_publication_optional_certification_surfaces, [
+      'stable_shell_upgrade_routes',
       'homebrew_standard_cask_clean_vm_smoke',
       'one_shot_app_installer_fresh_install_smoke',
     ]) ||
-    !sameStringSet(stableValidation?.same_candidate_prepublication_clean_install_gates, [
-      'standard_dmg_clean_vm_smoke',
-      'full_dmg_clean_vm_smoke',
-    ]) ||
+    !sameStringSet(stableValidation?.same_candidate_prepublication_clean_install_gates, ['standard_dmg_clean_vm_smoke', 'full_dmg_clean_vm_smoke']) ||
     !sameStringSet(stableValidation?.hosted_post_publication_optional_certification_surfaces, [
       'linux_x64_same_artifact_install_smoke',
     ])
