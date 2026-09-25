@@ -1084,7 +1084,9 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
       "opl_updater_version:",
       "require_windows_updater_assets:",
       "require_windows_authenticode:",
-      "upload_installers_only: true",
+      "upload_installers_only: ${{ inputs.replacement_tag == '' }}",
+      "replacement_tag:",
+      "signed_replacement",
       "secrets: inherit",
     ],
     forbidden: [
