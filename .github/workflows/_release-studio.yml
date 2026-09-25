@@ -666,6 +666,9 @@ jobs:
           printf '%s' "$GATEWAY_ACCOUNT_EMAIL" > "$credential_dir/email"
           printf '%s' "$GATEWAY_ACCOUNT_PASSWORD" > "$credential_dir/password"
           chmod 600 "$credential_dir/email" "$credential_dir/password"
+          node --use-system-ca --experimental-strip-types app-source/scripts/verify-release-gateway-test-account.ts \
+            --email-file "$credential_dir/email" --password-file "$credential_dir/password" \
+            --output "$credential_dir/account-qualification.json"
           echo "credential_dir=$credential_dir" >> "$GITHUB_OUTPUT"
           git -C framework-source archive --format=tar.gz --prefix=one-person-lab/ HEAD -o "$RUNNER_TEMP/opl-preview-framework-${GITHUB_RUN_ID}.tar.gz"
           echo "framework_archive=$RUNNER_TEMP/opl-preview-framework-${GITHUB_RUN_ID}.tar.gz" >> "$GITHUB_OUTPUT"
