@@ -128,6 +128,11 @@ Linux／Windows／Homebrew 的独立恢复使用 [现有 follow-up workflow](../
 SHA-256 和新正文文件；正文在资产提升后才按 CAS 更新。不为修复分配新 tag 或新增 Release Notes。
 中断或结果未知时先读回原 Release 的旧资产、暂存资产和正式名称，按当前状态续接，不能盲目重传。
 
+Studio Preview 已签名、公证且字节不变时，使用受保护 Studio lane 的
+`prior_studio_artifact_run_id` 续接原检查点。仅验收脚本修复可同时指定准确 Studio commit
+作为 `smoke_harness_ref`；它只改变 qualification checkout，不改变签名源 SHA、tree、tag 或
+checkpoint digest。该参数只允许用于已有检查点的恢复，迁移回执记录实际验证脚本提交。
+
 ## 6. 推进附加发布，保持产品独立
 
 Standard 公开回读成功后，现有 follow-up hub 即启动适用的 Full、平台包和 Homebrew 路径。检查自动路径的 owner 再决定是否手动恢复，不等待包含其他渠道的整个 workflow 结束，也不双重派发。

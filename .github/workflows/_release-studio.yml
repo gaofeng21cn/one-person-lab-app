@@ -28,6 +28,11 @@ on:
         required: false
         default: ''
         type: string
+      smoke_harness_ref:
+        description: Optional exact Studio verification commit for unchanged checkpoint recovery
+        required: false
+        default: ''
+        type: string
     secrets:
       BUILD_CERTIFICATE_BASE64:
         required: false
@@ -628,7 +633,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/opl-studio
-          ref: ${{ inputs.studio_sha }}
+          ref: ${{ inputs.smoke_harness_ref || inputs.studio_sha }}
           path: studio-source
 
       - name: Setup Node.js
@@ -692,6 +697,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --prefix app-source
+          test "$(git -C studio-source rev-parse HEAD)" = '${{ inputs.smoke_harness_ref || inputs.studio_sha }}'
           npm ci --ignore-scripts --prefix studio-source
           node --experimental-strip-types app-source/scripts/studio-release-checkpoint.ts validate \
             --root studio-release-checkpoint --app-ref "$APP_REF" --studio-sha "$STUDIO_SHA" \
@@ -714,6 +720,7 @@ jobs:
               --gateway-account-email-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/email' \
               --gateway-account-password-file '${{ steps.preview_vm_inputs.outputs.credential_dir }}/password' \
               --product-profile app-source/contracts/app-product-profile.json
+            node -e 'const fs=require("node:fs");const p="studio-preview-vm-evidence/preview-upgrade-qualification.json";const r=JSON.parse(fs.readFileSync(p,"utf8"));r.verification_source_commit=process.argv[1];fs.writeFileSync(p,JSON.stringify(r,null,2)+"\n");' '${{ inputs.smoke_harness_ref || inputs.studio_sha }}'
             export OPL_PREVIEW_UPGRADE_VM_RECEIPT="$GITHUB_WORKSPACE/studio-preview-vm-evidence/preview-upgrade-qualification.json"
           fi
           (cd studio-source && node scripts/desktop/macos-distribution.mjs --require-release-trust)

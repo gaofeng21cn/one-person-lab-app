@@ -357,3 +357,21 @@ test('CLI rejects an observed Studio tree that differs from the protected reques
   assert.equal(fs.existsSync(output), false);
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+test('Studio checkpoint recovery admits only an exact verification commit with prior artifact identity', () => {
+  const step = stableWorkflow.jobs['studio-protected-release-admission'].steps[0];
+  const empty = Object.fromEntries(Object.keys(step.env).map(key => [key, '']));
+  const run = (verification: string, prior: string) => spawnSync('bash', ['-c', step.run], {
+    encoding: 'utf8', env: { ...process.env, ...empty, GITHUB_EVENT_NAME: 'workflow_dispatch',
+      GITHUB_REF: 'refs/heads/main', GITHUB_RUN_ATTEMPT: '1', GITHUB_RUN_ID: '20',
+      OPERATION: 'standard', STUDIO_SHA: 'a'.repeat(40), STUDIO_TREE: 'b'.repeat(40),
+      STUDIO_TAG: 'v0.1.19', REQUESTED_FRAMEWORK_REF: 'c'.repeat(40), INCLUDE_FULL: 'false',
+      REQUESTED_SMOKE_HARNESS_REF: verification, PRIOR_STUDIO_ARTIFACT_RUN_ID: prior }
+  });
+  assert.equal(run('d'.repeat(40), '10').status, 0);
+  assert.notEqual(run('main', '10').status, 0);
+  assert.notEqual(run('d'.repeat(40), '').status, 0);
+  assert.equal(stableWorkflow.jobs['studio-protected-release'].with.smoke_harness_ref, '${{ inputs.smoke_harness_ref }}');
+  const checkout = studioWorkflow.jobs['qualify-checkpoint'].steps.find((item: any) => item.name === 'Checkout exact Studio qualification source');
+  assert.equal(checkout.with.ref, '${{ inputs.smoke_harness_ref || inputs.studio_sha }}');
+});

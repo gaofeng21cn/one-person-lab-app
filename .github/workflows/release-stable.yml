@@ -192,7 +192,11 @@ jobs:
           [[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]
           [[ "$STUDIO_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           [[ "$REQUESTED_FRAMEWORK_REF" =~ ^[0-9a-f]{40}$ ]]
-          test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$REQUESTED_APP_REF$REQUESTED_SHELL_REF$REQUESTED_SMOKE_HARNESS_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+          test -z "$AUTHORITY_ID$OPERATION_ID$AUTHORITY_CARRIER$AUTHORITY_DIGEST$REQUESTED_VERSION$RELEASE_INTENT$PRODUCT_CHANGE_SUMMARY$REQUESTED_APP_REF$REQUESTED_SHELL_REF$SOURCE_RUN_ID$SOURCE_ARTIFACT$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_STANDARD_ARTIFACT_RUN_ID"
+          if [ -n "$REQUESTED_SMOKE_HARNESS_REF" ]; then
+            [[ "$REQUESTED_SMOKE_HARNESS_REF" =~ ^[0-9a-f]{40}$ ]]
+            test -n "$PRIOR_STUDIO_ARTIFACT_RUN_ID"
+          fi
           if [ -n "$PRIOR_STUDIO_ARTIFACT_RUN_ID" ]; then
             [[ "$PRIOR_STUDIO_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             test "$PRIOR_STUDIO_ARTIFACT_RUN_ID" != "$GITHUB_RUN_ID"
@@ -279,6 +283,7 @@ jobs:
       studio_tag: ${{ inputs.studio_tag }}
       framework_ref: ${{ inputs.framework_ref }}
       prior_studio_artifact_run_id: ${{ inputs.prior_studio_artifact_run_id }}
+      smoke_harness_ref: ${{ inputs.smoke_harness_ref }}
     secrets: inherit
 
   studio-full-append-admission:
