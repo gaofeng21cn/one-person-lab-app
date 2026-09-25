@@ -504,7 +504,7 @@ test('additional Desktop platform publication is an independent protected post-s
   );
   assert.equal(
     manual.jobs['build-pipeline'].with.require_macos_gatekeeper,
-    "${{ needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}",
+    "${{ needs.prepare-matrix.outputs.signed_replacement == 'true' || needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}",
   );
   assert.equal(manual.jobs['build-pipeline'].with.operation, undefined);
   assert.equal(

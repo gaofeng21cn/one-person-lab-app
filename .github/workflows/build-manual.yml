@@ -80,12 +80,17 @@ on:
         type: string
         default: ''
       shell_ref:
-        description: 'Exact opl-aion-shell ref. Use a 40-character SHA for release-bound validation.'
+        description: 'Exact active Shell ref. Use a 40-character SHA for release-bound validation.'
         required: false
         type: string
         default: 'main'
       framework_ref:
         description: 'Exact OPL Framework 40-character SHA bound into Windows package evidence.'
+        required: false
+        type: string
+        default: ''
+      replacement_tag:
+        description: 'Build a signed macOS arm64 replacement candidate for an existing mutable Stable tag; never publishes. The machine version advances independently.'
         required: false
         type: string
         default: ''
@@ -111,6 +116,9 @@ jobs:
       artifact_pattern: ${{ steps.set-matrix.outputs.artifact_pattern }}
       app_ref: ${{ steps.set-matrix.outputs.app_ref }}
       validation_profile: ${{ steps.set-matrix.outputs.validation_profile }}
+      candidate_version: ${{ steps.replacement.outputs.version }}
+      candidate_updater_version: ${{ steps.replacement.outputs.updater_version }}
+      signed_replacement: ${{ steps.replacement.outputs.signed }}
       macos_x64_signed_development_validation: ${{ steps.set-matrix.outputs.macos_x64_signed_development_validation }}
 
     steps:
@@ -133,6 +141,39 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
+
+      - name: Resolve same-tag signed replacement candidate
+        id: replacement
+        if: ${{ inputs.replacement_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPLACEMENT_TAG: ${{ inputs.replacement_tag }}
+          CANDIDATE_PLATFORM: ${{ inputs.platform }}
+          CANDIDATE_SHELL: ${{ inputs.shell_ref }}
+          CANDIDATE_FRAMEWORK: ${{ inputs.framework_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$CANDIDATE_PLATFORM" = macos-arm64
+          [[ "$REPLACEMENT_TAG" =~ ^v[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}(-r[0-9]+)?$ ]]
+          [[ "$CANDIDATE_SHELL" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CANDIDATE_FRAMEWORK" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$REPLACEMENT_TAG" > replacement-release.json
+          jq -e '.draft == false and .prerelease == false and .immutable != true' replacement-release.json >/dev/null
+          mkdir replacement-feed
+          gh release download "$REPLACEMENT_TAG" --repo "$GITHUB_REPOSITORY" --pattern latest-mac.yml --dir replacement-feed
+          node <<'NODE'
+          const fs = require('node:fs');
+          const feed = fs.readFileSync('replacement-feed/latest-mac.yml', 'utf8');
+          const current = /^version: *["']?(\d+)\.(\d+)\.(\d+)["']? *$/m.exec(feed);
+          if (!current) throw new Error('Stable machine version is missing or invalid');
+          const next = Number(current[3]) + 1;
+          if (!Number.isSafeInteger(next)) throw new Error('Machine version overflow');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            `version=${process.env.REPLACEMENT_TAG.slice(1)}\nupdater_version=${current[1]}.${current[2]}.${next}\nsigned=true\n`);
+          NODE
 
       - name: Generate build matrix
         id: set-matrix
@@ -195,7 +236,7 @@ jobs:
               --github-output "$GITHUB_OUTPUT"
             {
               echo 'artifact_pattern=*'
-              echo 'validation_profile=aggregate'
+              echo 'validation_profile=${{ inputs.replacement_tag != '' && 'stable' || 'aggregate' }}'
             } >> "$GITHUB_OUTPUT"
           fi
           app_ref="$(git rev-parse HEAD)"
@@ -219,13 +260,13 @@ jobs:
       release_validation_profile: ${{ needs.prepare-matrix.outputs.validation_profile }}
       ref: ${{ needs.prepare-matrix.outputs.app_ref }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
-      append_commit_hash: true
-      upload_installers_only: true
-      opl_release_version: ${{ inputs.opl_release_version }}
-      opl_updater_version: ${{ inputs.opl_updater_version || inputs.opl_release_version }}
+      append_commit_hash: ${{ inputs.replacement_tag == '' }}
+      upload_installers_only: ${{ inputs.replacement_tag == '' }}
+      opl_release_version: ${{ needs.prepare-matrix.outputs.candidate_version || inputs.opl_release_version }}
+      opl_updater_version: ${{ needs.prepare-matrix.outputs.candidate_updater_version || inputs.opl_updater_version || inputs.opl_release_version }}
       require_windows_updater_assets: ${{ inputs.invocation_mode == 'stable_app_build' && contains(needs.prepare-matrix.outputs.platform_ids, 'windows-x64') }}
       require_windows_authenticode: false
-      require_macos_gatekeeper: ${{ needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}
+      require_macos_gatekeeper: ${{ needs.prepare-matrix.outputs.signed_replacement == 'true' || needs.prepare-matrix.outputs.macos_x64_signed_development_validation == 'true' }}
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       cache_role: ${{ inputs.invocation_mode == 'stable_app_build' && 'stable_desktop_additional' || '' }}

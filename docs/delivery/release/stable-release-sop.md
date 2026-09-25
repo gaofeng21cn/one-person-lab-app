@@ -120,7 +120,13 @@ npm run release:stable-dispatch -- append-full \
 
 Linux／Windows／Homebrew 的独立恢复使用 [现有 follow-up workflow](../../../.github/workflows/release-stable-post-success-followups.yml) 的 `reconcile_desktop_platform`、`reconcile_homebrew_standard`、`reconcile_homebrew_full` 等对应 operation。执行前确认源 run、目标渠道及该渠道 owner；参数以当前 workflow 为准，不将内部 `standard` 输入搬到这个入口。`repair_additive` 只适用于其合同规定的安装器资产 CAS，不能当作任意资产替换工具。
 
-已公开的可变 Stable Release 若需在原 tag 下替换资产，使用通用
+已公开的可变 Stable Release 若需修复产品字节，先通过现有 `build-manual.yml` 的
+`replacement_tag` 构建 macOS arm64 签名候选，绑定准确 Shell／Framework SHA。
+该入口读取原 tag 和公开更新元数据：显示版本和资产名保留，内部 updater patch 递增，
+使已安装同一显示版本的用户也能收到修复。它只生成候选，不创建或公开 Release。
+新字节仍须签名、公证及公开前首装验收；迁移缺陷须由对应升级路径验证。
+
+候选通过后，在原 tag 下替换资产，使用通用
 `bun scripts/replace-same-tag-release-assets.ts --plan <json> --stage` 暂存候选；计划逐项给出
 `current` 的资产 ID、名称、大小、摘要及同名本地新文件，并绑定 Release ID、tag、tag target。
 签名、公证及该候选要求的安装验收通过后，对同一计划运行 `--promote`，逐项按旧资产身份 CAS
