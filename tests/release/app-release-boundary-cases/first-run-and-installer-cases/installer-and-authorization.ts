@@ -232,6 +232,7 @@ registerInstallerTest(
     fullManifestAssetDigest,
     fullAssetSize,
     attestationAssetDigest,
+    archivedAttestation,
     repairReceipts = "none",
   }: {
     fullPresent?: boolean;
@@ -244,6 +245,7 @@ registerInstallerTest(
     fullManifestAssetDigest?: string;
     fullAssetSize?: number;
     attestationAssetDigest?: string;
+    archivedAttestation?: boolean;
     repairReceipts?: "none" | "valid" | "gap" | "fork" | "digest-drift";
   } = {}) => {
     const repairCommitOne = "d".repeat(40);
@@ -331,6 +333,7 @@ registerInstallerTest(
             repairReceipts === "digest-drift" && index === 0 ? "0".repeat(64) : undefined,
           )),
           asset(tag, attestationName, attestationBytes, attestationAssetDigest),
+          ...(archivedAttestation ? [asset(tag, "opl-release-attestation-26.8.591.json", attestationBytes)] : []),
           ...fullAssets,
         ],
       }),
@@ -483,6 +486,7 @@ exit 1
         fullManifestAssetDigest,
         fullAssetSize,
         attestationAssetDigest,
+        archivedAttestation,
         repairReceipts,
       }: {
         fullHttp?: string;
@@ -500,6 +504,7 @@ exit 1
         fullManifestAssetDigest?: string;
         fullAssetSize?: number;
         attestationAssetDigest?: string;
+        archivedAttestation?: boolean;
         repairReceipts?: "none" | "valid" | "gap" | "fork" | "digest-drift";
       } = {},
     ) => {
@@ -514,6 +519,7 @@ exit 1
         fullManifestAssetDigest,
         fullAssetSize,
         attestationAssetDigest,
+        archivedAttestation,
         repairReceipts,
       });
       fs.writeFileSync(curlArgsPath, "");
@@ -857,6 +863,13 @@ exit 1
       /Full public manifest does not bind the exact Standard release attestation/,
     );
     assert.equal(fs.readFileSync(hdiutilArgsPath, "utf8"), "");
+
+    const retainedAttestationResult = runInstaller(["--full"], {
+      attestationAssetDigest: "1".repeat(64), archivedAttestation: true,
+    });
+    assert.notEqual(retainedAttestationResult.status, 0, "fake mount stops after successful identity checks");
+    assert.doesNotMatch(retainedAttestationResult.stderr, /does not bind the exact Standard release attestation/);
+    assert.match(fs.readFileSync(hdiutilArgsPath, "utf8"), /attach/);
 
     const fullManifestDigestMismatchResult = runInstaller(["--full"], {
       fullManifestAssetDigest: "0".repeat(64),

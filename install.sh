@@ -1603,10 +1603,26 @@ download_and_validate_full_manifest() {
   }
   standard_attestation_sha="$RELEASE_ASSET_SHA256"
   manifest_attestation_sha=$(component_manifest_value "$manifest_path" carrier_context.standard_attestation.sha256 2>/dev/null || true)
-  [ "$manifest_attestation_sha" = "sha256:$standard_attestation_sha" ] || {
-    printf 'Full public manifest does not bind the exact Standard release attestation.\n' >&2
-    return 1
-  }
+  if [ "$manifest_attestation_sha" != "sha256:$standard_attestation_sha" ]; then
+    # A same-tag Standard repair retains the proof used to qualify the unchanged Full DMG.
+    index=0
+    matches=0
+    while name=$(release_record_value "$record_path" "assets.$index.name" 2>/dev/null); do
+      case "$name" in
+        opl-release-attestation-[0-9]*.json)
+          sha256=$(release_record_value "$record_path" "assets.$index.digest" 2>/dev/null || true)
+          if [ "$sha256" = "$manifest_attestation_sha" ] && resolve_release_asset "$record_path" "$name"; then
+            matches=$((matches + 1))
+          fi
+          ;;
+      esac
+      index=$((index + 1))
+    done
+    [ "$matches" -eq 1 ] || {
+      printf 'Full public manifest does not bind the exact Standard release attestation.\n' >&2
+      return 1
+    }
+  fi
   STABLE_MACOS_FULL_MANIFEST_PATH="$manifest_path"
 }
 
