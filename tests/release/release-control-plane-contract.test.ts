@@ -116,7 +116,7 @@ test('release platform contract keeps the primary Stable platform separate from 
   );
   assert.equal(
     matrix.desktop_platform_additive_follower.windows_x64_updater_assets.runtime_resolver,
-    'opl-aion-shell/packages/desktop/src/process/bridge/updateBridge.ts',
+    'opl-studio/desktop/updater.mjs',
   );
   assert.equal(
     matrix.desktop_platform_additive_follower.platform_workflow,
