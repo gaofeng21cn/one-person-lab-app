@@ -379,7 +379,7 @@ function skeletonContent(targetPath: string, options: ResolvedOptions): string {
       : []),
     '  depends_on arch: :arm64',
     ...(fullFirstInstall ? [] : ['  depends_on formula: "opl"']),
-    '  depends_on macos: :monterey',
+    '  depends_on macos: :ventura',
     '',
     `  ${boundaryBlock(options).split('\n').join('\n  ')}`,
     '',
