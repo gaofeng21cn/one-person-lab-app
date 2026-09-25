@@ -63,7 +63,7 @@
   },
   "runtime_payloads": {
     "codex_cli": {
-      "version": "0.144.5",
+      "version": "0.157.0",
       "qualification_input_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli"
     },
     "temporal_cli": {

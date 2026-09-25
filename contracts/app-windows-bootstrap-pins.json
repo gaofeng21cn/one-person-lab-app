@@ -9,9 +9,9 @@
     "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
   },
   "codex": {
-    "version": "0.144.5",
+    "version": "0.157.0",
     "version_source": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli.version",
-    "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.144.5-linux-x64.tgz",
-    "integrity": "sha512-FalLJlBQGFdK8Gc3kj9sa/ekNdgkHhUawLaKkvy5CtB18JaP2YxtTP/Pe1pD2iBiq8mMUliRnafpF6AdBdQMbg=="
+    "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.157.0-linux-x64.tgz",
+    "integrity": "sha512-3TEPslRaNmlgJST5xMJJ9ZWXW1hr4RlVEpF0tO4NULNGj4b5naWlHa6PlSRiDpnMz322aJkz0uvyyKqc37rLJQ=="
   }
 }

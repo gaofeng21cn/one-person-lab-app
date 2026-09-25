@@ -4647,6 +4647,12 @@
       },
       "about": {
         "product_page_id": "about",
+        "product_identity": {
+          "display_name": "One Person Lab App",
+          "channel_display": "separate_from_product_name",
+          "feedback_repository": "gaofeng21cn/one-person-lab-app",
+          "feedback_title": "One Person Lab App feedback"
+        },
         "route_id": "about",
         "matrix_page_id": "about",
         "label_zh": "关于",

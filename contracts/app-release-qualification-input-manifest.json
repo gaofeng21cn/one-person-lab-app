@@ -3,16 +3,16 @@
   "runtime_payloads": {
     "codex_cli": {
       "package": "@openai/codex",
-      "version": "0.144.5",
-      "npm_integrity": "sha512-jjB+K+OMv572mKhS+2QuLxWXDJNdpwbPenf+V+8bdq7wg4Scqt3cn6WEekD8wPqDVZqck0HSX17K9rD9kbDJQA==",
-      "tarball_url": "https://registry.npmjs.org/@openai/codex/-/codex-0.144.5.tgz",
-      "tarball_sha256": "8ef17f44770a72f42f09512dfb748c08729dabc0a6ccd6c68220b0b4449f40c3",
+      "version": "0.157.0",
+      "npm_integrity": "sha512-st1R2MhP3ndngOqj2SVh1qk6ED1lpgtlDxipDUyxlKfbsna0imwU2FdTnCjohFQpVh4bR5D5m1hA05AuW2v8Xg==",
+      "tarball_url": "https://registry.npmjs.org/@openai/codex/-/codex-0.157.0.tgz",
+      "tarball_sha256": "f15a756cb568359327c47afcb5a6c5a5ce03215a96bbb284eef9e0ebd991f214",
       "platform": {
         "package": "@openai/codex",
-        "version": "0.144.5-darwin-arm64",
-        "npm_integrity": "sha512-zcT6NfBCqLFt+BReNSETTZW6v6PdbH0dzNtm9j7l7mDGqwPbKZDGJdnpkBao2389I0ZacyIKgSZoI0vez1d4Dw==",
-        "tarball_url": "https://registry.npmjs.org/@openai/codex/-/codex-0.144.5-darwin-arm64.tgz",
-        "tarball_sha256": "2931f22a00e1b52a95416a97db0be3beeb4020924f04eab0d3313f02d0400343"
+        "version": "0.157.0-darwin-arm64",
+        "npm_integrity": "sha512-mcaLbR+tTizMr7nzxBscNfPpGrdxmsyyDqXnpPPd2419YXorDiLGpF5QmtA29gUUFg9ppjhZjM854R4tXNHzVQ==",
+        "tarball_url": "https://registry.npmjs.org/@openai/codex/-/codex-0.157.0-darwin-arm64.tgz",
+        "tarball_sha256": "8ed1854086533492068d2c103e4b13c627b0def7716d038874f05474cb4fc718"
       }
     },
     "kimi_cu": {

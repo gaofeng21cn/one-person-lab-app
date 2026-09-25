@@ -11,6 +11,17 @@ Desktop GitHub Release 的附加资产。Stable 自动以同一 App/Framework co
 发布 Docker；它独立验收与恢复，不阻塞 macOS 主发布。完整入口见
 [发布路径与矩阵](release/release-paths.md)。
 
+## 名称、帮助与运行环境
+
+正式界面统一使用 One Person Lab App；发布渠道单独显示，不把“预览版”写入固定产品名称。
+帮助和反馈指向 App 的公开教程与问题入口。安装教程的文字、按钮路径和截图必须对应当前
+Studio 界面，历史 AionUI 截图只保留在历史记录中。恢复提示说明受影响功能、保留状态和
+用户可执行的下一步，不要求普通用户操作内部更新源。
+
+Codex CLI 以官方 npm `latest` 的稳定版本为升级来源。每次升级同时更新 App 验收清单中的
+精确版本与摘要、Windows/WSL 引导投影和 Docker 默认值；发布构建读取冻结清单，不能在
+恢复时追逐移动标签。桌面端仍由 Framework 管理安装与更新，并尊重用户显式设置的路径。
+
 ## Codex 插件安装范围
 
 安装器按 Package owner descriptor 区分交互式入口和内部能力。只有直接供用户使用的

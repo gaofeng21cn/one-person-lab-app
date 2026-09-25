@@ -16,7 +16,6 @@ Release qualification belongs to the release operation and its exact artifacts.
 | --- | --- | --- |
 | Package integration | Prove App/Shell user paths and installed outcomes against the current native-carrier lifecycle. Retire a residual consumer only when its actual caller is identified. | [Package integration acceptance](opl-package-platform-composition-migration.md); source checks cannot substitute for fresh carrier and persistence evidence. |
 | Dynamic Runtime | Qualify the required core route with real dynamic producers and generic views for the current consumer cohort. | [Package integration acceptance](opl-package-platform-composition-migration.md) and [Runtime reference](../product/gui/runtime-overview-redesign.md); source status stays in conformance, with unknown producer/view degradation proved separately. |
-| Studio successor | Complete candidate product outcomes and independently qualify claimed carriers before explicit adoption. | [Studio plan](../product/gui/opl-studio-plan.md) and App candidate contracts. AionUI remains active until App-owned adoption changes the adapter. |
 
 OPL Link development is frozen. Its unresolved transport, pairing, quota, push and
 qualification facts stay with [OPL Link](../product/opl-link.md) and its owning
