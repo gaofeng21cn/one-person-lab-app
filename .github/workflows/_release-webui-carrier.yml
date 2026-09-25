@@ -347,6 +347,13 @@ jobs:
         shell: bash
         run: rm -rf shells/studio/.opl-frozen-inputs
 
+      - name: Qualify legacy cloud login against the same Studio image
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPL_CLOUD_SMOKE_LEGACY=1 OPL_CLOUD_SMOKE_IMAGE="$(cat webui-carrier/local-image-ref.txt)" \
+            node shells/studio/tests/headless/docker-cloud-smoke.mjs > webui-carrier/cloud-runtime.json
+
       - name: Qualify exact local runtime before any registry tag is written
         id: qualify
         shell: bash
