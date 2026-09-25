@@ -377,9 +377,9 @@ function skeletonContent(targetPath: string, options: ResolvedOptions): string {
             : `[${conflicts.map((conflict) => `"${conflict}"`).join(', ')}]`}`,
         ]
       : []),
+    '  depends_on arch: :arm64',
     ...(fullFirstInstall ? [] : ['  depends_on formula: "opl"']),
     '  depends_on macos: :monterey',
-    '  depends_on arch: :arm64',
     '',
     `  ${boundaryBlock(options).split('\n').join('\n  ')}`,
     '',
