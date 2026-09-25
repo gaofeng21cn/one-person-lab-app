@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   buildQualificationHarnessScopeProof,
   collectRemoteChangedPaths,
+  inspectQualificationHarnessScope,
   validateQualificationHarnessScopeProof,
 } from '../../scripts/qualification-harness-scope.ts';
 
@@ -174,4 +175,33 @@ test('remote qualification diff disables rename detection so forbidden source pa
   assert.ok(diffCall);
   assert.ok(diffCall.args.includes('--no-renames'));
   assert.ok(diffCall.args.includes('--name-only'));
+});
+
+
+test('Studio scope resolves the frozen App owner and keeps product edits out of harness recovery', () => {
+  const remotes: string[] = [];
+  const runner = (_command: string, args: string[]) => {
+    let stdout = '';
+    if (args[0] === 'remote') remotes.push(args.at(-1)!);
+    if (args[0] === 'show') stdout = args[1].endsWith('app-shell-adapter.json')
+      ? JSON.stringify({active_shell: 'opl-studio', shell_source: {owner_repo: 'gaofeng21cn/opl-studio'}})
+      : JSON.stringify({profiles: {full: {semantic_digest: '1'.repeat(64), probe_digest: '2'.repeat(64)}}});
+    if (args[0] === 'diff') stdout = 'scripts/desktop/qualify-clean-vm.mjs\n';
+    return {status: 0, stdout, stderr: ''};
+  };
+  const proof = inspectQualificationHarnessScope(runner, {
+    artifactAppSha, verificationAppSha: artifactAppSha,
+    artifactShellSha, verificationShellSha, profile: 'full',
+  });
+  assert.equal(proof.shell.repo, 'gaofeng21cn/opl-studio');
+  assert.equal(proof.reuse_authorization.allowed, true);
+  assert.ok(remotes.includes('https://github.com/gaofeng21cn/opl-studio.git'));
+  assert.ok(!remotes.some(remote => remote.includes('opl-aion-shell')));
+  assert.deepEqual(validateQualificationHarnessScopeProof(proof), []);
+  const productChange = buildQualificationHarnessScopeProof({
+    artifactAppSha, verificationAppSha: artifactAppSha, appChangedPaths: [],
+    artifactShellSha, verificationShellSha, shellRepository: 'gaofeng21cn/opl-studio',
+    shellChangedPaths: ['plugins/opl-codex-native/aion-migration.mjs'],
+  });
+  assert.equal(productChange.reuse_authorization.allowed, false);
 });

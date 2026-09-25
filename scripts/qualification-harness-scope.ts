@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+type ShellRepository = 'gaofeng21cn/opl-aion-shell' | 'gaofeng21cn/opl-studio';
+
 const shaPattern = /^[0-9a-f]{40}$/i;
 
 export type QualificationHarnessScopeProof = {
@@ -36,7 +38,7 @@ export type QualificationHarnessScopeProof = {
     changed_paths: string[];
   };
   shell: {
-    repo: 'gaofeng21cn/opl-aion-shell';
+    repo: ShellRepository;
     base_sha: string;
     head_sha: string;
     changed_paths: string[];
@@ -126,7 +128,7 @@ export function readRemoteExpectationDigests(
   runner: QualificationHarnessScopeCommandRunner,
   appSha: string,
   profile: 'standard' | 'full',
-): { semantic: string; probe: string } {
+): { semantic: string; probe: string; shellRepository: ShellRepository } {
   const sha = assertSha('expectation App SHA', appSha);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-qualification-expectation-'));
   try {
@@ -155,7 +157,15 @@ export function readRemoteExpectationDigests(
     if (typeof probe !== 'string' || !/^[0-9a-f]{64}$/.test(probe)) {
       throw new Error(`App@${sha} has no valid ${profile} probe expectation digest.`);
     }
-    return { semantic, probe };
+    const adapter = JSON.parse(runOrThrow(runner, 'git',
+      ['show', `${sha}:contracts/app-shell-adapter.json`], root,
+      `read App@${sha} active Shell identity`));
+    const shellRepository = adapter.shell_source?.owner_repo;
+    if ((adapter.active_shell === 'opl-studio' && shellRepository === 'gaofeng21cn/opl-studio') ||
+        (adapter.active_shell === 'aionui' && shellRepository === 'gaofeng21cn/opl-aion-shell')) {
+      return { semantic, probe, shellRepository };
+    }
+    throw new Error(`App@${sha} has an inconsistent active Shell identity.`);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -176,6 +186,7 @@ export function buildQualificationHarnessScopeProof(input: {
   artifactShellSha: string;
   verificationShellSha: string;
   shellChangedPaths: string[];
+  shellRepository?: ShellRepository;
   profile?: 'standard' | 'full';
   artifactExpectationDigest?: string;
   verificationExpectationDigest?: string;
@@ -188,6 +199,10 @@ export function buildQualificationHarnessScopeProof(input: {
   const verificationShellSha = assertSha('verification Shell SHA', input.verificationShellSha);
   const appChangedPaths = normalizeChangedPaths('App', input.appChangedPaths);
   const shellChangedPaths = normalizeChangedPaths('Shell', input.shellChangedPaths);
+  const shellRepository = input.shellRepository ?? 'gaofeng21cn/opl-aion-shell';
+  if (!['gaofeng21cn/opl-aion-shell', 'gaofeng21cn/opl-studio'].includes(shellRepository)) {
+    throw new Error('Unsupported Shell repository in qualification scope.');
+  }
   const profile = input.profile ?? 'standard';
   const artifactExpectationDigest = input.artifactExpectationDigest ?? '0'.repeat(64);
   const verificationExpectationDigest = input.verificationExpectationDigest ?? artifactExpectationDigest;
@@ -234,7 +249,11 @@ export function buildQualificationHarnessScopeProof(input: {
     'tests/release/release-stable-post-success-followups.test.ts',
     'tests/release/release-workflow-broker-admission.test.ts',
   ];
-  const shellHarnessMechanicsPaths = [
+  const shellHarnessMechanicsPaths = shellRepository === 'gaofeng21cn/opl-studio' ? [
+    'scripts/desktop/qualify-clean-vm.mjs',
+    'scripts/desktop/stable-smoke.mjs',
+    'scripts/desktop/stable-upgrade-vm.mjs',
+  ] : [
     'scripts/opl-first-run-tart-smoke.mjs',
     'scripts/opl-first-run-vm-smoke.mjs',
     'tests/unit/opl-runtime/firstRunVmSmoke.test.ts',
@@ -291,7 +310,7 @@ export function buildQualificationHarnessScopeProof(input: {
       changed_paths: appChangedPaths,
     },
     shell: {
-      repo: 'gaofeng21cn/opl-aion-shell',
+      repo: shellRepository,
       base_sha: artifactShellSha,
       head_sha: verificationShellSha,
       changed_paths: shellChangedPaths,
@@ -329,6 +348,7 @@ export function validateQualificationHarnessScopeProof(
       artifactShellSha: proof.shell.base_sha,
       verificationShellSha: proof.shell.head_sha,
       shellChangedPaths: proof.shell.changed_paths,
+      shellRepository: proof.shell.repo,
       profile: proof.profile,
       artifactExpectationDigest: proof.expectations?.artifact_semantic_digest,
       verificationExpectationDigest: proof.expectations?.verification_semantic_digest,
@@ -367,8 +387,12 @@ export function inspectQualificationHarnessScope(
   const verificationExpectations = input.artifactAppSha === input.verificationAppSha
     ? artifactExpectations
     : readRemoteExpectationDigests(runner, input.verificationAppSha, profile);
+  if (artifactExpectations.shellRepository !== verificationExpectations.shellRepository) {
+    throw new Error('Same-artifact qualification cannot change active Shell repository.');
+  }
   return buildQualificationHarnessScopeProof({
     ...input,
+    shellRepository: artifactExpectations.shellRepository,
     appChangedPaths: collectRemoteChangedPaths(
       runner,
       'gaofeng21cn/one-person-lab-app',
@@ -377,7 +401,7 @@ export function inspectQualificationHarnessScope(
     ),
     shellChangedPaths: collectRemoteChangedPaths(
       runner,
-      'gaofeng21cn/opl-aion-shell',
+      artifactExpectations.shellRepository,
       input.artifactShellSha,
       input.verificationShellSha,
     ),
