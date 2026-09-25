@@ -21,7 +21,9 @@ Release 中提供预置 runtime 与 Package 的首次安装包；Nightly 不代�
 
 macOS Stable 从 26.9.25 起采用 Studio，保留原 App bundle identity 和更新入口。
 Studio Preview 保留独立身份，终结桥通过经过签名验证的目标包交接到正式 App；该桥的公开
-发布与两条旧版升级路径仍需实际验收，不能由新装成功推定。Windows 附加发布尚未完成。
+发布已完成：Preview 0.1.17、0.1.18 均通过原生更新到 0.1.19 再交接 Stable 的隔离 VM 验收。
+AionUI 的公开更新链路继续独立验收，不能由新装成功推定。Windows 安装器已完成 Studio 构建，
+发布与真实 Windows 升级认证分别记录。
 Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史 Aion 仓库。
 
 ## Repository Relationship
@@ -31,7 +33,7 @@ Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固�
 | `one-person-lab-app` | One Person Lab App 产品定义、GUI ABI、Client profile、page state、active-shell、版本组合、carrier evidence contract、迁移与 release |
 | `opl-studio` | DSH profile/plugin lifecycle、`opl-codex-native`、DSH tool MCP、Framework bridge、renderer、Desktop/WebUI/OCI carrier source 与 focused validation |
 | `one-person-lab` | Framework runtime、installed Package discovery/graph/currentness、App projection、state/action/authentication/channel callback contracts |
-| `opl-aion-shell` | 历史 AionUI 实现与旧版升级基线；生产调用方全部切换并验收后才可归档 |
+| `opl-aion-shell` | 历史 AionUI 实现与旧版升级基线；生产构建已全部迁出；归档保留 tags、releases 和固定测试夹具的只读可达性 |
 
 App repo 不复制 Studio source，Studio 也不复制 App product truth。App wrapper 通过
 `contracts/shell-adapters/opl-studio.json` 选择 Studio checkout，校验 App-owned compatibility，
@@ -83,6 +85,11 @@ Source stage 从 `contracts/app-shell-candidates.json` 与 Studio adapter 读取
 将当前 App checkout 注入 Studio，在 committed/clean source 上产出 Desktop、standalone
 WebUI、Docker smoke 和 exact-commit carrier manifest。详细操作只维护在
 [Shell candidates](gui-shell-candidates.md)。
+
+Docker Stable 的 `26.9.25-r1`、`stable`、`latest` 已在运行 `36109952035` 完成切换，
+公开双架构索引为 `sha256:319ffc9cc3d5078a6363bc673b85176cda1a489d29e390338bfd1b96ac2b124b`。
+原生 amd64 / arm64 验收覆盖启动、登录、Framework/Codex readiness、上传与持久化；
+兼容旧容器仅设置密码的配置，并持久保存自动生成的会话密钥。
 
 公开 WebUI Preview 使用独立 OCI handoff。App 接纳 immutable multi-arch digests、
 provenance 与 workflow identity，并通过
