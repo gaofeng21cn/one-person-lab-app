@@ -22,8 +22,8 @@ Release 中提供预置 runtime 与 Package 的首次安装包；Nightly 不代�
 macOS Stable 从 26.9.25 起采用 Studio，保留原 App bundle identity 和更新入口。
 Studio Preview 保留独立身份，终结桥通过经过签名验证的目标包交接到正式 App；该桥的公开
 发布已完成：Preview 0.1.17、0.1.18 均通过原生更新到 0.1.19 再交接 Stable 的隔离 VM 验收。
-AionUI 26.9.23、26.8.8 的公开原生更新安装已成功；Codex 0.157 空分页线程暴露的历史读取
-缺陷已在 Studio 主线修复，修复包正在公开前验收。Windows x64 安装器、blockmap、
+AionUI 26.9.23、26.8.8 基线均已通过公开原生更新链进入 `26.9.2594`，并在真实 Codex
+0.157 下验证普通和归档中文历史、置顶、附件、原数据库及重复更新检查。Windows x64 安装器、blockmap、
 更新元数据和实际构建来源已追加至同一 Stable Release；未签名状态明确，真实 Windows 升级认证
 仍独立记录，不阻塞附加包发布。
 Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史 Aion 仓库。
@@ -130,8 +130,8 @@ Studio 创建线程时显式选择公开 `legacy` 历史模式，避免 Codex 0.
 
 发布状态以 App 合同与准确公开产物为准：`active_shell_adopted=true` 已进入主线，
 macOS Standard 已通过公开前签名、公证、Gateway 登录、Official Profile 首装和运行就绪验收。
-Preview 的两条基线交接验收已完成；旧 AionUI 的更新安装已成功，历史延续仍需在修复后的
-公开 App 中回读。Full 已在运行 `36114062851` 发布，并通过准确签名包的首装与 Temporal
+Preview 的两条基线交接验收已完成；旧 AionUI 的更新安装与历史延续已在公开 `26.9.2594`
+回读通过。Full 已在运行 `36114062851` 发布，并通过准确签名包的首装与 Temporal
 生命周期验收。Nightly 及其他平台分别保留自身公开回读，不能由 Standard 代替。
 
 Desktop Stable 和 Nightly 已使用 Studio。Docker WebUI 的源码选择、构建和运行验收也统一到
@@ -140,7 +140,15 @@ Studio；沿用 GHCR 版本标签、Stable/Latest 指针、原生 amd64/arm64 �
 已有数据卷保留原 Package 选择并只读导入历史。`26.9.25-r1`、`stable`、`latest` 已回读为
 同一 Studio 双架构 digest；原生验收覆盖登录、上传、Framework/Codex 就绪和数据卷重启持久化。
 
-旧仓库在全部生产入口发布完成、旧版升级验收通过后归档；历史源码和 Release 继续保留。
+`opl-aion-shell` 已归档，全部生产构建入口已迁出；历史源码、tags、Release 与固定迁移
+夹具继续保留。当前 macOS Standard 修复包沿用 `v26.9.25-r1`，机器版本 `26.9.2594`，
+构建来源运行 `36118012448`，原字节首装验收运行 `36120104132`。Full 保留已合格的
+`26.9.2592` 首装包，后续通过 Standard 更新器更新；Preview 0.1.19 保留固定签名的
+`26.9.2593` 交接包，再由 Stable 更新器接续。
+
+真实旧版验收链为 `26.9.2391 → 26.9.2593 → 26.9.2594` 与
+`26.8.890 → 26.9.2592 → 26.9.2593 → 26.9.2594`；不得将连续升级证据改写为
+每个旧版本都已测试一步直达。Windows 的真实旧版升级仍未认证。
 
 ## Canonical References
 
