@@ -280,7 +280,8 @@ export function readAppComponentManifestIdentity(
     preview_kind: previewKind,
     distribution_pointer_policy: distributionPointerPolicy,
     qualification_disclosure: qualificationDisclosure,
-    source_commit: expectedSourceCommit,
+    source_commit: sourceCommit,
+    ...(replacement ? { tag_source_commit: expectedSourceCommit } : {}),
     component_manifest_digest: manifestDigest,
   };
 }

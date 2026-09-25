@@ -361,6 +361,7 @@ test('same-tag Stable repair binds its new source and machine version without mo
     same_tag_replacement: replacement,
   });
   assert.equal(readAppComponentManifestIdentity(manifest, 'v26.9.25-r1', false, sha('a')).updater_version, '26.9.2593');
+  assert.equal(readAppComponentManifestIdentity(manifest, 'v26.9.25-r1', false, sha('a')).source_commit, sha('d'));
   for (const bad of [{updater_version: '26.9.2592'}, {same_tag_replacement: {...replacement, tag_source_commit: sha('e')}}, {same_tag_replacement: {...replacement, qualification_receipt_sha256: ''}}]) {
     const {component_manifest_digest, ...core} = manifest;
     assert.throws(() => readAppComponentManifestIdentity(sealManifest({...core,...bad}), 'v26.9.25-r1', false, sha('a')), /Same-tag replacement/);

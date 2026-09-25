@@ -618,6 +618,7 @@ jobs:
     needs: [resolve-checkpoint, restore-checkpoint]
     if: ${{ always() && needs.resolve-checkpoint.result == 'success' && (needs.restore-checkpoint.result == 'success' || needs.restore-checkpoint.result == 'skipped') && needs.resolve-checkpoint.outputs.qualification_present != 'true' }}
     runs-on: ${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && fromJSON('["self-hosted","macOS","ARM64","opl-cert-mac-tart"]') || fromJSON('["macos-15"]') }}
+    environment: ${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && 'release-stable' || null }}
     timeout-minutes: 75
     permissions:
       actions: read
@@ -659,7 +660,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$GATEWAY_ACCOUNT_EMAIL" && test -n "$GATEWAY_ACCOUNT_PASSWORD"
+          test -n "$GATEWAY_ACCOUNT_EMAIL" || { echo "::error::Release-test account email is unavailable."; exit 1; }
+          test -n "$GATEWAY_ACCOUNT_PASSWORD" || { echo "::error::Release-test account password is unavailable."; exit 1; }
           credential_dir="$RUNNER_TEMP/opl-preview-gateway-${GITHUB_RUN_ID}-${GITHUB_JOB}"
           mkdir -p "$credential_dir"
           chmod 700 "$credential_dir"
