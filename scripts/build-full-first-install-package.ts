@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { materializeStudioStandardBootstrapPayload, resolveStandardFrameworkBootstrapPin } from './prepare-standard-release-payload.ts';
+import { materializeStudioOfficialProfileResources } from './studio-official-profile-resources.ts';
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import {
@@ -349,13 +349,7 @@ function main() {
   timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
   const productProfileSync = syncAppProductProfileToShell(options.guiRoot);
   if (carrier.carrierId === 'opl-studio' && carrier.bundleId === 'cn.onepersonlab.opl') {
-    // Full embeds its primary runtime, but shares Stable's first-install Profile
-    // action and fallback bootstrap. Materialize both from the frozen App cohort.
-    const frameworkPin = resolveStandardFrameworkBootstrapPin({
-      OPL_STANDARD_PAYLOAD_RELEASE_BOUND: 'true',
-      OPL_STANDARD_PAYLOAD_FRAMEWORK_REF: prepared.resolved_refs.opl_framework.resolved_commit,
-    });
-    materializeStudioStandardBootstrapPayload({ targetRoot: options.guiRoot, frameworkPin: frameworkPin! });
+    materializeStudioOfficialProfileResources(options.guiRoot, appRepoRoot);
   }
 
   if (!options.skipGuiBuild) {

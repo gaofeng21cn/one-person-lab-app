@@ -1,3 +1,4 @@
+import { materializeStudioOfficialProfileResources } from './studio-official-profile-resources.ts';
 #!/usr/bin/env node
 
 import crypto from 'node:crypto';
@@ -150,18 +151,7 @@ export function materializeStudioStandardBootstrapPayload(input: {
     aionui_standard_payload_preparation: false,
   };
   writeJsonAtomic(manifestPath, manifest);
-  const officialProfileRoot = path.join(targetRoot, 'resources', 'opl-official-profile');
-  fs.mkdirSync(officialProfileRoot, { recursive: true });
-  const helper = fs.readFileSync(path.join(appRoot, 'scripts', 'official-profile-package-apply.ts'));
-  const profile = fs.readFileSync(path.join(appRoot, 'contracts', 'app-product-profile.json'));
-  fs.writeFileSync(path.join(officialProfileRoot, 'official-profile-package-apply.ts'), helper);
-  fs.writeFileSync(path.join(officialProfileRoot, 'app-product-profile.json'), profile);
-  writeJsonAtomic(path.join(officialProfileRoot, 'manifest.json'), {
-    schema: 'opl_app_official_profile_resources.v1',
-    authority: 'one-person-lab-app',
-    helper_sha256: crypto.createHash('sha256').update(helper).digest('hex'),
-    profile_sha256: crypto.createHash('sha256').update(profile).digest('hex'),
-  });
+  materializeStudioOfficialProfileResources(targetRoot, appRoot);
   return manifest;
 }
 
