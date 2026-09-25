@@ -13,7 +13,7 @@ on:
         default: main
         type: string
       shell_ref:
-        description: Exact opl-aion-shell ref to validate.
+        description: Exact active Shell ref to validate.
         required: true
         default: main
         type: string
@@ -60,6 +60,10 @@ jobs:
           [[ "$app_sha" =~ ^[0-9a-f]{40}$ ]]
           echo "sha=$app_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve active Shell paths
+        id: profile
+        run: node --experimental-strip-types scripts/active-shell-build-profile.ts --github-output "$GITHUB_OUTPUT"
+
       - name: Setup active Shell dependencies
         uses: ./.github/actions/setup-active-shell-deps
         with:
@@ -68,7 +72,7 @@ jobs:
       - name: Resolve Shell source identity
         id: shell
         shell: bash
-        working-directory: shells/aionui
+        working-directory: ${{ steps.profile.outputs.shell_root }}
         run: |
           set -euo pipefail
           shell_sha="$(git rev-parse HEAD)"
@@ -92,12 +96,12 @@ jobs:
           SHELL_SHA: ${{ steps.shell.outputs.sha }}
         run: |
           set -euo pipefail
-          app_count="$(find shells/aionui/out -maxdepth 2 -type d -name 'One Person Lab.app' | wc -l | tr -d ' ')"
-          dmg_count="$(find shells/aionui/out -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')"
+          app_count="$(find ${{ steps.profile.outputs.shell_root }}/out -maxdepth 2 -type d -name 'One Person Lab.app' | wc -l | tr -d ' ')"
+          dmg_count="$(find ${{ steps.profile.outputs.shell_root }}/out -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')"
           test "$app_count" -eq 1
           test "$dmg_count" -eq 1
-          app_path="$(find shells/aionui/out -maxdepth 2 -type d -name 'One Person Lab.app' -print -quit)"
-          dmg_path="$(find shells/aionui/out -maxdepth 1 -type f -name '*.dmg' -print -quit)"
+          app_path="$(find ${{ steps.profile.outputs.shell_root }}/out -maxdepth 2 -type d -name 'One Person Lab.app' -print -quit)"
+          dmg_path="$(find ${{ steps.profile.outputs.shell_root }}/out -maxdepth 1 -type f -name '*.dmg' -print -quit)"
           executable="$app_path/Contents/MacOS/One Person Lab"
           test -x "$executable"
           test "$(lipo -archs "$executable")" = x86_64
@@ -127,4 +131,4 @@ jobs:
       - name: Remove task-owned build output
         if: ${{ always() }}
         shell: bash
-        run: rm -rf shells/aionui/out
+        run: rm -rf ${{ steps.profile.outputs.shell_root }}/out

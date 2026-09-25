@@ -61,6 +61,7 @@ jobs:
     outputs:
       app_sha: ${{ steps.cohort.outputs.app_sha }}
       app_tree: ${{ steps.cohort.outputs.app_tree }}
+      shell_repository: ${{ steps.cohort.outputs.shell_repository }}
       shell_sha: ${{ steps.cohort.outputs.shell_sha }}
       framework_sha: ${{ steps.cohort.outputs.framework_sha }}
     steps:
@@ -126,9 +127,11 @@ jobs:
           }
           app_sha="$(git -C app rev-parse HEAD)"
           app_tree="$(git -C app rev-parse 'HEAD^{tree}')"
-          shell_sha='${{ inputs.shell_ref }}'
+          shell_repository="$(node --experimental-strip-types app/scripts/active-shell-build-profile.ts --app-root app | jq -er .repository)"
+          echo "shell_repository=$shell_repository" >> "$GITHUB_OUTPUT"
+          shell_sha='${{ inputs.shell_ref }}' 
           framework_sha='${{ inputs.framework_ref }}'
-          if [ -z "$shell_sha" ]; then shell_sha="$(resolve_main_wire gaofeng21cn/opl-aion-shell)"; fi
+          if [ -z "$shell_sha" ]; then shell_sha="$(resolve_main_wire "$shell_repository")"; fi
           if [ -z "$framework_sha" ]; then framework_sha="$(resolve_main_wire gaofeng21cn/one-person-lab)"; fi
           for identity in "$app_sha" "$app_tree" "$shell_sha" "$framework_sha"; do
             [[ "$identity" =~ ^[0-9a-f]{40}$ ]]
@@ -186,7 +189,7 @@ jobs:
       - name: Checkout exact Shell cohort
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ needs.resolve-cohort.outputs.shell_repository }}
           ref: ${{ needs.resolve-cohort.outputs.shell_sha }}
           path: shell
 

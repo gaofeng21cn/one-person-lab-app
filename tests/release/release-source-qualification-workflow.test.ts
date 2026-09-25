@@ -50,7 +50,7 @@ test('source qualification is a reusable GitHub-hosted Stable preflight', () => 
   assert.match(source, /test "\$GITHUB_RUN_ATTEMPT" = 1/);
   assert.match(source, /test "\$GITHUB_REF" = refs\/heads\/main/);
   assert.match(source, /git ls-remote --exit-code --heads "\$remote" refs\/heads\/main/);
-  assert.match(source, /resolve_main_wire gaofeng21cn\/opl-aion-shell/);
+  assert.match(source, /resolve_main_wire "\$shell_repository"/);
   assert.match(source, /resolve_main_wire gaofeng21cn\/one-person-lab/);
   assert.match(source, /for attempt in 1 2 3/);
   assert.doesNotMatch(source, /repos\/gaofeng21cn\/(?:opl-aion-shell|one-person-lab)\/commits\/main/);

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       shell_ref:
-        description: Exact 40-character opl-aion-shell commit to package.
+        description: Exact 40-character active Shell commit to package.
         required: true
         type: string
       framework_ref:
@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: opl-windows-updater-package-validation-${{ github.sha }}
@@ -32,7 +33,6 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
-  AIONUI_HUB_TAG: 'dist-ebc6a2b'
 
 jobs:
   validate-inputs:
@@ -55,216 +55,19 @@ jobs:
           [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]
           [[ "$UPDATER_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
 
-  prepare-windows-linux-runtime:
-    name: Prepare target-executed Linux runtime
-    runs-on: ubuntu-latest
+  build:
+    name: Build active Shell Windows updater package
     needs: validate-inputs
-    steps:
-      - name: Checkout exact App source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Checkout exact Shell source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: gaofeng21cn/opl-aion-shell
-          ref: ${{ inputs.shell_ref }}
-          path: shells/aionui
-          persist-credentials: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24'
-
-      - name: Bind exact Framework identity
-        shell: bash
-        run: |
-          node --experimental-strip-types scripts/bind-windows-framework-manifest.ts \
-            --manifest shells/aionui/resources/opl-linux/product.json \
-            --framework-ref "${{ inputs.framework_ref }}"
-
-      - name: Prepare Linux runtime for Windows packaging
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const path = require('node:path');
-          const { prepareAioncore } = require('./shells/aionui/packages/shared-scripts/src/prepare-aioncore.js');
-          const { resolveAioncoreVersion } = require('./shells/aionui/scripts/resolveAioncoreVersion.js');
-          const projectRoot = path.resolve('shells/aionui');
-          prepareAioncore({
-            projectRoot,
-            platform: 'linux',
-            arch: 'x64',
-            version: resolveAioncoreVersion(projectRoot),
-            materializeInternalSymlinksForWindows: true,
-          });
-          NODE
-
-      - name: Upload prepared Linux runtime
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-windows-updater-validation-runtime-${{ github.run_id }}
-          path: shells/aionui/resources/bundled-aioncore/linux-x64
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 7
-
-  build-windows-updater-package:
-    name: Build Windows x64 updater assets without publication
-    runs-on: windows-latest
-    needs:
-      - validate-inputs
-      - prepare-windows-linux-runtime
-    env:
-      OPL_RELEASE_VERSION: ${{ inputs.release_version }}
-      OPL_UPDATER_VERSION: ${{ inputs.updater_version }}
-    steps:
-      - name: Checkout exact App source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Checkout exact Shell source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: gaofeng21cn/opl-aion-shell
-          ref: ${{ inputs.shell_ref }}
-          path: shells/aionui
-          persist-credentials: false
-
-      - name: Download prepared Linux runtime
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: opl-windows-updater-validation-runtime-${{ github.run_id }}
-          path: ${{ runner.temp }}/opl-windows-linux-runtime
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24'
-          cache: npm
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: "1.4.0"
-
-      - name: Setup Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.12'
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
-        with:
-          vs-version: '17.0'
-
-      - name: Install exact dependencies
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: bun install --cwd shells/aionui --frozen-lockfile
-
-      - name: Install App validation dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
-
-      - name: Run Shell postinstall
-        working-directory: shells/aionui
-        run: bun run postinstall || true
-
-      - name: Prepare standard App payload
-        env:
-          OPL_STANDARD_PAYLOAD_FRAMEWORK_REF: ${{ inputs.framework_ref }}
-          OPL_STANDARD_PAYLOAD_RELEASE_BOUND: 'false'
-        run: node --experimental-strip-types scripts/prepare-standard-release-payload.ts
-
-      - name: Bind exact Framework identity
-        shell: bash
-        run: |
-          node --experimental-strip-types scripts/bind-windows-framework-manifest.ts \
-            --manifest shells/aionui/resources/opl-linux/product.json \
-            --framework-ref "${{ inputs.framework_ref }}"
-
-      - name: Validate synced App product profile consumer
-        working-directory: shells/aionui
-        run: bunx vitest run tests/unit/common-config/oplProductProfile.test.ts
-
-      - name: Install Windows native build helper
-        run: bun install --global node-gyp
-
-      - name: Rebuild Windows Electron native modules
-        shell: pwsh
-        working-directory: shells/aionui
-        env:
-          npm_config_runtime: electron
-          npm_config_arch: x64
-          npm_config_target_arch: x64
-          npm_config_disturl: https://electronjs.org/headers
-          MSVS_VERSION: 2022
-          GYP_MSVS_VERSION: 2022
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
-          $sqliteNode = 'node_modules/better-sqlite3/build/Release/better_sqlite3.node'
-          $bunPath = (Get-Command bun -CommandType Application).Source
-          $prebuild = Start-Process -FilePath $bunPath -ArgumentList @(
-            'x', '--yes', 'prebuild-install', '--runtime=electron', "--target=$electronVer",
-            '--platform=win32', '--arch=x64', '--force'
-          ) -NoNewWindow -Wait -PassThru
-          if ($prebuild.ExitCode -ne 0 -or -not (Test-Path $sqliteNode)) {
-            Remove-Item $sqliteNode -Force -ErrorAction SilentlyContinue
-            bunx --yes @electron/rebuild@4.2.0 -f -w better-sqlite3
-          }
-          if (-not (Test-Path $sqliteNode)) {
-            throw "better-sqlite3 native module not found at $sqliteNode"
-          }
-
-      - name: Build updater-capable Windows x64 package
-        shell: pwsh
-        working-directory: shells/aionui
-        env:
-          AIONUI_PREPARED_AIONCORE_RUNTIME_DIR: ${{ runner.temp }}/opl-windows-linux-runtime
-          NODE_OPTIONS: '--max-old-space-size=8192'
-          npm_config_arch: x64
-          npm_config_target_arch: x64
-          npm_config_runtime: electron
-          npm_config_disturl: https://electronjs.org/headers
-          npm_config_build_from_source: true
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
-          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          WindowsTargetPlatformVersion: 10.0.19041.0
-          _WIN32_WINNT: 0x0A00
-          CI: true
-        run: >-
-          node scripts/build-with-builder.js x64 --win --x64
-          --config.nsis.differentialPackage=true
-
-      - name: Validate exact latest.yml and EXE blockmap bindings
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --experimental-strip-types scripts/validate-windows-updater-assets.ts \
-            --artifact-dir shells/aionui/out \
-            --release-version "$OPL_RELEASE_VERSION" \
-            --updater-version "$OPL_UPDATER_VERSION" \
-            --output shells/aionui/out/opl-windows-updater-assets.json
-
-      - name: Upload non-published updater validation assets
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: opl-windows-updater-validation-${{ github.run_id }}
-          path: |
-            shells/aionui/out/One-Person-Lab-${{ inputs.release_version }}-win-x64.exe
-            shells/aionui/out/One-Person-Lab-${{ inputs.release_version }}-win-x64.exe.blockmap
-            shells/aionui/out/latest.yml
-            shells/aionui/out/opl-windows-updater-assets.json
-          if-no-files-found: error
-          retention-days: 7
+    uses: ./.github/workflows/_build-reusable.yml
+    with:
+      matrix: >-
+        {"include":[{"platform":"windows-x64","os":"windows-latest","command":"node scripts/build-with-builder.js x64 --win --x64","artifact-name":"windows-x64-updater-validation","arch":"x64"}]}
+      ref: ${{ github.sha }}
+      shell_ref: ${{ inputs.shell_ref }}
+      framework_ref: ${{ inputs.framework_ref }}
+      opl_release_version: ${{ inputs.release_version }}
+      opl_updater_version: ${{ inputs.updater_version }}
+      require_windows_updater_assets: true
+      upload_installers_only: false
+      append_commit_hash: false
+      skip_code_quality: true

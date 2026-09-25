@@ -261,20 +261,12 @@ test('workflow callers consume resolver output while reusable build keeps generi
   assert.match(String(artifactUpload?.with?.path), /opl-windows-updater-assets\.json/);
   assert.match(String(artifactUpload?.with?.path), /opl-windows-authenticode-receipt\.json/);
   assert.doesNotMatch(String(artifactUpload?.with?.path), /latest-(?:x64-)?mac\.yml/);
-  assert.deepEqual(packageValidation.permissions, { contents: 'read' });
-  assert.equal(packageValidation.jobs['build-windows-updater-package']['runs-on'], 'windows-latest');
-  const validationBuild = packageValidation.jobs['build-windows-updater-package'].steps.find(
-    (step: any) => step.name === 'Build updater-capable Windows x64 package',
-  );
-  assert.match(String(validationBuild?.run), /config\.nsis\.differentialPackage=true/);
-  assert.doesNotMatch(String(validationBuild?.run), /config\.publish\.(?:provider|url)=/);
-  const validationUpload = packageValidation.jobs['build-windows-updater-package'].steps.find(
-    (step: any) => step.name === 'Upload non-published updater validation assets',
-  );
-  assert.match(String(validationUpload?.with?.path), /latest\.yml/);
-  assert.match(String(validationUpload?.with?.path), /\.exe\.blockmap/);
-  assert.match(String(validationUpload?.with?.path), /opl-windows-updater-assets\.json/);
-  assert.equal(packageValidation.jobs['build-windows-updater-package'].permissions, undefined);
+  assert.deepEqual(packageValidation.permissions, { contents: 'read', actions: 'read' });
+  assert.equal(packageValidation.jobs.build.uses, './.github/workflows/_build-reusable.yml');
+  assert.equal(packageValidation.jobs.build.with.require_windows_updater_assets, true);
+  assert.equal(packageValidation.jobs.build.with.upload_installers_only, false);
+  assert.equal(packageValidation.jobs.build.secrets, undefined);
+  assert.equal(JSON.parse(packageValidation.jobs.build.with.matrix).include[0].platform, 'windows-x64');
   const releaseBoundary = reusable.jobs['release-boundary'];
   assert.equal(
     releaseBoundary.steps.find((step: any) => step.name === 'Run audited release-boundary profile')

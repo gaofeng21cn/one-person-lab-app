@@ -218,7 +218,8 @@ jobs:
 
             if [ "$PREVIEW_OPERATION" = preview ]; then
               resolver_args+=(--latest-override-requested "$LATEST_OVERRIDE_REQUESTED")
-              require_main_reachable gaofeng21cn/opl-aion-shell "$SHELL_REF" Shell
+              shell_repository="$(node --experimental-strip-types scripts/active-shell-build-profile.ts | jq -er .repository)"
+              require_main_reachable "$shell_repository" "$SHELL_REF" Shell
               require_main_reachable gaofeng21cn/one-person-lab "$FRAMEWORK_REF" Framework
               published_releases_json="$RUNNER_TEMP/opl-preview-published-releases-$GITHUB_RUN_ID.json"
               published_tags_txt="$RUNNER_TEMP/opl-preview-published-tags-$GITHUB_RUN_ID.txt"
