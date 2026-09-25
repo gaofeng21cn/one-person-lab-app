@@ -64,8 +64,9 @@ Docker WebUI 均使用 Studio。正式 App 保留既有安装身份与 Stable fe
 状态分两类处理：
 
 - Codex 对话、Gateway 凭据/账户、Framework Package/runtime/receipt、Workspace source 与
-  domain artifact 继续从原 owner 读取。旧 AionUI 历史通过只读、幂等导入接入原生
-  Codex；源数据库保留，不将旧 backend 数据库整体搬成新运行时数据库。
+  domain artifact 继续从原 owner 读取。同一 `CODEX_HOME` 下直接读取
+  Codex App Server 的同一批线程和消息，不创建副本或自动导入其他后端会话。旧 OPL 数据
+  只提供可确认原生线程的置顶、排序和偏好；不扫描独立 AionUI/AionUi 数据目录。
 - 只有 Shell 私有且不可重建的配置需要版本化迁移：语言、主题与无障碍偏好，非敏感的
   模型/推理/权限偏好，工作区选择与标签，canonical thread keyed UI metadata，未发送草稿，
   通知与日志位置。迁移清单不得包含密码、API key、token、cookie、Keychain material、

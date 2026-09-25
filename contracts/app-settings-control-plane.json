@@ -2884,6 +2884,8 @@
     "managed_companion_actions": "choose_one_owner_projected_primary_action_from_current_state_recheck_unknown_request_missing_permissions_repair_failure_put_remaining_actions_in_more_menu",
     "automatic_reasoning": "readable_policy_summary_and_explicit_manual_model_entry_not_disabled_select",
     "overview": "show_each_background_exception_once_keep_compact_healthy_summary_and_specific_destination_actions",
+    "studio_visual_style": "reuse_pinned_DSH_Settings_row_typography_spacing_and_theme_tokens_with_hairline_separators",
+    "feature_diagnostics": "collapsed_by_default_flat_rows_on_demand_not_a_default_overview_card_inventory",
     "gateway_statistics": "balance_and_today_primary_historical_totals_in_disclosure",
     "feedback": "local_controls_show_inline_saving_saved_or_error_text_editors_show_unsaved_state_maintenance_actions_keep_progress_and_fresh_owner_readback",
     "typography": "preserve_page_title_hierarchy_and_readable_secondary_text_without_globally_dimming_controls"

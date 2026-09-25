@@ -115,18 +115,15 @@ Studio Preview 保持独立 product name、bundle id、user-data root、reposito
 source 和 domain artifacts 继续由原 owner 提供；AionUI/AionCore database、cookies、secrets、
 Electron cache 和 updater identity 不整体复制。
 
-Studio 首次启动还提供有界的旧会话导入：只读 SQLite 或旧 JSON，保留私有来源快照；已有
-Codex ID 直接关联，旧后端专有会话通过公开接口关联新的 Codex thread。旧问答作为明确的
-来源历史显示，并在继续对话时作为上下文传入，新 turn 始终归 Codex App Server。不会恢复
-旧后端运行进程或复制其凭据。持久化的置顶、排序和可取得的语言/主题偏好合并到 Studio，
-已有 Studio 选择优先。当前 AionUI 草稿仅在内存中，旧进程退出后不能从磁盘恢复。
+Studio 与 Codex App 复用同一 `CODEX_HOME` 和 Codex App Server 原生线程。切换界面不复制
+对话、不创建迁移线程，也不拼接另一套历史。旧 OPL 数据只读提供原生线程 ID、置顶、排序
+及可取得的语言/主题偏好；必须由 App Server 确认线程身份。自动发现限定 OPL 与 Preview
+的既有目录，不扫描独立 AionUI/AionUi 或其他应用的历史。没有原生关联的记录保留在来源中。
+先前迁移索引和来源快照保留作为恢复证据；无效或范围外绑定退出自动迁移，不删除任何
+Codex 原生线程。历史创建但已存在于 Codex 的线程继续由 Codex 拥有，不擅自清除。
 
-macOS 自动发现既有数据位置；Docker 必须挂载旧数据卷，可用 `OPL_AIONUI_DATA_DIR` 指定
-只读挂载目录。来源保留、绑定持久化、失败可重试以及删除后不重新导入属于同一迁移行为。
-Studio 创建线程时显式选择公开 `legacy` 历史模式，避免 Codex 0.157 空分页线程不可恢复。
-对先前已完成导入的空分页绑定，只有 Codex 明确返回尚未 materialize 才建立新绑定，
-保留旧 thread ID 与来源历史；已有原生历史或其他读取错误不得触发替换。
-这些首次启动能力可先进入独立 Preview，不替代正式 App identity 切换的签名与迁移验收。
+Docker 同样复用挂载的 Codex 数据；显式旧目录只用于读取上述元数据。新任务、消息、归档
+与删除均使用 Codex 公共操作。Shell 私有草稿不等于 Codex 会话；旧进程内存草稿无法从磁盘恢复。
 
 发布状态以 App 合同与准确公开产物为准：`active_shell_adopted=true` 已进入主线，
 macOS Standard 已通过公开前签名、公证、Gateway 登录、Official Profile 首装和运行就绪验收。
