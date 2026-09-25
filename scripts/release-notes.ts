@@ -1,3 +1,4 @@
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 import { collectCommitSubjects, gitRefExists } from './release-notes/command.ts';
 import { appendAgentChangeSummary, normalizedSubject, summarizeChanges } from './release-notes/changes.ts';
 import {
@@ -17,6 +18,7 @@ import {
   buildReleaseTitle,
   normalizeTag,
   resolvePreviousShellRef,
+  readAppShellRepositoryAt,
   resolvePreviousTag,
   resolveShellRef,
 } from './release-notes/tags.ts';
@@ -204,8 +206,14 @@ export function buildReleaseNotesEvidence(options: ReleaseNoteOptions): ReleaseN
   const releaseRepo = options.releaseRepo || 'gaofeng21cn/one-person-lab-app';
   const appCurrentRef = options.currentAppRef || (gitRefExists(currentTag, process.cwd()) ? currentTag : 'HEAD');
   const appPreviousRef = options.previousAppRef || previousTag;
+  const shellProfile = readActiveShellBuildProfile();
   const shellRoot = options.shellRoot || '';
-  const shellPreviousRef = resolvePreviousShellRef(shellRoot || null, options.previousShellRef, appPreviousRef);
+  const previousShellRepository = readAppShellRepositoryAt(appPreviousRef);
+  const shellTransition = previousShellRepository && previousShellRepository !== shellProfile.repository
+    ? { previous_repository: previousShellRepository, current_repository: shellProfile.repository,
+        summary: 'One Person Lab App replaces the AionUI application with the Studio DSH/Cordis Application Host, using native Codex sessions and Framework-owned runtime and Package state.' }
+    : undefined;
+  const shellPreviousRef = shellTransition ? null : resolvePreviousShellRef(shellRoot || null, options.previousShellRef, appPreviousRef);
   const shellCurrentRef = resolveShellRef(shellRoot || null, options.currentShellRef, appCurrentRef);
   const appSubjects = appPreviousRef
     ? collectCommitSubjects(process.cwd(), appPreviousRef, appCurrentRef)
@@ -241,6 +249,8 @@ export function buildReleaseNotesEvidence(options: ReleaseNoteOptions): ReleaseN
       currentTag,
       appSubjects,
       shellSubjects,
+      shellRepository: shellProfile.repository,
+      shellLabel: shellProfile.id === 'opl-studio' ? 'OPL Studio' : 'OPL Aion Shell',
       shellPreviousRef,
       shellCurrentRef,
     }),
@@ -266,6 +276,7 @@ export function buildReleaseNotesEvidence(options: ReleaseNoteOptions): ReleaseN
     release_repo: releaseRepo,
     current_tag: currentTag,
     previous_tag: previousTag,
+    shell_transition: shellTransition,
     app_commit_subjects: appSubjects,
     shell_commit_subjects: shellSubjects,
     grouped_changes: buckets,

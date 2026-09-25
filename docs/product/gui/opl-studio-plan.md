@@ -2,27 +2,27 @@
 
 Owner: `one-person-lab-app`
 Purpose: `opl_studio_product_role_repository_boundary_and_adoption`
-State: `active_product_development_release_admission_separate`
+State: `active_studio_shell_macOS_stable_published_migration_qualification_in_progress`
 Machine boundary: 本文解释 OPL Studio 在 App 产品中的角色。产品和 adoption 真相归 App
 contracts；Application Host、renderer 与 carrier source 归 `opl-studio`；runtime/Package truth
-归 Framework。本文不改变当前 AionUI active release adapter。
+归 Framework。当前 active release adapter 是 `opl-studio`。
 
 ## Decision
 
-`opl-studio` 是 One Person Lab App 的第一方 successor 实现仓库。它不是简单 GUI module、空 Shell
+`opl-studio` 是 One Person Lab App 当前的第一方实现仓库。它不是简单 GUI module、空 Shell
 或 OPL Framework plugin，而是基于 DeepSeek Harness `v0.1.6-alpha.1` 的独立 DSH/Cordis
 Application Host，原生管理 Codex App Server，并为 Electron Desktop、standalone headless WebUI
 和 Docker WebUI 提供同一 renderer、Host core 和 App bridge。
 
-App 仍把实现选择建模为 Shell role：
+One Person Lab App 是唯一面向用户的产品；普通界面继续显示 `One Person Lab`。
+`Studio` 描述当前 DSH/Cordis 应用架构与源码仓库，不另立正式产品。Stable 与 Nightly 是
+发布渠道，Standard 与 Full 是安装包形态，Desktop 与 WebUI 是使用载体。Full 在同一 Stable
+Release 中提供预置 runtime 与 Package 的首次安装包；Nightly 不代表 Stable 资格。
 
-- `aionui` 是当前 Stable active release shell；
-- `opl-studio` 是唯一 foreground alternative；
-- source implemented 不自动等于 active-shell adopted；
-- release admission 仍由 App owner 单独决定。
-
-因此，“Studio 是完整 Application Host”和“Studio 当前仍是 candidate Shell”同时成立：前者描述
-Studio 仓库内部架构，后者描述 App 当前发布组合中的角色。
+macOS Stable 从 26.9.25 起采用 Studio，保留原 App bundle identity 和更新入口。
+Studio Preview 保留独立身份，终结桥通过经过签名验证的目标包交接到正式 App；该桥的公开
+发布与两条旧版升级路径仍需实际验收，不能由新装成功推定。Windows 附加发布尚未完成。
+Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史 Aion 仓库。
 
 ## Repository Relationship
 
@@ -31,7 +31,7 @@ Studio 仓库内部架构，后者描述 App 当前发布组合中的角色。
 | `one-person-lab-app` | One Person Lab App 产品定义、GUI ABI、Client profile、page state、active-shell、版本组合、carrier evidence contract、迁移与 release |
 | `opl-studio` | DSH profile/plugin lifecycle、`opl-codex-native`、DSH tool MCP、Framework bridge、renderer、Desktop/WebUI/OCI carrier source 与 focused validation |
 | `one-person-lab` | Framework runtime、installed Package discovery/graph/currentness、App projection、state/action/authentication/channel callback contracts |
-| `opl-aion-shell` | 当前 Stable AionUI renderer/process/package implementation 与 upstream intake |
+| `opl-aion-shell` | 历史 AionUI 实现与旧版升级基线；生产调用方全部切换并验收后才可归档 |
 
 App repo 不复制 Studio source，Studio 也不复制 App product truth。App wrapper 通过
 `contracts/shell-adapters/opl-studio.json` 选择 Studio checkout，校验 App-owned compatibility，
@@ -96,9 +96,9 @@ Workspace smoke 仍归 Cloud owner。具体 image、tag 和 admission 字段以 
 Studio Preview 保持独立 product name、bundle id、user-data root、repository 和 updater feed。它可以
 用于候选验证，但不能冒充当前 `/Applications/One Person Lab.app` 或 App Stable feed。
 
-未来 adoption 仍保留两条迁移路线：
+本次切换保留两条迁移路线：
 
-1. 当前 AionUI App 从保留的 App identity/feed 原地升级到 Studio renderer；
+1. 既有 AionUI App 从保留的 App identity/feed 原地升级到 Studio renderer；
 2. Studio Preview 通过一个 exact signed handoff 安装同一正式 App release。
 
 正式 App 首次启动只迁移 allowlisted shell-local preferences、canonical-thread-keyed UI metadata
@@ -116,22 +116,13 @@ macOS 自动发现既有数据位置；Docker 必须挂载旧数据卷，可用 
 只读挂载目录。来源保留、绑定持久化、失败可重试以及删除后不重新导入属于同一迁移行为。
 这些首次启动能力可先进入独立 Preview，不替代正式 App identity 切换的签名与迁移验收。
 
-Adoption 只有在以下 owner evidence 完成后才可发生：
+发布状态以 App 合同与准确公开产物为准：`active_shell_adopted=true` 已进入主线，
+macOS Standard 已通过公开前签名、公证、Gateway 登录、Official Profile 首装和运行就绪验收。
+旧 AionUI 与 Studio Preview 的真实升级、数据延续和后续更新源是独立的待收尾验收，
+不改写为已经完成。Full、Nightly 及其他平台分别保留自身公开回读，不能由 Standard 代替。
 
-- minimum-complete App user outcomes；
-- three-carrier package/install/update/rollback evidence for the claimed scope；
-- signing/notarization/public artifact/feed evidence where applicable；
-- clean-host/VM and accessibility evidence for claimed platforms；
-- migration and rollback qualification；
-- explicit update of `contracts/app-shell-adapter.json`；
-- final installed/runtime/App/Framework owner readback。
-
-在此之前固定：
-
-- `active_shell_adopted=false`；
-- `release_ready=false`；
-- AionUI remains Stable mainline；
-- Studio source, local package, Preview 或 candidate manifest 都不能单独关闭 adoption gate。
+归档 `opl-aion-shell` 前须确认 Stable、Full、Nightly、发布说明和 CI 不再从该仓库获取当前
+生产源码，保留旧安装包和只读源码用于迁移及历史追溯。归档不删除旧用户数据或旧 Release。
 
 ## Canonical References
 

@@ -2281,7 +2281,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     'nightly-notes-baseline.json',
     'nightly-notes-evidence.json',
     '--qualification nightly-qualification.json',
-    '--shell-root shells/aionui',
+    '--shell-root ${{ needs.admission.outputs.shell_root }}',
     '--framework-root framework-source',
     'nightly-release-publisher.ts',
     'require_macos_gatekeeper: false',

@@ -36,6 +36,8 @@ jobs:
       tag: ${{ steps.request.outputs.tag }}
       app_ref: ${{ steps.request.outputs.app_ref }}
       shell_ref: ${{ steps.request.outputs.shell_ref }}
+      shell_repository: ${{ steps.profile.outputs.shell_repository }}
+      shell_root: ${{ steps.profile.outputs.shell_root }}
       framework_ref: ${{ steps.request.outputs.framework_ref }}
       request_digest: ${{ steps.request.outputs.request_digest }}
       invocation_mode: ${{ steps.request.outputs.invocation_mode }}
@@ -54,11 +56,16 @@ jobs:
           node-version: '24'
           cache: npm
 
+      - name: Resolve active Shell build profile
+        id: profile
+        run: node --experimental-strip-types scripts/active-shell-build-profile.ts --github-output "$GITHUB_OUTPUT"
+
       - name: Freeze one exact Standard Nightly request
         id: request
         env:
           GH_TOKEN: ${{ github.token }}
           OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation || '' }}
+          SHELL_REPOSITORY: ${{ steps.profile.outputs.shell_repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -92,7 +99,7 @@ jobs:
             echo "::error::Nightly must freeze canonical App main."
             exit 1
           }
-          shell_ref="$(git ls-remote https://github.com/gaofeng21cn/opl-aion-shell.git refs/heads/main | awk '{print $1}')"
+          shell_ref="$(git ls-remote "https://github.com/$SHELL_REPOSITORY.git" refs/heads/main | awk '{print $1}')"
           framework_ref="$(git ls-remote https://github.com/gaofeng21cn/one-person-lab.git refs/heads/main | awk '{print $1}')"
           [[ "$shell_ref" =~ ^[0-9a-f]{40}$ ]]
           [[ "$framework_ref" =~ ^[0-9a-f]{40}$ ]]
@@ -172,9 +179,9 @@ jobs:
       - name: Checkout exact active shell asset adapter
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: gaofeng21cn/opl-aion-shell
+          repository: ${{ needs.admission.outputs.shell_repository }}
           ref: ${{ needs.admission.outputs.shell_ref }}
-          path: shells/aionui
+          path: ${{ needs.admission.outputs.shell_root }}
           fetch-depth: 0
 
       - name: Checkout exact Framework notes source
@@ -284,7 +291,7 @@ jobs:
           previous_shell_ref="$(jq -er .component_manifest.source_cohort.shell_sha nightly-notes-baseline.json)"
           previous_framework_ref="$(jq -er .component_manifest.source_cohort.framework_sha nightly-notes-baseline.json)"
           git fetch --no-tags origin "$previous_app_ref"
-          git -C shells/aionui fetch --no-tags origin "$previous_shell_ref"
+          git -C ${{ needs.admission.outputs.shell_root }} fetch --no-tags origin "$previous_shell_ref"
           git -C framework-source fetch --no-tags origin "$previous_framework_ref"
 
       - name: Write deterministic Nightly changelog
@@ -296,7 +303,7 @@ jobs:
             --qualification nightly-qualification.json \
             --baseline nightly-notes-baseline.json \
             --app-root . \
-            --shell-root shells/aionui \
+            --shell-root ${{ needs.admission.outputs.shell_root }} \
             --framework-root framework-source \
             --output nightly-notes.md \
             --evidence-output nightly-notes-evidence.json

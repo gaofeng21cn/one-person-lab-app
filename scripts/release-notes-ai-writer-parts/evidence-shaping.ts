@@ -16,6 +16,7 @@ function compactReleaseNotesEvidence(evidence: ReleaseNotesEvidence) {
     previous_tag: source.previous_tag,
     install_command: source.install_command,
     full_changelog_url: source.full_changelog_url,
+    shell_transition: source.shell_transition,
     grouped_changes: source.grouped_changes,
     payload: source.payload,
     agent_runtime_changes: compactArray(source.agent_runtime_changes, 12).map((change: any) => ({
@@ -54,6 +55,8 @@ export function buildAiReleaseNotesPrompt(evidence: ReleaseNotesEvidence) {
     '',
     'Use the compact JSON evidence below as the only source of truth.',
     'Subject lists are representative; commit counts, compare URLs, payload lines, refs, versions, and install commands are authoritative.',
+    'When shell_transition is present, lead with that application architecture change and explain its user-visible consequences. Do not reduce it to maintenance polish or repeat unchanged Package roles as new features.',
+    'Do not imply upgrade validation is complete solely from source changes or a successful first install.',
     'Audience: normal OPL App users who want to know what improved and why they should upgrade.',
     '',
     'Hard requirements:',

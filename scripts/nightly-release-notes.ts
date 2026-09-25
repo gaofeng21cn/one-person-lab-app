@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -323,6 +324,7 @@ export function buildNightlyReleaseNotes(input: {
   if (baseline.release.tag === input.request.tag) {
     throw new Error('Nightly notes baseline must be a distinct earlier Release.');
   }
+  const shellProfile = readActiveShellBuildProfile(input.appRoot);
   const repositories: RepositoryInput[] = [
     {
       id: 'app',
@@ -334,8 +336,8 @@ export function buildNightlyReleaseNotes(input: {
     },
     {
       id: 'shell',
-      label: 'OPL Aion Shell',
-      repository: 'gaofeng21cn/opl-aion-shell',
+      label: shellProfile.id === 'opl-studio' ? 'OPL Studio' : 'OPL Aion Shell',
+      repository: shellProfile.repository,
       root: input.shellRoot,
       previousRef: baseline.component_manifest.source_cohort.shell_sha,
       currentRef: exactSha(input.request.source.shell_sha, 'Current Shell SHA'),

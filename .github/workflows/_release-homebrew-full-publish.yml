@@ -143,12 +143,21 @@ jobs:
             --manifest standard-component-manifest.json --expected-tag "$standard_tag" \
             --release-prerelease false --expected-source-commit "$base_target_commitish" > standard-component-identity.json
 
-          embedded_base_floor=a1561bdf1dfe6f316dad22f16152a537ddfb69d5
-          git clone --filter=blob:none --no-checkout https://github.com/gaofeng21cn/opl-aion-shell.git shell-product
-          git -C shell-product fetch --no-tags origin "$shell_sha" "$embedded_base_floor"
-          git -C shell-product merge-base --is-ancestor "$embedded_base_floor" "$shell_sha" || {
-            echo "::error::Full cohort predates the embedded-Base fail-closed carrier."; exit 1;
-          }
+          node --experimental-strip-types scripts/active-shell-build-profile.ts > active-shell-profile.json
+          shell_repository="$(jq -er .repository active-shell-profile.json)"
+          git clone --filter=blob:none --no-checkout "https://github.com/$shell_repository.git" shell-product
+          git -C shell-product fetch --no-tags origin "$shell_sha"
+          if [ "$(jq -er .id active-shell-profile.json)" = aionui ]; then
+            embedded_base_floor=a1561bdf1dfe6f316dad22f16152a537ddfb69d5
+            git -C shell-product fetch --no-tags origin "$embedded_base_floor"
+            git -C shell-product merge-base --is-ancestor "$embedded_base_floor" "$shell_sha" || {
+              echo "::error::Full cohort predates the embedded-Base fail-closed carrier."; exit 1;
+            }
+          else
+            # Studio Full uses its qualified embedded runtime carrier, not the
+            # ancestry of the unrelated legacy Aion implementation.
+            git -C shell-product cat-file -e "$shell_sha:desktop/runtime-bootstrap.mjs"
+          fi
           git clone --depth=1 https://github.com/gaofeng21cn/homebrew-one-person-lab.git tap-source
           tap_base_commit="$(git -C tap-source rev-parse HEAD)"
           updater_version="$(node --experimental-strip-types scripts/release-version.ts --channel stable --version "$version" --json | jq -er .updater_version)"

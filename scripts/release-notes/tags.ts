@@ -92,6 +92,12 @@ export function resolvePreviousTag(options: ReleaseNoteOptions, currentTag: stri
   return localTag || null;
 }
 
+export function readAppShellRepositoryAt(appRef: string | null) {
+  if (!appRef || !gitRefExists(appRef, process.cwd())) return null;
+  const raw = gitOutput(['show', `${appRef}:contracts/app-shell-adapter.json`], process.cwd());
+  try { return JSON.parse(raw)?.shell_source?.owner_repo || null; } catch { return null; }
+}
+
 function readAppShellRefAt(appRef: string | null) {
   if (!appRef || !gitRefExists(appRef, process.cwd())) {
     return null;

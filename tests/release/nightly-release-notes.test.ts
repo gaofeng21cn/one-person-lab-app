@@ -49,6 +49,8 @@ function fixture(
     'fix(updater): preserve Preview automatic update metadata',
     'test: cover internal release receipt',
   ]);
+  fs.mkdirSync(path.join(root, 'app/contracts'), { recursive: true });
+  fs.copyFileSync(new URL('../../contracts/app-shell-adapter.json', import.meta.url), path.join(root, 'app/contracts/app-shell-adapter.json'));
   const shell = repository(path.join(root, 'shell'), ['fix: improve first-run setup']);
   const framework = repository(
     path.join(root, 'framework'),
@@ -173,6 +175,9 @@ test('Nightly notes are deterministic, evidence-bound, and useful to Preview upd
     assert.match(first.notes, new RegExp(component.compare_url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.equal(first.evidence.components[0]?.commit_count, 3);
+  assert.equal(first.evidence.components[1]?.label, 'OPL Studio');
+  assert.equal(first.evidence.components[1]?.repository, 'gaofeng21cn/opl-studio');
+  assert.doesNotMatch(first.notes, /opl-aion-shell/);
   assert.equal(first.evidence.notes_sha256.length, 71);
 });
 

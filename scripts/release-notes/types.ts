@@ -52,6 +52,7 @@ export type FamilyRepoChange = {
 
 export type ReleaseNotesEvidence = {
   schema: 'opl_app_release_notes_evidence.v1';
+  shell_transition?: { previous_repository: string; current_repository: string; summary: string };
   version: string;
   channel: ReleaseChannel;
   release_title: string;

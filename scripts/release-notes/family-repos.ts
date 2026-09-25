@@ -140,6 +140,8 @@ export function buildAppAndShellRepoChanges(input: {
   currentTag: string;
   appSubjects: string[];
   shellSubjects: string[];
+  shellRepository: string;
+  shellLabel: string;
   shellPreviousRef: string | null;
   shellCurrentRef: string | null;
 }) {
@@ -162,10 +164,10 @@ export function buildAppAndShellRepoChanges(input: {
     });
   }
   if (input.shellCurrentRef && (input.shellSubjects.length > 0 || input.shellPreviousRef !== input.shellCurrentRef)) {
-    const remoteCompare = collectRemoteCompare('gaofeng21cn/opl-aion-shell', input.shellPreviousRef, input.shellCurrentRef);
+    const remoteCompare = collectRemoteCompare(input.shellRepository, input.shellPreviousRef, input.shellCurrentRef);
     changes.push({
-      label: 'OPL Aion Shell',
-      repository: 'gaofeng21cn/opl-aion-shell',
+      label: input.shellLabel,
+      repository: input.shellRepository,
       previous_ref: input.shellPreviousRef,
       current_ref: input.shellCurrentRef,
       previous_version: null,
@@ -174,7 +176,7 @@ export function buildAppAndShellRepoChanges(input: {
       compare_status: remoteCompare.compare_status,
       commit_count: remoteCompare.commit_count ?? input.shellSubjects.length,
       change_subjects: remoteCompare.change_subjects.length > 0 ? remoteCompare.change_subjects : input.shellSubjects.slice(0, 8),
-      change_summary_hint: fallbackChangeSummaryHint('OPL Aion Shell', input.shellSubjects),
+      change_summary_hint: fallbackChangeSummaryHint(input.shellLabel, input.shellSubjects),
     });
   }
   return changes;
