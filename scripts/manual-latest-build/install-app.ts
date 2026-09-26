@@ -9,13 +9,16 @@ import {
   type ManualLocalAppIdentity,
 } from './common.ts';
 
-const FULL_MANIFEST_REF = path.join(
+const FULL_MANIFEST_REFS = [
+  'opl-studio-full-runtime',
+  'opl-full-runtime',
+].map((runtimeResourceDir) => path.join(
   'Contents',
   'Resources',
-  'opl-full-runtime',
+  runtimeResourceDir,
   'manifest',
   'full-package-manifest.json',
-);
+));
 
 export type ManualAppVersionIdentity = {
   bundle_id: string;
@@ -202,10 +205,10 @@ function readAppVersionIdentityUnchecked(appPath: string): ManualAppVersionIdent
   requireDirectory(appPath, 'App bundle');
   const shortVersion = plistValue(appPath, 'CFBundleShortVersionString');
   const bundleVersion = plistValue(appPath, 'CFBundleVersion');
-  const manifestPath = path.join(appPath, FULL_MANIFEST_REF);
-  const manifest = fs.statSync(manifestPath, { throwIfNoEntry: false })?.isFile()
-    ? readJson(manifestPath)
-    : null;
+  const manifestPath = FULL_MANIFEST_REFS
+    .map((relativePath) => path.join(appPath, relativePath))
+    .find((candidate) => fs.statSync(candidate, { throwIfNoEntry: false })?.isFile()) ?? null;
+  const manifest = manifestPath ? readJson(manifestPath) : null;
   const publicUpdaterVersion = optionalPlistValue(appPath, 'OPLPublicUpdaterVersion') || shortVersion;
   return {
     bundle_id: plistValue(appPath, 'CFBundleIdentifier'),
