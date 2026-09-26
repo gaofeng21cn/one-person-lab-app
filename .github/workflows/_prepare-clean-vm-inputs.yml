@@ -86,6 +86,8 @@ jobs:
             artifacts/opl-first-run-vm/codex-package-tarballs
           key: ${{ steps.prefetch.outputs.cache_key }}
       - name: Upload exact install tarballs
+        id: upload_tarballs
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: opl-clean-vm-prepared-${{ inputs.package_profile }}-${{ github.run_id }}
@@ -93,6 +95,16 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
+      - name: Retry exact install tarballs upload once
+        if: ${{ steps.upload_tarballs.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-clean-vm-prepared-${{ inputs.package_profile }}-${{ github.run_id }}
+          path: artifacts/opl-first-run-vm/codex-package-tarballs
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
       - name: Expose successful preparation
         id: identity
         run: echo 'artifact_name=opl-clean-vm-prepared-${{ inputs.package_profile }}-${{ github.run_id }}' >> "$GITHUB_OUTPUT"
