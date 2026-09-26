@@ -3948,6 +3948,7 @@
               "path_deduplication_policy": "deduplicate Codex PATH candidates by normalized real_path when present otherwise binary_path and retain shadowed candidates in diagnostics",
               "path_identity_precedence": ["real_path", "binary_path"],
               "external_update_policy": "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
+              "default_update_policy": "OPL-managed Base and capability roots are silent_managed by default; auto_apply eligibility is a live execution condition and must not be displayed as a manual user preference",
               "manual_operation_policy": {
                 "silent_managed": "route to the existing OPL Base update or repair action and never synthesize a per-dependency action",
                 "explicit_owner_delegated": "render the Framework update_action only after explicit confirmation",
@@ -5446,7 +5447,7 @@
               "model access readiness and real source from app_state.core.codex.model_access_source",
               "selected and default model, with Auto showing its resolved friendly model",
               "persistent default model and reasoning effort for new conversations",
-              "active Codex CLI version as the model execution prerequisite",
+              "active Codex CLI readiness as the model execution prerequisite; its version and update policy belong to Runtime & Maintenance",
               "one visible route to Account & Access when credentials need attention"
             ],
             "first_viewport_groups": ["model_access", "model_preference", "codex_cli"],
@@ -6703,8 +6704,8 @@
               "anchor": "codex-cli",
               "label_zh": "Codex CLI",
               "label_en": "Codex CLI",
-              "keywords_zh": ["Codex CLI", "版本", "执行"],
-              "keywords_en": ["codex cli", "version", "execution"]
+              "keywords_zh": ["Codex CLI", "可用性", "执行"],
+              "keywords_en": ["codex cli", "availability", "execution"]
             },
             {
               "id": "agents.catalog",

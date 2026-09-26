@@ -176,7 +176,7 @@ and a path shown in diagnostics is not a second path configuration.
 | Question | Owner | Allowed summaries elsewhere | Forbidden duplication |
 | --- | --- | --- | --- |
 | Who is connected to OPL Gateway and what account, usage, Key, or credential state applies? | Account & Access | Overview: signed-in identity, connection and availability, plus compact today token, cost, and balance summary. Models: access-source summary and owner link. | Full account card, total historical usage or cost, login, Key lifecycle, refresh, or disconnect outside Gateway. |
-| Which model source, default model, and reasoning preference apply? | Models | Overview: overall model-access readiness. | Gateway account and credential controls on Models. |
+| Which model source, default model, and reasoning preference apply? | Models | Overview: overall model-access readiness. Models may show Codex availability without its version. | Gateway account and credential controls, Codex version, or update actions on Models. |
 | Which workspace is active and writable, and where are project artifacts stored? | Workspace > Working Directory | Overview may count an actionable exception. | User instructions, App logs, Framework/raw paths, or four separate normal-state cards. |
 | What global instructions and new-conversation context apply? | Agents & Capabilities > Instructions & Context | The existing Workspace personalization route remains a carrier transport only. | Presenting either editor as a Workspace or Preferences child. |
 | Where are App logs and diagnostics, and what needs maintenance? | Runtime & Maintenance > Logs & Diagnostics | Storage may link to the resolved log path read-only. | Presenting logs under Workspace or duplicating the log-directory setting in Storage. |
@@ -184,7 +184,7 @@ and a path shown in diagnostics is not a second path configuration.
 | Which Skills and Plugins are available? | Capabilities | Agent dependency readiness may link here. | A hardcoded Flow list or AionUI-native assistants presented as OPL capabilities. |
 | Which external resources, connections, and deployment entry points are available? | Connections & Deployment > Resources & Connections | Other pages may link to a resource. | Built-in OPL Gateway connection or Gateway count; selected local workspace controls. |
 | Are Codex and background services available? | Runtime & Maintenance > Service Status | Overview shows one compact Background tasks summary. | Update controls, log configuration, raw paths, or receipts. |
-| Which managed dependencies need updates or repair? | Runtime & Maintenance > Updates & Repair | Models may show the active Codex CLI version. | Service topology, log controls, raw paths on Workspace, or a separate Advanced page. |
+| Which managed dependencies need updates or repair? | Runtime & Maintenance > Updates & Repair | Overview, Models, and Service Status may show only a compact Codex readiness state. | Repeating Codex versions, update channels, update policy, or update actions on other pages. |
 | How much local and Docker data is used, where are deployment locations, and what can be cleaned safely? | Data & Storage | Updates & Repair may link to cleanup attention; the Logs & Diagnostics-owned log path may be referenced read-only. | Log-directory configuration, mount rewiring, or generic Docker prune. |
 | How should the App behave and look? | Preferences | Theme legacy routes redirect here. | Workspace paths, user instructions, or new-conversation additions. |
 
@@ -273,12 +273,14 @@ failure preserves the cache with a stale marker.
 
 Models owns model-access readiness, the real
 `app_state.core.codex.model_access_source`, selected and default model,
-reasoning preference for new conversations, and the active Codex CLI version
-as an execution prerequisite.
+and reasoning preference for new conversations. It may show whether the active
+Codex CLI is ready, but the version and update policy belong only to Runtime &
+Maintenance > Updates & Repair.
 
 When credentials need attention it exposes one route to Account & Access. It
 does not show the Gateway account card, balance, usage, login form, manual Key
-form, managed Key lifecycle, raw provider paths, or Codex CLI update controls.
+form, managed Key lifecycle, raw provider paths, Codex CLI version, or update
+controls.
 
 ### Workspace
 
@@ -455,7 +457,11 @@ three destinations into one long “Services & Maintenance” page.
    Base/App currentness, Desktop App update state, Check, Apply, progressive
    confirmation, progress, and fresh readback. Packages appear only as one
    aggregate summary with a link to Agents; per-Package actions stay on that
-   Package row. Native repair/rollback opens the owning platform's advanced
+   Package row. OPL-managed Base and capability updates use the Framework's
+   default silent background policy. The page reports that policy once and
+   hides a manual Apply action while the component is in its normal managed
+   path; an explicit action appears only for an owner-reported repair or other
+   attention state. Native repair/rollback opens the owning platform's advanced
    route and never becomes an App state machine. Healthy components collapse
    into a compact summary; at most one recommended action is emphasized.
 3. **Logs & Diagnostics** (`environment#diagnostics`) answers where App logs are

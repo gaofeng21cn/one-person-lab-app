@@ -47,7 +47,7 @@ Native 将来需要独立实现同一用户结果。视觉 1:1 是独立的 pixe
 | ID | 必要基线 | 为什么必要 | 当前产品边界 |
 | --- | --- | --- | --- |
 | `B0-01` | App shell、窗口、rail、响应式导航、键盘历史 | 没有稳定的桌面骨架就不是可持续使用的 Codex 工作台。 | AionUI 优先复用；Native 自行实现。视觉参考不复制 Codex 品牌或 authority。 |
-| `B0-02` | Home/New task、session/thread 目录与历史管理 | 新建、恢复、搜索、pin、rename、archive/restore 是日常入口。 | Session 是身份单位；Project affinity 为零或一。新 session 可 projectless；未归口 session 可一次性进入一个目录组，已绑定 session 不任意换组。 |
+| `B0-02` | Home/New task、session/thread 目录与历史管理 | 新建、恢复、搜索、pin、rename、archive/restore/delete 是日常入口。 | Session 是身份单位；Project affinity 为零或一。新 session 可 projectless；未归口 session 可一次性进入一个目录组，已绑定 session 不任意换组。删除直接由 Codex App Server owner 执行并在 canonical directory 回读后从列表移除。 |
 | `B0-03` | Conversation timeline、streaming、stop/retry、tool/process 与错误 | 这是 AI 工作闭环，不应被 OPL 管理面取代。 | 复用 Codex/AionUI conversation adapter；conversation 创建、initial send 或会话内 send 失败时恢复 prompt 与附件，并与发送后新增输入合并而不覆盖。 |
 | `B0-04` | Composer、文本、附件、paste/drop、显式 file/directory input | 用户必须能直接把本地上下文交给 Agent。 | 输入只进入当前 send，不做隐式 workspace preload。 |
 | `B0-05` | Model/reasoning 与 Auto/fixed 偏好 | 用户需要在发送点控制质量、速度和成本。 | 交互属于 B0；模型 entitlement、余额和默认目录 owner 归 `R1-02`。 |
@@ -144,8 +144,8 @@ App 不以 allowlist 删除 capability，只应用窄 Team/internal negative pol
 | --- | --- | --- |
 | New conversation | 在所选目录初始化 cwd，或不选 Project 直接开始 projectless Codex session；底层仍有 runtime cwd，projectless 仅表示无用户选择的 Project affinity。 | GUI contract、conversation page state、Codex bridge。 |
 | Resume conversation | 按 canonical thread ID 找回 recent conversation，保留 transcript/turn history/title/task state、Project-affinity 分组和 recorded runtime cwd 展示。 | Conversation state/bridge；shell 只持有 affinity/UI metadata 与实现所需 session refs。 |
-| Conversation management | Search、pin、rename、archive、reset conversation，并在独立 Archived surface 管理归档。 | GUI contract、conversation state/bridge。 |
-| User-triggered thread operations | 从现有 conversation directory/actions 读取、创建、恢复、fork、归档或恢复归档线程；普通对话继续走 AionUI ACP，不增加独立 coordination 页面或模型工具。 | 一个 Codex App Server adapter；Shell 只持有 UI metadata 与可重建 cache。 |
+| Conversation management | Search、pin、rename、archive、restore、delete、reset conversation，并在独立 Archived surface 管理归档。 | GUI contract、conversation state/bridge。 |
+| User-triggered thread operations | 从现有 conversation directory/actions 读取、创建、恢复、fork、归档、恢复归档或删除线程；删除需要明确确认并在 canonical directory 回读后完成。普通对话继续走 AionUI ACP，不增加独立 coordination 页面或模型工具。 | 一个 Codex App Server adapter；Shell 只持有 UI metadata 与可重建 cache。 |
 | Session Project affinity / working directory | Home/new-session composer 上方独立 context bar 只设置新任务初始 cwd，working directory 不进入 `+` palette。projectless session 可由用户从 rail 一次性归入一个目录；归属以 exact canonical thread ID 为键写入版本化 Studio UI metadata，不伪造 App Server `projectId`，也不要求当前协议不存在的 `thread/read.projectId` 回读。失败保持 projectless 且对话可继续；已有显式 affinity 的 session 不提供 A→B 改绑、无真实 adapter 的 Local/Worktree 切换或 managed Worktree。Recorded cwd、turn cwd、shell `pwd`、显式文件/目录输入与 writable roots 均独立。 | Codex Core/App Server 持有 canonical thread ID 与 recorded cwd；Studio 持有可重建的版本化 affinity/UI metadata。Project 是单一目录 affinity、后续默认 cwd hint、展示与分组 metadata，不是 thread identity 或授权域。 |
 | Text instruction | 向固定 Codex executor 发送多行任务说明。 | Product profile、ordinary conversation contract。 |
 | Streaming assistant output | 持续看到 assistant response，不需要查看 raw protocol。 | Codex/App bridge 与 conversation page state。 |
@@ -210,7 +210,7 @@ GUI contract 与 Settings Control Plane 拥有。
 | --- | --- | --- |
 | 概览 > 概览 | 判断 App 当前是否可用、后台任务是否正常，以及最重要的下一步。Temporal 明细不在这里展开。 | Settings Control Plane、fast App state。 |
 | 账户与模型 > 账户与访问 | 登录 OPL Gateway 或配置手工 API Key；账户连接时查看脱敏身份、余额、Token/实际成本、专用 Key 状态和数据新鲜度。 | Framework Gateway account projection/secret bridge；密码不进入 App state 或 generic action。 |
-| 账户与模型 > 模型 | 查看模型访问来源、默认模型、推理偏好与 Codex CLI 版本，不复制 Gateway 账户和凭据控制。 | Framework model access projection、App model/reasoning preference。 |
+| 账户与模型 > 模型 | 查看模型访问来源、默认模型、推理偏好与 Codex CLI 可用性，不复制 Gateway 账户和凭据控制；版本与更新策略统一在运行与维护查看。 | Framework model access projection、App model/reasoning preference。 |
 | 连接与部署 > 资源与连接 | 查看真实存在的本机访问、WebUI 和外部连接 refs；内置 OPL Gateway 不在这里重复。Hosted Workspace、Fabric/HPC、Console 仅在稳定 owner/backend 存在时出现。 | Framework/Connect refs；X0-03/X0-04 owner routes 条件启用，App 不拥有资源 truth。 |
 | 工作区 > 工作目录 | Desktop 查看、切换、验证 Framework logical workspace root；standalone WebUI 只读显示实际 owner 投影，Docker WebUI 只读显示 `/projects`；任何 WebUI 都不执行 `workspace_root_set` 或修改宿主 bind。 | Framework workspace state/action、carrier policy。 |
 | 工作区 > 数据与存储 | 查看空间、数据分类、preview、安全 cleanup，以及 Docker `/projects`、`/data` 与可选 `/recovery` 的只读部署位置。 | App-owned storage lifecycle、Framework/host projections。 |

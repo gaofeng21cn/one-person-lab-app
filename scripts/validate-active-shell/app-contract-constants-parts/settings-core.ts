@@ -133,6 +133,8 @@ export const appOwnedSettingsManagedDependencySummary = {
   path_identity_precedence: ["real_path", "binary_path"],
   external_update_policy:
     "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
+  default_update_policy:
+    "OPL-managed Base and capability roots are silent_managed by default; auto_apply eligibility is a live execution condition and must not be displayed as a manual user preference",
   manual_operation_policy: {
     silent_managed:
       "route to the existing OPL Base update or repair action and never synthesize a per-dependency action",

@@ -1987,6 +1987,7 @@
           "binary_path"
         ],
         "external_update_policy": "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
+        "default_update_policy": "OPL-managed Base and capability roots are silent_managed by default; auto_apply eligibility is a live execution condition and must not be displayed as a manual user preference",
         "manual_operation_policy": {
           "silent_managed": "route to the existing OPL Base update or repair action and never synthesize a per-dependency action",
           "explicit_owner_delegated": "render the Framework update_action only after explicit confirmation",
@@ -3508,13 +3509,13 @@
         "real access source from app_state.core.codex.model_access_source",
         "selected and default model",
         "persistent default model and reasoning effort for new conversations",
-        "active Codex CLI version as the execution prerequisite",
+        "active Codex CLI readiness as the execution prerequisite; its version and update policy belong to Runtime & Maintenance",
         "one route to Account & Access when credentials need attention"
       ],
       "must_not_show": [
         "Gateway account card, balance, usage, login form, managed Key lifecycle, or manual API-key form",
         "resource cards owned by Resources & Connections",
-        "raw base URL, environment variable, token path, or provider id on the ordinary Models surface",
+        "raw base URL, environment variable, token path, provider id, or Codex version on the ordinary Models surface",
         "Codex CLI update controls owned by Maintenance"
       ],
       "ordinary_cockpit_surface_budget_ref": "contracts/app-gui-product-contract.json#ordinary_cockpit_surface_budget",

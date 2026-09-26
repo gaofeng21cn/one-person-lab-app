@@ -246,6 +246,8 @@
         "officecli_cli",
         "mineru_cli"
       ],
+      "version_display_policy": "Runtime & Maintenance > Updates & Repair is the sole ordinary Settings owner for managed dependency versions, update channel, currentness, and update policy; Overview, Models, and Service Status render readiness only",
+      "default_update_policy": "OPL-managed roots use silent_managed background reconciliation; current auto_apply eligibility is execution state and must not be rendered as a user-selected manual policy",
       "must_not_create_fourth_updater": true
     }
   },
@@ -1655,6 +1657,7 @@
             "binary_path"
           ],
           "external_update_policy": "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
+          "default_update_policy": "OPL-managed Base and capability roots are silent_managed by default; auto_apply eligibility is a live execution condition and must not be displayed as a manual user preference",
           "manual_operation_policy": {
             "silent_managed": "route to the existing OPL Base update or repair action and never synthesize a per-dependency action",
             "explicit_owner_delegated": "render the Framework update_action only after explicit confirmation",
@@ -3317,7 +3320,7 @@
           "model access readiness and real source from app_state.core.codex.model_access_source",
           "selected and default model, with Auto showing its resolved friendly model",
           "persistent default model and reasoning effort for new conversations",
-          "active Codex CLI version as the model execution prerequisite",
+          "active Codex CLI readiness as the model execution prerequisite; its version and update policy belong to Runtime & Maintenance",
           "one visible route to Account & Access when credentials need attention"
         ],
         "first_viewport_groups": [
