@@ -10,8 +10,8 @@ Machine boundary: 本文解释 App 已批准的 Studio Application Host 架构�
 
 ## 结论
 
-OPL Studio 以 DeepSeek Harness `v0.1.6-alpha.1`、commit
-`0a15e36e7f82b6ed45af6fa9759f29b40dcd965d` 为基座，复用的是完整 DSH/Cordis
+OPL Studio 以 DeepSeek Harness `v0.1.7-rc.2`、commit
+`477b4f420553e8a52c2fbccc464d7561b239c443` 为基座，复用的是完整 DSH/Cordis
 Application Host 骨架和选定 GUI 源码，不是只复用 GUI 模块。
 
 Studio 因此同时承担三类实现责任：

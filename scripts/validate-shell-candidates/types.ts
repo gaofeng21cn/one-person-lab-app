@@ -135,8 +135,8 @@ export type DSHSourceReuseContract = {
 export type DSHApplicationHostContract = {
   role: 'deepseek_harness_cordis_application_host';
   implementation_status: 'source_implemented_release_admission_separate';
-  upstream_version: '0.1.6-alpha.1';
-  upstream_ref: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d';
+  upstream_version: '0.1.7-rc.2';
+  upstream_ref: '477b4f420553e8a52c2fbccc464d7561b239c443';
   profile: 'opl-studio';
   profile_source: 'scripts/webui-host/dsh/cordis.yml';
   web_overlay: 'scripts/webui-host/dsh/web.patch.yml';

@@ -46,3 +46,6 @@ The App whitepaper is published by the Framework family publisher:
 and [PDF](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.pdf).
 Install-guide publication and generated output routing are documented in [Site](site/README.md).
 An index link is not evidence that a public artifact is current or available.
+
+
+| DSH 插件与 OPL 设置归属 | [DSH plugin and settings map](product/gui/dsh-plugin-and-settings-map.md) | 官方插件准入、OPL 自有插件和设置 owner 关系 |

@@ -502,9 +502,9 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
   }
   if (
     deepseekHarness.source_repo !== 'https://github.com/deepseek-ai/deepseek-harness' ||
-    deepseekHarness.evaluated_ref !== '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d' ||
+    deepseekHarness.evaluated_ref !== '477b4f420553e8a52c2fbccc464d7561b239c443' ||
     deepseekHarness.evaluated_at !== '2026-08-22' ||
-    deepseekHarness.evaluated_version !== '0.1.6-alpha.1 Application Host and GUI source cohort' ||
+    deepseekHarness.evaluated_version !== '0.1.7-rc.2 Application Host and GUI source cohort' ||
     deepseekHarness.license !== 'MIT' ||
     deepseekHarness.source_usage !== 'approved_application_host_runtime_and_gui_source_reuse'
   ) {
@@ -515,36 +515,37 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
     '@deepseek-ai/cordis-plugin-group': '1.0.2',
     '@deepseek-ai/cordis-plugin-include': '1.0.7',
     '@deepseek-ai/cordis-plugin-loader': '1.0.3',
-    '@deepseek-ai/dsh-client-store': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-agent-presets': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-util-workspace-path': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-app-boot': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-brand': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-client-modules': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-client-ui-dockkit': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-client-ui-primitives': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-client-ui-slots': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-client-web': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-home-paths': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-host-frontend-static': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-host-plugin-inventory': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-host-webserver': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-invariants': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-launch-environment': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-llm': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-scope': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-sandbox': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-sandbox-policy': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-session': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-system-prompt': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-timeout': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-tools': '0.1.6-alpha.1',
-    '@deepseek-ai/dsh-typert-protocol': '0.1.6-alpha.1',
+    '@deepseek-ai/dsh-client-store': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-agent-preset-registry': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-util-code-language': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-util-workspace-path': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-app-boot': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-brand': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-client-modules': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-client-ui-dockkit': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-client-ui-primitives': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-client-ui-slots': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-client-web': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-home-paths': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-host-frontend-static': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-host-plugin-inventory': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-host-webserver': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-invariants': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-launch-environment': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-llm': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-scope': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-sandbox': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-sandbox-policy': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-session': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-system-prompt': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-timeout': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-tools': '0.1.7-rc.2',
+    '@deepseek-ai/dsh-typert-protocol': '0.1.7-rc.2',
     'use-sync-external-store': '1.2.0',
   }, 'DeepSeek Harness adopted_packages');
   assertDeepEqualJson(deepseekHarness.adopted_source, {
     root: 'src/vendor/deepseek-harness',
-    ref: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d',
+    ref: '477b4f420553e8a52c2fbccc464d7561b239c443',
     path_policy: 'preserve_upstream_package_relative_paths',
     byte_policy: 'byte_identical_to_pinned_ref',
     package_roots: [

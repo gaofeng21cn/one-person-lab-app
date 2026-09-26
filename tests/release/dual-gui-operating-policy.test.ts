@@ -182,12 +182,12 @@ test('DeepSeek Harness Application Host and full GUI reuse stay Studio-only whil
   const visualCohort = readJson<any>('contracts/app-gui-visual-source-cohort.json');
   const governance = (registry as any).design_system_governance;
 
-  assert.equal(reference?.evaluated_ref, '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d');
+  assert.equal(reference?.evaluated_ref, '477b4f420553e8a52c2fbccc464d7561b239c443');
   assert.equal(reference?.license, 'MIT');
   assert.equal(reference?.source_usage, 'approved_application_host_runtime_and_gui_source_reuse');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.1.6-alpha.1');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.1.6-alpha.1');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-invariants'], '0.1.6-alpha.1');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.1.7-rc.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.1.7-rc.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-invariants'], '0.1.7-rc.2');
   assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-web-react'], undefined);
   assert.equal(reference?.adopted_packages['use-sync-external-store'], '1.2.0');
   assert.equal(reference?.adopted_source?.root, 'src/vendor/deepseek-harness');
