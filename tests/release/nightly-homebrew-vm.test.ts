@@ -20,11 +20,45 @@ function evaluateCondition(expression: string, context: Record<string, unknown>)
   });
 }
 
+test("VM version admission accepts generated Stable and Nightly machine versions", () => {
+  const smoke = workflow.jobs["clean-vm-first-run"].steps.find((step: any) => step.id === "vm_smoke");
+  const versionScript = smoke.run.slice(
+    smoke.run.indexOf('display_version="$(jq'),
+    smoke.run.indexOf('dmg_sha256="$(jq'),
+  );
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "opl-vm-version-"));
+  const manifest = path.join(root, "cohort.json");
+  try {
+    for (const [displayVersion, override, expected] of [
+      ["26.9.26", "", "26.9.2691"],
+      ["26.9.26-nightly", "", "26.9.2691-nightly.1"],
+      ["26.9.26-nightly.r2", "", "26.9.2691-nightly.3"],
+      ["26.9.26", "26.9.2692", "26.9.2692"],
+      ["26.9.26-nightly", "26.9.2691-nightly.bad", null],
+      ["26.9.26-nightly", "26.9.2691-nightly.0", null],
+      ["26.9.26", "26.9.2691-unbound.1", null],
+    ] as const) {
+      fs.writeFileSync(manifest, JSON.stringify({ build: { version: displayVersion } }));
+      const script = versionScript.replace("${{ inputs.expected_updater_version }}", override);
+      const result = spawnSync("bash", ["-c", `set -euo pipefail\nmanifest="$TEST_MANIFEST"\n${script}\nprintf '%s' "$machine_version"`], {
+        cwd: process.cwd(), encoding: "utf8", env: { ...process.env, TEST_MANIFEST: manifest },
+      });
+      assert.equal(result.status === 0, expected !== null, `${displayVersion}: ${result.stderr}`);
+      if (expected !== null) assert.equal(result.stdout, expected);
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("Nightly public DMG downloads and verifies the exact producer cohort before Codex prefetch", () => {
   const follower = parseYaml(fs.readFileSync(
     path.join(process.cwd(), ".github/workflows/release-nightly-followups.yml"), "utf8",
   ));
   const caller = follower.jobs["sampled-standard-vm"];
+  assert.equal(caller.with.require_macos_gatekeeper, false);
+  const smoke = workflow.jobs["clean-vm-first-run"].steps.find((step: any) => step.id === "vm_smoke");
+  assert.match(smoke.run, /if \[ "\$channel" = nightly \]; then CMD\+=\(--channel nightly\); fi/);
   assert.equal(caller.with.release_cohort_artifact_name, "nightly-macos-arm64-dmg-cohort");
   assert.equal(caller.with.release_artifact_name, undefined);
   assert.equal(caller.with.release_artifact_run_id,

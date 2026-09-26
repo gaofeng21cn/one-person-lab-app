@@ -147,6 +147,11 @@ checkpoint digest。该参数只允许用于已有检查点的恢复，迁移回
 
 ## 6. 推进附加发布，保持产品独立
 
+Nightly 抽样 VM 使用原发布 cohort、公开 DMG 摘要和带 `-nightly.N` 的机器版本，
+通过 `--channel nightly` 验证 Standard 安装、Gateway 登录与 Official Profile。
+其回执为 `opl_studio_nightly_clean_vm.v1`，不声明 Stable 签名、公证或 Gatekeeper 资格；
+Stable 的这些门禁保持必需。只修验证器时用 `run_sampled_vm` 和准确的 `smoke_harness_ref` 复用原包。
+
 Standard 公开回读成功后，现有 follow-up hub 即启动适用的 Full、平台包和 Homebrew 路径。检查自动路径的 owner 再决定是否手动恢复，不等待包含其他渠道的整个 workflow 结束，也不双重派发。
 
 Full 的发布仍以已公开 Standard 为前提；构建后的静态包检查与 clean-VM 可并行，只有两者通过才能成为 `full_qualified`。已合格检查点直接继续发布。源码检查与隔离构建可并行，整体成功仍须所有必需检查通过。

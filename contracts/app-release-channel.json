@@ -3398,6 +3398,14 @@
     }
   },
   "nightly_standard": {
+    "sampled_vm_qualification": {
+      "channel": "nightly",
+      "runtime_profile": "standard",
+      "exact_published_digest_and_installed_machine_version_required": true,
+      "gateway_login_and_official_profile_required": true,
+      "stable_distribution_trust_claimed": false,
+      "receipt_schema": "opl_studio_nightly_clean_vm.v1"
+    },
     "status": "implemented",
     "selectable": false,
     "publication_available": true,
