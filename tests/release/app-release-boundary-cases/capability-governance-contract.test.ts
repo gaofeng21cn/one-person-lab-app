@@ -331,7 +331,7 @@ test('model precedence keeps a supported App frontier ahead of stale recommendat
   const productProfile = readJson('contracts/app-product-profile.json');
   assert.deepEqual(productProfile.codex.auto_model_policy.resolution_precedence, [
     'explicit_user_selection',
-    'fresh_catalog_frontier_then_app_default_when_available',
+    'app_default_then_catalog_compatibility',
     'installed_opl_flow_recommendation',
     'fresh_codex_live_default',
     'app_fallback_when_flow_unavailable',
