@@ -922,6 +922,7 @@ jobs:
     with:
       app_ref: ${{ needs.freeze.outputs.app_sha }}
       package_profile: standard
+      retry_artifact_upload_once: true
 
   standard-build:
     if: ${{ inputs.prior_standard_artifact_run_id == '' }}
