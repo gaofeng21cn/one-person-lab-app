@@ -206,6 +206,7 @@ tests/e2e/report/
 # Generated OPL full internal runtime payloads
 packaged-runtimes/opl-full-runtime/runtime/
 packaged-runtimes/opl-full-runtime/manifest/
+packaged-runtimes/
 
 # PowerShell accidentally creates a literal file named '$null' when a command
 # redirects output to $null (e.g. `cmd > $null`) on Windows runners.
