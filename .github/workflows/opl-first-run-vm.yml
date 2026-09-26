@@ -2227,7 +2227,10 @@ jobs:
           if [ -z "$machine_version" ]; then
             machine_version="$(node --experimental-strip-types scripts/release-version.ts --channel "$channel" --version "$display_version" --json | jq -er .updater_version)"
           fi
-          [[ "$machine_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$machine_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-nightly\.[1-9][0-9]*)?$ ]] || {
+            echo "::error::Expected an exact Stable or Nightly machine version."
+            exit 1
+          }
           dmg_sha256="$(jq -er .artifact.sha256 "$manifest")"
           test -n "$EXPECTED_TEAM_ID" || { echo "::error::Expected Developer ID team is required."; exit 1; }
           CMD=(
@@ -2248,6 +2251,7 @@ jobs:
             --gateway-account-email-file "${{ steps.gateway_credentials.outputs.email_file }}"
             --gateway-account-password-file "${{ steps.gateway_credentials.outputs.password_file }}"
           )
+          if [ "$channel" = nightly ]; then CMD+=(--channel nightly); fi
           if [ "${{ inputs.require_macos_gatekeeper }}" = "true" ]; then
             CMD+=(--require-gatekeeper)
           fi
