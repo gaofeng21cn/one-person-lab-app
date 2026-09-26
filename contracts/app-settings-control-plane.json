@@ -24,7 +24,23 @@
     "single_destination_tab_list_allowed": false,
     "concatenated_destination_page_allowed": false,
     "responsive_semantics_must_match": true,
-    "runtime_extension": false
+    "runtime_extension": false,
+    "presentation": {
+      "baseline": "pinned_DSH_settings_shell_and_theme_tokens",
+      "header": "single_destination_title_with_optional_trailing_quiet_refresh",
+      "subnavigation": "separate_compact_row_only_for_multiple_destinations",
+      "description": "one_user_task_sentence_without_owner_or_projection_jargon",
+      "local_preferences": "usable_without_Framework_readback_and_no_global_refresh",
+      "capability_catalog": "installed_and_actionable_items_first;_upstream_adoption_details_collapsed_and_excluded_from_count",
+      "refresh_scope": "one_page_refresh_rereads_visible_sources;_account_usage_and_inventory_actions_keep_explicit_names",
+      "functional_destinations": "instructions_first;_memory_and_scheduled_tasks_separate_with_contextual_links",
+      "readiness": "explicit_component_readiness_precedes_aggregate;_missing_agent_route_explained_separately_from_callability",
+      "catalog_counts": "count_source_records_per_type_never_sum_as_independent_capabilities;_product_modules_first",
+      "search": "bilingual_setting_labels_and_dynamic_plugin_titles;_open_and_focus_matching_disclosures",
+      "unknown_storage": "unknown_total_or_reclaimable_remains_unknown;_never_subtract_from_synthetic_zero",
+      "permissions": "effective_agentPermissions_shared_with_composer;_unused_confirmBeforeExecute_not_presented_as_enforced",
+      "build_identity": "local_identity_and_disabled_updater_policy_before_release_channel;_no_unsupported_update_action"
+    }
   },
   "neutral_information_state_policy": {
     "schema": "opl_settings_neutral_information_state.v1",
@@ -40,7 +56,13 @@
       "success_requires_changed_inventory_identity_or_observed_at": true,
       "static_reread_can_report_success": false,
       "absent_action_can_report_success": false,
-      "unchanged_unavailable_state_can_report_success": false
+      "unchanged_unavailable_state_can_report_success": false,
+      "runtime_readback": {
+        "failed_or_timed_out_read_is_empty_configuration": false,
+        "last_successful_projection": "retain_with_stale_notice",
+        "initial_loading": "show_loading_without_logged_out_or_zero_count_claim",
+        "recovery": "inline_retry_on_read_failure;_contextual_refresh_in_remote_page_title_row;_local_preferences_independent"
+      }
     }
   },
   "managed_computer_use": {
@@ -1327,7 +1349,17 @@
       "component_key": "CapabilitiesSettingsContent",
       "wrapper_policy": "host_provides_wrapper",
       "subroute_query_param": "section",
-      "declared_subroutes": ["desktop", "opl-flow-managed", "third-party", "image_voice", "packages", "computer-use", "opl-managed-companion", "image-generation", "voice-input"]
+      "declared_subroutes": [
+        "desktop",
+        "opl-flow-managed",
+        "third-party",
+        "image_voice",
+        "packages",
+        "computer-use",
+        "opl-managed-companion",
+        "image-generation",
+        "voice-input"
+      ]
     },
     "settings_environment": {
       "component_key": "RuntimeSettings",
@@ -2939,7 +2971,11 @@
       "footer_secondary_navigation_allowed": true,
       "footer_auxiliary_navigation": "about_only_sidebar_bottom",
       "footer_duplicate_settings_entry_allowed": false,
-      "appearance_mode_values": ["system", "light", "dark"],
+      "appearance_mode_values": [
+        "system",
+        "light",
+        "dark"
+      ],
       "appearance_mode_presentation": "three_visual_preview_cards",
       "appearance_mode_preserves_theme_preset": false,
       "theme_gallery_presentation": "not_exposed",
@@ -3588,7 +3624,13 @@
         "tab_contract": {
           "surface_label_zh": "能力",
           "surface_label_en": "Capabilities",
-          "tab_order": ["desktop", "opl_flow_managed", "manual_and_third_party", "image_voice", "packages"],
+          "tab_order": [
+            "desktop",
+            "opl_flow_managed",
+            "manual_and_third_party",
+            "image_voice",
+            "packages"
+          ],
           "default_tab": "opl_flow_managed",
           "on_demand_tab_ids": []
         },
@@ -3601,13 +3643,31 @@
         "exception_state": "highlight failed sync or owner attention without mutating third-party items",
         "technical_details_boundary": "raw registry paths, package closure refs, and receipts stay collapsed",
         "required_dom": {
-          "always": ["settings-page-capabilities", "settings-capabilities-primary"],
+          "always": [
+            "settings-page-capabilities",
+            "settings-capabilities-primary"
+          ],
         "conditional": [
-          {"testid": "settings-capabilities-opl-flow-managed", "when": "skills_tab_active"},
-          {"testid": "settings-capabilities-opl-managed-companion", "when": "desktop_tab_active_and_owner_projection_present"},
-          {"testid": "settings-capabilities-third-party", "when": "connections_tab_active"},
-          {"testid": "settings-capabilities-voice-input", "when": "image_voice_tab_active"},
-          {"testid": "settings-capabilities-packages", "when": "packages_tab_active"},
+            {
+              "testid": "settings-capabilities-opl-flow-managed",
+              "when": "skills_tab_active"
+            },
+            {
+              "testid": "settings-capabilities-opl-managed-companion",
+              "when": "desktop_tab_active_and_owner_projection_present"
+            },
+            {
+              "testid": "settings-capabilities-third-party",
+              "when": "connections_tab_active"
+            },
+            {
+              "testid": "settings-capabilities-voice-input",
+              "when": "image_voice_tab_active"
+            },
+            {
+              "testid": "settings-capabilities-packages",
+              "when": "packages_tab_active"
+            },
             {
               "testid": "settings-capabilities-exception",
               "when": "attention_required"
@@ -3617,12 +3677,16 @@
         "required_anchors": [
           "opl-flow-managed",
           "opl-managed-companion",
-          "third-party", "voice-input", "packages"
+          "third-party",
+          "voice-input",
+          "packages"
         ],
         "search_entry_ids": [
           "capabilities.opl_flow_managed",
           "capabilities.opl_managed_companion",
-          "capabilities.third_party", "capabilities.image_voice", "capabilities.packages"
+          "capabilities.third_party",
+          "capabilities.image_voice",
+          "capabilities.packages"
         ]
       },
       "agents": {
@@ -4607,7 +4671,11 @@
           "builtin_theme_ids": [],
           "extension_themes_default_visible": false,
           "custom_theme_management": "not_exposed_user_data_preserved_for_compatibility",
-          "appearance_mode_values": ["system", "light", "dark"],
+          "appearance_mode_values": [
+            "system",
+            "light",
+            "dark"
+          ],
           "visual_baseline": "single_governed_opl_codex_aligned_baseline",
           "interactive_controls_inside_diagnostic_surface_allowed": false,
           "performance_and_waiting_policy": "named_configuration_disclosure_collapsed_by_default_search_reveals_controls",
@@ -4975,8 +5043,20 @@
           "anchor": "opl-managed-companion",
           "label_zh": "桌面操作",
           "label_en": "Desktop automation",
-          "keywords_zh": ["OPL 托管", "Computer Use", "桌面操作", "KimiCU", "权限"],
-          "keywords_en": ["managed by OPL", "computer use", "desktop automation", "KimiCU", "permission"]
+          "keywords_zh": [
+            "OPL 托管",
+            "Computer Use",
+            "桌面操作",
+            "KimiCU",
+            "权限"
+          ],
+          "keywords_en": [
+            "managed by OPL",
+            "computer use",
+            "desktop automation",
+            "KimiCU",
+            "permission"
+          ]
         },
         {
           "id": "capabilities.third_party",
@@ -5003,8 +5083,43 @@
             "mcp"
           ]
         },
-        {"id": "capabilities.image_voice", "page_id": "capabilities", "anchor": "voice-input", "label_zh": "图像与语音", "label_en": "Image and voice", "keywords_zh": ["图像", "图片", "语音", "声音", "转录"], "keywords_en": ["image", "voice", "speech", "transcription"]},
-        {"id": "capabilities.packages", "page_id": "capabilities", "anchor": "packages", "label_zh": "配套能力", "label_en": "Supporting capabilities", "keywords_zh": ["配套", "能力包", "依赖"], "keywords_en": ["supporting", "capability package", "dependency"]},
+        {
+          "id": "capabilities.image_voice",
+          "page_id": "capabilities",
+          "anchor": "voice-input",
+          "label_zh": "图像与语音",
+          "label_en": "Image and voice",
+          "keywords_zh": [
+            "图像",
+            "图片",
+            "语音",
+            "声音",
+            "转录"
+          ],
+          "keywords_en": [
+            "image",
+            "voice",
+            "speech",
+            "transcription"
+          ]
+        },
+        {
+          "id": "capabilities.packages",
+          "page_id": "capabilities",
+          "anchor": "packages",
+          "label_zh": "配套能力",
+          "label_en": "Supporting capabilities",
+          "keywords_zh": [
+            "配套",
+            "能力包",
+            "依赖"
+          ],
+          "keywords_en": [
+            "supporting",
+            "capability package",
+            "dependency"
+          ]
+        },
         {
           "id": "resources.local_browser_access",
           "page_id": "resources",

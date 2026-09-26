@@ -682,3 +682,61 @@ unsaved changes from persisted values.
 Overview shows a background exception once and names destination actions. Account balance and today's
 usage are primary; cumulative statistics are disclosed on request. Page titles retain a distinct
 readable hierarchy. Maintenance retains confirmation, progress and owner readback.
+
+### 启动读取与恢复
+
+设置页区分正在读取、读取失败与成功后的空配置。Framework 超时或退出失败不能显示为未登录或零个智能体，也不能覆盖已成功读取的状态；已有状态保留并标注待刷新。依赖运行状态的页面在标题同行提供轻量刷新入口，首次尚未读到配置时显示加载或重试提示。本机偏好仍可独立设置。
+
+
+## Settings needs, capability organization, and DSH presentation
+
+The following is the Studio settings design, grounded in user tasks. Preserve stable destination IDs,
+search links, existing persistence and action handlers. DSH provides the modal, navigation, typography,
+spacing and theme primitives; OPL adds product-specific settings without introducing a second credential,
+model, package or execution state store.
+
+| User need | Destination | Display and interaction | DSH baseline / OPL addition |
+| --- | --- | --- | --- |
+| Can I start working? | Overview | Readiness and actionable exceptions with links to the relevant setting | OPL runtime summary |
+| How do I access models? | Account / Models | Account or key, usage and access status; model and reasoning choices | DSH Models presentation; OPL Gateway and Codex policy |
+| What can I connect? | Resources | Connections, access and their available actions | DSH connection patterns; OPL resources |
+| Where is my work saved? | Workspace / Storage | Working directory; measured storage and explicit cleanup with confirmation | OPL workspace and storage lifecycle |
+| What can help me work? | Agents / Capabilities / Instructions | Agents and workflows; installed skills, plugins and apps; editable instructions and context | DSH Plugins and Presets presentation; OPL package lifecycle |
+| How do I keep it working? | Services / Updates / Diagnostics | Current service state, updates/repair, then optional technical diagnostics | OPL runtime maintenance |
+| How should the app feel? | Preferences | Appearance, language, font size, notifications and confirmation preferences | DSH General controls |
+| Which app am I using? | About | Version and support links | DSH version/support pattern |
+
+A page has one title and one short task description. Related destinations occupy a separate compact
+navigation row; no repeated eyebrow. State refresh is a quiet trailing icon in the title row, with a
+localized accessible name. Preferences has no global refresh or Framework loading/error barrier.
+Refreshing state is not logging in, updating packages, refreshing account usage, or measuring storage:
+those retain their explicit, scoped actions. Failed reads retain prior state and offer inline retry.
+
+Capability counts cover actual directory entries. Capability type filters (All, Packages, Skills, Plugins,
+Connected apps) compose with text search; empty results offer a single Clear filters action. Upstream adoption notes are collapsed reference
+information after the real catalog, not configurable features or additions to the installed count.
+Use DSH theme tokens, 14px/22px body text, 16px/24px medium titles, subtle separators and hover/selected
+fills; avoid outlined tab pills, duplicate card systems and full-width standalone refresh rows.
+
+
+### User-facing settings refinement (2026-09-26)
+
+Instructions prioritizes the editable AGENTS and new-conversation instructions. Memory and scheduled
+tasks have separate destinations; service health links to task management. Diagnostics owns technical
+source details. Overview lists concrete exceptions with their impact and destination, followed by a
+compact normal-state summary. Explicit service/worker readiness overrides aggregate status.
+
+Agent callability and a selectable launch route are different facts. A missing route remains visible
+and never becomes an unexplained repair recommendation. Capability counts refer to source records,
+not a sum of independent functions. Product modules appear first; Skills, Plugins and Connected apps
+remain searchable and reachable. An installed connection plugin does not imply an authenticated channel.
+
+Use one contextual refresh per page, with named account usage and inventory actions where needed.
+Retain successful readbacks after refresh failure, explain stale data, and do not permit cleanup from
+failed inventory. Unknown storage totals remain unknown in post-cleanup estimates.
+
+Expose the effective agent permission preference shared with the composer. Retain the legacy
+confirmBeforeExecute value for compatibility but do not display an unimplemented safety toggle.
+Model and reasoning controls explain their scope and automatic/manual relationship. Local builds
+show their identity and disabled updater policy; official release update actions require native support.
+Support links are separate rows. Destructive actions remain behind their real preview and confirmation.
