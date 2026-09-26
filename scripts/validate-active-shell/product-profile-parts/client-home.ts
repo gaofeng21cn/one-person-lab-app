@@ -68,7 +68,7 @@ export function validateProductProfileCodexDefaults(profile) {
       'consume_only_when_fresh_opl_flow_presence_installed_true_and_projection_is_valid' ||
     JSON.stringify(profile.codex.auto_model_policy.resolution_precedence) !== JSON.stringify([
       'explicit_user_selection',
-      'fresh_catalog_frontier_then_app_default_when_available',
+      'app_default_then_catalog_compatibility',
       'installed_opl_flow_recommendation',
       'fresh_codex_live_default',
       'app_fallback_when_flow_unavailable',

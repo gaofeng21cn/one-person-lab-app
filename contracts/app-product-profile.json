@@ -1174,6 +1174,16 @@
             "label_en": "6 Astra"
           },
           {
+            "id": "gpt-6-sol",
+            "label_zh": "6 Sol",
+            "label_en": "6 Sol"
+          },
+          {
+            "id": "gpt-6-luna",
+            "label_zh": "6 Luna",
+            "label_en": "6 Luna"
+          },
+          {
             "id": "gpt-5.6-sol",
             "label_zh": "5.6 Sol",
             "label_en": "5.6 Sol"
@@ -1192,21 +1202,6 @@
             "id": "gpt-5.5",
             "label_zh": "5.5",
             "label_en": "5.5"
-          },
-          {
-            "id": "gpt-5.4",
-            "label_zh": "5.4",
-            "label_en": "5.4"
-          },
-          {
-            "id": "gpt-5.4-mini",
-            "label_zh": "5.4 Mini",
-            "label_en": "5.4 Mini"
-          },
-          {
-            "id": "gpt-5.2",
-            "label_zh": "5.2",
-            "label_en": "5.2"
           }
         ]
       },
@@ -1838,7 +1833,7 @@
       "app_role": "resolve_auto_from_fresh_catalog_and_projected_recommendation_then_persist_user_override",
       "resolution_precedence": [
         "explicit_user_selection",
-        "fresh_catalog_frontier_then_app_default_when_available",
+        "app_default_then_catalog_compatibility",
         "installed_opl_flow_recommendation",
         "fresh_codex_live_default",
         "app_fallback_when_flow_unavailable"
@@ -1874,19 +1869,18 @@
       "frontier_model_preference_order_role": "known_model_fallback_and_fixed_option_preference_not_allowlist",
       "frontier_model_preference_order": [
         "gpt-6-astra",
+        "gpt-6-sol",
+        "gpt-6-luna",
         "gpt-5.6-sol",
         "gpt-5.6-terra",
         "gpt-5.6-luna",
-        "gpt-5.5",
-        "gpt-5.4",
-        "gpt-5.4-mini",
-        "gpt-5.2"
+        "gpt-5.5"
       ],
       "known_model_reasoning_effort_overrides": {
         "gpt-5.6-sol": "max",
         "gpt-6-astra": "max"
       },
-      "unknown_default_model_policy": "accept_catalog_default_even_when_not_in_frontier_model_preference_order",
+      "unknown_default_model_policy": "ignore_catalog_default_for_app_auto",
       "unknown_model_reasoning_effort_policy": "highest_supported_reasoning_effort_from_catalog",
       "catalog_without_default_policy": "first_available_known_model_then_first_catalog_model",
       "catalog_unavailable_fallback": {

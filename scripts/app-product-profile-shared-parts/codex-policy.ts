@@ -45,7 +45,7 @@ export function assertCodexAutoModelPolicy(
       { actual: policy?.catalog_hidden_model_field, expected: 'hidden' },
       { actual: policy?.catalog_hidden_model_policy, expected: 'exclude_hidden_models_from_auto_and_fixed_options' },
       { actual: policy?.frontier_model_preference_order_role, expected: 'known_model_fallback_and_fixed_option_preference_not_allowlist' },
-      { actual: policy?.unknown_default_model_policy, expected: 'accept_catalog_default_even_when_not_in_frontier_model_preference_order' },
+      { actual: policy?.unknown_default_model_policy, expected: 'ignore_catalog_default_for_app_auto' },
       { actual: policy?.unknown_model_reasoning_effort_policy, expected: 'highest_supported_reasoning_effort_from_catalog' },
       { actual: policy?.catalog_without_default_policy, expected: 'first_available_known_model_then_first_catalog_model' },
     ],

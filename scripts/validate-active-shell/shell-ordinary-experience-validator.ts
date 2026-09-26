@@ -573,7 +573,7 @@ const productProfileDefaultsExpected = [
   '"catalog_pagination_completion_policy": "exhaust_pages_until_next_cursor_is_null"',
   '"catalog_hidden_model_policy": "exclude_hidden_models_from_auto_and_fixed_options"',
   '"frontier_model_preference_order_role": "known_model_fallback_and_fixed_option_preference_not_allowlist"',
-  '"unknown_default_model_policy": "accept_catalog_default_even_when_not_in_frontier_model_preference_order"',
+  '"unknown_default_model_policy": "ignore_catalog_default_for_app_auto"',
   '"unknown_model_reasoning_effort_policy": "highest_supported_reasoning_effort_from_catalog"',
   '"auto": "persist_auto_mode_only_resolve_model_and_reasoning_from_fresh_catalog"',
   '"fixed": "persist_selected_model_and_reasoning_effort"',

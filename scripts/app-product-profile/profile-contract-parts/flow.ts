@@ -24,7 +24,7 @@ export function assertCodexOplFlowContext(profile: AppProductProfile): void {
       'resolve_auto_from_fresh_catalog_and_projected_recommendation_then_persist_user_override' ||
     JSON.stringify(profile.codex.auto_model_policy.resolution_precedence) !== JSON.stringify([
       'explicit_user_selection',
-      'fresh_catalog_frontier_then_app_default_when_available',
+      'app_default_then_catalog_compatibility',
       'installed_opl_flow_recommendation',
       'fresh_codex_live_default',
       'app_fallback_when_flow_unavailable',
