@@ -218,6 +218,22 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
     concatenated_destination_page_allowed: false,
     responsive_semantics_must_match: true,
     runtime_extension: false,
+    presentation: {
+      baseline: "pinned_DSH_settings_shell_and_theme_tokens",
+      header: "single_destination_title_with_optional_trailing_quiet_refresh",
+      subnavigation: "separate_compact_row_only_for_multiple_destinations",
+      description: "one_user_task_sentence_without_owner_or_projection_jargon",
+      local_preferences: "usable_without_Framework_readback_and_no_global_refresh",
+      capability_catalog: "installed_and_actionable_items_first;_upstream_adoption_details_collapsed_and_excluded_from_count",
+      refresh_scope: "one_page_refresh_rereads_visible_sources;_account_usage_and_inventory_actions_keep_explicit_names",
+      functional_destinations: "instructions_first;_memory_and_scheduled_tasks_separate_with_contextual_links",
+      readiness: "explicit_component_readiness_precedes_aggregate;_missing_agent_route_explained_separately_from_callability",
+      catalog_counts: "count_source_records_per_type_never_sum_as_independent_capabilities;_product_modules_first",
+      search: "bilingual_setting_labels_and_dynamic_plugin_titles;_open_and_focus_matching_disclosures",
+      unknown_storage: "unknown_total_or_reclaimable_remains_unknown;_never_subtract_from_synthetic_zero",
+      permissions: "effective_agentPermissions_shared_with_composer;_unused_confirmBeforeExecute_not_presented_as_enforced",
+      build_identity: "local_identity_and_disabled_updater_policy_before_release_channel;_no_unsupported_update_action",
+    },
   });
   assert.deepStrictEqual(
     values.controlPlane.aionui_custom_assistant_boundary,
