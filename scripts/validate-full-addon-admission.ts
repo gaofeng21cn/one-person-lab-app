@@ -77,6 +77,30 @@ function commitReachable(
   }
 }
 
+export function resolveFullScholarSkillsRef(
+  input: { requestedRef?: string; fullManifest?: unknown; freshBuild?: boolean },
+  runner: QualificationHarnessScopeCommandRunner = defaultRunner,
+): string {
+  const requested = input.requestedRef?.trim()
+    ? exactSha(input.requestedRef, 'mas_scholar_skills_ref') : '';
+  if (input.fullManifest !== undefined) {
+    const document = input.fullManifest as Record<string, any>;
+    const manifest = document?.schema === 'opl_public_release_manifest.v1' ? document.manifest : document;
+    const ref = exactSha(String(manifest?.resolved_refs?.mas_scholar_skills?.resolved_commit ?? ''), 'Full manifest Scholar Skills ref');
+    const componentRef = manifest?.components?.mas_scholar_skills?.git_commit;
+    if (componentRef !== ref) throw new Error('Full manifest Scholar Skills component and resolved ref differ.');
+    if (requested && requested !== ref) throw new Error('Requested Scholar Skills ref differs from the existing Full artifact.');
+    return ref;
+  }
+  if (!input.freshBuild) throw new Error('Existing Full artifacts require their exact manifest; no current-main fallback is allowed.');
+  if (requested) return requested;
+  const result = runner('git', ['ls-remote', 'https://github.com/gaofeng21cn/mas-scholar-skills.git', 'refs/heads/main']);
+  if (result.status !== 0) throw new Error(`Resolve fresh Full Scholar Skills source: ${result.stderr.trim()}`);
+  const refs = result.stdout.trim().split('\n').map((line) => line.split(/\s+/));
+  if (refs.length !== 1 || refs[0][1] !== 'refs/heads/main') throw new Error('Fresh Full Scholar Skills main must resolve to exactly one ref.');
+  return exactSha(refs[0][0], 'fresh Full Scholar Skills ref');
+}
+
 export function runFullAddonAdmissionPreflight(
   input: FullAddonAdmissionPreflightInput,
   runner: QualificationHarnessScopeCommandRunner = defaultRunner,
@@ -134,6 +158,8 @@ function main(): void {
   const { values } = parseArgs({
     options: {
       'mas-scholar-skills-ref': { type: 'string' },
+      'full-manifest': { type: 'string' },
+      'fresh-build': { type: 'boolean', default: false },
       'artifact-app-sha': { type: 'string' },
       'verification-app-sha': { type: 'string' },
       'artifact-shell-sha': { type: 'string' },
@@ -143,7 +169,6 @@ function main(): void {
     strict: true,
   });
   const required = [
-    ['mas-scholar-skills-ref', values['mas-scholar-skills-ref']],
     ['artifact-app-sha', values['artifact-app-sha']],
     ['verification-app-sha', values['verification-app-sha']],
     ['artifact-shell-sha', values['artifact-shell-sha']],
@@ -151,8 +176,13 @@ function main(): void {
   ] as const;
   for (const [name, value] of required) if (!value) throw new Error(`Missing --${name}`);
   if (values.profile !== 'full') throw new Error('Full add-on admission preflight only supports --profile full.');
+  const masScholarSkillsRef = resolveFullScholarSkillsRef({
+    requestedRef: values['mas-scholar-skills-ref'],
+    fullManifest: values['full-manifest'] ? JSON.parse(fs.readFileSync(values['full-manifest'], 'utf8')) : undefined,
+    freshBuild: values['fresh-build'],
+  });
   const result = runFullAddonAdmissionPreflight({
-    masScholarSkillsRef: values['mas-scholar-skills-ref']!,
+    masScholarSkillsRef,
     artifactAppSha: values['artifact-app-sha']!,
     verificationAppSha: values['verification-app-sha']!,
     artifactShellSha: values['artifact-shell-sha']!,

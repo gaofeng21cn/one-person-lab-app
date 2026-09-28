@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import { parse } from 'yaml';
 
-import { runFullAddonAdmissionPreflight } from '../../scripts/validate-full-addon-admission.ts';
+import { resolveFullScholarSkillsRef, runFullAddonAdmissionPreflight } from '../../scripts/validate-full-addon-admission.ts';
 
 const scholarSha = '10e9adf0f580670c75e499391a386fc7ea482166';
 const appSha = 'c35ddda55f314438bb7cd999110221d23217c883';
@@ -76,4 +78,49 @@ test('Full admission preflight rejects reuse when the verification harness chang
     artifactShellSha: appSha,
     verificationShellSha: appSha,
   }, runner), /Reusable Full qualification harness is not authorized: app_changed/);
+});
+
+
+test('Full recovery binds Scholar Skills to the existing artifact without reading current main', () => {
+  const manifest = {
+    resolved_refs: { mas_scholar_skills: { resolved_commit: scholarSha } },
+    components: { mas_scholar_skills: { git_commit: scholarSha } },
+  };
+  const noRemote = () => { throw new Error('recovery cannot resolve current main'); };
+  assert.equal(resolveFullScholarSkillsRef({ fullManifest: manifest }, noRemote), scholarSha);
+  assert.equal(resolveFullScholarSkillsRef({ fullManifest: { schema: 'opl_public_release_manifest.v1', manifest } }, noRemote), scholarSha);
+  assert.throws(() => resolveFullScholarSkillsRef({ fullManifest: manifest, requestedRef: 'a'.repeat(40) }, noRemote), /differs from the existing Full artifact/);
+  assert.throws(() => resolveFullScholarSkillsRef({ requestedRef: scholarSha }, noRemote), /require their exact manifest/);
+  assert.throws(() => resolveFullScholarSkillsRef({ fullManifest: { ...manifest, components: {} } }, noRemote), /component and resolved ref differ/);
+});
+
+test('fresh Full admission freezes one exact Scholar Skills ref for the build', () => {
+  const calls: string[][] = [];
+  const runner = (_command: string, args: string[]) => {
+    calls.push(args);
+    return { status: 0, stdout: `${scholarSha}\trefs/heads/main\n`, stderr: '' };
+  };
+  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true }, runner), scholarSha);
+  assert.equal(calls.length, 1);
+  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true, requestedRef: scholarSha }, runner), scholarSha);
+  assert.equal(calls.length, 1);
+  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true }, () => ({ status: 0, stdout: '', stderr: '' })), /exactly one ref/);
+});
+
+
+test('Full workflow resolves refs after verified checkpoint restore and freezes the fresh build checkout', () => {
+  const read = (name: string) => parse(fs.readFileSync(new URL(`../../.github/workflows/${name}`, import.meta.url), 'utf8'));
+  const full = read('_release-full-addon.yml');
+  const steps = full.jobs['restore-standard'].steps;
+  const refIndex = steps.findIndex((step: any) => step.id === 'full-refs');
+  assert.ok(refIndex > steps.findIndex((step: any) => step.id === 'checkpoint'));
+  assert.match(steps[refIndex].run, /--full-manifest "\$CHECKPOINT_DIR\/tracks\/full\/assets\/opl-release-manifest.json"/);
+  assert.match(steps[refIndex].run, /--name "opl-full-diagnostics-\$CHECKPOINT_VERSION"/);
+  assert.match(steps[refIndex].run, /source_args=\(--fresh-build\)/);
+  assert.equal(full.jobs['full-build'].with.mas_scholar_skills_ref, '${{ needs.restore-standard.outputs.mas_scholar_skills_ref }}');
+  const build = read('full-first-install-release.yml');
+  const checkout = build.jobs['full-first-install'].steps.find((step: any) => step.name === 'Checkout MAS Scholar Skills');
+  assert.equal(checkout.with.ref, "${{ inputs.mas_scholar_skills_ref || 'main' }}");
+  assert.equal(full.jobs['full-clean-vm-qualification'].with.mas_scholar_skills_ref,
+    '${{ needs.full-build.outputs.mas_scholar_skills_ref || needs.materialize-full-build.outputs.mas_scholar_skills_ref }}');
 });

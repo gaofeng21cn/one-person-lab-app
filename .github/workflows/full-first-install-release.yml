@@ -26,6 +26,11 @@ on:
         description: Exact frozen active Shell SHA to bundle
         required: true
         type: string
+      mas_scholar_skills_ref:
+        description: Exact Scholar Skills SHA frozen by Full admission; other callers resolve main during checkout
+        required: false
+        default: ''
+        type: string
       upload_full_package_artifact:
         description: Upload the complete Full output bundle for a downstream publisher; VM uses the DMG-only artifact
         required: false
@@ -337,7 +342,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/mas-scholar-skills
-          ref: main
+          ref: ${{ inputs.mas_scholar_skills_ref || 'main' }}
           path: mas-scholar-skills
 
       - name: Checkout MAG

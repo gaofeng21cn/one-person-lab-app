@@ -44,7 +44,7 @@ test("Full workflow checks out MAS Scholar Skills and binds both runtime assembl
   assert.doesNotMatch(workflow, /bundled-full-runtime-package-catalog\.json/);
   assert.match(
     workflow,
-    /name: Checkout MAS Scholar Skills[\s\S]*repository: gaofeng21cn\/mas-scholar-skills[\s\S]*ref: main[\s\S]*path: mas-scholar-skills/,
+    /name: Checkout MAS Scholar Skills[\s\S]*repository: gaofeng21cn\/mas-scholar-skills[\s\S]*ref: \$\{\{ inputs\.mas_scholar_skills_ref \|\| 'main' \}\}[\s\S]*path: mas-scholar-skills/,
   );
   assert.equal(
     workflow.match(

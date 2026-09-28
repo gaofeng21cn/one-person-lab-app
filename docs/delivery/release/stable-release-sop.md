@@ -156,7 +156,7 @@ Standard 公开回读成功后，现有 follow-up hub 即启动适用的 Full、
 
 Full 的发布仍以已公开 Standard 为前提；构建后的静态包检查与 clean-VM 可并行，只有两者通过才能成为 `full_qualified`。已合格检查点直接继续发布。源码检查与隔离构建可并行，整体成功仍须所有必需检查通过。
 
-Full append 在 admission 阶段会先验证 Full 专用的精确 ref 和恢复 harness scope，再进入构建、资产传输或 VM runner。此阶段失败说明输入或复用边界不成立，应直接修正 admission 输入；不要让同一候选进入下一轮 Full 构建。
+Full append 在只读 checkpoint 恢复后验证 Full 专用的精确 ref 和恢复 harness scope，再进入构建或 VM runner。恢复已有 Full 时，Scholar Skills SHA 来自该 checkpoint 的 Full manifest，或指定 prior run 的 Full diagnostics manifest，并须与 manifest 的 component SHA 一致；不能回退到当前 main。新建 Full 时只解析一次 main，并把同一 SHA 传给构建 checkout。此阶段失败说明输入或复用边界不成立，应直接修正 admission 输入；不要让同一候选进入下一轮 Full 构建。
 
 Full DMG 按用户明确要求优先缩小下载体积，允许压缩花更长时间；默认 ULMO。压缩测速只能用于观测，不能自行改成更快但更大的默认格式。确需变更此取舍时，先取得新的直接用户指令，再同步发布合同、workflow 与构建器。
 

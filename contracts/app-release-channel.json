@@ -4736,7 +4736,9 @@
           "gui_root",
           "out_dir"
         ],
-        "public_mutation": false
+        "public_mutation": false,
+        "full_specific_ref_source": "verified checkpoint manifest or exact prior Full diagnostics manifest; fresh builds resolve main once and pass the frozen SHA to checkout",
+        "full_specific_ref_stage": "after checkpoint restoration and before build or VM runner work"
       }
     },
     "standard_admission_manifest": {

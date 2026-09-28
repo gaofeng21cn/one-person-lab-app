@@ -121,27 +121,6 @@ jobs:
           grep -E -q -- '--gui-root "\$GITHUB_WORKSPACE/one-person-lab-app/[^"]*steps[.]shell_profile[.]outputs[.]shell_root[^"]*"' .github/workflows/full-first-install-release.yml
           grep -E -q -- '--out-dir "\$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"' .github/workflows/full-first-install-release.yml
 
-      - name: Validate Full-specific refs before build and VM runner work
-        env:
-          MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
-          ARTIFACT_APP_SHA: ${{ inputs.full_content_app_ref }}
-          VERIFICATION_APP_SHA: ${{ inputs.verification_app_ref || inputs.full_content_app_ref }}
-          ARTIFACT_SHELL_SHA: ${{ inputs.full_content_shell_ref }}
-          VERIFICATION_SHELL_SHA: ${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}
-        working-directory: app-source
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ../release-failure-evidence
-          node --experimental-strip-types scripts/validate-full-addon-admission.ts \
-            --mas-scholar-skills-ref "$MAS_SCHOLAR_SKILLS_REF" \
-            --artifact-app-sha "$ARTIFACT_APP_SHA" \
-            --verification-app-sha "$VERIFICATION_APP_SHA" \
-            --artifact-shell-sha "$ARTIFACT_SHELL_SHA" \
-            --verification-shell-sha "$VERIFICATION_SHELL_SHA" \
-            --profile full \
-            > ../release-failure-evidence/full-addon-admission-preflight.json
-
       - name: Admit one-shot Full append operation
         env:
           OPERATION: ${{ inputs.operation }}
@@ -221,6 +200,7 @@ jobs:
       contents: read
       actions: read
     outputs:
+      mas_scholar_skills_ref: ${{ steps.full-refs.outputs.mas_scholar_skills_ref }}
       version: ${{ steps.identity.outputs.version }}
       updater_version: ${{ steps.identity.outputs.updater_version }}
       tag: ${{ steps.identity.outputs.tag }}
@@ -293,6 +273,51 @@ jobs:
           github-token: ${{ github.token }}
           allow-reconcile-required: 'true'
           local-checkpoint-dir: checkpoint-identity-bootstrap
+
+      - name: Resolve and validate Full refs from the admitted source
+        id: full-refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
+          PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
+          CHECKPOINT_STAGE: ${{ steps.checkpoint.outputs.completed_stage }}
+          CHECKPOINT_DIR: ${{ steps.checkpoint.outputs.checkpoint_dir }}
+          CHECKPOINT_VERSION: ${{ steps.checkpoint.outputs.version }}
+          ARTIFACT_APP_SHA: ${{ inputs.full_content_app_ref }}
+          VERIFICATION_APP_SHA: ${{ inputs.verification_app_ref || inputs.full_content_app_ref }}
+          ARTIFACT_SHELL_SHA: ${{ inputs.full_content_shell_ref }}
+          VERIFICATION_SHELL_SHA: ${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-failure-evidence
+          source_args=()
+          if [ -n "$PRIOR_FULL_ARTIFACT_RUN_ID" ]; then
+            gh run download "$PRIOR_FULL_ARTIFACT_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --name "opl-full-diagnostics-$CHECKPOINT_VERSION" --dir full-admission-diagnostics
+            source_args=(--full-manifest full-admission-diagnostics/full-package-manifest.json)
+          elif [ "$CHECKPOINT_STAGE" = full_built ] || [ "$CHECKPOINT_STAGE" = full_qualified ]; then
+            source_args=(--full-manifest "$CHECKPOINT_DIR/tracks/full/assets/opl-release-manifest.json")
+          else
+            case "$CHECKPOINT_STAGE" in standard_built|standard_qualified) ;; *) exit 1 ;; esac
+            source_args=(--fresh-build)
+          fi
+          node --experimental-strip-types app-source/scripts/validate-full-addon-admission.ts \
+            "${source_args[@]}" --mas-scholar-skills-ref "$MAS_SCHOLAR_SKILLS_REF" \
+            --artifact-app-sha "$ARTIFACT_APP_SHA" --verification-app-sha "$VERIFICATION_APP_SHA" \
+            --artifact-shell-sha "$ARTIFACT_SHELL_SHA" --verification-shell-sha "$VERIFICATION_SHELL_SHA" \
+            --profile full > release-failure-evidence/full-addon-admission-preflight.json
+          ref="$(jq -er .mas_scholar_skills_ref release-failure-evidence/full-addon-admission-preflight.json)"
+          echo "mas_scholar_skills_ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Upload exact Full ref admission
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opl-release-full-ref-admission-${{ github.run_id }}
+          path: release-failure-evidence/full-addon-admission-preflight.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Require a verified Standard checkpoint and fresh Full eligibility
         env:
@@ -945,6 +970,7 @@ jobs:
       opl_updater_version: ${{ needs.restore-standard.outputs.updater_version }}
       framework_ref: ${{ inputs.full_content_framework_ref }}
       shell_ref: ${{ inputs.full_content_shell_ref }}
+      mas_scholar_skills_ref: ${{ needs.restore-standard.outputs.mas_scholar_skills_ref }}
       upload_full_package_artifact: true
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.restore-standard.outputs.bundle_digest }}
@@ -1440,7 +1466,7 @@ jobs:
       framework_ref: ${{ inputs.full_content_framework_ref }}
       framework_executor_ref: ${{ needs.restore-standard.outputs.framework_executor_ref }}
       mas_ref: ${{ needs.full-build.outputs.mas_ref || needs.materialize-full-build.outputs.mas_ref }}
-      mas_scholar_skills_ref: ${{ inputs.mas_scholar_skills_ref || needs.full-build.outputs.mas_scholar_skills_ref || needs.materialize-full-build.outputs.mas_scholar_skills_ref }}
+      mas_scholar_skills_ref: ${{ needs.full-build.outputs.mas_scholar_skills_ref || needs.materialize-full-build.outputs.mas_scholar_skills_ref }}
       prepared_inputs_artifact: ${{ needs.prepare-full-vm-inputs.outputs.artifact_name }}
       package_profile: full
       diagnostic_scope: release_gate

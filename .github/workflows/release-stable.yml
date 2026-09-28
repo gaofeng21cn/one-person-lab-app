@@ -1472,7 +1472,6 @@ jobs:
       full_content_app_ref: ${{ needs.admission.outputs.app_ref }}
       full_content_shell_ref: ${{ needs.admission.outputs.shell_ref }}
       full_content_framework_ref: ${{ needs.admission.outputs.framework_ref }}
-      mas_scholar_skills_ref: ${{ needs.admission.outputs.mas_scholar_skills_ref }}
       framework_executor_ref: ${{ needs.admission.outputs.framework_executor_ref }}
       prior_full_artifact_run_id: ${{ needs.admission.outputs.prior_full_artifact_run_id }}
       smoke_harness_ref: ${{ needs.admission.outputs.smoke_harness_ref }}
