@@ -172,6 +172,14 @@
       "dsh_credentials"
     ],
     "framework_bridge": "consume_framework_app_state_action_authentication_and_channel_callbacks_only",
+    "windows_startup_recovery": {
+      "owner": "opl-framework",
+      "command": "opl system startup-maintenance --scope runtime_recovery --json",
+      "configured_local_service_worker_scheduler_only": true,
+      "runs_when_automatic_updates_disabled": true,
+      "updates_or_activates_runtime_generations": false,
+      "read_only_host_mutation_allowed": false
+    },
     "startup_order": [
       "dsh_host_tree_and_tool_mcp",
       "codex_app_server",

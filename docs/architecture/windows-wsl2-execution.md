@@ -60,9 +60,11 @@ existing executable owner is present. The background-service start action uses
 that CLI. A platform supervisor marked `applicable=false` does not imply
 configuration drift; the App reads the actual service, worker and scheduler
 readiness instead.
-On App start, Framework activates prepared runtime updates and restores the
-already configured local service, worker and scheduler in the owned Linux
-guest. This reuses their persistent state and public lifecycle operations.
+On App start, `opl system startup-maintenance --scope runtime_recovery --json`
+restores the already configured local service, worker and scheduler in the owned
+Linux guest. This reuses persistent state and public lifecycle operations; it
+does not activate, download or update runtime generations. Updates remain under
+the managed updater entrypoint.
 Background-service recovery also runs when automatic updates are disabled;
 read-only hosts do not run this maintenance.
 WSL repair retains a working Framework carrier installed or updated by its
