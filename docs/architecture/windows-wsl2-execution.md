@@ -65,6 +65,9 @@ already configured local service, worker and scheduler in the owned Linux
 guest. This reuses their persistent state and public lifecycle operations.
 Background-service recovery also runs when automatic updates are disabled;
 read-only hosts do not run this maintenance.
+WSL repair retains a working Framework carrier installed or updated by its
+owner. The pinned Framework source is used for first installation; repair does
+not replace an existing artifact carrier with a bootstrap source checkout.
 
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
