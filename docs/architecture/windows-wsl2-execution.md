@@ -63,9 +63,6 @@ readiness instead.
 On App start, Framework activates prepared runtime updates and restores the
 already configured local service, worker and scheduler in the owned Linux
 guest. This reuses their persistent state and public lifecycle operations.
-The provisioning receipt binds the bootstrap cohort. A changed packaged cohort
-repairs the same idle guest once; an unchanged cohort preserves independently
-updated Framework state. Foreign identities and active operations block repair.
 
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
