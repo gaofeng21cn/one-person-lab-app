@@ -60,6 +60,9 @@ existing executable owner is present. The background-service start action uses
 that CLI. A platform supervisor marked `applicable=false` does not imply
 configuration drift; the App reads the actual service, worker and scheduler
 readiness instead.
+On App start, Framework activates prepared runtime updates and restores the
+already configured local service, worker and scheduler in the owned Linux
+guest. This reuses their persistent state and public lifecycle operations.
 
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
