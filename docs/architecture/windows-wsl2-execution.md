@@ -67,6 +67,9 @@ does not activate, download or update runtime generations. Updates remain under
 the managed updater entrypoint.
 Background-service recovery also runs when automatic updates are disabled;
 read-only hosts do not run this maintenance.
+The owned guest installs GitHub CLI from GitHub's signed apt source, keeping
+its native package owner and allowing public extension installation without a
+GitHub login. ffmpeg and ffprobe use the Ubuntu package owner.
 WSL repair retains a working Framework carrier installed or updated by its
 owner. The pinned Framework source is used for first installation; repair does
 not replace an existing artifact carrier with a bootstrap source checkout.
