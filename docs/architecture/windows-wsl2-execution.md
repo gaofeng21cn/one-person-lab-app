@@ -39,6 +39,16 @@ from that immutable cache. Cached bytes are rechecked before reuse. This avoids
 loading thousands of modules through the mounted NTFS drive; the installed
 package remains the source, and Codex/Framework keep their existing owners.
 Staging reports the existing initialization activity and elapsed-time heartbeat.
+Native admission is asynchronous so package verification cannot block the
+Electron window. Bootstrap checks the sources it executes or copies; Host
+launch checks the archive and staging entry, then checks the entire extracted
+Host inventory inside the guest.
+
+Gateway credentials remain Framework-owned. If Node rejects a certificate
+chain on a local TLS inspection path, the Framework control client can use the
+system HTTPS transport with its normal certificate checks, bounded responses
+and cancellation. Credentials stay in a private stdin pipe and never become
+command arguments or qualification output.
 
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
