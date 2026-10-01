@@ -32,6 +32,14 @@ cannot select native Windows Codex or Framework as a fallback. Studio does not
 launch AionCore. The archived AionUI provisioner and early receipts explain
 historical baselines only; they are not the current production implementation.
 
+The packaged Guest Host closure includes a digest-bound archive. Studio verifies
+the installed payload, extracts this archive into the owned guest's Linux
+filesystem, verifies the extracted inventory and bytes, then starts the Host
+from that immutable cache. Cached bytes are rechecked before reuse. This avoids
+loading thousands of modules through the mounted NTFS drive; the installed
+package remains the source, and Codex/Framework keep their existing owners.
+Staging reports the existing initialization activity and elapsed-time heartbeat.
+
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
 modified. The guest user, `CODEX_HOME`, workspace root and common route identity
