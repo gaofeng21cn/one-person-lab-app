@@ -1,0 +1,12 @@
+const fs=require('node:fs'),crypto=require('node:crypto'),path=require('node:path');
+const recipient=crypto.createPublicKey({key:Buffer.from(process.env.RECIPIENT_SPKI,'base64'),type:'spki',format:'der'});
+if(recipient.asymmetricKeyType!=='rsa'||recipient.asymmetricKeyDetails.modulusLength<3072)throw new Error('Invalid recipient');
+if(process.env.ACCOUNT_EMAIL!=='test@opl.app'||!process.env.ACCOUNT_PASSWORD)throw new Error('Dedicated test credentials required');
+const key=crypto.randomBytes(32),iv=crypto.randomBytes(12);
+const aad=Buffer.from(JSON.stringify({purpose:'authorized Windows install acceptance',run_id:process.env.GITHUB_RUN_ID,expires_at:Date.now()+6*3600000}));
+const cipher=crypto.createCipheriv('aes-256-gcm',key,iv);cipher.setAAD(aad);
+const clear=Buffer.from(JSON.stringify({email:process.env.ACCOUNT_EMAIL,password:process.env.ACCOUNT_PASSWORD}));
+const encrypted=Buffer.concat([cipher.update(clear),cipher.final()]);
+const envelope={schema:'opl_windows_acceptance_encrypted_credentials.v1',aad:aad.toString('base64'),key:crypto.publicEncrypt({key:recipient,oaepHash:'sha256',padding:crypto.constants.RSA_PKCS1_OAEP_PADDING},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:encrypted.toString('base64')};
+fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'windows-acceptance-credentials.encrypted.json'),JSON.stringify(envelope),{mode:0o600});clear.fill(0);key.fill(0);
+console.log('Encrypted dedicated test credentials; no plaintext credentials in artifact.');
