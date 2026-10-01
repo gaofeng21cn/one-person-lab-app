@@ -50,6 +50,17 @@ system HTTPS transport with its normal certificate checks, bounded responses
 and cancellation. Credentials stay in a private stdin pipe and never become
 command arguments or qualification output.
 
+Windows protocol activation can normalize `opl://navigate?route=...` to
+`opl://navigate/?route=...`. The empty path and the single root slash are
+equivalent for this hostname-owned action. Non-root paths, extra parameters,
+credentials and routes outside the App registry remain rejected.
+
+Framework installation supplies the cohort-verified Linux Temporal CLI when no
+existing executable owner is present. The background-service start action uses
+that CLI. A platform supervisor marked `applicable=false` does not imply
+configuration drift; the App reads the actual service, worker and scheduler
+readiness instead.
+
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
 modified. The guest user, `CODEX_HOME`, workspace root and common route identity

@@ -53,7 +53,7 @@ export function validateBrandedDeepLinkPolicy(policy) {
       accepted_schemes: ['opl'],
       legacy_scheme_policy:
         'reject_unless_an_explicit_compatibility_contract_and_live_evidence_are_added',
-      action_authority: 'url_hostname_only_with_empty_path',
+      action_authority: 'url_hostname_only_with_empty_or_root_path',
       allowed_actions: ['navigate'],
       action_schemas: {
         navigate: {
