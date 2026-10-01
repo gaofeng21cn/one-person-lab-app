@@ -63,6 +63,8 @@ readiness instead.
 On App start, Framework activates prepared runtime updates and restores the
 already configured local service, worker and scheduler in the owned Linux
 guest. This reuses their persistent state and public lifecycle operations.
+Background-service recovery also runs when automatic updates are disabled;
+read-only hosts do not run this maintenance.
 
 The distribution belongs to the OPL installation. Existing user distributions,
 the Windows default distribution and `docker-desktop` are not adopted or
