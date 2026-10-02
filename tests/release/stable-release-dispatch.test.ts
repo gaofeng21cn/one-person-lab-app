@@ -14,6 +14,7 @@ import {
   completeAppendFullDispatch,
   dispatchOnce,
   downloadStableSourceEvidence,
+  readFullCheckpointCohort,
   fullCheckpointMatchesRequestedCohort,
   resolveAppendFullCohort,
   commandDetail,
@@ -63,6 +64,27 @@ test('source-gate recovery binds the verified downloader to the exact owner desp
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
     }
   }
+});
+
+test('Full recovery reads its exact cohort through the digest-verified artifact downloader', () => {
+  const name = 'opl-full-first-install-dmg-26.10.2-mac-arm64-cohort';
+  const cohort = { schema: 'opl_build_cohort.v1', app_sha: appSha };
+  let calls = 0;
+  const runtime = {
+    runner(command: string, args: string[], options: { cwd: string; timeoutMs: number }) {
+      calls += 1;
+      assert.equal(command, process.execPath);
+      assert.equal(options.cwd, appRoot);
+      assert.match(args[3]!, /downloadArtifact/);
+      assert.deepEqual(args.slice(4, 7), ['owner/repository', '123', name]);
+      fs.writeFileSync(path.join(args[7]!, 'opl-build-cohort.json'), JSON.stringify(cohort));
+      return { status: 0, stdout: '', stderr: '' };
+    },
+    now: () => new Date(), randomBytes: (size: number) => Buffer.alloc(size), wait: async () => {},
+  };
+  assert.deepEqual(readFullCheckpointCohort(runtime, 'owner/repository', '123', [{ id: 9, name, expired: false }]), cohort);
+  assert.equal(calls, 1);
+  assert.throws(() => readFullCheckpointCohort(runtime, 'owner/repository', '123', []), /exactly one reusable Full build cohort/);
 });
 
 test('Stable dispatch binds the existing critical control bytes without duplicating their path list', () => {

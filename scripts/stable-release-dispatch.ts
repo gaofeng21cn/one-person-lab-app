@@ -351,7 +351,7 @@ export function reconcileAppendFullCheckpointCohort(input: {
   };
 }
 
-function readFullCheckpointCohort(
+export function readFullCheckpointCohort(
   runtime: Runtime,
   repository: string,
   sourceRunId: string,
@@ -363,25 +363,14 @@ function readFullCheckpointCohort(
   }
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-checkpoint-cohort-'));
   try {
-    runRequired(
-      runtime,
-      'gh',
-      [
-        'run', 'download', sourceRunId,
-        '--repo', repository,
-        '--name', matches[0]!.name,
-        '--dir', tempRoot,
-      ],
-      2 * 60_000,
-      `Download Full build cohort for run ${sourceRunId}`,
-    );
+    downloadExactWorkflowArtifact(runtime, repository, sourceRunId, matches[0]!.name, tempRoot);
     return readJsonFile(path.join(tempRoot, 'opl-build-cohort.json'));
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-export function downloadStableSourceEvidence(runtime: Runtime, repository: string, sourceRunId: string, destination: string): void {
+export function downloadExactWorkflowArtifact(runtime: Runtime, repository: string, sourceRunId: string, artifactName: string, destination: string): void {
   // Use the same digest-verified downloader as candidate recovery. A connector
   // may seed its cache when this executor cannot follow GitHub's ZIP redirect;
   // every cache hit is still checked against fresh exact-run GitHub metadata.
@@ -393,9 +382,13 @@ export function downloadStableSourceEvidence(runtime: Runtime, repository: strin
       + 'OPL_ARTIFACT_RUN_ID: run, OPL_ARTIFACT_NAME: name, '
       + 'OPL_ARTIFACT_DEST: destination, OPL_ARTIFACT_CACHE: cache });',
     repository, runId(sourceRunId, 'source_gate_run_id'),
-    `opl-stable-operation-control-${sourceRunId}`, destination,
+    artifactName, destination,
     process.env.OPL_ARTIFACT_CACHE || path.join(os.tmpdir(), 'opl-release-artifact-cache'),
-  ], 2 * 60_000, 'Download original immutable Standard source evidence');
+  ], 2 * 60_000, `Download exact workflow artifact ${artifactName}`);
+}
+
+export function downloadStableSourceEvidence(runtime: Runtime, repository: string, sourceRunId: string, destination: string): void {
+  downloadExactWorkflowArtifact(runtime, repository, sourceRunId, `opl-stable-operation-control-${sourceRunId}`, destination);
 }
 
 function readReusableStandardSourceGate(runtime: Runtime, repository: string, sourceRunId: string): unknown {
