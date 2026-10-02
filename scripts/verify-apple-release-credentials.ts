@@ -934,7 +934,15 @@ export function writeAppleCredentialFailureReceipt(
     return value ? [value, value.trim()] : [];
   });
   const message = redactText(error instanceof Error ? error.message : 'Apple credential preflight failed.', sensitiveValues);
+  let priorFailure: Record<string, unknown> = {};
+  if (fs.existsSync(outputPath)) {
+    const prior = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    if (prior?.schema === 'opl_apple_release_credentials_preflight.v1' && prior.status === 'failed') {
+      priorFailure = prior;
+    }
+  }
   const receipt = {
+    ...priorFailure,
     schema: 'opl_apple_release_credentials_preflight.v1',
     status: 'failed',
     checked_at: new Date().toISOString(),

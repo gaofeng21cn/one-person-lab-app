@@ -48,6 +48,12 @@ test('failed Apple preflight retains its cause without configured credential val
     const bytes = fs.readFileSync(output, 'utf8');
     for (const name of names) assert.equal(bytes.includes(credentialEnv[name]), false);
     assert.deepEqual(JSON.parse(bytes), receipt);
+    fs.writeFileSync(output, JSON.stringify({
+      schema: receipt.schema, status: 'failed',
+      signing: { large_dmg_canary: { stage: 'codesign_large_dmg', status: 'failed' } },
+    }));
+    const canaryFailure = writeAppleCredentialFailureReceipt(output, error, credentialEnv);
+    assert.deepEqual(canaryFailure.signing, { large_dmg_canary: { stage: 'codesign_large_dmg', status: 'failed' } });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
