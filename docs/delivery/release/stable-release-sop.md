@@ -29,6 +29,15 @@
 
 云环境源码门禁保留既有代理与 CA 信任配置；GitHub CLI 的认证变量只传给只读 owner 核验，不传给依赖脚本或 Shell 测试，也不写入门禁回执。
 
+In a managed executor, establish GitHub capability with a sanitized read of the actual
+repository or owner run. `gh auth status` can reject a proxy credential placeholder even
+when the configured API path works; that output alone does not prove credentials are
+unusable. A connected GitHub app also does not prove that it exposes Actions dispatch.
+Use the available authorized CLI and connector paths, preserve proxy/CA configuration,
+and ask for external credentials only after the required capability is actually blocked.
+A successful read does not establish write permission: the official controller's single
+mutation and owner reconciliation establish whether dispatch occurred.
+
 现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
 
 影响 Shell 身份、迁移或更新协议时，分别覆盖受影响的 AionUI Stable 与 Studio Preview 路径、数据延续和后续更新源；普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
@@ -104,6 +113,14 @@ Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起
 
 Apple 凭据预检失败时读取已脱敏的失败原因及诊断回执；通用失败文本不能证明凭据失效。独立 `apple_credentials` 诊断只验证现有签名与公证能力，不执行公开发布。
 
+An Apple HTTP 403 that explicitly reports a missing or expired required team agreement
+needs the team's agreement acceptance. Preserve the sanitized reason and the preceding
+certificate/signature results; do not infer an invalid certificate or password. Continue
+independent authorized channels while that external prerequisite is blocked. After the
+user confirms acceptance, rerun the small Apple diagnostic, then recover the frozen
+candidate through the official controller. Reuse authenticated source-gate evidence when
+no signed artifact was produced; do not rerun failed workflow jobs.
+
 | 当前事实 | 下一步 |
 | --- | --- |
 | 活跃 owner 仍在产生有效进展 | 跟进该 owner；不创建第二个 writer。 |
@@ -131,6 +148,20 @@ npm run release:stable-dispatch -- append-full \
   --source-run-id <原-Standard-或-Full-checkpoint-run-id> --execute
 ```
 
+Before Full recovery, read the failed run's fresh artifact inventory and current owner.
+The same run can retain an early append-operation checkpoint at `standard_qualified`
+and a later Full checkpoint at `full_built` or `full_qualified`. An artifact name that
+contains `append-full` does not prove it contains a built Full package. Prefer the
+controller's matching-checkpoint selection; use `--source-artifact` only when an exact
+checkpoint is required and its admitted stage has been established. A failed VM can
+still be followed by a successful checkpoint job, so inspect that later evidence before
+dispatch. When fresh qualification is needed, `materialize-full-build` must consume
+existing Full bytes; a `full_qualified` checkpoint can continue publication directly.
+`full-build` must be skipped for same-byte recovery. If a confirmed wrong checkpoint
+starts build preparation, reconcile the active owner, cancel only that unnecessary
+add-on operation, wait for terminal cancellation, and recover from the later checkpoint.
+Preserve the already public Standard and every completed independent channel.
+
 ### 保持产物身份，分别选择执行器与验证器
 
 恢复 Full checkpoint 时，省略产品 ref 会从其 build cohort 读取原 App／Shell／Framework SHA，不追随当前 main。只覆盖某一个产品 ref 也会改变候选：自动恢复仅在原 Standard checkpoint 可用时退回新建 Full；指定了准确 Full artifact，或原 run 不含 Standard 时，会明确拒绝冲突，要求选择原 Standard 来源。只修验收脚本时不要改产品 ref。
@@ -157,6 +188,17 @@ npm run release:stable-dispatch -- append-full \
 ### 只读传输错误与可选预备包
 
 artifact 下载遇到 EOF／连接中断时，保留失败 host、路径和错误类型；错误输出应移除签名 URL query、URL 凭据和 Authorization 值。只读下载可在确认本次尚无 mutation 后有界重试；dispatch、上传、push 等结果未知时先回读目标身份，不把网络错误当成未执行。SSH push 失败且远端 ref 确认未变时，可沿用现有 GitHub 凭据助手切换 HTTPS；不把 token 拼入 remote URL。
+
+When `gh run download` cannot follow an artifact redirect, recover small source-control
+or Full-cohort ZIPs through the existing connector and canonical artifact cache. Set
+`OPL_ARTIFACT_CACHE` to a directory containing the exact archive as
+`<GitHub artifact SHA-256 hex>.zip`. The shared downloader must fetch fresh exact-run
+metadata and verify archive size and digest before safe extraction; Standard recovery
+also verifies the source report against its run-bound control. This repairs transport,
+not acceptance or identity. Keep large signed checkpoints in the normal runner transport;
+do not reconstruct ZIPs, create a parallel downloader, or rebuild product bytes because
+the operator's download path failed. Never retain signed redirect URLs or credentials
+in durable evidence.
 
 预备安装包是可选加速。只有实际上传成功后才向 VM consumer 提供 artifact 名；主上传与一次重试都失败时输出为空，由现有按摘要校验的本地准备路径继续。不能用一个拼接出来的名字表示资产存在，也不因此重建签名产物。
 
@@ -241,3 +283,16 @@ Skill 的版本化源是 `skills/opl-app-release`。本机 `~/.codex/skills/opl-
 只固化有证据的真实断点和恢复路径：先修 caller，再用对应失败样例或边界用例验证；通用操作写入本 SOP，入口提示写入发布 Skill，具体版本、run、时间和未知原因放入 [事故复盘](incidents/2026-09-29-stable-release-recovery.md)。不为经验沉淀重复发布或运行已通过的产品门禁。
 
 一次未保留 owner 原因的 Gateway 失败，只能记录最深已证断点；后续同字节成功不能倒推出当次根因。持续失败时读取已脱敏的 machine reason code 和 owner 只读投影，再决定修哪一层。进度只在阶段变化、出现真实失败或需要用户动作时汇报；没有变化的轮询不产生新验收证据。
+
+The Gateway harness may reconcile the known settled owner receipt
+`ok=true`, `status=error`, `dryRun=false`, `exitCode=4`,
+`errorCode=gateway_unavailable`. It re-reads the active account, managed key and same
+projected confirmation action. Fresh model access already owned by `opl_gateway` needs
+no second mutation; an unchanged source permits at most one bounded retry of that
+confirmation. Unknown outcomes, authentication failures or a changed model-access owner
+must not be repeated. Preserve the first receipt and recovery projection, and still
+require fresh Gateway model access, Official Profile convergence, real Codex protocol
+readiness and Runtime refresh. A later successful run does not establish the original
+service's underlying cause or prove the retry branch was exercised. See the
+[v26.10.2 retrospective](incidents/2026-10-02-stable-release-recovery.md) for observed
+failures, the mistaken checkpoint selection, and final public evidence.

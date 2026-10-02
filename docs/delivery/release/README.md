@@ -187,11 +187,15 @@ exact-cohort evidence, so advancing owner checkouts does not repeat unchanged so
 When a failed run has no signed artifact yet, `--source-gate-run-id <failed-run>` reuses only its
 authenticated, exact-cohort source gate. The repaired workflow still builds and qualifies the product;
 this option neither reuses a failed acceptance nor authorizes another consumer of the same operation.
-Source-gate recovery uses the shared digest-verified artifact downloader. `OPL_ARTIFACT_CACHE`
+Source-gate and Full build-cohort recovery use the shared digest-verified artifact downloader. `OPL_ARTIFACT_CACHE`
 may point to a directory containing `<GitHub artifact SHA-256 hex>.zip`, including an exact
 archive downloaded through the GitHub connector when a runner cannot follow the ZIP redirect.
 The downloader reads fresh exact-run artifact metadata and verifies both archive size and digest
 before extracting; the controller also verifies the source report against its run-bound control.
+The Full path binds the exact failed-run cohort artifact before reading product SHAs.
+Seed only the original ZIP, with its current GitHub digest and size; leave large signed
+checkpoint transfer to the existing runner path. A CLI redirect failure is not a reason
+to rebuild an unchanged signed package.
 With an explicit repaired harness, an interrupted failed qualification may be run again even if its
 old classifier called it a product failure. A recorded pre-install artifact-download failure may also reuse signed bytes after the recovery job
 reconciles the original run, Bundle, notarization receipt, and both downloaded DMG hashes. Other
@@ -199,6 +203,11 @@ infrastructure failures remain blocked. Signed-byte identity and scope proof sti
 the failed acceptance is never reused and a fresh clean-VM qualification remains mandatory.
 Account-login qualification waits for actual Codex model-access readiness after confirmation, and records
 at most one retry of a settled session failure through the same visible confirmation action.
+For the settled `gateway_unavailable` receipt, it first re-reads the active account,
+managed key and projected action. It accepts already converged fresh model access without
+another write, or retries the same confirmation once when the source is unchanged.
+Unknown outcomes, authentication failures and changed owners remain non-retryable;
+fresh account/model-access readback and all Stable readiness gates remain mandatory.
 The Gateway account preflight enables Node's system CA trust store on the macOS runner,
 preserving certificate verification when the runner's trusted network CA is absent from Node's bundled roots.
 Scope proof runs from the immutable current workflow executor while comparing the exact artifact
@@ -222,6 +231,15 @@ content refs. An exact `--smoke-harness-ref <sha>` and, if needed, a compatible 
 `--verification-app-ref <sha>` may requalify unchanged Full bytes. VM input validation exercises the
 scope consumer imported by that selected App receipt writer before allocating a VM runner. One controller attempt makes at most one workflow mutation. If the
 dispatch result is unknown, the controller performs read-only reconciliation and never retries it.
+
+A failed Full run can retain both `opl-release-append-full-operation-checkpoint-v2-<run>`
+from before packaging and `opl-release-full-checkpoint-<run>` from after packaging.
+The former may still be `standard_qualified`; explicitly selecting it can rebuild Full.
+Read fresh artifacts, use the admitted stage, and prefer the controller's later matching
+Full checkpoint. Same-byte requalification uses `materialize-full-build` and skips
+`full-build`; an already `full_qualified` checkpoint can continue publication directly.
+The [v26.10.2 retrospective](incidents/2026-10-02-stable-release-recovery.md) records the
+observed selection error, transport repairs and complete public closeout.
 
 The three Framework-backed workflow mutation operations remain exactly:
 
