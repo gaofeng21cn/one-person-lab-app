@@ -924,6 +924,32 @@ export function verifyAppleReleaseCredentials(options: VerifyOptions) {
   }
 }
 
+export function writeAppleCredentialFailureReceipt(
+  outputPath: string,
+  error: unknown,
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  const sensitiveValues = requiredSecretNames.flatMap((name) => {
+    const value = env[name];
+    return value ? [value, value.trim()] : [];
+  });
+  const message = redactText(error instanceof Error ? error.message : 'Apple credential preflight failed.', sensitiveValues);
+  const receipt = {
+    schema: 'opl_apple_release_credentials_preflight.v1',
+    status: 'failed',
+    checked_at: new Date().toISOString(),
+    protected_environment: 'release-stable',
+    failure: { message },
+    mutation: {
+      release_dispatch_performed: false,
+      notarization_submission_performed: false,
+      public_asset_write_performed: false,
+    },
+  };
+  writeReceipt(outputPath, receipt);
+  return receipt;
+}
+
 function cliOptions() {
   const { values } = parseArgs({
     args: process.argv.slice(2),
@@ -948,11 +974,18 @@ const isMain = process.argv[1]
   : false;
 
 if (isMain) {
+  let options: ReturnType<typeof cliOptions> | undefined;
   try {
-    const receipt = verifyAppleReleaseCredentials(cliOptions());
+    options = cliOptions();
+    const receipt = verifyAppleReleaseCredentials(options);
     process.stdout.write(`${JSON.stringify(receipt)}\n`);
-  } catch {
-    console.error('Apple release credential verification failed.');
+  } catch (error) {
+    if (options) {
+      const receipt = writeAppleCredentialFailureReceipt(options.outputPath, error);
+      console.error(`Apple release credential verification failed: ${receipt.failure.message}`);
+    } else {
+      console.error('Apple release credential verification failed.');
+    }
     process.exit(1);
   }
 }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +8,7 @@ import {
   decodeBase64Strict,
   type CommandRunner,
   verifyAppleReleaseCredentials,
+  writeAppleCredentialFailureReceipt,
 } from '../../scripts/verify-apple-release-credentials.ts';
 import { createPosixModeTempRoot } from './native-posix-temp.ts';
 
@@ -32,6 +34,39 @@ const credentialEnv = {
   GITHUB_REF: 'refs/heads/main',
   GITHUB_SHA: 'd'.repeat(40),
 };
+
+test('failed Apple preflight retains its cause without configured credential values', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-apple-failure-receipt-'));
+  try {
+    const output = path.join(root, 'receipt.json');
+    const names = ['BUILD_CERTIFICATE_BASE64', 'P12_PASSWORD', 'APPLE_ID', 'APPLE_ID_PASSWORD', 'TEAM_ID', 'IDENTITY'] as const;
+    const error = new Error(`security import failed: ${names.map((name) => credentialEnv[name]).join(' ')}`);
+    const receipt = writeAppleCredentialFailureReceipt(output, error, credentialEnv);
+    assert.equal(receipt.status, 'failed');
+    assert.match(receipt.failure.message, /security import failed/);
+    assert.equal(receipt.mutation.public_asset_write_performed, false);
+    const bytes = fs.readFileSync(output, 'utf8');
+    for (const name of names) assert.equal(bytes.includes(credentialEnv[name]), false);
+    assert.deepEqual(JSON.parse(bytes), receipt);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('Apple preflight CLI writes a failed receipt and useful log on an unsupported runner', { skip: process.platform === 'darwin' }, () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-apple-failure-cli-'));
+  try {
+    const output = path.join(root, 'receipt.json');
+    const result = spawnSync(process.execPath, ['--experimental-strip-types', 'scripts/verify-apple-release-credentials.ts', '--output', output], {
+      cwd: path.resolve(import.meta.dirname, '../..'), encoding: 'utf8',
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /requires a macOS runner/);
+    assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).status, 'failed');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 
 function successfulRunner(overrides: {
   teamId?: string;
