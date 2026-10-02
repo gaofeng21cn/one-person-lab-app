@@ -29,6 +29,7 @@ const forbiddenReleaseEnvironmentVariables = [
 ] as const;
 
 const commandEnvironmentAllowlist = new Set([
+  'ALL_PROXY',
   'BUN_INSTALL',
   'CI',
   'COLORTERM',
@@ -36,23 +37,33 @@ const commandEnvironmentAllowlist = new Set([
   'GITHUB_ACTIONS',
   'GITHUB_WORKSPACE',
   'HOME',
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
   'LANG',
   'LC_ALL',
   'LC_CTYPE',
   'LOGNAME',
   'NO_COLOR',
+  'NO_PROXY',
+  'NODE_EXTRA_CA_CERTS',
   'PATH',
   'RUNNER_ARCH',
   'RUNNER_OS',
   'RUNNER_TEMP',
   'RUNNER_TOOL_CACHE',
   'SHELL',
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
   'TEMP',
   'TERM',
   'TMP',
   'TMPDIR',
   'USER',
   'XDG_CACHE_HOME',
+  'all_proxy',
+  'http_proxy',
+  'https_proxy',
+  'no_proxy',
 ]);
 
 type CheckStatus = 'passed' | 'failed' | 'blocked';
@@ -848,6 +859,12 @@ export function buildReleaseSourceGateReport(
   const readJson = environment.readJson ?? ((candidatePath: string) => JSON.parse(fs.readFileSync(candidatePath, 'utf8')));
   const sourceEnvironment = environment.variables ?? process.env;
   const commandEnvironment = buildCommandEnvironment(sourceEnvironment, options);
+  // Authentication belongs only to the read-only GitHub owner probes, never
+  // to dependency scripts, Shell tests, or the persisted gate report.
+  const ownerReadEnvironment = { ...commandEnvironment };
+  for (const name of ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_CONFIG_DIR']) {
+    if (sourceEnvironment[name] !== undefined) ownerReadEnvironment[name] = sourceEnvironment[name];
+  }
   const shellRoot = options.shellRoot;
   const buildProfile = readActiveShellBuildProfile(options.repoRoot, readJson);
   const formatCommand = buildProfile.id === 'opl-studio'
@@ -1007,11 +1024,11 @@ export function buildReleaseSourceGateReport(
     }
     const ownerIdentityResult = runner('gh', ownerIdentityArgs, {
       cwd: options.repoRoot,
-      env: commandEnvironment,
+      env: ownerReadEnvironment,
     });
     const ownerRepositoryResult = runner('gh', ownerRepositoryArgs, {
       cwd: options.repoRoot,
-      env: commandEnvironment,
+      env: ownerReadEnvironment,
     });
     if (ownerIdentityResult.status !== 0 || ownerRepositoryResult.status !== 0) {
       throw new Error(
@@ -1034,7 +1051,7 @@ export function buildReleaseSourceGateReport(
       ];
       const releaseResult = runner('gh', releaseArgs, {
         cwd: options.repoRoot,
-        env: commandEnvironment,
+        env: ownerReadEnvironment,
       });
       if (releaseResult.status !== 0) {
         throw new Error(commandDetail(releaseResult) || `release namespace page ${page} read failed`);

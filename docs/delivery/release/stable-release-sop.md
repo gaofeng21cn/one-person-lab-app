@@ -27,6 +27,8 @@
 3. 执行当前写集所需检查和合同要求的源码门禁。记录已有结果的准确候选、依赖与环境；仅在相关事实变化使旧结果失效时重跑。controller 已负责的检查不在旁路重复执行。
 4. 确认正式发布前提：授权、唯一 writer、可用的签名／公证环境、专用普通测试账号及其既有瞬态凭据桥。使用现有预检，不能把密码写到命令参数、仓库、GitHub Secrets、日志或回执，也不能换用管理员账号绕过失败。该账号无模型额度；VM 只做登录、就绪读回和不调用 LLM 的确定性检查，不自动执行 Codex AI self-check 或生成式模型探测。
 
+云环境源码门禁保留既有代理与 CA 信任配置；GitHub CLI 的认证变量只传给只读 owner 核验，不传给依赖脚本或 Shell 测试，也不写入门禁回执。
+
 现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
 
 影响 Shell 身份、迁移或更新协议时，分别覆盖受影响的 AionUI Stable 与 Studio Preview 路径、数据延续和后续更新源；普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。

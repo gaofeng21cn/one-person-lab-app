@@ -664,6 +664,39 @@ test('release source gate preserves an archive root for typed rejection', () => 
   }
 });
 
+test('release source gate preserves transport and scopes GitHub authentication to owner reads', () => {
+  const variables = {
+    GH_TOKEN: 'owner-token-fixture',
+    GITHUB_TOKEN: 'fallback-token-fixture',
+    GH_CONFIG_DIR: '/tmp/owner-gh-config',
+    HTTPS_PROXY: 'http://proxy.example.invalid:8080',
+    NODE_EXTRA_CA_CERTS: '/tmp/proxy-ca.pem',
+    UNRELATED_SECRET: 'must-not-propagate',
+  };
+  const baseRunner = runner();
+  const calls: string[] = [];
+  const report = buildReleaseSourceGateReport(options(), (command, args, commandOptions) => {
+    const env = commandOptions.env ?? {};
+    calls.push(command);
+    assert.equal(env.HTTPS_PROXY, variables.HTTPS_PROXY);
+    assert.equal(env.NODE_EXTRA_CA_CERTS, variables.NODE_EXTRA_CA_CERTS);
+    assert.equal(env.UNRELATED_SECRET, undefined);
+    for (const name of ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_CONFIG_DIR'] as const) {
+      assert.equal(env[name], command === 'gh' ? variables[name] : undefined);
+    }
+    return baseRunner(command, args, commandOptions);
+  }, '2026-10-02T00:00:00.000Z', {
+    variables,
+    pathExists: (candidatePath) => candidatePath === shellRoot || candidatePath === frameworkRoot,
+    readJson: (candidatePath) => readSourceJson(candidatePath),
+  });
+  assert.equal(report.status, 'passed');
+  assert.equal(calls.filter((command) => command === 'gh').length, 3);
+  assert.equal(calls.includes('npm'), true);
+  assert.equal(JSON.stringify(report).includes(variables.GH_TOKEN), false);
+  assert.equal(JSON.stringify(report).includes(variables.GITHUB_TOKEN), false);
+});
+
 test('release source gate rejects environment injection before boundary execution', () => {
   const calls: string[] = [];
   const baseRunner = runner();
