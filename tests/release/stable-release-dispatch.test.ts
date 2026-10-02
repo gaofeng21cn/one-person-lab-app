@@ -13,6 +13,7 @@ import {
   appendFullOwnersFromCurrentMutation,
   completeAppendFullDispatch,
   dispatchOnce,
+  downloadStableSourceEvidence,
   fullCheckpointMatchesRequestedCohort,
   resolveAppendFullCohort,
   commandDetail,
@@ -37,6 +38,32 @@ const appRoot = path.resolve(import.meta.dirname, '../..');
 const appSha = '1'.repeat(40);
 const shellSha = '2'.repeat(40);
 const frameworkSha = '3'.repeat(40);
+
+test('source-gate recovery binds the verified downloader to the exact owner despite inherited artifact selectors', () => {
+  const original = { repository: process.env.GITHUB_REPOSITORY, run: process.env.OPL_ARTIFACT_RUN_ID, cache: process.env.OPL_ARTIFACT_CACHE };
+  process.env.GITHUB_REPOSITORY = 'wrong/repository';
+  process.env.OPL_ARTIFACT_RUN_ID = '999';
+  process.env.OPL_ARTIFACT_CACHE = '/tmp/opl-verified-cache';
+  try {
+    const runtime = {
+      runner(command: string, args: string[], options: { cwd: string; timeoutMs: number }) {
+        assert.equal(command, process.execPath);
+        assert.equal(options.cwd, appRoot);
+        assert.deepEqual(args.slice(0, 3), ['--use-env-proxy', '--input-type=module', '--eval']);
+        assert.match(args[3]!, /downloadArtifact/);
+        assert.deepEqual(args.slice(4), ['owner/repository', '123', 'opl-stable-operation-control-123', '/tmp/opl-evidence', '/tmp/opl-verified-cache']);
+        return { status: 0, stdout: '', stderr: '' };
+      },
+      now: () => new Date(), randomBytes: (size: number) => Buffer.alloc(size), wait: async () => {},
+    };
+    downloadStableSourceEvidence(runtime, 'owner/repository', '123', '/tmp/opl-evidence');
+    assert.throws(() => downloadStableSourceEvidence(runtime, 'owner/repository', '../123', '/tmp/opl-evidence'), /positive GitHub run id/);
+  } finally {
+    for (const [key, value] of Object.entries({ GITHUB_REPOSITORY: original.repository, OPL_ARTIFACT_RUN_ID: original.run, OPL_ARTIFACT_CACHE: original.cache })) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
 
 test('Stable dispatch binds the existing critical control bytes without duplicating their path list', () => {
   const blobs = stableOperationCriticalBlobs(appRoot);

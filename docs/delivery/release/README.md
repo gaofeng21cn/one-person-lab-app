@@ -187,6 +187,11 @@ exact-cohort evidence, so advancing owner checkouts does not repeat unchanged so
 When a failed run has no signed artifact yet, `--source-gate-run-id <failed-run>` reuses only its
 authenticated, exact-cohort source gate. The repaired workflow still builds and qualifies the product;
 this option neither reuses a failed acceptance nor authorizes another consumer of the same operation.
+Source-gate recovery uses the shared digest-verified artifact downloader. `OPL_ARTIFACT_CACHE`
+may point to a directory containing `<GitHub artifact SHA-256 hex>.zip`, including an exact
+archive downloaded through the GitHub connector when a runner cannot follow the ZIP redirect.
+The downloader reads fresh exact-run artifact metadata and verifies both archive size and digest
+before extracting; the controller also verifies the source report against its run-bound control.
 With an explicit repaired harness, an interrupted failed qualification may be run again even if its
 old classifier called it a product failure. A recorded pre-install artifact-download failure may also reuse signed bytes after the recovery job
 reconciles the original run, Bundle, notarization receipt, and both downloaded DMG hashes. Other

@@ -381,6 +381,23 @@ function readFullCheckpointCohort(
   }
 }
 
+export function downloadStableSourceEvidence(runtime: Runtime, repository: string, sourceRunId: string, destination: string): void {
+  // Use the same digest-verified downloader as candidate recovery. A connector
+  // may seed its cache when this executor cannot follow GitHub's ZIP redirect;
+  // every cache hit is still checked against fresh exact-run GitHub metadata.
+  runRequired(runtime, process.execPath, [
+    '--use-env-proxy', '--input-type=module', '--eval',
+    'import { downloadArtifact } from "./scripts/download-github-artifact.mjs"; '
+      + 'const [repository, run, name, destination, cache] = process.argv.slice(1); '
+      + 'await downloadArtifact({ ...process.env, GITHUB_REPOSITORY: repository, '
+      + 'OPL_ARTIFACT_RUN_ID: run, OPL_ARTIFACT_NAME: name, '
+      + 'OPL_ARTIFACT_DEST: destination, OPL_ARTIFACT_CACHE: cache });',
+    repository, runId(sourceRunId, 'source_gate_run_id'),
+    `opl-stable-operation-control-${sourceRunId}`, destination,
+    process.env.OPL_ARTIFACT_CACHE || path.join(os.tmpdir(), 'opl-release-artifact-cache'),
+  ], 2 * 60_000, 'Download original immutable Standard source evidence');
+}
+
 function readReusableStandardSourceGate(runtime: Runtime, repository: string, sourceRunId: string): unknown {
   const source = record(JSON.parse(runRequired(runtime, 'gh',
     ['api', `repos/${repository}/actions/runs/${sourceRunId}`], 30_000, 'Read original Standard owner')), 'source run');
@@ -390,9 +407,7 @@ function readReusableStandardSourceGate(runtime: Runtime, repository: string, so
   }
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-standard-source-evidence-'));
   try {
-    runRequired(runtime, 'gh', ['run', 'download', sourceRunId, '--repo', repository,
-      '--name', `opl-stable-operation-control-${sourceRunId}`, '--dir', tempRoot],
-    2 * 60_000, 'Download original immutable Standard source evidence');
+    downloadStableSourceEvidence(runtime, repository, sourceRunId, tempRoot);
     const control = validateStableOperationControl(readJsonFile(path.join(tempRoot, 'stable-operation-control.json')));
     const bytes = fs.readFileSync(path.join(tempRoot, 'source-gate.json'));
     const digest = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
