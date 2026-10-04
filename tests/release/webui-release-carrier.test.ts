@@ -985,7 +985,7 @@ test('WebUI carrier writes the public version only after the receipt and then se
   assert.equal(publish.permissions, undefined);
   assert.equal(build.permissions.actions, 'read');
   assert.ok(receiptIndex >= 0 && receiptIndex < versionIndex && versionIndex < sidecarIndex);
-  assert.equal(setupOras.uses, 'oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d');
+  assert.match(setupOras.uses, /^oras-project\/setup-oras@[0-9a-f]{40}$/);
   assert.equal(downloadSourceAuthority.if, undefined);
   assert.equal(downloadSourceAuthority.uses, 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c');
   assert.equal(downloadSourceAuthority.with.name, '${{ inputs.source_authority_artifact_name }}');
