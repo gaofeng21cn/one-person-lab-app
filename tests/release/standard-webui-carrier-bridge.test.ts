@@ -351,6 +351,8 @@ test('Standard freeze request contains only Desktop Standard and optional Full t
 test('WebUI build input derives only from independent source authority', () => {
   const fixture = bridgeFixture();
   const output = path.join(fixture.root, 'webui-build-input-draft.json');
+  const resolvedManifest = path.join(fixture.root, 'resolved-qualification.json');
+  writeJson(resolvedManifest, { runtime_payloads: { codex_cli: { package: '@openai/codex', version: '1.2.3' } } });
   const authority = createWebuiSourceAuthority({
     version,
     appSha: fixture.app.sha,
@@ -370,6 +372,7 @@ test('WebUI build input derives only from independent source authority', () => {
     '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z',
     '--base-image-index', fixture.baseImageIndex,
     '--frozen-codex-tarball', fixture.codexTarball,
+    '--resolved-dependency-manifest', resolvedManifest,
     '--architecture', 'amd64',
     '--output', output,
   ]);
@@ -402,6 +405,7 @@ test('WebUI build input derives only from independent source authority', () => {
     '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z',
     '--base-image-index', fixture.baseImageIndex,
     '--frozen-codex-tarball', fixture.codexTarball,
+    '--resolved-dependency-manifest', resolvedManifest,
     '--architecture', 'arm64',
     '--output', arm64Output,
   ]);
@@ -422,6 +426,7 @@ test('WebUI build input derives only from independent source authority', () => {
     '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z',
     '--base-image-index', fixture.baseImageIndex,
     '--frozen-codex-tarball', fixture.codexTarball,
+    '--resolved-dependency-manifest', resolvedManifest,
     '--architecture', 's390x',
     '--output', path.join(fixture.root, 'unsupported.json'),
   ]);

@@ -97,16 +97,18 @@ test("Full workflow provisions the frozen Python through uv on macOS arm64", () 
     workflow,
     /astral-sh\/setup-uv@[0-9a-f]{40}[\s\S]*version: '0\.11\.29'[\s\S]*download-from-astral-mirror: false[\s\S]*uv python install --managed-python "\$EXPECTED_PYTHON_VERSION"[\s\S]*python_executable="\$\(uv python find --managed-python "\$EXPECTED_PYTHON_VERSION"\)"[\s\S]*uv pip install --python "\$toolchain_root\/bin\/python" --no-deps "uv==\$EXPECTED_UV_VERSION"[\s\S]*OPL_FULL_PYTHON_BIN=\$python_executable/,
   );
-  assert.equal(sourceManifest.toolchain.python.version, "3.12.12");
-  assert.equal(sourceManifest.toolchain.python.source, "uv-managed CPython standalone release");
-  assert.equal(sourceManifest.toolchain.uv.source, "PyPI exact-version distribution");
-  const pythonRoot = `python/cpython-${sourceManifest.toolchain.python.version}-macos-aarch64-none/`;
+  for (const tool of ["python", "uv"]) {
+    assert.equal(sourceManifest.toolchain[tool].dependency_id, tool);
+    assert.equal(sourceManifest.toolchain[tool].selection_policy, "latest_stable_at_operation_start");
+    assert.equal(sourceManifest.toolchain[tool].version, undefined);
+  }
+  assert.match(workflow, /python_version:\.toolchain\.python\.version/);
   const pythonExamples = [
     ...prunePolicy.validation_examples.runtime_tree.excluded,
     ...prunePolicy.validation_examples.runtime_tree.retained,
   ].filter((entry: string) => entry.startsWith("python/cpython-"));
   assert.ok(pythonExamples.length > 0);
-  assert.ok(pythonExamples.every((entry: string) => entry.startsWith(pythonRoot)));
+  assert.ok(pythonExamples.every((entry: string) => /^python\/cpython-[^/]+-macos-aarch64-none\//.test(entry)));
 });
 
 test("Full domain dependency sync uses the frozen carrier Python", () => {

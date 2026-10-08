@@ -138,6 +138,8 @@ report real events, without inferring progress from elapsed time.
 
 ## Stable Operations
 
+The legacy Full notes authority helper consumes an operation-resolved Codex qualification manifest via `--resolved-qualification-manifest` or `OPL_RELEASE_DEPENDENCY_MANIFEST`. It records the manifest digest and refuses missing or mismatched package/platform identities; the App carrier contract supplies policy, not a pinned version.
+
 The online notes writer follows `public_release_notes.preferred_ai_route` in the release
 contract: `deepseek-flash`, then `gpt-6-luna`, low reasoning, one transport attempt per model,
 and a 180-second per-attempt response deadline. Synchronous Chat Completions returns the

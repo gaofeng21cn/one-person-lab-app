@@ -2184,9 +2184,9 @@
         "legacy_bundle_read_compatibility_only": true,
         "freeze_adapter_rederives_from_current_operation_refs": [
           "App source commit",
-          "Shell source commit and AionCore managed manifest/lock",
+          "Shell source commit and Studio external carrier policy",
           "Framework source commit used to build this App artifact",
-          "seven Package manifests and payload manifests",
+          "operation-resolved qualification input manifest",
           "App Full third-party source manifest"
         ],
         "comparison": "canonical_json_exact_field_set_and_values",

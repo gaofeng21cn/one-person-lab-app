@@ -212,14 +212,23 @@ function shellRelativePath(shellRoot: string, candidate: string, label: string):
   return relative.split(path.sep).join('/');
 }
 
-function studioCodexAuthority() {
+function studioCodexAuthority(resolvedManifestPath: string) {
   const adapter = readAppShellAdapterContract();
   const qualification = adapter.qualification_external_carrier;
   if (!qualification || qualification.schema !== 'opl_studio_external_codex_qualification_input.v1') {
     throw new Error('Studio external Codex qualification input is missing.');
   }
+  const resolved = readRegularJson(resolvedManifestPath, 'Resolved qualification input manifest');
+  const codex = requiredObject(resolved.runtime_payloads?.codex_cli, 'Resolved Codex qualification input');
+  if (codex.package !== qualification.package.name
+    || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(String(codex.version ?? ''))
+    || codex.platform?.version !== `${codex.version}-${qualification.platform.os}-${qualification.platform.cpu}`
+    || codex.platform?.os !== qualification.platform.os
+    || codex.platform?.cpu !== qualification.platform.cpu) {
+    throw new Error('Resolved Codex qualification input does not match the Studio carrier.');
+  }
   return {
-    version: qualification.platform.version,
+    version: codex.platform.version,
     source: 'studio_opl_codex_native_external_binary_v1',
     binary_path: qualification.platform.binary_path,
     os: qualification.platform.os,
@@ -238,6 +247,7 @@ export type ReleaseNotesFullPayloadAuthorityInput = {
   frameworkRoot: string;
   frameworkRef: string;
   thirdPartySourceManifestPath: string;
+  resolvedQualificationManifestPath: string;
 };
 
 export function buildReleaseNotesFullPayloadAuthority(
@@ -281,7 +291,7 @@ export function buildReleaseNotesFullPayloadAuthority(
   const officeSource = requiredObject(thirdPartySources.officecli, 'OfficeCLI source authority');
   const mineruSource = requiredObject(thirdPartySources.mineru, 'MinerU source authority');
   const officePayload = requiredObject(runtimePayloads.officecli, 'OfficeCLI runtime authority');
-  const codexAuthority = studioCodexAuthority();
+  const codexAuthority = studioCodexAuthority(input.resolvedQualificationManifestPath);
   const codexVersion = requiredString(codexAuthority.version, 'Studio external Codex version');
   components.codex = { version: `codex-cli ${codexVersion}` };
   resolvedRefs.codex_cli = {
@@ -339,6 +349,7 @@ export function buildReleaseNotesFullPayloadAuthority(
       officecli: { source_commit: officeRef, version: officeVersion },
       mineru: { source_commit: mineruRef },
       app_third_party_source_manifest_sha256: digestRef(thirdPartyManifestPath),
+      resolved_qualification_input_manifest_sha256: digestRef(input.resolvedQualificationManifestPath),
     },
     components,
     resolved_refs: resolvedRefs,
@@ -376,6 +387,7 @@ function parseCli(argv: string[]) {
       'framework-root': { type: 'string' },
       'framework-ref': { type: 'string' },
       'third-party-source-manifest': { type: 'string' },
+      'resolved-qualification-manifest': { type: 'string' },
       output: { type: 'string' },
     },
     allowPositionals: false,
@@ -391,6 +403,10 @@ function parseCli(argv: string[]) {
     thirdPartySourceManifestPath: path.resolve(
       requiredString(values['third-party-source-manifest'], '--third-party-source-manifest'),
     ),
+    resolvedQualificationManifestPath: path.resolve(requiredString(
+      values['resolved-qualification-manifest'] ?? process.env.OPL_RELEASE_DEPENDENCY_MANIFEST,
+      '--resolved-qualification-manifest or OPL_RELEASE_DEPENDENCY_MANIFEST',
+    )),
     output: path.resolve(requiredString(values.output, '--output')),
   };
 }

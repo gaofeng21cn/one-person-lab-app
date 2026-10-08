@@ -100,7 +100,7 @@ function advanceCanonicalFrameworkRemote(framework: { root: string; ref: string 
 
 function fullPayloadAuthorityFixture(options: { nestedFramework?: boolean } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-notes-full-authority-'));
-  const codexVersion = '0.144.6';
+  const codexVersion = '0.199.0';
   const staleAppCodexProjection = '0.144.5';
   const nodeVersion = '24.11.0';
   const officeRef = 'a'.repeat(40);
@@ -201,6 +201,11 @@ function fullPayloadAuthorityFixture(options: { nestedFramework?: boolean } = {}
     fs.writeFileSync(codexRequiredFile, 'rg fixture\n');
     fs.writeFileSync(codexRequiredDirectoryFile, 'zsh fixture\n');
   });
+  const resolvedQualificationManifestPath = path.join(root, 'resolved-qualification.json');
+  jsonFile(resolvedQualificationManifestPath, { runtime_payloads: { codex_cli: {
+    package: '@openai/codex', version: codexVersion,
+    platform: { version: `${codexVersion}-darwin-arm64`, os: 'darwin', cpu: 'arm64' },
+  } } });
   const framework = gitFixture(root, options.nestedFramework ? path.join('app', 'framework-source') : 'framework', (directory) => {
     fs.writeFileSync(path.join(directory, 'framework.txt'), 'framework fixture\n');
   });
@@ -251,6 +256,7 @@ function fullPayloadAuthorityFixture(options: { nestedFramework?: boolean } = {}
       'rg',
     ),
     codexVersion,
+    resolvedQualificationManifestPath,
     staleAppCodexProjection,
     nodeVersion,
     officeRef,
@@ -268,6 +274,7 @@ function fullPayloadAuthorityArgs(fixture: ReturnType<typeof fullPayloadAuthorit
     '--framework-root', fixture.framework.root,
     '--framework-ref', fixture.framework.ref,
     '--third-party-source-manifest', fixture.thirdPartyManifestPath,
+    '--resolved-qualification-manifest', fixture.resolvedQualificationManifestPath,
     '--output', output,
   ];
 }
@@ -696,14 +703,14 @@ test('Full notes derive only selected prebuild input refs from exact App, Shell,
     build_artifact_bytes_known: false,
     usage: 'prepared_release_notes_evidence',
   });
-  assert.deepEqual(authority.components.codex, { version: 'codex-cli 0.147.0-darwin-arm64' });
+  assert.deepEqual(authority.components.codex, { version: `codex-cli ${fixture.codexVersion}-darwin-arm64` });
   assert.equal(authority.runtime_authority.codex_cli.shell_source_commit, fixture.shell.ref);
   assert.equal(authority.runtime_authority.codex_cli.source, 'studio_opl_codex_native_external_binary_v1');
   assert.equal(authority.runtime_authority.codex_cli.qualification_input_ref, 'contracts/shell-adapters/opl-studio.json#qualification_external_carrier');
-  assert.equal(authority.runtime_authority.codex_cli.qualification_input.version, '0.147.0-darwin-arm64');
+  assert.equal(authority.runtime_authority.codex_cli.qualification_input.version, `${fixture.codexVersion}-darwin-arm64`);
   assert.equal(authority.runtime_authority.codex_cli.app_bundle_codex_payload_forbidden, true);
   assert.equal(Object.hasOwn(authority.runtime_authority.codex_cli, 'claude_cli'), false);
-  assert.equal(authority.runtime_authority.codex_cli.version, '0.147.0-darwin-arm64');
+  assert.equal(authority.runtime_authority.codex_cli.version, `${fixture.codexVersion}-darwin-arm64`);
   assert.notEqual(authority.runtime_authority.codex_cli.version, fixture.staleAppCodexProjection);
   assert.doesNotMatch(JSON.stringify(authority), /codex_acp|package_lock|npm_integrity|tarball_url/);
   assert.equal('framework_release_set' in authority, false);
@@ -731,7 +738,7 @@ test('Full notes derive only selected prebuild input refs from exact App, Shell,
   const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
   const expectedRefs = [
     `OPL Framework @ ${fixture.framework.ref.slice(0, 7)}`,
-    'Codex CLI 0.147.0-darwin-arm64',
+    `Codex CLI ${fixture.codexVersion}-darwin-arm64`,
     `OfficeCLI @ ${fixture.officeRef.slice(0, 7)}`,
     `MinerU @ ${fixture.mineruRef.slice(0, 7)}`,
   ];
@@ -743,6 +750,25 @@ test('Full notes derive only selected prebuild input refs from exact App, Shell,
     /Full first-install package contents recorded in this release manifest: OPL Framework, Codex CLI, OfficeCLI, MinerU/,
   );
   assert.equal(evidence.payload.lines[1], `- Packaged component refs: ${expectedRefs.join('; ')}.`);
+});
+
+test('prebuild Full notes refuse missing and mismatched operation-resolved Codex inputs', () => {
+  const fixture = fullPayloadAuthorityFixture();
+  const output = path.join(fixture.root, 'invalid-resolution-authority.json');
+  const args = fullPayloadAuthorityArgs(fixture, output);
+  const index = args.indexOf('--resolved-qualification-manifest');
+  const missing = runNode(args.filter((_, position) => position !== index && position !== index + 1), {
+    env: { OPL_RELEASE_DEPENDENCY_MANIFEST: '' },
+  });
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /resolved-qualification-manifest/);
+  const resolved = JSON.parse(fs.readFileSync(fixture.resolvedQualificationManifestPath, 'utf8'));
+  resolved.runtime_payloads.codex_cli.platform.version = '0.1.0-darwin-arm64';
+  jsonFile(fixture.resolvedQualificationManifestPath, resolved);
+  const mismatch = runNode(args);
+  assert.notEqual(mismatch.status, 0);
+  assert.match(mismatch.stderr, /does not match the Studio carrier/);
+  assert.equal(fs.existsSync(output), false);
 });
 
 test('Standard freeze excludes future Full authority and independent WebUI build inputs', () => {

@@ -379,7 +379,9 @@ test('Full source manifest supplies resolution hints without selecting capabilit
   assert.equal(projection.generation_contract.payload_inventory_required, false);
   assert.equal(projection.generation_contract.selected_inputs_recorded_after_resolution, true);
   assert.equal(manifest.authority_boundary.manifest_is_dependency_authority, false);
-  assert.equal(manifest.authority_boundary.source_versions_are_default_selection_hints, true);
+  assert.equal(manifest.authority_boundary.source_versions_are_default_selection_hints, false);
+  assert.equal(manifest.authority_boundary.permanent_version_pins_allowed, false);
+  assert.equal(projection.resolved_manifest_env, 'OPL_RELEASE_DEPENDENCY_MANIFEST');
   assert.equal(manifest.authority_boundary.credential_values_may_be_bundled, false);
   assert.equal(manifest.authority_boundary.unknown_user_or_third_party_mcp_may_be_removed, false);
   assert.equal('ui_ux_pro_max' in manifest.sources, false);
