@@ -33,7 +33,7 @@ export function projectResolvedBuildDependencies(resolved: Json, fullPolicy: Jso
     if (!byId.has(id)) continue;
     const entry = dependency(id);
     if (!/^[a-f0-9]{40}$/.test(entry.resolved_commit ?? '')) throw new Error(`Framework resolution is missing source commit for ${id}.`);
-    full.sources[key] = { ...full.sources[key], ref: entry.resolved_commit, release_tag: entry.source_ref };
+    full.sources[key] = { ...full.sources[key], ref: entry.resolved_commit, release_tag: entry.install_metadata?.release_tag ?? entry.source_ref };
   }
   for (const [key, policy] of Object.entries<Json>(full.runtime_payloads ?? {})) {
     if (!byId.has(policy.dependency_id ?? key.replaceAll('_', '-'))) continue;
