@@ -58,6 +58,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
   const triggers = hub.workflow.on ?? {};
   const dispatchInputs = triggers.workflow_dispatch?.inputs ?? {};
   const expectedDispatchInputs = [
+    'desktop_artifact_run_id',
     'desktop_platform',
     'desktop_shell_ref',
     'expected_old_asset_digest',
@@ -302,13 +303,13 @@ export function validateStableFollowupTopology(appRoot: string): number {
     || typeof desktopBuild?.with?.platform_ids !== 'string'
     || !desktopBuild.with.platform_ids.includes('inputs.platform_id')
     || !desktopAppend
-    || !needsExactly(desktopAppend, ['build-platform'])
+    || !needsExactly(desktopAppend, ['verify-standard-quality', 'build-platform'])
     || desktopAppend.environment !== 'release-stable'
     || !exactObject(desktopAppend.permissions, exactStableEntryPermissions)
     || !hasStableMutationMutex(desktopAppend)
     || !desktopReceipt
     || desktopReceipt.if !== '${{ always() }}'
-    || !needsExactly(desktopReceipt, ['build-platform', 'append-platform'])
+    || !needsExactly(desktopReceipt, ['verify-standard-quality', 'build-platform', 'append-platform'])
   ) {
     failures += reportFailure(
       id,

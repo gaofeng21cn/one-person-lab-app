@@ -141,7 +141,7 @@ test('Linux and Windows build and append independently with only public mutation
   );
   assert.match(platformWorkflow.jobs['build-platform'].with.platform_ids, /inputs\.platform_id/);
   const append = platformWorkflow.jobs['append-platform'];
-  assert.deepEqual(append.needs, ['build-platform']);
+  assert.deepEqual(append.needs, ['verify-standard-quality', 'build-platform']);
   assert.equal(append.environment, 'release-stable');
   assert.equal(append.concurrency.group, 'opl-release-bundle-global');
   assert.deepEqual(append.permissions, { contents: 'write', actions: 'read' });

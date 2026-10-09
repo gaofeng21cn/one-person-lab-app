@@ -62,6 +62,9 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 
 Windows 源码修复可在单平台恢复入口指定 `desktop_shell_ref`，绑定准确的 Studio canonical
 main SHA；平台包记录自己的构建来源，重新执行源码质量检查，Standard 字节与来源保持独立。
+已合格平台构建的追加失败可指定 `desktop_artifact_run_id`：先核对原 producer、准确 Standard
+绑定、构建成功与实际 Shell/Framework 身份，再复用产物追加；聚合清单保留 Standard 身份，
+独立源码记录于现有 `platform_build_provenance`。
 Windows guest 的 Node/Codex 由冻结 Framework 在 Linux x64 解析一次，打包器消费该结果并校验
 SHA-256、npm integrity 与实际二进制版本。Full 自动 follower 不继承 Standard 的恢复 harness；
 首次 Full 使用其自身构建来源，已有 Full 恢复由 controller 读取其检查点。

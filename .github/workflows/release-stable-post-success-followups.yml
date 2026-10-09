@@ -58,6 +58,11 @@ on:
         required: false
         default: ''
         type: string
+      desktop_artifact_run_id:
+        description: Optional exact successful platform build run to append without rebuilding.
+        required: false
+        default: ''
+        type: string
       repair_source_commit:
         description: Exact canonical App main commit containing the installer repair.
         required: false
@@ -414,6 +419,7 @@ jobs:
       app_ref: ${{ needs.admit.outputs.app_ref }}
       shell_ref: ${{ needs.admit.outputs.shell_ref }}
       platform_shell_ref: ${{ inputs.operation == 'reconcile_desktop_platform' && inputs.desktop_shell_ref || '' }}
+      platform_artifact_run_id: ${{ inputs.operation == 'reconcile_desktop_platform' && inputs.desktop_artifact_run_id || '' }}
       framework_ref: ${{ needs.admit.outputs.framework_ref }}
       version: ${{ needs.admit.outputs.version }}
       updater_version: ${{ needs.admit.outputs.updater_version }}

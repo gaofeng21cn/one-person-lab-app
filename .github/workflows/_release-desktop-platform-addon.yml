@@ -20,6 +20,11 @@ on:
         required: false
         default: ''
         type: string
+      platform_artifact_run_id:
+        description: Exact previously successful Windows build to append without rebuilding.
+        required: false
+        default: ''
+        type: string
       framework_ref:
         description: Exact frozen Framework product SHA
         required: true
@@ -119,6 +124,7 @@ jobs:
           SHELL_REF: ${{ inputs.shell_ref }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
           PLATFORM_SHELL_REF: ${{ inputs.platform_shell_ref }}
+          PLATFORM_ARTIFACT_RUN_ID: ${{ inputs.platform_artifact_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -224,7 +230,31 @@ jobs:
           fi
           echo "skip_code_quality=$skip_code_quality" >> "$GITHUB_OUTPUT"
 
+      - name: Verify qualified platform recovery producer
+        if: ${{ inputs.platform_artifact_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCER_RUN_ID: ${{ inputs.platform_artifact_run_id }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          BUILD_SHELL_REF: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ inputs.platform_id }}' = windows-x64
+          [[ "$PRODUCER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRODUCER_RUN_ID" > producer-run.json
+          jq -e '.status == "completed" and .run_attempt == 1 and .event == "workflow_dispatch" and .head_branch == "main" and .path == ".github/workflows/release-stable-post-success-followups.yml" and .repository.full_name == "gaofeng21cn/one-person-lab-app"' producer-run.json >/dev/null
+          gh run download "$PRODUCER_RUN_ID" -R "$GITHUB_REPOSITORY" \
+            --name "opl-stable-desktop-platform-followup-${SOURCE_RUN_ID}-windows-x64" --dir producer-receipt
+          jq -e --arg source "$SOURCE_RUN_ID" --arg tag "$RELEASE_TAG" '.schema == "opl_app_stable_desktop_platform_followup.v1" and .source_run_id == $source and .release_tag == $tag and .platform == "windows-x64" and .build == "success"' producer-receipt/*.json >/dev/null
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$PRODUCER_RUN_ID/jobs?per_page=100" > producer-jobs.json
+          job_id="$(jq -er '[.[].jobs[] | select(.name | endswith("/ Build windows-x64"))] | select(length == 1) | .[0] | select(.status == "completed" and .conclusion == "success") | .id' producer-jobs.json)"
+          [[ "$job_id" =~ ^[1-9][0-9]*$ ]]
+
   build-platform:
+    if: ${{ inputs.platform_artifact_run_id == '' }}
     needs: [verify-standard-quality]
     permissions:
       contents: read
@@ -245,7 +275,8 @@ jobs:
     secrets: inherit
 
   append-platform:
-    needs: [build-platform]
+    if: ${{ always() && needs.verify-standard-quality.result == 'success' && (needs.build-platform.result == 'success' || inputs.platform_artifact_run_id != '') }}
+    needs: [verify-standard-quality, build-platform]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: release-stable
@@ -269,6 +300,8 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: ${{ format('stable-desktop-{0}-*', inputs.platform_id) }}
+          run-id: ${{ inputs.platform_artifact_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           path: selected-platform-assets
           merge-multiple: true
 
@@ -278,7 +311,9 @@ jobs:
           VERSION: ${{ inputs.version }}
           UPDATER_VERSION: ${{ inputs.updater_version }}
           APP_REF: ${{ inputs.app_ref }}
-          SHELL_REF: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          BUILD_SHELL_REF: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
+          BUILD_RUN_ID: ${{ inputs.platform_artifact_run_id || github.run_id }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_BUNDLE_DIGEST: ${{ inputs.source_bundle_digest }}
@@ -286,6 +321,16 @@ jobs:
         run: |
           set -euo pipefail
           case "$PLATFORM_ID" in linux-x64|windows-x64) ;; *) exit 1 ;; esac
+          if [ "$PLATFORM_ID" = windows-x64 ]; then
+            mapfile -t qualifications < <(find selected-platform-assets -type f -name opl-windows-guest-host-payload-qualification.json -print)
+            test "${#qualifications[@]}" = 1
+            jq -e --arg shell "$BUILD_SHELL_REF" --arg framework "$FRAMEWORK_REF" '
+              .schema == "opl_studio_windows_guest_host_payload_qualification.v1" and .status == "passed"
+              and .stage == "post_pack" and .shell_ref == $shell and .framework_ref == $framework
+              and .missing_file_count == 0 and .extra_file_count == 0 and .changed_file_count == 0
+              and .declared_file_count == .actual_file_count
+            ' "${qualifications[0]}" >/dev/null
+          fi
           mkdir desktop-platform-assets
           if [ "$PLATFORM_ID" = linux-x64 ]; then
             find selected-platform-assets -type f -name '*.deb' -exec cp {} desktop-platform-assets/ \;
@@ -320,7 +365,8 @@ jobs:
             --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" \
             --arg run "$SOURCE_RUN_ID" --arg bundle "$SOURCE_BUNDLE_DIGEST" \
             --arg platform "$PLATFORM_ID" --argjson assets "$assets" \
-            '{schema:"opl_app_desktop_platform_manifest.v1",release:{version:$version,updater_version:$updater},source:{run_id:$run,bundle_digest:$bundle},cohort:{app_sha:$app,shell_sha:$shell,framework_sha:$framework},platform:$platform,assets:$assets}' \
+            --arg build_shell "$BUILD_SHELL_REF" --arg build_run "$BUILD_RUN_ID" \
+            '{schema:"opl_app_desktop_platform_manifest.v1",release:{version:$version,updater_version:$updater},source:{run_id:$run,bundle_digest:$bundle},cohort:{app_sha:$app,shell_sha:$shell,framework_sha:$framework},platform:$platform,assets:$assets} + (if $build_shell != $shell then {build_provenance:{app_sha:$app,shell_sha:$build_shell,framework_sha:$framework,updater_version:$updater,build_run_id:$build_run}} else {} end)' \
             > desktop-platform-manifest.json
 
       - name: Append or reconcile only this Desktop platform
@@ -347,7 +393,7 @@ jobs:
 
   receipt:
     if: ${{ always() }}
-    needs: [build-platform, append-platform]
+    needs: [verify-standard-quality, build-platform, append-platform]
     runs-on: ubuntu-latest
     steps:
       - name: Write independent Desktop platform follower receipt
@@ -355,7 +401,7 @@ jobs:
           PLATFORM_ID: ${{ inputs.platform_id }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           RELEASE_TAG: ${{ inputs.release_tag }}
-          BUILD_RESULT: ${{ needs.build-platform.result }}
+          BUILD_RESULT: ${{ inputs.platform_artifact_run_id != '' && needs.verify-standard-quality.result == 'success' && 'success' || needs.build-platform.result }}
           APPEND_RESULT: ${{ needs.append-platform.result }}
         shell: bash
         run: |
