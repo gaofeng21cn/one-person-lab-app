@@ -65,6 +65,8 @@ main SHA；平台包记录自己的构建来源，重新执行源码质量检查
 Windows guest 的 Node/Codex 由冻结 Framework 在 Linux x64 解析一次，打包器消费该结果并校验
 SHA-256、npm integrity 与实际二进制版本。Full 自动 follower 不继承 Standard 的恢复 harness；
 首次 Full 使用其自身构建来源，已有 Full 恢复由 controller 读取其检查点。
+Full Python 直接消费 Framework 已解析且校验过的官方 standalone 归档，并回读解释器版本；
+uv 用于建立环境和安装依赖，不再用其另一个下载目录重新选择 Python。
 
 ## 修复、验证和历史入口
 

@@ -74,7 +74,7 @@ test("Full workflow checks out MAS Scholar Skills and binds both runtime assembl
   );
 });
 
-test("Full workflow provisions the frozen Python through uv on macOS arm64", () => {
+test("Full workflow provisions the frozen official Python archive on macOS arm64", () => {
   const workflow = fs.readFileSync(
     path.join(appRoot, ".github/workflows/full-first-install-release.yml"),
     "utf8",
@@ -95,7 +95,7 @@ test("Full workflow provisions the frozen Python through uv on macOS arm64", () 
   assert.doesNotMatch(workflow, /actions\/setup-python@/);
   assert.match(
     workflow,
-    /astral-sh\/setup-uv@[0-9a-f]{40}[\s\S]*version: '0\.11\.29'[\s\S]*download-from-astral-mirror: false[\s\S]*uv python install --managed-python "\$EXPECTED_PYTHON_VERSION"[\s\S]*python_executable="\$\(uv python find --managed-python "\$EXPECTED_PYTHON_VERSION"\)"[\s\S]*uv pip install --python "\$toolchain_root\/bin\/python" --no-deps "uv==\$EXPECTED_UV_VERSION"[\s\S]*OPL_FULL_PYTHON_BIN=\$python_executable/,
+    /astral-sh\/setup-uv@[0-9a-f]{40}[\s\S]*download-from-astral-mirror: false[\s\S]*curl --fail --location --silent --show-error "\$PYTHON_ARCHIVE_URL"[\s\S]*shasum -a 256 "\$python_archive"[\s\S]*tar -xzf "\$python_archive" --strip-components=1[\s\S]*uv pip install --python "\$toolchain_root\/bin\/python" --no-deps "uv==\$EXPECTED_UV_VERSION"[\s\S]*OPL_FULL_PYTHON_BIN=\$python_executable/,
   );
   for (const tool of ["python", "uv"]) {
     assert.equal(sourceManifest.toolchain[tool].dependency_id, tool);

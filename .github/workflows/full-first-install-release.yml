@@ -543,13 +543,21 @@ jobs:
         env:
           EXPECTED_PYTHON_VERSION: ${{ steps.full-build-inputs.outputs.python_version }}
           EXPECTED_UV_VERSION: ${{ steps.full-build-inputs.outputs.uv_version }}
+          PYTHON_ARCHIVE_URL: ${{ steps.full-build-inputs.outputs.python_url }}
+          PYTHON_ARCHIVE_SHA256: ${{ steps.full-build-inputs.outputs.python_sha256 }}
         run: |
           set -euo pipefail
-          uv python install --managed-python "$EXPECTED_PYTHON_VERSION"
-          python_executable="$(uv python find --managed-python "$EXPECTED_PYTHON_VERSION")"
+          [[ "$PYTHON_ARCHIVE_URL" == https://github.com/astral-sh/python-build-standalone/releases/download/* ]]
+          [[ "$PYTHON_ARCHIVE_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          python_archive="$RUNNER_TEMP/opl-python-standalone.tar.gz"
+          curl --fail --location --silent --show-error "$PYTHON_ARCHIVE_URL" --output "$python_archive"
+          test "$(shasum -a 256 "$python_archive" | awk '{print $1}')" = "$PYTHON_ARCHIVE_SHA256"
+          python_root="$UV_PYTHON_INSTALL_DIR/cpython-${EXPECTED_PYTHON_VERSION}-macos-aarch64-none"
+          mkdir "$python_root"
+          tar -xzf "$python_archive" --strip-components=1 -C "$python_root"
+          python_executable="$python_root/bin/python3"
           actual_version="$("$python_executable" --version 2>&1)"
           test "$actual_version" = "Python $EXPECTED_PYTHON_VERSION"
-          python_root="$(cd "$(dirname "$python_executable")/.." && pwd -P)"
           toolchain_root="$RUNNER_TEMP/opl-python-toolchain"
           uv venv --python "$python_executable" "$toolchain_root"
           uv pip install --python "$toolchain_root/bin/python" --no-deps "uv==$EXPECTED_UV_VERSION"

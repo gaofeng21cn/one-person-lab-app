@@ -108,7 +108,7 @@ function main() {
     const outputs: Record<string, string> = { qualification_manifest: path.join(output, 'qualification-input-manifest.json'), full_manifest: path.join(output, 'full-input-manifest.json') };
     for (const [key, entry] of Object.entries<Json>(projected.full.toolchain)) if (entry.version) outputs[`${key}_version`] = entry.version;
     for (const key of ['officecli', 'mineru']) if (projected.full.sources[key].ref) outputs[`${key}_ref`] = projected.full.sources[key].ref;
-    for (const [key, id] of [['temporal', 'temporal-cli'], ['officecli', 'officecli'], ['node', 'node']]) {
+    for (const [key, id] of [['temporal', 'temporal-cli'], ['officecli', 'officecli'], ['node', 'node'], ['python', 'python']]) {
       const entry = resolved.dependencies.find((entry: Json) => entry.dependency_id === id);
       if (!entry) continue;
       outputs[`${key}_version`] = entry.version;
