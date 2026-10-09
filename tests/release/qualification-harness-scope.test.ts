@@ -1,16 +1,62 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import {
   buildQualificationHarnessScopeProof,
   collectRemoteChangedPaths,
   inspectQualificationHarnessScope,
   validateQualificationHarnessScopeProof,
+  validateQualificationHarnessConsumer,
 } from '../../scripts/qualification-harness-scope.ts';
 
 const artifactAppSha = 'a'.repeat(40);
 const verificationAppSha = 'b'.repeat(40);
 const artifactShellSha = 'c'.repeat(40);
 const verificationShellSha = 'd'.repeat(40);
+
+test('Stable harness tests are admitted individually while runtime paths remain forbidden', () => {
+  for (const name of ['stable-clean-vm', 'stable-smoke', 'stable-upgrade-vm']) {
+    const input = {
+      artifactAppSha, verificationAppSha: artifactAppSha, appChangedPaths: [],
+      artifactShellSha, verificationShellSha,
+      shellChangedPaths: [`scripts/desktop/${name}.mjs`, `tests/desktop/${name}.test.mjs`],
+    };
+    assert.equal(buildQualificationHarnessScopeProof(input).reuse_authorization.allowed, true);
+    for (const forbidden of ['desktop/host.mjs', 'tests/desktop/unlisted.test.mjs']) {
+      assert.equal(buildQualificationHarnessScopeProof({
+        ...input, shellChangedPaths: [...input.shellChangedPaths, forbidden].sort(),
+      }).reuse_authorization.allowed, false);
+    }
+  }
+});
+
+test('selected immutable consumer rejects a controller proof it cannot normalize before dispatch', () => {
+  const current = fs.readFileSync(new URL('../../scripts/qualification-harness-scope.ts', import.meta.url), 'utf8');
+  // Exercise the validator with the prior consumer's narrower paired-test policy.
+  const old = current.replace("    'tests/desktop/stable-smoke.test.mjs',\n", '');
+  const proof = buildQualificationHarnessScopeProof({
+    artifactAppSha, verificationAppSha: artifactAppSha, appChangedPaths: [],
+    artifactShellSha, verificationShellSha,
+    shellChangedPaths: ['scripts/desktop/stable-smoke.mjs', 'tests/desktop/stable-smoke.test.mjs'],
+  });
+  const runnerFor = (source: string) => (command: string, args: string[], options?: { cwd?: string }) => {
+    if (command === 'gh') {
+      assert.deepEqual(args, ['api', `repos/gaofeng21cn/one-person-lab-app/contents/scripts/qualification-harness-scope.ts?ref=${artifactAppSha}`, '--jq', '.content']);
+      return { status: 0, stdout: Buffer.from(source).toString('base64'), stderr: '' };
+    }
+    assert.equal(command, process.execPath);
+    const result = spawnSync(command, args, { cwd: options?.cwd, encoding: 'utf8' });
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+  };
+  assert.throws(() => validateQualificationHarnessConsumer(runnerFor(old), proof), /Selected verification App cannot consume/);
+  assert.doesNotThrow(() => validateQualificationHarnessConsumer(runnerFor(current), proof));
+  const forbidden = buildQualificationHarnessScopeProof({
+    artifactAppSha, verificationAppSha: artifactAppSha, appChangedPaths: [],
+    artifactShellSha, verificationShellSha, shellChangedPaths: ['desktop/host.mjs'],
+  });
+  assert.throws(() => validateQualificationHarnessConsumer(() => { throw new Error('must not download'); }, forbidden), /not authorized/);
+});
 
 test('qualification harness scope allows a paired VM smoke mechanics subset', () => {
   const appChangedPaths = [

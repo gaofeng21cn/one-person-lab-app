@@ -263,6 +263,9 @@ export function buildQualificationHarnessScopeProof(input: {
     'scripts/opl-first-run-vm-smoke.mjs',
     'tests/desktop/preview-smoke.test.mjs',
     'tests/desktop/qualification-harness.test.mjs',
+    'tests/desktop/stable-clean-vm.test.mjs',
+    'tests/desktop/stable-smoke.test.mjs',
+    'tests/desktop/stable-upgrade-vm.test.mjs',
   ];
   const appHarnessMechanicsOnly = appDiffers &&
     appChangedPaths.every((entry) => appHarnessMechanicsPaths.includes(entry));
@@ -416,6 +419,36 @@ export function inspectQualificationHarnessScope(
     artifactProbeDigest: artifactExpectations.probe,
     verificationProbeDigest: verificationExpectations.probe,
   });
+}
+
+/** Exercise the receipt consumer selected for this recovery before dispatch. */
+export function validateQualificationHarnessConsumer(
+  runner: QualificationHarnessScopeCommandRunner,
+  proof: QualificationHarnessScopeProof,
+): void {
+  const errors = validateQualificationHarnessScopeProof(proof);
+  if (errors.length > 0 || !proof.reuse_authorization.allowed) {
+    throw new Error(`Same-artifact qualification is not authorized: ${errors.join('; ') || proof.reuse_authorization.reason}`);
+  }
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-qualification-consumer-'));
+  try {
+    const encoded = runOrThrow(runner, 'gh', ['api',
+      `repos/${proof.app.repo}/contents/scripts/qualification-harness-scope.ts?ref=${proof.app.head_sha}`,
+      '--jq', '.content'], root, 'Read selected verification App consumer');
+    fs.writeFileSync(path.join(root, 'consumer.ts'), Buffer.from(encoded.replace(/\s/g, ''), 'base64'));
+    runOrThrow(runner, process.execPath, ['--experimental-strip-types', '--input-type=module', '--eval', `
+      import { validateQualificationHarnessScopeProof } from './consumer.ts';
+      const proof = JSON.parse(process.argv[1]);
+      const errors = validateQualificationHarnessScopeProof(proof, {
+        artifactAppSha: proof.app.base_sha, verificationAppSha: proof.app.head_sha,
+        artifactShellSha: proof.shell.base_sha, verificationShellSha: proof.shell.head_sha,
+      });
+      if (errors.length || !proof.reuse_authorization.allowed) throw new Error(errors.join('; '));
+    `, JSON.stringify(proof)], root,
+    'Selected verification App cannot consume the qualification scope proof; select a compatible harness-only --verification-app-ref without changing artifact refs');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 }
 
 function main(): void {
