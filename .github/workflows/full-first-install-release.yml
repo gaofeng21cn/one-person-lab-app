@@ -553,6 +553,7 @@ jobs:
           curl --fail --location --silent --show-error "$PYTHON_ARCHIVE_URL" --output "$python_archive"
           test "$(shasum -a 256 "$python_archive" | awk '{print $1}')" = "$PYTHON_ARCHIVE_SHA256"
           python_root="$UV_PYTHON_INSTALL_DIR/cpython-${EXPECTED_PYTHON_VERSION}-macos-aarch64-none"
+          mkdir -p "$UV_PYTHON_INSTALL_DIR"
           mkdir "$python_root"
           tar -xzf "$python_archive" --strip-components=1 -C "$python_root"
           python_executable="$python_root/bin/python3"
