@@ -1682,6 +1682,7 @@ jobs:
           mkdir -p "$input_root/full-output"
           cp -R "$output_dir/." "$input_root/full-output/"
           cp "$RUNNER_TEMP/opl-full-toolchain-observation-receipt.json" "$input_root/"
+          cp -R "$RUNNER_TEMP/opl-full-dependency-resolution" "$input_root/dependency-resolution"
           INPUT_ROOT="$input_root" node <<'NODE'
           const crypto = require('node:crypto');
           const fs = require('node:fs');
@@ -2009,6 +2010,8 @@ jobs:
           mkdir -p "$output_dir"
           cp -R "$input_root/full-output/." "$output_dir/"
           cp "$input_root/opl-full-toolchain-observation-receipt.json" "$output_dir/"
+          mkdir -p "$RUNNER_TEMP/opl-full-dependency-resolution"
+          cp -R "$input_root/dependency-resolution/." "$RUNNER_TEMP/opl-full-dependency-resolution/"
           test -f "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
           test ! -L "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
           jq -n \
