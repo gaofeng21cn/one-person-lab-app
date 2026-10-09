@@ -44,6 +44,7 @@ test('qualification harness scope allows a paired VM smoke mechanics subset', ()
     shellChangedPaths: [
       'scripts/desktop/preview-smoke.mjs',
       'scripts/desktop/qualify-clean-vm.mjs',
+      'tests/desktop/qualification-harness.test.mjs',
     ],
   });
 

@@ -262,6 +262,7 @@ export function buildQualificationHarnessScopeProof(input: {
     'scripts/desktop/stable-upgrade-vm.mjs',
     'scripts/opl-first-run-vm-smoke.mjs',
     'tests/desktop/preview-smoke.test.mjs',
+    'tests/desktop/qualification-harness.test.mjs',
   ];
   const appHarnessMechanicsOnly = appDiffers &&
     appChangedPaths.every((entry) => appHarnessMechanicsPaths.includes(entry));
