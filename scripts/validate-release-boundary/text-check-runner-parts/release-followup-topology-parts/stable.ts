@@ -59,6 +59,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
   const dispatchInputs = triggers.workflow_dispatch?.inputs ?? {};
   const expectedDispatchInputs = [
     'desktop_platform',
+    'desktop_shell_ref',
     'expected_old_asset_digest',
     'expected_old_asset_id',
     'operation',

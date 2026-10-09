@@ -6,8 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
-export function verifyCompletedWebui(input: { receipt: any; run: any; runId: string; version: string; shellSha: string; frameworkSha: string }) {
-  const { receipt, run, runId, version, shellSha, frameworkSha } = input;
+export function verifyCompletedWebui(input: { receipt: any; run: any; runId: string; version: string }) {
+  const { receipt, run, runId, version } = input;
   assert.equal(String(run.id), runId);
   assert.equal(run.repository.full_name, 'gaofeng21cn/one-person-lab-app');
   assert.equal(run.path, '.github/workflows/release-webui-development.yml');
@@ -21,10 +21,12 @@ export function verifyCompletedWebui(input: { receipt: any; run: any; runId: str
   assert.equal(receipt.promotion_executor.run_id, runId);
   assert.equal(receipt.promotion_executor.app_head_sha, run.head_sha);
   assert.equal(receipt.release.version, version);
-  assert.equal(receipt.release.shell_sha, shellSha);
-  assert.equal(receipt.release.framework_sha, frameworkSha);
-  // Docker has independent source authority; do not overwrite its App source with Desktop's.
+  // All Docker source roles belong to its completed independent promotion.
   assert.match(receipt.release.app_sha, /^[0-9a-f]{40}$/);
+  assert.match(receipt.release.shell_sha, /^[0-9a-f]{40}$/);
+  assert.match(receipt.release.framework_sha, /^[0-9a-f]{40}$/);
+  assert.match(receipt.release.bundle_digest, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(receipt.release.cohort_ref, receipt.release.bundle_digest);
   assert.equal(receipt.target.repository, 'ghcr.io/gaofeng21cn/one-person-lab-webui');
   assert.match(receipt.target.digest, /^sha256:[0-9a-f]{64}$/);
   assert.deepEqual(receipt.target.platforms.map((platform: any) => `${platform.os}/${platform.architecture}`).sort(), ['linux/amd64', 'linux/arm64']);
@@ -33,11 +35,11 @@ export function verifyCompletedWebui(input: { receipt: any; run: any; runId: str
 }
 
 async function main() {
-  const { values } = parseArgs({ options: Object.fromEntries(['receipt', 'run', 'run-id', 'version', 'shell-sha', 'framework-sha', 'output'].map(key => [key, { type: 'string' as const }])) });
+  const { values } = parseArgs({ options: Object.fromEntries(['receipt', 'run', 'run-id', 'version', 'output'].map(key => [key, { type: 'string' as const }])) });
   const required = (key: string) => { assert(values[key], `Missing --${key}`); return values[key] as string; };
   const receipt = JSON.parse(fs.readFileSync(required('receipt'), 'utf8'));
   const digest = verifyCompletedWebui({ receipt, run: JSON.parse(fs.readFileSync(required('run'), 'utf8')),
-    runId: required('run-id'), version: required('version'), shellSha: required('shell-sha'), frameworkSha: required('framework-sha') });
+    runId: required('run-id'), version: required('version') });
   const repository = 'gaofeng21cn/one-person-lab-webui';
   const response = await fetch(`https://ghcr.io/token?service=ghcr.io&scope=repository:${repository}:pull`, { signal: AbortSignal.timeout(30_000) });
   assert(response.ok, 'Anonymous OCI token request failed');
@@ -56,7 +58,7 @@ async function main() {
     readbacks.push({ tag, digest });
   }
   fs.writeFileSync(required('output'), JSON.stringify({ schema: 'opl_completed_webui_reconciliation.v1', status: 'complete',
-    source_run_id: required('run-id'), mutation_performed: false, rebuild_performed: false, readbacks }, null, 2));
+    source_run_id: required('run-id'), source: receipt.release, mutation_performed: false, rebuild_performed: false, readbacks }, null, 2));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });

@@ -15,6 +15,11 @@ on:
         description: Exact frozen Shell product SHA
         required: true
         type: string
+      platform_shell_ref:
+        description: Exact canonical Studio source repair SHA; empty preserves Standard source.
+        required: false
+        default: ''
+        type: string
       framework_ref:
         description: Exact frozen Framework product SHA
         required: true
@@ -106,12 +111,14 @@ jobs:
       - name: Verify exact Standard cohort identity
         id: verify
         env:
+          GH_TOKEN: ${{ github.token }}
           OPERATION_KIND: ${{ steps.source.outputs.operation_kind }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_BUNDLE_DIGEST: ${{ inputs.source_bundle_digest }}
           APP_REF: ${{ inputs.app_ref }}
           SHELL_REF: ${{ inputs.shell_ref }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          PLATFORM_SHELL_REF: ${{ inputs.platform_shell_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -206,6 +213,15 @@ jobs:
             test "$expected_identity_sha256" = "$observed_identity_sha256"
           fi
           skip_code_quality=true
+          if [ -n "${PLATFORM_SHELL_REF:-}" ]; then
+            [[ "$PLATFORM_SHELL_REF" =~ ^[0-9a-f]{40}$ ]]
+            test "${{ inputs.platform_id }}" = windows-x64
+            gh api "repos/gaofeng21cn/opl-studio/compare/${PLATFORM_SHELL_REF}...main" > platform-shell-main.json
+            jq -e --arg source "$PLATFORM_SHELL_REF" '
+              .merge_base_commit.sha == $source and (.status == "ahead" or .status == "identical")
+            ' platform-shell-main.json >/dev/null
+            skip_code_quality=false
+          fi
           echo "skip_code_quality=$skip_code_quality" >> "$GITHUB_OUTPUT"
 
   build-platform:
@@ -218,7 +234,7 @@ jobs:
       invocation_mode: stable_app_build
       platform_policy: stable_desktop_additional
       app_ref: ${{ inputs.app_ref }}
-      shell_ref: ${{ inputs.shell_ref }}
+      shell_ref: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       skip_code_quality: ${{ fromJSON(needs.verify-standard-quality.outputs.skip_code_quality) }}
       opl_release_version: ${{ inputs.version }}
@@ -262,7 +278,7 @@ jobs:
           VERSION: ${{ inputs.version }}
           UPDATER_VERSION: ${{ inputs.updater_version }}
           APP_REF: ${{ inputs.app_ref }}
-          SHELL_REF: ${{ inputs.shell_ref }}
+          SHELL_REF: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_BUNDLE_DIGEST: ${{ inputs.source_bundle_digest }}

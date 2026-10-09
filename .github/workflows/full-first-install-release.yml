@@ -317,6 +317,8 @@ jobs:
 
       - name: Resolve default Full build inputs
         id: full-build-inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail

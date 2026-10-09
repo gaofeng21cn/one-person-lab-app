@@ -117,9 +117,6 @@ runs:
         args=(
           append-full
           --source-run-id "$SOURCE_RUN_ID"
-          --app-ref "$APP_REF"
-          --shell-ref "$SHELL_REF"
-          --framework-ref "$FRAMEWORK_REF"
           --output stable-full-reconcile.json
           --execute
         )

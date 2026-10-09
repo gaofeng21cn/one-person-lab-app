@@ -1286,8 +1286,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           COMPLETED_WEBUI_RUN_ID: ${{ needs.admission.outputs.completed_webui_run_id }}
           VERSION: ${{ needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version }}
-          SHELL_SHA: ${{ needs.protected-operation-admission.outputs.shell_ref || needs.resume-standard.outputs.shell_ref }}
-          FRAMEWORK_SHA: ${{ needs.protected-operation-admission.outputs.framework_ref || needs.resume-standard.outputs.framework_source_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -1298,7 +1296,7 @@ jobs:
           node --experimental-strip-types scripts/reconcile-completed-webui.ts \
             --run completed-webui-run.json --receipt completed-webui/terminal/webui-stable-promotion-receipt.json \
             --run-id "$COMPLETED_WEBUI_RUN_ID" --version "$VERSION" \
-            --shell-sha "$SHELL_SHA" --framework-sha "$FRAMEWORK_SHA" --output completed-webui-reconciliation.json
+            --output completed-webui-reconciliation.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: opl-completed-webui-reconciliation-${{ github.run_id }}

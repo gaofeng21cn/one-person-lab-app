@@ -53,6 +53,11 @@ on:
         options:
           - linux-x64
           - windows-x64
+      desktop_shell_ref:
+        description: Optional exact canonical Studio main SHA for a single platform source repair.
+        required: false
+        default: ''
+        type: string
       repair_source_commit:
         description: Exact canonical App main commit containing the installer repair.
         required: false
@@ -178,7 +183,7 @@ jobs:
         id: full
         with:
           source_run_id: ${{ needs.route.outputs.source_run_id }}
-          smoke_harness_ref: ${{ inputs.smoke_harness_ref || '' }}
+          smoke_harness_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'reconcile_full_addon' && inputs.smoke_harness_ref || '' }}
           github_token: ${{ github.token }}
 
   publish-standard-cask:
@@ -408,6 +413,7 @@ jobs:
       platform_id: ${{ matrix.platform_id }}
       app_ref: ${{ needs.admit.outputs.app_ref }}
       shell_ref: ${{ needs.admit.outputs.shell_ref }}
+      platform_shell_ref: ${{ inputs.operation == 'reconcile_desktop_platform' && inputs.desktop_shell_ref || '' }}
       framework_ref: ${{ needs.admit.outputs.framework_ref }}
       version: ${{ needs.admit.outputs.version }}
       updater_version: ${{ needs.admit.outputs.updater_version }}

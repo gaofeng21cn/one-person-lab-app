@@ -300,6 +300,13 @@ jobs:
           repository: ${{ needs.resolve-active-shell-ref.outputs.shell_repository }}
           ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           path: studio
+      - name: Checkout frozen Windows bootstrap dependency resolver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/one-person-lab
+          ref: ${{ inputs.framework_ref }}
+          path: windows-bootstrap-framework
+          persist-credentials: false
       - name: Setup Linux Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -311,12 +318,22 @@ jobs:
       - name: Install frozen App materializer dependencies
         working-directory: app-authority
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Resolve Windows guest bootstrap inputs once
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix windows-bootstrap-framework ci --ignore-scripts --no-audit --no-fund
+          node --experimental-strip-types app-authority/scripts/resolve-build-dependencies.ts \
+            --app-root app-authority --framework-root windows-bootstrap-framework \
+            --dependency node --dependency codex-cli --platform linux --arch x64 \
+            --output windows-bootstrap-resolution
       - name: Build and execute Linux production Host closure
         working-directory: studio
         env:
           OPL_SHELL_SOURCE_REF: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-authority
           OPL_STANDARD_PAYLOAD_FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          OPL_WINDOWS_BOOTSTRAP_RESOLUTION: ${{ github.workspace }}/windows-bootstrap-resolution/dependency-resolution.json
         run: node scripts/desktop/prepare-wsl-host-payload.mjs
       - name: Upload qualified Linux guest Host
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

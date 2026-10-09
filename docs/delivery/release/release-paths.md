@@ -60,6 +60,12 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 附加发布失败只恢复自身。已公开 Standard 不应被 Full、Docker、Windows 或 Homebrew 的失败
 回写成“从未发布”；要求完整矩阵的任务也不能因为 Standard 成功就结束。
 
+Windows 源码修复可在单平台恢复入口指定 `desktop_shell_ref`，绑定准确的 Studio canonical
+main SHA；平台包记录自己的构建来源，重新执行源码质量检查，Standard 字节与来源保持独立。
+Windows guest 的 Node/Codex 由冻结 Framework 在 Linux x64 解析一次，打包器消费该结果并校验
+SHA-256、npm integrity 与实际二进制版本。Full 自动 follower 不继承 Standard 的恢复 harness；
+首次 Full 使用其自身构建来源，已有 Full 恢复由 controller 读取其检查点。
+
 ## 修复、验证和历史入口
 
 | 需求 | 入口与边界 |

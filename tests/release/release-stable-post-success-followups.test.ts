@@ -74,6 +74,8 @@ test('automatic routing does not couple independent follower outcomes', () => {
   assert.equal(workflow.jobs['publish-standard-cask'].if, "${{ needs.route.outputs.homebrew_standard == 'true' }}");
   assert.equal(workflow.jobs['resolve-homebrew-full'].if, "${{ needs.route.outputs.homebrew_full == 'true' }}");
   assert.equal(workflow.jobs['reconcile-full-addon'].outputs.owner_run_id, '${{ steps.full.outputs.owner_run_id }}');
+  assert.equal(workflow.jobs['reconcile-full-addon'].steps.at(-1).with.smoke_harness_ref,
+    "${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'reconcile_full_addon' && inputs.smoke_harness_ref || '' }}");
   assert.equal(workflow.jobs.admit.if, "${{ needs.route.outputs.desktop_platforms == 'true' }}");
   assert.equal(workflow.jobs['repair-admit'].if, "${{ needs.route.outputs.repair_additive == 'true' }}");
   assert.deepEqual(workflow.jobs['publish-homebrew-full'].needs, ['resolve-homebrew-full']);
@@ -257,6 +259,8 @@ function runDesktopQualityVerify(input: {
   operationKind?: string;
   producerRunId?: string;
   qualificationProducerRunId?: string;
+  platformShell?: string;
+  canonicalShell?: string;
 }): { status: number | null; admitted: boolean } {
   const app = input.app ?? 'a'.repeat(40);
   const shell = input.shell ?? 'c'.repeat(40);
@@ -270,6 +274,9 @@ function runDesktopQualityVerify(input: {
   const output = path.join(root, 'github-output');
   fs.mkdirSync(checkpointRoot, { recursive: true });
   fs.writeFileSync(output, '');
+  const bin = path.join(root, 'bin');
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, 'gh'), `#!/bin/sh\nprintf '%s' '${JSON.stringify({ merge_base_commit: { sha: input.canonicalShell ?? input.platformShell }, status: 'ahead' })}'\n`, { mode: 0o755 });
   fs.writeFileSync(
     path.join(checkpointRoot, 'checkpoint.json'),
     JSON.stringify({ checkpoint_stage: input.stage ?? 'standard_built' }),
@@ -325,7 +332,7 @@ function runDesktopQualityVerify(input: {
     );
   }
   try {
-    const result = spawnSync('bash', ['-c', desktopQualityVerifyScript()], {
+    const result = spawnSync('bash', ['-c', desktopQualityVerifyScript().replaceAll('${{ inputs.platform_id }}', 'windows-x64')], {
       cwd: root,
       encoding: 'utf8',
       env: {
@@ -336,6 +343,8 @@ function runDesktopQualityVerify(input: {
         APP_REF: app,
         SHELL_REF: shell,
         FRAMEWORK_REF: framework,
+        PLATFORM_SHELL_REF: input.platformShell ?? '',
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
         GITHUB_OUTPUT: output,
       },
     });
@@ -360,6 +369,8 @@ test('Desktop add-on skip_code_quality requires the Standard checkpoint identity
   assert.equal(runDesktopQualityVerify({}).status, 0);
   assert.equal(runDesktopQualityVerify({}).admitted, true);
   assert.equal(runDesktopQualityVerify({ stage: 'standard_qualified' }).admitted, true);
+  assert.deepEqual(runDesktopQualityVerify({ platformShell: 'f'.repeat(40) }), { status: 0, admitted: false });
+  assert.notEqual(runDesktopQualityVerify({ platformShell: 'f'.repeat(40), canonicalShell: 'e'.repeat(40) }).status, 0);
   assert.equal(
     runDesktopQualityVerify({
       operationKind: 'resume_standard',
