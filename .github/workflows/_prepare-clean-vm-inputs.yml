@@ -16,6 +16,16 @@ on:
         required: false
         default: ''
         type: string
+      build_cohort_artifact:
+        description: Exact Full build cohort holding frozen qualification runtime identities.
+        required: false
+        default: ''
+        type: string
+      build_cohort_run_id:
+        description: Original producer run for the Full cohort, including checkpoint recovery.
+        required: false
+        default: ''
+        type: string
       retry_artifact_upload_once:
         description: Retry the exact install tarball artifact upload once after a transport failure.
         required: false
@@ -28,13 +38,14 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   prepare:
-    if: ${{ inputs.dependency_manifest_artifact != '' }}
+    if: ${{ inputs.dependency_manifest_artifact != '' || inputs.build_cohort_artifact != '' }}
     runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
     timeout-minutes: 10
     continue-on-error: true
@@ -69,25 +80,34 @@ jobs:
         with:
           node-version: '24'
       - name: Download frozen qualification dependencies
+        if: ${{ inputs.dependency_manifest_artifact != '' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ inputs.dependency_manifest_artifact }}
           path: frozen-dependency-resolution
+      - name: Download exact Full qualification cohort
+        if: ${{ inputs.dependency_manifest_artifact == '' && inputs.build_cohort_artifact != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.build_cohort_artifact }}
+          run-id: ${{ inputs.build_cohort_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+          path: frozen-build-cohort
       - name: Restore Codex install asset cache
         id: cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            artifacts/opl-first-run-vm/codex-npm-cache
             artifacts/opl-first-run-vm/codex-package-tarballs
-          key: opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}-latest
+          key: opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}-latest
           restore-keys: |
-            opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}-
-      - name: Prepare digest-bound install assets while Apple build runs
+            opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}-
+      - name: Prepare digest-bound install assets from frozen inputs
         id: prefetch
         env:
-          OPL_CODEX_PREWARM_MANIFEST: frozen-dependency-resolution/qualification-input-manifest.json
-          CACHE_KEY_PREFIX: opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}
+          OPL_CODEX_PREWARM_MANIFEST: ${{ inputs.dependency_manifest_artifact != '' && 'frozen-dependency-resolution/qualification-input-manifest.json' || '' }}
+          OPL_CODEX_BUILD_COHORT_MANIFEST: frozen-build-cohort/opl-build-cohort.json
+          CACHE_KEY_PREFIX: opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}
           CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.cache.outputs.cache-matched-key }}
         run: node executor/scripts/prefetch-codex-package-install-assets.mjs
       - name: Save verified install assets for the next exact cohort
@@ -98,7 +118,6 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            artifacts/opl-first-run-vm/codex-npm-cache
             artifacts/opl-first-run-vm/codex-package-tarballs
           key: ${{ steps.prefetch.outputs.cache_key }}
       - name: Upload exact install tarballs

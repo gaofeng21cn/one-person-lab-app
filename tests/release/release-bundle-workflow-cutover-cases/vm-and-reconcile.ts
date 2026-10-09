@@ -502,6 +502,31 @@ test('first-run VM prefers prepared install tarballs and restores the cache only
   assert.match(String(cache.if), /inputs\.prepared_inputs_artifact == ''/);
   assert.match(String(cache.if), /steps\.prepared_install_assets\.outcome != 'success'/);
   assert.match(String(cache.with.path), /codex-package-tarballs/);
+  assert.doesNotMatch(String(cache.with.path), /codex-npm-cache/);
+  assert.match(String(cache.with.key), /codex-tarballs-v1-/);
+});
+
+test('Full preparation consumes the original frozen cohort on new builds and checkpoint recovery', () => {
+  const full = parseWorkflow('_release-full-addon.yml').jobs;
+  const prepare = full['prepare-full-vm-inputs'];
+  assert.deepEqual(prepare.needs, ['restore-standard', 'full-build', 'materialize-full-build']);
+  assert.match(prepare.if, /needs\.full-build\.result == 'success' \|\| needs\.materialize-full-build\.result == 'success'/);
+  assert.equal(prepare.with.build_cohort_run_id, '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}');
+  assert.equal(prepare.with.build_cohort_artifact, 'opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort');
+  assert.equal(full['full-clean-vm-qualification'].with.prepared_inputs_artifact, '${{ needs.prepare-full-vm-inputs.outputs.artifact_name }}');
+  const workflow = parseWorkflow('_prepare-clean-vm-inputs.yml');
+  const job = workflow.jobs.prepare;
+  assert.match(job.if, /inputs\.build_cohort_artifact != ''/);
+  const cohort = job.steps.find((step: any) => step.name === 'Download exact Full qualification cohort');
+  assert.equal(cohort.with['run-id'], '${{ inputs.build_cohort_run_id || github.run_id }}');
+  assert.equal(cohort.with['github-token'], '${{ github.token }}');
+  const prefetch = job.steps.find((step: any) => step.id === 'prefetch');
+  assert.match(prefetch.env.OPL_CODEX_PREWARM_MANIFEST, /dependency_manifest_artifact != ''/);
+  assert.equal(prefetch.env.OPL_CODEX_BUILD_COHORT_MANIFEST, 'frozen-build-cohort/opl-build-cohort.json');
+  for (const cache of job.steps.filter((step: any) => String(step.uses).startsWith('actions/cache/'))) {
+    assert.doesNotMatch(cache.with.path, /codex-npm-cache/);
+    assert.match(cache.with.key, /codex-tarballs-v1-|steps\.prefetch\.outputs\.cache_key/);
+  }
 });
 
 test('release VM does not invoke the model with the zero-balance test account', () => {

@@ -154,6 +154,30 @@ test('non-external active step becomes actionable after five minutes without obs
   assert.equal(status.vm_state.status, 'unknown_requires_runtime_marker');
 });
 
+test('Studio runtime markers identify actual VM allocation and raw runner progress', () => {
+  for (const [phase, status, extra, expected] of [
+    ['clone_vm', 'started', {}, 'clone_started'],
+    ['start_vm', 'started', {}, 'start_requested'],
+    ['wait_for_ip', 'started', {}, 'waiting_for_ip'],
+    ['wait_for_ip', 'passed', { guest_ip: '192.168.64.2' }, 'guest_ip_ready'],
+  ] as const) {
+    const event = { phase, status, vm_name: 'opl-studio-stable-test', at: '2026-08-22T00:09:50Z', ...extra };
+    const raw = `[opl-studio-clean-vm] ${JSON.stringify(event)}`;
+    for (const log of [raw, `2026-08-22T00:09:50.0000000Z ${raw}`]) {
+      const result = buildReleaseIncidentStatus({
+        run: run({ status: 'in_progress', conclusion: null }),
+        jobs: { jobs: [{ id: 10, name: 'Clean VM', status: 'in_progress', conclusion: null,
+          steps: [step(1, 'Run smoke', null, '2026-08-22T00:00:00Z', null)] }] },
+        artifacts: { artifacts: [] }, jobLogs: { 10: log }, now: '2026-08-22T00:10:00Z',
+      });
+      assert.equal(result.vm_state.status, expected);
+      assert.equal(result.vm_state.vm_name, 'opl-studio-stable-test');
+      assert.equal(result.focus?.stalled_seconds, 10);
+      assert.equal(result.next_action.code, 'continue_current_step');
+    }
+  }
+});
+
 test('an older downloaded log does not override a newer running step timestamp', () => {
   const status = buildReleaseIncidentStatus({
     run: run({ status: 'in_progress', conclusion: null }),

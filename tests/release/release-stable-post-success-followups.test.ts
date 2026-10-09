@@ -82,14 +82,14 @@ test('automatic routing does not couple independent follower outcomes', () => {
   assert.equal(workflow.jobs['publish-homebrew-full'].uses, './.github/workflows/_release-homebrew-full-publish.yml');
 });
 
-test('VM preparation overlaps build while qualification still consumes sealed bytes', () => {
+test('Standard preparation overlaps build and Full preparation consumes its built cohort', () => {
   const read = (name: string) => parseYaml(fs.readFileSync(path.join(appRoot, '.github/workflows', name), 'utf8'));
   const standard = read('_release-bundle.yml').jobs;
   assert.deepEqual(standard['prepare-standard-vm-inputs'].needs, ['freeze']);
   assert.ok(!standard['standard-build'].needs.includes('prepare-standard-vm-inputs'));
   assert.ok(standard['standard-clean-vm-qualification'].needs.includes('seal-standard-identity'));
   const full = read('_release-full-addon.yml').jobs;
-  assert.deepEqual(full['prepare-full-vm-inputs'].needs, ['restore-standard']);
+  assert.deepEqual(full['prepare-full-vm-inputs'].needs, ['restore-standard', 'full-build', 'materialize-full-build']);
   assert.ok(!full['full-build'].needs.includes('prepare-full-vm-inputs'));
   assert.ok(!full['full-clean-vm-qualification'].needs.includes('full-qualification'));
   assert.ok(full['checkpoint-full'].needs.includes('full-qualification'));

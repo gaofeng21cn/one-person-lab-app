@@ -5430,7 +5430,7 @@
           "managed_action_small_download_caches": "cataloged_exception"
         },
         "first_run_codex_install_asset_cache": {
-          "key_schema": "opl-first-run-codex-install-assets-<runner_os>-<runner_arch>-<codex_version>-<codex_tarball_sha256>-<platform_tarball_sha256>",
+          "key_schema": "opl-first-run-codex-tarballs-v1-<runner_os>-<runner_arch>-<codex_version>-<codex_tarball_sha256>-<platform_tarball_sha256>",
           "digest_policy": "full_sha256",
           "legacy_restore_prefix_allowed": true,
           "save_condition": "resolved_key_nonempty_and_no_exact_matched_key",

@@ -40,7 +40,7 @@ mutation and owner reconciliation establish whether dispatch occurred.
 
 现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
 
-影响 Shell 身份、迁移或更新协议时，分别覆盖受影响的 AionUI Stable 与 Studio Preview 路径、数据延续和后续更新源；普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
+影响 Shell 身份、迁移或更新协议时，覆盖受影响的 Studio Stable 与 Preview 路径、数据延续和后续更新源；历史版本仅使用可追溯的原发布资产，不恢复已退役 Shell 的构建或启动路径。普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
 
 Stable 的 Standard 首次安装、Gateway 登录、Official Profile 首次收敛和运行就绪读回，必须在该准确候选公开前通过，属于发布阻断门禁。AionUI Stable 到 Studio Stable、Studio Preview 到 Stable 的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
 
@@ -101,7 +101,9 @@ npm run --silent release:incident-status -- --run-id <owner-run-id> \
   --job-id <该-run-的-job-id> --job-log-file <已核实来源的日志路径>
 ```
 
-Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败与本次启动 PID、时间绑定后，harness 立即报告错误，不再等待安装成功超时；旧日志不构成本次失败证据。
+日志 API 在 job 运行中返回 404 时，优先读取同一 job 的 runner 日志或现有 smoke wrapper stderr；先核对 run、job 和 VM 名，再按上面的参数绑定分析。保留 `[opl-studio-clean-vm]` 的原始 JSON，解析器同时识别 `phase`／`at` 和带 Actions 时间前缀的形式。无实际 runtime marker 时仍不能声明 VM 已创建。
+
+Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败与本次启动 PID、时间绑定后，harness 立即报告错误，不再等待安装成功超时；旧日志不构成本次失败证据。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断。初次 exit 1 只在当前 PID 的安装记录仍为 `running` 时有界重读；根包未齐且当前安装记录已 `failed` 时直接结束等待，不延长诊断超时掩盖断点。
 
 只有 `stage=clone_vm`、`stage=start_vm`、`stage=wait_for_ip`、`vm_name`、`guest_ip` 等 runtime marker 能证明对应 VM 阶段。在此之前报告“VM 尚未证实创建”。心跳不是产物进展。
 
@@ -191,7 +193,7 @@ npm run release:stable-dispatch -- append-full \
   --verification-app-ref <准确的-App-验收修复-SHA> --execute
 ```
 
-前置 scope proof 通过还不足以证明旧 App 回执写入器能消费它。VM 输入阶段会用选定 App checkout 中的同一 scope consumer 验证该 proof；不兼容时在分配 VM 前失败，并提示修正 `--verification-app-ref`。不得通过放宽产品路径白名单解决，也不要直接选含产品、打包或不相关合同改动的 main。该检查不会跳过实际登录、就绪、签名、公证或精确产物回执。
+前置 scope proof 通过还不足以证明旧 App 回执写入器能消费它。正式 CLI 在派发前取选定不可变 App ref 的同一 scope consumer，实际验证该 proof；不兼容时直接提示修正 `--verification-app-ref`，避免先传输 checkpoint。VM 输入阶段保留同一校验，保护直接 workflow 调用。验收脚本与其配套测试使用有限、逐文件映射，产品、runtime 和未列出的测试路径仍拒绝复用；不得用目录白名单或降低期待摘要绕过。不要直接选含产品、打包或不相关合同改动的 main。该检查不会跳过实际登录、就绪、签名、公证或精确产物回执。
 
 ### 只读传输错误与可选预备包
 
@@ -211,6 +213,8 @@ in durable evidence.
 Standard 在 freeze 中解析一次 Codex 依赖并上传准确清单；构建、构建 cohort 与可选 VM 预备包消费同一清单。WebUI 只解析其 Codex 输入，并将 OCI amd64 映射为 Framework x64；源码解析器先安装其冻结 Framework 依赖。Full 独立解析前也安装对应依赖。
 
 Studio 的共享 payload 环境必须保留控制器传入的显示版本与机器 updater 版本；不得从已改为机器版本的 package.json 覆盖显示版本。更新资产名继续用显示版本，feed 与 App 内版本继续用机器版本。
+
+Full 的预备输入来自该 Full 产物的冻结 build cohort；恢复时按原 producer run 下载小型 cohort，不能消费当前依赖清单或误用 Standard 的恢复 harness。新构建完成后，准备 tarballs 与 hosted qualification 并行，随后交给 VM；准备失败沿用现有 VM 在线预检，不改变签名产物。runner cache 只保留两份需要的 Codex tarballs，使用独立缓存命名空间，避免重复传输 npm cache 中的副本。
 
 预备安装包是可选加速。只有实际上传成功后才向 VM consumer 提供 artifact 名；主上传与一次重试都失败时输出为空，由现有按摘要校验的本地准备路径继续。VM 先恢复这批 prepared tarballs，只有下载没有成功时才恢复 runner cache；两条路径仍由 frozen cohort 的 SHA-256 校验决定是否可用，成功下载不代表内容已验收。已验证的两份 tarball 会直接消费 frozen identity，跳过 registry metadata 与 `npm view` 查询；任一份缺失或摘要不符时回到原在线查询和下载路径。不能用一个拼接出来的名字表示资产存在，也不因此重建签名产物。
 
@@ -296,7 +300,7 @@ Skill 的版本化源是 `skills/opl-app-release`。本机 `~/.codex/skills/opl-
 
 ## 8. 发布后改进
 
-只固化有证据的真实断点和恢复路径：先修 caller，再用对应失败样例或边界用例验证；通用操作写入本 SOP，入口提示写入发布 Skill，具体版本、run、时间和未知原因放入 [事故复盘](incidents/2026-09-29-stable-release-recovery.md)。不为经验沉淀重复发布或运行已通过的产品门禁。
+只固化有证据的真实断点和恢复路径：先修 caller，再用对应失败样例或边界用例验证；通用操作写入本 SOP，入口提示写入发布 Skill，具体版本、run、时间和未知原因放入事故复盘；本轮见 [26.10.9 复盘](incidents/2026-10-09-release-efficiency.md)，此前记录保留各自历史证据。不为经验沉淀重复发布或运行已通过的产品门禁。
 
 一次未保留 owner 原因的 Gateway 失败，只能记录最深已证断点；后续同字节成功不能倒推出当次根因。持续失败时读取已脱敏的 machine reason code 和 owner 只读投影，再决定修哪一层。进度只在阶段变化、出现真实失败或需要用户动作时汇报；没有变化的轮询不产生新验收证据。
 

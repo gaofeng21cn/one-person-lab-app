@@ -948,8 +948,8 @@ jobs:
           retention-days: 30
 
   prepare-full-vm-inputs:
-    if: ${{ needs.restore-standard.outputs.completed_stage != 'full_qualified' }}
-    needs: [restore-standard]
+    if: ${{ !cancelled() && needs.restore-standard.result == 'success' && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
+    needs: [restore-standard, full-build, materialize-full-build]
     permissions:
       contents: read
       actions: read
@@ -957,6 +957,8 @@ jobs:
     with:
       app_ref: ${{ inputs.full_content_app_ref }}
       package_profile: full
+      build_cohort_artifact: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
+      build_cohort_run_id: ${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}
 
   full-build:
     if: ${{ inputs.prior_full_artifact_run_id == '' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified') }}

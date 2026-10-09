@@ -1834,11 +1834,10 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            artifacts/opl-first-run-vm/codex-npm-cache
             artifacts/opl-first-run-vm/codex-package-tarballs
-          key: opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}-latest
+          key: opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}-latest
           restore-keys: |
-            opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}-
+            opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Restore frozen Codex qualification cohort
         if: ${{ inputs.codex_qualification_cohort_artifact_name != '' && inputs.release_artifact_run_id != '' }}
@@ -1874,7 +1873,7 @@ jobs:
         shell: bash
         run: node scripts/prefetch-codex-package-install-assets.mjs
         env:
-          CACHE_KEY_PREFIX: opl-first-run-codex-install-assets-${{ runner.os }}-${{ runner.arch }}
+          CACHE_KEY_PREFIX: opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}
           CODEX_CACHE_RESTORE_HIT: ${{ steps.codex_install_asset_cache.outputs.cache-hit }}
           CODEX_CACHE_RESTORE_PRIMARY_KEY: ${{ steps.codex_install_asset_cache.outputs.cache-primary-key }}
           CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.codex_install_asset_cache.outputs.cache-matched-key }}
@@ -1888,7 +1887,6 @@ jobs:
         continue-on-error: true
         with:
           path: |
-            artifacts/opl-first-run-vm/codex-npm-cache
             artifacts/opl-first-run-vm/codex-package-tarballs
           key: ${{ steps.codex_package_preflight.outputs.cache_key }}
 

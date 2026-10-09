@@ -1204,7 +1204,8 @@ test('dependency consumers use frozen runtime inputs after installing the resolv
   assert.doesNotMatch(cohort.run, /--qualification-input-manifest .*contracts\//);
   const prepare = read('_prepare-clean-vm-inputs.yml').jobs.prepare.steps;
   const prefetch = prepare.find((step: any) => step.id === 'prefetch');
-  assert.equal(prefetch.env.OPL_CODEX_PREWARM_MANIFEST, 'frozen-dependency-resolution/qualification-input-manifest.json');
+  assert.equal(prefetch.env.OPL_CODEX_PREWARM_MANIFEST, "${{ inputs.dependency_manifest_artifact != '' && 'frozen-dependency-resolution/qualification-input-manifest.json' || '' }}");
+  assert.equal(prefetch.env.OPL_CODEX_BUILD_COHORT_MANIFEST, 'frozen-build-cohort/opl-build-cohort.json');
   const full = read('full-first-install-release.yml').jobs;
   const fullSteps: any[] = Object.values<any>(full).find((job: any) => job.steps?.some((step: any) => step.name === 'Resolve default Full build inputs')).steps;
   assert.ok(fullSteps.findIndex((step: any) => step.name === 'Install frozen Framework resolver dependencies') < fullSteps.findIndex((step: any) => step.name === 'Resolve default Full build inputs'));

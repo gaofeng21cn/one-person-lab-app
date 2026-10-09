@@ -45,9 +45,9 @@
     {
       "id": "first_run_install_seed",
       "kind": "verified_install_asset_seed",
-      "purpose": "Preseed exact Codex npm tarballs and npm cache for clean first-run qualification.",
+      "purpose": "Preseed only exact Codex npm tarballs for clean first-run qualification; omit duplicate npm cache content.",
       "key_prefixes": [
-        "opl-first-run-codex-install-assets-"
+        "opl-first-run-codex-tarballs-v1-"
       ],
       "max_budget_bytes": 1073741824,
       "keep_generations_per_platform": 2,

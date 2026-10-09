@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
+import { inspectQualificationHarnessScope, validateQualificationHarnessConsumer } from './qualification-harness-scope.ts';
 import { buildPostDispatchReconcile, readOwnerWorkflowRuns } from './release-dispatch-guard.ts';
 import {
   activeStableRunIds,
@@ -437,6 +438,21 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     });
   } else {
     usage();
+  }
+
+  if (values['smoke-harness-ref'] || values['verification-app-ref']) {
+    const cohort = plan.cohort;
+    if (!cohort) throw new Error('Verification harness refs require an exact artifact cohort.');
+    const scopeRunner = (command: string, args: string[], options?: { cwd?: string }) =>
+      runtime.runner(command, args, { cwd: options?.cwd ?? appRoot, timeoutMs: 120_000 });
+    const proof = inspectQualificationHarnessScope(scopeRunner, {
+      artifactAppSha: cohort.app_sha,
+      verificationAppSha: values['verification-app-ref'] || cohort.app_sha,
+      artifactShellSha: cohort.shell_sha,
+      verificationShellSha: values['smoke-harness-ref'] || cohort.shell_sha,
+      profile: command === 'append-full' ? 'full' : 'standard',
+    });
+    validateQualificationHarnessConsumer(scopeRunner, proof);
   }
 
   if (values['completed-webui-run-id']) {

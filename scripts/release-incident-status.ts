@@ -221,7 +221,7 @@ function latestLogTimestamp(log: string | null | undefined): string | null {
     const match = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s/);
     if (match?.[1]) timestamps.push(match[1]);
     try {
-      const event = record(JSON.parse(line), 'Runtime event');
+      const event = parseRuntimeEvent(line) ?? record(JSON.parse(line), 'Runtime event');
       const timestamp = stringField(event, 'timestamp');
       if (timestamp) timestamps.push(timestamp);
     } catch {
@@ -287,7 +287,16 @@ function isExternalServiceStep(job: JsonRecord, step: JsonRecord | null): boolea
 
 function parseRuntimeEvent(line: string): JsonRecord | null {
   try {
-    const event = record(JSON.parse(line), 'Runtime event');
+    const payload = line.replace(/^\d{4}-\d{2}-\d{2}T\S+\s+/, '');
+    const prefix = '[opl-studio-clean-vm] ';
+    if (payload.startsWith(prefix)) {
+      const event = record(JSON.parse(payload.slice(prefix.length)), 'Studio VM event');
+      const phase = stringField(event, 'phase');
+      const at = canonicalTimestamp(stringField(event, 'at'));
+      if (!phase || !at || !['started', 'passed', 'failed'].includes(String(event.status))) return null;
+      return { ...event, stage: phase, timestamp: at };
+    }
+    const event = record(JSON.parse(payload), 'Runtime event');
     return stringField(event, 'event_type') === 'host_runtime_event' ? event : null;
   } catch {
     return null;
