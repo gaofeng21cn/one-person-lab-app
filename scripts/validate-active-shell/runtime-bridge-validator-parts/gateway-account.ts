@@ -62,8 +62,30 @@ const gatewayAccountErrorCodes = [
   'managed_key_conflict',
   'managed_key_identity_drift',
   'disconnect_pending',
+  'account_switch_requires_disconnect',
+  'gateway_busy',
+  'gateway_codex_binding_failed',
+  'gateway_configuration_invalid',
+  'gateway_request_rejected',
+  'gateway_response_invalid',
+  'gateway_store_invalid',
+  'credentials_stdin_too_large',
+  'invalid_request',
+  'internal_contract_violation',
+  'codex_configuration_failed',
+  'gateway_account_failed',
   'manual_override_preserved',
 ];
+const gatewayAccountErrorCodeMappingPolicy = {
+  producer_owner: 'one-person-lab',
+  producer_vocabulary_source:
+    'one-person-lab reason_code values emitted by src/adapters/integration/opl-gateway-account*.ts and the connect gateway login credentials-stdin guard',
+  requirement: 'every_producer_reason_code_maps_to_one_declared_error_codes_entry',
+  unmapped_fallback: 'gateway_account_failed',
+  unmapped_fallback_is_user_actionable: false,
+  user_facing_message_required: true,
+  raw_error_code_rendering_allowed: false,
+};
 const gatewayAccountActionIds = [
   'gateway_account_complete_setup',
   'gateway_account_refresh',
@@ -164,6 +186,11 @@ export function validateOplGatewayAccountContract(runtimeBridge) {
   assertDeepEqualJson(projection.nested_field_allowlist, gatewayAccountNestedFields, 'Gateway account nested fields');
   assertDeepEqualJson(projection.forbidden_fields, gatewayAccountForbiddenFields, 'Gateway account forbidden fields');
   assertDeepEqualJson(projection.error_codes, gatewayAccountErrorCodes, 'Gateway account error codes');
+  assertDeepEqualJson(
+    projection.error_code_mapping_policy,
+    gatewayAccountErrorCodeMappingPolicy,
+    'Gateway account error code mapping policy',
+  );
   assertDeepEqualJson(projection.app_action_ids, gatewayAccountActionIds, 'Gateway account App action ids');
   assertDeepEqualJson(projection.display_policy, gatewayAccountDisplayPolicy, 'Gateway account display policy');
   assertDeepEqualJson(
