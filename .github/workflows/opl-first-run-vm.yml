@@ -12,7 +12,12 @@ on:
         required: false
     inputs:
       prepared_inputs_artifact:
-        description: Same-run install assets prepared from frozen source; revalidated against the final artifact cohort.
+        description: Install assets prepared from frozen source; revalidated against the final artifact cohort.
+        required: false
+        default: ''
+        type: string
+      prepared_inputs_run_id:
+        description: Exact signed Standard producer when recovering its frozen install assets.
         required: false
         default: ''
         type: string
@@ -1819,6 +1824,8 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ inputs.prepared_inputs_artifact }}
+          run-id: ${{ inputs.prepared_inputs_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           path: artifacts/opl-first-run-vm/codex-package-tarballs
 
       - name: Restore Codex install asset cache

@@ -1545,7 +1545,8 @@ jobs:
       smoke_harness_ref: ${{ inputs.smoke_harness_ref || needs.freeze.outputs.shell_sha }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       framework_executor_ref: ${{ needs.freeze.outputs.framework_sha }}
-      prepared_inputs_artifact: ${{ inputs.smoke_harness_ref == '' && needs.prepare-standard-vm-inputs.outputs.artifact_name || '' }}
+      prepared_inputs_artifact: ${{ needs.prepare-standard-vm-inputs.outputs.artifact_name || (inputs.prior_standard_artifact_run_id != '' && format('opl-clean-vm-prepared-standard-{0}', inputs.prior_standard_artifact_run_id)) || '' }}
+      prepared_inputs_run_id: ${{ inputs.prior_standard_artifact_run_id || github.run_id }}
       package_profile: standard
       diagnostic_scope: release_gate
       require_macos_gatekeeper: true
