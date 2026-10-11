@@ -125,7 +125,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -415,7 +415,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload reusable signed and notarized Studio checkpoint
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.checkpoint_identity.outputs.checkpoint_artifact_name }}
           path: studio-release-checkpoint
@@ -434,7 +434,7 @@ jobs:
 
       - name: Upload Studio build evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-build-evidence-${{ inputs.studio_sha }}-${{ inputs.framework_ref }}-${{ github.run_id }}
           path: studio-release-evidence
@@ -574,7 +574,7 @@ jobs:
           path: app-source
 
       - name: Download prior signed and notarized Studio checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.source_checkpoint_artifact_name }}
           run-id: ${{ needs.resolve-checkpoint.outputs.source_checkpoint_run_id }}
@@ -583,7 +583,7 @@ jobs:
 
       - name: Download prior Studio qualification when present
         if: ${{ needs.resolve-checkpoint.outputs.qualification_present == 'true' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.source_qualification_artifact_name }}
           run-id: ${{ needs.resolve-checkpoint.outputs.source_checkpoint_run_id }}
@@ -612,7 +612,7 @@ jobs:
           fi
 
       - name: Materialize restored Studio checkpoint in the current run
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
           path: studio-release-checkpoint
@@ -622,7 +622,7 @@ jobs:
 
       - name: Materialize restored Studio qualification in the current run
         if: ${{ needs.resolve-checkpoint.outputs.qualification_present == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
           path: studio-release-qualification
@@ -653,7 +653,7 @@ jobs:
           path: studio-source
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -694,7 +694,7 @@ jobs:
             node scripts/prefetch-codex-package-install-assets.mjs
 
       - name: Download exact signed and notarized Studio checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
           run-id: ${{ github.run_id }}
@@ -762,7 +762,7 @@ jobs:
 
       - name: Upload terminal Preview isolated VM evidence
         if: ${{ always() && needs.resolve-checkpoint.outputs.terminal_preview == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-terminal-preview-vm-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: studio-preview-vm-evidence
@@ -770,7 +770,7 @@ jobs:
           retention-days: 30
 
       - name: Upload reusable Studio qualification
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
           path: studio-release-qualification
@@ -799,12 +799,12 @@ jobs:
           path: app-source
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
       - name: Download exact signed and notarized Studio checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
           run-id: ${{ github.run_id }}
@@ -812,7 +812,7 @@ jobs:
           path: studio-release-checkpoint
 
       - name: Download exact Studio qualification
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
           run-id: ${{ github.run_id }}
@@ -973,12 +973,12 @@ jobs:
           path: studio-source
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
       - name: Download current Studio checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.checkpoint_artifact_name }}
           run-id: ${{ github.run_id }}
@@ -986,7 +986,7 @@ jobs:
           path: studio-release-checkpoint
 
       - name: Download current Studio qualification
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.resolve-checkpoint.outputs.qualification_artifact_name }}
           run-id: ${{ github.run_id }}
@@ -1143,7 +1143,7 @@ jobs:
 
       - name: Upload Studio public readback evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-public-readback-${{ inputs.studio_sha }}-${{ inputs.framework_ref }}-${{ github.run_id }}
           path: studio-release-evidence

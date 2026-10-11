@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload release-bound Full build admission
         if: ${{ always() && inputs.operation != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-full-build-admission-${{ github.run_id }}
           path: ${{ runner.temp }}/opl-full-admission
@@ -241,7 +241,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -470,7 +470,7 @@ jobs:
 
       - name: Setup Node.js
         id: node-cache
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
@@ -1151,7 +1151,7 @@ jobs:
 
       - name: Upload Full notarization terminal evidence
         if: ${{ always() && !inputs.cache_only && inputs.operation != 'append_full' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-notarization-evidence-${{ env.OPL_RELEASE_VERSION }}-${{ github.run_id }}
           path: one-person-lab-app/dist/opl-full-release/full-apple-notarization-receipt.json
@@ -1528,7 +1528,7 @@ jobs:
 
       - name: Upload Full workflow telemetry
         if: ${{ !inputs.cache_only }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-workflow-telemetry-${{ env.OPL_RELEASE_VERSION }}
           path: one-person-lab-app/dist/opl-full-release/full-workflow-telemetry.json
@@ -1537,7 +1537,7 @@ jobs:
 
       - name: Upload Full diagnostics artifact
         if: ${{ always() && !inputs.cache_only }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-diagnostics-${{ env.OPL_RELEASE_VERSION }}
           path: |
@@ -1561,7 +1561,7 @@ jobs:
 
       - name: Upload Full local authorization policy
         if: ${{ !inputs.cache_only && inputs.upload_full_package_artifact && inputs.operation == '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-local-authorization-policy-${{ env.OPL_RELEASE_VERSION }}
           path: one-person-lab-app/dist/opl-full-release/full-local-authorization-policy.json
@@ -1659,7 +1659,7 @@ jobs:
 
       - name: Upload Actions cache plan and receipt
         if: ${{ steps.full_package_build.outcome == 'success' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-actions-cache-evidence-${{ env.OPL_RELEASE_VERSION }}-${{ github.run_id }}
           path: |
@@ -1724,7 +1724,7 @@ jobs:
       - name: Upload immutable Full finalizer input
         id: upload_full_finalizer_input
         if: ${{ !inputs.cache_only && inputs.operation == 'append_full' && inputs.upload_full_package_artifact }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-finalizer-input-${{ inputs.opl_version }}-${{ github.run_id }}
           path: ${{ runner.temp }}/opl-full-finalizer-input
@@ -1829,7 +1829,7 @@ jobs:
 
       - name: Upload candidate-only Full receipt
         if: ${{ success() && inputs.candidate_only && steps.full_package_build.outcome == 'success' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-candidate-receipt-${{ github.run_id }}
           path: one-person-lab-app/dist/opl-full-release/full-candidate-receipt.json
@@ -1859,7 +1859,7 @@ jobs:
 
       - name: Upload candidate-only Full failure receipt
         if: ${{ failure() && inputs.candidate_only }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-candidate-receipt-${{ github.run_id }}
           path: one-person-lab-app/dist/opl-full-release/full-candidate-receipt.json
@@ -1868,7 +1868,7 @@ jobs:
 
       - name: Upload Full package workflow artifact
         if: ${{ success() && steps.full_package_build.outcome == 'success' && !inputs.cache_only && inputs.operation != 'append_full' && inputs.upload_full_package_artifact }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-${{ env.OPL_RELEASE_VERSION }}-mac-arm64
           path: one-person-lab-app/dist/opl-full-release
@@ -1878,7 +1878,7 @@ jobs:
 
       - name: Upload Full build artifact cohort manifest
         if: ${{ success() && steps.full_package_build.outcome == 'success' && !inputs.cache_only && inputs.operation != 'append_full' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-dmg-${{ env.OPL_RELEASE_VERSION }}-mac-arm64-cohort
           path: ${{ runner.temp }}/opl-build-cohort.json
@@ -1887,7 +1887,7 @@ jobs:
 
       - name: Upload Full DMG-only workflow artifact
         if: ${{ success() && steps.full_package_build.outcome == 'success' && !inputs.cache_only && inputs.operation != 'append_full' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-dmg-${{ env.OPL_RELEASE_VERSION }}-mac-arm64
           path: one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${{ env.OPL_RELEASE_VERSION }}-mac-arm64.dmg
@@ -1938,12 +1938,12 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
       - name: Download immutable Full finalizer input
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-full-finalizer-input-${{ inputs.opl_version }}-${{ github.run_id }}
           path: ${{ runner.temp }}/opl-full-finalizer-input
@@ -2120,7 +2120,7 @@ jobs:
 
       - name: Upload sealed Apple submission recovery checkpoint
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-apple-recovery-${{ inputs.opl_version }}-${{ github.run_id }}
           path: one-person-lab-app/full-apple-recovery
@@ -2338,7 +2338,7 @@ jobs:
 
       - name: Upload ARM Full notarization terminal evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-notarization-evidence-${{ inputs.opl_version }}-${{ github.run_id }}
           path: |
@@ -2352,7 +2352,7 @@ jobs:
 
       - name: Upload ARM-finalized Full diagnostics artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-diagnostics-${{ inputs.opl_version }}
           path: |
@@ -2376,7 +2376,7 @@ jobs:
 
       - name: Upload Full package workflow artifact
         if: ${{ success() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-${{ inputs.opl_version }}-mac-arm64
           path: |
@@ -2388,7 +2388,7 @@ jobs:
 
       - name: Upload Full build artifact cohort manifest
         if: ${{ success() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64-cohort
           path: ${{ runner.temp }}/opl-build-cohort.json
@@ -2397,7 +2397,7 @@ jobs:
 
       - name: Upload Full DMG-only workflow artifact
         if: ${{ success() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64
           path: one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${{ inputs.opl_version }}-mac-arm64.dmg

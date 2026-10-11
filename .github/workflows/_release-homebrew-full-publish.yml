@@ -215,14 +215,14 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload observational candidate and binding
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.identity.outputs.candidate_artifact }}
           path: candidate/one-person-lab-full.rb
           if-no-files-found: error
           retention-days: 14
       - name: Upload typed observational binding
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.identity.outputs.binding_artifact }}
           path: homebrew-full-observational-binding.json
@@ -239,12 +239,12 @@ jobs:
       - name: Checkout exact App executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.prepare-candidate.outputs.candidate_artifact }}
           path: candidate
       - name: Download observational binding
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.prepare-candidate.outputs.binding_artifact }}
           path: binding
@@ -350,7 +350,7 @@ jobs:
           ' > homebrew-full-publication-receipt.json
       - name: Upload publication receipt
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-homebrew-full-${{ github.run_id }}
           path: |
@@ -366,7 +366,7 @@ jobs:
     permissions: { contents: read, actions: read }
     steps:
       - name: Download publication receipt
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-homebrew-full-${{ github.run_id }}
           path: publication
@@ -412,7 +412,7 @@ jobs:
             {schema:"opl_homebrew_full_public_readback.v2",status:"passed",publication_receipt_sha256:$receipt_sha,tap_commit:$commit,cask_sha256:$cask,same_tag_full_assets_read_back:true,target_standard_read_back:true,github_release_immutable_claim:false,public_mutation_read_back:true}
           ' > homebrew-full-readback.json
       - name: Upload public readback
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-homebrew-full-readback-${{ github.run_id }}
           path: homebrew-full-readback.json

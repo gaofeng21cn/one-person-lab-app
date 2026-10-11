@@ -221,7 +221,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -262,7 +262,7 @@ jobs:
           ' studio-protected-release-admission.json >/dev/null
 
       - name: Upload immutable Studio protected admission receipt
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-protected-release-admission-${{ inputs.studio_sha }}-${{ inputs.framework_ref }}-${{ github.run_id }}
           path: app-source/studio-protected-release-admission.json
@@ -455,7 +455,7 @@ jobs:
             '{schema:"opl_studio_full_append_admission.v1",status:"admitted",source:{app_sha:$app,studio_sha:$studio,studio_tree:$tree,studio_tag:$tag,studio_version:$version,framework_sha:$framework},full_sources:{mas:$mas,mas_scholar_skills:$mas_scholar_skills,mag:$mag,rca:$rca,meta_agent:$meta_agent,bookforge:$bookforge,opl_flow:$opl_flow,officecli:$officecli,mineru:$mineru},standard_release:{repository:"gaofeng21cn/opl-studio",id:($standard_release|tonumber),tag:$tag},publication:{operation:"append_full",same_tag:true,standard_assets_unchanged:true,latest_unchanged:true}}' > studio-full-append-admission.json
 
       - name: Upload immutable Studio Full append admission
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-full-append-admission-${{ github.run_id }}
           path: |
@@ -666,7 +666,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -757,7 +757,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload immutable operation control evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-stable-operation-control-${{ github.run_id }}
           path: |
@@ -1037,7 +1037,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload immutable operation admission
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-operation-admission-${{ github.run_id }}
           path: |
@@ -1069,7 +1069,7 @@ jobs:
           path: app-executor
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -1081,7 +1081,7 @@ jobs:
           fetch-depth: 1
 
       - name: Download frozen pre-submit authority evidence
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-stable-operation-control-${{ github.run_id }}
           path: operation-control-evidence
@@ -1183,7 +1183,7 @@ jobs:
           NODE
 
       - name: Upload same-run protected admission evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-stable-admission-${{ github.run_id }}
           path: |
@@ -1218,7 +1218,7 @@ jobs:
 
       - name: Upload typed Stable admission failure evidence
         if: ${{ failure() && steps.manifest.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-stable-admission-failure-${{ github.run_id }}
           path: ${{ runner.temp }}/stable-release-admission-failure.json
@@ -1278,7 +1278,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
       - name: Reconcile the completed independent Docker release read-only
@@ -1297,7 +1297,7 @@ jobs:
             --run completed-webui-run.json --receipt completed-webui/terminal/webui-stable-promotion-receipt.json \
             --run-id "$COMPLETED_WEBUI_RUN_ID" --version "$VERSION" \
             --output completed-webui-reconciliation.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-completed-webui-reconciliation-${{ github.run_id }}
           path: completed-webui-reconciliation.json
@@ -1329,7 +1329,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Download exact published Standard checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.operation == 'standard' && needs.standard.outputs.source_artifact || needs.admission.outputs.source_artifact }}
           run-id: ${{ inputs.operation == 'standard' && needs.standard.outputs.source_run_id || needs.admission.outputs.source_run_id }}
@@ -1338,7 +1338,7 @@ jobs:
 
       - name: Download freeze-bound WebUI source authority
         if: ${{ inputs.operation == 'standard' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-webui-source-authority-${{ github.run_id }}
           run-id: ${{ github.run_id }}
@@ -1347,7 +1347,7 @@ jobs:
 
       - name: Download same-run Stable admission
         if: ${{ inputs.operation == 'standard' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-stable-admission-${{ github.run_id }}
           run-id: ${{ github.run_id }}
@@ -1453,7 +1453,7 @@ jobs:
 
       - name: Upload Stable-bound WebUI source authority
         if: ${{ inputs.operation == 'resume_standard' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.authority.outputs.source_authority_artifact_name }}
           path: |

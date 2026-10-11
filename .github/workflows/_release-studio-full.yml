@@ -305,7 +305,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js and Bun
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -672,7 +672,7 @@ jobs:
 
       - name: Upload Studio Full notarization recovery evidence
         if: ${{ failure() && steps.notarize-studio-full.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-full-notarization-recovery-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: |
@@ -750,7 +750,7 @@ jobs:
           jq -e --arg name "$(basename "$dmg")" --arg sha "sha256:$(shasum -a 256 "$dmg" | awk '{print $1}')" --argjson size "$(stat -f '%z' "$dmg")" '.assets == [{name:$name, role:"full_first_install_carrier", size_bytes:$size, sha256:$sha}] and .evidence.gatekeeper_launch_policy.stapler_validate_status == "passed" and .carrier_context.publication_model == "same_tag_mutable_standard_addon"' "$manifest" >/dev/null
 
       - name: Upload exact Studio Full build checkpoint
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: |
@@ -790,7 +790,7 @@ jobs:
           test "$PRIOR_RUN_ID" != "$GITHUB_RUN_ID"
 
       - name: Download exact prior Studio Full checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ inputs.prior_studio_full_artifact_run_id }}
           run-id: ${{ inputs.prior_studio_full_artifact_run_id }}
@@ -807,7 +807,7 @@ jobs:
           jq -e --arg tag "${{ inputs.studio_tag }}" --arg sha "${{ inputs.studio_sha }}" --arg tree "${{ inputs.studio_tree }}" '.schema == "opl_public_release_manifest.v1" and .carrier.carrier_id == "opl-studio" and .package_kind == "opl_studio_full_first_install_macos_arm64" and .carrier_context.source.tag == $tag and .carrier_context.source.commit_sha == $sha and .carrier_context.source.tree_sha == $tree' "$manifest" >/dev/null
 
       - name: Materialize restored Studio Full checkpoint in this run
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: restored-studio-full
@@ -838,7 +838,7 @@ jobs:
           persist-credentials: false
 
       - name: Download current-run Studio Full checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
           run-id: ${{ github.run_id }}
@@ -878,7 +878,7 @@ jobs:
 
       - name: Upload Studio Full append receipt
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-full-append-receipt-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: studio-full-append-receipt.json
@@ -895,7 +895,7 @@ jobs:
       actions: read
     steps:
       - name: Download exact Studio Full checkpoint
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.STUDIO_ARTIFACT_PREFIX }}-${{ inputs.studio_sha }}-${{ github.run_id }}
           run-id: ${{ github.run_id }}
@@ -956,7 +956,7 @@ jobs:
           NODE
 
       - name: Upload anonymous public readback evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-full-public-readback-${{ inputs.studio_sha }}-${{ github.run_id }}
           path: public-asset-readback.json

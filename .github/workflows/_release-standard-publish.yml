@@ -122,7 +122,7 @@ jobs:
           test "$status" = passed
       - name: Upload Standard admission evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-admission-${{ github.run_id }}
           path: release-failure-evidence
@@ -191,7 +191,7 @@ jobs:
 
       - name: Download checkpoint identity bootstrap
         if: ${{ inputs.source_artifact != format('opl-release-standard-bound-{0}', inputs.source_run_id) }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.source_artifact }}
           path: checkpoint-identity-bootstrap
@@ -237,7 +237,7 @@ jobs:
 
       - name: Setup checkpoint recovery runtime
         if: ${{ steps.recovery-inputs.outcome == 'success' }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -697,7 +697,7 @@ jobs:
 
       - name: Upload reconciled operation checkpoint
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-operation-checkpoint-${{ github.run_id }}
           path: |
@@ -917,7 +917,7 @@ jobs:
           test "$(jq -r .status standard-pre-publication-admission.json)" = passed
 
       - name: Upload immutable pre-publication admission receipt
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-pre-publication-admission-${{ github.run_id }}
           path: standard-pre-publication-admission.json
@@ -938,7 +938,7 @@ jobs:
 
       - name: Upload checkpoint restore failure evidence
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-restore-failure-${{ github.run_id }}
           path: checkpoint-restore-failure
@@ -955,7 +955,7 @@ jobs:
       actions: read
     steps:
       - name: Download independent pre-publication admission receipt
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-standard-pre-publication-admission-${{ github.run_id }}
           path: pre-publication-admission
@@ -1063,7 +1063,7 @@ jobs:
 
       - name: Download internal Standard trust evidence
         if: ${{ needs.restore.outputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.restore.outputs.standard_bound_artifact_name }}
           run-id: ${{ needs.restore.outputs.standard_bound_artifact_run_id }}
@@ -1503,7 +1503,7 @@ jobs:
 
       - name: Upload Standard publication receipt
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-published-${{ github.run_id }}
           path: |
@@ -1707,7 +1707,7 @@ jobs:
 
       - name: Upload remote digest proof
         if: ${{ always() && needs.restore.outputs.channel == 'stable' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-remote-verify-${{ github.run_id }}
           path: |
@@ -1913,7 +1913,7 @@ jobs:
 
       - name: Upload Latest activation receipt
         if: ${{ always() && needs.restore.outputs.channel == 'stable' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-activation-${{ github.run_id }}
           path: |
@@ -1950,7 +1950,7 @@ jobs:
 
       - name: Download pre-publish durable record evidence
         if: ${{ needs.restore.outputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-standard-published-${{ github.run_id }}
           path: pre-publish-durable-evidence
@@ -2166,7 +2166,7 @@ jobs:
           fi
 
       - name: Upload remote digest proof
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-remote-verify-${{ github.run_id }}
           path: |
@@ -2433,7 +2433,7 @@ jobs:
 
       - name: Upload Latest activation receipt
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-activation-${{ github.run_id }}
           path: |

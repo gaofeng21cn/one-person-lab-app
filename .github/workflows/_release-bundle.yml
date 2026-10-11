@@ -157,7 +157,7 @@ jobs:
           ref: ${{ inputs.app_ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -191,7 +191,7 @@ jobs:
 
       - name: Download protected Stable operation control
         if: ${{ inputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.stable_operation_control_artifact }}
           path: stable-operation-control
@@ -302,7 +302,7 @@ jobs:
 
       - name: Upload consumed Stable operation control
         if: ${{ always() && inputs.channel == 'stable' && hashFiles('stable-operation-control/stable-operation-consumption.json') != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-stable-operation-consumption-${{ github.run_id }}
           path: stable-operation-control
@@ -311,7 +311,7 @@ jobs:
 
       - name: Upload Bundle admission evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-bundle-admission-${{ github.run_id }}
           path: release-failure-evidence
@@ -354,7 +354,7 @@ jobs:
 
       - name: Download and verify consumed Stable operation control
         if: ${{ inputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-stable-operation-consumption-${{ github.run_id }}
           path: stable-operation-control
@@ -381,7 +381,7 @@ jobs:
 
       - name: Download same-run protected Stable admission
         if: ${{ inputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.stable_admission_artifact }}
           path: stable-admission-evidence
@@ -406,7 +406,7 @@ jobs:
           path: framework-source
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -423,7 +423,7 @@ jobs:
             --output standard-dependency-resolution
 
       - name: Upload frozen Standard qualification dependencies
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-standard-dependency-resolution-${{ github.run_id }}
           path: standard-dependency-resolution
@@ -746,7 +746,7 @@ jobs:
 
       - name: Upload notes preparation receipt
         if: ${{ always() && inputs.prior_standard_artifact_run_id == '' && hashFiles('notes-prepare-receipt.json') != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-notes-prepare-${{ github.run_id }}
           path: notes-prepare-receipt.json
@@ -755,7 +755,7 @@ jobs:
 
       - name: Download prior immutable Bundle inputs
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-bundle-${{ inputs.prior_standard_artifact_run_id }}
           path: prior-bundle
@@ -826,7 +826,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload immutable Bundle
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.OPL_RELEASE_BUNDLE_ARTIFACT }}
           path: |
@@ -900,7 +900,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload freeze-bound WebUI source authority
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.authority.outputs.source_authority_artifact_name }}
           path: |
@@ -991,21 +991,21 @@ jobs:
 
       - name: Download the one signed Standard build
         if: ${{ inputs.prior_standard_artifact_run_id == '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: macos-build-arm64
           path: standard-assets
 
       - name: Download the signed Standard build cohort
         if: ${{ inputs.prior_standard_artifact_run_id == '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: macos-build-arm64-dmg-cohort
           path: standard-cohort
 
       - name: Download the exact Linux Desktop build
         if: ${{ inputs.prior_standard_artifact_run_id == '' && inputs.channel != 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: linux-build-x64
           path: standard-assets
@@ -1080,7 +1080,7 @@ jobs:
 
       - name: Download prior sealed Standard artifact
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-standard-bound-${{ inputs.prior_standard_artifact_run_id }}
           path: bound-standard
@@ -1089,7 +1089,7 @@ jobs:
 
       - name: Download prior exact-candidate Standard VM artifact
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-standard-vm-bound-${{ inputs.prior_standard_artifact_run_id }}
           path: bound-standard-vm
@@ -1098,7 +1098,7 @@ jobs:
 
       - name: Download prior Standard cohort identities
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: opl-release-standard*bound-${{ inputs.prior_standard_artifact_run_id }}-cohort
           path: prior-standard-cohorts
@@ -1107,7 +1107,7 @@ jobs:
 
       - name: Download prior frozen Bundle
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-bundle-${{ inputs.prior_standard_artifact_run_id }}
           path: prior-bundle
@@ -1116,14 +1116,14 @@ jobs:
 
       - name: Download current frozen Bundle
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.OPL_RELEASE_BUNDLE_ARTIFACT }}
           path: current-bundle
 
       - name: Download prior Standard qualification attempt
         if: ${{ inputs.prior_standard_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-qualification-attempt-standard-${{ inputs.prior_standard_artifact_run_id }}
           path: prior-qualification-attempt
@@ -1471,7 +1471,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload one bound Standard artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-bound-${{ github.run_id }}
           path: bound-standard
@@ -1480,7 +1480,7 @@ jobs:
           compression-level: 0
 
       - name: Upload exact-candidate Standard VM artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-vm-bound-${{ github.run_id }}
           path: bound-standard-vm
@@ -1489,7 +1489,7 @@ jobs:
           compression-level: 0
 
       - name: Upload bound Standard cohort identity
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-bound-${{ github.run_id }}-cohort
           path: standard-cohort
@@ -1497,7 +1497,7 @@ jobs:
           retention-days: 30
 
       - name: Upload exact-candidate Standard VM cohort identity
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-vm-bound-${{ github.run_id }}-cohort
           path: standard-cohort
@@ -1602,13 +1602,13 @@ jobs:
           path: framework-source
 
       - name: Download Bundle
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.OPL_RELEASE_BUNDLE_ARTIFACT }}
           path: bundle
 
       - name: Download sealed Standard artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.seal-standard-identity.outputs.standard_artifact_name }}
           path: bound-standard
@@ -1617,20 +1617,20 @@ jobs:
 
       - name: Download protected Standard clean-VM qualification
         if: ${{ inputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.standard-clean-vm-qualification.outputs.qualification_artifact_name }}
           path: standard-clean-vm-evidence
 
       - name: Download consumed Stable operation control for durable carrier binding
         if: ${{ inputs.channel == 'stable' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-stable-operation-consumption-${{ github.run_id }}
           path: stable-operation-control
 
       - name: Setup Framework runtime
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -1790,7 +1790,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload portable Standard checkpoint
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.OPL_STANDARD_CHECKPOINT_ARTIFACT }}
           path: |
@@ -1805,7 +1805,7 @@ jobs:
           compression-level: 0
 
       - name: Upload Standard identity evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-identity-${{ github.run_id }}
           path: |

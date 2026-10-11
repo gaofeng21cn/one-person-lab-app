@@ -305,7 +305,7 @@ jobs:
 
       - name: Download exact App release follow-up receipt
         if: ${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'desktop_artifacts' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ steps.authority.outputs.followup_receipt }}
           run-id: ${{ steps.authority.outputs.followup_run_id }}
@@ -314,7 +314,7 @@ jobs:
 
       - name: Download exact Desktop append receipt
         if: ${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'desktop_artifacts' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ steps.authority.outputs.desktop_receipt }}
           run-id: ${{ steps.authority.outputs.followup_run_id }}
@@ -425,7 +425,7 @@ jobs:
 
       - name: Download exact additive repair receipt
         if: ${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'repair_additive' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ steps.authority.outputs.repair_receipt }}
           run-id: ${{ steps.authority.outputs.followup_run_id }}
@@ -434,7 +434,7 @@ jobs:
 
       - name: Download original Stable source bundle
         if: ${{ steps.authority.outputs.applicable == 'true' && steps.authority.outputs.certification_kind == 'repair_additive' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-bundle-${{ steps.authority.outputs.source_run_id }}
           run-id: ${{ steps.authority.outputs.source_run_id }}
@@ -581,7 +581,7 @@ jobs:
             '{schema:"opl_app_linux_same_tag_desktop_install.v1",status:"passed",release_tag:$tag,artifact:{name:$name,digest:$digest},installed_package:{name:$package,version:$version,architecture:$architecture},rebuilt:false,remaining:[]}' \
             > linux-x64-same-tag-install.json
       - name: Upload Linux Desktop certification evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-linux-desktop-certification-${{ github.run_id }}
           path: linux-x64-same-tag-install.json
@@ -666,7 +666,7 @@ jobs:
             '{schema:"opl_app_desktop_artifacts_certification.v1",status:(if $applicable != "true" then "not_applicable" elif $kind == "repair_additive" and $linux != "success" then "failed" else "complete" end),applicable:($applicable == "true"),reason_code:$reason,certification_kind:$kind,release_tag:$tag,source_run_id:$source,installer_digest_chain:(if $kind == "repair_additive" then {previous:$old_installer,current:$new_installer} else null end),linux_x64:$linux,macos_vm_admission:$admission,macos_standard:$standard,required_for_publication:false,remaining:(if $kind == "repair_additive" and $linux != "success" then ["linux_clean_install"] else [] end)}' \
             > desktop-artifact-certification.json
       - name: Upload Desktop artifact certification receipt
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-desktop-artifact-certification-${{ github.run_id }}
           path: desktop-artifact-certification.json

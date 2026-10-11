@@ -184,7 +184,7 @@ jobs:
           test "$status" = passed
       - name: Upload Full admission evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-full-admission-${{ github.run_id }}
           path: release-failure-evidence
@@ -238,7 +238,7 @@ jobs:
         with: { ref: '${{ github.sha }}', path: app-source }
 
       - name: Download checkpoint identity bootstrap
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.source_artifact }}
           path: checkpoint-identity-bootstrap
@@ -312,7 +312,7 @@ jobs:
 
       - name: Upload exact Full ref admission
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-full-ref-admission-${{ github.run_id }}
           path: release-failure-evidence/full-addon-admission-preflight.json
@@ -867,7 +867,7 @@ jobs:
 
       - name: Upload independent Full operation checkpoint
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-append-full-operation-checkpoint-v2-${{ github.run_id }}
           path: |
@@ -919,7 +919,7 @@ jobs:
 
       - name: Upload pre-build Full publication target admission
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-full-publication-target-admission-${{ github.run_id }}
           path: full-publication-target-admission.json
@@ -940,7 +940,7 @@ jobs:
 
       - name: Upload checkpoint restore failure evidence
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-full-restore-failure-${{ github.run_id }}
           path: checkpoint-restore-failure
@@ -1025,7 +1025,7 @@ jobs:
 
       - name: Download reusable Full package from the exact failed run
         if: ${{ inputs.prior_full_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
           run-id: ${{ inputs.prior_full_artifact_run_id }}
@@ -1034,7 +1034,7 @@ jobs:
 
       - name: Download reusable Full cohort identity
         if: ${{ inputs.prior_full_artifact_run_id != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
           run-id: ${{ inputs.prior_full_artifact_run_id }}
@@ -1044,7 +1044,7 @@ jobs:
       - name: Download exact failed qualification receipt
         if: ${{ inputs.prior_full_artifact_run_id != '' }}
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-qualification-attempt-full-${{ inputs.prior_full_artifact_run_id }}
           run-id: ${{ inputs.prior_full_artifact_run_id }}
@@ -1268,7 +1268,7 @@ jobs:
 
       - name: Download original Full build cohort identity
         if: ${{ inputs.prior_full_artifact_run_id == '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
           run-id: ${{ needs.restore-standard.outputs.full_artifact_producer_run_id }}
@@ -1297,7 +1297,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload materialized Full package artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output
@@ -1305,7 +1305,7 @@ jobs:
           retention-days: 14
 
       - name: Upload materialized Full DMG-only artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output/One-Person-Lab-Full-${{ needs.restore-standard.outputs.version }}-mac-arm64.dmg
@@ -1314,7 +1314,7 @@ jobs:
           compression-level: 0
 
       - name: Upload materialized Full cohort identity
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
           path: full-cohort
@@ -1331,7 +1331,7 @@ jobs:
       actions: read
     steps:
       - name: Download exact Full package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output
@@ -1442,7 +1442,7 @@ jobs:
           NODE
 
       - name: Upload hosted Full core qualification
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-hosted-full-core-qualification-${{ github.run_id }}
           path: hosted-full-core-qualification.json
@@ -1506,21 +1506,21 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download Full package asset set
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output
 
       - name: Download exact hosted Full core qualification
         if: ${{ needs.full-qualification.result == 'success' && needs.full-clean-vm-qualification.result == 'success' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-hosted-full-core-qualification-${{ github.run_id }}
           path: hosted-core-qualification
 
       - name: Download protected Full clean-VM qualification
         if: ${{ needs.full-qualification.result == 'success' && needs.full-clean-vm-qualification.result == 'success' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.full-clean-vm-qualification.outputs.qualification_artifact_name }}
           path: full-clean-vm-evidence
@@ -1739,7 +1739,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload additive Full checkpoint
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.OPL_FULL_CHECKPOINT_ARTIFACT }}
           path: |
@@ -2224,7 +2224,7 @@ jobs:
 
       - name: Upload Full publication receipt
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-full-published-${{ github.run_id }}
           path: |

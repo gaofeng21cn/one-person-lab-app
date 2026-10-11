@@ -206,7 +206,7 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -308,7 +308,7 @@ jobs:
           path: windows-bootstrap-framework
           persist-credentials: false
       - name: Setup Linux Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
       - name: Setup Bun for DSH plugin build
@@ -336,7 +336,7 @@ jobs:
           OPL_WINDOWS_BOOTSTRAP_RESOLUTION: ${{ github.workspace }}/windows-bootstrap-resolution/dependency-resolution.json
         run: node scripts/desktop/prepare-wsl-host-payload.mjs
       - name: Upload qualified Linux guest Host
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-studio-wsl-host-${{ github.run_id }}
           path: studio/resources/opl-wsl-host
@@ -366,7 +366,7 @@ jobs:
 
       - name: Setup Node.js for credential preflight
         if: ${{ inputs.require_macos_gatekeeper }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -385,7 +385,7 @@ jobs:
 
       - name: Upload sanitized Apple credential preflight receipt
         if: ${{ inputs.require_macos_gatekeeper }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-apple-release-credentials-preflight-${{ github.run_id }}
           path: ${{ runner.temp }}/apple-release-credentials-preflight.json
@@ -448,7 +448,7 @@ jobs:
 
       - name: Upload release-bound build admission
         if: ${{ always() && inputs.operation != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-build-admission-${{ matrix.platform }}-${{ github.run_id }}
           path: release-admission
@@ -481,7 +481,7 @@ jobs:
 
       - name: Download qualified Studio Linux guest Host
         if: startsWith(matrix.platform, 'windows') && needs.resolve-active-shell-ref.outputs.shell_id == 'opl-studio'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-studio-wsl-host-${{ github.run_id }}
           path: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/resources/opl-wsl-host
@@ -541,7 +541,7 @@ jobs:
           echo "OPL updater machine version: $updater_version"
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -648,7 +648,7 @@ jobs:
 
       - name: Download frozen Standard qualification dependencies
         if: ${{ inputs.dependency_manifest_artifact != '' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.dependency_manifest_artifact }}
           path: standard-dependency-resolution
@@ -1361,7 +1361,7 @@ jobs:
             --release-cohort-ref "${{ inputs.release_cohort_ref }}"
 
       - name: Upload build artifact cohort manifest
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success() && startsWith(matrix.platform, 'macos')
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}-dmg-cohort', matrix.artifact-name, steps.commit.outputs.short) || format('{0}-dmg-cohort', matrix.artifact-name) }}
@@ -1370,7 +1370,7 @@ jobs:
           retention-days: 7
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success()
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
@@ -1392,7 +1392,7 @@ jobs:
           retention-days: 7
 
       - name: Upload macOS DMG-only artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success() && startsWith(matrix.platform, 'macos')
         with:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}-dmg', matrix.artifact-name, steps.commit.outputs.short) || format('{0}-dmg', matrix.artifact-name) }}
