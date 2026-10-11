@@ -159,7 +159,7 @@ test("workflow is a no-secret read-only hosted macOS diagnostic", () => {
   assert.equal(upload.if, "${{ always() }}");
   assert.equal(
     upload.uses,
-    "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
   );
   assert.equal(upload.with["if-no-files-found"], "error");
   assert.equal(fs.existsSync(path.join(appRoot, ".github/workflows/release-timestamp-authority-diagnostic.yml")), false);

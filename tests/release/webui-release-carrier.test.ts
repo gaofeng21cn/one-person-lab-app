@@ -848,7 +848,7 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
     (step: { name?: string }) => step.name === 'Download exact independent WebUI source authority',
   );
   assert.equal(downloadSourceAuthority.if, undefined);
-  assert.equal(downloadSourceAuthority.uses, 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c');
+  assert.equal(downloadSourceAuthority.uses, 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333');
   assert.equal(downloadSourceAuthority.with.name, '${{ inputs.source_authority_artifact_name }}');
   assert.equal(downloadSourceAuthority.with['run-id'], '${{ inputs.source_artifact_run_id }}');
   assert.equal(downloadSourceAuthority.with.path, 'webui-carrier/source-authority');
@@ -890,7 +890,7 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
   assert.match(qualification.run, /persisted_restart/);
   assert.match(qualification.run, /persistence_restart/);
   assert.equal(failureEvidence.if, "${{ failure() && steps.qualify.outcome == 'failure' }}");
-  assert.equal(failureEvidence.uses, 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a');
+  assert.equal(failureEvidence.uses, 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9');
   assert.equal(
     failureEvidence.with.name,
     'webui-runtime-failure-${{ inputs.opl_version }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.architecture }}',
@@ -996,7 +996,7 @@ test('WebUI carrier writes the public version only after the receipt and then se
   assert.ok(receiptIndex >= 0 && receiptIndex < versionIndex && versionIndex < sidecarIndex);
   assert.match(setupOras.uses, /^oras-project\/setup-oras@[0-9a-f]{40}$/);
   assert.equal(downloadSourceAuthority.if, undefined);
-  assert.equal(downloadSourceAuthority.uses, 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c');
+  assert.equal(downloadSourceAuthority.uses, 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333');
   assert.equal(downloadSourceAuthority.with.name, '${{ inputs.source_authority_artifact_name }}');
   assert.equal(downloadSourceAuthority.with['run-id'], '${{ inputs.source_artifact_run_id }}');
   assert.equal(downloadSourceAuthority.with['github-token'], '${{ github.token }}');
