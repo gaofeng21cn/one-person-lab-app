@@ -285,7 +285,16 @@
     ],
     "candidate_identity_policy": "branded_preview_bundle_until_explicit_active_shell_adoption",
     "active_product_bundle_id": "cn.onepersonlab.opl",
-    "studio_preview_bundle_id": "cn.onepersonlab.opl.studio.preview"
+    "studio_preview_bundle_id": "cn.onepersonlab.opl.studio.preview",
+    "host_runtime": {
+      "owner": "one-person-lab",
+      "execution": "standalone_node",
+      "selection": "Framework managed Node or Framework-admitted system Node",
+      "transport": "private_parent_child_stdio",
+      "carrier_runtime_policy_ref": "shell_contract.paths.desktop_release_carrier_manifest#node_host_policy",
+      "carrier_runtime_adapter_ref": "shell_contract.paths.desktop_release_carrier_manifest#node_host_runtime",
+      "electron_runtime_fallback_allowed": false
+    }
   },
   "shell_transition_policy": {
     "schema": "opl_app_shell_transition_policy.v1",

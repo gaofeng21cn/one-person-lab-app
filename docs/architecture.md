@@ -152,7 +152,13 @@ installed upgrades require full App build/install/readback; no embedded binary
 hot replacement is supported.
 
 Studio shares a DSH-derived renderer and Node host across Electron,
-standalone WebUI and container carriers. Each carrier must independently prove its
+standalone WebUI and container carriers. Desktop runs that same Host in the
+standalone Node selected by Framework, using the existing private stdio protocol
+for native callbacks, events and update leases. Electron remains patched and owns
+the native window and updater; it is never a fallback Node runtime. Carrier
+admission rejects Node versions before the October 2026 TLS fixes. Existing
+installations obtain Node-only maintenance through the canonical Framework
+bootstrap without replacing their Framework source or system Node. Each carrier must independently prove its
 claimed behavior. Current supported distribution, installer selection and update
 identity live in [distribution](delivery/distribution-and-install-ssot.md); operator
 sequencing lives in the [release guide](delivery/release/README.md). Desktop Stable

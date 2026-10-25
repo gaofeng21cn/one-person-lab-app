@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 
 import { requirePath } from './filesystem.ts';
 import { findExecutable } from './process.ts';
@@ -76,17 +78,26 @@ function requireNodeToolchainDirectory(directoryPath) {
   return directoryPath;
 }
 
-function findNodeToolchain(explicitNodeBin) {
+export function findNodeToolchain(explicitNodeBin, guiRoot) {
   const candidates = [
     explicitNodeBin,
-    path.join(os.homedir(), '.nvm', 'versions', 'node', 'v22.16.0', 'bin', 'node'),
     process.execPath,
   ];
   const found = firstExistingFile(candidates);
   if (!found) {
     throw new Error('Node binary not found. Pass --node-bin or set OPL_FULL_NODE_BIN.');
   }
-  const nodeBin = found;
+  const shell = resolveActiveShellPaths({ shellRoot: guiRoot });
+  const relativeManifest = shell.contract.shell_contract.paths.desktop_release_carrier_manifest;
+  if (typeof relativeManifest !== 'string') throw new Error('Selected carrier has no desktop release manifest.');
+  const carrier = JSON.parse(fs.readFileSync(path.join(shell.shellRoot, relativeManifest), 'utf8'));
+  const adapter = carrier.node_host_runtime;
+  if (typeof adapter !== 'string' || path.isAbsolute(adapter) || adapter.split(/[\\/]/).some(part => !part || part === '..' || part === '.')) {
+    throw new Error('Selected carrier must declare its Node Host runtime admission adapter.');
+  }
+  const { resolveHostNode } = createRequire(import.meta.url)(path.join(shell.shellRoot, adapter));
+  const admitted = resolveHostNode({ nodeExecutable: found });
+  const nodeBin = admitted.command;
   const nodeBinDir = path.dirname(nodeBin);
   const nodeRoot = path.dirname(nodeBinDir);
   return {
@@ -139,7 +150,7 @@ export function resolveRuntimeSources(options, selectedFlowCliIds) {
   if (unsupported.length > 0) {
     throw new Error(`Full runtime has no source adapter for selected Flow CLI: ${unsupported.join(', ')}.`);
   }
-  const nodeToolchain = findNodeToolchain(options.nodeBin);
+  const nodeToolchain = findNodeToolchain(options.nodeBin, options.guiRoot);
   const bunBin = options.includeBunRuntime ? findBunBinary(options.bunBin) : null;
   const pythonRoot = findPythonRoot(options.pythonRoot);
   const uvBin = requirePath(options.uvBin, 'uv binary');

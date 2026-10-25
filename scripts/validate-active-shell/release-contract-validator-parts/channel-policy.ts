@@ -149,6 +149,18 @@ function validateDesktopReleaseKernel(kernel) {
     throw new Error('Desktop release kernel must remain App-owned with isolated active and preview product identities');
   }
   assertDeepEqualJson(
+    kernel.host_runtime,
+    {
+      owner: 'one-person-lab', execution: 'standalone_node',
+      selection: 'Framework managed Node or Framework-admitted system Node',
+      transport: 'private_parent_child_stdio',
+      carrier_runtime_policy_ref: 'shell_contract.paths.desktop_release_carrier_manifest#node_host_policy',
+      carrier_runtime_adapter_ref: 'shell_contract.paths.desktop_release_carrier_manifest#node_host_runtime',
+      electron_runtime_fallback_allowed: false,
+    },
+    'Desktop Host runtime authority and transport',
+  );
+  assertDeepEqualJson(
     kernel.toolchain_profiles,
     {
       'opl-studio': {
