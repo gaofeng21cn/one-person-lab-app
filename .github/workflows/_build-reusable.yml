@@ -914,7 +914,7 @@ jobs:
           const command = process.env.RELEASE_BUILD_COMMAND || '';
           if (!Number.isFinite(timeoutMs) || timeoutMs < 1_000 || !command) process.exit(78);
           let deadlineElapsed = false;
-          const child = spawn('/bin/bash', ['-lc', command], {
+          const child = spawn('/bin/bash', ['-c', command], {
             detached: true,
             env: process.env,
             stdio: 'inherit',
@@ -943,7 +943,7 @@ jobs:
           });
           NODE
           else
-            /bin/bash -lc "$RELEASE_BUILD_COMMAND" 2>&1 | tee "${RUNNER_TEMP}/build.log"
+            /bin/bash -c "$RELEASE_BUILD_COMMAND" 2>&1 | tee "${RUNNER_TEMP}/build.log"
           fi
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           if [ "$BUILD_EXIT_CODE" -eq 78 ]; then
