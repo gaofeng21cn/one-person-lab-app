@@ -314,3 +314,21 @@ test('Nightly CLI writes mechanical notes successfully when no cloud credentials
   assert.equal(fs.readFileSync(path.join(input.root, 'notes.md'), 'utf8'), build(input).notes);
   assert.equal(JSON.parse(fs.readFileSync(path.join(input.root, 'evidence.json'), 'utf8')).writer.mode, 'mechanical');
 });
+
+
+test('baseline admission CLI rejects a drifting release and accepts the next exact published baseline', (t) => {
+  const input = fixture(t);
+  const baselinePath = path.join(input.root, 'baseline-admission.json');
+  const run = () => spawnSync(process.execPath, ['--experimental-strip-types',
+    path.resolve('scripts/nightly-release-notes.ts'), '--validate-baseline', '--baseline', baselinePath],
+  { encoding: 'utf8' });
+  const changed = structuredClone(input.baseline);
+  changed.component_manifest.source_commit = 'f'.repeat(40);
+  fs.writeFileSync(baselinePath, JSON.stringify(changed));
+  const rejected = run();
+  assert.equal(rejected.status, 1);
+  assert.match(rejected.stderr, /does not bind one exact published Release/);
+  fs.writeFileSync(baselinePath, JSON.stringify(input.baseline));
+  const admitted = run();
+  assert.equal(admitted.status, 0, admitted.stderr);
+});

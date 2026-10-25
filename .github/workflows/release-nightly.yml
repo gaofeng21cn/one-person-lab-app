@@ -260,7 +260,7 @@ jobs:
           set -euo pipefail
           gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
             > published-releases.json
-          previous="$(jq -er '
+          candidates="$(jq -er '
             [.[][]
               | select(.draft == false)
               | select((.published_at | type) == "string")
@@ -269,27 +269,36 @@ jobs:
               | select([.assets[]?
                   | select(.name == "opl-app-component-manifest.json")] | length == 1)]
             | sort_by(.published_at, .id)
-            | last
+            | reverse[]
             | [.published_at, (.id | tostring), .tag_name, .target_commitish,
                 ([.assets[]
                   | select(.name == "opl-app-component-manifest.json")][0].id | tostring)]
             | @tsv
           ' published-releases.json)"
-          IFS=$'\t' read -r previous_published_at previous_id previous_tag previous_target manifest_asset_id \
-            <<< "$previous"
-          [[ "$previous_id" =~ ^[1-9][0-9]*$ ]]
-          [[ "$previous_target" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$manifest_asset_id" =~ ^[1-9][0-9]*$ ]]
-          gh api "repos/$GITHUB_REPOSITORY/releases/assets/$manifest_asset_id" \
-            -H 'Accept: application/octet-stream' > nightly-baseline-component-manifest.json
-          jq -n \
-            --argjson release_id "$previous_id" \
-            --arg tag "$previous_tag" \
-            --arg target "$previous_target" \
-            --arg published_at "$previous_published_at" \
-            --slurpfile manifest nightly-baseline-component-manifest.json \
-            '{schema:"opl_nightly_notes_baseline.v1",release:{id:$release_id,tag:$tag,target_commitish:$target,published_at:$published_at},component_manifest:$manifest[0]}' \
-            > nightly-notes-baseline.json
+          baseline_found=false
+          while IFS=$'\t' read -r previous_published_at previous_id previous_tag previous_target manifest_asset_id; do
+            [[ "$previous_id" =~ ^[1-9][0-9]*$ ]]
+            [[ "$previous_target" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$manifest_asset_id" =~ ^[1-9][0-9]*$ ]]
+            gh api "repos/$GITHUB_REPOSITORY/releases/assets/$manifest_asset_id" \
+              -H 'Accept: application/octet-stream' > nightly-baseline-component-manifest.json
+            jq -n \
+              --argjson release_id "$previous_id" \
+              --arg tag "$previous_tag" \
+              --arg target "$previous_target" \
+              --arg published_at "$previous_published_at" \
+              --slurpfile manifest nightly-baseline-component-manifest.json \
+              '{schema:"opl_nightly_notes_baseline.v1",release:{id:$release_id,tag:$tag,target_commitish:$target,published_at:$published_at},component_manifest:$manifest[0]}' \
+              > nightly-notes-baseline-candidate.json
+            if node --experimental-strip-types scripts/nightly-release-notes.ts \
+              --validate-baseline --baseline nightly-notes-baseline-candidate.json; then
+              mv nightly-notes-baseline-candidate.json nightly-notes-baseline.json
+              baseline_found=true
+              break
+            fi
+            echo "Skipping release $previous_tag: its manifest does not bind the exact notes baseline."
+          done <<< "$candidates"
+          test "$baseline_found" = true || { echo "No published release has a valid notes baseline." >&2; exit 1; }
           previous_app_ref="$(jq -er .component_manifest.source_cohort.app_sha nightly-notes-baseline.json)"
           previous_shell_ref="$(jq -er .component_manifest.source_cohort.shell_sha nightly-notes-baseline.json)"
           previous_framework_ref="$(jq -er .component_manifest.source_cohort.framework_sha nightly-notes-baseline.json)"

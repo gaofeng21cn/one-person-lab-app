@@ -411,6 +411,7 @@ async function main(argv: string[]): Promise<void> {
       'framework-root': { type: 'string' },
       output: { type: 'string' },
       'evidence-output': { type: 'string' },
+      'validate-baseline': { type: 'boolean', default: false },
     },
     strict: true,
     allowPositionals: false,
@@ -420,6 +421,10 @@ async function main(argv: string[]): Promise<void> {
     if (typeof value !== 'string' || value.trim() === '') throw new Error(`Missing --${String(name)}.`);
     return value.trim();
   };
+  if (values['validate-baseline']) {
+    validateBaseline(readJson<NightlyNotesBaseline>(required('baseline')));
+    return;
+  }
   const input = {
     request: readJson<NightlyReleaseRequest>(required('request')),
     qualification: readJson<NightlyQualificationReceipt>(required('qualification')),
