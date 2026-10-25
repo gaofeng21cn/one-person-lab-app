@@ -365,7 +365,7 @@ test('source-validation sparse checkout includes nested active-shell files witho
   const workflow = fs.readFileSync(path.join(appRoot, '.github/workflows/non-release-validation.yml'), 'utf8');
   const packageJson = readJson('package.json');
   assert.match(workflow, /https:\/\/github\.com\/gaofeng21cn\/opl-studio\.git/);
-  assert.match(workflow, /sparse-checkout set --cone desktop scripts\/desktop/);
+  assert.match(workflow, /sparse-checkout set --cone contracts desktop scripts\/desktop/);
   assert.match(workflow, /OPL_APP_SHELL_ROOT: \$\{\{ runner\.temp \}\}\/opl-studio/);
   assert.doesNotMatch(workflow, /https:\/\/github\.com\/gaofeng21cn\/opl-aion-shell\.git/);
   assert.doesNotMatch(workflow, /OPL_AIONUI_TEST_SHELL_ROOT/);
