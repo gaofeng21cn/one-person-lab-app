@@ -70,7 +70,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse \
             https://github.com/gaofeng21cn/opl-studio.git "$RUNNER_TEMP/opl-studio"
-          git -C "$RUNNER_TEMP/opl-studio" sparse-checkout set --cone desktop scripts/desktop
+          git -C "$RUNNER_TEMP/opl-studio" sparse-checkout set --cone contracts desktop scripts/desktop
 
       # The suite owns App release admission, dispatch guards, notes, carriers
       # and installers. It used to run only under the manual release workflows,
