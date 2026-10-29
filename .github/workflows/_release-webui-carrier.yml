@@ -373,6 +373,101 @@ jobs:
           OPL_CLOUD_SMOKE_LEGACY=1 OPL_CLOUD_SMOKE_IMAGE="$(cat webui-carrier/local-image-ref.txt)" \
             node shells/studio/tests/headless/docker-cloud-smoke.mjs > webui-carrier/cloud-runtime.json
 
+      - name: Qualify publisher cloud entrypoint with mounted secrets only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import path from 'node:path';
+          import { execFileSync } from 'node:child_process';
+          const docker = (...args) => execFileSync('docker', args, { encoding: 'utf8' }).trim();
+          const bridge = JSON.parse(fs.readFileSync('frozen-app-source/contracts/app-runtime-bridge.json', 'utf8'));
+          const { validateWebuiDeploymentContract } = await import('./scripts/validate-active-shell/runtime-bridge-validator-parts/identity-authority.ts');
+          validateWebuiDeploymentContract(bridge);
+          const template = bridge.webui_deployment.cloud.application_revision_template;
+          fs.writeFileSync('webui-carrier/cloud-application-revision-template.json', JSON.stringify(template) + '\n');
+          const image = fs.readFileSync('webui-carrier/local-image-ref.txt', 'utf8').trim();
+          const [imageInspect] = JSON.parse(docker('image', 'inspect', image));
+          const imageCmd = imageInspect.Config.Cmd;
+          assert.ok(Array.isArray(imageCmd) && imageCmd.length > 0 && imageCmd.every(value => typeof value === 'string'));
+          const environment = Object.fromEntries(template.entrypoint.slice(1, -1).map(value => {
+            const index = value.indexOf('=');
+            return [value.slice(0, index), value.slice(index + 1)];
+          }));
+          const name = `opl-cloud-recipe-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`;
+          const secrets = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-cloud-recipe-'));
+          const password = crypto.randomBytes(32).toString('hex');
+          fs.writeFileSync(path.join(secrets, 'password'), password, { mode: 0o444 });
+          fs.writeFileSync(path.join(secrets, 'session'), crypto.randomBytes(48).toString('hex'), { mode: 0o444 });
+          try {
+            docker('volume', 'create', `${name}-data`);
+            docker('volume', 'create', `${name}-projects`);
+            // Serve supplies files; all non-secret auth configuration comes from the recipe.
+            docker('run', '--detach', '--name', name,
+              '--mount', `type=volume,src=${name}-data,dst=/data`,
+              '--mount', `type=volume,src=${name}-projects,dst=/projects`,
+              '--mount', `type=bind,src=${secrets}/password,dst=${environment.OPL_WEBUI_PASSWORD_FILE},readonly`,
+              '--mount', `type=bind,src=${secrets}/session,dst=${environment.OPL_WEBUI_SESSION_SECRET_FILE},readonly`,
+              '--entrypoint', template.entrypoint[0], image,
+              ...template.entrypoint.slice(1), ...imageCmd);
+            docker('exec', name, 'node', '--input-type=module', '-e', `
+              import assert from 'node:assert/strict';
+              import fs from 'node:fs';
+              const base = 'http://127.0.0.1:3000';
+              const deadline = Date.now() + 60000;
+              while (true) {
+                try { if ((await fetch(base + '/readyz')).ok) break; } catch {}
+                assert.ok(Date.now() < deadline, 'cloud recipe readiness timed out');
+                await new Promise(resolve => setTimeout(resolve, 250));
+              }
+              const prefix = '/w/workspace_0123456789abcdef0123456789abcdef';
+              const headers = { 'x-forwarded-prefix': prefix };
+              assert.equal((await fetch(base + '/api/auth/user', { headers })).status, 401);
+              const redirect = await fetch(base + '/', { headers, redirect: 'manual' });
+              assert.equal(redirect.status, 302);
+              assert.equal(redirect.headers.get('location'), prefix + '/login');
+              const login = await fetch(base + '/api/auth/login', {
+                method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+                body: JSON.stringify({ username: ${JSON.stringify(environment.OPL_WEBUI_USERNAME)},
+                  password: fs.readFileSync(${JSON.stringify(environment.OPL_WEBUI_PASSWORD_FILE)}, 'utf8') })
+              });
+              assert.equal(login.status, 200);
+              const cookie = login.headers.get('set-cookie');
+              assert.ok(cookie.includes('; Path=' + prefix + '/;'));
+              assert.ok(cookie.includes('; Secure'));
+              const session = await login.json();
+              const authenticated = { ...headers, cookie: cookie.split(';')[0] };
+              assert.equal((await fetch(base + '/api/auth/user', { headers: authenticated })).status, 200);
+              const html = await (await fetch(base + '/', { headers: authenticated })).text();
+              assert.equal(html.match(/<base /g)?.length, 1);
+              assert.ok(html.includes('<base href="' + prefix + '/">'));
+              const logout = await fetch(base + '/api/auth/logout', {
+                method: 'POST', headers: { ...authenticated, 'x-csrf-token': session.csrfToken }
+              });
+              assert.equal(logout.status, 200);
+              assert.ok(logout.headers.get('set-cookie').includes('; Path=' + prefix + '/;'));
+            `);
+            fs.writeFileSync('webui-carrier/cloud-recipe-runtime.json', JSON.stringify({
+              status: 'passed', auth: 'password_session_csrf', secret_delivery: 'files_only',
+              prefix: '/w/workspace_0123456789abcdef0123456789abcdef/'
+            }) + '\n');
+          } finally {
+            try {
+              docker('rm', '--force', name);
+            } finally {
+              try {
+                docker('volume', 'rm', `${name}-data`, `${name}-projects`);
+              } finally {
+                fs.rmSync(secrets, { recursive: true, force: true });
+              }
+            }
+          }
+          NODE
+
       - name: Qualify exact local runtime before any registry tag is written
         id: qualify
         shell: bash

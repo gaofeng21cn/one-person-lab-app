@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { validateRuntimeProgressPageDisplayPolicy } from '../../scripts/validate-active-shell/runtime-bridge-validator.ts';
 import { validateCoreRuntimeRoute } from '../../scripts/validate-active-shell/runtime-route-validator.ts';
+import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator-parts/identity-authority.ts';
 import {
   validateAgentAvailabilityProjectionContract,
   validateUserTaskStatusProjectionContract,
@@ -31,6 +32,26 @@ const validatePageState = (matrix: any, guiContract = readJson('contracts/app-gu
 
 const runtimeContract = () => readJson('contracts/app-gui-product-contract.json');
 const runtimeBridge = () => readJson('contracts/app-runtime-bridge.json');
+
+test('WebUI contract scopes product transport and cookies to the trusted request base', () => {
+  assert.doesNotThrow(() => validateWebuiDeploymentContract(runtimeBridge()));
+  for (const [field, value] of Object.entries({
+    trust_policy: 'trust_all_client_headers',
+    base_source: 'browser_pathname',
+    invalid_trusted_prefix_policy: 'use_root',
+    root_absolute_product_urls_allowed: true,
+    cookie_path: '/',
+    upstream_routes: 'register_workspace_routes_in_Studio',
+  })) {
+    const candidate = runtimeBridge();
+    candidate.webui_http_transport[field] = value;
+    assert.throws(() => validateWebuiDeploymentContract(candidate), /WebUI transport/);
+  }
+  const missingSse = runtimeBridge();
+  missingSse.webui_http_transport.base_scoped_surfaces =
+    missingSse.webui_http_transport.base_scoped_surfaces.filter((surface: string) => surface !== 'SSE');
+  assert.throws(() => validateWebuiDeploymentContract(missingSse), /base-scoped surfaces/);
+});
 
 test('Runtime V2 product, projection, availability, and page-state contracts are active', () => {
   const bridge = runtimeBridge();

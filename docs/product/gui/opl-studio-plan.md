@@ -91,6 +91,36 @@ Docker WebUI 的当前构建来源同样是 Studio，独立维护 GHCR 版本和
 平台、持久化和运行验收规则归 [分发与安装参考](../../delivery/distribution-and-install-ssot.md)。
 移动的 tag/digest 必须从该渠道公开回读，不能从原始切换记录推断。
 
+### Workspace WebUI 路径与启动配置
+
+产品传输语义归 `contracts/app-runtime-bridge.json#webui_http_transport`。
+同一 WebUI 支持根入口 `/` 和 Serve 发布的 `/w/workspace_<hex>/`。
+Serve 覆盖客户端的 `X-Forwarded-Prefix`，剥离外部 prefix 后代理到 Studio 原有的根路由；
+Studio 仅在 cloud 或显式 `OPL_WEBUI_TRUST_PROXY=1` 时消费该可信头。
+未提供可信 prefix 时 base 为 `/`，非法或多值可信 prefix 拒绝请求。
+base 来自请求头，不从浏览器 pathname 猜测。
+
+Studio 通过官方 `renderIndexInjections` 注入一个规范化且以 `/` 结尾的 `<base>`，
+位于相对静态资源之前，保留原 boot injections。静态资源、fetch、SSE、下载、登录、
+退出及跳转都解析到同一 base；session Cookie 的签发和清除使用相同 base Path，
+保持 host-only、HttpOnly、SameSite 和 cloud Secure 属性。浏览器不得跳回根 `/api`。
+Cloud 持有路由、TLS 和租户准入，Studio 持有页面及传输实现；不在代理中重写 HTML/JS。
+
+启动配置归 `contracts/app-runtime-bridge.json#webui_deployment`。通用 Docker 镜像仍默认
+`local/none`。正式 Cloud runtime 的 publisher `applicationRevisionTemplate.entrypoint` 使用
+标准 `/usr/bin/env` 包住原 `/usr/local/bin/opl-webui-entrypoint`，在其启动前明确设置
+`cloud/password`、用户名与密码/session 文件位置，且与 application revision 声明的
+credential target、username 一致。Serve 只按声明挂文件，不负责补齐 OPL 非 secret env；
+fragment 并入现有模板，复用 `admin-password` / `session-secret`，保持
+`applicationAccess.usernameCredentialName=admin-password` 与原 `gateway` credential。
+挂载文件自身不选择模式。Gateway Key 是独立 Framework 凭据，不能代替 WebUI 密码或
+session secret。保留镜像 OCI CMD，由通用 executor 追加，避免覆盖 package 安装命令。
+准确 recipe、独立发布及资格边界见
+[Docker 发布参考](../../delivery/release/README.md#docker-webui)。
+
+这些字段定义验收要求。App contract 检查与本地 source 测试不证明已发布镜像或真实
+Workspace 已验收；必须绑定新 Studio/App cohort、OCI digest 与 Cloud 的实际入口回读。
+
 公开 WebUI Preview 使用独立 OCI handoff。App 接纳 immutable multi-arch digests、
 provenance 与 workflow identity，并通过
 `npm run validate:candidate:studio:cloud-handoff -- <handoff.json>` 验证 App/Cloud ABI。

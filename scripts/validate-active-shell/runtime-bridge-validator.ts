@@ -9,6 +9,7 @@ import { validateCodexParityAdapterPolicies } from './runtime-bridge-validator-p
 import {
   validateRuntimeBridgeIdentity,
   validateRuntimeBridgeDeclaredSurfaces,
+  validateWebuiDeploymentContract,
   validateRuntimeBridgeDefaultReadSurfacePolicy,
   validateRuntimeBridgeUserTaskStatus,
   validateNativeMinimumProductBridge,
@@ -30,6 +31,7 @@ import {
 export function validateRuntimeBridgeContract(runtimeBridge, contract) {
   validateRuntimeBridgeIdentity(runtimeBridge, contract);
   validateRuntimeBridgeDeclaredSurfaces(runtimeBridge);
+  validateWebuiDeploymentContract(runtimeBridge);
   validateOplGatewayAccountContract(runtimeBridge);
   validateRuntimeBridgeDefaultReadSurfacePolicy(runtimeBridge);
   validateRuntimeBridgeCommandResolutionPolicy(runtimeBridge);

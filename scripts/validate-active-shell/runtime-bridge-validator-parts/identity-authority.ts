@@ -64,6 +64,57 @@ export function validateRuntimeBridgeDeclaredSurfaces(runtimeBridge) {
   );
 }
 
+export function validateWebuiDeploymentContract(runtimeBridge) {
+  const transport = runtimeBridge.webui_http_transport;
+  for (const [field, expected] of Object.entries({
+    implementation_owner: 'opl-studio',
+    forwarded_prefix_header: 'X-Forwarded-Prefix',
+    forwarded_prefix_authority: 'Serve_overwrites_client_header_and_strips_prefix_before_upstream',
+    trust_policy: 'cloud_mode_or_explicit_OPL_WEBUI_TRUST_PROXY_1_only',
+    absent_or_untrusted_prefix_base: '/',
+    invalid_trusted_prefix_policy: 'reject_request',
+    index_injection: 'official_renderIndexInjections_single_base_before_relative_assets_preserve_boot_injections',
+    base_source: 'trusted_request_prefix_not_browser_pathname',
+    root_absolute_product_urls_allowed: false,
+    cookie_path: 'same_normalized_base_for_issue_and_clear',
+    cookie_domain: 'host_only',
+    upstream_routes: 'unchanged_unprefixed_routes',
+  })) {
+    if (transport?.[field] !== expected) throw new Error(`WebUI transport ${field} must be ${expected}`);
+  }
+  assertDeepEqualJson(transport.base_scoped_surfaces,
+    ['assets', 'fetch', 'SSE', 'download', 'login', 'logout', 'redirects', 'session_cookie_set', 'session_cookie_clear'],
+    'WebUI base-scoped surfaces');
+  const deployment = runtimeBridge.webui_deployment;
+  assertDeepEqualJson(deployment?.local_docker_default,
+    { deployment_mode: 'local', auth_mode: 'none', discover_mode_from_secret_mounts: false },
+    'WebUI local Docker default');
+  const cloud = deployment.cloud;
+  assertDeepEqualJson(cloud?.application_revision_template?.entrypoint, [
+    '/usr/bin/env',
+    'OPL_WEBUI_DEPLOYMENT_MODE=cloud',
+    'OPL_WEBUI_AUTH_MODE=password',
+    'OPL_WEBUI_USERNAME=opl',
+    'OPL_WEBUI_PASSWORD_FILE=/run/secrets/opl_webui_password',
+    'OPL_WEBUI_SESSION_SECRET_FILE=/run/secrets/webui_session_secret',
+    '/usr/local/bin/opl-webui-entrypoint',
+  ], 'WebUI cloud application revision entrypoint');
+  assertDeepEqualJson(cloud.application_revision_template.credentials, [
+    { name: 'admin-password', kind: 'workspace_admin_password', target: '/run/secrets/opl_webui_password', username: 'opl' },
+    { name: 'session-secret', kind: 'workspace_session_secret', target: '/run/secrets/webui_session_secret' },
+  ], 'WebUI cloud declared credentials');
+  for (const [field, expected] of Object.entries({
+    serve_injection: 'declared_credential_files_only_no_OPL_non_secret_environment',
+    mode_selection: 'explicit_applicationRevisionTemplate_entrypoint_preserving_OCI_CMD',
+    image_command_policy: 'append_exact_OCI_CMD_to_declared_entrypoint_no_Host_or_package_install_command_replacement',
+    session_secret_min_bytes: 32,
+    missing_or_invalid_secret_policy: 'refuse_before_listen',
+    anonymous_auth_user_status: 401,
+  })) {
+    if (cloud[field] !== expected) throw new Error(`WebUI cloud ${field} must be ${expected}`);
+  }
+}
+
 export function validateRuntimeBridgeDefaultReadSurfacePolicy(runtimeBridge) {
   const defaultReadSurfacePolicy = runtimeBridge.default_read_surface_policy;
   for (const [field, expected] of Object.entries({

@@ -361,6 +361,107 @@ run ID is insufficient. Manual recovery can reuse exact qualified artifacts thro
 `qualified_artifact_run_id`, with their source authority verified. Promotion consumes the durable
 GHCR publication record rather than treating a transient artifact as publication authority.
 
+### Cloud runtime recipe
+
+The generic Docker image retains its existing `local/none` default. Select
+`cloud/password` in the Runtime publisher's existing
+`applicationRevisionTemplate.entrypoint`. The main service revision has an
+entrypoint string array, not an environment map. Serve delivers declared secret
+files; all non-secret OPL configuration belongs in this App-owned declaration.
+The exact machine-readable fragment lives at
+`contracts/app-runtime-bridge.json#webui_deployment.cloud.application_revision_template`:
+
+```json
+{
+  "entrypoint": [
+    "/usr/bin/env",
+    "OPL_WEBUI_DEPLOYMENT_MODE=cloud",
+    "OPL_WEBUI_AUTH_MODE=password",
+    "OPL_WEBUI_USERNAME=opl",
+    "OPL_WEBUI_PASSWORD_FILE=/run/secrets/opl_webui_password",
+    "OPL_WEBUI_SESSION_SECRET_FILE=/run/secrets/webui_session_secret",
+    "/usr/local/bin/opl-webui-entrypoint"
+  ]
+}
+```
+
+Merge that fragment and its matching credential declarations into the publisher's
+existing application revision template; do not replace its credentials array.
+Reuse credential names `admin-password` and `session-secret`, and keep
+`applicationAccess.usernameCredentialName=admin-password`. Preserve the existing
+`gateway` credential (`gateway_key`, `/run/secrets/opl_gateway_api_key`). Keep the
+image identity, platform, data, mounts, ports, readiness and package contract intact.
+The password credential uses username `opl` and target
+`/run/secrets/opl_webui_password`; the session credential target is
+`/run/secrets/webui_session_secret`. A publisher using other targets or
+usernames must change its entrypoint assignments and declarations together.
+No secret contents enter argv. The session secret requires at least 32 bytes;
+missing, unreadable or empty required files must fail before listen. Gateway Key
+configuration remains an independent Framework credential boundary.
+
+The generic executor must append the exact OCI CMD to the declared entrypoint.
+Do not place `node scripts/headless/run.mjs` in the application entrypoint or
+replace `buildRecipe.outputImageCommand`: the image's existing CMD may include
+package preparation before starting the Host. Verify this CMD preservation in the
+exact Cloud executor selected for installation; the App contract is not evidence
+that a deployed executor already implements it.
+
+The carrier workflow reads the frozen App contract, retains
+`cloud-application-revision-template.json` with qualified image evidence, and
+executes that entrypoint plus the inspected image CMD on both native platforms.
+It mounts password/session files without Docker auth env and checks anonymous
+401, login, authenticated user, trusted-prefix base, scoped Cookie and CSRF logout.
+Default-mode restart/state qualification still uses the same image. Publishing a
+new generic image alone does not update an existing publisher contract or Workspace.
+
+Studio's existing entrypoint and auth ABI already accept `/usr/bin/env` before
+the original entrypoint; no mount discovery or new runtime configuration mechanism
+is required. Prefix handling and relative browser URLs use Studio's official
+`renderIndexInjections` seam; see the
+[product boundary](../../product/gui/opl-studio-plan.md#workspace-webui-路径与启动配置).
+
+### Minimal Workspace repair through independent Preview publication
+
+1. Integrate the App contract/caller and Studio path implementation, then freeze
+   `app_ref`, `shell_ref` and `framework_ref` as full lowercase 40-character Git
+   commits. App selects the product contract; Shell must include the prefix and
+   Cookie implementation; Framework is the exact compatible runtime source.
+   Use refs reachable by Actions, never a task branch name, `main`, dirty checkout,
+   Dockerfile default ref or an inferred current SHA as a source identity. The
+   canonical App `main` executor must contain this workflow/validator. At admission,
+   the workflow's `github.sha` must equal canonical `main`; source refs then remain
+   frozen even if `main` advances.
+2. With publication authorized, dispatch `release-webui-development.yml` from
+   `main` once with `operation=publish`, `channel=preview`, an unused exact version
+   (`YY.M.D-preview.rN`, for example `26.10.29-preview.rN` with an actual unused
+   positive integer), and those three SHAs. It builds and qualifies both native
+   platforms and publishes the immutable version and durable record in
+   `ghcr.io/gaofeng21cn/one-person-lab-webui`. Preview publish does not invoke
+   promotion or move `:stable`/`:latest`; candidate and receipt tags are run-scoped
+   evidence. Do not select `promote` for a repair scoped to one Workspace.
+   If only qualification is authorized, select `operation=qualify`. Reuse that
+   run for publication only with the same refs/version and exact
+   `qualified_artifact_run_id`; candidates built before these fixes do not qualify.
+3. Read back the successful owner run, source authority, immutable OCI index and
+   both child digests and publication record. The existing Instance-owned
+   `webui-recovery-registry-bridge.yml` accepts this canonical repository by exact
+   index digest. It admits `linux/amd64` alone or `linux/amd64` plus `linux/arm64`,
+   requires `COPY_WEBUI_CARRIER`, and verifies the source and target index bytes
+   and digest match. Pass the index digest to that bridge, not a child manifest
+   or the separate `opl-studio-webui` Preview repository. Only the Instance owner
+   runs this protected bridge; no local private-network connection is involved.
+   After its readback, pin the appropriate exact platform image digest in the
+   existing Runtime publisher contract, retain the declared entrypoint and matching
+   credential declarations, and use the existing Build/Serve owner path to update
+   the authorized Workspace. This installation/activation is a separate owner
+   action, not an effect of publishing Docker. Keep global pointers unchanged.
+4. Cloud acceptance must exercise the original Workspace URL: login without an
+   existing cookie, static assets, fetch, SSE, download, scoped logout and restart.
+   A root-only smoke or authenticated response in `local/none` is insufficient.
+
+These steps describe a later authorized release; contract/source checks do not
+authorize dispatch, registry publication or Cloud activation.
+
 The WebUI workflows do not serialize source admission, native multi-architecture build,
 qualification, canary, or public readback. `opl-webui-independent-publication-global` belongs only to
 `_release-webui-carrier.yml#publish-immutable-carrier`, and

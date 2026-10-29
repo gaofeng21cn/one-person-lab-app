@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import YAML from 'yaml';
+import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator-parts/identity-authority.ts';
 
 const appRoot = process.cwd();
 const cliPath = path.join(appRoot, 'scripts', 'release-webui-carrier.ts');
@@ -94,6 +95,99 @@ function runCli(args: string[]) {
     encoding: 'utf8',
   });
 }
+
+test('publisher revision entrypoint selects password auth before the original entrypoint and OCI CMD', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-cloud-entrypoint-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const bridge = JSON.parse(fs.readFileSync('contracts/app-runtime-bridge.json', 'utf8'));
+  validateWebuiDeploymentContract(bridge);
+  const template = bridge.webui_deployment.cloud.application_revision_template;
+  const originalEntrypoint = path.join(root, 'entrypoint');
+  fs.writeFileSync(originalEntrypoint, '#!/bin/sh\nexec "$@"\n', { mode: 0o755 });
+  const imageCmd = [process.execPath, '-e',
+    'console.log(JSON.stringify({env:Object.fromEntries(Object.entries(process.env).filter(([key])=>key.startsWith("OPL_WEBUI_"))),args:process.argv.slice(1)}))',
+    'preserved-image-cmd'];
+  const entrypoint = [...template.entrypoint.slice(0, -1), originalEntrypoint];
+  const launched = spawnSync(entrypoint[0], [...entrypoint.slice(1), ...imageCmd], {
+    cwd: root, env: { PATH: '/usr/bin:/bin' }, encoding: 'utf8',
+  });
+  assert.equal(launched.status, 0, launched.stderr);
+  const result = JSON.parse(launched.stdout);
+  assert.deepEqual(result.args, ['preserved-image-cmd']);
+  assert.equal(result.env.OPL_WEBUI_DEPLOYMENT_MODE, 'cloud');
+  assert.equal(result.env.OPL_WEBUI_AUTH_MODE, 'password');
+  const password = template.credentials.find((credential: any) => credential.kind === 'workspace_admin_password');
+  const session = template.credentials.find((credential: any) => credential.kind === 'workspace_session_secret');
+  assert.equal(password.name, 'admin-password');
+  assert.equal(session.name, 'session-secret');
+  assert.equal(result.env.OPL_WEBUI_USERNAME, password.username);
+  assert.equal(result.env.OPL_WEBUI_PASSWORD_FILE, password.target);
+  assert.equal(result.env.OPL_WEBUI_SESSION_SECRET_FILE, session.target);
+  assert.equal(result.env.OPL_WEBUI_PASSWORD, undefined);
+  assert.equal(result.env.OPL_WEBUI_SESSION_SECRET, undefined);
+  assert.deepEqual(bridge.webui_deployment.local_docker_default,
+    { deployment_mode: 'local', auth_mode: 'none', discover_mode_from_secret_mounts: false });
+});
+
+test('publisher recipe rejects weakened auth, inline secrets and mismatched credential declarations', () => {
+  for (const mutate of [
+    (bridge: any) => { delete bridge.webui_deployment; },
+    (bridge: any) => { bridge.webui_deployment.local_docker_default.auth_mode = 'password'; },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.entrypoint[2] = 'OPL_WEBUI_AUTH_MODE=none'; },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.entrypoint.splice(5, 1); },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.entrypoint.splice(2, 0, 'OPL_WEBUI_PASSWORD=must-not-enter-recipe'); },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.credentials[0].target = '/different'; },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.credentials[0].username = 'different'; },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.credentials[0].name = 'other-password'; },
+    (bridge: any) => { bridge.webui_deployment.cloud.application_revision_template.credentials[1].name = 'other-session'; },
+    (bridge: any) => { bridge.webui_deployment.cloud.image_command_policy = 'replace_OCI_CMD'; },
+  ]) {
+    const bridge = JSON.parse(fs.readFileSync('contracts/app-runtime-bridge.json', 'utf8'));
+    mutate(bridge);
+    assert.throws(() => validateWebuiDeploymentContract(bridge), /WebUI/);
+  }
+});
+
+test('native publisher qualification uses declared entrypoint, exact OCI CMD and mounted files without Docker auth env', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-cloud-caller-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
+  const steps = workflow.jobs['build-and-qualify'].steps;
+  const stepIndex = steps.findIndex((step: { name?: string }) =>
+    step.name === 'Qualify publisher cloud entrypoint with mounted secrets only');
+  assert.ok(stepIndex > steps.findIndex((step: { id?: string }) => step.id === 'build'));
+  assert.ok(stepIndex < steps.findIndex((step: { id?: string }) => step.id === 'identity'));
+  const step = steps[stepIndex];
+  const artifacts = path.join(root, 'webui-carrier');
+  fs.mkdirSync(artifacts);
+  const frozen = path.join(root, 'frozen-app-source/contracts');
+  fs.mkdirSync(frozen, { recursive: true });
+  fs.copyFileSync('contracts/app-runtime-bridge.json', path.join(frozen, 'app-runtime-bridge.json'));
+  fs.symlinkSync(path.join(appRoot, 'scripts'), path.join(root, 'scripts'), 'dir');
+  fs.writeFileSync(path.join(artifacts, 'local-image-ref.txt'), 'opl-webui-qualified:fixture\n');
+  const bin = path.join(root, 'bin');
+  fs.mkdirSync(bin);
+  const imageCmd = ['node', 'scripts/headless/run.mjs'];
+  fs.writeFileSync(path.join(bin, 'docker'),
+    `#!${process.execPath}\nimport fs from 'node:fs';\nconst args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(path.join(root, 'docker.jsonl'))},JSON.stringify(args)+'\\n');if(args[0]==='image')console.log(${JSON.stringify(JSON.stringify([{Config:{Cmd:imageCmd}}]))});\n`,
+    { mode: 0o755 });
+  fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}');
+  const executed = spawnSync(process.execPath, ['--input-type=module', '-e', extractHeredoc(step.run, 'NODE')], {
+    cwd: root, encoding: 'utf8', env: { PATH: `${bin}:${path.dirname(process.execPath)}`, GITHUB_RUN_ID: '1', GITHUB_RUN_ATTEMPT: '1' },
+  });
+  assert.equal(executed.status, 0, executed.stderr);
+  const template = JSON.parse(fs.readFileSync(path.join(artifacts, 'cloud-application-revision-template.json'), 'utf8'));
+  const calls: string[][] = fs.readFileSync(path.join(root, 'docker.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line));
+  const run = calls.find(args => args[0] === 'run');
+  assert.ok(run);
+  assert.equal(run.includes('--env'), false);
+  assert.equal(run.includes('-e'), false);
+  assert.equal(run[run.indexOf('--entrypoint') + 1], '/usr/bin/env');
+  assert.deepEqual(run.slice(run.indexOf('opl-webui-qualified:fixture') + 1), [...template.entrypoint.slice(1), ...imageCmd]);
+  for (const target of ['/run/secrets/opl_webui_password', '/run/secrets/webui_session_secret']) {
+    assert.ok(run.some(arg => arg.endsWith(`dst=${target},readonly`)));
+  }
+});
 
 function sealBuildInput(root: string, draft = draftBuildInput()): string {
   const draftPath = writeJson(root, 'draft.json', draft);
@@ -964,6 +1058,22 @@ test('manual WebUI entry separates qualification, publication, and promotion', (
   assert.deepEqual(promotion.needs, ['source-authority', 'webui-carrier']);
   assert.match(promotion.with.authority_mode, /independent_stable/);
   assert.equal(promotion.permissions.packages, 'write');
+});
+
+test('independent Preview publish does not admit automatic global pointer promotion', () => {
+  const workflow = YAML.parse(fs.readFileSync(developmentWorkflowPath, 'utf8'));
+  const condition = workflow.jobs['promote-webui-latest'].if;
+  const admitted = new Function('inputs', 'needs', 'always',
+    `return (${condition.slice(3, -2).trim().replaceAll("needs.webui-carrier", 'needs["webui-carrier"]')});`);
+  const needs = { 'webui-carrier': { result: 'success' } };
+  assert.equal(admitted({ operation: 'publish', channel: 'preview' }, needs, () => true), false);
+  assert.equal(admitted({ operation: 'qualify', channel: 'preview' }, needs, () => true), false);
+  assert.equal(admitted({ operation: 'publish', channel: 'stable' }, needs, () => true), true);
+  assert.equal(admitted({ operation: 'promote', channel: 'preview' }, needs, () => true), true);
+  assert.equal(workflow.on.workflow_dispatch.inputs.channel.options.includes('preview'), true);
+  const carrier = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
+  assert.equal(carrier.on.workflow_call.inputs.image_repository.default,
+    'ghcr.io/gaofeng21cn/one-person-lab-webui');
 });
 
 test('WebUI carrier writes the public version only after the receipt and then seals a run-scoped record', () => {

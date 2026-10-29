@@ -40,6 +40,12 @@ Desktop Stable has one primary macOS arm64 release and additive same-tag deliver
 Docker WebUI has an independent GHCR line. A published version, Latest pointer,
 asset digest, installed App and Package currentness are different facts.
 
+The runtime bridge declares trusted-prefix WebUI transport and an explicit
+cloud/password publisher entrypoint while retaining local Docker defaults. The
+[Docker release reference](delivery/release/README.md#cloud-runtime-recipe) owns
+that recipe and its qualification path. Real Workspace acceptance still requires
+the matching Studio implementation, exact published image and Cloud readback.
+
 The [Studio product boundary](product/gui/opl-studio-plan.md) owns the adopted
 implementation and owner relationships. [Distribution](delivery/distribution-and-install-ssot.md)
 owns identities, migration policy and qualification routes; retained
