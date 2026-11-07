@@ -1083,9 +1083,7 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
     (step: any) => step.name === 'Run clean VM first launch smoke',
   )?.run ?? '');
   assert.match(vmSmoke,
-    /--framework-ref "\$\{\{ needs\.validate-vm-inputs\.outputs\.framework_sha \}\}"/);
-  assert.match(vmSmoke,
-    /--framework-source-commit "\$\{\{ needs\.validate-vm-inputs\.outputs\.framework_source_sha \|\| needs\.validate-vm-inputs\.outputs\.framework_sha \}\}"/);
+    /--framework-ref "\$\{\{ needs\.validate-vm-inputs\.outputs\.framework_source_sha \|\| needs\.validate-vm-inputs\.outputs\.framework_sha \}\}"/);
   assert.match(
     String(followups.jobs['publish-nightly-cask'].steps.find((step: any) => step.id === 'authority')?.run ?? ''),
     /\.event == "schedule" or \.event == "workflow_dispatch"/,

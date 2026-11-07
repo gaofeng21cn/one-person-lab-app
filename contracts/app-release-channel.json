@@ -166,7 +166,7 @@
         "format": "exact_lowercase_40_character_sha",
         "published_cohort_readback": "opl-release-manifest.json#manifest.resolved_refs.opl_framework.resolved_commit",
         "standard_guest_preparation": "runner_checks_out_the_exact_Framework_commit_and_injects_a_local_source_archive",
-        "standard_installer_execution": "packaged_Studio_bootstrap_runs_with_local_OPL_SOURCE_ARCHIVE_URL_and_source_SHA_while_its_manifest_remains_bound_to_the_product_cohort_Framework_SHA",
+        "standard_installer_execution": "packaged_Studio_bootstrap_runs_with_OPL_SOURCE_ARCHIVE_URL_file_and_OPL_FRAMEWORK_SOURCE_COMMIT",
         "standard_installed_identity_readback": "~/.opl/one-person-lab/.opl-framework-installed-source-identity.json",
         "full_guest_preparation": "none_uses_the_exact_Framework_runtime_already_inside_the_published_Full_DMG",
         "anonymous_mutable_GitHub_source_download_allowed": false,
