@@ -381,6 +381,7 @@ jobs:
           import assert from 'node:assert/strict';
           import crypto from 'node:crypto';
           import fs from 'node:fs';
+          import net from 'node:net';
           import os from 'node:os';
           import path from 'node:path';
           import { execFileSync } from 'node:child_process';
@@ -414,10 +415,13 @@ jobs:
               '--mount', `type=bind,src=${secrets}/session,dst=${environment.OPL_WEBUI_SESSION_SECRET_FILE},readonly`,
               '--entrypoint', template.entrypoint[0], image,
               ...template.entrypoint.slice(1), ...imageCmd);
+            const containerAddress = docker('inspect', name, '--format', '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}').trim();
+            assert.ok(net.isIP(containerAddress), 'cloud recipe container must have one inspectable IP address');
+            const containerHost = net.isIP(containerAddress) === 6 ? `[${containerAddress}]` : containerAddress;
             docker('exec', name, 'node', '--input-type=module', '-e', `
               import assert from 'node:assert/strict';
               import fs from 'node:fs';
-              const base = 'http://127.0.0.1:3000';
+              const base = 'http://${containerHost}:3000';
               const deadline = Date.now() + 60000;
               while (true) {
                 try { if ((await fetch(base + '/readyz')).ok) break; } catch {}

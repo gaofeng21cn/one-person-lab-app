@@ -169,7 +169,7 @@ test('native publisher qualification uses declared entrypoint, exact OCI CMD and
   fs.mkdirSync(bin);
   const imageCmd = ['node', 'scripts/headless/run.mjs'];
   fs.writeFileSync(path.join(bin, 'docker'),
-    `#!${process.execPath}\nimport fs from 'node:fs';\nconst args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(path.join(root, 'docker.jsonl'))},JSON.stringify(args)+'\\n');if(args[0]==='image')console.log(${JSON.stringify(JSON.stringify([{Config:{Cmd:imageCmd}}]))});\n`,
+    `#!/usr/bin/env node\nimport fs from 'node:fs';\nconst args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(path.join(root, 'docker.jsonl'))},JSON.stringify(args)+'\\n');if(args[0]==='image')console.log(${JSON.stringify(JSON.stringify([{Config:{Cmd:imageCmd}}]))});if(args[0]==='inspect'&&args[1]!=='--format')console.log('172.18.0.2');\n`,
     { mode: 0o755 });
   fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}');
   const executed = spawnSync(process.execPath, ['--input-type=module', '-e', extractHeredoc(step.run, 'NODE')], {
@@ -184,6 +184,9 @@ test('native publisher qualification uses declared entrypoint, exact OCI CMD and
   assert.equal(run.includes('-e'), false);
   assert.equal(run[run.indexOf('--entrypoint') + 1], '/usr/bin/env');
   assert.deepEqual(run.slice(run.indexOf('opl-webui-qualified:fixture') + 1), [...template.entrypoint.slice(1), ...imageCmd]);
+  const containerProbe = calls.find(args => args[0] === 'exec');
+  assert.ok(containerProbe);
+  assert.ok(containerProbe[containerProbe.indexOf('-e') + 1].includes("http://172.18.0.2:3000"));
   for (const target of ['/run/secrets/opl_webui_password', '/run/secrets/webui_session_secret']) {
     assert.ok(run.some(arg => arg.endsWith(`dst=${target},readonly`)));
   }
