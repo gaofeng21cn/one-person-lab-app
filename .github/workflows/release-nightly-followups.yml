@@ -31,6 +31,10 @@ on:
         description: Optional exact Framework commit for host-side qualification provisioning; preserves the published product cohort.
         required: false
         type: string
+      framework_source_ref:
+        description: Optional exact Framework source commit for the existing Standard Nightly VM sample; does not change the published product cohort.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -344,6 +348,7 @@ jobs:
       shell_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
       smoke_harness_ref: ${{ inputs.smoke_harness_ref || needs.resolve-sample.outputs.shell_ref }}
       framework_ref: ${{ needs.resolve-sample.outputs.framework_ref }}
+      framework_source_ref: ${{ inputs.framework_source_ref || '' }}
       framework_executor_ref: ${{ inputs.framework_executor_ref || '' }}
       package_profile: standard
       diagnostic_scope: release_gate
