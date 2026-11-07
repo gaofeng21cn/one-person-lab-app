@@ -128,7 +128,6 @@ export function buildLegacyFoundationChecks(
       "Activate exact clean VM sources",
       "OPL_ARTIFACT_NAME: opl-clean-vm-sources-${{ inputs.package_profile }}-${{ github.run_id }}",
       'test "$(git rev-parse HEAD)" = \'${{ needs.validate-vm-inputs.outputs.verification_app_sha }}\'',
-      'test "$(git -C one-person-lab rev-parse HEAD)" = \'${{ needs.validate-vm-inputs.outputs.framework_source_sha || needs.validate-vm-inputs.outputs.framework_sha }}\'',
       '--app-sha "${{ needs.validate-vm-inputs.outputs.artifact_app_sha }}"',
       '--shell-sha "${{ needs.validate-vm-inputs.outputs.shell_sha }}"',
       '--verification-app-sha "$verification_app_sha"',

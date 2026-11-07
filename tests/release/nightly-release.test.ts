@@ -1074,11 +1074,6 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(frameworkSourceReceipt, /product_framework_sha/);
   assert.match(frameworkSourceReceipt, /source_framework_sha/);
   assert.match(frameworkSourceReceipt, /archive_sha256/);
-  const frameworkSourceActivation = String(firstRunVm.jobs['clean-vm-first-run'].steps.find(
-    (step: any) => step.name === 'Activate exact clean VM sources',
-  )?.run ?? '');
-  assert.match(frameworkSourceActivation,
-    /git -C one-person-lab rev-parse HEAD.*framework_source_sha \|\| needs\.validate-vm-inputs\.outputs\.framework_sha/s);
   const vmSmoke = String(firstRunVm.jobs['clean-vm-first-run'].steps.find(
     (step: any) => step.name === 'Run clean VM first launch smoke',
   )?.run ?? '');

@@ -1163,7 +1163,7 @@ jobs:
           test -f shells/opl-studio/scripts/desktop/stable-smoke.mjs
           test -f shells/opl-studio/scripts/desktop/stable-clean-vm.mjs
           if [ -d one-person-lab/.git ]; then
-            test "$(git -C one-person-lab rev-parse HEAD)" = '${{ needs.validate-vm-inputs.outputs.framework_source_sha || needs.validate-vm-inputs.outputs.framework_sha }}'
+            test "$(git -C one-person-lab rev-parse HEAD)" = '${{ needs.validate-vm-inputs.outputs.framework_sha }}'
             test -z "$(git -C one-person-lab status --porcelain --untracked-files=no)"
           fi
           if [ -d med-autoscience/.git ]; then
