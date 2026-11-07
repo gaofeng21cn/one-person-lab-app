@@ -2353,7 +2353,8 @@ jobs:
           fi
           if [ -n "${{ steps.framework_source.outputs.archive_path }}" ]; then
             CMD+=(--framework-source-archive "${{ steps.framework_source.outputs.archive_path }}")
-            CMD+=(--framework-ref "${{ needs.validate-vm-inputs.outputs.framework_source_sha || needs.validate-vm-inputs.outputs.framework_sha }}")
+            CMD+=(--framework-ref "${{ needs.validate-vm-inputs.outputs.framework_sha }}")
+            CMD+=(--framework-source-commit "${{ needs.validate-vm-inputs.outputs.framework_source_sha || needs.validate-vm-inputs.outputs.framework_sha }}")
           fi
           if [ -n "$SSH_KEY" ]; then CMD+=(--ssh-key "$SSH_KEY"); fi
           if [ "${{ inputs.keep_vm }}" = "true" ]; then CMD+=(--keep-vm); fi

@@ -145,6 +145,8 @@ export function buildLegacyFoundationChecks(
       "Prepare OPL Framework bootstrap archive",
       "git -C one-person-lab archive --format=tar.gz --prefix=one-person-lab/",
       'CMD+=(--framework-source-archive "${{ steps.framework_source.outputs.archive_path }}")',
+      'CMD+=(--framework-ref "${{ needs.validate-vm-inputs.outputs.framework_sha }}")',
+      'CMD+=(--framework-source-commit "${{ needs.validate-vm-inputs.outputs.framework_source_sha || needs.validate-vm-inputs.outputs.framework_sha }}")',
       'CMD+=(--framework-install-script "${{ steps.framework_source.outputs.install_script_path }}")',
       "fetch_release_metadata_with_retry()",
       "Release metadata fetch failed on attempt $attempt",
