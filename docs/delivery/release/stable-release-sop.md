@@ -107,6 +107,8 @@ npm run --silent release:incident-status -- --run-id <owner-run-id> \
 
 Nightly 已发布字节的 sampled VM 恢复沿用 `release-nightly-followups.yml` 的 `run_sampled_vm` 和原 `source_run_id`。宿主资格预备依赖需要源码修复时，可通过 `framework_executor_ref` 单独固定已合入主线的精确 Framework 执行器提交；下游现有 admission 在占用 VM 前核实其身份。该输入不替换原 App、Shell、Framework 产品 cohort 或公开资产。只修 Shell smoke harness 时继续使用 `smoke_harness_ref`，不要为预备依赖失败重建产品。
 
+Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产品 cohort 相同；包内启动器还会核对安装后的精确身份。公开依赖 metadata 的 GitHub repository redirect 应由 `smoke_harness_ref` 选择的资格器处理，不能通过替换 Framework source SHA 修复旧包。
+
 先核对当前机器是否就是执行 runner；若是，直接读取该 job 的 wrapper 日志和产物变化。否则使用已授权的 runner 入口或 GitHub 当前 step 日志。`child_running: true` 只证明子进程存活；压缩进展、签名产物、公证请求编号、VM marker 才分别证明对应阶段。确认日志来源后复用 incident CLI 的 `--job-id`／`--job-log-file`，不另造状态控制器。
 
 Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败与本次启动 PID、时间绑定后，harness 立即报告错误，不再等待安装成功超时；旧日志不构成本次失败证据。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断。初次 exit 1 只在当前 PID 的安装记录仍为 `running` 时有界重读；根包未齐且当前安装记录已 `failed` 时直接结束等待，不延长诊断超时掩盖断点。
