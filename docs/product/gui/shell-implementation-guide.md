@@ -209,7 +209,7 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 - 已验证成功的 Package 动作可返回 `result.presentation`，其中 `mode=browser` 与绝对 `url`
   表示打开同一模块持有的工作台。仅接受不含用户名、密码的 HTTPS 或本机回环 HTTP 地址，
   在当前视图提供用户点击的打开链接；不自动跳转、不嵌入任意 HTML，也不在偏好或执行摘要中
-  持久化链接中的访问令牌。标准 MCP App 由支持该协议的宿主内嵌，这一路径提供浏览器回退。
+  持久化链接中的访问令牌。标准 MCP App 由支持该协议的宿主内嵌，这一路径保留浏览器回退。
 - Package launch 复用 owner-projected launch adapter / JIT prepare，并按
   `ready / degraded / package_unavailable` 三态消费。普通 launch 只检查 package identity、
   presence/callability、entrypoint、safe managed target 和 permission/authorization；这些真实性或
@@ -336,3 +336,17 @@ command 和可见状态 anchor。
 evidence，安装或发布任务另取 exact package/runtime readback。按
 [Shell conformance](shell-conformance-matrix.md) 逐轴报告，缺失证据保持未验证。
 具体用户行为只维护在 [交互细则](ideal-interaction-spec.md)，不在实现指南复制一份验收清单。
+
+## 标准 MCP App 宿主
+
+能力工作台从当前 Codex MCP 目录识别工具的 `ui.resourceUri`，使用官方 MCP Apps SDK
+在不共享宿主 origin 的沙箱中展示资源。连接、配置、凭据、工具审批继续归持久 Codex
+App Server；DSH 提供工作台和插件生命周期。共享 OPL 模块与 Relay 等专用模块使用同一入口。
+
+每个视图绑定精确 thread、server、tool；仅可访问对应 server 已声明且对 App 可见的工具。
+手动打开只调用声明为只读的 UI 工具。上下文更新作为带来源的非可信资料进入同一对话的
+下一次用户请求；App 发来的消息放入输入框，由用户审阅发送。关闭、切换模块或对话时
+释放桥接与临时绑定，保留原有 typed contribution 和浏览器工作台回退。
+
+DSH 固定 `0.2.1-rc.2` 与已核对的 `0.2.2-rc.1` 提供 MCP tools/resources，尚无标准
+MCP App UI 宿主，因此只增加官方 SDK 到现有 Codex/DSH 的适配，不引入 DSH session/LLM。
