@@ -113,6 +113,27 @@ test('Full runtime signing includes dereferenced Python launcher aliases', () =>
   }
 });
 
+test('Full runtime signing includes Framework esbuild executables', () => {
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-esbuild-runtime-'));
+  try {
+    for (const relativePath of [
+      'opl/node_modules/esbuild/bin/esbuild',
+      'opl/node_modules/@esbuild/darwin-arm64/bin/esbuild',
+    ]) {
+      writeExecutable(path.join(runtimeRoot, relativePath), '#!/bin/sh\n');
+    }
+    assert.deepEqual(
+      listFullRuntimeNativeExecutables(runtimeRoot).map((entry) => entry.relative_path),
+      [
+        'runtime/current/opl/node_modules/@esbuild/darwin-arm64/bin/esbuild',
+        'runtime/current/opl/node_modules/esbuild/bin/esbuild',
+      ],
+    );
+  } finally {
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
+});
+
 test('Developer ID codesign metadata uses the leaf Authority when Signature= is absent', () => {
   const details = parseMacosCodeSignatureOutput([
     'Executable=/tmp/officecli',
