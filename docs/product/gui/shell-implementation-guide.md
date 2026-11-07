@@ -190,6 +190,13 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 - UI 明确显示 what changes、what does not change、receipt/recovery ref 和 refresh 行为。
 - Result receipt 是动作事实，不代表 runtime、domain、artifact 或 release readiness。
 - 网络、CLI、schema 和 permission failure 保留 typed reason，不转换成模糊 `unknown`。
+- 涉及审阅、比较、选择和确认的人机交互，优先复用标准 MCP App 模块。Package 通过同一份
+  installed descriptor、`app_contributions` 和 owner read/action ABI 提供能力；Codex 使用
+  Framework 的 `opl connect mcp-app-stdio` 与 `ui://opl/apps.html`，OPL App 使用现有 typed
+  contribution renderer。两者读取相同 owner 状态并保留同一确认和执行边界，不能各造一套
+  领域后端、审批记录或独立 App。专用 MCP UI 超出共享视图能力时保留模块自己的 UI。
+  选型与复用规范见 [Framework MCP Apps](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/mcp-apps/SPEC.md)，
+  OMA 在设计与评估阶段应用这一规范。模块标准化不改变仓库或源码归档的公开范围。
 - Package contribution 数据读取可调用 Framework-owned `opl app contribution read`，但必须验证
   `opl_app_contribution` 包络、`opl_app_package_contribution.v1` surface、当前
   Package/ref/operation identity、`opl-package-app-contribution-response.v1`、`ok=true` 和
@@ -199,6 +206,10 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
   可在 canonical action boundary 内部委派 execute broker 并重新校验 descriptor、carrier readiness、
   ref 与 confirmation。若 fast App state/action catalog 没有 exact action，页面保留 read-only view，
   command 隐藏或 disabled，并显示 projected disabled reason。
+- 已验证成功的 Package 动作可返回 `result.presentation`，其中 `mode=browser` 与绝对 `url`
+  表示打开同一模块持有的工作台。仅接受不含用户名、密码的 HTTPS 或本机回环 HTTP 地址，
+  在当前视图提供用户点击的打开链接；不自动跳转、不嵌入任意 HTML，也不在偏好或执行摘要中
+  持久化链接中的访问令牌。标准 MCP App 由支持该协议的宿主内嵌，这一路径提供浏览器回退。
 - Package launch 复用 owner-projected launch adapter / JIT prepare，并按
   `ready / degraded / package_unavailable` 三态消费。普通 launch 只检查 package identity、
   presence/callability、entrypoint、safe managed target 和 permission/authorization；这些真实性或
