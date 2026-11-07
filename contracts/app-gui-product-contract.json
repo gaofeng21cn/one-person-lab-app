@@ -1817,6 +1817,14 @@
         "ui"
       ],
       "at_least_one_non_empty_collection_required": true,
+      "command_result_presentation": {
+        "source": "validated_successful_owner_response.result.presentation",
+        "supported_modes": ["browser"],
+        "browser_url_policy": "absolute_https_or_loopback_http_without_url_credentials",
+        "interaction": "explicit_user_open_link_without_automatic_navigation_or_iframe_embedding",
+        "capability_url_policy": "keep_only_in_current_view_memory_never_persist_to_preferences_or_execution_summary",
+        "owner_boundary": "same_package_workbench_and_backend_no_shell_owned_domain_ui_or_mail_state"
+      },
       "supported_view_types": [
         "list_detail",
         "timeline",
