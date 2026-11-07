@@ -1031,6 +1031,11 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(qualificationRun, /--framework-sha '\$\{\{ needs\.admission\.outputs\.framework_ref \}\}'/);
   assert.equal(release.jobs['qualify-and-publish'].environment, 'release-nightly');
   assert.equal(followups.name, 'OPL Nightly Follow-ups');
+  assert.equal(followups.on.workflow_dispatch.inputs.framework_executor_ref.required, false);
+  assert.equal(followups.jobs['sampled-standard-vm'].with.framework_executor_ref,
+    "${{ inputs.framework_executor_ref || '' }}");
+  assert.equal(followups.jobs['sampled-standard-vm'].with.framework_ref,
+    '${{ needs.resolve-sample.outputs.framework_ref }}');
   assert.deepEqual(followups.on.workflow_run.workflows, ['OPL Standard Nightly Release']);
   assert.deepEqual(followups.on.workflow_dispatch.inputs.operation.options, [
     'reconcile_homebrew',
