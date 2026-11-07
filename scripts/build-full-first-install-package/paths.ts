@@ -6,6 +6,11 @@ export const workspaceRoot = path.dirname(appRepoRoot);
 export const MACOS_ARM64_TEMPORAL_CORE_BRIDGE_TARGET = 'aarch64-apple-darwin';
 export const MACOS_NATIVE_CODE_EXTENSIONS = new Set(['.dylib', '.node', '.so']);
 export const MACOS_TRUSTED_EXECUTABLE_PATTERNS = [
+  // esbuild is a Mach-O executable shipped inside the Framework runtime. It
+  // has no native-code extension and must be Developer ID signed before the
+  // enclosing Full app is submitted to Apple.
+  /^runtime\/current\/opl\/node_modules\/esbuild\/bin\/esbuild$/,
+  /^runtime\/current\/opl\/node_modules\/@esbuild\/darwin-arm64\/bin\/esbuild$/,
   /^runtime\/current\/bin\/officecli$/,
   /^runtime\/current\/bin\/mineru-open-api$/,
   /^runtime\/current\/bin\/bun$/,
