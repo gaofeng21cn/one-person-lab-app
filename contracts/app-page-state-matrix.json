@@ -1600,13 +1600,13 @@
             "view_id"
           ],
           "renderer_selection_field": "view_kind",
-          "renderer_registry_source": "shell_extension_registry",
+          "renderer_registry_source": "shared_mcp_app_renderer_registry",
           "agent_id_branching_allowed": false,
           "full_payload_in_fast_state_allowed": false,
           "generic_view": {
             "route": "/runtime/item/:itemId/insights/:viewId",
             "renderer_selection_field": "view_kind",
-            "renderer_registry_source": "shell_extension_registry",
+            "renderer_registry_source": "shared_mcp_app_renderer_registry",
             "unknown_view_kind_policy": "localized_unavailable_preserve_work_item_and_return_to_runtime",
             "layout": "full_width_owner_view",
             "app_validation_scope": [

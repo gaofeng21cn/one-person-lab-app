@@ -165,3 +165,14 @@ DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础�
 | C | Browser/computer use、Agent team | 能力启用、权限、审批和运行观察 | 每项都有独立 owner、取消路径和真实载体验收。 |
 
 每个批次都沿同一条垂直路径实现：DSH 官方 UI/协议 → OPL adapter → owner action → fresh state/readback → Settings 搜索和 deep link。这样吸收能力不会增加平行设置数据库，也不会把“插件已安装”误报成“功能已可运行”。
+
+### MCP App 宿主与任务工作台
+
+`opl-studio/plugins/opl-mcp-apps/` 是标准 DSH Host＋Client 插件：Host 注入
+`oplCodexNative`，Client 提供通用 MCP App 组件，销毁时释放连接绑定。它随 App、
+WebUI、Docker 一起交付。业务 UI 位于 Framework 的 `src/mcp-app/`，可同时被
+Codex 和 OPL App 使用；MAS 等领域包仅提供合同声明的数据与动作。
+
+运行总览保留简短阶段摘要，任务详情和科研地图进入共享 MCP 工作台。共享组件
+按声明的视图类型呈现阶段、节点关系、证据与待决事项，不在 Studio 维护科研
+renderer 或领域 schema 副本。执行状态和科研判断分别显示，缺失能力仅影响对应详情。

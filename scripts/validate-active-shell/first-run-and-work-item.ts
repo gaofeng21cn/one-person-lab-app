@@ -345,7 +345,7 @@ export function validateWorkItemProjectionContract(projection, label) {
     full_payload_in_fast_state_allowed: false,
     app_agent_id_branching_allowed: false,
     renderer_selection_field: "view_kind",
-    renderer_registry_source: "shell_extension_registry",
+    renderer_registry_source: "shared_mcp_app_renderer_registry",
     unknown_view_kind_policy: "localized_unavailable_preserve_work_item_and_return_to_runtime",
     app_domain_schema_registry_allowed: false,
     machine_fields_default_visible: false,
@@ -603,7 +603,7 @@ export function validateWorkItemProjectionContract(projection, label) {
     arbitrary_path_read_allowed: false,
     workspace_containment_required: true,
     symlink_escape_allowed: false,
-    schema_validation_owner: "domain_renderer_extension_against_owner_declared_schema",
+    schema_validation_owner: "shared_mcp_app_renderer_against_owner_declared_schema",
     app_payload_shape_interpretation_allowed: false,
     size_limit_fail_closed: true,
     digest_validation_required_when_present: true,
@@ -611,7 +611,7 @@ export function validateWorkItemProjectionContract(projection, label) {
     transport_state_may_be_interpreted_as_scientific_outcome: false,
     owner_projection_body_kind: "typed_domain_read_model_not_artifact_body",
     app_role: "typed_display_consumer",
-    shell_renderer_registry: "view_kind_keyed_no_agent_id_branching",
+    shell_renderer_registry: "shared_mcp_app_view_kind_keyed_no_agent_id_branching",
   })) {
     if (detailRead?.[field] !== expected) {
       throw new Error(`${label} domain detail read ${field} must be ${expected}`);

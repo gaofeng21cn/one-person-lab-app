@@ -192,8 +192,8 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 - 网络、CLI、schema 和 permission failure 保留 typed reason，不转换成模糊 `unknown`。
 - 涉及审阅、比较、选择和确认的人机交互，优先复用标准 MCP App 模块。Package 通过同一份
   installed descriptor、`app_contributions` 和 owner read/action ABI 提供能力；Codex 使用
-  Framework 的 `opl connect mcp-app-stdio` 与 `ui://opl/apps.html`，OPL App 使用现有 typed
-  contribution renderer。两者读取相同 owner 状态并保留同一确认和执行边界，不能各造一套
+  Framework 的 `opl connect mcp-app-stdio` 与 `ui://opl/apps.html`，OPL App 通过标准 DSH 插件 `opl-mcp-apps` 嵌入同一 MCP App
+  resource，typed contribution 保留为通用能力入口。任务详情共用工作台，两者读取相同 owner 状态并保留同一确认和执行边界，不能各造一套
   领域后端、审批记录或独立 App。专用 MCP UI 超出共享视图能力时保留模块自己的 UI。
   选型与复用规范见 [Framework MCP Apps](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/mcp-apps/SPEC.md)，
   OMA 在设计与评估阶段应用这一规范。模块标准化不改变仓库或源码归档的公开范围。
