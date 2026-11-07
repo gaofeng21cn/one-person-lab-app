@@ -264,7 +264,6 @@ Nightly 抽样 VM 使用原发布 cohort、公开 DMG 摘要和带 `-nightly.N` 
 通过 `--channel nightly` 验证 Standard 安装、Gateway 登录与 Official Profile。
 其回执为 `opl_studio_nightly_clean_vm.v1`，不声明 Stable 签名、公证或 Gatekeeper 资格；
 Stable 的这些门禁保持必需。只修验证器时用 `run_sampled_vm` 和准确的 `smoke_harness_ref` 复用原包。
-若 Nightly 失败来自冻结 Framework bootstrap source，read-only `run_sampled_vm` 可另传 exact `framework_source_ref` 供 VM 内 qualification 使用；它要求已有 Nightly cohort artifact 和 `release_gate`，不能用于 Stable Bundle、Full、同轮 build artifact 或 publication，也不改变该候选的 App/Shell/Framework 产品身份。`framework-source-qualification.json` 分别记录产品 cohort、实际 bootstrap source、host executor 与 source archive digest。
 
 Standard 公开回读成功后，现有 follow-up hub 即启动适用的 Full、平台包和 Homebrew 路径。检查自动路径的 owner 再决定是否手动恢复，不等待包含其他渠道的整个 workflow 结束，也不双重派发。
 
