@@ -27,6 +27,10 @@ on:
         description: Optional exact Shell commit for sampled-VM harness repair; does not change the published App or product Shell cohort.
         required: false
         type: string
+      framework_executor_ref:
+        description: Optional exact Framework commit for host-side qualification provisioning; preserves the published product cohort.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -340,6 +344,7 @@ jobs:
       shell_ref: ${{ needs.resolve-sample.outputs.shell_ref }}
       smoke_harness_ref: ${{ inputs.smoke_harness_ref || needs.resolve-sample.outputs.shell_ref }}
       framework_ref: ${{ needs.resolve-sample.outputs.framework_ref }}
+      framework_executor_ref: ${{ inputs.framework_executor_ref || '' }}
       package_profile: standard
       diagnostic_scope: release_gate
       require_macos_gatekeeper: false

@@ -132,7 +132,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     || JSON.stringify(followup.workflow.on?.workflow_run?.workflows) !==
       JSON.stringify(['OPL Standard Nightly Release'])
     || JSON.stringify(followup.workflow.on?.workflow_run?.types) !== JSON.stringify(['completed'])
-    || JSON.stringify(Object.keys(followupInputs)) !== JSON.stringify(['operation', 'source_run_id', 'smoke_harness_ref'])
+    || JSON.stringify(Object.keys(followupInputs)) !== JSON.stringify(['operation', 'source_run_id', 'smoke_harness_ref', 'framework_executor_ref'])
     || JSON.stringify(followupInputs.operation?.options) !== JSON.stringify([
       'reconcile_homebrew', 'run_sampled_vm',
     ])
@@ -140,6 +140,8 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     || followupInputs.source_run_id?.type !== 'string'
     || followupInputs.smoke_harness_ref?.required !== false
     || followupInputs.smoke_harness_ref?.type !== 'string'
+    || followupInputs.framework_executor_ref?.required !== false
+    || followupInputs.framework_executor_ref?.type !== 'string'
     || !exactObject(followup.workflow.permissions, exactReadPermissions)
     || followup.workflow.concurrency !== undefined
     || JSON.stringify(Object.keys(followupJobs)) !== JSON.stringify([
@@ -158,6 +160,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     || !needsExactly(vm, ['resolve-sample'])
     || !exactObject(vm.permissions, exactReadPermissions)
     || vm.with?.package_profile !== 'standard'
+    || vm.with?.framework_executor_ref !== "${{ inputs.framework_executor_ref || '' }}"
     || vm.with?.require_macos_gatekeeper !== false
     || Object.prototype.hasOwnProperty.call(vm.with ?? {}, 'release_bundle_digest')
     || Object.prototype.hasOwnProperty.call(vm.with ?? {}, 'operation')
