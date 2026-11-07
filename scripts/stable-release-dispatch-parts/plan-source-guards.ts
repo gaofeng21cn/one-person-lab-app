@@ -30,7 +30,12 @@ import {
 } from './types.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const frameworkRoot = path.resolve(appRoot, '..', 'one-person-lab');
+// Recovery plans may preserve an older product cohort while the canonical
+// Framework checkout has advanced. Keep the adjacent checkout as the default,
+// but allow the caller to bind an exact immutable checkout for that cohort.
+const frameworkRoot = path.resolve(
+  process.env.OPL_FRAMEWORK_ROOT || path.resolve(appRoot, '..', 'one-person-lab'),
+);
 
 function readJsonFile(filePath: string): unknown {
   const resolved = path.resolve(filePath);
