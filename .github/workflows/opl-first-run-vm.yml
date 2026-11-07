@@ -485,6 +485,8 @@ jobs:
           OPERATION_INPUT: ${{ inputs.operation }}
         run: |
           set -euo pipefail
+          FRAMEWORK_SOURCE_REF="${FRAMEWORK_SOURCE_REF:-}"
+          OPERATION_INPUT="${OPERATION_INPUT:-}"
           if [ -n "$RELEASE_COHORT_ARTIFACT_NAME" ]; then
             test -z "$RELEASE_ARTIFACT_NAME" || { echo "::error::A published DMG cohort must not override the build artifact cohort."; exit 1; }
             [[ "$RELEASE_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]] || { echo "::error::A published DMG cohort requires an exact source run id."; exit 1; }
