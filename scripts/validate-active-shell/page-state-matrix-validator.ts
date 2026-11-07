@@ -551,10 +551,10 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     throw new Error('Runtime domain detail views must be lazy, typed, agent-agnostic, and hide machine fields');
   }
   if (
-    domainDetail?.renderer_registry_source !== 'shell_extension_registry'
+    domainDetail?.renderer_registry_source !== 'shared_mcp_app_renderer_registry'
     || domainDetail?.generic_view?.route !== '/runtime/item/:itemId/insights/:viewId'
     || domainDetail?.generic_view?.renderer_selection_field !== 'view_kind'
-    || domainDetail?.generic_view?.renderer_registry_source !== 'shell_extension_registry'
+    || domainDetail?.generic_view?.renderer_registry_source !== 'shared_mcp_app_renderer_registry'
     || domainDetail?.generic_view?.unknown_view_kind_policy !== 'localized_unavailable_preserve_work_item_and_return_to_runtime'
     || domainDetail?.generic_view?.layout !== 'full_width_owner_view'
     || domainDetail?.generic_view?.app_domain_payload_interpretation_allowed !== false

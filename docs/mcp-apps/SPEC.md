@@ -19,3 +19,27 @@ advertised by this host.
 Validate the shared OPL Apps resource and Relay's dedicated workbench, plus
 synthetic read/confirm/cancel flows, server isolation and stale-session rejection.
 Source, browser interaction, installed App and release evidence are separate.
+
+## Shared task workbench
+
+`@one-person-lab/opl-mcp-apps` is a standard DSH npm plugin. Cordis injects the
+existing Codex connection, owns Host service disposal, and loads the client view
+through the DSH ModuleLoader. It adds no runtime or credential authority. The
+plugin is bundled with all Studio carriers; publishing a separate npm service is
+not required. The pinned official DSH MCP client has tools and resources but no
+MCP Apps UI host; revisit this gap on an upstream upgrade.
+
+Studio retains the cross-Agent overview and compact stage summary. Task and
+research detail entries open `open_opl_apps` with the exact canonical item ID and
+optional declared domain view ID. The same Framework resource runs in Codex and
+Studio. Its workbench presents execution progress, declared research paths,
+evidence/artifacts and pending human decisions. Missing connections or domain
+views fail locally and leave the overview usable.
+
+Research nodes and relationships retain owner-authored supporting/opposing
+evidence, sources, failed routes and review references. Execution stages never
+imply scientific support. Domain reads retain identity, schema and revision
+checks; incompatible views are unavailable rather than rendered as opaque JSON.
+The shared resource replaces the Studio research renderer after equivalent
+interaction acceptance. Domain actions continue through declared owner commands
+and the existing confirmation dialog; viewing or selecting evidence never writes.

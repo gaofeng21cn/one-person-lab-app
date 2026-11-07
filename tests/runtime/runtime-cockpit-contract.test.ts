@@ -147,7 +147,7 @@ test('typed owner views use a generic transport envelope without an App domain s
   assert.deepEqual(read.availability_values, ['available', 'missing', 'stale', 'invalid', 'read_error']);
   assert.equal(read.command.includes('--if-revision <revision>'), true);
   assert.equal(descriptor.renderer_selection_field, 'view_kind');
-  assert.equal(descriptor.renderer_registry_source, 'shell_extension_registry');
+  assert.equal(descriptor.renderer_registry_source, 'shared_mcp_app_renderer_registry');
   assert.equal(descriptor.app_domain_schema_registry_allowed, false);
   assert.equal(descriptor.unknown_view_kind_policy, 'localized_unavailable_preserve_work_item_and_return_to_runtime');
   assert.equal(Object.hasOwn(read, 'payload_contracts'), false);
@@ -156,12 +156,12 @@ test('typed owner views use a generic transport envelope without an App domain s
   assert.deepEqual(product.domain_detail_views.renderer_extension_abi, {
     schema: 'opl_app.domain_detail_renderer_extension.v1',
     delivery_owner: 'domain_agent_package_owner',
-    registry_composition_owner: 'shell',
-    delivery_mode: 'owner_source_composed_into_trusted_shell_build',
+    registry_composition_owner: 'framework_shared_mcp_app',
+    delivery_mode: 'owner_contract_rendered_by_shared_mcp_app',
     registration_key: 'view_kind',
     registration_required_fields: ['view_kind', 'owner_package_id', 'renderer_id', 'schema_compatibility', 'component'],
-    schema_compatibility_source: 'owner_renderer_extension',
-    payload_schema_and_validation_owner: 'domain_owner_renderer_extension',
+    schema_compatibility_source: 'owner_declared_payload_schema',
+    payload_schema_and_validation_owner: 'domain_owner_schema_via_framework',
     runtime_dynamic_code_loading_allowed: false,
     descriptor_supplied_module_path_or_url_allowed: false,
     agent_id_branching_allowed: false,
