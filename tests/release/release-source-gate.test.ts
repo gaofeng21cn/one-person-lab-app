@@ -170,7 +170,7 @@ test('Framework release CLI consumer runs direct executable specs after an isola
   fs.writeFileSync(path.join(frameworkRoot, 'scripts', 'prepare.mjs'), "import fs from 'node:fs'; fs.writeFileSync('prepare-ran', 'unexpected\\n');\n");
   fs.writeFileSync(
     path.join(frameworkRoot, 'bin', 'opl'),
-    '#!/bin/sh\nset -eu\ntest ! -e prepare-ran\ntest ! -e src/entrypoints/cli/command-surface-manifest.ts\nif test "$1 $2 $3 $4" = "release checkpoint import --help"; then\n  printf "checkpoint import help\\n"\n  exit 0\nfi\ntest "$1 $2" = "release status"\ntest "$7" = "--json"\nprintf \'{"version":"g2","error":{"code":"contract_file_missing"}}\\n\' >&2\nexit 3\n',
+    '#!/bin/sh\nset -eu\ntest ! -e prepare-ran\ntest ! -e src/entrypoints/cli/command-surface-manifest.ts\nif test "$1 $2 $3 $4" = "release checkpoint import --help"; then\n  printf "checkpoint import help\\n"\n  exit 0\nfi\ntest "$1 $2" = "release status"\ntest "$7" = "--json"\nif test "${NODE_NO_WARNINGS:-}" != "1"; then printf "(node:1) ExperimentalWarning: SQLite is an experimental feature\\n" >&2; fi\nprintf \'{"version":"g2","error":{"code":"contract_file_missing"}}\\n\' >&2\nexit 3\n',
     { mode: 0o755 },
   );
 

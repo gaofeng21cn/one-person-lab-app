@@ -39,11 +39,17 @@ export type FrameworkReleaseCliConsumerReport = {
   package_source_preflight: Record<string, unknown> | null;
 };
 
-function run(command: string, args: readonly string[], cwd: string, timeoutMs = 300_000): CommandResult {
+function run(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+  timeoutMs = 300_000,
+  env = process.env,
+): CommandResult {
   const result = spawnSync(command, args, {
     cwd,
     encoding: 'utf8',
-    env: process.env,
+    env,
     timeout: timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
@@ -64,8 +70,13 @@ function commandOutput(command: string, args: readonly string[], cwd: string, ti
   return result.stdout;
 }
 
-function commandResult(command: string, args: readonly string[], cwd: string, timeoutMs?: number): CommandResult {
-  return run(command, args, cwd, timeoutMs);
+function commandResult(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+  options: { timeoutMs?: number; env?: NodeJS.ProcessEnv } = {},
+): CommandResult {
+  return run(command, args, cwd, options.timeoutMs, options.env);
 }
 
 export function runFrameworkReleaseCliConsumerGate(
@@ -114,6 +125,9 @@ export function runFrameworkReleaseCliConsumerGate(
         '--json',
       ],
       archiveRoot,
+      {
+        env: { ...process.env, NODE_NO_WARNINGS: '1' },
+      },
     );
     if (status.status !== 3) {
       throw new Error(`Framework release status canary must return typed read-only exit 3, got ${String(status.status)}: ${status.stderr || status.stdout}`);
