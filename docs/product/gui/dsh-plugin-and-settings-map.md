@@ -84,6 +84,7 @@ OPL Studio 当前只加载 `cordis.yml` 中声明的 DSH 服务和 OPL 插件：
 | OPL Runtime | `opl-codex-native` | 启用 | 唯一持有持久 App Server、canonical threads/turns、审批和实时事件。 |
 | OPL Framework | `opl-framework-bridge` | 启用 | 只消费 Framework 的 app state/action、认证和 channel callbacks。 |
 | OPL Host | `opl-host-core`、`opl-web-routes` | 启用 | 共用 host core、HTTP/SSE 路由和载体适配。 |
+| MCP App UI | 官方 `@modelcontextprotocol/ext-apps` AppBridge | 源码接入 | 在 DSH 能力工作台内渲染标准 UI 资源，复用 Codex 的线程、连接、权限和审批；共享 OPL Apps 与领域独立 MCP App 使用同一宿主。 |
 | OPL Client | `opl-studio-client`、slot/contribution adapters | 启用 | 将 App/Framework 投影渲染到 DSH slots；不建立第二份 registry 或状态库。 |
 
 `dsh-base` 没有加载。因而 DSH 的 `dsh-session`、LLM provider routing、`dsh-agent-loop` 和 credentials 不参与 OPL authority；同名 npm 包作为类型或 GUI cohort 依赖存在时，也不能据此推断它们已取得运行时所有权。
@@ -94,6 +95,7 @@ RC2 官方包目录中与 OPL 产品最相关的插件分为四类：
 
 | 官方能力 | OPL 状态 | 原因/替代 |
 | --- | --- | --- |
+| MCP Apps UI host | **复用官方 MCP ext-apps SDK，适配 DSH slot** | 固定 DSH `0.2.1-rc.2` 与核对的 `dsh-v0.2.2-rc.1` 有 MCP client/tools/resources，尚无标准 UI 宿主；Studio 只增加临时 view binding 与 sandbox renderer。每次 DSH 升级重新核对，不另建 session/凭据 owner。 |
 | Plugin Manager / plugin settings | **吸收 UI 与设置流程，适配 owner action** | 安装、启用、版本、currentness 和 release 仍由 Framework/App Package owner 管理；DSH 管理页作为能力包管理界面，Settings > 智能体与能力显示动态 projection，动作走 App action。 |
 | Session、Agent loop、LLM、Authorization/Credentials、Account | 屏蔽 | 持久会话和凭据分别归 `opl-codex-native`、Codex App Server 与 Gateway/Framework。不能把 DSH Settings 当第二套账户或 session store。 |
 | `dsh-schedule`、`ui-schedule`、jobs | **吸收 UI、重复规则和运行历史交互** | 官方执行端依赖 DSH root Agent/session 的部分由 OPL Framework/Temporal adapter 承接；入口仍归 Settings > 运行与维护 > 服务状态，用户获得完整的创建、编辑、暂停、恢复、历史和立即运行能力。 |
