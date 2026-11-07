@@ -1034,6 +1034,9 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.equal(followups.on.workflow_dispatch.inputs.framework_executor_ref.required, false);
   assert.equal(followups.jobs['sampled-standard-vm'].with.framework_executor_ref,
     "${{ inputs.framework_executor_ref || '' }}");
+  assert.equal(followups.on.workflow_dispatch.inputs.framework_source_ref.required, false);
+  assert.equal(followups.jobs['sampled-standard-vm'].with.framework_source_ref,
+    "${{ inputs.framework_source_ref || '' }}");
   assert.equal(followups.jobs['sampled-standard-vm'].with.framework_ref,
     '${{ needs.resolve-sample.outputs.framework_ref }}');
   assert.deepEqual(followups.on.workflow_run.workflows, ['OPL Standard Nightly Release']);
@@ -1045,6 +1048,37 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.deepEqual(followups.jobs['resolve-sample'].needs, undefined);
   assert.equal(fs.existsSync('.github/workflows/release-nightly-homebrew-follower.yml'), false);
   assert.equal(fs.existsSync('.github/workflows/release-nightly-sampled-vm.yml'), false);
+
+  const firstRunVm = parseYaml(fs.readFileSync('.github/workflows/opl-first-run-vm.yml', 'utf8'));
+  assert.equal(firstRunVm.on.workflow_call.inputs.framework_source_ref.default, '');
+  assert.equal(firstRunVm.jobs['validate-vm-inputs'].outputs.framework_sha,
+    '${{ steps.framework_ref.outputs.framework_sha }}');
+  assert.equal(firstRunVm.jobs['validate-vm-inputs'].outputs.framework_source_sha,
+    '${{ steps.framework_source_ref.outputs.framework_sha }}');
+  const vmValidation = String(firstRunVm.jobs['validate-vm-inputs'].steps.find(
+    (step: any) => step.name === 'Normalize diagnostic inputs',
+  )?.run ?? '');
+  assert.match(vmValidation, /framework_source_ref requires an existing published cohort artifact/);
+  assert.match(vmValidation, /framework_source_ref is limited to Standard qualification/);
+  assert.match(vmValidation, /framework_source_ref cannot be used by a Stable Bundle operation/);
+  assert.match(vmValidation, /framework_source_ref requires an exact published Nightly tag/);
+  const frameworkArchive = String(firstRunVm.jobs['validate-vm-inputs'].steps.find(
+    (step: any) => step.name === 'Checkout exact Framework bootstrap source for VM handoff',
+  )?.with?.ref ?? '');
+  assert.equal(frameworkArchive,
+    '${{ steps.framework_source_ref.outputs.framework_sha || steps.framework_ref.outputs.framework_sha }}');
+  const frameworkSourceReceipt = String(firstRunVm.jobs['clean-vm-first-run'].steps.find(
+    (step: any) => step.name === 'Write Framework source qualification receipt',
+  )?.run ?? '');
+  assert.match(frameworkSourceReceipt, /opl_app_framework_vm_source_binding\.v1/);
+  assert.match(frameworkSourceReceipt, /product_framework_sha/);
+  assert.match(frameworkSourceReceipt, /source_framework_sha/);
+  assert.match(frameworkSourceReceipt, /archive_sha256/);
+  const vmSmoke = String(firstRunVm.jobs['clean-vm-first-run'].steps.find(
+    (step: any) => step.name === 'Run clean VM first launch smoke',
+  )?.run ?? '');
+  assert.match(vmSmoke,
+    /--framework-ref "\$\{\{ needs\.validate-vm-inputs\.outputs\.framework_source_sha \|\| needs\.validate-vm-inputs\.outputs\.framework_sha \}\}"/);
   assert.match(
     String(followups.jobs['publish-nightly-cask'].steps.find((step: any) => step.id === 'authority')?.run ?? ''),
     /\.event == "schedule" or \.event == "workflow_dispatch"/,
