@@ -124,6 +124,8 @@ export function validateGuiContractSettingsAccessAndAgents(guiContract) {
   assertDeepEqualJson(
     pages.settings_capabilities.entity_kinds,
     [
+      'standard_agent',
+      'workflow_profile',
       'capability_package',
       'skill',
       'plugin',

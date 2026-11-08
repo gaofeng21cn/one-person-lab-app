@@ -127,7 +127,7 @@ into one long page.
 | 账户与模型 | 账户与访问；模型 | `gateway`; `access` |
 | 连接与部署 | 资源与连接 | `resources` |
 | 工作区 | 工作目录；数据与存储 | `workspace#current-workspace`; `storage` |
-| 智能体与能力 | 智能体；能力；指令与上下文 | `agents`; `capabilities`; `workspace#personalization` |
+| 智能体与能力 | 扩展与应用；智能体；指令与上下文 | `capabilities`; `agents`; `workspace#personalization` |
 | 运行与维护 | 服务状态；更新与修复；日志与诊断 | `environment#services`; `environment#updates`; `environment#diagnostics` |
 | 偏好 | 偏好 | `appearance` |
 
@@ -186,13 +186,28 @@ and a path shown in diagnostics is not a second path configuration.
 | Which workspace is active and writable, and where are project artifacts stored? | Workspace > Working Directory | Overview may count an actionable exception. | User instructions, App logs, Framework/raw paths, or four separate normal-state cards. |
 | What global instructions and new-conversation context apply? | Agents & Capabilities > Instructions & Context | The existing Workspace personalization route remains a carrier transport only. | Presenting either editor as a Workspace or Preferences child. |
 | Where are App logs and diagnostics, and what needs maintenance? | Runtime & Maintenance > Logs & Diagnostics | Storage may link to the resolved log path read-only. | Presenting logs under Workspace or duplicating the log-directory setting in Storage. |
-| Which Agents are installed and which source is active? | Agents | Home may show an active Agent shortcut. | Skills/Plugins or a separate Developer Profile page. |
-| Which Skills and Plugins are available? | Capabilities | Agent dependency readiness may link here. | A hardcoded Flow list or AionUI-native assistants presented as OPL capabilities. |
+| Which extensions and apps are installed, and where are their status and updates? | Extensions & Apps | Agents is a filtered view of the same Package catalog; Home may show an enabled shortcut. | A second Package manager, fixed package list, or package status sections scattered across Service Status and Resources. |
+| Which Skills and Plugins are available? | Extensions & Apps > Capability details | Agent dependency readiness may link here. | A hardcoded Flow list or a second lifecycle authority. |
 | Which external resources, connections, and deployment entry points are available? | Connections & Deployment > Resources & Connections | Other pages may link to a resource. | Built-in OPL Gateway connection or Gateway count; selected local workspace controls. |
 | Are Codex and background services available? | Runtime & Maintenance > Service Status | Overview shows one compact Background tasks summary. | Update controls, log configuration, raw paths, or receipts. |
 | Which managed dependencies need updates or repair? | Runtime & Maintenance > Updates & Repair | Overview, Models, and Service Status may show only a compact Codex readiness state. | Repeating Codex versions, update channels, update policy, or update actions on other pages. |
 | How much local and Docker data is used, where are deployment locations, and what can be cleaned safely? | Data & Storage | Updates & Repair may link to cleanup attention; the Logs & Diagnostics-owned log path may be referenced read-only. | Log-directory configuration, mount rewiring, or generic Docker prune. |
 | How should the App behave and look? | Preferences | Theme legacy routes redirect here. | Workspace paths, user instructions, or new-conversation additions. |
+
+## Extensions and App visibility
+
+“扩展与应用”是全部动态 Package 的统一安装、管理、升级与状态入口，默认显示所有来源，
+包括私有和本地包。每项显示名称、版本、来源、安装状态与 Framework 提供的操作。
+“智能体”复用同一目录的筛选视图，不形成另一套管理系统。
+
+安装与 OPL App 使用是两个独立选择。“在 OPL App 中启用”默认开启；用户关闭后，
+Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的页面、导航和其他界面入口。
+已打开的包页面返回工作台，隐藏内容不继续自动读取。该选择持久保存，不改变 Codex 的
+插件启用、Skill、MCP App 调用或原生安装，也不因升级或重新发现而自动恢复。
+
+包提供的设置和状态统一放在该包的展开详情中，只有包已在 App 中启用且详情展开时读取。
+“服务状态”只保留 Codex、任务处理和定时等基础运行条件；“资源与连接”保留其自身配置。
+所有安装、更新、修复和 App 开关都经现有 Framework 投影与 App action 执行，不维护额外注册表。
 
 ## Visual Contract
 

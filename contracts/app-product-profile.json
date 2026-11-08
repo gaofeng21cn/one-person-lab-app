@@ -2584,8 +2584,8 @@
           "catalog_partition_policy": {
             "standard_agents": "Framework directory entries with package_role=standard_agent; the Official Profile summary is a separate first-install requirement and never defines membership",
             "agent_workflows": "Framework directory entries with package_role=workflow_profile",
-            "capability_packages": "route to Capabilities using the Framework-projected package role and capability identities",
-            "unknown_roles": "do not guess from package_id, display name, local checkout, or App metadata; use only an owner-projected destination when available",
+            "capability_packages": "manage all Package roles in Extensions & Apps; Agents is a filtered view of the same catalog",
+            "unknown_roles": "show in the unified Extensions & Apps catalog without guessing role or creating a private registry",
             "app_owned_package_id_allowlist_allowed": false
           },
           "must_not_own": ["skill_or_plugin_catalog", "opl_flow_recommendation_policy", "cli_currentness"]
@@ -2595,8 +2595,18 @@
           "path": "/settings/capabilities",
           "slot_id": "settings_capabilities",
           "component_key": "CapabilitiesSettingsContent",
-          "entity_kinds": ["capability_package", "skill", "plugin", "mcp_server", "connection_application", "image_generation", "voice_input"],
-          "presentation_scope_policy": "show Package-backed capabilities, Skills, Plugins, connection applications and managed companions from their canonical owner projections; credential connections and deployment resources remain under Resources & Connections",
+          "entity_kinds": [
+            "standard_agent",
+            "workflow_profile",
+            "capability_package",
+            "skill",
+            "plugin",
+            "mcp_server",
+            "connection_application",
+            "image_generation",
+            "voice_input"
+          ],
+          "presentation_scope_policy": "one unified Package catalog with installation, version, source, lifecycle actions, App visibility and on-demand package status; detailed Skills and native capabilities remain secondary sections",
           "groups": {
             "opl_flow_managed": {
               "label_zh": "OPL Flow 推荐",
@@ -2632,11 +2642,51 @@
             }
           },
           "must_not_own": [
-            "runnable_agent_package_lifecycle",
             "independent_flow_update_scheduler",
             "cli_latest_version_resolution",
             "silent_third_party_mutation"
-          ]
+          ],
+          "package_management": {
+            "route_id": "capabilities",
+            "path": "/settings/capabilities",
+            "catalog_source": "app_state.agent_packages.directory.entries",
+            "status_source": "app_state.agent_packages.status_index",
+            "default_catalog_scope": "all",
+            "membership_policy": "all dynamically discovered Package roles and sources, including private and local packages; no Package-id allowlist",
+            "agent_view_policy": "agents is a filtered view of the same Package catalog, not an independent manager",
+            "required_row_fields": [
+              "display_name",
+              "installed_version",
+              "source",
+              "installation_status",
+              "available_actions",
+              "app_enabled"
+            ],
+            "app_enablement": {
+              "state_source": "app_state.agent_packages.directory.entries[].app_enabled",
+              "status_source": "app_state.agent_packages.status_index.packages[package_id].app_enabled",
+              "state_owner": "one-person-lab",
+              "default_enabled": true,
+              "action_id": "package_app_set_enabled",
+              "payload_fields": {
+                "package_id": "string",
+                "enabled": "boolean"
+              },
+              "confirmation_required": false,
+              "dry_run_supported": true,
+              "scope": "OPL Desktop and WebUI contributions only",
+              "disabled_policy": "remove all package UI slots and navigation, stop automatic contribution reads, and leave an open package view for the workbench",
+              "retained_policy": "keep the Package visible and manageable in the catalog; preserve native installation, Codex enablement, Skills, and MCP App calls",
+              "persistence_policy": "preserve the explicit choice across discovery, App restart, package update and App update"
+            },
+            "settings_contributions": {
+              "destination": "settings.capabilities.package_details",
+              "group_by": "package_id",
+              "mount_policy": "only mount and read the expanded enabled package details",
+              "services_page_policy": "core runtime service status only; no automatic installed-package sections",
+              "resources_page_policy": "resource and connection configuration only; package contributions remain in package details"
+            }
+          }
         },
         "local_environment": {
           "route_id": "environment",
@@ -3228,8 +3278,8 @@
             "id": "agents_capabilities",
             "label_zh": "智能体与能力",
             "label_en": "Agents & Capabilities",
-            "default_destination_id": "agents",
-            "destination_ids": ["agents", "capabilities", "instructions_context"]
+            "default_destination_id": "capabilities",
+            "destination_ids": ["capabilities", "agents", "instructions_context"]
           },
           {
             "id": "runtime_maintenance",
@@ -3291,18 +3341,18 @@
             "label_en": "Data & Storage"
           },
           {
+            "id": "capabilities",
+            "owner_group_id": "agents_capabilities",
+            "route_id": "capabilities",
+            "label_zh": "扩展与应用",
+            "label_en": "Extensions & Apps"
+          },
+          {
             "id": "agents",
             "owner_group_id": "agents_capabilities",
             "route_id": "agents",
             "label_zh": "智能体",
             "label_en": "Agents"
-          },
-          {
-            "id": "capabilities",
-            "owner_group_id": "agents_capabilities",
-            "route_id": "capabilities",
-            "label_zh": "能力",
-            "label_en": "Capabilities"
           },
           {
             "id": "instructions_context",
@@ -3494,13 +3544,13 @@
           "id": "capabilities",
           "path": "/settings/capabilities",
           "label_key": "settings.capabilities",
-          "default_label_en": "Capabilities",
-          "default_label_zh": "能力",
+          "default_label_en": "Extensions & Apps",
+          "default_label_zh": "扩展与应用",
           "icon_token": "capabilities",
           "ia_group": "agents_capabilities",
           "slot_id": "settings_capabilities",
-          "state_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
-          "refresh_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
+          "state_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
+          "refresh_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
           "scope": "user",
           "intent": "view_status",
           "risk": "reversible",
@@ -4060,10 +4110,20 @@
             "route_id": "capabilities",
             "adapter_entry": "packages/desktop/src/renderer/pages/settings/capabilitiesProjection.ts",
             "renderer_entry": "packages/desktop/src/renderer/pages/settings/CapabilitiesSettings.tsx",
-            "state_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
+            "state_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
             "ownership_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities",
             "groups": ["opl_flow_managed", "opl_managed_companion", "manual_and_third_party"],
-            "entity_kinds": ["capability_package", "skill", "plugin", "mcp_server", "connection_application", "image_generation", "voice_input"],
+            "entity_kinds": [
+              "standard_agent",
+              "workflow_profile",
+              "capability_package",
+              "skill",
+              "plugin",
+              "mcp_server",
+              "connection_application",
+              "image_generation",
+              "voice_input"
+            ],
             "local_configuration_source": "AionUI local configuration#MCP servers + image generation + voice input",
             "flow_projection_policy": {
               "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies",
@@ -5645,18 +5705,27 @@
             "product_page_id": "capabilities",
             "route_id": "capabilities",
             "matrix_page_id": "capabilities",
-            "label_zh": "能力",
-            "label_en": "Capabilities",
+            "label_zh": "扩展与应用",
+            "label_en": "Extensions & Apps",
             "primary_information": [
+              "all dynamically discovered Packages, including private and local sources, with installation, version, source, lifecycle actions, independent App enablement and on-demand package status",
               "OPL Flow managed and recommended Skills and Plugins derived from installed package dependency closure",
               "OPL-managed Computer Use installed, registration, enablement, permission, readiness, and repair state",
               "manual and third-party Skills and Plugins from Codex and shell registries",
               "local MCP servers, image generation, and voice input configuration owned by Capabilities",
-              "source, owner, currentness, and explicit lifecycle actions"
+              "source, owner, currentness, and explicit lifecycle actions in the same Package detail"
             ],
-            "first_viewport_groups": ["opl_flow_managed", "opl_managed_companion", "manual_and_third_party"],
+            "first_viewport_groups": [
+              "package_catalog",
+              "package_details",
+              "capability_details"
+            ],
             "surface_inventory": {
               "configuration": [
+                {
+                  "id": "package_app_enabled",
+                  "owner": "capabilities"
+                },
                 {
                   "id": "local_mcp_image_configuration",
                   "owner": "capabilities"
@@ -5667,6 +5736,10 @@
                 }
               ],
               "status": [
+                {
+                  "id": "package_installation_and_runtime",
+                  "owner": "capabilities"
+                },
                 {
                   "id": "capability_currentness",
                   "owner": "capabilities"
@@ -5689,14 +5762,20 @@
               "id": "add_capability",
               "availability": "always",
               "max_visible": 1,
-              "label_zh": "添加能力",
-              "label_en": "Add capability"
+              "label_zh": "安装扩展",
+              "label_en": "Install extension"
             },
             "tab_contract": {
-              "surface_label_zh": "能力",
-              "surface_label_en": "Capabilities",
-              "tab_order": ["desktop", "opl_flow_managed", "manual_and_third_party", "image_voice", "packages"],
-              "default_tab": "opl_flow_managed",
+              "surface_label_zh": "扩展与应用",
+              "surface_label_en": "Extensions & Apps",
+              "tab_order": [
+                "packages",
+                "desktop",
+                "opl_flow_managed",
+                "manual_and_third_party",
+                "image_voice"
+              ],
+              "default_tab": "packages",
               "on_demand_tab_ids": []
             },
             "layout_policy": {
@@ -5708,21 +5787,52 @@
             "exception_state": "highlight failed sync or owner attention without mutating third-party items",
             "technical_details_boundary": "raw registry paths, package closure refs, and receipts stay collapsed",
             "required_dom": {
-              "always": ["settings-page-capabilities", "settings-capabilities-primary"],
-        "conditional": [
-          {"testid": "settings-capabilities-opl-flow-managed", "when": "skills_tab_active"},
-          {"testid": "settings-capabilities-opl-managed-companion", "when": "desktop_tab_active_and_owner_projection_present"},
-          {"testid": "settings-capabilities-third-party", "when": "connections_tab_active"},
-          {"testid": "settings-capabilities-voice-input", "when": "image_voice_tab_active"},
-          {"testid": "settings-capabilities-packages", "when": "packages_tab_active"},
+              "always": [
+                "settings-page-capabilities",
+                "settings-capabilities-primary"
+              ],
+              "conditional": [
+                {
+                  "testid": "settings-capabilities-opl-flow-managed",
+                  "when": "skills_tab_active"
+                },
+                {
+                  "testid": "settings-capabilities-opl-managed-companion",
+                  "when": "desktop_tab_active_and_owner_projection_present"
+                },
+                {
+                  "testid": "settings-capabilities-third-party",
+                  "when": "connections_tab_active"
+                },
+                {
+                  "testid": "settings-capabilities-voice-input",
+                  "when": "image_voice_tab_active"
+                },
+                {
+                  "testid": "settings-capabilities-packages",
+                  "when": "packages_tab_active"
+                },
                 {
                   "testid": "settings-capabilities-exception",
                   "when": "attention_required"
                 }
               ]
             },
-            "required_anchors": ["opl-flow-managed", "opl-managed-companion", "third-party", "voice-input", "packages"],
-            "search_entry_ids": ["capabilities.opl_flow_managed", "capabilities.opl_managed_companion", "capabilities.third_party", "capabilities.image_voice", "capabilities.packages"]
+            "required_anchors": [
+              "opl-flow-managed",
+              "opl-managed-companion",
+              "third-party",
+              "voice-input",
+              "packages"
+            ],
+            "search_entry_ids": [
+              "capabilities.opl_flow_managed",
+              "capabilities.opl_managed_companion",
+              "capabilities.third_party",
+              "capabilities.image_voice",
+              "capabilities.packages"
+            ],
+            "package_management_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities.package_management"
           },
           "agents": {
             "product_page_id": "agents",
@@ -5731,7 +5841,7 @@
             "label_zh": "智能体",
             "label_en": "Agents",
             "primary_information": [
-              "standard_agent and workflow_profile packages from app_state.agent_packages.directory.entries; supporting package roles remain managed under Capabilities",
+              "standard_agent and workflow_profile filtered view of the unified Extensions & Apps Package catalog",
               "dedicated package catalog search with package role, availability status, and source filters",
               "visible dynamic directory reload from fresh App state and projected per-row non-activation lifecycle actions",
               "Settings, new conversation, and ordinary composer send never execute package activation; selected project directories establish session cwd and future domain workspace identity only",

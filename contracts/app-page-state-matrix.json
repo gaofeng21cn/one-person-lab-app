@@ -1195,7 +1195,7 @@
         "capability_workspace_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.capability_workspace",
         "standard_view_contracts_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.standard_view_contracts",
         "service_status_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.standard_view_contracts.service_status",
-        "service_status_settings_destination": "settings.services.installed_services",
+        "service_status_settings_destination": "settings.capabilities.package_details",
         "activity_log_settings_destination": null,
         "activity_log_without_explicit_app_admission": "hidden_from_ordinary_settings",
         "rendering_policy": "standard_structured_views_only",
@@ -3937,11 +3937,12 @@
     },
     {
       "id": "capabilities",
-      "expected_source": "OPL Flow installed package dependency closure plus Codex and shell skill/plugin registries",
-      "machine_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
-      "refresh_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
+      "expected_source": "Framework dynamic Package directory and status plus owner capability projections",
+      "machine_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
+      "refresh_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
       "page_contract": "settings_capabilities",
       "sections": [
+        "package_catalog",
         "opl_flow_managed",
         "opl_managed_companion",
         "manual_and_third_party",
@@ -3949,16 +3950,16 @@
         "details"
       ],
       "tab_contract": {
-        "surface_label_zh": "能力",
-        "surface_label_en": "Capabilities",
+        "surface_label_zh": "扩展与应用",
+        "surface_label_en": "Extensions & Apps",
         "tab_order": [
+          "packages",
           "desktop",
           "opl_flow_managed",
           "manual_and_third_party",
-          "image_voice",
-          "packages"
+          "image_voice"
         ],
-        "default_tab": "opl_flow_managed",
+        "default_tab": "packages",
         "on_demand_tab_ids": []
       },
       "layout_policy": {
@@ -3968,6 +3969,7 @@
         "nested_card_or_gray_block_allowed": false
       },
       "state_sections": [
+        "agent_packages.directory.entries",
         "agent_packages.status_index",
         "codex_skills",
         "codex_plugins",
@@ -3983,6 +3985,8 @@
       "route_scope": "ordinary",
       "settings_ia_ref": "contracts/app-gui-product-contract.json#settings_navigation.settings_ia",
       "must_show": [
+        "all dynamic Package roles and sources with installation, version, source, projected lifecycle actions and independent App enablement",
+        "package settings and status only inside expanded enabled package details; disabled packages remain manageable",
         "OPL Flow managed and recommended Skills and Plugins from package dependency closure",
         "OPL-managed default companions with installed, registered, enabled, permission, ready, version, and owner-projected action status",
         "manual and third-party Skills and Plugins from Codex and shell registries",
@@ -3996,7 +4000,6 @@
         "frequent, needs-attention, and other capability groups in that default order"
       ],
       "must_not_show": [
-        "runnable Agent package lifecycle",
         "Agent Home visibility, shortcut order, source selection, or Developer Mode controls",
         "an empty OPL Flow managed group while the canonical Flow dependency catalog contains entries",
         "raw provider ids as primary capability labels",
@@ -4007,7 +4010,8 @@
         "voice input configuration on Preferences or Advanced",
         "the manual skill directory labeled as total local or OPL capability readiness",
         "nested cards or large gray blocks around MCP, image generation, or voice input",
-        "raw English trigger instructions as the primary description in a Chinese capability row"
+        "raw English trigger instructions as the primary description in a Chinese capability row",
+        "App visibility represented as Codex carrier disablement or uninstall"
       ],
       "product_page_id": "capabilities",
       "experience_contract_ref": "contracts/app-settings-control-plane.json#experience_contract.page_contracts.capabilities",
@@ -4143,7 +4147,8 @@
           "needs_attention",
           "other"
         ]
-      }
+      },
+      "package_management_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities.package_management"
     },
     {
       "id": "agents",

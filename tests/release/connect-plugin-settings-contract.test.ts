@@ -11,7 +11,7 @@ test('channel settings admit exactly one provider route per renderer', () => {
   const channelAccess = gui.framework_surfaces.package_app_contributions.standard_view_contracts.channel_access;
   const remoteCompanionAccess = gui.framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access;
 
-  assert.equal(contract.destination, 'settings.resources.messages_and_connections');
+  assert.equal(contract.destination, 'settings.capabilities.package_details');
   assert.equal(contract.section_labels.zh_cn, '消息与连接');
   assert.equal(contract.runtime_membership_source, 'app_state.ui_contributions.slots.settings.section');
   assert.equal(

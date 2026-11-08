@@ -407,6 +407,8 @@ export function validateSettingsControlPlane(
   assertDeepEqualJson(
     capabilityOwnership?.entity_kinds,
     [
+      "standard_agent",
+      "workflow_profile",
       "capability_package",
       "skill",
       "plugin",

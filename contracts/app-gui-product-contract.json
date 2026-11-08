@@ -1837,7 +1837,9 @@
       "at_least_one_non_empty_collection_required": true,
       "command_result_presentation": {
         "source": "validated_successful_owner_response.result.presentation",
-        "supported_modes": ["browser"],
+        "supported_modes": [
+          "browser"
+        ],
         "browser_url_policy": "absolute_https_or_loopback_http_without_url_credentials",
         "interaction": "explicit_user_open_link_without_automatic_navigation_or_iframe_embedding",
         "capability_url_policy": "keep_only_in_current_view_memory_never_persist_to_preferences_or_execution_summary",
@@ -1972,7 +1974,7 @@
           "owner": "one-person-lab-app",
           "data_truth_owner": "installed_native_carrier_or_provider",
           "projection_owner": "one-person-lab-framework",
-          "settings_destination": "settings.services.installed_services",
+          "settings_destination": "settings.capabilities.package_details",
           "status_field_policy": "status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist",
           "command_input_source": "descriptor_declared_action_inputs",
           "command_resolution": "resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input",
@@ -2076,7 +2078,7 @@
       },
       "opl_connect_connector_settings": {
         "product_group": "OPL Connect",
-        "destination": "settings.resources.messages_and_connections",
+        "destination": "settings.capabilities.package_details",
         "section_labels": {
           "zh_cn": "消息与连接",
           "en": "Messages & Connections"
@@ -2092,7 +2094,8 @@
           "package_descriptor_is_current_installed_enabled_and_callable",
           "framework_cordis_host_has_admitted_and_loaded_the_connector_provider",
           "settings_section_contribution_is_valid_and_app_placement_is_admitted",
-          "every_referenced_data_and_action_ref_is_current_and_valid"
+          "every_referenced_data_and_action_ref_is_current_and_valid",
+          "package_app_enabled_and_package_details_expanded"
         ],
         "visible_disconnected_state": "show_the_connector_with_disconnected_status_and_its_available_connect_or_pair_action_when_the_package_and_host_path_are_ready",
         "unready_policy": "omit_the_connector_row_route_and_placeholder_when_the_package_host_contribution_or_required_refs_are_not_ready",
@@ -2197,7 +2200,7 @@
         ],
         "settings_placement_policy": {
           "channel_access": {
-            "destination": "settings.resources.messages_and_connections",
+            "destination": "settings.capabilities.package_details",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2205,7 +2208,7 @@
             ]
           },
           "remote_companion_access": {
-            "destination": "settings.resources.messages_and_connections",
+            "destination": "settings.capabilities.package_details",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2222,7 +2225,7 @@
             "ordinary_settings_without_explicit_app_admission": "hidden_from_ordinary_settings"
           },
           "service_status": {
-            "destination": "settings.services.installed_services",
+            "destination": "settings.capabilities.package_details",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2230,7 +2233,7 @@
             ]
           },
           "other_settings_section": {
-            "destination": "settings.capabilities.module_extensions",
+            "destination": "settings.capabilities.package_details",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2247,7 +2250,7 @@
             }
           },
           "top_level_settings_navigation": "client_static_destinations_only_package_contributions_never_create_navigation_entries",
-          "same_package_grouping": "group_entries_by_package_id_within_their_declared_destination_and_preserve_declared_order_within_each_group",
+          "same_package_grouping": "group_settings_contributions_by_package_id_in_expanded_enabled_package_details_and_preserve_declared_order",
           "ordinary_presentation": "show_package_display_name_and_view_title_without_package_id_or_trust_carrier_provenance",
           "technical_provenance": "available_only_when_the_user_enables_developer_details",
           "native_app_inference": "a_package_contribution_does_not_establish_that_a_separate_native_os_app_is_installed_running_or_equivalent"
@@ -2255,7 +2258,7 @@
         "ordering_policy": "sort_order_then_package_id_then_contribution_id",
         "identity_policy": "package_id_colon_contribution_id",
         "unknown_kind_policy": "render_local_fallback_without_disabling_other_contributions",
-        "lifecycle_policy": "register_from_current_projection_and_remove_immediately_when_package_is_disabled_or_uninstalled",
+        "lifecycle_policy": "register_from_current_projection_and_remove_immediately_when_package_is_app_disabled_carrier_disabled_or_uninstalled",
         "shell_implementation_policy": "consume_the_host_derived_client_graph_through_renderer_native_extension_surfaces_without_independent_package_discovery_or_plugin_manager",
         "native_candidate_host": "host_derived_Client_Cordis_via_DeepSeek_Harness_SlotCore_createSlotRenderer_and_ui_primitives",
         "active_aionui_host": "host_derived_Client_Cordis_via_thin_OPL_owned_adapter_over_existing_AionUI_components",
@@ -2353,7 +2356,8 @@
         "html",
         "path",
         "url"
-      ]
+      ],
+      "app_enablement_policy_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities.package_management.app_enablement"
     },
     "canonical_state": {
       "schema": "opl_app_state.v1",
@@ -4788,7 +4792,7 @@
         },
         {
           "id": "agents_capabilities",
-          "route_id": "agents",
+          "route_id": "capabilities",
           "route_scope": "ordinary",
           "visibility": "top_level_navigation",
           "label_en": "Agents & Capabilities",
@@ -4797,7 +4801,7 @@
           "intent": "manage",
           "risk": "reversible",
           "frequency": "occasional",
-          "default_child_id": "agents"
+          "default_child_id": "capabilities"
         },
         {
           "id": "runtime_maintenance",
@@ -4871,18 +4875,18 @@
           "label_en": "Data & Storage"
         },
         {
+          "id": "capabilities",
+          "group_id": "agents_capabilities",
+          "route_id": "capabilities",
+          "label_zh": "扩展与应用",
+          "label_en": "Extensions & Apps"
+        },
+        {
           "id": "agents",
           "group_id": "agents_capabilities",
           "route_id": "agents",
           "label_zh": "智能体",
           "label_en": "Agents"
-        },
-        {
-          "id": "capabilities",
-          "group_id": "agents_capabilities",
-          "route_id": "capabilities",
-          "label_zh": "能力",
-          "label_en": "Capabilities"
         },
         {
           "id": "instructions_context",
@@ -5433,15 +5437,15 @@
         "role": "runnable_agent_package_directory_and_home_shortcut_management",
         "primary_question": "Which runnable agent packages are available, where do they run from, and which should appear on Home?",
         "ia_group": "agents_capabilities",
-        "ordinary_entry_policy": "default_destination_under_agents_capabilities"
+        "ordinary_entry_policy": "filtered_agent_destination_under_agents_capabilities"
       },
       "capabilities": {
-        "label_zh": "能力",
-        "label_en": "Capabilities",
-        "role": "skill_plugin_catalog_and_opl_flow_recommendations",
-        "primary_question": "Which OPL Flow managed and local skills or plugins are available, and who manages their lifecycle?",
+        "label_zh": "扩展与应用",
+        "label_en": "Extensions & Apps",
+        "role": "unified_package_installation_lifecycle_status_and_app_enablement",
+        "primary_question": "Which extensions are installed, how are they managed, and which should appear in OPL App?",
         "ia_group": "agents_capabilities",
-        "ordinary_entry_policy": "second_level_destination_under_agents_capabilities"
+        "ordinary_entry_policy": "default_destination_under_agents_capabilities"
       },
       "resources": {
         "label_zh": "资源与连接",
@@ -7665,11 +7669,12 @@
       }
     },
     "settings_capabilities": {
-      "state_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
-      "projection_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
-      "refresh_source": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries",
+      "state_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
+      "projection_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
+      "refresh_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
       "ownership_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities",
       "sections": [
+        "package_catalog",
         "opl_flow_managed",
         "opl_managed_companion",
         "manual_and_third_party",
@@ -7677,6 +7682,8 @@
         "details"
       ],
       "entity_kinds": [
+        "standard_agent",
+        "workflow_profile",
         "capability_package",
         "skill",
         "plugin",
@@ -7686,10 +7693,16 @@
         "voice_input"
       ],
       "tab_contract": {
-        "surface_label_zh": "能力",
-        "surface_label_en": "Capabilities",
-        "tab_order": ["desktop", "opl_flow_managed", "manual_and_third_party", "image_voice", "packages"],
-        "default_tab": "opl_flow_managed",
+        "surface_label_zh": "扩展与应用",
+        "surface_label_en": "Extensions & Apps",
+        "tab_order": [
+          "packages",
+          "desktop",
+          "opl_flow_managed",
+          "manual_and_third_party",
+          "image_voice"
+        ],
+        "default_tab": "packages",
         "on_demand_tab_ids": []
       },
       "group_policy": {
@@ -7827,7 +7840,6 @@
         "frequent, needs-attention, and other capability groups in that default order"
       ],
       "must_not_show": [
-        "runnable Agent package lifecycle",
         "Agent Home visibility, shortcut order, source selection, or Developer Mode controls",
         "an empty OPL Flow managed group while the canonical Flow dependency catalog contains entries",
         "raw provider ids as primary capability labels",
@@ -7840,7 +7852,8 @@
       ],
       "product_page_id": "capabilities",
       "ia_group": "agents_capabilities",
-      "experience_contract_ref": "contracts/app-settings-control-plane.json#experience_contract.page_contracts.capabilities"
+      "experience_contract_ref": "contracts/app-settings-control-plane.json#experience_contract.page_contracts.capabilities",
+      "package_management_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities.package_management"
     },
     "settings_agents": {
       "state_source": "opl app state --profile fast --json",
@@ -8712,8 +8725,8 @@
           },
           {
             "id": "capabilities",
-            "label_en": "Capabilities",
-            "label_zh": "能力"
+            "label_en": "Extensions & Apps",
+            "label_zh": "扩展与应用"
           },
           {
             "id": "maintenance",

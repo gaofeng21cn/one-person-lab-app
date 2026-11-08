@@ -156,10 +156,10 @@ export const appOwnedSettingsPageSearchEntryIds = {
   ],
 };
 export const appOwnedSettingsCapabilitiesTabContract = {
-  surface_label_zh: "能力",
-  surface_label_en: "Capabilities",
-  tab_order: ["desktop", "opl_flow_managed", "manual_and_third_party", "image_voice", "packages"],
-  default_tab: "opl_flow_managed",
+  surface_label_zh: "扩展与应用",
+  surface_label_en: "Extensions & Apps",
+  tab_order: ["packages", "desktop", "opl_flow_managed", "manual_and_third_party", "image_voice"],
+  default_tab: "packages",
   on_demand_tab_ids: [],
 };
 export const appOwnedSettingsResourcesBrowserEntry = {

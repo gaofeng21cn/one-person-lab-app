@@ -12,7 +12,7 @@ import { validateDynamicHomeComposerStateContract } from './actions.ts';
 export function validateGuiContractHomeAndCapabilities(guiContract) {
   const pages = guiContract.pages ?? {};
   const capabilitiesStateSource =
-    'opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries';
+    'opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections';
   assertCommandSurface(
     pages.settings_capabilities.state_source,
     capabilitiesStateSource,
@@ -26,6 +26,8 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
   assertDeepEqualJson(
     pages.settings_capabilities.entity_kinds,
     [
+      'standard_agent',
+      'workflow_profile',
       'capability_package',
       'skill',
       'plugin',

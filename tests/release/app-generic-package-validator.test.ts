@@ -443,7 +443,7 @@ test('any Package role may project one closed standard App contribution block', 
     owner: 'one-person-lab-app',
     data_truth_owner: 'installed_native_carrier_or_provider',
     projection_owner: 'one-person-lab-framework',
-    settings_destination: 'settings.services.installed_services',
+    settings_destination: 'settings.capabilities.package_details',
     status_field_policy: 'status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist',
     command_input_source: 'descriptor_declared_action_inputs',
     command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input',
@@ -872,18 +872,18 @@ test('service_status accepts generic Fleet summaries and rejects unbounded or ma
   }
 });
 
-test('service_status enters Services while activity_log remains hidden from ordinary Settings', () => {
+test('service_status enters package details while activity_log remains hidden from ordinary Settings', () => {
   const gui = readJson('contracts/app-gui-product-contract.json');
   const settings = readJson('contracts/app-settings-control-plane.json');
   const placement = gui.framework_surfaces.package_app_contributions.ui_composition.settings_placement_policy;
   const destinations = settings.settings_projection.package_contribution_visibility_policy.destinations;
 
   assert.deepEqual(placement.service_status, {
-    destination: 'settings.services.installed_services',
+    destination: 'settings.capabilities.package_details',
     app_admission_required: true,
     admission_basis: ['current_user_task', 'app_placement_policy'],
   });
-  assert.equal(destinations.service_status, 'settings.services.installed_services');
+  assert.equal(destinations.service_status, 'settings.capabilities.package_details');
   assert.equal(placement.activity_log.destination, null);
   assert.equal(placement.activity_log.ordinary_settings_without_explicit_app_admission, 'hidden_from_ordinary_settings');
   assert.equal(destinations.activity_log, null);

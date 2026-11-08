@@ -199,6 +199,8 @@ export function validateSettingsPageAdapterPolicy(controlPlane, productProfile) 
   assertDeepEqualJson(
     requiredPages.capabilities?.entity_kinds,
     [
+      "standard_agent",
+      "workflow_profile",
       "capability_package",
       "skill",
       "plugin",

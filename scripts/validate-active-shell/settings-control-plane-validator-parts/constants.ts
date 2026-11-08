@@ -58,7 +58,7 @@ const expectedAgentsRouteStateSource =
 const expectedAgentsPageAdapterStateSource =
   "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + app_state.runtime_source_carriers.items[]";
 const expectedCapabilitiesStateSource =
-  "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies + Codex and shell skill/plugin registries";
+  "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections";
 const expectedStartupPerformancePolicy = {
   schema: "settings_startup_performance.v1",
   first_window_state_source:
