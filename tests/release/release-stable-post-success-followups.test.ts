@@ -158,6 +158,55 @@ test('Linux and Windows build and append independently with only public mutation
   assert.match(platformSource, /opl-stable-desktop-append-\$\{\{ inputs\.source_run_id \}\}-\$\{\{ inputs\.platform_id \}\}/);
 });
 
+function selectDesktopPlatforms(platforms: unknown, requestedPlatform = '') {
+  const bind = workflow.jobs.admit.steps.find((step: Record<string, any>) => step.id === 'bind');
+  const script = String(bind.run);
+  const start = script.indexOf('platforms="$(jq -cer .desktop_additional_platforms "$control")"');
+  const end = script.indexOf('test "$(jq -er .cohort.app_sha "$control")"', start);
+  assert.ok(start >= 0 && end > start);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-desktop-selection-'));
+  try {
+    fs.writeFileSync(path.join(root, 'control.json'), JSON.stringify({ desktop_additional_platforms: platforms }));
+    return spawnSync('bash', ['-c', `set -euo pipefail\ncontrol=control.json\n${script.slice(start, end)}\nprintf '%s\\n' "$platforms" "$applicable"`], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, REQUESTED_PLATFORM: requestedPlatform },
+    });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
+test('an empty authorized Desktop selection skips the platform matrix', () => {
+  const result = selectDesktopPlatforms([]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '[]\nfalse\n');
+  assert.equal(workflow.jobs.admit.outputs.applicable, '${{ steps.bind.outputs.applicable }}');
+  assert.equal(workflow.jobs['reconcile-desktop-platforms'].if, "${{ needs.admit.outputs.applicable == 'true' }}");
+  const bind = workflow.jobs.admit.steps.find((step: Record<string, any>) => step.id === 'bind');
+  assert.match(bind.run, /echo "applicable=\$applicable"/);
+});
+
+test('Desktop followers preserve selected supported platforms and narrow explicit recovery', () => {
+  for (const platforms of [['linux-x64'], ['windows-x64'], ['linux-x64', 'windows-x64']]) {
+    const result = selectDesktopPlatforms(platforms);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, `${JSON.stringify(platforms)}\ntrue\n`);
+  }
+  const result = selectDesktopPlatforms(['linux-x64', 'windows-x64'], 'windows-x64');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '["windows-x64"]\ntrue\n');
+});
+
+test('Desktop followers reject invalid selections and unselected explicit recovery', () => {
+  for (const platforms of [null, 'linux-x64', {}, ['macos-arm64'], ['linux-x64', 'linux-x64'], [1]]) {
+    assert.notEqual(selectDesktopPlatforms(platforms).status, 0, JSON.stringify(platforms));
+  }
+  assert.notEqual(selectDesktopPlatforms([], 'linux-x64').status, 0);
+  assert.notEqual(selectDesktopPlatforms(['linux-x64'], 'windows-x64').status, 0);
+  assert.notEqual(selectDesktopPlatforms(['linux-x64'], 'unknown').status, 0);
+});
+
 test('aggregate manifest is the last platform append and no Desktop lane owns Full or Latest', () => {
   assert.match(platformSource, /Append or reconcile only this Desktop platform/);
   assert.match(platformSource, /scripts\/append-stable-desktop-assets\.ts/);

@@ -261,7 +261,7 @@ jobs:
     outputs:
       source_run_id: ${{ steps.source.outputs.source_run_id }}
       operation_kind: ${{ steps.source.outputs.operation_kind }}
-      applicable: ${{ steps.source.outputs.applicable }}
+      applicable: ${{ steps.bind.outputs.applicable }}
       source_artifact: ${{ steps.source.outputs.source_artifact }}
       app_ref: ${{ steps.bind.outputs.app_ref }}
       shell_ref: ${{ steps.bind.outputs.shell_ref }}
@@ -370,11 +370,14 @@ jobs:
           framework="$(jq -er .sources.framework.source_commit "$bundle")"
           bundle_digest="$(jq -er .bundle_digest "$bundle")"
           platforms="$(jq -cer .desktop_additional_platforms "$control")"
-          test "$platforms" = '["linux-x64","windows-x64"]'
+          jq -e 'type == "array"
+            and all(.[]; . == "linux-x64" or . == "windows-x64")
+            and (length == (unique | length))' <<<"$platforms" >/dev/null
           if [ -n "$REQUESTED_PLATFORM" ]; then
             jq -e --arg platform "$REQUESTED_PLATFORM" 'index($platform) != null' <<<"$platforms" >/dev/null
             platforms="$(jq -cn --arg platform "$REQUESTED_PLATFORM" '[$platform]')"
           fi
+          applicable="$(jq -r 'length > 0' <<<"$platforms")"
           test "$(jq -er .cohort.app_sha "$control")" = "$app"
           test "$(jq -er .cohort.shell_sha "$control")" = "$shell"
           test "$(jq -er .cohort.framework_sha "$control")" = "$framework"
@@ -388,7 +391,7 @@ jobs:
             echo "source_run_id=$SOURCE_RUN_ID"
             echo "source_artifact=$SOURCE_ARTIFACT"
             echo "operation_kind=${{ steps.source.outputs.operation_kind }}"
-            echo "applicable=true"
+            echo "applicable=$applicable"
             echo "app_ref=$app"
             echo "shell_ref=$shell"
             echo "framework_ref=$framework"
