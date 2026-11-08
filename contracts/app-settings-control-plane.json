@@ -1233,7 +1233,7 @@
       "icon_token": "resources",
       "ia_group": "connections_deployment",
       "slot_id": "settings_resources",
-      "state_source": "opl app state --profile fast --json#settings_control_center.connection_registry + settings_control_center.app_settings_read_model.resource_sources + docker_webui",
+      "state_source": "opl app state --profile fast --json#settings_control_center.connection_registry + settings_control_center.app_settings_read_model.connections.authorization + settings_control_center.app_settings_read_model.resource_sources + docker_webui",
       "refresh_source": "opl app state --profile fast --json",
       "scope": "resource",
       "intent": "configure",
@@ -3978,7 +3978,11 @@
           "resource readiness",
           "whether the related operation is executable",
           "optional external resource refs only when a canonical owner or backend projection is present",
-          "only external connections; the built-in OPL Gateway is owned by Account & Access"
+          "only external connections; the built-in OPL Gateway is owned by Account & Access",
+          "connection security state and the consumer-specific capabilities being requested",
+          "pending approvals from trusted users, independent of model-generated App actions",
+          "per-consumer grant revocation and a bounded redacted recent invocation history",
+          "import an existing Relay mailbox connection by owner-projected mailbox reference"
         ],
         "first_viewport_groups": [
           "local_browser_access",
@@ -4026,6 +4030,31 @@
           "implementation_provenance_visibility": "technical_details_only"
         },
         "connection_filter_policy": "exclude the built-in OPL Gateway connection and count; show only canonical owner-projected external connections with at least one resource or route ref",
+        "connection_authorization": {
+          "source": "settings_control_center.app_settings_read_model.connections.authorization",
+          "owner_projection_ref": "settings_control_center.connection_authorization",
+          "connection_fields": ["id", "display_name", "provider_type", "status", "security_revision", "account_label", "capabilities"],
+          "connection_security_policy": "status_and_security_revision_are_owner_projected; account_label_is_redacted; endpoint_and_credential_handle_are_never_projected",
+          "request_fields": ["request_id", "status", "consumer_package_id", "consumer_display_name", "consumer_manifest_sha256", "consumer_content_digest", "connection_id", "connection_display_name", "connection_provider_type", "connection_security_revision", "capabilities", "created_at", "decided_at"],
+          "grant_fields": ["grant_id", "status", "consumer_package_id", "consumer_display_name", "consumer_manifest_sha256", "consumer_content_digest", "connection_id", "connection_display_name", "connection_provider_type", "connection_security_revision", "capabilities", "created_at", "decided_at"],
+          "capability_fields": ["capability_id", "label", "risk"],
+          "invocation_fields": ["invocation_id", "consumer_package_id", "consumer_display_name", "connection_id", "connection_display_name", "capability_id", "started_at", "finished_at", "disposition"],
+          "available_connection_fields": ["connection_id", "display_name", "provider_type", "status", "security_revision", "account_label", "mailbox_ref"],
+          "available_connections_policy": "owner_projected_existing_connections_only_no_secret_material; mailbox_ref_is_the_relay_owner_identity_and_not_connection_id",
+          "invocation_limit": 20,
+          "invocation_history_policy": "latest_bounded_owner_projection_no_arguments_results_errors_or_credentials",
+          "approval_policy": "pending_request_requires_dedicated_trusted_app_user_bridge_after_fresh_projection; never_generic_action_or_model_callable",
+          "approval_bridge_ref": "contracts/app-runtime-bridge.json#connection_access_approval_bridge",
+          "deny_action_id": "connection_access_request_deny",
+          "revoke_action_id": "connection_grant_revoke",
+          "revocation_scope": "one_consumer_grant_without_changing_connection_or_other_grants",
+          "relay_import_action_id": "connection_relay_import",
+          "relay_import_input": "existing_owner_projected_mailbox_ref_only",
+          "ordinary_owner_action_ids": ["connection_access_request_deny", "connection_grant_revoke", "connection_relay_import"],
+          "relay_import_payload_fields": ["mailbox_ref"],
+          "approval_action_id_in_generic_action_catalog": false,
+          "forbidden_fields": ["credential_handle", "endpoint", "access_token", "refresh_token", "secret", "arguments", "result", "error"]
+        },
         "external_resource_projection_policy": {
           "source": "settings_control_center.app_settings_read_model.resource_sources",
           "record_eligibility": "canonical_record_exists_and_contains_at_least_one_resource_source_owner_or_route_ref",
@@ -4101,12 +4130,29 @@
             "settings-resources-primary",
             "settings-resources-browser-access",
             "settings-resources-diagnostics-action",
-            "opl-connections-section"
+            "opl-connections-section",
+            "settings-connection-authorization"
           ],
           "conditional": [
             {
               "testid": "settings-resources-external",
               "when": "eligible_external_resource_projection_present"
+            },
+            {
+              "testid": "settings-connection-access-requests",
+              "when": "pending_connection_authorization_requests_present"
+            },
+            {
+              "testid": "settings-connection-grants",
+              "when": "connection_grants_present"
+            },
+            {
+              "testid": "settings-connection-invocations",
+              "when": "recent_connection_invocations_present"
+            },
+            {
+              "testid": "settings-connection-relay-import",
+              "when": "existing_relay_mailbox_ref_entered"
             },
             {
               "testid": "settings-resources-exception",
@@ -4127,14 +4173,16 @@
           "web-access",
           "resource-readiness",
           "action-readiness",
-          "external-resources"
+          "external-resources",
+          "connection-authorization"
         ],
         "search_entry_ids": [
           "resources.local_browser_access",
           "resources.web_access",
           "resources.readiness",
           "resources.executable",
-          "resources.external"
+          "resources.external",
+          "resources.connection_authorization"
         ]
       },
       "maintenance": {
@@ -5257,6 +5305,15 @@
             "endpoint",
             "credential reference"
           ]
+        },
+        {
+          "id": "resources.connection_authorization",
+          "page_id": "resources",
+          "anchor": "connection-authorization",
+          "label_zh": "连接授权",
+          "label_en": "Connection authorization",
+          "keywords_zh": ["连接安全状态", "授权请求", "能力权限", "授权撤销", "调用记录", "邮箱连接"],
+          "keywords_en": ["connection security", "access requests", "capabilities", "revoke grants", "invocation history", "mailbox connection"]
         },
         {
           "id": "maintenance.health",

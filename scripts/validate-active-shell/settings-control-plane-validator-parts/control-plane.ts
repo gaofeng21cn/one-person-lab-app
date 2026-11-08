@@ -377,6 +377,11 @@ export function validateSettingsControlPlane(
   );
   validateSettingsProjection(controlPlane.settings_projection);
   validateSettingsExperienceContract(controlPlane.experience_contract);
+  assertDeepEqualJson(
+    guiContract?.pages?.settings_resources?.connection_authorization,
+    controlPlane.experience_contract?.page_contracts?.resources?.connection_authorization,
+    "Settings GUI and control-plane connection authorization projection",
+  );
   validateSettingsPageAdapterPolicy(controlPlane, productProfile);
   validateSettingsVisualQaPolicy(controlPlane);
   validateSettingsProductSystemChecklist(controlPlane);

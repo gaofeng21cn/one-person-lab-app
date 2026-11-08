@@ -5,6 +5,7 @@ import { validatePageStateMatrix } from '../../scripts/validate-active-shell/pag
 import {
   validateOplAppStateFastAgentPackageDirectoryFixture,
   validateOplGatewayAccountContract,
+  validateConnectionAuthorizationApprovalBridge,
   validateRuntimeBridgeContract,
 } from '../../scripts/validate-active-shell/runtime-bridge-validator.ts';
 
@@ -200,6 +201,23 @@ test('Gateway account runtime bridge rejects secret leakage and generic-action l
     const bridge = structuredClone(readJson('contracts/app-runtime-bridge.json'));
     mutate(bridge);
     assert.throws(() => validateOplGatewayAccountContract(bridge));
+  }
+});
+
+test('Connection authorization approval stays on the dedicated trusted-user bridge', () => {
+  const bridge = readJson('contracts/app-runtime-bridge.json');
+  assert.doesNotThrow(() => validateConnectionAuthorizationApprovalBridge(bridge));
+
+  for (const mutate of [
+    (value: any) => { value.connection_access_approval_bridge.generic_app_action_allowed = true; },
+    (value: any) => { value.connection_access_approval_bridge.model_callable_allowed = true; },
+    (value: any) => { value.connection_access_approval_bridge.confirmation_boolean_authority = true; },
+    (value: any) => { value.connection_access_approval_bridge.request_fields.push('connectionId'); },
+    (value: any) => { value.connection_access_approval_bridge.command = 'opl app action execute --action connection_access_request_approve --json'; },
+  ]) {
+    const mutated = structuredClone(bridge);
+    mutate(mutated);
+    assert.throws(() => validateConnectionAuthorizationApprovalBridge(mutated), /Connection authorization approval bridge/);
   }
 });
 

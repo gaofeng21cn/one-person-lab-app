@@ -398,6 +398,32 @@ function validateCapabilitiesPage(matrix, guiContract) {
 
 function validateResourcesPage(matrix, guiContract) {
   const resourcesPage = pageById(matrix, 'settings_resources');
+  const resourcesExperience = settingsControlPlane.experience_contract.page_contracts.resources;
+  const authorization = resourcesExperience.connection_authorization;
+  assertDeepEqualJson(
+    guiContract.pages?.settings_resources?.connection_authorization,
+    authorization,
+    'App GUI Resources connection authorization',
+  );
+  if (
+    authorization?.source !== 'settings_control_center.app_settings_read_model.connections.authorization' ||
+    authorization?.approval_bridge_ref !== 'contracts/app-runtime-bridge.json#connection_access_approval_bridge' ||
+    authorization?.approval_policy !== 'pending_request_requires_dedicated_trusted_app_user_bridge_after_fresh_projection; never_generic_action_or_model_callable' ||
+    authorization?.invocation_limit !== 20 ||
+    authorization?.approval_action_id_in_generic_action_catalog !== false
+  ) {
+    throw new Error('Resources connection authorization must use the owner projection, bounded redacted history, and dedicated user approval bridge');
+  }
+  assertDeepEqualJson(
+    authorization?.ordinary_owner_action_ids,
+    ['connection_access_request_deny', 'connection_grant_revoke', 'connection_relay_import'],
+    'Resources connection authorization ordinary owner actions',
+  );
+  assertDeepEqualJson(
+    resourcesPage.state_sections?.includes('settings_control_center.app_settings_read_model.connections.authorization'),
+    true,
+    'Resources connection authorization state source',
+  );
   assertDeepEqualJson(
     resourcesPage.action_behavior,
     appOwnedSettingsResourceActionBehavior,

@@ -1,4 +1,5 @@
 import { validateOplGatewayAccountContract } from './runtime-bridge-validator-parts/gateway-account.ts';
+import { validateConnectionAuthorizationApprovalBridge } from './runtime-bridge-validator-parts/connection-authorization.ts';
 import {
   validateLiveOplConformance,
   validateLiveConformanceContract,
@@ -33,6 +34,7 @@ export function validateRuntimeBridgeContract(runtimeBridge, contract) {
   validateRuntimeBridgeDeclaredSurfaces(runtimeBridge);
   validateWebuiDeploymentContract(runtimeBridge);
   validateOplGatewayAccountContract(runtimeBridge);
+  validateConnectionAuthorizationApprovalBridge(runtimeBridge);
   validateRuntimeBridgeDefaultReadSurfacePolicy(runtimeBridge);
   validateRuntimeBridgeCommandResolutionPolicy(runtimeBridge);
   validateSharedGuiRuntimeResolutionPolicy(runtimeBridge);
@@ -53,5 +55,6 @@ export {
   validateLiveOplConformance,
   validateOplAppStateFastAgentPackageDirectoryFixture,
   validateOplGatewayAccountContract,
+  validateConnectionAuthorizationApprovalBridge,
   validateRuntimeProgressPageDisplayPolicy,
 };

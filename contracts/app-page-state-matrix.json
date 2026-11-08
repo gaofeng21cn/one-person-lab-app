@@ -3700,7 +3700,7 @@
     {
       "id": "settings_resources",
       "expected_source": "OPL App state resource-source, renderer-specific channel access, transport binding where applicable, and Docker WebUI action projection",
-      "machine_source": "AionUI AionCore channel IPC plus /api/channel/weixin/login, or successor opl app state --profile fast --json#ui_contributions.slots.settings.section + transport_bindings; shared resource sources remain settings_control_center.app_settings_read_model.resource_sources + docker_webui",
+      "machine_source": "AionUI AionCore channel IPC plus /api/channel/weixin/login, or successor opl app state --profile fast --json#ui_contributions.slots.settings.section + transport_bindings; shared resource sources remain settings_control_center.app_settings_read_model.resource_sources + settings_control_center.app_settings_read_model.connections.authorization + docker_webui",
       "refresh_source": "opl app state --profile fast --json",
       "page_contract": "settings_resources",
       "sections": [
@@ -3709,6 +3709,10 @@
         "resource_readiness",
         "action_readiness",
         "external_connections",
+        "connection_authorization",
+        "connection_access_requests",
+        "connection_grants",
+        "recent_connection_invocations",
         "conditional_external_resource_refs",
         "technical_details"
       ],
@@ -3722,6 +3726,7 @@
       "state_sections": [
         "settings_control_center.app_settings_read_model.docker_webui",
         "settings_control_center.app_settings_read_model.resource_sources",
+        "settings_control_center.app_settings_read_model.connections.authorization",
         "ui_contributions.slots.settings.section",
         "transport_bindings",
         "access",
@@ -3736,6 +3741,11 @@
         "Docker WebUI deployment and access entry",
         "resource readiness and action executability as separate states",
         "user-managed external connections while the built-in OPL Gateway remains on Account & Access",
+        "connection security status with provider account label and revision, without endpoint or credential handles",
+        "pending consumer requests with exact capability labels and risk, approved only through a dedicated trusted App user bridge",
+        "per-consumer grant revocation that leaves other grants and the connection intact",
+        "a bounded recent invocation list containing identity, capability, time and disposition only",
+        "an explicit action to import an existing Relay mailbox connection by mailbox reference",
         "owner or management mode only for a projected optional resource record",
         "optional external resource refs only when a canonical owner or backend projection is present",
         "one available action only when the related operation is executable",
@@ -3749,6 +3759,8 @@
         "selected local workspace path, change-workspace controls, or permission summary duplicated from Workspace",
         "empty optional resource group, placeholder state, or hosted platform promise without a canonical owner projection",
         "App-owned resource scheduling, billing, credential ownership, storage execution, or provider truth",
+        "credential handles, tokens, endpoints, invocation arguments, results, or errors in authorization projections or ordinary views",
+        "connection_access_request_approve in the generic action catalog, model-callable tools, or confirmation-boolean action payloads",
         "resource readiness used as proof that an operation is executable",
         "resource availability as release-ready or runtime-ready proof",
         "raw connector, quota, billing, credential, or deployment payloads before technical-details disclosure",
@@ -3896,13 +3908,30 @@
           "settings-resources-primary",
           "settings-resources-browser-access",
           "settings-resources-diagnostics-action",
-          "opl-connections-section"
+            "opl-connections-section",
+            "settings-connection-authorization"
         ],
         "conditional": [
           {
             "testid": "settings-resources-external",
             "when": "eligible_external_resource_projection_present"
           },
+            {
+              "testid": "settings-connection-access-requests",
+              "when": "pending_connection_authorization_requests_present"
+            },
+            {
+              "testid": "settings-connection-grants",
+              "when": "connection_grants_present"
+            },
+            {
+              "testid": "settings-connection-invocations",
+              "when": "recent_connection_invocations_present"
+            },
+            {
+              "testid": "settings-connection-relay-import",
+              "when": "existing_relay_mailbox_ref_entered"
+            },
           {
             "testid": "settings-resources-exception",
             "when": "attention_required"
@@ -3922,14 +3951,16 @@
         "web-access",
         "resource-readiness",
         "action-readiness",
-        "external-resources"
+        "external-resources",
+        "connection-authorization"
       ],
       "search_entry_ids": [
         "resources.local_browser_access",
         "resources.web_access",
         "resources.readiness",
         "resources.executable",
-        "resources.external"
+        "resources.external",
+        "resources.connection_authorization"
       ],
       "primary_action_id": "open_selected_resource_action",
       "technical_details_default": "explicit_action_modal",
