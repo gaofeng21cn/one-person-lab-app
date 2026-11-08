@@ -115,16 +115,17 @@ Shell 用唯一 remote transport 映射 owner-projected conversation reads/event
 
 ## 最小定制阶梯
 
-Shell 定制从维护成本最低的层开始，前一层能完成就不得进入后一层。Studio 的 DSH
+Shell 定制遵循 [DSH 原生扩展与升级原则](dsh-plugin-and-settings-map.md#工程原则与升级边界)，
+从维护成本最低的层开始，前一层能完成就不得进入后一层。Studio 的 DSH
 source/vendor/overlay 重放归其 [上游维护入口](https://github.com/gaofeng21cn/opl-studio/blob/main/README.md#dsh-upstream-maintenance)，
 不继续 AionUI upstream intake：
 
 | Level | 优先手段 | 适用内容 | Closeout 要求 |
 | --- | --- | --- | --- |
 | `L1 profile/data` | Generated profile、registry、已有配置 | 品牌、labels、默认值、可见入口、capability exposure。 | 不修改 upstream component tree。 |
-| `L2 bridge/adapter` | 既有 IPC/API adapter、App state/action bridge | Codex/OPL data、actions、receipts、platform capability。 | 单一 truth、typed failure、focused bridge coverage。 |
-| `L3 composition/token` | Existing layout primitive、slot、wrapper、CSS variable、i18n | Rail section、composer strip、timeline event、Environment secondary content、视觉 token。 | 不复制状态模型，不整页重写，不用广域 CSS selector 接管 upstream DOM。 |
-| `L4 fork-body patch` | 对 upstream component 的最小直接修改 | 只有稳定边界无法表达且属于 P0/P1 的交互。 | 记录 upstream file、必要性、冲突热点、focused regression 和下一次 intake 处理。 |
+| `L2 bridge/adapter` | DSH 标准插件与 Cordis 服务、既有 IPC/API adapter、App state/action bridge | Codex/OPL data、actions、receipts、platform capability。 | 沿用原生装载与生命周期，保持单一 truth、typed failure、focused bridge coverage。 |
+| `L3 composition/token` | DSH Client Modules、公开 slot、layout primitive、wrapper、CSS variable、i18n | Rail section、composer strip、timeline event、Environment secondary content、视觉 token。 | 不复制状态模型，不整页重写，不用广域 CSS selector 接管 upstream DOM。 |
+| `L4 source overlay` | 可重放的最小 upstream component 构建补丁，保留 vendor 原字节 | 只有公开扩展点无法表达且属于 P0/P1 的交互。 | 记录 upstream file、具体缺口、focused regression 和退出条件；升级时优先检查官方替代并删除已被覆盖的补丁。 |
 
 以下情况不是进入 `L4` 的理由：现有组件样式不完全一致、测试更容易写、短期绕过
 profile hydration、或 Settings 页面已有类似布局。视觉对齐优先复用 composition/token，

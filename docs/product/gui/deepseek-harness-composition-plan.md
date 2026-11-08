@@ -5,7 +5,7 @@ Purpose: `dsh_application_host_and_plugin_composition_boundary`
 State: `active_architecture_truth`
 Machine boundary: 本文解释 App 已批准的 Studio Application Host 架构。机器真相归
 `contracts/app-product-profile.json`、`contracts/app-gui-product-contract.json`、
-`contracts/app-shell-candidates.json`、`contracts/shell-adapters/opl-studio.json`、Studio source/tests
+`contracts/app-shell-candidates.json`、`contracts/app-shell-adapter.json`、Studio source/tests
 和真实 carrier evidence。本文不授权 active-shell 切换、发布、安装或 production-ready 声明。
 
 ## 结论
@@ -13,6 +13,10 @@ Machine boundary: 本文解释 App 已批准的 Studio Application Host 架构�
 OPL Studio 以 DeepSeek Harness `v0.2.1-rc.2`、commit
 `687f282e8625c6b8d11ff58211a90524be2e4317` 为基座，复用的是完整 DSH/Cordis
 Application Host 骨架和选定 GUI 源码，不是只复用 GUI 模块。
+
+插件化与跟随上游升级是持续工程约束；新增上层能力按
+[DSH 原生扩展与升级原则](dsh-plugin-and-settings-map.md#工程原则与升级边界)
+选择官方实现、标准插件或必要的薄适配。App 的产品与业务合同不构成另建插件框架的依据。
 
 Studio 因此同时承担三类实现责任：
 
@@ -118,8 +122,9 @@ Package descriptor 先经过 App-owned schema，再由 Framework Host 投影。C
 views，并把 `action_ref` 交给 canonical App action bridge；它不能发现、安装或更新 Package，不能
 维护 registry/currentness，也不能获得 release-operation、task、Package、product 或 domain truth。
 
-AionUI 与 Studio 共享的是这套 App Client Contribution ABI、state/action/event semantics 和
-slot policy，不是 DSH Application Host 实现。AionUI 仍只消费独立固定的 bounded DSH visual cohort。
+当前 Desktop、WebUI 与 Docker 由 Studio 在同一 DSH Application Host 和客户端组合上
+实现 App Client Contribution ABI、state/action/event semantics 与 slot policy。
+AionUI 已退役，其旧适配仅可从 Git 历史追溯，不参与当前开发、构建或升级。
 
 ## 三种 Carrier
 

@@ -6,10 +6,52 @@ Scope: DeepSeek Harness `dsh-v0.2.1-rc.2` (`687f282e8625c6b8d11ff58211a90524be2e
 
 这份文档说明插件的源码和安装位置、开发归口、DSH 官方插件在 OPL 中的状态，以及设置归属。默认策略是吸收 DSH 的有价值能力；已有 OPL owner 时复用 DSH 的 UI、协议和交互，再接入现有 owner。只有明确与 OPL 设计冲突、会制造第二份 authority 或无法满足安全/数据边界的部分才排除。
 
+## 工程原则与升级边界
+
+选择 DSH 的工程目标是复用其插件化应用框架，让 OPL 的上层能力可以通过标准扩展点
+开发、组合和管理，并随 DSH 升级持续维护。此原则覆盖已实现能力，也覆盖正在开发的
+Mini App、统一连接授权、设置与后续领域功能。产品定制应集中在 OPL 插件、配置和
+必要的 owner 适配中；DSH 的通用机制继续由上游维护。
+
+| 边界 | 优先复用 | OPL 保留的语义 |
+| --- | --- | --- |
+| 应用插件 | DSH npm metadata/exports、profile、Cordis 服务依赖与生命周期、原生 inventory | 组合哪些插件、暴露哪些产品能力，以及所需 Codex/Framework 服务适配 |
+| 客户端与设置 | DSH Client Modules、slots、Settings 与主题/语言扩展点 | App 导航、显示偏好和 owner 状态/动作映射 |
+| 工具与 Mini App | MCP、官方 MCP Apps SDK 和 DSH 已提供的对应能力 | 将工具/UI 接入现有线程、授权、任务与领域操作 |
+| OPL 业务能力包 | 原生 carrier 安装与 Framework discovery/projection | Package 身份、业务数据、动作与质量判断；通过 Studio 插件接入 App |
+
+App 的 contribution schema、Framework state/action 和 Connect 授权合同描述 OPL
+业务与信任边界；它们不定义另一套 DSH 插件 ABI。业务声明由适配器映射到原生扩展点，
+不要求普通 DSH 插件实现 OPL 领域合同。OPL Package 也不因进入 App 就改成 DSH 插件。
+服务归属不同，应在现有服务上适配输入和结果，不复制插件加载、生命周期、设置存储、
+会话或凭据管理。Mini App 内部复用组件不形成新的宿主协议。
+
+新增定制先检查固定 DSH cohort 的公开扩展点和官方实现。可直接复用的直接复用；
+产品语义有差异的通过标准插件提供薄适配；公开扩展点确实缺失时才保留有界兼容层。
+在现有实现文档中说明具体缺口、涉及的上游接口、真实调用者、验证方式与删除条件，
+不为此新增平行 registry、版本兼容矩阵或审批流程。上游补齐等价能力后，在同一改动中
+迁移调用者并删除被替代实现。判断依据是接口、生命周期和实际行为，不是包名相似。
+
+当前 Host 使用官方 boot/profile 与 Cordis 插件机制；客户端仍有需要随升级复核的
+适配：`OplStudioDshSlotHost` 对 `SlotRendererHost` 的部分服务采用空实现，
+`mountSettingsSearch` 以手工 context 调用社区插件 `apply()`，设置导航还有构建期
+`dsh-settings-navigation-overlay.mjs`。这些是有限兼容边界，不是完整 DSH 客户端
+服务的替代。扩展其依赖前，先核对能否由真实 Cordis service/context 或官方 slot
+承接；需要未提供服务的插件不得仅凭成功加载就被标为兼容。保留 Codex 线程归属
+所需的适配，也不得为获得通用客户端服务而引入第二套 DSH session authority。
+
+升级继续使用 Studio 的 [既有维护入口](https://github.com/gaofeng21cn/opl-studio/blob/main/README.md#dsh-upstream-maintenance)：
+`dsh:status` 读取当前绑定，`dsh:preflight` 检查目标来源并给出重放计划；同次升级更新
+固定 npm cohort、source manifest、vendor 与 profile/overlay。按真实变化验证插件
+依赖注入、装载与释放、客户端 slots/设置、MCP/Codex 桥及相关 carrier，再执行既有
+candidate gates。vendor 字节一致、元数据版本范围或 preflight 成功各自只证明其
+对应边界；“容易跟随上游”意味着定制范围明确且可以重放验证，不承诺任意 DSH
+版本或插件自动兼容。发布与安装验收仍走原有 App 流程。
+
 ## 0. 源码、安装位置与开发归口
 
-OPL App 复用 DSH/Cordis 的应用骨架和 GUI，同时通过 Studio 的内置插件接入持久
-Codex App Server 与 Framework。它不是把一组可卸载插件装进原版 DSH 后的同一个产品。
+OPL App 复用 DSH/Cordis 的应用骨架和 GUI，通过 Studio 的标准 DSH 插件接入持久
+Codex App Server 与 Framework；这些内置插件目前随 App 一起交付。
 “Host 插件”“客户端插件”和“可独立安装的能力包”是不同的交付单位，不能从一个
 `packages/` 目录推断全部插件的位置或安装状态。
 
