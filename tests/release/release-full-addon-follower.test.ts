@@ -55,6 +55,9 @@ test('Full follower delegates desired-state reconciliation and at-most-once disp
   assert.match(actionSource, /scripts\/stable-release-dispatch\.ts "\$\{args\[@\]\}"/);
   assert.match(actionSource, /append-full/);
   assert.match(actionSource, /--source-run-id "\$SOURCE_RUN_ID"/);
+  assert.match(actionSource, /--app-ref "\$APP_REF"/);
+  assert.match(actionSource, /--shell-ref "\$SHELL_REF"/);
+  assert.match(actionSource, /--framework-ref "\$FRAMEWORK_REF"/);
   assert.match(actionSource, /--smoke-harness-ref "\$SMOKE_HARNESS_REF"/);
   assert.match(actionSource, /--execute/);
   assert.match(actionSource, /published\|owner_identified\|dispatched/);
