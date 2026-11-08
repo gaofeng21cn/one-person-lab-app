@@ -4830,8 +4830,8 @@
           "route_id": "capabilities",
           "route_scope": "ordinary",
           "visibility": "top_level_navigation",
-          "label_en": "Agents & Capabilities",
-          "label_zh": "智能体与能力",
+          "label_en": "Extensions & Apps",
+          "label_zh": "扩展与应用",
           "scope": "user",
           "intent": "manage",
           "risk": "reversible",
@@ -4913,8 +4913,8 @@
           "id": "capabilities",
           "group_id": "agents_capabilities",
           "route_id": "capabilities",
-          "label_zh": "扩展与应用",
-          "label_en": "Extensions & Apps"
+          "label_zh": "全部扩展",
+          "label_en": "All extensions"
         },
         {
           "id": "agents",
@@ -5586,8 +5586,8 @@
       },
       {
         "id": "agents_capabilities",
-        "label_zh": "智能体与能力",
-        "label_en": "Agents & Capabilities",
+        "label_zh": "扩展与应用",
+        "label_en": "Extensions & Apps",
         "role": "agent_package_capability_and_instruction_management",
         "ordinary_entries": [
           "settings_agents",

@@ -33,8 +33,8 @@ export const appOwnedSettingsNavigationGroupLabels = {
   },
   workspace: { label_zh: "工作区", label_en: "Workspace" },
   agents_capabilities: {
-    label_zh: "智能体与能力",
-    label_en: "Agents & Capabilities",
+    label_zh: "扩展与应用",
+    label_en: "Extensions & Apps",
   },
   runtime_maintenance: {
     label_zh: "运行与维护",

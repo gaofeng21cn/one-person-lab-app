@@ -105,7 +105,7 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
       "模型",
       "工作区",
       "智能体",
-      "能力",
+      "扩展与应用",
       "资源与连接",
       "维护",
       "数据与存储",
@@ -131,8 +131,8 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
       "resources_connections",
       "working_directory",
       "data_storage",
-      "agents",
       "capabilities",
+      "agents",
       "instructions_context",
       "runtime_services",
       "updates_repairs",
@@ -390,7 +390,9 @@ test("Settings binds the five current standard Agents to the Official Profile wi
     ownership.agents.catalog_partition_policy.app_owned_package_id_allowlist_allowed,
     false,
   );
-  assert.deepStrictEqual(ownership.capabilities.entity_kinds.slice(0, 4), [
+  assert.deepStrictEqual(ownership.capabilities.entity_kinds.slice(0, 6), [
+    "standard_agent",
+    "workflow_profile",
     "capability_package",
     "skill",
     "plugin",

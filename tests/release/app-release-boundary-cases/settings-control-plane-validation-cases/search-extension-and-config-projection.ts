@@ -57,6 +57,8 @@ test("Settings Capabilities owns local MCP, image, and voice controls without Pr
   assert.doesNotThrow(() => validate(values));
   assert.doesNotThrow(() => validateGui(values.guiContract));
   assert.deepStrictEqual(values.guiContract.pages.settings_capabilities.entity_kinds, [
+    "standard_agent",
+    "workflow_profile",
     "capability_package",
     "skill",
     "plugin",

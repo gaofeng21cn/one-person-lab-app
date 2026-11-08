@@ -127,7 +127,7 @@ into one long page.
 | 账户与模型 | 账户与访问；模型 | `gateway`; `access` |
 | 连接与部署 | 资源与连接 | `resources` |
 | 工作区 | 工作目录；数据与存储 | `workspace#current-workspace`; `storage` |
-| 智能体与能力 | 扩展与应用；智能体；指令与上下文 | `capabilities`; `agents`; `workspace#personalization` |
+| 扩展与应用 | 全部扩展；智能体；指令与上下文 | `capabilities`; `agents`; `workspace#personalization` |
 | 运行与维护 | 服务状态；更新与修复；日志与诊断 | `environment#services`; `environment#updates`; `environment#diagnostics` |
 | 偏好 | 偏好 | `appearance` |
 
@@ -198,7 +198,7 @@ and a path shown in diagnostics is not a second path configuration.
 
 “扩展与应用”是全部动态 Package 的统一安装、管理、升级与状态入口，默认显示所有来源，
 包括私有和本地包。每项显示名称、版本、来源、安装状态与 Framework 提供的操作。
-“智能体”复用同一目录的筛选视图，不形成另一套管理系统。
+页内“全部扩展”和“智能体”分别是同一目录的全部项目与智能体筛选视图；页面和主导航保持“扩展与应用”。
 
 安装与 OPL App 使用是两个独立选择。“在 OPL App 中启用”默认开启；用户关闭后，
 Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的页面、导航和其他界面入口。
@@ -208,6 +208,13 @@ Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的
 包提供的设置和状态统一放在该包的展开详情中，只有包已在 App 中启用且详情展开时读取。
 “服务状态”只保留 Codex、任务处理和定时等基础运行条件；“资源与连接”保留其自身配置。
 所有安装、更新、修复和 App 开关都经现有 Framework 投影与 App action 执行，不维护额外注册表。
+
+列表直接提供“在 OPL App 中启用”开关；安装状态、已安装版本与来源保持可见，关闭后仍能在目录中找到并重新启用。
+普通可用包不在列表主动作位置重复显示“更新”；更新和修复保留在展开详情，没有新版本证据时不暗示存在待更新项。
+目录数量只在筛选结果摘要中出现一次。页头说明只解释本页用途；开关说明只解释影响范围，不重复安装说明或内部机制。
+
+设置页统一使用一条阅读列、同一组标题层级、对齐的设置行、控件与状态样式。每项主动作贴近对象，
+成功或失败反馈紧邻操作区域；技术字段和完整回执放入显式展开详情。
 
 ## Visual Contract
 

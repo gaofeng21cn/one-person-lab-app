@@ -931,8 +931,8 @@
       },
       {
         "id": "agents_capabilities",
-        "label_zh": "智能体与能力",
-        "label_en": "Agents & Capabilities",
+        "label_zh": "扩展与应用",
+        "label_en": "Extensions & Apps",
         "default_destination_id": "capabilities",
         "destination_ids": [
           "capabilities",
@@ -1009,8 +1009,8 @@
         "id": "capabilities",
         "owner_group_id": "agents_capabilities",
         "route_id": "capabilities",
-        "label_zh": "扩展与应用",
-        "label_en": "Extensions & Apps"
+        "label_zh": "全部扩展",
+        "label_en": "All extensions"
       },
       {
         "id": "agents",
