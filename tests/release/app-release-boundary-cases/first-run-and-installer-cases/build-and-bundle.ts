@@ -134,11 +134,12 @@ test("App product profile check verifies the deterministic compatibility project
     writeFile(
       policyPath,
       JSON.stringify({
-        schema: "opl_flow_workflow_policy.v2",
+        schema: "opl_flow_workflow_policy.v4",
         package: { id: "opl-flow" },
         provides: [],
         requires: [],
-        recommends: [],
+        experience_baseline: [],
+        capability_bundles: [],
         compatible_optional: [],
       }),
     );

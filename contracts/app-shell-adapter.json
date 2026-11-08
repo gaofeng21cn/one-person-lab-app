@@ -6,6 +6,31 @@
   "app_repo": "gaofeng21cn/one-person-lab-app",
   "shell_root": "shells/opl-studio",
   "runtime_bridge_contract": "contracts/app-runtime-bridge.json",
+  "scheduled_tasks_adapter": {
+    "product_policy_ref": "contracts/app-gui-product-contract.json#scheduled_tasks_policy",
+    "owner": "OPL Framework",
+    "service_id": "opl-workbench-services",
+    "schema_version": "opl-workbench-services.v1",
+    "scheduler_authority": "framework_temporal_schedule_and_history",
+    "state_path": "workbench_services.tasks",
+    "read_refs": {
+      "list": "workbench#tasks",
+      "history": "workbench#history"
+    },
+    "action_refs": {
+      "create": "workbench#task_create",
+      "update": "workbench#task_update",
+      "delete": "workbench#task_delete",
+      "run_now": "workbench#task_run",
+      "pause": "workbench#task_pause",
+      "resume": "workbench#task_resume"
+    },
+    "framework_export": "startCordisWorkbenchServicesHost",
+    "executor_bridge": "createWorkbenchTaskExecutor",
+    "executor_owner": "opl-codex-native",
+    "runtime_availability": "workbench_services.tasks.status",
+    "implementation_status": "source_implemented_release_qualification_separate"
+  },
   "codex_executable_contract": {
     "resolver_env": "OPL_CODEX_BIN",
     "protocol": "codex_app_server_stdio",

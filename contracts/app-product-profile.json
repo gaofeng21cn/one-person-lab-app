@@ -498,8 +498,8 @@
         {
           "feature_id": "B0-12",
           "capability_id": "background_turn_continuity_notifications_and_scheduled_tasks",
-          "owner": "codex_app_server_and_single_canonical_scheduler",
-          "disposition": "mixed",
+          "owner": "codex_app_server_and_framework_temporal",
+          "disposition": "required",
           "cutover_blocking": true,
           "components": [
             {
@@ -514,9 +514,10 @@
             },
             {
               "id": "scheduled_tasks_cron",
-              "disposition": "deferred",
-              "cutover_blocking": false,
-              "deferral_boundary": "deferred_from_initial_studio_functional_baseline_without_adding_a_second_scheduler_or_store"
+              "disposition": "required",
+              "cutover_blocking": true,
+              "implementation_status": "source_implemented_release_qualification_separate",
+              "adapter_contract_ref": "contracts/app-shell-adapter.json#scheduled_tasks_adapter"
             }
           ]
         },
@@ -7114,12 +7115,14 @@
       "cron_skill_packaged": false,
       "exposure": "automation_page_and_task_routing",
       "product_policy_ref": "contracts/app-gui-product-contract.json#scheduled_tasks_policy",
+      "active_adapter_contract_ref": "contracts/app-shell-adapter.json#scheduled_tasks_adapter",
       "route": "/scheduled",
-      "scheduler_authority": "active_carrier_native_scheduler_and_store",
+      "scheduler_authority": "framework_temporal_schedule_and_history",
       "single_scheduler_store_required": true,
       "ordinary_sider_entry_visible": true,
       "executor": "codex_cli",
-      "executor_selector_visible": false
+      "executor_selector_visible": false,
+      "implementation_status": "source_implemented_release_qualification_separate"
     },
     "domain_plugin_skills_must_not_be_companion_mirrors": true,
     "class": "opl_base_integrations",

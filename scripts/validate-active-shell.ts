@@ -14,6 +14,7 @@ import { validateFirstRunMatrix } from './validate-active-shell/first-run-matrix
 import { validateFirstRunCompiledExpectations } from './validate-active-shell/first-run-expectation-contract-validator.ts';
 import { validateInstallExposurePolicy } from './validate-active-shell/install-exposure-policy-validator.ts';
 import { validatePageStateMatrix } from './validate-active-shell/page-state-matrix-validator.ts';
+import { validateScheduledTasksAdapter } from './validate-active-shell/scheduled-tasks-policy-validator.ts';
 import { validateProductProfile } from './validate-active-shell/product-profile-validator.ts';
 import { validateRemoteCompanionContract } from './validate-active-shell/remote-companion-validator.ts';
 import { validateReleaseChannelContract } from './validate-active-shell/release-contract-validator.ts';
@@ -62,6 +63,7 @@ const productProfile = readJson(productProfilePath);
 const remoteCompanion = readJson(remoteCompanionPath);
 
 validateContractShape(contract);
+validateScheduledTasksAdapter(contract, guiProductContract.scheduled_tasks_policy);
 validateRuntimeBridgeContract(runtimeBridge, contract);
 validateRemoteCompanionContract(remoteCompanion);
 validateInstallExposurePolicy(installExposurePolicy);

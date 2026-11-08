@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  validateScheduledTasksAionuiAdapter,
+  validateScheduledTasksAdapter,
   validateScheduledTasksPageContract,
   validateScheduledTasksPageState,
   validateScheduledTasksProductPolicy,
@@ -18,7 +18,7 @@ function readContracts() {
     gui: readJson('contracts/app-gui-product-contract.json'),
     matrix: readJson('contracts/app-page-state-matrix.json'),
     profile: readJson('contracts/app-product-profile.json'),
-    adapter: readJson('contracts/shell-adapters/aionui.json'),
+    adapter: readJson('contracts/app-shell-adapter.json'),
   };
 }
 
@@ -31,8 +31,20 @@ test('Scheduled Tasks contracts share one fail-open fixed-Codex composition', ()
   assert.doesNotThrow(() => validateScheduledTasksPageState(pageState, gui.scheduled_tasks_policy));
   assert.doesNotThrow(() => validateScheduledTasksProfileProjection(profile.companion_payloads.native_automation));
   assert.doesNotThrow(() =>
-    validateScheduledTasksAionuiAdapter(adapter.upstream_intake.managed_agent_api_contract.write_contracts.cron),
+    validateScheduledTasksAdapter(adapter, gui.scheduled_tasks_policy),
   );
+  assert.doesNotThrow(() =>
+    validateScheduledTasksAdapter(readJson('contracts/shell-adapters/opl-studio.json'), gui.scheduled_tasks_policy),
+  );
+});
+
+test('Scheduled Tasks rejects a missing active adapter fragment and obsolete references', () => {
+  const { adapter, gui } = readContracts();
+  delete adapter.scheduled_tasks_adapter;
+  assert.throws(() => validateScheduledTasksAdapter(adapter, gui.scheduled_tasks_policy), /reference does not resolve/);
+  gui.scheduled_tasks_policy.active_adapter_contract_ref =
+    'contracts/app-shell-adapter.json#upstream_intake.managed_agent_api_contract.write_contracts.cron';
+  assert.throws(() => validateScheduledTasksAdapter(adapter, gui.scheduled_tasks_policy), /active Studio product contract/);
 });
 
 test('Scheduled Tasks product policy rejects an executor selector or a second scheduler', () => {
@@ -46,21 +58,21 @@ test('Scheduled Tasks product policy rejects an executor selector or a second sc
   assert.throws(() => validateScheduledTasksProductPolicy(secondStore), /Scheduled Tasks product policy/);
 });
 
-test('Scheduled Tasks page state keeps assistant discovery failures local', () => {
+test('Scheduled Tasks page state keeps service failures local', () => {
   const { gui, matrix } = readContracts();
   const page = structuredClone(matrix.pages.find((entry) => entry.id === 'scheduled_tasks'));
-  page.scheduled_tasks_view_model.existing_task_management_remains_available = false;
+  page.scheduled_tasks_view_model.ordinary_app_remains_available = false;
   assert.throws(
     () => validateScheduledTasksPageState(page, gui.scheduled_tasks_policy),
     /Scheduled Tasks page-state view model/,
   );
 });
 
-test('Scheduled Tasks adapter preserves legacy executor identity', () => {
-  const { adapter } = readContracts();
-  const cron = structuredClone(adapter.upstream_intake.managed_agent_api_contract.write_contracts.cron);
-  cron.legacy_non_codex_job_policy.silent_migration_allowed = true;
-  assert.throws(() => validateScheduledTasksAionuiAdapter(cron), /AionUI Scheduled Tasks adapter/);
+test('Scheduled Tasks adapter rejects the retired AionUI contract shape', () => {
+  const { adapter, gui } = readContracts();
+  const current = structuredClone(adapter);
+  current.scheduled_tasks_adapter.owner = 'AionUI';
+  assert.throws(() => validateScheduledTasksAdapter(current, gui.scheduled_tasks_policy), /Scheduled Tasks adapter/);
 });
 
 test('Scheduled Tasks profile keeps the ordinary route on fixed Codex', () => {

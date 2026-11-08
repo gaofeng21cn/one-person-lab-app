@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { assertDeepEqualJson } from '../assertions.ts';
-import { validateScheduledTasksAionuiAdapter } from '../scheduled-tasks-policy-validator.ts';
 
 const REQUIRED_MANAGED_AGENT_NODE_TESTS = [
   'tests/unit/common-adapter/ipcBridgeAgents.test.ts',
@@ -271,7 +270,6 @@ export function validateManagedAgentApiCompatibility(rootContract, shellPaths, o
     REQUIRED_MANAGED_AGENT_API_CONTRACT,
     'Active shell managed-agent API compatibility contract',
   );
-  validateScheduledTasksAionuiAdapter(contract.write_contracts.cron);
 
   const surfaces = contract.implementation_surfaces;
   const requiredSourcePaths = Object.entries(surfaces).flatMap(([key, value]) => {

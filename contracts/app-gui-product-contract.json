@@ -3392,59 +3392,52 @@
     "feature_id": "B0-12",
     "product_role": "ordinary_scheduled_codex_tasks",
     "route": "/scheduled",
-    "scheduler_authority": "active_carrier_native_scheduler_and_store",
+    "scheduler_authority": "framework_temporal_schedule_and_history",
     "single_scheduler_store_required": true,
-    "active_aionui_contract_ref": "contracts/app-shell-adapter.json#upstream_intake.managed_agent_api_contract.write_contracts.cron",
+    "active_adapter_contract_ref": "contracts/app-shell-adapter.json#scheduled_tasks_adapter",
     "navigation": {
       "ordinary_sider_entry_visible": true,
       "placement": "primary_navigation_between_runtime_and_archived",
-      "job_section_visible_when_non_empty": true
+      "primary_view": "schedules"
     },
     "capabilities": [
       "list",
-      "get",
       "create",
       "update",
       "delete",
       "run_now",
       "pause",
       "resume",
-      "history",
-      "timezone_repair"
+      "history"
     ],
     "executor_composition": {
       "executor": "codex_cli",
       "executor_selector_visible": false,
-      "executor_identity_source": "active_carrier_canonical_runnable_codex_identity",
-      "executor_identity_requirements": [
-        "canonical",
-        "enabled",
-        "runnable",
-        "codex_cli"
-      ],
-      "candidate_cardinality": "exactly_one",
-      "unavailable_policy": "disable_new_task_create_and_codex_executor_save_only_with_inline_guidance",
-      "existing_task_management_remains_available": true,
+      "executor_identity_source": "opl_codex_native_canonical_app_server_transport",
+      "unavailable_policy": "scheduled_tasks_local_error_with_recovery_guidance",
       "ordinary_app_remains_available": true
     },
-    "legacy_non_codex_job_policy": {
-      "visible": true,
-      "run_now_allowed": true,
-      "pause_resume_allowed": true,
-      "delete_allowed": true,
-      "editable_fields": [
-        "schedule",
-        "prompt"
+    "execution_policy": {
+      "app_must_remain_running": true,
+      "schedule_kinds": [
+        "once",
+        "daily",
+        "weekly",
+        "interval"
       ],
-      "preserve_existing_agent_config": true,
-      "executor_mutation_allowed": false,
-      "silent_migration_allowed": false
+      "timezone": "explicit_iana_timezone_on_write",
+      "permissions": [
+        ":read-only",
+        ":workspace"
+      ],
+      "write_confirmation": "framework_preview_then_explicit_confirm",
+      "overlap_policy": "skip",
+      "late_start_limit_minutes": 5
     },
     "forbidden_implementation_layers": [
       "second_scheduler",
       "second_task_store",
-      "scheduler_migration_ledger",
-      "scheduler_receipt_or_pending_state_machine"
+      "scheduler_migration_ledger"
     ],
     "evidence_axes": {
       "contract_implies_source": false,
@@ -6523,24 +6516,26 @@
       }
     },
     "scheduled_tasks": {
-      "state_source": "active_carrier_native_scheduler_projection",
-      "action_source": "active_carrier_native_scheduler_actions",
+      "state_source": "framework_workbench_services_tasks_and_history",
+      "action_source": "framework_workbench_services_task_actions",
       "policy_ref": "scheduled_tasks_policy",
       "route": "/scheduled",
       "page_kind": "ordinary_product_page",
       "ia_group": "automation",
       "must_show": [
         "ordinary Sider entry",
-        "scheduled task list and detail",
-        "create, update, delete, run now, pause, resume, history, and timezone behavior from the active carrier scheduler",
-        "fixed Codex executor composition for new scheduled tasks",
-        "legacy non-Codex tasks without silent executor migration"
+        "scheduled task list and inline detail",
+        "create, update, delete, run now, pause, resume, and execution history",
+        "fixed canonical Codex executor",
+        "explicit timezone, permissions, timeout, and App-running requirement",
+        "preview and confirmation before task changes",
+        "local service errors with recovery guidance"
       ],
       "must_not_show": [
         "executor selector for new OPL scheduled tasks",
         "second scheduler or task store",
-        "global App blocking when the Codex scheduled-task assistant is missing or ambiguous",
-        "receipt, pending, or migration ledger invented by the App"
+        "global App blocking when scheduled-task services are unavailable",
+        "legacy AionUI assistant discovery or cron-store management"
       ]
     },
     "ordinary_conversation": {

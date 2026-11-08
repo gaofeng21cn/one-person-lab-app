@@ -19,7 +19,7 @@ import type {
 
 const readJson = <T>(relativePath: string): T => JSON.parse(fs.readFileSync(relativePath, 'utf8')) as T;
 
-test('Studio minimum-complete baseline keeps core switching outcomes and explicitly defers the dedicated Git workbench and Cron', () => {
+test('Studio minimum-complete baseline keeps core switching outcomes and requires implemented Scheduled Tasks and defers the dedicated Git workbench', () => {
   const profile = readJson<any>('contracts/app-product-profile.json');
   const baseline = profile.delivery_topology.minimum_complete_product;
   assert.doesNotThrow(() => validateMinimumCompleteProductContract(baseline));

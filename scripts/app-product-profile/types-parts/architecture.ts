@@ -290,6 +290,8 @@ export type AppDeliveryTopology = {
         disposition: 'required' | 'deferred';
         cutover_blocking: boolean;
         deferral_boundary?: string;
+        implementation_status?: string;
+        adapter_contract_ref?: string;
       }>;
     }>;
     required_user_outcomes: string[];

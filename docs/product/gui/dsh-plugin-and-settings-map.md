@@ -119,9 +119,11 @@ RC2 release notes 明确新增/调整了插件管理页 Auto Review、快捷键�
 | `opl-dsh-tool-mcp` | DSH `ctx.tools` 到 Codex 的认证桥、取消和动态 `tools/list_changed` | 无用户设置；技术诊断只读显示。 |
 | `opl-host-core` / `opl-web-routes` | Desktop、standalone WebUI、Docker 的共用 host 与路由 | 运行与维护；载体绑定属于部署/安装合同，不在普通 Settings 改写。 |
 | `opl-studio-client` 与 contribution slots | 项目/任务进度、文件与结果、智能体与能力详情、Settings 投影 | 右侧 inspector 和 Settings > 智能体与能力/连接与部署。 |
-| `opl-workbench-services`（Framework plugin） | 计划任务、执行历史、Memory 纠错建议、存储盘点与清理 | Settings > 运行与维护 > 服务状态；工作区 > 数据与存储；智能体与能力 > 指令与上下文。 |
+| `opl-workbench-services`（Framework plugin） | 计划任务、执行历史、Memory 纠错建议、存储盘点与清理 | 侧栏计划任务；Settings > 运行与维护 > 服务状态、工作区 > 数据与存储、智能体与能力 > 指令与上下文。 |
 | DSH `ui-sidebar-documentpreview` 官方来源 | 当前复用其 DSH Markdown primitive；HTML、图片、普通文本由 OPL 适配器呈现 | 文件路径和字节读取继续由 canonical workspace bridge 校验；完整官方插件与 Office/Excel/PDF 需官方 Remote/运行时接入后启用。 |
 | `dsh-settings-search` 1.2.0 | 本地设置搜索、结果定位、方向键/Enter/Escape 交互 | Settings 全局唯一搜索框；搜索不创建第二份设置模型。 |
+
+计划任务由 Framework 的现有 Temporal Schedule 和 workflow history 持有，Studio 通过 `opl-workbench-services` 读取任务与历史、预览并确认管理操作，使用当前 canonical Codex App Server 执行。`/scheduled` 指向侧栏计划任务页；任务可设单次、每天、每周或固定间隔，写入明确时区、权限和超时。App 须保持运行，重叠执行及启动延迟超过五分钟的执行跳过。源码实现与实际发布、安装验收分别记录，不以合同或源码状态替代安装后的服务回读。
 
 ## 4. 设置整合规则
 

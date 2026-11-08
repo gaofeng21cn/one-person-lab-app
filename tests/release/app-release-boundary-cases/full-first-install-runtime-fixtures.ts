@@ -431,7 +431,7 @@ export function createFullRuntimeFixture() {
     skills: "./skills/",
   });
   writeJson(path.join(oplFlowRoot, "contracts", "workflow-policy.json"), {
-    schema: "opl_flow_workflow_policy.v3",
+    schema: "opl_flow_workflow_policy.v4",
     package: { id: "opl-flow" },
     provides: [],
     requires: [
@@ -442,7 +442,8 @@ export function createFullRuntimeFixture() {
         source_path: "agent_reach/skill",
       },
     ],
-    recommends: [],
+    experience_baseline: [],
+    capability_bundles: [],
     compatible_optional: [],
   });
   writeFile(path.join(oplFlowRoot, "templates", "AGENTS.md"), "# OPL Flow fixture\n");

@@ -46,7 +46,8 @@ type MinimumCompleteFeature = {
     id?: string;
     disposition?: string;
     cutover_blocking?: boolean;
-    deferral_boundary?: string;
+    implementation_status?: string;
+    adapter_contract_ref?: string;
   }>;
 };
 
@@ -142,23 +143,24 @@ export function validateMinimumCompleteProductContract(minimumProduct: MinimumCo
     const components = feature.components ?? [];
     const componentIds = components.map((component) => component.id);
     if (
-      feature.disposition !== 'mixed' ||
+      feature.disposition !== 'required' ||
       JSON.stringify(componentIds) !== JSON.stringify([
         'background_turn_continuity',
         'completion_notification',
         'scheduled_tasks_cron',
       ])
     ) {
-      throw new Error('B0-12 must separate required background continuity and notification from deferred Scheduled Tasks/Cron');
+      throw new Error('B0-12 must require background continuity, notification, and Scheduled Tasks');
     }
     for (const component of components) {
       if (component.id === 'scheduled_tasks_cron') {
         if (
-          component.disposition !== 'deferred' ||
-          component.cutover_blocking !== false ||
-          !component.deferral_boundary?.trim()
+          component.disposition !== 'required' ||
+          component.cutover_blocking !== true ||
+          component.implementation_status !== 'source_implemented_release_qualification_separate' ||
+          component.adapter_contract_ref !== 'contracts/app-shell-adapter.json#scheduled_tasks_adapter'
         ) {
-          throw new Error('scheduled_tasks_cron is the only allowed non-blocking deferred component');
+          throw new Error('scheduled_tasks_cron must use the current adapter with separate release qualification');
         }
       } else if (component.disposition !== 'required' || component.cutover_blocking !== true) {
         throw new Error(`${component.id} must remain required and cutover-blocking`);
