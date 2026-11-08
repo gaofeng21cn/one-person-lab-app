@@ -437,6 +437,25 @@ test('successful Standard run continues directly into Full instead of closing th
   assert.match(status.next_action.reason, /contract-defined Full path/);
 });
 
+test('successful Nightly runs do not inherit the Stable Full follow-up from a Standard title', () => {
+  for (const path of [
+    '.github/workflows/release-nightly.yml',
+    '.github/workflows/release-nightly-followups.yml@refs/heads/main',
+  ]) {
+    const status = buildReleaseIncidentStatus({
+      run: run({ name: 'OPL Standard Nightly (scheduled-production)', path, status: 'completed', conclusion: 'success' }),
+      jobs: { jobs: [completedJob(60, 'Qualify assets and publish immutable prerelease')] },
+      artifacts: { artifacts: [] },
+      now: '2026-08-22T00:30:00Z',
+    });
+
+    assert.equal(status.run.operation, 'nightly');
+    assert.equal(status.next_action.code, 'complete');
+    assert.doesNotMatch(status.next_action.reason, /Full/);
+    assert.equal(status.authority.dispatch_allowed, false);
+  }
+});
+
 test('successful Preview VM run reports both profiles without proposing another Full dispatch', () => {
   const status = buildReleaseIncidentStatus({
     run: run({

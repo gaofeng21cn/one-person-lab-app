@@ -538,6 +538,8 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
   const workflowPath = stringField(run, 'path', 'workflowName', 'workflow_name') ?? '';
   const operation = /(?:^|\/)opl-studio-preview-vm\.yml(?:@|$)/i.test(workflowPath)
     ? 'studio_preview_vm'
+    : /(?:^|\/)release-nightly(?:-followups)?\.yml(?:@|$)/i.test(workflowPath)
+      ? 'nightly'
     : /append[_ -]?full/i.test(runLabel)
     ? 'append_full'
     : /resume[_ -]?standard/i.test(runLabel)
