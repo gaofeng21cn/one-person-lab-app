@@ -197,6 +197,28 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
   领域后端、审批记录或独立 App。专用 MCP UI 超出共享视图能力时保留模块自己的 UI。
   选型与复用规范见 [Framework MCP Apps](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/mcp-apps/SPEC.md)，
   OMA 在设计与评估阶段应用这一规范。模块标准化不改变仓库或源码归档的公开范围。
+- Mini App 的产品行为以 `app-gui-product-contract.json#mcp_app_host_policy` 为准。
+  共享声明式视图、专用 MCP App 和 owner 专业应用可以组合使用：进度、产物、列表与审阅
+  优先共用组件，邮件编辑、媒体审看等采用专业布局，高频创作和设备操作保留已有应用。
+  Agent 工具与人类界面调用同一个 owner 操作，携带同一项目、任务与产物身份。
+  已知 workspace/task 自动提供读取上下文；存在歧义时让用户选择业务对象，不猜测文件。
+- 工作台默认呈现当前工作、可用产物、待决定事项和下一可用动作。长任务沿现有
+  Task/StageRun/provider 执行，界面只持有可重新打开的任务引用；关闭或刷新页面不重跑、
+  不取消任务。质量待办与执行进度分别显示，可用中间产物随时可读。
+  Shell 只投影当前允许的动作，领域确认与 revision 由实际 owner 执行。
+- Studio 向共享与专用 MCP App 提供主题、语言、尺寸与展开模式；领域页面消费宿主
+  上下文并保留专业布局。选择内容更新当前对话上下文，准备输入草稿与真正发起任务
+  是两个独立操作，打开应用不能隐式发送草稿。
+- 连接选择、授权状态和调用走 OPL Connect 的公开能力。只有宿主能依据已验证的
+  installed Package 身份建立调用绑定；页面传入的 `consumer_id` 不构成身份。
+  未建立真实绑定时不暴露占位连接 API。凭据保存、续期和领域副作用仍由 provider/carrier
+  owner 管理，Mini App 不接收秘密，也不维护第二套授权状态。
+
+上述条目定义产品目标与实现边界。具体交付覆盖由 Shell 源码、
+[conformance](shell-conformance-matrix.md) 和对应载体验收说明；共享实施断点与顺序由
+[Framework active gap](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/active/current-state-vs-ideal-gap.md)
+归口，合同更新本身不表示每个领域页面已接入。
+
 - Package contribution 数据读取可调用 Framework-owned `opl app contribution read`，但必须验证
   `opl_app_contribution` 包络、`opl_app_package_contribution.v1` surface、当前
   Package/ref/operation identity、`opl-package-app-contribution-response.v1`、`ok=true` 和

@@ -235,7 +235,7 @@
     "connection_owner": "opl-codex-native_existing_thread_mcp_connections",
     "ui_host": "official_mcp_apps_sdk_in_dsh_capability_workspace",
     "dsh_plugin": "@one-person-lab/opl-mcp-apps",
-    "task_workbench": "shared_ui_resource_for_progress_domain_views_evidence_and_human_decisions",
+    "task_workbench": "shared_ui_resource_for_progress_available_artifacts_current_actions_and_domain_decisions",
     "task_identity": "canonical_item_id_and_exact_domain_work_item_binding",
     "summary_owner": "studio_cross_agent_overview_and_compact_stage_summary",
     "detail_owner": "framework_shared_mcp_app_with_domain_owned_payloads",
@@ -244,6 +244,41 @@
     "tools": "only_tools_from_bound_server_with_app_visibility_preserve_codex_approvals_and_owner_authorization",
     "initial_open": "read_only_declared_ui_tool; never_replay_a_completed_mutation_to_render",
     "context": "view_context_is_untrusted_thread_scoped_input_for_next_user_turn; ui_message_prepares_reviewable_composer_text",
+    "shared_application_model": {
+      "specification_owner": "one-person-lab/docs/mcp-apps/SPEC.md",
+      "presentation_forms": [
+        "shared_declarative_view",
+        "dedicated_mcp_app",
+        "owner_professional_application"
+      ],
+      "presentation_selection": "declared_capability_and_owner_schema_not_package_or_agent_name",
+      "business_operations": "agent_tools_and_human_views_call_the_same_owner",
+      "identity": "registered_workspace_canonical_work_item_and_owner_artifact_reference",
+      "shared_components": ["progress", "artifact", "review", "list_detail", "action_feedback"],
+      "domain_editor_and_quality_verdict_owner": "domain_package",
+      "host_context": ["theme", "locale", "viewport", "display_mode"],
+      "host_context_policy": "shared_and_dedicated_views_consume_host_context_without_replacing_domain_layout",
+      "new_registry_session_queue_or_credential_store_allowed": false
+    },
+    "workbench_interaction": {
+      "default_content": ["current_work", "available_output", "pending_decisions", "next_available_action"],
+      "input_context": "reuse_exact_task_and_registered_workspace; ask_only_for_missing_or_ambiguous_owner_input",
+      "action_source": "currently_available_canonical_app_actions_and_declared_package_actions",
+      "short_operation": "owner_result_then_owner_readback",
+      "long_operation": "existing_task_stage_run_and_provider_execution_with_durable_identity",
+      "page_close_or_refresh_may_restart_or_cancel_work": false,
+      "quality_debt": "visible_separately_from_execution_progress_without_new_generic_startup_gates",
+      "unknown_dispatch_outcome": "owner_readback_before_retry",
+      "composer_draft_is_execution_authorization": false
+    },
+    "connection_capability": {
+      "owner": "opl_connect_framework_public_contract",
+      "binding": "host_verified_installed_package_identity",
+      "ui_supplied_consumer_identity_allowed": false,
+      "ui_receives": "connection_references_authorization_status_and_owner_operation_results",
+      "credential_storage_and_renewal_owner": "provider_or_native_carrier",
+      "availability": "expose_only_when_the_host_has_a_verified_package_binding_and_current_public_capability"
+    },
     "lifecycle": "close_bridge_and_release_host_binding_on_view_or_thread_change",
     "fallback": "retain_typed_package_views_and_explicit_browser_workbench_when_native_resource_unavailable",
     "acceptance": "shared_opl_view_and_relay_dedicated_ui_real_host_rendering_and_synthetic_action_roundtrip"
