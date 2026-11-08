@@ -9,7 +9,7 @@ Scope: DeepSeek Harness `dsh-v0.2.1-rc.2` (`687f282e8625c6b8d11ff58211a90524be2e
 ## 工程原则与升级边界
 
 选择 DSH 的工程目标是复用其插件化应用框架，让 OPL 的上层能力可以通过标准扩展点
-开发、组合和管理，并随 DSH 升级持续维护。此原则覆盖已实现能力，也覆盖正在开发的
+开发、组合和管理，并随 DSH 升级持续维护。**DSH 原生插件化与持续升级能力，是 OPL App 的工程约束。**此原则覆盖已实现能力，也覆盖正在开发的
 Mini App、统一连接授权、设置与后续领域功能。产品定制应集中在 OPL 插件、配置和
 必要的 owner 适配中；DSH 的通用机制继续由上游维护。
 
@@ -32,21 +32,25 @@ App 的 contribution schema、Framework state/action 和 Connect 授权合同描
 不为此新增平行 registry、版本兼容矩阵或审批流程。上游补齐等价能力后，在同一改动中
 迁移调用者并删除被替代实现。判断依据是接口、生命周期和实际行为，不是包名相似。
 
-当前 Host 使用官方 boot/profile 与 Cordis 插件机制；客户端仍有需要随升级复核的
-适配：`OplStudioDshSlotHost` 对 `SlotRendererHost` 的部分服务采用空实现，
-`mountSettingsSearch` 以手工 context 调用社区插件 `apply()`，设置导航还有构建期
-`dsh-settings-navigation-overlay.mjs`。这些是有限兼容边界，不是完整 DSH 客户端
-服务的替代。扩展其依赖前，先核对能否由真实 Cordis service/context 或官方 slot
-承接；需要未提供服务的插件不得仅凭成功加载就被标为兼容。保留 Codex 线程归属
-所需的适配，也不得为获得通用客户端服务而引入第二套 DSH session authority。
+当前 Host 使用官方 boot/profile 与 Cordis 插件机制；客户端在同一 Cordis context
+中使用官方 `SlotRegistry` 管理 slots、store、factory、声明依赖和卸载，每个客户端
+实例独立。社区设置搜索通过真实 Cordis 依赖注入和生命周期装载；其搜索目录及语言
+只映射 App projection。设置导航与 `SettingsRoot` 共用官方 `createSettingsShellStore`
+和 actions，已删除手工 renderer host、模块级 singleton、假 session scope、手工
+`apply()` context 与构建期 settings navigation overlay。vendor 保持上游原始字节。
+Codex 仍持有线程和审批；官方 renderer 所需的 session scope 由当前 canonical
+线程投影提供，切换时销毁旧视图 fiber。新增 scoped hooks 继续接 canonical owner。
 
-升级继续使用 Studio 的 [既有维护入口](https://github.com/gaofeng21cn/opl-studio/blob/main/README.md#dsh-upstream-maintenance)：
-`dsh:status` 读取当前绑定，`dsh:preflight` 检查目标来源并给出重放计划；同次升级更新
-固定 npm cohort、source manifest、vendor 与 profile/overlay。按真实变化验证插件
-依赖注入、装载与释放、客户端 slots/设置、MCP/Codex 桥及相关 carrier，再执行既有
-candidate gates。vendor 字节一致、元数据版本范围或 preflight 成功各自只证明其
-对应边界；“容易跟随上游”意味着定制范围明确且可以重放验证，不承诺任意 DSH
-版本或插件自动兼容。发布与安装验收仍走原有 App 流程。
+升级使用 Studio 的 [既有维护入口](https://github.com/gaofeng21cn/opl-studio/blob/main/README.md#dsh-upstream-maintenance)：
+`dsh:status` 读取绑定，`dsh:preflight -- --source <checkout>` 从干净官方源码核对目标
+及实际 package cohort。选定目标并更新 source manifest、精确 npm cohort 和 lockfile 后，
+`dsh:replay -- --source <checkout>` 重放 vendor 并执行兼容检查；`dsh:verify` 只执行
+检查。命令核对实际安装版本、官方插件 metadata admission、Desktop/Web profile schema、
+真实 Host inventory/生命周期、客户端、MCP 与 candidate gates。当前内置插件的
+`engines.dsh` 与已验证的固定 cohort 一致。
+
+每次升级都重新核对可删除的适配，并验证相关 carrier。源码兼容验证不承诺任意 DSH
+版本或插件自动兼容；发布与安装验收继续走 App 原有流程。
 
 ## 0. 源码、安装位置与开发归口
 
@@ -138,7 +142,7 @@ RC2 官方包目录中与 OPL 产品最相关的插件分为四类：
 | 官方能力 | OPL 状态 | 原因/替代 |
 | --- | --- | --- |
 | MCP Apps UI host | **复用官方 MCP ext-apps SDK，适配 DSH slot** | 固定 DSH `0.2.1-rc.2` 与核对的 `dsh-v0.2.2-rc.1` 有 MCP client/tools/resources，尚无标准 UI 宿主；Studio 只增加临时 view binding 与 sandbox renderer。每次 DSH 升级重新核对，不另建 session/凭据 owner。 |
-| Plugin Manager / plugin settings | **吸收 UI 与设置流程，适配 owner action** | 安装、启用、版本、currentness 和 release 仍由 Framework/App Package owner 管理；DSH 管理页作为能力包管理界面，Settings > 智能体与能力显示动态 projection，动作走 App action。 |
+| Plugin Manager / plugin settings | **复用原生宿主机制，设置适配 owner action** | 安装、启用、版本、currentness 和 release 仍由 Framework/App Package owner 管理；App 能力包管理界面通过 DSH slots 呈现，Settings > 扩展与应用显示动态 projection，动作走 App action。 |
 | Session、Agent loop、LLM、Authorization/Credentials、Account | 屏蔽 | 持久会话和凭据分别归 `opl-codex-native`、Codex App Server 与 Gateway/Framework。不能把 DSH Settings 当第二套账户或 session store。 |
 | `dsh-schedule`、`ui-schedule`、jobs | **吸收 UI、重复规则和运行历史交互** | 官方执行端依赖 DSH root Agent/session 的部分由 OPL Framework/Temporal adapter 承接；入口仍归 Settings > 运行与维护 > 服务状态，用户获得完整的创建、编辑、暂停、恢复、历史和立即运行能力。 |
 | Time context | **吸收为可选设置** | 默认关闭；间隔、作用域和隐私说明进入 Settings > 智能体与能力 > 指令与上下文，实际注入接到 Codex/Framework owner，并提供 readback。 |
@@ -149,6 +153,28 @@ RC2 官方包目录中与 OPL 产品最相关的插件分为四类：
 | Web search/fetch、filesystem、sandbox | 只保留兼容边界 | DSH plugin 可注册 `ctx.tools` 时可被 MCP 暴露；权限、sandbox 和审批仍由 Codex/App Server owner。含 DSH session/agent/credential 依赖的插件不能原样装载。 |
 | UI theme、locale、model selection、workspace、files、attachments、subagent UI | 复用 UI 源码/原语 | UI 由 DSH 提供，状态与动作由 OPL App/Framework/Codex projection 提供。 |
 | experimental browser/computer use、agent team | **按能力包逐项吸收** | 只要能绑定 OPL 权限、审批、任务和 readback，就进入动态能力目录；必须明确实验状态、所需权限和安装动作。 |
+
+### App 集成面的工程归类
+
+以下归类覆盖本表全部能力。它决定 App 集成方式，功能可用性仍读取产品合同和对应
+owner 的当前 projection；“上游原生”不表示加载一整套带独立 authority 的后端。
+
+| 能力 | 工程归类 | App 实际接入与边界 |
+| --- | --- | --- |
+| Plugin Manager / plugin settings | OPL App 薄适配 | DSH npm/profile/inventory 管理宿主插件；业务能力包由 Framework projection/action 管理，设置展示共用官方 slots。 |
+| MCP Apps UI host | OPL App 薄适配 | 官方 MCP Apps SDK 接 DSH 工作台 slot；保持 Codex 连接、权限与线程归属，详见 Mini App owner 合同。 |
+| Shortcuts / Inspector | OPL App 薄适配 | 复用 DSH 界面和 slots 作为扩展面；现有快捷键绑定 App 动作，详情内容来自已有 typed projection，不增加调度或线程状态库。 |
+| Auto Review / Time context | OPL App 薄适配 | App 选项随 turn 交给 Codex approvalsReviewer，并可附加时间上下文；不加载 DSH agent-loop 的策略执行端。 |
+| Schedule / Jobs | OPL App 薄适配 | 已有计划任务 consumer 使用 Framework/Temporal 动作和历史；本次不另建执行器。 |
+| Voice input | OPL App 薄适配 | 已有 composer 与浏览器语音生命周期；识别结果进入当前线程草稿，设备/provider readiness 由对应 owner 提供。 |
+| Theme / locale / model selection / workspace / files / attachments / subagent UI | OPL App 薄适配 | 直接复用固定上游 GUI 与 primitive，数据/动作接 canonical owner；文件预览缺口由当前 Mini App owner 维护。 |
+| Web search/fetch、filesystem、sandbox | OPL App 薄适配 | 兼容的 DSH `ctx.tools` 通过现有 MCP 桥使用；Codex 执行权限与审批不复制到 App。 |
+| Browser/computer use、Agent team | 本期无新增 App 自有集成需求 | 现有原生 carrier 和能力包按动态 projection 展示；不为候选上游功能建立固定清单或重做执行后端。 |
+| Session、Agent loop、LLM、Authorization/Credentials、Account | 本期无 DSH 后端集成需求 | 对应能力已由 Codex/Gateway/Framework 提供；App 消费其合同，不装载竞争 authority。 |
+| Cordis boot/profile、插件 metadata/inventory、Client Modules、SlotRegistry、Settings store/actions | 直接使用上游原生能力 | 本次收敛的实际代码边界；生命周期、store/factory、设置搜索与导航纳入升级 replay/verify。 |
+
+此次逐项核对未发现需另建 App consumer 才能满足上述工程约束的能力；后续新增用户行为
+沿各 topic owner 合同推进，并沿用原生插件与升级验证路径。
 
 RC2 release notes 明确新增/调整了插件管理页 Auto Review、快捷键、时间上下文、计划任务、Inspector、语音引导和后台任务行为；这些都是“候选能力”，不是 OPL 已承诺的可用功能。
 
@@ -185,7 +211,7 @@ RC2 release notes 明确新增/调整了插件管理页 Auto Review、快捷键�
 
 DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础；可见层级由 App 的 `settings_navigation.settings_ia` 决定。新上游设置先进入 intake，分类为 `accepted`、`adapted`、`redirected` 或 `rejected`，之后才允许进入 registry/slot。隐藏入口不删除插件数据。
 
-当前稳定的用户层级为：概览；账户与模型；连接与部署；工作区；智能体与能力；运行与维护；偏好；底部关于。旧 carrier route 只作为兼容 transport，不反向决定用户看到的分类。
+当前稳定的用户层级为：概览；账户与模型；连接与访问；工作区；扩展与应用；运行与维护；偏好；底部关于。旧 carrier route 只作为兼容 transport，不反向决定用户看到的分类。
 
 ### 4.3 最低维护成本的新增设置流程
 

@@ -148,7 +148,7 @@ Studio 把 DSH 作为可跟随的 pinned upstream，而不是一次性复制。�
 1. 选择一个 exact upstream version 和 commit；禁止 floating branch、`latest` 或自动 promotion。
 2. 同步 DSH package cohort、Host profile/overlay 与选定 GUI source inventory。
 3. 重新生成 vendor manifest，区分 byte-identical source 与有真实 OPL caller 的最小外部 delta。
-4. 重放 OPL profile patches、Host plugins、Codex MCP bridge 和 Framework bridge。
+4. 使用 Studio `dsh:replay -- --source <checkout>` 重放选定源码并验证 profile、Host plugins、Codex MCP bridge 和 Framework bridge；`dsh:verify` 只检查，不重新生成 vendor。
 5. 运行 Host/MCP、renderer、Desktop/WebUI、candidate contract、license/notice 和 carrier gates。
 6. 若 Host service、authority 或 App ABI 发生变化，先更新 App machine contract，再吸收 Studio source。
 
@@ -160,7 +160,7 @@ adapter boundary 已失效，应重新做架构决策，而不是在 Studio 内�
 Repository relationship、candidate role 和 adoption 只维护在
 [Studio product boundary](opl-studio-plan.md)，本地选择和命令见
 [Shell candidates](gui-shell-candidates.md)。本架构允许 Studio 独立 Application Host，
-但不据此改变 AionUI active-shell 或声明任何 carrier 已发布。
+当前 active-shell 是 Studio；源码兼容检查不代表任何 carrier 已发布。
 
 ## Canonical References
 
