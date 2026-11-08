@@ -622,3 +622,42 @@ test("Settings keeps Gateway ownership, cached storage freshness, managed depend
     /Settings page-state startup performance policy/,
   );
 });
+
+test("Resources keeps redacted Connect authorization and dedicated approval ownership", () => {
+  const values = contracts();
+  const authorization = values.controlPlane.experience_contract.page_contracts.resources.connection_authorization;
+  assert.doesNotThrow(() => validate(values));
+  assert.deepStrictEqual(
+    values.guiContract.pages.settings_resources.connection_authorization,
+    authorization,
+  );
+  assert.equal(authorization.source, 'settings_control_center.app_settings_read_model.connections.authorization');
+  assert.equal(authorization.approval_action_id_in_generic_action_catalog, false);
+  assert.deepStrictEqual(authorization.ordinary_owner_action_ids, [
+    'connection_access_request_deny',
+    'connection_grant_revoke',
+    'connection_relay_import',
+  ]);
+  assert.deepStrictEqual(authorization.available_connection_fields, [
+    'connection_id',
+    'display_name',
+    'provider_type',
+    'status',
+    'security_revision',
+    'account_label',
+    'mailbox_ref',
+  ]);
+  assert.match(authorization.available_connections_policy, /mailbox_ref_is_the_relay_owner_identity_and_not_connection_id/);
+
+  const genericApproval = contracts();
+  genericApproval.controlPlane.experience_contract.page_contracts.resources.connection_authorization.approval_action_id_in_generic_action_catalog = true;
+  assert.throws(() => validate(genericApproval), /dedicated user approval bridge/);
+
+  const missingRelayIdentity = contracts();
+  missingRelayIdentity.controlPlane.experience_contract.page_contracts.resources.connection_authorization.available_connection_fields.pop();
+  assert.throws(() => validate(missingRelayIdentity), /owner-projected Relay mailbox identity fields/);
+
+  const rawInvocation = contracts();
+  rawInvocation.guiContract.pages.settings_resources.connection_authorization.invocation_fields.push('arguments');
+  assert.throws(() => validate(rawInvocation), /connection authorization/);
+});

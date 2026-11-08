@@ -71,6 +71,7 @@ export const appOwnedSettingsPageAnchors = {
     "resource-readiness",
     "action-readiness",
     "external-resources",
+    "connection-authorization",
   ],
   maintenance: ["health", "managed-dependencies", "updates", "services", "diagnostics"],
   storage: [
@@ -125,6 +126,7 @@ export const appOwnedSettingsPageSearchEntryIds = {
     "resources.readiness",
     "resources.executable",
     "resources.external",
+    "resources.connection_authorization",
   ],
   maintenance: [
     "maintenance.health",

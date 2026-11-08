@@ -194,6 +194,25 @@ and a path shown in diagnostics is not a second path configuration.
 | How much local and Docker data is used, where are deployment locations, and what can be cleaned safely? | Data & Storage | Updates & Repair may link to cleanup attention; the Logs & Diagnostics-owned log path may be referenced read-only. | Log-directory configuration, mount rewiring, or generic Docker prune. |
 | How should the App behave and look? | Preferences | Theme legacy routes redirect here. | Workspace paths, user instructions, or new-conversation additions. |
 
+### Connect authorization
+
+Resources & Connections renders Framework Connect's
+`settings_control_center.app_settings_read_model.connections.authorization`
+projection. It shows a redacted connection status and account label, pending
+requests with their exact consumer identity and requested capabilities, grants
+per consumer, and at most 20 recent invocation summaries. Connection handles,
+endpoints, invocation arguments, results, errors, and credential material never
+enter this UI state.
+
+Approval is a trusted App-user operation through the dedicated
+`approveConnectionAccess({ requestId })` bridge. It is not exposed in the
+generic App action catalog, Agent tools, or MCP App bridge. Denial and revoking
+one consumer grant use owner actions; revocation leaves the connection and
+other consumer grants intact. The page can import an existing Relay mailbox by
+its owner-projected `mailbox_ref`; this is the Relay identity and is distinct
+from `connection_id`. Relay continues to own mailbox semantics and mail
+actions. An import does not grant mailbox access to a consumer.
+
 ## Extensions and App visibility
 
 “扩展与应用”是全部动态 Package 的统一安装、管理、升级与状态入口，默认显示所有来源，

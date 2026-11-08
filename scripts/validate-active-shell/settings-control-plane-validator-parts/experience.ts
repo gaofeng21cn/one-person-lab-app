@@ -242,6 +242,42 @@ export function validateSettingsExperienceContract(experience) {
       "Settings Resources must exclude the built-in OPL Gateway connection and count",
     );
   }
+  const connectionAuthorization = pageContracts.resources.connection_authorization;
+  if (
+    connectionAuthorization?.source !==
+      "settings_control_center.app_settings_read_model.connections.authorization" ||
+    connectionAuthorization.approval_policy !==
+      "pending_request_requires_dedicated_trusted_app_user_bridge_after_fresh_projection; never_generic_action_or_model_callable" ||
+    connectionAuthorization.approval_bridge_ref !==
+      "contracts/app-runtime-bridge.json#connection_access_approval_bridge" ||
+    connectionAuthorization.invocation_limit !== 20 ||
+    connectionAuthorization.approval_action_id_in_generic_action_catalog !== false
+  ) {
+    throw new Error(
+      "Settings Resources connection authorization must retain the dedicated user approval bridge",
+    );
+  }
+  assertDeepEqualJson(
+    connectionAuthorization.available_connection_fields,
+    [
+      "connection_id",
+      "display_name",
+      "provider_type",
+      "status",
+      "security_revision",
+      "account_label",
+      "mailbox_ref",
+    ],
+    "Settings Resources owner-projected Relay mailbox identity fields",
+  );
+  if (
+    connectionAuthorization.available_connections_policy !==
+      "owner_projected_existing_connections_only_no_secret_material; mailbox_ref_is_the_relay_owner_identity_and_not_connection_id"
+  ) {
+    throw new Error(
+      "Settings Resources Relay import must use the owner-projected mailbox reference",
+    );
+  }
   if (
     pageContracts.models.browser_access_entry !== undefined ||
     pageContracts.models.required_dom.always.includes(
