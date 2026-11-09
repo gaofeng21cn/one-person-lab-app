@@ -1488,10 +1488,16 @@
     },
     {
       "id": "app_management",
-      "expected_source": "App-owned application management surface over Framework Package and managed-update projections",
-      "machine_source": "opl app state --profile fast --json#app_state.agent_packages + app_state.managed_update + app_state.settings_control_center.connection_registry + knowledge source projections",
+      "expected_source": "App-owned application management projection with Framework Package, managed-update, connection, and knowledge-source provenance",
+      "machine_source": "opl app state --profile fast --json#app_state.application_management",
+      "provenance_sources": [
+        "app_state.agent_packages",
+        "app_state.managed_update",
+        "app_state.settings_control_center.connection_registry",
+        "authorized knowledge source projections"
+      ],
       "refresh_source": "opl app state --profile fast --json",
-      "page_contract": "application_management",
+      "page_contract": "app_management",
       "route": "/apps",
       "route_scope": "ordinary",
       "sections": [
@@ -1526,6 +1532,8 @@
         "three sections for applications, updates, and shared resources",
         "current local environment scope with an explicit environment selector boundary",
         "installed, operational, and update status shown as separate state axes",
+        "owner-projected lifecycle actions with confirmation and fresh readback",
+        "knowledge source and connection references with authorization, revision, freshness, and readiness summaries",
         "owner-projected install, update, enable, disable, repair, and open actions with confirmation and fresh readback",
         "shared Obsidian or other knowledge source references with revision, freshness, authorization, and readiness summaries",
         "credential and connection readiness references without secret bodies",

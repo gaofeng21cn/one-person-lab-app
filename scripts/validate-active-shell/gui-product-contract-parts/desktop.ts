@@ -61,7 +61,7 @@ export function validateBrandedDeepLinkPolicy(policy) {
           optional_params: [],
           additional_params_allowed: false,
           duplicate_params_allowed: false,
-          route_value_policy: 'single_url_decoded_absolute_app_path',
+          route_value_policy: 'single_url_decoded_absolute_app_route_or_explicit_section_route',
         },
       },
       forbidden_credential_actions: ['add-provider', 'provider/add'],
@@ -81,14 +81,21 @@ export function validateBrandedDeepLinkPolicy(policy) {
       validation_layers: {
         main_process:
           'validate_scheme_action_path_query_cardinality_and_secret_policy_before_queue_or_emit',
-        renderer: 'validate_route_against_app_owned_exact_route_registry_before_navigation',
+        renderer: 'validate_route_against_app_owned_exact_route_and_explicit_section_registry_before_navigation',
       },
       route_registry: {
-        static_exact_routes: ['/guid', '/archived', '/scheduled'],
+        static_exact_routes: ['/guid', '/apps', '/archived', '/scheduled'],
+        allowed_section_routes: [
+          '/apps?section=applications',
+          '/apps?section=updates',
+          '/apps?section=resources',
+          '/settings/environment?section=updates',
+        ],
+        section_query_parameter: 'section',
         settings_route_source_ref:
           'contracts/app-settings-control-plane.json#ordinary_routes+secondary_pages',
         settings_route_fields: ['ordinary_routes[].path', 'secondary_pages[].path'],
-        match_policy: 'exact_path_only_no_query_hash_or_dynamic_segments',
+        match_policy: 'exact_path_or_explicit_section_route_allowlist',
         forbidden_route_classes: [
           'conversation_id',
           'runtime',

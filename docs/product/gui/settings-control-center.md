@@ -55,8 +55,12 @@ The machine contract is
 and its page-state entry is
 [`contracts/app-page-state-matrix.json#pages[id=app_management]`](../../../contracts/app-page-state-matrix.json).
 The three sections are addressable with `?section=applications`,
-`?section=updates`, and `?section=resources`. All sections use the same fast App-state
-read and owner-projected actions. Installation, operational readiness, and
+`?section=updates`, and `?section=resources`. Desktop branded links admit these
+exact section routes and the legacy Updates route through the App-owned allowlist;
+unknown query parameters, sections and fragments remain invalid. All sections
+consume `app_state.application_management`, whose provenance refers to the
+existing Package, update, connection and knowledge owners, and use their
+owner-projected actions. Installation, operational readiness, and
 currentness remain separate axes, and a mutation is successful only after
 fresh owner readback.
 

@@ -92,6 +92,7 @@ export function validateGuiContractDeveloperProfileAndPageInventory(guiContract,
     'settings_theme',
     'settings_local_services',
     'settings_personalization',
+    'app_management',
   ]) {
     if (!pages[pageId]) {
       throw new Error(`App GUI contract missing page ${pageId}`);

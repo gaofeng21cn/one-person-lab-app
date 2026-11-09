@@ -92,6 +92,15 @@ test('branded deep links reject credential actions and secret-like material', ()
 });
 
 test('branded deep links keep navigation inside the exact App-owned route registry', () => {
+  const policy = readPolicy();
+  assert.ok(policy.route_registry.static_exact_routes.includes('/apps'));
+  assert.deepStrictEqual(policy.route_registry.allowed_section_routes, [
+    '/apps?section=applications',
+    '/apps?section=updates',
+    '/apps?section=resources',
+    '/settings/environment?section=updates',
+  ]);
+
   for (const mutate of [
     (policy: any) => {
       policy.route_registry.static_exact_routes.push('/conversation/:id');
@@ -104,6 +113,15 @@ test('branded deep links keep navigation inside the exact App-owned route regist
     },
     (policy: any) => {
       policy.route_registry.settings_route_source_ref = 'shell_local_routes';
+    },
+    (policy: any) => {
+      policy.route_registry.allowed_section_routes.push('/apps?section=unknown');
+    },
+    (policy: any) => {
+      policy.route_registry.allowed_section_routes.push('/apps?section=updates&source=external');
+    },
+    (policy: any) => {
+      policy.route_registry.allowed_section_routes.push('/apps?section=updates#diagnostics');
     },
   ]) {
     const policy = readPolicy();

@@ -19,6 +19,7 @@ import {
   readModelPolicyBundle,
 } from "./fixtures.ts";
 import { appOwnedOplStandardAgentMembershipPolicy } from "../../../scripts/validate-active-shell/app-contract-constants.ts";
+import { validateAppSettingsPages } from "../../../scripts/validate-active-shell/page-state-app-settings-validator.ts";
 
 test('Codex interaction surfaces stay aligned across the App profile and contracts', () => {
   assert.doesNotThrow(() => assertCodexModelPolicyProjection(readModelPolicyBundle()));
@@ -35,6 +36,17 @@ test('Codex interaction surfaces stay aligned across the App profile and contrac
   assert.doesNotThrow(() => validatePrimaryInteractionPages(
     readJson('contracts/app-page-state-matrix.json'),
   ));
+
+  const missingApplicationManagementPage = structuredClone(readJson('contracts/app-gui-product-contract.json'));
+  delete missingApplicationManagementPage.pages.app_management;
+  assert.throws(
+    () => validateAppGuiProductContract(
+      missingApplicationManagementPage,
+      readJson('contracts/app-release-channel.json'),
+      installExposure,
+    ),
+    /App GUI contract missing page app_management/,
+  );
 
   const staleProfile = structuredClone(readJson('contracts/app-product-profile.json'));
   staleProfile.gui.home.codex_model_display_options.menu_structure.root_rows = [
@@ -544,6 +556,24 @@ test('active Studio keeps Runtime status in primary navigation without expanding
   matrix.pages.find((page: any) => page.id === 'guid_home').home_view_model.home_layout
     .active_studio_primary_navigation.runtime_entry.keyboard_reachable = false;
   assert.throws(() => validatePrimaryInteractionPages(matrix), /Guid home page layout/);
+});
+
+test('application management page state keeps the App-owned route and lifecycle boundaries', () => {
+  const guiContract = readJson('contracts/app-gui-product-contract.json');
+  const matrix = readJson('contracts/app-page-state-matrix.json');
+  assert.doesNotThrow(() => validateAppSettingsPages(matrix, guiContract));
+
+  for (const mutate of [
+    (page: any) => { page.sections = ['applications', 'updates']; },
+    (page: any) => { page.machine_source = 'shell_local_package_catalog'; },
+    (page: any) => { page.required_state_axes = ['installed']; },
+    (page: any) => { page.fresh_readback_required = false; },
+    (page: any) => { page.must_not_own = []; },
+  ]) {
+    const drift = structuredClone(matrix);
+    mutate(drift.pages.find((page: any) => page.id === 'app_management'));
+    assert.throws(() => validateAppSettingsPages(drift, guiContract), /app_management/);
+  }
 });
 
 test('product profile rejects pre-Codex-baseline interaction states', () => {

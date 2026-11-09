@@ -26,6 +26,7 @@ const guiSettingsPageToMatrixPage = {
   settings_storage: 'storage',
   settings_theme: 'settings_theme',
   about: 'about',
+  app_management: 'app_management',
 };
 
 const settingsControlPlane = readJson(settingsControlPlanePath);
@@ -55,6 +56,28 @@ export function validateAppSettingsPages(matrix, guiContract) {
     assertDeepEqualJson(page.sections, expected.sections, `${matrixPageId} sections`);
     assertIncludesAll(page.must_show, expected.must_show, `${matrixPageId} must_show`);
     assertIncludesAll(page.must_not_show, expected.must_not_show, `${matrixPageId} must_not_show`);
+  }
+
+  const applicationManagementPage = pageById(matrix, 'app_management');
+  const applicationManagementContract = guiContract.pages.app_management;
+  for (const field of [
+    'machine_source',
+    'route',
+    'route_scope',
+    'section_query_parameter',
+    'default_section',
+    'environment_scope',
+    'required_state_axes',
+    'action_source',
+    'fresh_readback_required',
+    'shared_resource_policy',
+    'legacy_settings_routes',
+    'legacy_route_policy',
+    'provenance_sources',
+    'required_ui',
+    'must_not_own',
+  ]) {
+    assertDeepEqualJson(applicationManagementPage[field], applicationManagementContract[field], `app_management ${field}`);
   }
 
   const storagePage = pageById(matrix, 'storage');
