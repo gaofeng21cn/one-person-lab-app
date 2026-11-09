@@ -197,6 +197,26 @@ and a path shown in diagnostics is not a second path configuration.
 | How much local and Docker data is used, where are deployment locations, and what can be cleaned safely? | Data & Storage | Updates & Repair may link to cleanup attention; the Logs & Diagnostics-owned log path may be referenced read-only. | Log-directory configuration, mount rewiring, or generic Docker prune. |
 | How should the App behave and look? | Preferences | Theme legacy routes redirect here. | Workspace paths, user instructions, or new-conversation additions. |
 
+### Knowledge and executor memory
+
+The [Framework knowledge policy](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/knowledge-source-and-memory-policy.md)
+and [knowledge sources contract](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/specs/knowledge-sources.md)
+own source identity, scope, access, accepted revisions and task snapshots.
+Settings preserves the following ownership distinctions:
+
+| Data | Truth owner | App surface responsibility |
+| --- | --- | --- |
+| Editable business knowledge | Product, user/team, topic or project owner; each knowledge object has one editable source, including an existing personal library or business workspace | Consume declared owner projections through the capability workspace. Source review and writeback go to that owner through the Framework path. |
+| Current domain state | The domain owner, with its observation date and revision | Display its current projection. A UI cache or saved summary does not become a new authoritative fact. |
+| Runtime evidence | Framework/runtime and the relevant domain owner | Show references and diagnostics for the version actually consumed. Evidence retention does not create an editable knowledge source. |
+| Codex executor memory | Codex memory in the active `CODEX_HOME/memories` | The existing memory service reads canonical Markdown and manages correction notes for that owner. Those notes do not update business knowledge or authorize an action. |
+
+The existing task-memory route remains refs-only. A declared Package contribution
+can expose knowledge review when its owner provides that capability; this policy
+does not claim a new built-in knowledge editor. Selecting a working directory
+neither grants access to a personal library nor creates a personal knowledge root.
+App and Studio do not maintain Vault copies or a second source registry.
+
 ### Connect authorization
 
 Resources & Connections renders Framework Connect's

@@ -49,11 +49,29 @@ The shared knowledge design binds authorized source material and freezes the
 version used by a task. User-maintained Markdown, including an Obsidian vault,
 can remain the sole editable source; a workspace can supply the source when no
 personal library exists. Product, user/team, topic and project ownership are
-independent of content type and freshness. App views consume the Framework-owned
-context and review path; they do not create another personal knowledge store or
-infer permission from remembered preferences. Knowledge integration is qualified
-through the relevant Framework and Package implementation and installed readback,
-not by this host specification.
+independent of content type and freshness. The Framework policy and source
+contract define this boundary ([knowledge and memory policy](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/knowledge-source-and-memory-policy.md),
+[knowledge sources](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/specs/knowledge-sources.md)).
+
+Four kinds of data must remain distinct. Editable business knowledge is held by
+the product, user/team, topic or project owner and has one canonical source.
+Domain state is the owner's current business
+fact and may be projected with a date and revision; it is not promoted to
+long-term knowledge by an App cache. Runtime evidence belongs to the Framework,
+runtime and relevant domain owner and records what was actually consumed. Codex
+executor memory is a separate Codex-home service; its correction notes are
+suggestions to that owner and do not become business knowledge or authorization.
+
+Framework owns source bindings, accepted revisions, immutable task snapshots and
+mechanical writeback evidence; the user or domain owner accepts the meaning of a
+change.
+
+App views consume the Framework-owned context and review path; they do not create
+another personal knowledge store, read a Vault body directly, or infer permission
+from remembered preferences. A selected working directory is an execution
+boundary, not a knowledge grant. Knowledge integration is qualified through the
+relevant Framework and Package implementation and installed readback, not by this
+host specification.
 
 ## Shared task workbench
 
