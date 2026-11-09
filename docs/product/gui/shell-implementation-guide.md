@@ -184,6 +184,11 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 
 实现要求：
 
+- OPL Agent Apps 是 Agent 原生应用的共同开发定位：Agent 通过声明的能力推进工作，
+  OPL MiniApp 在需要人类比较、编辑或判断时提供协作界面。Package 继续作为安装单元，
+  现有 MCP Apps 与 DSH/Cordis 负责协议和宿主生命周期。新能力从
+  [Framework 开发指南](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/mcp-apps/development.md)
+  进入，先复用 owner 操作与共享服务，再选择界面形态。
 - 先从 App state/action catalog 取得可用 action 和 disabled reason。
 - Runtime 只调用当前 Runtime contract 声明的动作；typed views 按 contribution/action ABI
   派发，不能从字段名推导可写权限。其他页面的动作仍由各自合同授权。
@@ -214,6 +219,11 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
   installed Package 身份建立调用绑定；页面传入的 `consumer_id` 不构成身份。
   未建立真实绑定时不暴露占位连接 API。凭据保存、续期和领域副作用仍由 provider/carrier
   owner 管理，Mini App 不接收秘密，也不维护第二套授权状态。
+- 个人知识消费遵循 [Framework 共同标准](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md)
+  的来源绑定、任务版本冻结与审阅写回要求。正文可保留在 Obsidian 或普通目录，无个人库时
+  使用工作区；App 只呈现获准上下文、来源和需要用户处理的差异。知识归属与时效独立，
+  已知偏好不构成操作授权。Shell 不维护另一份个人全文库或自建知识 API；尚未接通的
+  Framework/Package 路径按真实能力显示，由各 owner 完成安装与运行验收。
 
 上述条目定义产品目标与实现边界。具体交付覆盖由 Shell 源码、
 [conformance](shell-conformance-matrix.md) 和对应载体验收说明；共享实施断点与顺序由

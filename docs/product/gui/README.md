@@ -4,8 +4,8 @@ Owner: `one-person-lab-app`
 Purpose: GUI 文档导航与职责分层。
 State: `active`
 
-App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；AionUI 仅保留历史源码、
-升级基线与固定夹具。当前发布 Shell 由
+App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；AionUI 与
+`opl-aion-shell` 已退役，历史源码与发布证据通过 Git 历史追溯。当前发布 Shell 由
 [`app-shell-adapter.json`](../../../contracts/app-shell-adapter.json) 决定；候选与采用条件由
 [`app-shell-candidates.json`](../../../contracts/app-shell-candidates.json) 决定。实现、候选构建或
 截图通过不会自动改变发布身份。完整组件关系见 [Architecture](../../architecture.md)。
@@ -28,6 +28,7 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 
 | 主题 | 产品或技术参考 | 未完成工作的归口 |
 | --- | --- | --- |
+| Agent 原生应用与 MiniApp | [Framework 标准](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md) · [App 宿主](../../mcp-apps/SPEC.md) | Framework 持有共用技术标准；App 持有导航、人机交接与 UI 验收 |
 | Settings | [Control Center](settings-control-center.md) | [Active gaps](../../active/app-ideal-state-gap-plan.md) |
 | Runtime | [动态任务中心](runtime-overview-redesign.md) | [Package migration](../../active/opl-package-platform-composition-migration.md) |
 | 首次启动 | [First-run setup](first-run-setup-workspace.md) | [Conformance](shell-conformance-matrix.md) |

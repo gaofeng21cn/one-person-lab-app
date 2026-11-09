@@ -1,5 +1,14 @@
 # OPL App MCP Apps Host
 
+OPL Agent Apps is the shared development model for Agent-native applications.
+An OPL MiniApp is an on-demand human collaboration surface within that model;
+Packages remain the installation unit. The
+[Framework specification](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md)
+owns the shared technical standard, and the
+[development guide](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/mcp-apps/development.md)
+owns its implementation path. This document owns the App host's navigation,
+handoff and interaction acceptance. It introduces no plugin format or protocol.
+
 The DSH capability workspace renders standard MCP Apps from the existing Codex
 thread MCP catalog. Reuse the official ext-apps AppBridge and the persistent
 Codex App Server connection, approval, and authentication owners.
@@ -19,6 +28,28 @@ advertised by this host.
 Validate the shared OPL Apps resource and Relay's dedicated workbench, plus
 synthetic read/confirm/cancel flows, server isolation and stale-session rejection.
 Source, browser interaction, installed App and release evidence are separate.
+
+## Shared service consumption
+
+Agent tools and views use the same domain operation and canonical result. Shared
+declarative views, dedicated MCP Apps and professional native applications can
+coexist; the interaction selects the presentation form. View disposal releases
+the host binding, while durable work remains owned by its existing runtime.
+
+Connection access uses OPL Connect's trusted installed-Package binding and current
+grants. Providers retain credential storage and renewal. A view selection or an
+App-visible tool does not confer business authorization. The host supplies only
+the connection references and operations actually exposed by that trusted path.
+
+The shared knowledge design binds authorized source material and freezes the
+version used by a task. User-maintained Markdown, including an Obsidian vault,
+can remain the sole editable source; a workspace can supply the source when no
+personal library exists. Product, user/team, topic and project ownership are
+independent of content type and freshness. App views consume the Framework-owned
+context and review path; they do not create another personal knowledge store or
+infer permission from remembered preferences. Knowledge integration is qualified
+through the relevant Framework and Package implementation and installed readback,
+not by this host specification.
 
 ## Shared task workbench
 
