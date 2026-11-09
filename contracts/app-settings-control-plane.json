@@ -13,7 +13,7 @@
     "schema": "opl_settings_user_question_information_architecture.v1",
     "owner": "one-person-lab-app",
     "primary_group_title_instance_count": 1,
-    "multiple_destination_navigation": "single_tab_list_as_destination_heading",
+    "multiple_destination_navigation": "group_heading_with_selected_destination_tabs",
     "repeated_heading_layers": [
       "group_label",
       "eyebrow",
@@ -27,8 +27,8 @@
     "runtime_extension": false,
     "presentation": {
       "baseline": "pinned_DSH_settings_shell_and_theme_tokens",
-      "header": "single_destination_h1_or_selected_tab_as_heading_with_optional_trailing_quiet_refresh",
-      "subnavigation": "one_active_group_tab_list_in_content_uses_selected_tab_as_heading_without_duplicate_h1;_tabpanel_named_by_selected_tab",
+      "header": "group_h1_for_multiple_destinations_or_destination_h1_for_single_destination_with_optional_trailing_quiet_refresh",
+      "subnavigation": "one_active_group_tab_list_in_content_selects_destination;_tabpanel_named_by_selected_tab;_roving_tabindex_and_arrow_home_end_keyboard_navigation",
       "description": "one_user_task_sentence_without_owner_or_projection_jargon",
       "local_preferences": "usable_without_Framework_readback_and_no_global_refresh",
       "capability_catalog": "installed_and_actionable_items_first;_upstream_adoption_details_collapsed_and_excluded_from_count",

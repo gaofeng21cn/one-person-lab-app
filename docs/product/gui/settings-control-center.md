@@ -113,13 +113,14 @@ entry does not authorize deletion of AionUI-owned data.
 user intent; carrier route ids remain stable adapter identities.
 
 Each top-level group answers one user question and shows its title once. When
-the active group has multiple second-level destinations, show one tab list in
-the content header. The selected tab is the destination heading and names its
-tabpanel; do not add a second H1 above it. A group with one destination opens it
-directly with one H1 and no one-item tab strip. Native rail labels remain
-navigation context, not content headings. Desktop and mobile may place
-navigation differently, but they preserve the same group and destination
-semantics and never concatenate every destination into one long page.
+the active group has multiple second-level destinations, show the group title
+as the single H1 and a compact destination tab list below it. The selected tab
+names the tabpanel; do not repeat it as a second H1. A group with one
+destination opens it directly with that destination as its single H1 and no
+one-item tab strip. Native rail labels remain navigation context, not content
+headings. On mobile, show a vertical category list followed by the selected
+group's destination list and a visible return control; do not use a horizontal
+tab strip.
 
 | Primary group | Second-level destinations | Carrier route / anchor |
 | --- | --- | --- |
@@ -755,9 +756,9 @@ model, package or execution state store.
 | How should the app feel? | Preferences | Appearance, language, font size, notifications and confirmation preferences | DSH General controls |
 | Which app am I using? | About | Version and support links | DSH version/support pattern |
 
-A page has one destination heading and one short task description. For a multi-destination group,
-the selected tab is that heading and names the tabpanel; no duplicate H1 appears above it. A single
-destination uses one H1. State refresh is a quiet trailing icon beside the heading, with a localized
+Each page has one group heading (or its destination when the group is singular) and one short task description. For a multi-destination group,
+the group title is the H1 and the selected tab names the tabpanel. A single
+destination uses one destination H1. State refresh is a quiet trailing icon beside the heading, with a localized
 accessible name. Preferences has no global refresh or Framework loading/error barrier.
 Refreshing state is not logging in, updating packages, refreshing account usage, or measuring storage:
 those retain their explicit, scoped actions. Failed reads retain prior state and offer inline retry.
