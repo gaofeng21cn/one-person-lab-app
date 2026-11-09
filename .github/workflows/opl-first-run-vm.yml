@@ -1883,7 +1883,7 @@ jobs:
           OPL_CODEX_BUILD_COHORT_MANIFEST: ${{ inputs.codex_qualification_cohort_artifact_name != '' && 'artifacts/codex-qualification-cohort/opl-build-cohort.json' || '' }}
 
       - name: Save Codex install asset cache
-        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
+        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
         env:
           OPL_ACTIONS_CACHE_CLASS: first_run_install_seed
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

@@ -57,9 +57,9 @@ test('Stable and Latest allow only the exact protected Standard/Full clean-insta
         );
       }
       const allowedVmDependency =
-        (protectedGate
+        (name === '_release-bundle.yml' && jobId === 'standard-clean-vm-qualification'
           && needsList(job).filter((dependency) => /vm|certification|tart/i.test(dependency)).join(',') ===
-            (name === '_release-bundle.yml' ? 'prepare-standard-vm-inputs' : 'prepare-full-vm-inputs'))
+            'prepare-standard-vm-inputs')
         || (name === '_release-bundle.yml'
           && jobId === 'checkpoint-standard'
           && needsList(job).filter((dependency) => /vm|certification|tart/i.test(dependency)).join(',') ===

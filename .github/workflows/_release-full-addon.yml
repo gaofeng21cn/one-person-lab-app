@@ -947,19 +947,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  prepare-full-vm-inputs:
-    if: ${{ !cancelled() && needs.restore-standard.result == 'success' && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
-    needs: [restore-standard, full-build, materialize-full-build]
-    permissions:
-      contents: read
-      actions: read
-    uses: ./.github/workflows/_prepare-clean-vm-inputs.yml
-    with:
-      app_ref: ${{ inputs.full_content_app_ref }}
-      package_profile: full
-      build_cohort_artifact: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64-cohort
-      build_cohort_run_id: ${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}
-
   full-build:
     if: ${{ inputs.prior_full_artifact_run_id == '' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified') }}
     needs: [restore-standard]
@@ -1451,7 +1438,7 @@ jobs:
 
   full-clean-vm-qualification:
     if: ${{ !cancelled() && needs.restore-standard.result == 'success' && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified' || needs.restore-standard.outputs.completed_stage == 'full_built') && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
-    needs: [restore-standard, full-build, materialize-full-build, prepare-full-vm-inputs]
+    needs: [restore-standard, full-build, materialize-full-build]
     permissions:
       contents: read
       actions: read
@@ -1469,7 +1456,6 @@ jobs:
       framework_executor_ref: ${{ needs.restore-standard.outputs.framework_executor_ref }}
       mas_ref: ${{ needs.full-build.outputs.mas_ref || needs.materialize-full-build.outputs.mas_ref }}
       mas_scholar_skills_ref: ${{ needs.full-build.outputs.mas_scholar_skills_ref || needs.materialize-full-build.outputs.mas_scholar_skills_ref }}
-      prepared_inputs_artifact: ${{ needs.prepare-full-vm-inputs.outputs.artifact_name }}
       package_profile: full
       diagnostic_scope: release_gate
       require_macos_gatekeeper: true

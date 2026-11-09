@@ -460,7 +460,6 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       'restore-standard',
       'full-build',
       'materialize-full-build',
-      'prepare-full-vm-inputs',
     ])
     || fullCleanVm.with?.release_artifact_run_id !== '${{ needs.materialize-full-build.outputs.artifact_producer_run_id || github.run_id }}'
     || fullCleanVm.with?.verification_app_ref !== '${{ inputs.verification_app_ref || inputs.full_content_app_ref }}'

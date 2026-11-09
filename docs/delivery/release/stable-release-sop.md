@@ -226,7 +226,7 @@ Full workflow 的每次 Node 24 设置都查询最新稳定补丁；缓存键计
 
 Studio 的共享 payload 环境必须保留控制器传入的显示版本与机器 updater 版本；不得从已改为机器版本的 package.json 覆盖显示版本。更新资产名继续用显示版本，feed 与 App 内版本继续用机器版本。
 
-Full 的预备输入来自该 Full 产物的冻结 build cohort；恢复时按原 producer run 下载小型 cohort，不能消费当前依赖清单或误用 Standard 的恢复 harness。新构建完成后，准备 tarballs 与 hosted qualification 并行，随后交给 VM；准备失败沿用现有 VM 在线预检，不改变签名产物。runner cache 只保留两份需要的 Codex tarballs，使用独立缓存命名空间，避免重复传输 npm cache 中的副本。
+Full 的预备输入来自该 Full 产物的冻结 build cohort；恢复时按原 producer run 下载小型 cohort，不能消费当前依赖清单或误用 Standard 的恢复 harness。Full clean-VM job 直接恢复按摘要命名的 runner cache，并由现有 prefetch 路径按冻结 cohort 补齐缺失 tarballs；不再经过独立 self-hosted 预备 job 上传同一批输入，避免把重复传输置于 VM 资格的关键路径。runner cache 只保留两份需要的 Codex tarballs，使用独立缓存命名空间，避免重复传输 npm cache 中的副本。
 
 预备安装包是可选加速。只有实际上传成功后才向 VM consumer 提供 artifact 名；主上传与一次重试都失败时输出为空，由现有按摘要校验的本地准备路径继续。VM 先恢复这批 prepared tarballs，复用现有 exact-artifact downloader 的并行传输与归档摘要缓存，并限制可选恢复步骤最多十分钟；只有下载没有成功时才恢复 runner cache。归档大小与摘要先由下载器校验，两条路径仍由 frozen cohort 的 tarball SHA-256 校验决定是否可用，成功下载不代表内容已验收。已验证的两份 tarball 会直接消费 frozen identity，跳过 registry metadata 与 `npm view` 查询；任一份缺失或摘要不符时回到原在线查询和下载路径。不能用一个拼接出来的名字表示资产存在，也不因此重建签名产物。
 

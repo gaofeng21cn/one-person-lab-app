@@ -162,7 +162,7 @@ test('reusable Electron/Bun cache admission executes the workflow script', () =>
   }
 });
 
-test('first-run Codex install seed uses full content identity and direct-main-push miss saves', () => {
+test('first-run Codex install seed uses content identity and trusted-main miss saves', () => {
   const workflowPath = path.join(appRoot, '.github', 'workflows', 'opl-first-run-vm.yml');
   const workflowText = fs.readFileSync(workflowPath, 'utf8');
   const prefetchScriptText = fs.readFileSync(
@@ -185,10 +185,25 @@ test('first-run Codex install seed uses full content identity and direct-main-pu
   assert.match(prefetchScriptText, /`cache_save_required=\$\{cacheSaveRequired\}`/);
   assert.equal(
     saveStep?.if,
-    "${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}",
+    "${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}",
   );
   assert.equal(saveStep?.with?.key, '${{ steps.codex_package_preflight.outputs.cache_key }}');
   assert.equal(saveStep?.env?.OPL_ACTIONS_CACHE_CLASS, 'first_run_install_seed');
+  const maySave = (event: string, ref = 'refs/heads/main', scope = 'release_gate', needed = 'true') => {
+    const condition = String(saveStep?.if).slice(3, -2)
+      .replaceAll('github.event_name', JSON.stringify(event))
+      .replaceAll('github.ref', JSON.stringify(ref))
+      .replaceAll('needs.validate-vm-inputs.outputs.diagnostic_scope', JSON.stringify(scope))
+      .replaceAll('steps.codex_package_preflight.outputs.cache_save_required', JSON.stringify(needed));
+    return Function(`return (${condition});`)();
+  };
+  for (const event of ['push', 'workflow_dispatch', 'workflow_call']) {
+    assert.equal(maySave(event), true);
+    assert.equal(maySave(event, 'refs/heads/feature'), false);
+    assert.equal(maySave(event, 'refs/heads/main', 'bootstrap_only'), false);
+    assert.equal(maySave(event, 'refs/heads/main', 'release_gate', 'false'), false);
+  }
+  assert.equal(maySave('pull_request'), false);
 });
 
 test('Actions cache policy rejects volatile identities in direct and generated keys', () => {

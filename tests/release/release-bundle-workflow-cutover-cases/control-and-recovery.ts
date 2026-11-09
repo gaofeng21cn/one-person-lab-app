@@ -870,7 +870,6 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     'restore-standard',
     'full-build',
     'materialize-full-build',
-    'prepare-full-vm-inputs',
   ]);
   assert.equal(cleanVmQualification.with.package_profile, 'full');
   assert.equal(cleanVmQualification.with.diagnostic_scope, 'release_gate');
