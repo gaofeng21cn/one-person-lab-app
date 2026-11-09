@@ -30,12 +30,30 @@ test('Full recovery resolves independent exact executor and retains original bui
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-recovery-'));
   t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
   const originalFullReceipt = path.join(fixtureRoot, 'original-full-receipt.json');
-  fs.writeFileSync(originalFullReceipt, JSON.stringify({ surface_kind: 'opl_release_bundle_executor_receipt.v1', operation: 'build', executor: 'remote', bundle_digest: 'sha256:test', track: 'full', outcome: 'complete', release_operation: 'append_full', operation_id: 'old-operation', attempt_id: 'gha-123-full-build', remote_target: 'github-actions:owner/repo/runs/123/full-build' }));
-  const checked = spawnSync('bash', ['-c', `set -euo pipefail\n${receiptCheck}\nprintf '%s' "$full_artifact_producer_run_id"`], {
-    encoding: 'utf8', env: { ...process.env, BUNDLE_DIGEST: 'sha256:test', GITHUB_REPOSITORY: 'owner/repo', operation_id: 'new-operation', imported_operation_id: 'old-operation', original_full_receipt: originalFullReceipt },
-  });
-  assert.equal(checked.status, 0, checked.stderr);
-  assert.equal(checked.stdout, '123');
+  const receipt = { surface_kind: 'opl_release_bundle_executor_receipt.v1', operation: 'build', executor: 'remote', bundle_digest: 'sha256:test', track: 'full', outcome: 'complete', release_operation: 'append_full', operation_id: 'gha-123-append-full', attempt_id: 'gha-123-full-build', remote_target: 'github-actions:owner/repo/runs/123/full-build' };
+  const checkReceipt = (candidate: typeof receipt, importedOperation: string, currentOperation: string) => {
+    fs.writeFileSync(originalFullReceipt, JSON.stringify(candidate));
+    return spawnSync('bash', ['-c', `set -euo pipefail\n${receiptCheck}\nprintf '%s' "$full_artifact_producer_run_id"`], {
+      encoding: 'utf8', env: { ...process.env, BUNDLE_DIGEST: 'sha256:test', GITHUB_REPOSITORY: 'owner/repo', operation_id: currentOperation, imported_operation_id: importedOperation, original_full_receipt: originalFullReceipt },
+    });
+  };
+  for (const [importedOperation, currentOperation] of [
+    ['gha-123-append-full', 'gha-234-append-full'],
+    ['gha-234-append-full', 'gha-234-append-full'],
+    ['gha-234-append-full', 'gha-345-append-full'],
+  ]) {
+    const checked = checkReceipt(receipt, importedOperation, currentOperation);
+    assert.equal(checked.status, 0, checked.stderr);
+    assert.equal(checked.stdout, '123');
+  }
+  for (const invalid of [
+    { operation_id: 'gha-234-append-full' },
+    { attempt_id: 'gha-456-full-build' },
+    { remote_target: 'github-actions:owner/repo/runs/456/full-build' },
+    { bundle_digest: 'sha256:other-bundle' },
+  ]) {
+    assert.notEqual(checkReceipt({ ...receipt, ...invalid }, 'gha-234-append-full', 'gha-345-append-full').status, 0);
+  }
 });
 
 const g32Predicate = `
