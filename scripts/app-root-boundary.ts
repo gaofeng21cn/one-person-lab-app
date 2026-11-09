@@ -96,7 +96,7 @@ function assertRootPackageJson(packageJsonPath: string, failures: string[]): voi
     ajv: '8.18.0',
     'ajv-formats': '3.0.1',
     typescript: '5.8.3',
-    yaml: '2.8.1',
+    yaml: '2.9.1',
   };
   const normalizedDevDependencies = devDependencies && typeof devDependencies === 'object'
     ? Object.fromEntries(Object.entries(devDependencies).sort(([left], [right]) => left.localeCompare(right)))

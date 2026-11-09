@@ -42,7 +42,7 @@ function writeRootPackage(root: string, overrides = {}): void {
         ajv: '8.18.0',
         'ajv-formats': '3.0.1',
         typescript: '5.8.3',
-        yaml: '2.8.1',
+        yaml: '2.9.1',
       },
       ...overrides,
     }, null, 2)}\n`,

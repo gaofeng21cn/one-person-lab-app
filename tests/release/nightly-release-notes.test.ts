@@ -28,6 +28,8 @@ function repository(root: string, commits: string[]): { previous: string; curren
   git(root, ['init', '-q']);
   git(root, ['config', 'user.email', 'nightly-notes@example.invalid']);
   git(root, ['config', 'user.name', 'Nightly Notes Test']);
+  // Fixture commits must not leave detached Git maintenance writing during cleanup.
+  git(root, ['config', 'maintenance.auto', 'false']);
   fs.writeFileSync(path.join(root, 'fixture.txt'), 'baseline\n');
   git(root, ['add', 'fixture.txt']);
   git(root, ['commit', '-q', '-m', 'feat: baseline']);
