@@ -309,10 +309,26 @@
             "scope": "active_opl_studio_current_product_only",
             "ordered_entry_ids": [
               "new_task",
+                "app_management",
               "runtime",
               "scheduled_tasks",
               "archived"
             ],
+              "app_management_entry": {
+                "route": "/apps",
+                "label_i18n": {
+                  "zh-CN": "应用管理",
+                  "en-US": "App management"
+                },
+                "placement": "after_new_task_before_runtime",
+                "visibility": "always",
+                "expanded_behavior": "icon_and_label",
+                "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
+                "narrow_drawer_behavior": "icon_and_label",
+                "keyboard_reachable": true,
+                "home_content_effect": "navigation_only_no_dashboard",
+                "route_gate_boundary": "default_release_gate_requires_framework_app_state_and_package_projection"
+              },
             "runtime_entry": {
               "route": "/runtime",
               "label_i18n": {
@@ -1469,6 +1485,66 @@
       ],
       "state_source": "opl app state --profile fast --json",
       "refresh_source": "opl app state --profile fast --json"
+    },
+    {
+      "id": "app_management",
+      "expected_source": "App-owned application management surface over Framework Package and managed-update projections",
+      "machine_source": "opl app state --profile fast --json#app_state.agent_packages + app_state.managed_update + app_state.settings_control_center.connection_registry + knowledge source projections",
+      "refresh_source": "opl app state --profile fast --json",
+      "page_contract": "application_management",
+      "route": "/apps",
+      "route_scope": "ordinary",
+      "sections": [
+        "applications",
+        "updates",
+        "resources"
+      ],
+      "section_query_parameter": "section",
+      "default_section": "applications",
+      "environment_scope": "current_local_host_only_until_a_remote_environment_projection_is_explicitly_selected",
+      "required_state_axes": [
+        "installed",
+        "operational",
+        "update_status"
+      ],
+      "action_source": "owner_projected_actions_only",
+      "fresh_readback_required": true,
+      "shared_resource_policy": "show_authorized_knowledge_sources_connections_and_shared_capabilities_as_refs_and_readiness;_never_copy_knowledge_body_or_secret",
+      "legacy_settings_routes": [
+        "/settings/agents",
+        "/settings/capabilities",
+        "/settings/environment?section=updates",
+        "/settings/resources"
+      ],
+      "legacy_route_policy": "same_owner_projection_and_action_surface_with_deep_links_to_application_management",
+      "required_ui": [
+        "opl-app-management",
+        "opl-app-management-tabs",
+        "opl-app-management-environment"
+      ],
+      "must_show": [
+        "three sections for applications, updates, and shared resources",
+        "current local environment scope with an explicit environment selector boundary",
+        "installed, operational, and update status shown as separate state axes",
+        "owner-projected install, update, enable, disable, repair, and open actions with confirmation and fresh readback",
+        "shared Obsidian or other knowledge source references with revision, freshness, authorization, and readiness summaries",
+        "credential and connection readiness references without secret bodies",
+        "legacy Settings routes deep-link to this same projection and action surface"
+      ],
+      "must_not_show": [
+        "fixed_package_roster",
+        "second_package_registry",
+        "optimistic_success_without_readback",
+        "unified_cross_owner_version_lock",
+        "knowledge_body_or_credential_secret"
+      ],
+      "must_not_own": [
+        "framework_package_registry",
+        "native_carrier_lifecycle",
+        "knowledge_body",
+        "credential_secret",
+        "remote_environment_truth"
+      ]
     },
     {
       "id": "runtime",

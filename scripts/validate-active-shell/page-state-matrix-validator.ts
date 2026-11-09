@@ -182,6 +182,7 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     'settings_local_services',
     'settings_personalization',
     'first_launch_readiness',
+    'app_management',
     'runtime',
   ]);
   for (const page of matrix.pages ?? []) {

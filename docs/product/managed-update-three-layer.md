@@ -107,6 +107,15 @@ Packages may be composed or whether an installed capability is callable.
 
 ## 3. Unified User Experience
 
+The App route `/apps?section=applications|updates|resources` is the unified
+presentation and action-coordination surface for these independent owners. Its
+Applications section consumes the same dynamic Package catalog as Settings;
+Updates consumes the existing managed-update projection; Shared resources
+shows authorized knowledge-source and connection references. This page is not
+a fourth updater, package registry, version-lock authority, credential store,
+or knowledge database. Legacy Settings routes deep-link to the same owner
+projection and action surface.
+
 Every installed Package is checked and updated independently. Eligible native
 updates run silently; one failure does not cancel unrelated updates. Settings
 shows a compact aggregate and lazy per-Package detail:

@@ -119,14 +119,16 @@ export function validateGuiDesignSystemInteractionBaseline({
     railWidth.min !== 280 ||
     railWidth.max !== 340 ||
     navigationRail.top_entries_scope !== 'active_opl_studio_current_product' ||
-    !sameStrings(navigationRail.top_entries, ['new_task', 'runtime', 'scheduled_tasks', 'archived']) ||
+    !sameStrings(navigationRail.top_entries, ['new_task', 'app_management', 'runtime', 'scheduled_tasks', 'archived']) ||
     !sameStrings(navigationRail.conditional_entries, []) ||
     navigationRail.runtime_entry_role !==
       'opl_studio_primary_navigation_and_default_release_requirement' ||
+    JSON.stringify(navigationRail.app_management_entry) !==
+      JSON.stringify(appOwnedActiveStudioPrimaryNavigation.app_management_entry) ||
     JSON.stringify(navigationRail.runtime_entry) !==
       JSON.stringify(appOwnedActiveStudioPrimaryNavigation.runtime_entry) ||
     navigationRail.capabilities_mapping !==
-      'capability_selection_lives_in_new_task_home_and_capability_management_lives_in_settings_without_a_duplicate_primary_navigation_page' ||
+      'capability_selection_lives_in_new_task_home_and_capability_management_lives_in_application_management_with_settings_compatibility_routes' ||
     navigationRail.legacy_capabilities_route !==
       '/capabilities redirects to /guid without deleting capability data or Settings management' ||
     !sameStrings(navigationRail.forbidden_entries_without_opl_product_capability, ['sites', 'chat']) ||

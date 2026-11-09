@@ -6,7 +6,22 @@ export const homeActivityCenterForbiddenDisplays = [
 ];
 export const appOwnedActiveStudioPrimaryNavigation = {
   scope: "active_opl_studio_current_product_only",
-  ordered_entry_ids: ["new_task", "runtime", "scheduled_tasks", "archived"],
+  ordered_entry_ids: ["new_task", "app_management", "runtime", "scheduled_tasks", "archived"],
+  app_management_entry: {
+    route: "/apps",
+    label_i18n: {
+      "zh-CN": "应用管理",
+      "en-US": "App management",
+    },
+    placement: "after_new_task_before_runtime",
+    visibility: "always",
+    expanded_behavior: "icon_and_label",
+    collapsed_behavior: "icon_only_with_tooltip_and_accessible_name",
+    narrow_drawer_behavior: "icon_and_label",
+    keyboard_reachable: true,
+    home_content_effect: "navigation_only_no_dashboard",
+    route_gate_boundary: "default_release_gate_requires_framework_app_state_and_package_projection",
+  },
   runtime_entry: {
     route: "/runtime",
     label_i18n: {

@@ -40,6 +40,36 @@ search, page experience and DOM requirements, and the Codex quiet visual grammar
 They do not own runtime truth, provider implementation, domain truth, release
 readiness, installed App currentness, or owner acceptance.
 
+## Application Management Surface
+
+`/apps` is the App-owned application management surface for the common OPL
+base. It is reached from the primary navigation as **应用管理** and answers
+three related questions in one place: which applications are installed and
+usable, which installed objects need an update or repair, and which shared
+knowledge or connection resources are available to the current local
+environment. The page is a coordinator and projection surface; it does not
+become a second Package registry, updater, credential store, or knowledge base.
+
+The machine contract is
+[`contracts/app-gui-product-contract.json#pages.app_management`](../../../contracts/app-gui-product-contract.json)
+and its page-state entry is
+[`contracts/app-page-state-matrix.json#pages[id=app_management]`](../../../contracts/app-page-state-matrix.json).
+The three sections are addressable with `?section=applications`,
+`?section=updates`, and `?section=resources`. All sections use the same fast App-state
+read and owner-projected actions. Installation, operational readiness, and
+currentness remain separate axes, and a mutation is successful only after
+fresh owner readback.
+
+The existing Settings routes remain compatibility routes and deep links:
+`/settings/agents` and `/settings/capabilities` reach the applications view,
+`/settings/environment?section=updates` reaches updates, and
+`/settings/resources` reaches shared resources. They must use the same
+projection and action owner rather than maintain a parallel list or state
+store. Shared resources may include an Obsidian or other personal knowledge
+source, connection handles, authorization, revision/freshness and readiness
+summaries. The source body, credential secret and owner write semantics stay
+with Framework, Connect, Obsidian or the relevant domain owner.
+
 ### DSH-derived successor application
 
 The App successor reuses the pinned DSH Settings shell, layout, theme tokens and selected controls as
