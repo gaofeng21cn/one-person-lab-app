@@ -155,9 +155,9 @@ function validateKernel(value: unknown): DesktopReleaseKernelContract {
   );
   invariant(kernel.toolchain_profile_selector === 'carrier_id', 'Desktop release toolchain profiles must be selected by carrier id.');
   invariant(
-    kernel.toolchain_profiles['opl-studio']?.electron === '44.9.1'
-      && kernel.toolchain_profiles['opl-studio'].electron_builder === '26.15.3'
-      && kernel.toolchain_profiles['opl-studio'].electron_updater === '6.8.9'
+    kernel.toolchain_profiles['opl-studio']?.electron === '45.2.3'
+      && kernel.toolchain_profiles['opl-studio'].electron_builder === '26.18.0'
+      && kernel.toolchain_profiles['opl-studio'].electron_updater === '6.8.11'
       && JSON.stringify(Object.keys(kernel.toolchain_profiles).sort()) === JSON.stringify(['opl-studio']),
     'Desktop release toolchain profiles must use the App-owned exact carrier versions.',
   );

@@ -33,7 +33,7 @@ function carrierFixture(kind: 'opl-studio') {
   const releaseRepository = 'gaofeng21cn/opl-studio';
   const artifactName = 'one-person-lab-preview-${version}-${os}-${arch}.${ext}';
   const packageManager = 'npm';
-  const toolchain = { electron: '44.9.1', electronBuilder: '26.15.3', electronUpdater: '6.8.9' };
+  const toolchain = { electron: '45.2.3', electronBuilder: '26.18.0', electronUpdater: '6.8.11' };
   const scripts = {
     'dist:mac': 'electron-builder --mac --publish never',
     'qualify:desktop:mac': 'node scripts/desktop/macos-distribution.mjs',
@@ -105,9 +105,9 @@ test('App desktop release kernel resolves the isolated Studio Preview carrier th
     assert.equal(candidate.releaseRole, 'candidate_preview');
     assert.equal(candidate.bundleId, 'cn.onepersonlab.opl.studio.preview');
     assert.deepEqual(candidate.toolchain, {
-      electron: '44.9.1',
-      electron_builder: '26.15.3',
-      electron_updater: '6.8.9',
+      electron: '45.2.3',
+      electron_builder: '26.18.0',
+      electron_updater: '6.8.11',
     });
     assert.deepEqual(candidate.macos.targets, ['dmg', 'zip']);
     assert.deepEqual(candidate.stageOrder.at(-1), 'carrier_release_qualification');

@@ -164,9 +164,9 @@ function validateDesktopReleaseKernel(kernel) {
     kernel.toolchain_profiles,
     {
       'opl-studio': {
-        electron: '44.9.1',
-        electron_builder: '26.15.3',
-        electron_updater: '6.8.9',
+        electron: '45.2.3',
+        electron_builder: '26.18.0',
+        electron_updater: '6.8.11',
       },
     },
     'Desktop release kernel carrier toolchain profiles',
