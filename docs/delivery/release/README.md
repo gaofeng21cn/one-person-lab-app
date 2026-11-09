@@ -73,8 +73,12 @@ in `contracts/app-release-channel.json`: it proves provider connectivity, accept
 completed turn or a structured `INSUFFICIENT_BALANCE` response. Generic authorization errors,
 transport failures, timeouts, missing turn identities and simulated turns fail. This policy does
 not require model generation from the release account. Standard first-install qualification checks
-real account login, Official Profile convergence and Codex readiness without requiring a funded
-model turn. Apply each lane's actual contract rather than transferring Preview turn requirements
+real account login, Core, Framework and Codex readiness without requiring a funded model turn.
+It records actual Official Profile background status and installed or missing roots; optional
+Package pending, failure or absence does not block the Standard host. Full additionally requires
+the dynamically selected Profile roots to be present after installing the verified offline seed.
+Exact versions and digests identify the selected payload bytes, not a Package combination matrix.
+Apply each lane's actual contract rather than transferring Preview turn requirements
 to every release or treating account balance as a packaging defect.
 
 Source checks and artifact construction run concurrently. The reusable build summary rejects

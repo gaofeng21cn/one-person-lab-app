@@ -218,6 +218,13 @@ test('Framework release CLI consumer runs direct executable specs after an isola
     assert.throws(() => runFrameworkReleaseCliConsumerGate({
       frameworkRoot, expectedFrameworkSha: git('rev-parse', 'HEAD'), packageIds: ['fixture-root'],
     }), /did not verify every selected/);
+    // Standard ships a host, so unavailable optional packages cannot block its
+    // CLI consumer. An explicit package selection above still fails closed.
+    const hostOnly = runFrameworkReleaseCliConsumerGate({
+      frameworkRoot, expectedFrameworkSha: git('rev-parse', 'HEAD'),
+    });
+    assert.equal(hostOnly.status, 'passed');
+    assert.equal(hostOnly.package_source_preflight, null);
     assert.equal(git('status', '--porcelain', '--untracked-files=normal'), '');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -323,14 +330,14 @@ function runner(overrides: Record<string, { status: number; stdout?: string; std
     }
     if (
       command === process.execPath
-      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead} --app-profile contracts/app-product-profile.json`
+      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead}`
       && commandOptions.cwd === repoRoot
     ) {
       return { status: 0, stdout: 'framework release CLI consumer ok\n', stderr: '' };
     }
     if (
       command === process.execPath
-      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${repoLocalFrameworkRoot} --expected-framework-sha ${frameworkHead} --app-profile contracts/app-product-profile.json`
+      && args.join(' ') === `--experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${repoLocalFrameworkRoot} --expected-framework-sha ${frameworkHead}`
       && commandOptions.cwd === repoRoot
     ) {
       return { status: 0, stdout: 'framework release CLI consumer ok\n', stderr: '' };
@@ -1024,7 +1031,7 @@ test('release source gate stops at the first required gate failure', () => {
 
 test('release source gate stops before Shell gates when the exact Framework release CLI consumer fails', () => {
   const calls: string[] = [];
-  const consumerCommand = `${repoRoot} $ ${process.execPath} --experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead} --app-profile contracts/app-product-profile.json`;
+  const consumerCommand = `${repoRoot} $ ${process.execPath} --experimental-strip-types scripts/validate-framework-release-cli-consumer.ts --framework-root ${frameworkRoot} --expected-framework-sha ${frameworkHead}`;
   const baseRunner = runner({
     [consumerCommand]: {
       status: 1,

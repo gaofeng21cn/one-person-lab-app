@@ -301,12 +301,22 @@ function validateProviderConfigurationQualification(qualification, scenarioById)
   );
   assertDeepEqualJson(
     releaseVmDefault.required_official_profile_readback,
-    [
-      'first_install_status=passed',
-      'desired_root_package_ids_exact',
-      'installed_root_package_ids_exact',
-      'restore_action_invoked=false',
-    ],
+    {
+      standard: [
+        'first_install_status_observed',
+        'desired_root_package_ids_exact',
+        'installed_root_package_ids_observed',
+        'missing_root_package_ids_observed',
+        'restore_action_invoked=false',
+      ],
+      full: [
+        'first_install_status_observed',
+        'first_install_status_not_failed',
+        'desired_root_package_ids_exact',
+        'installed_root_package_ids_exact',
+        'restore_action_invoked=false',
+      ],
+    },
     'Release VM Official Profile readback',
   );
   const requiredScenarioIds = [

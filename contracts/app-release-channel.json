@@ -1484,12 +1484,22 @@
         "managed_key_active",
         "stale=false"
       ],
-      "required_official_profile_readback": [
-        "status=passed",
-        "desired_root_package_ids_exact",
-        "installed_root_package_ids_exact",
-        "restore_action_invoked=false"
-      ],
+      "required_official_profile_readback": {
+        "standard": [
+          "first_install_status_observed",
+          "desired_root_package_ids_exact",
+          "installed_root_package_ids_observed",
+          "missing_root_package_ids_observed",
+          "restore_action_invoked=false"
+        ],
+        "full": [
+          "first_install_status_observed",
+          "first_install_status_not_failed",
+          "desired_root_package_ids_exact",
+          "installed_root_package_ids_exact",
+          "restore_action_invoked=false"
+        ]
+      },
       "api_key_compatibility_lane_requires_explicit_request": true,
       "api_key_compatibility_lane_requires_explicit_credential_file": false,
       "explicit_api_key_file_role": "optional_manual_override_only",
@@ -1513,7 +1523,7 @@
         "secret_transport": "temporary_mode_0600_file_to_guest_then_stdin_no_secret_argv_plan_receipt_or_artifact"
       }
     },
-    "rule": "Artifact construction, local delivery, Preview publication, and managed package currentness remain independent of Provider credentials. Stable Standard and Full publication each require the exact candidate to complete a protected real OPL Gateway account login and Official Profile first-install convergence in a clean VM. Credentials never enter argv, logs, plans, summaries, receipts, or artifacts, and no synthetic API key is generated."
+    "rule": "Artifact construction, local delivery, Preview publication, and managed package currentness remain independent of Provider credentials. Stable Standard and Full publication each require the exact candidate to complete a protected real OPL Gateway account login and host Core, Framework and Codex readiness in a clean VM. Standard records actual Official Profile background installation status without blocking host qualification on optional Package pending, failure or absence. Full additionally requires the dynamically selected Profile roots to be delivered intact and installed without invoking restore. Exact versions and content digests identify selected payload bytes, not a fixed Package composition matrix. Credentials never enter argv, logs, plans, summaries, receipts, or artifacts, and no synthetic API key is generated."
   },
   "github_release_name": {
     "format": "One Person Lab v<version>",
@@ -5980,13 +5990,12 @@
           "app_launch",
           "core_ready_after_app_managed_bootstrap",
           "gateway_account_fresh_connected_managed_key_non_stale",
-          "official_profile_exact_roots_installed_without_restore",
+          "official_profile_background_status_and_root_presence_observed_without_restore",
           "settings_navigation",
           "home_agent_shortcuts_visible_selectable_and_launch_admitted"
         ],
         "release_blocking_readiness": [
           "gateway_account_login",
-          "official_profile_first_install",
           "fresh_framework_agent_projection"
         ],
         "gate_policy": "required_prepublication_same_candidate"

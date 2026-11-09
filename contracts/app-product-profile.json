@@ -763,7 +763,10 @@
         "redacted_and_bounded": true,
         "terminal_log_schema": "opl_official_profile_first_install_terminal.v1",
         "qualification_binding": ["app_process_id", "launch_started_at"],
-        "qualification_terminal_failure_policy": "fail_immediately_without_retry_or_mutation",
+        "qualification_terminal_failure_policy": {
+          "standard": "record_package_failure_without_blocking_host_qualification",
+          "full": "fail_immediately_without_retry_or_mutation"
+        },
         "package_lifecycle_authority": false
       }
     },

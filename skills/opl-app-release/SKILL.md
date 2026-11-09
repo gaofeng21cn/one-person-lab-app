@@ -9,7 +9,7 @@ description: "执行、跟进、恢复或梳理 One Person Lab App 的 Stable、
 
 先按 [发布路径与矩阵](../../docs/delivery/release/release-paths.md) 找到真实入口、平台、附加成员和终态，再读取仓库内 [发布 SOP](../../docs/delivery/release/stable-release-sop.md)，按当前阶段只加载相关技术参考。安装入口可能是软链接；解析其真实路径后读取引用，避免相对路径落到 `~/.codex/docs`。SOP 负责操作规则；合同和正式 CLI／workflow 负责实现与身份，Framework 持有 Bundle、checkpoint 和运行时投影。
 
-从当前请求和已有授权区分只读检查、新发布、跟进与恢复。只查状态不触发 mutation；已授权的发布继续推进至请求范围的公开终态，不重复询问。已有 owner 或 checkpoint 从其当前位置继续，不从头构建。要求完整矩阵时逐项完成适用的 Full、平台包、Homebrew 和 Docker 回读；附加项失败独立恢复。仅优化流程时修改并验证源码和文档，不因此派发产品发布。领域 Package 发布仍需其自身范围。
+从当前请求和已有授权区分只读检查、新发布、跟进与恢复。只查状态不触发 mutation；已授权的发布继续推进至请求范围的公开终态，不重复询问。已有 owner 或 checkpoint 从其当前位置继续，不从头构建。要求完整矩阵时逐项完成适用的 Full、平台包、Homebrew 和 Docker 回读；附加项失败独立恢复。用户授权完整 App 交付时，本次所选交付必需的公开关联组件正式发布及窄 canonical 修复一并推进，不逐包重复确认；各组件仍经自身正式 owner 交付，既有私有源码边界不变，也不推导本机安装授权。仅优化流程时修改并验证源码和文档，不因此派发产品发布。
 
 Studio 已是当前正式实现；历史 Studio Preview 的 terminal handoff 仅是维护入口，不把普通 App 发布误路由为新的独立 Preview。已合格字节优先复用，同 tag 修复递增机器版本并处理对应 feed、manifest、Homebrew 和仍被使用的旧证明或固定交接资产；具体约束只维护在 SOP。
 

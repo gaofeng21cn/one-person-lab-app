@@ -287,6 +287,7 @@ jobs:
           VERIFICATION_APP_SHA: ${{ inputs.verification_app_ref || inputs.full_content_app_ref }}
           ARTIFACT_SHELL_SHA: ${{ inputs.full_content_shell_ref }}
           VERIFICATION_SHELL_SHA: ${{ inputs.smoke_harness_ref || inputs.full_content_shell_ref }}
+          FULL_CONTENT_FRAMEWORK_REF: ${{ inputs.full_content_framework_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -300,7 +301,7 @@ jobs:
             source_args=(--full-manifest "$CHECKPOINT_DIR/tracks/full/assets/opl-release-manifest.json")
           else
             case "$CHECKPOINT_STAGE" in standard_built|standard_qualified) ;; *) exit 1 ;; esac
-            source_args=(--fresh-build)
+            source_args=(--fresh-build --framework-ref "$FULL_CONTENT_FRAMEWORK_REF")
           fi
           node --experimental-strip-types app-source/scripts/validate-full-addon-admission.ts \
             "${source_args[@]}" --mas-scholar-skills-ref "$MAS_SCHOLAR_SKILLS_REF" \

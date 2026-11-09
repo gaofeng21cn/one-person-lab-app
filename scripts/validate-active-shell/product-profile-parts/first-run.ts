@@ -51,6 +51,14 @@ export function validateOfficialProfileFirstInstallPolicy(profile) {
   ) {
     throw new Error('Product profile Official Profile first-install execution must remain background and non-blocking after Core ready');
   }
+  assertDeepEqualJson(
+    execution.failure_diagnostics?.qualification_terminal_failure_policy,
+    {
+      standard: 'record_package_failure_without_blocking_host_qualification',
+      full: 'fail_immediately_without_retry_or_mutation',
+    },
+    'Official Profile qualification must separate Standard background diagnostics from Full offline-seed completeness',
+  );
 }
 
 export function validateReadyToLaunchGate(profile, firstRunCoreItems) {

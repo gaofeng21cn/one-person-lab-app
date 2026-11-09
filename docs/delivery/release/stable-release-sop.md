@@ -18,6 +18,8 @@
 
 渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。当前正式 Shell 已选择基于 DSH/Cordis 的 Studio，Stable 继续沿用既有 OPL App 标识与更新仓库。历史 Studio Preview 通过独立身份的终结桥迁入 Stable；普通后续发布使用正式 App 入口，只在明确维护交接时进入 Preview 桥路径。领域 Package 与 Docker WebUI 保持各自 authority，Desktop 成功不代表它们已发布。
 
+用户授权完整 App 发布时，完成本次所选交付所必需的公开关联组件正式发布及窄 canonical 修复一并推进，不逐包重复确认；每个组件仍使用自身 owner 的正式入口并回读终态。既有私有源码边界继续有效，App 发布请求也不隐含本机安装授权。未选择的可选 Package 不纳入宿主发布前提。
+
 已有 run 时先进入第 4 节；已有合格产物时进入第 5 节。不要默认从头开始构建。一次任务仅需在现有执行记录或简短进度中保留范围、owner run、候选和未完成渠道，不新增持久状态协议。
 
 ## 2. 准备一次准确候选
@@ -29,7 +31,7 @@
 
 云环境源码门禁保留既有代理与 CA 信任配置；GitHub CLI 的认证变量只传给只读 owner 核验，不传给依赖脚本或 Shell 测试，也不写入门禁回执。
 
-source gate 在 Framework CLI／公开 Package 源预检、Shell consumer、typecheck 和测试前，先检查本机准备情况：用冻结 carrier 的 `node_host_runtime` adapter 校验 PATH 中实际执行脚本的 Node，再用离线 `npm ls --depth=0 --include=dev` 检查已安装的 Shell 直接依赖。失败沿用 `pre_admission` blocker，先修本机环境再继续；App 不复制 Node 安全版本表，也不把直接依赖检查当作完整 lockfile 验证。依赖陈旧时按冻结 lockfile 执行 `npm ci`；Node 不合格时选择已接纳的运行时并核对 Node、npm／npx 的实际来源，不自动改全局 Node。只有 Node 二进制的工具目录不能作为完整 Full 打包工具链。
+source gate 在 Framework CLI、Shell consumer、typecheck 和测试前，先检查本机准备情况：用冻结 carrier 的 `node_host_runtime` adapter 校验 PATH 中实际执行脚本的 Node，再用离线 `npm ls --depth=0 --include=dev` 检查已安装的 Shell 直接依赖。失败沿用 `pre_admission` blocker，先修本机环境再继续；App 不复制 Node 安全版本表，也不把直接依赖检查当作完整 lockfile 验证。依赖陈旧时按冻结 lockfile 执行 `npm ci`；Node 不合格时选择已接纳的运行时并核对 Node、npm／npx 的实际来源，不自动改全局 Node。只有 Node 二进制的工具目录不能作为完整 Full 打包工具链。
 
 In a managed executor, establish GitHub capability with a sanitized read of the actual
 repository or owner run. `gh auth status` can reject a proxy credential placeholder even
@@ -40,11 +42,11 @@ and ask for external credentials only after the required capability is actually 
 A successful read does not establish write permission: the official controller's single
 mutation and owner reconciliation establish whether dispatch occurred.
 
-现有 Framework CLI consumer 门禁也读取 App 产品 Profile 选择的根包，在准确 Framework 源码归档的临时状态目录中执行真实公开源下载、解包和摘要校验。它只验证选定根包的源 payload，不修改本机安装，不替代依赖安装或 clean-VM 登录；源包损坏或路径不兼容应在打包前失败。
+Standard 的 Framework CLI consumer 只验证宿主所需命令与合同，不以默认 Profile 可选根包的公开源可用性阻断通用宿主。Package 的正式发布仍由各自 owner 验证；Full 按本次 Profile 动态选择 roots，必须校验完整离线载荷的准确字节、摘要及实际安装 presence。精确版本和 content digest 仅标识所选载荷，不形成 Package 组合版本矩阵，也不增加 resolver、registry 或平行 currentness。
 
 影响 Shell 身份、迁移或更新协议时，覆盖受影响的 Studio Stable 与 Preview 路径、数据延续和后续更新源；历史版本仅使用可追溯的原发布资产，不恢复已退役 Shell 的构建或启动路径。普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
 
-Stable 的 Standard 首次安装、Gateway 登录、Official Profile 首次收敛和运行就绪读回，必须在该准确候选公开前通过，属于发布阻断门禁。AionUI Stable 到 Studio Stable、Studio Preview 到 Stable 的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
+Stable 的 Standard 首次安装、Core、Framework、Gateway 登录和 Codex 真实就绪读回，必须在该准确候选公开前通过。默认 Official Profile 在后台安装，其 pending、failed、missing 状态如实保留为诊断，不阻断 Standard 宿主发布；不得把宿主通过写成全部 Package 已安装。Full 额外承诺 offline seed，所选 roots 的完整交付和准确安装仍为其发布前提。AionUI Stable 到 Studio Stable、Studio Preview 到 Stable 的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
 
 在 macOS 临时工作区执行冻结源码 CLI 时，controller 先解析临时目录的真实路径，再构造脚本 argv，避免 `/var` 别名导致主模块判断跳过执行。
 
@@ -111,7 +113,7 @@ Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产�
 
 先核对当前机器是否就是执行 runner；若是，直接读取该 job 的 wrapper 日志和产物变化。否则使用已授权的 runner 入口或 GitHub 当前 step 日志。`child_running: true` 只证明子进程存活；压缩进展、签名产物、公证请求编号、VM marker 才分别证明对应阶段。确认日志来源后复用 incident CLI 的 `--job-id`／`--job-log-file`，不另造状态控制器。
 
-Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败与本次启动 PID、时间绑定后，harness 立即报告错误，不再等待安装成功超时；旧日志不构成本次失败证据。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断。初次 exit 1 只在当前 PID 的安装记录仍为 `running` 时有界重读；根包未齐且当前安装记录已 `failed` 时直接结束等待，不延长诊断超时掩盖断点。
+Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败须绑定本次启动 PID、时间；旧日志不构成本次失败证据。Standard 保留 Package 失败与缺包诊断并继续判断宿主就绪，宿主回读失败或 Core 不可用仍失败。Full 所选 roots 未齐且安装已终态失败时立即结束等待，不延长超时掩盖断点。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断；初次 exit 1 仅在当前 PID 的相关安装仍为 `running` 时有界重读。
 
 只有 `stage=clone_vm`、`stage=start_vm`、`stage=wait_for_ip`、`vm_name`、`guest_ip` 等 runtime marker 能证明对应 VM 阶段。在此之前报告“VM 尚未证实创建”。心跳不是产物进展。
 
@@ -342,8 +344,9 @@ projected confirmation action. Fresh model access already owned by `opl_gateway`
 no second mutation; an unchanged source permits at most one bounded retry of that
 confirmation. Unknown outcomes, authentication failures or a changed model-access owner
 must not be repeated. Preserve the first receipt and recovery projection, and still
-require fresh Gateway model access, Official Profile convergence, real Codex protocol
-readiness and Runtime refresh. A later successful run does not establish the original
+require fresh Gateway model access, real Codex protocol readiness and Runtime refresh.
+Record actual Official Profile background status for Standard; require selected-root
+convergence for Full. A later successful run does not establish the original
 service's underlying cause or prove the retry branch was exercised. See the
 [v26.10.2 retrospective](incidents/2026-10-02-stable-release-recovery.md) for observed
 failures, the mistaken checkpoint selection, and final public evidence.

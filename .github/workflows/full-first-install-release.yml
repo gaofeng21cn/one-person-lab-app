@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       mas_scholar_skills_ref:
-        description: Exact Scholar Skills SHA frozen by Full admission; other callers resolve main during checkout
+        description: Exact Scholar Skills SHA frozen by Full admission; must match the frozen Framework source pin
         required: false
         default: ''
         type: string
@@ -353,78 +353,91 @@ jobs:
             output="${selector%%:*}"; query="${selector#*:}"; value="$(jq -er "$query" "$resolved_full")"
             echo "${output}=$value" >> "$GITHUB_OUTPUT"
           done
+      - name: Resolve Full source seed identities from frozen Framework
+        id: seed-sources
+        env:
+          MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE } from './one-person-lab-app/scripts/build-full-first-install-package/runtime-cache-package-set.ts';
+          for (const id of FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE) {
+            const owner = JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
+            const commit = owner.codex_surface?.carrier_source_commit;
+            if (owner.package_id !== id || !/^[0-9a-f]{40}$/.test(commit ?? '')) {
+              throw new Error(`Frozen Framework has no exact source seed for ${id}.`);
+            }
+            if (id === 'mas-scholar-skills' && process.env.MAS_SCHOLAR_SKILLS_REF
+                && process.env.MAS_SCHOLAR_SKILLS_REF !== commit) {
+              throw new Error('Admitted Scholar Skills ref differs from the frozen Framework source pin.');
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${id}=${commit}\n`);
+          }
+          NODE
+
       - name: Checkout MAS
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/med-autoscience
-          ref: main
+          ref: ${{ steps.seed-sources.outputs.mas }}
           path: med-autoscience
 
       - name: Checkout MAS Scholar Skills
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/mas-scholar-skills
-          ref: ${{ inputs.mas_scholar_skills_ref || 'main' }}
+          ref: ${{ steps.seed-sources.outputs.mas-scholar-skills }}
           path: mas-scholar-skills
-
-      - name: Resolve MAC source seed identities from Framework
-        id: mac-sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          for id in med-autocast mac-media-assets; do
-            commit="$(jq -er '.codex_surface.carrier_source_commit' "one-person-lab/contracts/opl-framework/packages/$id.json")"
-            [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
-            echo "$id=$commit" >> "$GITHUB_OUTPUT"
-          done
 
       - name: Checkout MAC source seed
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/med-autocast
-          ref: ${{ steps.mac-sources.outputs.med-autocast }}
+          ref: ${{ steps.seed-sources.outputs.med-autocast }}
           path: med-autocast
 
       - name: Checkout MAC media assets source seed
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/mac-media-assets
-          ref: ${{ steps.mac-sources.outputs.mac-media-assets }}
+          ref: ${{ steps.seed-sources.outputs.mac-media-assets }}
           path: mac-media-assets
 
       - name: Checkout MAG
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/med-autogrant
-          ref: main
+          ref: ${{ steps.seed-sources.outputs.mag }}
           path: med-autogrant
 
       - name: Checkout RCA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/redcube-ai
-          ref: main
+          ref: ${{ steps.seed-sources.outputs.rca }}
           path: redcube-ai
 
       - name: Checkout OPL Meta Agent
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/opl-meta-agent
-          ref: main
+          ref: ${{ steps.seed-sources.outputs.oma }}
           path: opl-meta-agent
 
       - name: Checkout OPL BookForge
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/opl-bookforge
-          ref: main
+          ref: ${{ steps.seed-sources.outputs.obf }}
           path: opl-bookforge
 
       - name: Checkout OPL Flow
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/opl-flow
-          ref: main
+          ref: ${{ steps.seed-sources.outputs.opl-flow }}
           path: opl-flow
 
       - name: Checkout OfficeCLI
@@ -442,6 +455,8 @@ jobs:
           path: MinerU-Ecosystem
 
       - name: Validate Full source roots
+        env:
+          SEED_SOURCE_REFS: ${{ toJSON(steps.seed-sources.outputs) }}
         shell: bash
         run: |
           set -euo pipefail
@@ -474,6 +489,19 @@ jobs:
             commit="$(git -C "$GITHUB_WORKSPACE/$repo" rev-parse HEAD)"
             [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::$repo resolved an invalid commit."; exit 1; }
           done
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { execFileSync } from 'node:child_process';
+          for (const [id, commit] of Object.entries(JSON.parse(process.env.SEED_SOURCE_REFS))) {
+            const owner = JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
+            const repo = path.basename(new URL(owner.source_repo).pathname.replace(/\.git$/, ''));
+            const actual = execFileSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+            if (actual !== commit || commit !== owner.codex_surface?.carrier_source_commit) {
+              throw new Error(`Full source seed ${id} resolved ${actual}; frozen Framework requires ${commit}.`);
+            }
+          }
+          NODE
 
       - name: Resolve release version
         id: release_version

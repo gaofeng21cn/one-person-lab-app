@@ -806,8 +806,6 @@ export function buildReleaseSourceGateReport(
     frameworkRoot,
     '--expected-framework-sha',
     frameworkSha!,
-    '--app-profile',
-    'contracts/app-product-profile.json',
   ];
   requiredGates[1].executed = true;
   const frameworkReleaseCliConsumerResult = runner(process.execPath, frameworkReleaseCliConsumerArgs, {
@@ -818,7 +816,7 @@ export function buildReleaseSourceGateReport(
     id: 'framework_release_cli_consumer',
     status: frameworkReleaseCliConsumerResult.status === 0 ? 'passed' : 'failed',
     message: frameworkReleaseCliConsumerResult.status === 0
-      ? 'Exact Framework release CLI and selected Official Profile Package sources passed in an isolated archive without native carrier mutation.'
+      ? 'Exact Framework host release CLI passed in an isolated archive; optional Profile Package delivery is independent.'
       : `Exact Framework release CLI consumer failed.${commandDetail(frameworkReleaseCliConsumerResult) ? `\n${commandDetail(frameworkReleaseCliConsumerResult)}` : ''}`,
     command: commandText('node', frameworkReleaseCliConsumerArgs.slice(1)),
   });

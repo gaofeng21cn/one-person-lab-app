@@ -78,7 +78,7 @@ function commitReachable(
 }
 
 export function resolveFullScholarSkillsRef(
-  input: { requestedRef?: string; fullManifest?: unknown; freshBuild?: boolean },
+  input: { requestedRef?: string; fullManifest?: unknown; freshBuild?: boolean; frameworkRef?: string },
   runner: QualificationHarnessScopeCommandRunner = defaultRunner,
 ): string {
   const requested = input.requestedRef?.trim()
@@ -93,12 +93,16 @@ export function resolveFullScholarSkillsRef(
     return ref;
   }
   if (!input.freshBuild) throw new Error('Existing Full artifacts require their exact manifest; no current-main fallback is allowed.');
-  if (requested) return requested;
-  const result = runner('git', ['ls-remote', 'https://github.com/gaofeng21cn/mas-scholar-skills.git', 'refs/heads/main']);
-  if (result.status !== 0) throw new Error(`Resolve fresh Full Scholar Skills source: ${result.stderr.trim()}`);
-  const refs = result.stdout.trim().split('\n').map((line) => line.split(/\s+/));
-  if (refs.length !== 1 || refs[0][1] !== 'refs/heads/main') throw new Error('Fresh Full Scholar Skills main must resolve to exactly one ref.');
-  return exactSha(refs[0][0], 'fresh Full Scholar Skills ref');
+  const frameworkRef = exactSha(input.frameworkRef ?? '', 'fresh Full Framework ref');
+  const result = runner('gh', ['api',
+    `repos/gaofeng21cn/one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json?ref=${frameworkRef}`,
+    '-H', 'Accept: application/vnd.github.raw+json']);
+  if (result.status !== 0) throw new Error(`Read frozen Framework Scholar Skills source: ${result.stderr.trim()}`);
+  const owner = JSON.parse(result.stdout);
+  if (owner.package_id !== 'mas-scholar-skills') throw new Error('Frozen Framework Scholar Skills owner identity is invalid.');
+  const ref = exactSha(String(owner.codex_surface?.carrier_source_commit ?? ''), 'frozen Framework Scholar Skills ref');
+  if (requested && requested !== ref) throw new Error('Requested Scholar Skills ref differs from the frozen Framework source pin.');
+  return ref;
 }
 
 export function runFullAddonAdmissionPreflight(
@@ -160,6 +164,7 @@ function main(): void {
       'mas-scholar-skills-ref': { type: 'string' },
       'full-manifest': { type: 'string' },
       'fresh-build': { type: 'boolean', default: false },
+      'framework-ref': { type: 'string' },
       'artifact-app-sha': { type: 'string' },
       'verification-app-sha': { type: 'string' },
       'artifact-shell-sha': { type: 'string' },
@@ -180,6 +185,7 @@ function main(): void {
     requestedRef: values['mas-scholar-skills-ref'],
     fullManifest: values['full-manifest'] ? JSON.parse(fs.readFileSync(values['full-manifest'], 'utf8')) : undefined,
     freshBuild: values['fresh-build'],
+    frameworkRef: values['framework-ref'],
   });
   const result = runFullAddonAdmissionPreflight({
     masScholarSkillsRef,

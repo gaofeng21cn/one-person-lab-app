@@ -94,17 +94,21 @@ test('Full recovery binds Scholar Skills to the existing artifact without readin
   assert.throws(() => resolveFullScholarSkillsRef({ fullManifest: { ...manifest, components: {} } }, noRemote), /component and resolved ref differ/);
 });
 
-test('fresh Full admission freezes one exact Scholar Skills ref for the build', () => {
+test('fresh Full admission uses the frozen Framework Scholar Skills pin instead of current main', () => {
   const calls: string[][] = [];
-  const runner = (_command: string, args: string[]) => {
+  const frameworkRef = 'a'.repeat(40);
+  const runner = (command: string, args: string[]) => {
+    assert.equal(command, 'gh');
     calls.push(args);
-    return { status: 0, stdout: `${scholarSha}\trefs/heads/main\n`, stderr: '' };
+    return { status: 0, stdout: JSON.stringify({ package_id: 'mas-scholar-skills', codex_surface: { carrier_source_commit: scholarSha } }), stderr: '' };
   };
-  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true }, runner), scholarSha);
+  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef }, runner), scholarSha);
   assert.equal(calls.length, 1);
-  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true, requestedRef: scholarSha }, runner), scholarSha);
-  assert.equal(calls.length, 1);
-  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true }, () => ({ status: 0, stdout: '', stderr: '' })), /exactly one ref/);
+  assert.ok(calls[0].includes(`repos/gaofeng21cn/one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json?ref=${frameworkRef}`));
+  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef, requestedRef: scholarSha }, runner), scholarSha);
+  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef, requestedRef: 'b'.repeat(40) }, runner), /differs from the frozen Framework source pin/);
+  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true }, runner), /fresh Full Framework ref must be an exact/);
+  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef }, () => ({ status: 1, stdout: '', stderr: 'unavailable' })), /Read frozen Framework Scholar Skills source: unavailable/);
 });
 
 
@@ -116,11 +120,12 @@ test('Full workflow resolves refs after verified checkpoint restore and freezes 
   assert.ok(refIndex > steps.findIndex((step: any) => step.id === 'checkpoint'));
   assert.match(steps[refIndex].run, /--full-manifest "\$CHECKPOINT_DIR\/tracks\/full\/assets\/opl-release-manifest.json"/);
   assert.match(steps[refIndex].run, /--name "opl-full-diagnostics-\$CHECKPOINT_VERSION"/);
-  assert.match(steps[refIndex].run, /source_args=\(--fresh-build\)/);
+  assert.match(steps[refIndex].run, /source_args=\(--fresh-build --framework-ref "\$FULL_CONTENT_FRAMEWORK_REF"\)/);
+  assert.equal(steps[refIndex].env.FULL_CONTENT_FRAMEWORK_REF, '${{ inputs.full_content_framework_ref }}');
   assert.equal(full.jobs['full-build'].with.mas_scholar_skills_ref, '${{ needs.restore-standard.outputs.mas_scholar_skills_ref }}');
   const build = read('full-first-install-release.yml');
   const checkout = build.jobs['full-first-install'].steps.find((step: any) => step.name === 'Checkout MAS Scholar Skills');
-  assert.equal(checkout.with.ref, "${{ inputs.mas_scholar_skills_ref || 'main' }}");
+  assert.equal(checkout.with.ref, '${{ steps.seed-sources.outputs.mas-scholar-skills }}');
   assert.equal(full.jobs['full-clean-vm-qualification'].with.mas_scholar_skills_ref,
     '${{ needs.full-build.outputs.mas_scholar_skills_ref || needs.materialize-full-build.outputs.mas_scholar_skills_ref }}');
 });

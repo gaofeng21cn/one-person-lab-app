@@ -1,4 +1,4 @@
-import { appRoot, assert, fs, os, path, test } from "./helpers.ts";
+import { appRoot, assert, fs, os, path, spawnSync, test } from "./helpers.ts";
 import { parse as parseYaml } from "yaml";
 
 test("Full domain build links the pinned local Framework package into RedCube", () => {
@@ -20,7 +20,7 @@ test("Full workflow may select OPL Flow without a fixed Framework package catalo
   assert.doesNotMatch(workflow, /bundled-full-runtime-package-catalog\.json/);
   assert.match(
     workflow,
-    /name: Resolve default Full build inputs[\s\S]*name: Checkout OPL Flow[\s\S]*repository: gaofeng21cn\/opl-flow[\s\S]*ref: main[\s\S]*path: opl-flow/,
+    /name: Resolve default Full build inputs[\s\S]*name: Checkout OPL Flow[\s\S]*repository: gaofeng21cn\/opl-flow[\s\S]*ref: \$\{\{ steps\.seed-sources\.outputs\.opl-flow \}\}[\s\S]*path: opl-flow/,
   );
   assert.match(
     workflow,
@@ -44,7 +44,7 @@ test("Full workflow checks out MAS Scholar Skills and binds both runtime assembl
   assert.doesNotMatch(workflow, /bundled-full-runtime-package-catalog\.json/);
   assert.match(
     workflow,
-    /name: Checkout MAS Scholar Skills[\s\S]*repository: gaofeng21cn\/mas-scholar-skills[\s\S]*ref: \$\{\{ inputs\.mas_scholar_skills_ref \|\| 'main' \}\}[\s\S]*path: mas-scholar-skills/,
+    /name: Checkout MAS Scholar Skills[\s\S]*repository: gaofeng21cn\/mas-scholar-skills[\s\S]*ref: \$\{\{ steps\.seed-sources\.outputs\.mas-scholar-skills \}\}[\s\S]*path: mas-scholar-skills/,
   );
   assert.equal(
     workflow.match(
@@ -72,6 +72,65 @@ test("Full workflow checks out MAS Scholar Skills and binds both runtime assembl
     workflow,
     /assert-full-runtime-currentness\.ts[\s\S]*--mas-scholar-skills-root "\$GITHUB_WORKSPACE\/mas-scholar-skills"/,
   );
+});
+
+test("Full workflow binds selected seeds to Framework pins and rejects drift before cache assembly", () => {
+  const workflow = parseYaml(fs.readFileSync(path.join(appRoot, ".github/workflows/full-first-install-release.yml"), "utf8"));
+  const steps = workflow.jobs["full-first-install"].steps;
+  const sourceStep = steps.find((step: any) => step.id === "seed-sources");
+  const validationStep = steps.find((step: any) => step.name === "Validate Full source roots");
+  const validationScript = validationStep.run.match(/node --input-type=module <<'NODE'\n([\s\S]*?)\nNODE/)[1];
+  const checkouts = steps.filter((step: any) => /^\$\{\{ steps\.seed-sources\.outputs\./.test(step.with?.ref ?? ""));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-seed-pins-"));
+  const pins: Record<string, string> = {};
+  const git = (cwd: string, args: string[]) => {
+    const result = spawnSync("git", ["-c", "user.name=Full Seed Test", "-c", "user.email=full-seed@example.invalid", ...args], { cwd, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  try {
+    fs.symlinkSync(appRoot, path.join(tempRoot, "one-person-lab-app"), "dir");
+    const catalog = path.join(tempRoot, "one-person-lab/contracts/opl-framework/packages");
+    fs.mkdirSync(catalog, { recursive: true });
+    for (const step of checkouts) {
+      const id = step.with.ref.match(/outputs\.([^ ]+) /)[1];
+      const root = path.join(tempRoot, step.with.path);
+      fs.mkdirSync(root, { recursive: true });
+      git(root, ["init", "-q"]);
+      fs.writeFileSync(path.join(root, "payload.txt"), `${id}\n`);
+      git(root, ["add", "."]);
+      git(root, ["commit", "-qm", "Pinned package source"]);
+      pins[id] = git(root, ["rev-parse", "HEAD"]);
+      fs.writeFileSync(path.join(catalog, `${id}.json`), JSON.stringify({
+        package_id: id, version: "1.0.0", source_repo: `https://github.com/${step.with.repository}.git`,
+        codex_surface: { carrier_source_commit: pins[id] },
+      }));
+    }
+    const output = path.join(tempRoot, "github-output");
+    const env = { ...process.env, GITHUB_OUTPUT: output, MAS_SCHOLAR_SKILLS_REF: pins["mas-scholar-skills"] };
+    const resolved = spawnSync("bash", ["-c", sourceStep.run], { cwd: tempRoot, env, encoding: "utf8" });
+    assert.equal(resolved.status, 0, resolved.stderr);
+    assert.deepEqual(Object.fromEntries(fs.readFileSync(output, "utf8").trim().split("\n").map((line) => line.split("="))), pins);
+    const verify = () => spawnSync(process.execPath, ["--input-type=module"], {
+      cwd: tempRoot, env: { ...env, SEED_SOURCE_REFS: JSON.stringify(pins) }, input: validationScript, encoding: "utf8",
+    });
+    const matched = verify();
+    assert.equal(matched.status, 0, matched.stderr);
+    const mas = path.join(tempRoot, "med-autoscience");
+    fs.writeFileSync(path.join(mas, "payload.txt"), "same version, newer main\n");
+    git(mas, ["add", "."]);
+    git(mas, ["commit", "-qm", "Advance source without republishing"]);
+    const drifted = verify();
+    assert.notEqual(drifted.status, 0);
+    assert.match(drifted.stderr, /Full source seed mas resolved .*frozen Framework requires/);
+    const conflicted = spawnSync("bash", ["-c", sourceStep.run], {
+      cwd: tempRoot, env: { ...env, MAS_SCHOLAR_SKILLS_REF: "f".repeat(40) }, encoding: "utf8",
+    });
+    assert.notEqual(conflicted.status, 0);
+    assert.match(conflicted.stderr, /Admitted Scholar Skills ref differs/);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
 });
 
 test("Full workflow provisions the frozen official Python archive on macOS arm64", () => {

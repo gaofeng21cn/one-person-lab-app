@@ -170,14 +170,18 @@ function validateVmAcceleration(releaseChannel, shellPaths, validationProfile) {
     ['standard_dmg_clean_vm_smoke', 'full_dmg_clean_vm_smoke'].includes(gate?.id),
   );
   for (const gate of requiredVmGates) {
+    const isFull = gate?.id === 'full_dmg_clean_vm_smoke';
     if (
       gate?.diagnostic_scope !== 'release_gate' ||
       gate?.gate_policy !== 'required_prepublication_same_candidate' ||
+      gate?.runtime_profile !== (isFull ? 'full' : 'standard') ||
       !Array.isArray(gate?.certification_readiness) ||
-      gate.certification_readiness.length === 0 ||
+      !gate.certification_readiness.includes(isFull
+        ? 'official_profile_exact_roots_installed_without_restore'
+        : 'official_profile_background_status_and_root_presence_observed_without_restore') ||
       !sameStringSet(gate?.release_blocking_readiness, [
         'gateway_account_login',
-        'official_profile_first_install',
+        ...(isFull ? ['official_profile_first_install'] : []),
         'fresh_framework_agent_projection',
       ])
     ) {

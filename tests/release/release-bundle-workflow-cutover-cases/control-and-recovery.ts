@@ -961,12 +961,17 @@ test('mandatory publication ancestors allow only the protected exact-candidate c
   const gatesById = Object.fromEntries(vmGates.map((gate: Record<string, unknown>) => [gate.id, gate]));
   for (const gateId of ['standard_dmg_clean_vm_smoke', 'full_dmg_clean_vm_smoke']) {
     const gate = gatesById[gateId];
+    const isFull = gateId === 'full_dmg_clean_vm_smoke';
     assert.equal(gate.diagnostic_scope, 'release_gate');
     assert.equal(gate.gate_policy, 'required_prepublication_same_candidate');
+    assert.equal(gate.runtime_profile, isFull ? 'full' : 'standard');
     assert.ok(Array.isArray(gate.certification_readiness));
+    assert.ok(gate.certification_readiness.includes(isFull
+      ? 'official_profile_exact_roots_installed_without_restore'
+      : 'official_profile_background_status_and_root_presence_observed_without_restore'));
     assert.deepEqual(gate.release_blocking_readiness, [
       'gateway_account_login',
-      'official_profile_first_install',
+      ...(isFull ? ['official_profile_first_install'] : []),
       'fresh_framework_agent_projection',
     ]);
   }

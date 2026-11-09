@@ -274,12 +274,22 @@
         "balance_amount=0",
         "profile_email_matches_configured=true"
       ],
-      "required_official_profile_readback": [
-        "first_install_status=passed",
-        "desired_root_package_ids_exact",
-        "installed_root_package_ids_exact",
-        "restore_action_invoked=false"
-      ],
+      "required_official_profile_readback": {
+        "standard": [
+          "first_install_status_observed",
+          "desired_root_package_ids_exact",
+          "installed_root_package_ids_observed",
+          "missing_root_package_ids_observed",
+          "restore_action_invoked=false"
+        ],
+        "full": [
+          "first_install_status_observed",
+          "first_install_status_not_failed",
+          "desired_root_package_ids_exact",
+          "installed_root_package_ids_exact",
+          "restore_action_invoked=false"
+        ]
+      },
       "required_summary_fields": [
         "status",
         "requested",
@@ -892,7 +902,7 @@
         "App-managed bootstrap installs or refreshes the Framework CLI when opl is missing on the clean Mac",
         "Core first-launch readiness is proven through opl system initialize --json before the first conversation, while /guid remains explicitly enterable earlier",
         "Protected release credentials complete a real OPL Gateway account login and fresh App state reports connected account, active managed key, and stale=false",
-        "First-install Official Profile converges the exact desired root Package IDs before the Standard candidate can publish",
+        "First-install Official Profile reports the exact desired roots, observed installed and missing roots, and real background status; optional Package pending, failure or absence does not block Standard host qualification",
         "App launches without Full-only runtime equivalence checks",
         "GUID entry is usable through packaged App CDP with input, send control, and default assistant surface",
         "Settings pages are navigable after first-run initialization",
