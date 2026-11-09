@@ -112,14 +112,14 @@ entry does not authorize deletion of AionUI-owned data.
 `settings_navigation.settings_ia` owns the visible hierarchy. Product groups express
 user intent; carrier route ids remain stable adapter identities.
 
-Each top-level group answers one user question and shows its title once. When a
-group has multiple second-level destinations, those destinations use one tab
-list; the selected destination then owns one page heading. The UI must not stack
-the same words as a group label, eyebrow, H1, and active-tab label. A group with
-one destination opens it directly without a one-item tab strip. Desktop and
-mobile may place navigation differently, but they preserve the same group,
-destination, and active-tab semantics and never concatenate every destination
-into one long page.
+Each top-level group answers one user question and shows its title once. When
+the active group has multiple second-level destinations, show one tab list in
+the content header. The selected tab is the destination heading and names its
+tabpanel; do not add a second H1 above it. A group with one destination opens it
+directly with one H1 and no one-item tab strip. Native rail labels remain
+navigation context, not content headings. Desktop and mobile may place
+navigation differently, but they preserve the same group and destination
+semantics and never concatenate every destination into one long page.
 
 | Primary group | Second-level destinations | Carrier route / anchor |
 | --- | --- | --- |
@@ -131,12 +131,14 @@ into one long page.
 | 运行与维护 | 服务状态；更新与修复；日志与诊断 | `environment#services`; `environment#updates`; `environment#diagnostics` |
 | 偏好 | 偏好 | `appearance` |
 
-“关于”是七组之外唯一的侧栏底部辅助入口。Advanced 退役并重定向到维护诊断。桌面端展开
-当前一级组后显示二级目的地；移动端先显示纵向分类列表，再进入带可见返回控件的二级列表，
+“关于”是七组之外唯一的侧栏底部辅助入口，与主组保持独立间距，不作为第八个普通设置类别。
+DSH 固定版本的原生 rail 只提供平铺注册行；About 仍使用该原生行及 store，仅由 OPL 的
+局部布局适配定位到底部。Advanced 退役并重定向到维护诊断。桌面端进入当前一级组后在
+内容标题区显示唯一的二级 tab list；移动端先显示纵向分类列表，再进入带可见返回控件的二级列表，
 禁止把十个 carrier route 平铺成横向 tab strip。
 
 工作区只组织工作目录、权限、项目/任务产物位置和数据存储。用户级 `AGENTS.md` 与新对话附加说明
-归“智能体与能力 > 指令与上下文”；App 日志目录、服务证据和技术诊断归“运行与维护 > 日志与诊断”。
+归“扩展与应用 > 指令与上下文”；App 日志目录、服务证据和技术诊断归“运行与维护 > 日志与诊断”。
 资源、外部连接与部署入口只归“连接与部署”，不再借用“账户与模型”的语义。现有 route、anchor
 和 typed host action 继续作为兼容 transport，但不得反向定义可见归属。
 
@@ -753,9 +755,10 @@ model, package or execution state store.
 | How should the app feel? | Preferences | Appearance, language, font size, notifications and confirmation preferences | DSH General controls |
 | Which app am I using? | About | Version and support links | DSH version/support pattern |
 
-A page has one title and one short task description. Related destinations occupy a separate compact
-navigation row; no repeated eyebrow. State refresh is a quiet trailing icon in the title row, with a
-localized accessible name. Preferences has no global refresh or Framework loading/error barrier.
+A page has one destination heading and one short task description. For a multi-destination group,
+the selected tab is that heading and names the tabpanel; no duplicate H1 appears above it. A single
+destination uses one H1. State refresh is a quiet trailing icon beside the heading, with a localized
+accessible name. Preferences has no global refresh or Framework loading/error barrier.
 Refreshing state is not logging in, updating packages, refreshing account usage, or measuring storage:
 those retain their explicit, scoped actions. Failed reads retain prior state and offer inline retry.
 
@@ -768,10 +771,12 @@ fills; avoid outlined tab pills, duplicate card systems and full-width standalon
 
 ### User-facing settings refinement (2026-09-26)
 
-Instructions prioritizes the editable AGENTS and new-conversation instructions. Memory and scheduled
-tasks have separate destinations; service health links to task management. Diagnostics owns technical
-source details. Overview lists concrete exceptions with their impact and destination, followed by a
-compact normal-state summary. Explicit service/worker readiness overrides aggregate status.
+Instructions prioritizes the editable AGENTS and new-conversation instructions. Memory remains a
+separately owned surface reached from the Instructions context link; it is not an ordinary Settings
+navigation destination. Scheduled tasks remain a workbench surface reached from contextual links, while
+Settings only reports the background-task condition and links to Service Status when needed. Diagnostics
+owns technical source details. Overview lists concrete exceptions with their impact and destination,
+followed by a compact normal-state summary. Explicit service/worker readiness overrides aggregate status.
 
 Agent callability and a selectable launch route are different facts. A missing route remains visible
 and never becomes an unexplained repair recommendation. Capability counts refer to source records,
@@ -804,7 +809,7 @@ Support links are separate rows. Destructive actions remain behind their real pr
 
 ## 设置与工作台的模块边界
 
-计划任务属于主工作台，支持创建、编辑、暂停、运行和历史；设置只保留后台运行条件及跳转。模型与执行统一承载模型、权限、审阅和时间上下文。界面偏好承载语言、主题、字号、快捷键和语音输入。能力目录先按用户用途展示，再按技术类型筛选，并跳转到唯一配置入口。安装、启用、连接和可调用分别表达，源码接入不代表本机就绪。
+计划任务属于主工作台，支持创建、编辑、暂停、运行和历史；设置不注册计划任务普通目的地，只保留后台运行条件及跳转。记忆由 Framework 工作台服务维护，从“指令与上下文”提供上下文入口，不进入扩展导航。模型与执行统一承载模型、权限、审阅和时间上下文。界面偏好承载语言、主题、字号、快捷键和语音输入。能力目录先按用户用途展示，再按技术类型筛选，并跳转到唯一配置入口。安装、启用、连接和可调用分别表达，源码接入不代表本机就绪。
 
 Studio 设置按领域组织，共享 DSH 外壳和控件；生产 Host 位于 `src/host`，脚本只负责启动、构建和验证。Framework 工作台服务仍是一个插件，记忆和存储分别维护。OPL Link Desktop Connector 完整交付前不进入默认安装与内置曝光，既有数据保留。
 
