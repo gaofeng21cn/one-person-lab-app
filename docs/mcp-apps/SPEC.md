@@ -19,7 +19,11 @@ results without repeating the tool. Model-only tools may present a UI, while
 the UI calls only App-visible tools on the
 same server, reads declared resources, receives theme/locale/size context, and
 can update context for the next user turn or prepare a message in the composer.
-No mutation is repeated just to display a view. View teardown releases its host
+No mutation is repeated just to display a view. Each UI call rechecks the live
+server catalog for App visibility or declared resource access; closing a view
+while that check is pending prevents dispatch. A Codex connection reset invalidates
+its ephemeral view bindings. Reopening reads the owner again or displays the exact
+completed call without repeating its mutation. View teardown releases its host
 binding. Standard text and base64 HTML resources are limited to 8 MiB, with CSP
 metadata from resource listing/readback. Unsupported resources retain the
 existing typed views/browser fallback. Sampling and subscriptions are not

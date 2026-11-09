@@ -241,6 +241,8 @@
     "detail_owner": "framework_shared_mcp_app_with_domain_owned_payloads",
     "resource": "text/html;profile=mcp-app_in_opaque_sandbox_with_declared_csp",
     "scope": "bind_each_view_to_exact_thread_server_and_declared_ui_tool",
+    "live_access": "revalidate_bound_server_app_visible_tools_and_declared_resources_before_each_call; revoked_or_closed_bindings_cannot_dispatch",
+    "connection_reset": "invalidate_ephemeral_views_on_codex_connection_unavailability; reopening_reads_owner_state_without_replaying_mutations",
     "tools": "only_tools_from_bound_server_with_app_visibility_preserve_codex_approvals_and_owner_authorization",
     "initial_open": "read_only_declared_ui_tool; never_replay_a_completed_mutation_to_render",
     "context": "view_context_is_untrusted_thread_scoped_input_for_next_user_turn; ui_message_prepares_reviewable_composer_text",
