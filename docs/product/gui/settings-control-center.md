@@ -57,12 +57,15 @@ and its page-state entry is
 The three sections are addressable with `?section=applications`,
 `?section=updates`, and `?section=resources`. Desktop branded links admit these
 exact section routes and the legacy Updates route through the App-owned allowlist;
-unknown query parameters, sections and fragments remain invalid. All sections
-consume `app_state.application_management`, whose provenance refers to the
-existing Package, update, connection and knowledge owners, and use their
-owner-projected actions. Installation, operational readiness, and
-currentness remain separate axes, and a mutation is successful only after
-fresh owner readback.
+unknown query parameters, sections and fragments remain invalid. Applications
+uses the dynamic Package projection, Updates uses the managed-update and App
+updater projections, and Shared Resources consumes
+`app_state.application_management` for authorized resource relationships. The
+three sections share the same owner-projected action and fresh-readback
+rules; the application-management projection keeps provenance references to
+the Package, update, connection and knowledge owners. Installation,
+operational readiness, and currentness remain separate axes, and a mutation is
+successful only after fresh owner readback.
 
 The existing Settings routes remain compatibility routes and deep links:
 `/settings/agents` and `/settings/capabilities` reach the applications view,
