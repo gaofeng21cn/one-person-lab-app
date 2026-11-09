@@ -1466,24 +1466,6 @@ jobs:
           telemetry_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
           telemetry_path="$telemetry_dir/full-workflow-telemetry.json"
           mkdir -p "$telemetry_dir"
-          duration() {
-            local start="$1"
-            local end="$2"
-            if [ -z "$start" ] || [ -z "$end" ]; then
-              echo "n/a"
-            else
-              echo "$((end - start))s"
-            fi
-          }
-          duration_json() {
-            local start="$1"
-            local end="$2"
-            if [ -z "$start" ] || [ -z "$end" ]; then
-              echo "null"
-            else
-              echo "$((end - start))"
-            fi
-          }
           node - "$telemetry_path" <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
@@ -1498,13 +1480,14 @@ jobs:
           const fullBuildTiming = readJson('full-package-build-timing.json');
           const fullManifest = readJson('full-package-manifest.json');
           const intValue = (value) => {
-            const parsed = Number(value || '');
-            return Number.isFinite(parsed) ? parsed : null;
+            if (typeof value !== 'string' || !value.trim()) return null;
+            const parsed = Number(value);
+            return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
           };
           const duration = (start, end) => {
             const left = intValue(start);
             const right = intValue(end);
-            return left === null || right === null ? null : right - left;
+            return left === null || right === null || right < left ? null : right - left;
           };
           const payload = {
             schema: 'opl_full_workflow_telemetry.v1',
@@ -1577,15 +1560,21 @@ jobs:
             echo
             echo "| Step | Duration |"
             echo "| --- | --- |"
-            echo "| Toolchain install | $(duration "${OPL_FULL_WORKFLOW_STARTED_AT:-}" "${OPL_FULL_TOOLCHAIN_READY_AT:-}") |"
-            echo "| Framework npm ci | $(duration "${OPL_FULL_TOOLCHAIN_READY_AT:-}" "${OPL_FULL_FRAMEWORK_DEPS_READY_AT:-}") |"
-            echo "| Framework build | $(duration "${OPL_FULL_FRAMEWORK_DEPS_READY_AT:-}" "${OPL_FULL_FRAMEWORK_BUILD_READY_AT:-}") |"
-            echo "| Shell dependencies | $(duration "${OPL_FULL_FRAMEWORK_BUILD_READY_AT:-}" "${OPL_FULL_SHELL_DEPS_READY_AT:-}") |"
-            echo "| Shell Node/Bun install | $(duration "${OPL_FULL_FRAMEWORK_BUILD_READY_AT:-}" "${OPL_FULL_SHELL_NODE_DEPS_READY_AT:-}") |"
-            echo "| Shell Electron native rebuild | $(duration "${OPL_FULL_SHELL_NODE_DEPS_READY_AT:-}" "${OPL_FULL_SHELL_DEPS_READY_AT:-}") |"
-            echo "| Domain dependencies | $(duration "${OPL_FULL_SHELL_DEPS_READY_AT:-}" "${OPL_FULL_DOMAIN_DEPS_READY_AT:-}") |"
-            echo "| Full package build | $(duration "${OPL_FULL_DOMAIN_DEPS_READY_AT:-}" "${OPL_FULL_PACKAGE_READY_AT:-}") |"
-            echo "| Full checksum/signing verify | $(duration "${OPL_FULL_PACKAGE_READY_AT:-}" "${OPL_FULL_VERIFY_READY_AT:-}") |"
+            node - "$telemetry_path" <<'NODE'
+          const fs = require('node:fs');
+          const durations = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')).duration_seconds;
+          for (const [key, label] of Object.entries({
+            toolchain_install: 'Toolchain install',
+            framework_npm_ci: 'Framework npm ci',
+            framework_build: 'Framework build',
+            shell_dependencies: 'Shell dependencies',
+            shell_node_dependencies: 'Shell Node/Bun install',
+            shell_electron_native_rebuild: 'Shell Electron native rebuild',
+            domain_dependencies: 'Domain dependencies',
+            full_package_build: 'Full package build',
+            checksum_signing_verify: 'Full checksum/signing verify',
+          })) console.log(`| ${label} | ${durations[key] === null ? 'n/a' : `${durations[key]}s`} |`);
+          NODE
             echo
             echo "## Full Package Build Breakdown"
             echo

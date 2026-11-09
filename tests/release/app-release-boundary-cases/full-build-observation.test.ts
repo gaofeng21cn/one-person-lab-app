@@ -4,10 +4,49 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 import { run, runCapture } from '../../../scripts/build-full-first-install-package/process.ts';
 import { resolveFullDmgFormat, resolveFullDmgCompressionLevel } from '../../../scripts/build-full-first-install-package/archive-output.ts';
 import { assertAppBundleLocalAuthorization } from '../../../scripts/build-full-first-install-package/macos-trust.ts';
+
+test('Full workflow reports absent or invalid stage timestamps as unavailable in JSON and summary', () => {
+  const workflow = fs.readFileSync(fileURLToPath(new URL('../../../.github/workflows/full-first-install-release.yml', import.meta.url)), 'utf8');
+  const scripts = [...workflow.matchAll(/node - "\$telemetry_path" <<'NODE'\n([\s\S]*?)\n          NODE/g)]
+    .map((match) => match[1].replace(/^          /gm, '').replace(/\$\{\{[\s\S]*?\}\}/g, 'fixture'));
+  assert.equal(scripts.length, 2);
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-workflow-timing-'));
+  const output = path.join(temp, 'full-workflow-telemetry.json');
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('OPL_FULL_')));
+  try {
+    for (const [start, end, expected] of [
+      ['1794187329', undefined, null],
+      [undefined, '1794187339', null],
+      ['1794187329', '', null],
+      ['1794187329', ' ', null],
+      ['invalid', '1794187339', null],
+      ['1794187329', 'Infinity', null],
+      ['1794187339', '1794187329', null],
+      ['-1', '1794187339', null],
+      ['1794187329', '1794187329', 0],
+      ['1794187329', '1794187339', 10],
+    ] as const) {
+      const timestamps = Object.fromEntries([
+        ['OPL_FULL_PACKAGE_READY_AT', start], ['OPL_FULL_VERIFY_READY_AT', end],
+      ].filter((entry): entry is [string, string] => entry[1] !== undefined));
+      const recorded = spawnSync(process.execPath, ['-', output], { input: scripts[0], encoding: 'utf8', env: { ...env, ...timestamps } });
+      assert.equal(recorded.status, 0, recorded.stderr);
+      const report = JSON.parse(fs.readFileSync(output, 'utf8'));
+      assert.equal(report.duration_seconds.checksum_signing_verify, expected, `${start} -> ${end}`);
+      assert.equal(report.duration_seconds.toolchain_install, null);
+      const summary = spawnSync(process.execPath, ['-', output], { input: scripts[1], encoding: 'utf8', env });
+      assert.equal(summary.status, 0, summary.stderr);
+      assert.ok(summary.stdout.includes(`| Full checksum/signing verify | ${expected === null ? 'n/a' : `${expected}s`} |`));
+    }
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
 
 function captureEvents(action: () => void) {
   const events: Record<string, unknown>[] = [];

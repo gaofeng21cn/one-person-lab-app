@@ -113,7 +113,7 @@ Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产�
 
 先核对当前机器是否就是执行 runner；若是，直接读取该 job 的 wrapper 日志和产物变化。否则使用已授权的 runner 入口或 GitHub 当前 step 日志。`child_running: true` 只证明子进程存活；压缩进展、签名产物、公证请求编号、VM marker 才分别证明对应阶段。确认日志来源后复用 incident CLI 的 `--job-id`／`--job-log-file`，不另造状态控制器。
 
-Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。首次自动安装的结构化终态失败须绑定本次启动 PID、时间；旧日志不构成本次失败证据。Standard 保留 Package 失败与缺包诊断并继续判断宿主就绪，宿主回读失败或 Core 不可用仍失败。Full 所选 roots 未齐且安装已终态失败时立即结束等待，不延长超时掩盖断点。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断；初次 exit 1 仅在当前 PID 的相关安装仍为 `running` 时有界重读。
+Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。缺失、无效或倒序的阶段时间戳在 telemetry 中记为 `null`，人读摘要显示 `n/a`，不推算成零或负时长。首次自动安装的结构化终态失败须绑定本次启动 PID、时间；旧日志不构成本次失败证据。Standard 保留 Package 失败与缺包诊断并继续判断宿主就绪，宿主回读失败或 Core 不可用仍失败。Full 所选 roots 未齐且安装已终态失败时立即结束等待，不延长超时掩盖断点。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断；初次 exit 1 仅在当前 PID 的相关安装仍为 `running` 时有界重读。
 
 只有 `stage=clone_vm`、`stage=start_vm`、`stage=wait_for_ip`、`vm_name`、`guest_ip` 等 runtime marker 能证明对应 VM 阶段。在此之前报告“VM 尚未证实创建”。心跳不是产物进展。
 
