@@ -564,7 +564,7 @@ export function validateStandardUpdaterCompressionPolicy(appRoot: string, releas
   if (
     compression?.default_format !== 'ULFO' ||
     compression?.format_owner !== `${shellPaths.contract.shell_root}/${shellPaths.contract.shell_contract.paths.electron_builder_config}#dmg.format` ||
-    compression?.electron_builder_version !== '26.15.3' ||
+    compression?.electron_builder_version !== '26.18.0' ||
     compression?.ulmo_standard_default_allowed !== false ||
     compression?.ulmo_postprocess_status !== 'separate_experiment_required' ||
     !sameStringSet(compression?.electron_builder_supported_formats, ['UDBZ', 'UDCO', 'UDRO', 'UDRW', 'UDZO', 'ULFO'])

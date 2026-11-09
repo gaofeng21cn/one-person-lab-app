@@ -45,9 +45,9 @@ const studioCarrier: DesktopReleaseCarrier = {
     qualify_public_release: 'node scripts/desktop/macos-distribution.mjs --require-release-trust --require-public-feed',
   },
   toolchain: {
-    electron: '44.9.1',
-    electron_builder: '26.15.3',
-    electron_updater: '6.8.9',
+    electron: '45.2.3',
+    electron_builder: '26.18.0',
+    electron_updater: '6.8.11',
   },
   macos: {
     targets: ['dmg', 'zip'],

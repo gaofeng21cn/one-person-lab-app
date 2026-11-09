@@ -236,9 +236,9 @@
     "toolchain_profile_selector": "carrier_id",
     "toolchain_profiles": {
       "opl-studio": {
-        "electron": "44.9.1",
-        "electron_builder": "26.15.3",
-        "electron_updater": "6.8.9"
+        "electron": "45.2.3",
+        "electron_builder": "26.18.0",
+        "electron_updater": "6.8.11"
       }
     },
     "macos": {
@@ -3013,7 +3013,7 @@
     "dmg_compression": {
       "default_format": "ULFO",
       "format_owner": "shells/opl-studio/electron-builder.stable.yml#dmg.format",
-      "electron_builder_version": "26.15.3",
+      "electron_builder_version": "26.18.0",
       "electron_builder_supported_formats": [
         "UDBZ",
         "UDCO",
@@ -3025,7 +3025,7 @@
       "ulmo_standard_default_allowed": false,
       "ulmo_postprocess_status": "separate_experiment_required",
       "metadata_blockmap_gate": "node --experimental-strip-types scripts/validate-release.ts release-assets plus focused hdiutil imageinfo/verify readback from a standard macOS build artifact",
-      "rule": "Standard macOS DMG uses electron-builder-supported ULFO by default because electron-builder 26.15.3 does not accept ULMO in dmg.format. ULMO for standard assets requires a separate postprocess patch that proves latest-mac.yml, the latest-arm64-mac.yml compatibility copy, and the ZIP blockmap still match the published assets before it can replace the default."
+      "rule": "Standard macOS DMG uses electron-builder-supported ULFO by default because electron-builder 26.18.0 does not accept ULMO in dmg.format. ULMO for standard assets requires a separate postprocess patch that proves latest-mac.yml, the latest-arm64-mac.yml compatibility copy, and the ZIP blockmap still match the published assets before it can replace the default."
     },
     "forbidden_asset_substrings": [
       "Full"
