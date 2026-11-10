@@ -8,6 +8,7 @@ import { parseArgs } from 'node:util';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import { resolveFullCarrierProfile, type FullCarrierProfile } from './build-full-first-install-package/carrier-profile.ts';
 import { findBuiltApp } from './build-full-first-install-package/archive-output.ts';
+import { assertResolvedKimiCuArchiveIdentity } from './build-full-first-install-package/runtime-layers.ts';
 import {
   assertReleaseVersionNotFuture,
   assertUpdaterVersionMatchesDisplay,
@@ -383,6 +384,7 @@ function runBuild(
   options: ReturnType<typeof parseOptions> & { help: false },
   snapshots: ReturnType<typeof repoSnapshots>,
   upstreams: ReturnType<typeof prepareLatestUpstreams>,
+  dependencyManifestPath: string,
   buildIdentity: StampedManualLocalAppIdentity,
 ) {
   const args = [
@@ -413,6 +415,7 @@ function runBuild(
     cwd: appRoot,
     env: {
       ...buildEnvironment(snapshots),
+      OPL_RELEASE_DEPENDENCY_MANIFEST: dependencyManifestPath,
       OPL_MANUAL_LOCAL_BUILD_ID: options.mode === 'local-app'
         ? buildIdentity.local_build_id
         : '',
@@ -425,6 +428,42 @@ function runBuild(
     },
     timeoutMs: 2 * 60 * 60 * 1000,
   });
+}
+
+export function resolveManualBuildDependencies(
+  frameworkRoot: string,
+  buildOutDir: string,
+) {
+  const resolutionDir = path.join(buildOutDir, 'resolved-build-dependencies');
+  fs.mkdirSync(resolutionDir, { recursive: true });
+  commandResult(process.execPath, [
+    '--experimental-strip-types',
+    path.join(appRoot, 'scripts', 'resolve-build-dependencies.ts'),
+    '--app-root', appRoot,
+    '--framework-root', frameworkRoot,
+    '--output', resolutionDir,
+    '--dependency', 'kimi-cu',
+  ], {
+    cwd: appRoot,
+    timeoutMs: 300_000,
+  });
+  const qualificationManifestPath = path.join(resolutionDir, 'qualification-input-manifest.json');
+  const qualificationManifest = readJson(qualificationManifestPath);
+  const kimiCu = assertResolvedKimiCuArchiveIdentity(qualificationManifest?.runtime_payloads?.kimi_cu);
+  const resolution = readJson(path.join(resolutionDir, 'dependency-resolution.json'));
+  return {
+    qualificationManifestPath,
+    sourceLock: {
+      dependencies: resolution.dependencies,
+      qualification_manifest_sha256: fileSha256(qualificationManifestPath),
+      kimi_cu: {
+        version: kimiCu.version,
+        archive_url: kimiCu.archive_url,
+        archive_sha256: kimiCu.archive_sha256,
+        archive_size_bytes: kimiCu.archive_size_bytes,
+      },
+    },
+  };
 }
 
 function fullDmgEvidence(
@@ -477,6 +516,7 @@ function main() {
     const snapshots = repoSnapshots(options);
     const runtimeDependencies = prepareManualRuntimeDependencies(snapshots.shellRoot);
     const upstreams = prepareLatestUpstreams(path.join(options.cacheRoot, 'upstreams'));
+    const resolvedDependencies = resolveManualBuildDependencies(snapshots.framework.root, buildOutDir);
     const sourceProvenance = {
       schema: 'opl_manual_latest_build_source_lock.v1',
       display_version: options.version,
@@ -493,6 +533,7 @@ function main() {
         ...snapshots.owners,
       },
       runtime_dependencies: runtimeDependencies.lock,
+      build_dependencies: resolvedDependencies.sourceLock,
       upstreams,
     };
     const localAppIdentity = deriveManualLocalAppIdentity(
@@ -530,10 +571,15 @@ function main() {
         buildOptions,
         snapshots,
         upstreams,
+        resolvedDependencies.qualificationManifestPath,
         stampedLocalAppIdentity,
       );
     } finally {
       restoreShellBuildProjection(shellBuildProjection);
+    }
+    if (fileSha256(resolvedDependencies.qualificationManifestPath)
+      !== resolvedDependencies.sourceLock.qualification_manifest_sha256) {
+      throw new Error('Frozen manual build qualification manifest changed during the build.');
     }
     let installation = null;
     if (options.mode === 'local-app') {

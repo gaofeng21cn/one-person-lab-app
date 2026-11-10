@@ -115,14 +115,42 @@ test('Full package rejects KimiCU seed bytes that drift from the qualification i
   };
 
   try {
+    const canonicalIdentity = readKimiCuQualificationIdentity(appRoot);
+    const archiveBytes = Buffer.from('expected archive');
     assert.throws(
       () => materializeFullKimiCuOfflineSeed(prepared, {
-        identity: { ...readKimiCuQualificationIdentity(appRoot), archive_url: 'https://example.invalid/kimi-cu.zip' },
+        identity: {
+          ...canonicalIdentity,
+          version: '0.6.6',
+          archive_url: 'https://example.invalid/kimi-cu.zip',
+          archive_sha256: crypto.createHash('sha256').update(archiveBytes).digest('hex'),
+          archive_size_bytes: archiveBytes.length,
+        },
         sourcePath: sourceArchive,
       }),
       /size drifted|SHA-256 drifted/,
     );
     assert.equal(fs.existsSync(path.join(prepared.runtimeRoot, 'runtime-payloads')), false);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('Full package rejects an unresolved KimiCU archive before attempting download', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-kimi-cu-unresolved-'));
+  const prepared = {
+    runtimeRoot: path.join(tempRoot, 'runtime'),
+    manifest: { runtime_assertions: { offline_required_payloads: [] } },
+  };
+
+  try {
+    assert.throws(
+      () => materializeFullKimiCuOfflineSeed(prepared, {
+        identity: { ...readKimiCuQualificationIdentity(appRoot), version: '0.6.6' },
+      }),
+      /resolved archive identity from OPL_RELEASE_DEPENDENCY_MANIFEST/,
+    );
+    assert.equal(fs.existsSync(prepared.runtimeRoot), false);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

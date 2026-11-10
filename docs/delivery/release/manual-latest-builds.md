@@ -28,6 +28,13 @@ SHA-256, and binary-reported version. Temporal is additionally checked against
 its official `checksums.txt`. Local installed copies are never used as build
 authority.
 
+The manual entry also uses the Framework dependency resolver to select the
+KimiCU offline seed once before freezing. It stores the resolved archive identity
+and qualification manifest digest in the source lock, then passes that manifest
+to the Full builder through `OPL_RELEASE_DEPENDENCY_MANIFEST`. The builder rejects
+an unresolved identity before downloading; it does not resolve a new version
+after the freeze.
+
 The Framework package catalog is projected only in a temporary checkout when a
 first-party owner `main` is newer than Framework `main`. The canonical Framework
 checkout is not changed, and the Full builder still runs its normal source

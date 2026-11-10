@@ -77,6 +77,20 @@ export function readKimiCuQualificationIdentity(root = appRepoRoot) {
   return identity;
 }
 
+export function assertResolvedKimiCuArchiveIdentity(identity = readKimiCuQualificationIdentity()) {
+  if (!identity.version
+    || !identity.archive_url || !/^https:\/\//.test(identity.archive_url)
+    || !/^[a-f0-9]{64}$/.test(String(identity.archive_sha256 ?? ''))
+    || !Number.isSafeInteger(identity.archive_size_bytes)
+    || identity.archive_size_bytes <= 0) {
+    throw new Error(
+      'KimiCU Full offline seed requires a resolved archive identity from OPL_RELEASE_DEPENDENCY_MANIFEST.',
+    );
+  }
+  safePathSegment(identity.version, 'version');
+  return identity;
+}
+
 export function kimiCuOfflineSeedRelativePath(identity = readKimiCuQualificationIdentity()) {
   if (!identity.version) throw new Error('KimiCU offline seed path requires an operation-resolved version.');
   return path.posix.join(
@@ -128,7 +142,7 @@ export function materializeKimiCuOfflineSeed(
   sourceArchivePath,
   identity = readKimiCuQualificationIdentity(),
 ) {
-  if (!identity.archive_url) throw new Error('KimiCU offline seed requires a resolved archive URL.');
+  assertResolvedKimiCuArchiveIdentity(identity);
   const targetPath = path.join(runtimeRoot, ...kimiCuOfflineSeedRelativePath(identity).split('/'));
   copySingleFile(sourceArchivePath, targetPath);
   return assertKimiCuOfflineSeed(runtimeRoot, identity);

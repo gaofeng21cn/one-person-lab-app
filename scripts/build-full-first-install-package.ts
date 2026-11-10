@@ -43,6 +43,7 @@ import { durationSeconds, monotonicSeconds, run } from './build-full-first-insta
 import { runFullPackagePrecompressionGate } from './build-full-first-install-package/precompression.ts';
 import { buildRuntimeCacheKeyReport } from './build-full-first-install-package/runtime-cache.ts';
 import {
+  assertResolvedKimiCuArchiveIdentity,
   materializeKimiCuOfflineSeed,
   readKimiCuQualificationIdentity,
   writeKimiCuOfflineSeedManifest,
@@ -230,7 +231,9 @@ export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
 }
 
 export function materializeFullKimiCuOfflineSeed(prepared, input = {}) {
-  const identity = input.identity ?? readKimiCuQualificationIdentity();
+  const identity = assertResolvedKimiCuArchiveIdentity(
+    input.identity ?? readKimiCuQualificationIdentity(),
+  );
   return withVerifiedPinnedArchive({
     label: 'KimiCU Full offline seed archive',
     sourcePath: input.sourcePath ?? process.env.OPL_KIMI_CU_ARCHIVE_PATH,
