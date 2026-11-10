@@ -62,6 +62,7 @@ export function validateAppSettingsPages(matrix, guiContract) {
   const applicationManagementContract = guiContract.pages.app_management;
   for (const field of [
     'machine_source',
+    'projection_owner',
     'route',
     'route_scope',
     'section_query_parameter',
@@ -74,6 +75,10 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'legacy_settings_routes',
     'legacy_route_policy',
     'provenance_sources',
+    'section_sources',
+    'shared_resource_management',
+    'software_source_management',
+    'state_feedback_policy',
     'required_ui',
     'must_not_own',
   ]) {

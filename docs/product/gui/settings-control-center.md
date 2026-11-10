@@ -62,6 +62,9 @@ unknown query parameters, sections and fragments remain invalid. Applications
 uses the dynamic Package projection, Updates uses the managed-update and App
 updater projections, and Shared Resources consumes
 `app_state.application_management` for authorized resource relationships.
+Framework owns these projections; App owns their navigation, presentation and
+interaction contract. The `section_sources` map makes each section's producer
+explicit and does not establish an App-owned data registry.
 Software Sources consumes `app_state.agent_packages.sources` for source metadata,
 access state, and available connection or check actions. The four sections share
 the same owner-projected action and fresh-readback
@@ -79,6 +82,42 @@ store. Shared resources may include an Obsidian or other personal knowledge
 source, connection handles, authorization, revision/freshness and readiness
 summaries. The source body, credential secret and owner write semantics stay
 with Framework, Connect, Obsidian or the relevant domain owner.
+
+Shared Resources groups **Knowledge & memory**, **Accounts & connections**,
+**Models**, and **Base capabilities** with the same row vocabulary: availability,
+last check, authorization, consumers and a contextual owner action. Software
+source access has one link to the Software Sources section, not a second form.
+Knowledge configuration consumes
+`settings_control_center.app_settings_read_model.resource_sources` and the
+Framework [knowledge-source management contract](https://github.com/gaofeng21cn/one-person-lab/blob/main/contracts/opl-framework/knowledge-source-management-contract.json).
+It offers source selection and the owner's connect, check, configure and
+disconnect actions. A source root may be entered in the explicit configuration
+flow, but public projections never echo filesystem paths or knowledge bodies.
+The Profile or Workspace owner retains the registry, binding and grants.
+
+A first load is a loading state, not zero installed applications or disconnected
+accounts. A failed refresh retains the last successful projection with a stale
+notice and retry. Unread counts and readiness stay unknown. The page uses the
+same confirmation, single-flight dispatch, feedback and receipt controls for
+Package and resource actions, followed by fresh readback of the same object.
+An unknown mutation result is inspected through its owner and is not replayed.
+
+Public and authorized private sources use the same catalog and lifecycle
+controls. Authorization filters private metadata before rendering or counting;
+revocation hides uninstalled private entries and preserves only the minimum
+local installation record and permitted local actions. Uninstall, disable and
+remote update remain distinct operations. A missing optional application is an
+available choice; an installed failure or missing required resource is an item
+needing attention.
+
+A Homebrew source can expose its native App and CLI inventory inside the same
+Software Sources view and the Applications list. Both views consume the same
+`app_state.agent_packages.sources.entries[].native_items` projection and action
+objects. These rows show installation state, installed and
+available versions, and the owner-projected install, update and uninstall
+actions. Homebrew remains the inventory, version and lifecycle authority; App
+uses the same action feedback and readback interaction without introducing
+a second native-software registry or updater.
 
 ### DSH-derived successor application
 
