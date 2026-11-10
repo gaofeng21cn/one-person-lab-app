@@ -23,34 +23,11 @@ import {
   requiredSeriesProgressFields,
   resolveCandidateRoot,
   root,
+  registryPath,
   validateActiveProjectLineStateModel,
 } from './shared.ts';
 
 const deepSeekHarnessApplicationHostRef = 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159';
-const deepSeekHarnessPackageRoots = [
-  'packages/client/ui-layout/src',
-  'packages/client/ui-sidebar/src',
-  'packages/client/ui-conversation/src',
-  'packages/client/ui-input-trigger/src',
-  'packages/client/ui-model-selection/src',
-  'packages/client/ui-agent-preset/src',
-  'packages/client/ui-workspace/src',
-  'packages/client/ui-settings-general/src',
-  'packages/client/ui-theme/src',
-  'packages/client/ui-primitives/src',
-  'packages/client/ui-context-menu/src',
-  'packages/client/ui-renderer/src',
-  'packages/client/ui-sidebar-files/src',
-  'packages/client/ui-sidebar-documentpreview/src',
-  'packages/client/ui-sidebar-right/src',
-  'packages/client/ui-slots/src',
-  'packages/client/ui-schedule/src',
-  'packages/client/ui-deliverables/src',
-  'packages/client/ui-open-in-app/src',
-  'packages/client/ui-dockkit/src',
-  'packages/client/resources/src',
-  'packages/util/workspace-path/src',
-];
 const studioSettingsGroups = [
   'overview',
   'account_models',
@@ -471,7 +448,6 @@ function validateOPLStudioImplementationEvidence(
     reusedModules?.policy !== 'pinned_deepseek_harness_application_host_and_gui_source_reuse_other_gui_sources_reference_only'
     || reusedModules?.vendored_source_root !== 'src/vendor/deepseek-harness'
     || reusedModules?.source_manifest !== 'src/composition/deepseekHarnessSourceManifest.json'
-    || reusedModules?.vendored_file_count !== 701
     || reusedModules?.byte_identical !== false
     || reusedModules?.byte_identical_to_pinned_ref !== false
     || reusedModules?.slot_renderer_source !== 'packages/client/ui-renderer/src/client/scoped-slots.tsx#createSlotRenderer'
@@ -482,50 +458,14 @@ function validateOPLStudioImplementationEvidence(
     || reusedModules?.application_host_runtime_adopted !== true
     || reusedModules?.dsh_product_runtime_authority_adopted !== false
   ) {
-    throw new Error(`${candidate.id} evidence must bind the pinned Application Host and 701 GUI files with manifest-bound React 19 compatibility patches to OPL-owned plugins without product authority transfer`);
+    throw new Error(`${candidate.id} evidence must bind the pinned Application Host and its manifest-bound GUI source with reviewed compatibility patches to OPL-owned plugins without product authority transfer`);
   }
-  assertDeepEqualJson(reusedModules.direct_reuse_modules, [
-    '@deepseek-ai/cordis@4.1.0',
-    '@deepseek-ai/cordis-plugin-group@1.1.0',
-    '@deepseek-ai/cordis-plugin-include@1.1.0',
-    '@deepseek-ai/cordis-plugin-loader@1.1.0',
-    '@deepseek-ai/dsh-client-connection@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-store@0.2.2-rc.1',
-    '@deepseek-ai/dsh-util-workspace-path@0.2.2-rc.1',
-    '@deepseek-ai/dsh-util-file-drag@0.2.2-rc.1',
-    '@deepseek-ai/dsh-util-values@0.2.2-rc.1',
-    '@deepseek-ai/dsh-util-code-language@0.2.2-rc.1',
-    '@deepseek-ai/dsh-app-boot@0.2.2-rc.1',
-    '@deepseek-ai/dsh-agent-preset-registry@0.2.2-rc.1',
-    '@deepseek-ai/dsh-brand@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-modules@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-ui-sidebar-documentpreview@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-ui-dockkit@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-ui-primitives@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-ui-slots@0.2.2-rc.1',
-    '@deepseek-ai/dsh-client-web@0.2.2-rc.1',
-    '@deepseek-ai/dsh-home-paths@0.2.2-rc.1',
-    '@deepseek-ai/dsh-host-frontend-static@0.2.2-rc.1',
-    '@deepseek-ai/dsh-host-plugin-inventory@0.2.2-rc.1',
-    '@deepseek-ai/dsh-host-webserver@0.2.2-rc.1',
-    '@deepseek-ai/dsh-launch-environment@0.2.2-rc.1',
-    '@deepseek-ai/dsh-llm@0.2.2-rc.1',
-    '@deepseek-ai/dsh-scope@0.2.2-rc.1',
-    '@deepseek-ai/dsh-sandbox@0.2.2-rc.1',
-    '@deepseek-ai/dsh-sandbox-policy@0.2.2-rc.1',
-    '@deepseek-ai/dsh-session@0.2.2-rc.1',
-    '@deepseek-ai/dsh-system-prompt@0.2.2-rc.1',
-    '@deepseek-ai/dsh-timeout@0.2.2-rc.1',
-    '@deepseek-ai/dsh-tool-executor-native@0.2.2-rc.1',
-    '@deepseek-ai/dsh-tools@0.2.2-rc.1',
-    '@deepseek-ai/dsh-typert-protocol@0.2.2-rc.1',
-    'use-sync-external-store@1.7.0',
-  ], `${candidate.id} evidence reused_oss_module_policy.direct_reuse_modules`);
-  assertDeepEqualJson(
-    reusedModules.vendored_package_roots,
-    deepSeekHarnessPackageRoots,
-    `${candidate.id} evidence reused_oss_module_policy.vendored_package_roots`,
-  );
+  const sourceManifest = readJson<Record<string, any>>(path.join(
+    resolveCandidateRoot(candidate.candidate_root), reusedModules.source_manifest,
+  ));
+  const sourceReference = readJson<Record<string, any>>(registryPath).design_references
+    ?.find((reference: { id: string }) => reference.id === 'deepseek-harness');
+  validateDeepSeekHarnessSourceEvidence(candidate.id, reusedModules, sourceManifest, sourceReference);
   if (
     evidence.secondary_runtime_context_refs?.authority !== 'opl_framework_refs_only_projection'
     || evidence.secondary_runtime_context_refs?.home_surface_policy !== 'ordinary_home_must_not_render_runtime_activity_or_continue_work'
@@ -570,6 +510,39 @@ function validateOPLStudioImplementationEvidence(
       throw new Error(`${candidate.id} evidence framework_surfaces.${surface} must be ${expected}`);
     }
   }
+}
+
+/** Bind the candidate's declared source inventory to its manifest and the App-selected cohort. */
+export function validateDeepSeekHarnessSourceEvidence(
+  candidateId: string,
+  reusedModules: Record<string, any>,
+  manifest: Record<string, any>,
+  reference: Record<string, any> | undefined,
+): void {
+  const snapshot = manifest.snapshot;
+  if (
+    manifest.upstream?.ref !== deepSeekHarnessApplicationHostRef
+    || manifest.upstream?.ref !== reference?.adopted_source?.ref
+    || snapshot?.local_root !== reusedModules.vendored_source_root
+    || !Number.isSafeInteger(snapshot?.file_count)
+    || snapshot.file_count <= 0
+    || !Array.isArray(manifest.files)
+    || manifest.files.length !== snapshot.file_count
+    || new Set(manifest.files.map((entry: { path: string }) => entry.path)).size !== snapshot.file_count
+    || reusedModules.vendored_file_count !== snapshot.file_count
+  ) {
+    throw new Error(`${candidateId} evidence must match the pinned DSH source manifest inventory`);
+  }
+  assertDeepEqualJson(snapshot.package_roots, reference.adopted_source.package_roots,
+    `${candidateId} source manifest App-selected package roots`);
+  assertDeepEqualJson(reusedModules.vendored_package_roots, snapshot.package_roots,
+    `${candidateId} evidence reused_oss_module_policy.vendored_package_roots`);
+  assertDeepEqualJson(reusedModules.direct_reuse_modules,
+    Object.entries(reference.adopted_packages).map(([name, version]) => `${name}@${version}`),
+    `${candidateId} evidence reused_oss_module_policy.direct_reuse_modules`);
+  assertStringArrayIncludes(manifest.files.map((entry: { path: string }) => entry.path),
+    reference.adopted_source.files,
+    `${candidateId} source manifest App-selected files`);
 }
 
 export function validateDeepSeekHarnessProductLayoutContract(

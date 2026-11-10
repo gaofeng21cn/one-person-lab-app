@@ -448,6 +448,8 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
     '@deepseek-ai/cordis-plugin-loader': '1.1.0',
     '@deepseek-ai/dsh-client-connection': '0.2.2-rc.1',
     '@deepseek-ai/dsh-client-store': '0.2.2-rc.1',
+    '@deepseek-ai/dsh-official-bundles': '0.2.2-rc.1',
+    '@deepseek-ai/dsh-util-crypto': '0.2.2-rc.1',
     '@deepseek-ai/dsh-util-workspace-path': '0.2.2-rc.1',
     '@deepseek-ai/dsh-util-file-drag': '0.2.2-rc.1',
     '@deepseek-ai/dsh-util-values': '0.2.2-rc.1',
@@ -504,6 +506,9 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
       "packages/client/ui-deliverables/src",
       "packages/client/ui-open-in-app/src",
       "packages/client/ui-dockkit/src",
+      "packages/client/ui-plugin-manager/src",
+      "packages/boot/plugin-manager/src",
+      "packages/util/official-bundles/src",
       "packages/client/resources/src",
       "packages/util/workspace-path/src"
     ],
@@ -543,7 +548,24 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
       "packages/client/ui-primitives/src/markdown/MarkdownText.module.css",
       "packages/client/ui-renderer/src/client/scoped-slots.tsx",
       "packages/client/ui-schedule/src/client/TaskManagerPage.tsx",
-      "packages/client/ui-schedule/src/client/TaskDetail.tsx"
+      "packages/client/ui-schedule/src/client/TaskDetail.tsx",
+      "packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
+      "packages/client/ui-plugin-manager/src/client/PluginManagerPage.module.css",
+      "packages/client/ui-plugin-manager/src/client/manager-store.ts",
+      "packages/client/ui-plugin-manager/src/client/sanitize-install-input.ts",
+      "packages/client/ui-plugin-manager/src/client/presentation.ts",
+      "packages/client/ui-plugin-manager/src/client/config-ledger.ts",
+      "packages/client/ui-plugin-manager/src/client/tab-ledger.ts",
+      "packages/client/ui-plugin-manager/src/client/slot-contract.ts",
+      "packages/client/ui-plugin-manager/src/client/versions.tsx",
+      "packages/client/ui-plugin-manager/src/client/BundleDetailSection.tsx",
+      "packages/client/ui-plugin-manager/src/client/detail-store.ts",
+      "packages/client/ui-plugin-manager/src/client/navigation-store.ts",
+      "packages/client/ui-plugin-manager/src/client/header-scroll.ts",
+      "packages/client/ui-plugin-manager/src/client/locales.ts",
+      "packages/boot/plugin-manager/src/registry.ts",
+      "packages/boot/plugin-manager/src/types.ts",
+      "packages/util/official-bundles/src/index.ts"
     ]
   }, 'DeepSeek Harness adopted_source');
   assertStringArrayIncludes(deepseekHarness.adopted_surface, [
@@ -560,6 +582,7 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
     'DSH native tools registry host webserver and plugin inventory',
     'authenticated stateful loopback MCP from DSH ctx.tools to the persistent Codex App Server',
     'pinned DSH brand attachment and workspace hooks satisfied by OPL-owned plugins without product authority transfer',
+    'PluginManagerPage cards detail navigation header scrolling and tabs with Framework-owned Package projections and actions',
   ], 'DeepSeek Harness adopted_surface');
   assertDeepEqualJson(deepseekHarness.upstream_intake, {
     mode: 'pinned_application_host_packages_and_vendor_snapshot_with_opl_plugins',

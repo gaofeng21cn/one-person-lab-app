@@ -71,6 +71,7 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'required_state_axes',
     'action_source',
     'fresh_readback_required',
+    'official_ui_reuse',
     'shared_resource_policy',
     'legacy_settings_routes',
     'legacy_route_policy',
@@ -83,6 +84,18 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'must_not_own',
   ]) {
     assertDeepEqualJson(applicationManagementPage[field], applicationManagementContract[field], `app_management ${field}`);
+  }
+  const officialUiReuse = applicationManagementContract.official_ui_reuse;
+  if (
+    officialUiReuse?.page_identity !== '应用管理' ||
+    officialUiReuse?.upstream_ref !== 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159' ||
+    officialUiReuse?.upstream_page !== 'deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx' ||
+    !officialUiReuse?.opl_adapter_boundary?.includes('Framework package projection') ||
+    !officialUiReuse?.opl_adapter_boundary?.includes('fresh readback') ||
+    !officialUiReuse?.forbidden_authorities?.includes('DSH pluginManager apply/controller') ||
+    !officialUiReuse?.forbidden_authorities?.includes('DSH profile or pnpm plugin lifecycle')
+  ) {
+    throw new Error('app_management must reuse the pinned DSH PluginManager page while preserving Framework Package ownership');
   }
 
   const storagePage = pageById(matrix, 'storage');
