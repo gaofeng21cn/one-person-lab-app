@@ -28,7 +28,7 @@ export function assertAgentPackageRegistryProjection(profile: AppProductProfile)
   const presentation = projection.catalog_presentation_policy;
   if (
     JSON.stringify(presentation.section_order) !==
-      JSON.stringify(['opl_managed', 'other_agents', 'other_capabilities']) ||
+      JSON.stringify(['native', 'agents', 'capabilities']) ||
     JSON.stringify(presentation.ownership_classifier) !==
       JSON.stringify({
         source_fields: ['official', 'publisher'],
@@ -38,10 +38,9 @@ export function assertAgentPackageRegistryProjection(profile: AppProductProfile)
       }) ||
     JSON.stringify(presentation.section_policy) !==
       JSON.stringify({
-        opl_managed:
-          'all dynamically identified OPL-owned Package roles, with standard Agents before workflow and capability Packages',
-        other_agents: 'non-OPL standard Agents',
-        other_capabilities: 'non-OPL workflow, capability, and unknown Package roles',
+        native: 'independent applications including MCP Apps and CLI products; classify by owner product kind and group installation variants by product identity',
+        agents: 'software-scope agents, including standard and nonstandard agents, identified by owner product kind',
+        capabilities: 'software-scope capability products, including workflow profiles, identified by owner product kind',
         availability_status_is_row_state_not_grouping: true,
       }) ||
     presentation.standard_agent_name_policy !==

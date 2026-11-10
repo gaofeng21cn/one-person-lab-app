@@ -570,6 +570,8 @@ test('application management page state keeps the App-owned route and lifecycle 
     (page: any) => { page.fresh_readback_required = false; },
     (page: any) => { page.must_not_own = []; },
     (page: any) => { page.official_ui_reuse.forbidden_authorities = []; },
+    (page: any) => { page.software_catalog_policy.default_scope = 'components'; },
+    (page: any) => { page.installation_instance_policy.second_installation_registry_allowed = true; },
   ]) {
     const drift = structuredClone(matrix);
     mutate(drift.pages.find((page: any) => page.id === 'app_management'));

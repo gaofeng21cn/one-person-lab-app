@@ -1775,7 +1775,8 @@
       "manifest_lock_receipt_parser_allowed": false,
       "action_id_allowlist_allowed": false,
       "catalog_presentation_policy": {
-        "section_order": ["opl_managed", "other_agents", "other_capabilities"],
+        "section_order": ["native", "agents", "capabilities"],
+        "application_management_policy_ref": "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
         "ownership_classifier": {
           "source_fields": ["official", "publisher"],
           "opl_official": true,
@@ -1783,9 +1784,9 @@
           "hardcoded_package_ids_allowed": false
         },
         "section_policy": {
-          "opl_managed": "all dynamically identified OPL-owned Package roles, with standard Agents before workflow and capability Packages",
-          "other_agents": "non-OPL standard Agents",
-          "other_capabilities": "non-OPL workflow, capability, and unknown Package roles",
+          "native": "independent applications including MCP Apps and CLI products; classify by owner product kind and group installation variants by product identity",
+          "agents": "software-scope agents, including standard and nonstandard agents, identified by owner product kind",
+          "capabilities": "software-scope capability products, including workflow profiles, identified by owner product kind",
           "availability_status_is_row_state_not_grouping": true
         },
         "standard_agent_name_policy": "owner-projected invariant English brand name in every locale",
