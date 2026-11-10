@@ -1602,24 +1602,24 @@
         "public_projection_policy": "refs_and_safe_status_only;_no_knowledge_body_absolute_source_path_or_credential_material"
       },
       "software_catalog_policy": {
-        "scope_field": "app_state.agent_packages.directory.entries[].catalog_scope",
-        "default_scope": "software",
+        "scope_field": "catalog_origin + catalog_scope projected on directory entries, native_items and installed_products",
+        "default_scope": "opl",
         "scope_controls": [
-          "software",
+          "opl",
+          "external",
           "components"
         ],
-        "software_scope": "independent owner-declared Packages agents MCP Apps and other application or CLI products with a supported lifecycle",
-        "component_scope": "host_component and unclassified native Host adapters; separate from software counts",
-        "software_group_order": [
-          "native",
-          "agents",
-          "capabilities"
-        ],
-        "classification_policy": "use owner-projected software_type; technical Package role does not decide product kind; unknown software type remains unclassified within its established scope",
+        "software_scope": "all independently maintained OPL software, including standard and nonstandard agents, applications and capability packages across supported carriers",
+        "component_scope": "only explicitly owner-declared runtime dependencies; host-bundled delivery alone is not dependency evidence",
+        "classification_policy": "use owner-projected software_type as a filter within one software list; technical Package role never decides product kind or maintenance origin",
         "classification_field": "app_state.agent_packages.directory.entries[].software_type",
-        "classification_values": ["application", "agent", "capability", "unknown"],
-        "unclassified_software_group": "unclassified-software",
-        "unclassified_software_policy": "retain management in software scope without assigning a guessed product type",
+        "classification_values": [
+          "application",
+          "agent",
+          "capability",
+          "unknown"
+        ],
+        "unclassified_software_policy": "retain the row in its projected maintenance scope and leave product type unknown",
         "core_scope_policy": "OPL base App standard agents capability packages and dependencies describe the core subset; they do not limit catalog admission",
         "concept_or_source_repository_is_software": false,
         "internal_host_implementation_is_independent_app": false,
@@ -1634,7 +1634,7 @@
           "local_installation_version",
           "selected_source_version"
         ],
-        "version_policy": "preserve unknown; source selection is not necessarily latest and never falls back to the local version",
+        "version_policy": "show the selected installation version and verified selected-source version; preserve unknown, never infer latest, and never propose downgrade when a source target is older",
         "maturity_policy": "only an explicit product-owner declaration establishes maturity; development_only admission never implies preview and admitted never implies stable",
         "distribution_field": "app_state.agent_packages.directory.entries[].distribution_channel",
         "distribution_values": [
@@ -1642,8 +1642,80 @@
           "release",
           "unknown"
         ],
-        "unknown_scope_policy": "show classification pending in components rather than infer a software role from identity text",
-        "hardcoded_product_roster_allowed": false
+        "unknown_scope_policy": "keep in other sources with an unknown classification; never guess OPL ownership or a runtime dependency",
+        "hardcoded_product_roster_allowed": false,
+        "external_scope": "external and unknown maintenance origins, grouped by actual source and manager; independent skills and Codex plugins remain distinct",
+        "ownership_projection": {
+          "origin_field": "catalog_origin",
+          "origin_values": [
+            "opl",
+            "external",
+            "unknown"
+          ],
+          "basis_field": "origin_basis",
+          "basis_values": [
+            "owner_projection",
+            "owner_manifest",
+            "native_carrier",
+            "unknown"
+          ],
+          "source_field": "catalog_source",
+          "source_fields": [
+            "manager",
+            "marketplace_id",
+            "delivery"
+          ],
+          "delivery_values": [
+            "host_bundled",
+            "marketplace",
+            "local",
+            "unknown"
+          ],
+          "unknown_origin_destination": "external",
+          "publisher_or_name_inference_allowed": false,
+          "trust_or_action_authority": false
+        },
+        "product_type_is_filter_not_section": true,
+        "list_columns": [
+          "software",
+          "software_type",
+          "installed_version",
+          "available_version",
+          "status",
+          "action"
+        ],
+        "row_statuses": [
+          "not_installed",
+          "installed",
+          "update_available",
+          "attention",
+          "unknown"
+        ],
+        "status_policy": "one concise row status from owner-projected presence, currentness and failures; enabled state and development mode are separate details",
+        "default_count_scope": "OPL software only; external extensions and runtime components have separate counts",
+        "updates_scope": "OPL software only in the OPL update summary; external managers retain their own update routes",
+        "detail_fields": [
+          "stable_id",
+          "publisher",
+          "catalog_source",
+          "installation_mode",
+          "installation_instances",
+          "lifecycle_owner",
+          "safe_location_reference",
+          "source_revision",
+          "release_reference",
+          "dependencies",
+          "diagnostics"
+        ],
+        "installed_count_policy": "count each software identity once when any supported local installation exists, including development; development is a subset of installed",
+        "primary_count_fields": [
+          "total",
+          "installed",
+          "update_available",
+          "not_installed"
+        ],
+        "ordinary_install_entry": "install from the selected catalog row; manifest URL import belongs to advanced controls",
+        "enablement_policy": "enable and disable belong to software details; enabled state does not replace installation state"
       },
       "installation_instance_policy": {
         "identity_policy": "one software identity may have multiple owner-reported installation instances",
@@ -1667,7 +1739,9 @@
         "path_policy": "reuse each native carrier root and existing OPL managed locator; keep explicit developer workspaces and user data separate",
         "implicit_path_migration_allowed": false,
         "second_installation_registry_allowed": false,
-        "unknown_instance_policy": "show not observed or unknown for that carrier; do not claim machine-wide absence"
+        "unknown_instance_policy": "show not observed or unknown for that carrier; do not claim machine-wide absence",
+        "list_version_policy": "use the owner-selected installation version when known; show multiple installations without selecting the highest or concatenating versions; inspect each installation in details",
+        "development_presentation": "development is an installation-mode badge; it does not create a separate product category, maturity label or update authority"
       },
       "software_source_management": {
         "access_contract_ref": "one-person-lab/contracts/opl-framework/package-access-contract.json",
@@ -1687,7 +1761,7 @@
             "authorized_private_package_distribution",
             "declared_native_application_and_cli_carriers"
           ],
-          "component_sources": "Host-managed extensions remain in components and retain their original Host lifecycle",
+          "component_sources": "only owner-declared runtime dependencies; optional Host-bundled extensions belong to their external source",
           "excluded_sources": [
             "concept_repositories",
             "source_checkouts_without_explicit_developer_binding",
@@ -1696,7 +1770,9 @@
             "private_business_data"
           ],
           "development_source_policy": "an explicitly selected developer binding is an effective source override, not an installable public software feed"
-        }
+        },
+        "presentation_policy": "one OPL software catalog with public, authorized-private and Homebrew delivery channels; channel details do not become competing product catalogs",
+        "external_manager_policy": "external Codex plugins, standalone skills and other sources retain their native discovery and management routes; a plugin list does not claim complete skill coverage"
       },
       "state_feedback_policy": {
         "initial_loading": "show_loading_without_zero_inventory_no_problem_or_disconnected_claims",
@@ -4485,19 +4561,16 @@
           "on_demand_tab_ids": []
         },
         "mental_model": "codex_app_plugin_manager_compact_package_directory",
-        "primary_layout": "compact_grouped_package_list_with_inline_dependency_children_and_right_details_panel",
+        "primary_layout": "compact_software_list_with_aligned_version_status_columns_and_progressive_details",
         "catalog_presentation_policy_ref": "contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy",
         "top_controls": [
           "reload_dynamic_directory",
           "catalog_search",
-          "package_role_filter",
+          "software_type_filter",
           "package_status_filter",
-          "package_source_filter"
+          "maintenance_scope_filter"
         ],
         "row_controls": [
-          "home_shortcut_visibility",
-          "home_shortcut_order",
-          "launch_shortcut",
           "projected_install_or_maintenance_action",
           "open_details_panel"
         ],
@@ -4552,8 +4625,10 @@
         ]
       },
       "status_model": {
-        "policy": "generic_package_status_projection",
-        "user_facing_projection_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection",
+        "policy": "software_management_status_with_readiness_details",
+        "user_facing_projection_ref": "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
+        "detail_readiness_projection_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection",
+        "readiness_projection_scope": "software_details_and_conversation_entry_only",
         "localized_metadata_source_ref": "app_state.agent_packages.directory.entries",
         "axes": [
           "presence",
@@ -4586,17 +4661,14 @@
         "row_identity_key": "package_id",
         "grouping_policy_ref": "contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy",
         "brand_identity_policy_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.brand_identity_policy",
-        "row_hierarchy_policy": "one_projected_package_one_row_with_single_parent_dependencies_nested_and_capability_packages_grouped",
+        "row_hierarchy_policy": "one_projected_product_one_row_with_dependency_relations_in_details",
         "primary_row_fields": [
           "display_name",
-          "package_role",
-          "publisher",
-          "source_label",
-          "version",
-          "trust_state",
-          "home_shortcut_visible",
-          "home_shortcut_order",
-          "install_state",
+          "description",
+          "software_type",
+          "installed_version",
+          "available_version",
+          "status",
           "recommended_action"
         ],
         "detail_surface": "desktop_right_side_panel_mobile_drawer",
@@ -4616,7 +4688,7 @@
           "last_synced_at",
           "failure_reason_when_failed"
         ],
-        "content_block_policy": "directory may include standard_agent, capability_package, and workflow_profile package roles, but Skill, Plugin, workflow internals, connector, resource, and export catalogs remain on Capabilities or their owner pages",
+        "content_block_policy": "the Agents compatibility view filters software_type=agent regardless of delivery type; other independently managed software stays in Application Management and package internals remain on their owner pages",
         "advanced_diagnostic_fields": [
           "package_id",
           "owner_diagnostic_ref",
@@ -4648,31 +4720,31 @@
       },
       "must_show": [
         "Developer Mode as Maintain authorized development repositories with automatic effective state, repository authority scope, and dirty-worktree protection",
-        "all discoverable packages from app_state.agent_packages.directory.entries as the only primary Agents catalog",
-        "a dedicated package catalog search plus package role, availability status, and source filters",
+        "all owner-projected software_type=agent entries, including standard and nonstandard agents, in the same software-management list",
+        "a dedicated software catalog search with product type, installation status, and maintenance origin filters",
         "dynamic directory reload as an ordinary fresh App-state readback and install or maintenance controls only when projected by Framework",
         "every complete Settings action rendered from its projected semantic, payload, surface, and confirmation contract without an action-id allowlist",
         "Settings executes only actions projected for the Settings surface; selected project directories establish session cwd and future domain workspace identity only",
         "owner-projected localized names and descriptions for every Package directory item, including unknown future Agents",
-        "an OPL-managed group before other Agents and capabilities, with a compact OPL brand badge on every OPL-owned row and no Package-id allowlist",
+        "OPL-maintained software separated from external sources and runtime components using catalog_origin; no publisher inference or Package-id allowlist",
         "locale-invariant English brand names for OPL standard Agents and owner-localized descriptions selected by the active UI locale",
         "owner latest-stable automatic updates for every ordinarily managed OPL Agent, workflow, and capability Package while trusted Developer Mode checkouts remain non-overwritten",
         "global automatic, managed, or developer source selection kept independent from maintenance permission",
         "unknown Agent Packages use the same visibility, ordering, status, and action rules as every other Agent Package",
-        "Home shortcut visibility and order inline on Agent package rows",
+        "Home shortcut visibility and order controls in Agent software details",
         "launch readiness and Settings actions bound only to projected Agent Package state",
         "normal Agent rows visually quiet with package diagnostics collapsed",
-        "localized package role labels with no raw internal enum on the ordinary row",
-        "professional Agents ordered by Home shortcut preference then localized display name, workflow profiles separated, and dependency packages grouped from dependent_guard.required_by_package_ids",
+        "localized product type labels with technical Package roles confined to details",
+        "one software list within each maintenance scope, with product type as a filter and dependency relationships in details",
         "runtime source and authorized repository maintenance controls collapsed as advanced configuration by default",
         "owner-projected localized names and descriptions for every Package directory item, including unknown future Agents",
-        "verification deferred or scope materialization missing on an installed exposed Agent shown as 可用 with no preflight Settings action; domain StageRun readiness stays Framework-owned",
+        "verification deferred or scope materialization missing does not change installation status or require a preflight Settings action; conversation readiness appears in details and stays Framework-owned",
         "one localized status, one concrete explanation, and at most one most relevant action per package with technical status axes confined to details",
         "exact owner actions rendered with concrete localized copy such as 需要安装, 需要启用, 需要更新, 需要修复, or 需要重新连接",
         "genuinely blocked or failed packages retained as temporarily unavailable with a specific reason or details route"
       ],
       "must_not_show": [
-        "Skills, Plugins, tools, MCP helpers, workflows, connectors, or AionUI-native capability catalogs",
+        "non-agent software and internal Skill, Plugin, tool, connector, or workflow inventories as rows in the Agents compatibility view",
         "OPL Flow recommendation groups or capability dependency catalogs",
         "assistant or purpose cards as the primary Agents surface",
         "single repair status swallowing developer checkout, dirty, behind, unknown, or needs sync",

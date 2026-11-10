@@ -29,7 +29,7 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 | 主题 | 产品或技术参考 | 未完成工作的归口 |
 | --- | --- | --- |
 | Agent 原生应用与 MiniApp | [Framework 标准](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md) · [App 宿主](../../mcp-apps/SPEC.md) | Framework 持有共用技术标准；App 持有导航、人机交接与 UI 验收 |
-| 应用管理 | [Settings Control Center](settings-control-center.md#application-management-surface) · [`app_management` product contract](../../../contracts/app-gui-product-contract.json) | App 统一编排 Package、更新与共享资源 projection；各 owner 保持生命周期、知识和凭证真相 |
+| 应用管理 | [软件管理](software-management.md) · [Settings Control Center](settings-control-center.md#application-management-surface) · [`app_management` product contract](../../../contracts/app-gui-product-contract.json) | App 统一编排 Package、更新与共享资源 projection；各 owner 保持生命周期、知识和凭证真相 |
 | Settings | [Control Center](settings-control-center.md) | [Active gaps](../../active/app-ideal-state-gap-plan.md) |
 | Runtime | [动态任务中心](runtime-overview-redesign.md) | [Package migration](../../active/opl-package-platform-composition-migration.md) |
 | 首次启动 | [First-run setup](first-run-setup-workspace.md) | [Conformance](shell-conformance-matrix.md) |

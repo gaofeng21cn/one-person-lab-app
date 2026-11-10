@@ -148,16 +148,14 @@ export function validateGuiContractSettingsAccessAndAgents(guiContract) {
   assertDeepEqualJson(
     pages.settings_agents.brand_identity_policy,
     {
-      source_fields: ['official', 'publisher'],
-      opl_official: true,
-      opl_publisher: 'one-person-lab',
-      match_policy: 'official_equals_true_or_publisher_equals_one-person-lab',
+      source_fields: ['catalog_origin'],
+      match_policy: 'catalog_origin_equals_opl',
       row_presentation: 'compact OPL brand badge immediately after the localized display name on every matching row',
       scope_policy:
         'all package roles; the badge remains visible whenever its matching row is visible under any source filter',
-      catalog_group_order: ['native', 'agents', 'capabilities'],
+      catalog_group_order: ['opl', 'external', 'components'],
       grouping_policy:
-        'use the application-management software scope and product groups; ownership remains a badge or source filter, never a second catalog taxonomy',
+        'reuse the application-management maintenance scopes and one product list; software_type is a filter',
       standard_agent_name_policy:
         'the owner projects the invariant English brand name for every locale; the App and Shell never translate or replace that brand name',
       description_policy:
@@ -171,7 +169,8 @@ export function validateGuiContractSettingsAccessAndAgents(guiContract) {
           'an active trusted developer checkout remains authoritative and projects package_channel_auto_update=false so automatic updates never overwrite developer bytes',
         ui_inference_forbidden: true,
       },
-      third_party_policy: 'do not show the OPL brand badge',
+      third_party_policy: 'show the actual source and manager without an OPL brand badge',
+      opl_origin: 'opl',
     },
     'Settings Agents OPL brand identity policy',
   );
@@ -187,7 +186,7 @@ export function validateGuiContractSettingsAccessAndAgents(guiContract) {
   );
   if (
     agentDirectoryTarget?.primary_layout !==
-      'compact_grouped_package_list_with_inline_dependency_children_and_right_details_panel' ||
+      'compact_software_list_with_aligned_version_status_columns_and_progressive_details' ||
     agentDirectoryTarget?.catalog_presentation_policy_ref !==
       'contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy' ||
     agentDirectoryTarget?.developer_configuration_disclosure !==
@@ -197,28 +196,31 @@ export function validateGuiContractSettingsAccessAndAgents(guiContract) {
     pages.settings_agents.list_density_policy?.brand_identity_policy_ref !==
       'contracts/app-gui-product-contract.json#pages.settings_agents.brand_identity_policy' ||
     pages.settings_agents.list_density_policy?.row_hierarchy_policy !==
-      'one_projected_package_one_row_with_single_parent_dependencies_nested_and_capability_packages_grouped' ||
+      'one_projected_product_one_row_with_dependency_relations_in_details' ||
     agentStatusModel?.user_facing_projection_ref !==
+      'contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy' ||
+    agentStatusModel?.detail_readiness_projection_ref !==
       'contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection' ||
+    agentStatusModel?.readiness_projection_scope !== 'software_details_and_conversation_entry_only' ||
     agentStatusModel?.localized_metadata_source_ref !== 'app_state.agent_packages.directory.entries' ||
     pages.settings_agents.developer_mode_control?.default_disclosure !== 'collapsed'
   ) {
-    throw new Error('Settings Agents must use the App-owned grouped catalog presentation with collapsed developer controls');
+    throw new Error('Settings Agents must use the App-owned software catalog presentation with collapsed developer controls');
   }
   assertIncludesAll(
     pages.settings_agents.must_show,
     [
-      'localized package role labels with no raw internal enum on the ordinary row',
-      'professional Agents ordered by Home shortcut preference then localized display name, workflow profiles separated, and dependency packages grouped from dependent_guard.required_by_package_ids',
+      'localized product type labels with technical Package roles confined to details',
+      'one software list within each maintenance scope, with product type as a filter and dependency relationships in details',
       'runtime source and authorized repository maintenance controls collapsed as advanced configuration by default',
       'owner-projected localized names and descriptions for every Package directory item, including unknown future Agents',
-      'an OPL-managed group before other Agents and capabilities, with a compact OPL brand badge on every OPL-owned row and no Package-id allowlist',
+      'OPL-maintained software separated from external sources and runtime components using catalog_origin; no publisher inference or Package-id allowlist',
       'locale-invariant English brand names for OPL standard Agents and owner-localized descriptions selected by the active UI locale',
       'owner latest-stable automatic updates for every ordinarily managed OPL Agent, workflow, and capability Package while trusted Developer Mode checkouts remain non-overwritten',
-      'verification deferred or scope materialization missing on an installed exposed Agent shown as 可用 with no preflight Settings action; domain StageRun readiness stays Framework-owned',
+      'verification deferred or scope materialization missing does not change installation status or require a preflight Settings action; conversation readiness appears in details and stays Framework-owned',
       'one localized status, one concrete explanation, and at most one most relevant action per package with technical status axes confined to details',
     ],
-    'Settings Agents grouped catalog signals',
+    'Settings Agents software catalog signals',
   );
   assertIncludesAll(
     pages.settings_agents.must_not_show,

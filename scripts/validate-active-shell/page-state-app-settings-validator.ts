@@ -329,8 +329,8 @@ function validateCapabilitiesPage(matrix, guiContract) {
     guiAgentsPage?.status_model,
     'Agents page status model',
   );
-  if (agentsPage.status_model?.policy !== 'generic_package_status_projection') {
-    throw new Error('Agents page must preserve the generic Package status projection');
+  if (agentsPage.status_model?.policy !== 'software_management_status_with_readiness_details') {
+    throw new Error('Agents page must preserve the software management status projection with readiness in details');
   }
   assertDeepEqualJson(
     agentsPage.list_density_policy,

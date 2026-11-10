@@ -79,17 +79,33 @@ export type AppGuiCapabilitiesProfile = {
     action_id_allowlist_allowed: boolean;
     catalog_presentation_policy: {
       section_order: string[];
-      professional_agent_order_source: string;
-      professional_agent_order_policy: string;
-      workflow_profile_policy: string;
+      application_management_policy_ref: string;
+      ownership_classifier: {
+        source_fields: string[];
+        opl_origin: 'opl';
+        unknown_origin: 'external';
+        publisher_or_name_inference_allowed: false;
+        maintenance_origin_grants_trust_or_actions: false;
+        hardcoded_package_ids_allowed: false;
+      };
+      section_policy: {
+        opl: string;
+        external: string;
+        components: string;
+        availability_status_is_row_state_not_grouping: true;
+        product_type_is_filter_not_section: true;
+      };
+      list_columns: string[];
+      row_statuses: string[];
+      installation_mode_presentation: string;
+      standard_agent_name_policy: string;
+      description_locale_policy: string;
       package_role_labels_i18n: Record<string, Record<'zh-CN' | 'en-US', string>>;
       raw_package_role_visible: boolean;
       dependency_hierarchy: {
         source: string;
-        direction: string;
-        single_parent_policy: string;
-        multiple_parent_policy: string;
-        missing_or_invisible_parent_policy: string;
+        presentation: string;
+        ordinary_list_policy: string;
         hardcoded_package_relationships_allowed: boolean;
         duplicate_rows_allowed: boolean;
         status_and_actions_source: string;
