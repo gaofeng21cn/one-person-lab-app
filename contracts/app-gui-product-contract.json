@@ -6843,11 +6843,14 @@
       "page_contract": "app_management",
       "owner": "one-person-lab-app",
       "machine_source": "opl app state --profile fast --json#app_state.application_management",
+      "projection_owner": "one-person-lab",
       "provenance_sources": [
-        "app_state.agent_packages",
+        "app_state.agent_packages.directory.entries",
+        "app_state.agent_packages.sources",
         "app_state.managed_update",
         "app_state.settings_control_center.connection_registry",
-        "authorized knowledge source projections"
+        "app_state.settings_control_center.connection_authorization",
+        "app_state.application_management.shared_resources"
       ],
       "state_source": "opl app state --profile fast --json",
       "refresh_source": "opl app state --profile fast --json",
@@ -6884,8 +6887,12 @@
         "four sections for applications, updates, shared resources, and software sources",
         "current local environment scope with an explicit environment selector boundary",
         "installed, operational, and update status shown as separate state axes",
-        "owner-projected lifecycle actions with confirmation and fresh readback",
-        "knowledge source and connection references with authorization, revision, freshness, and readiness summaries"
+        "owner-projected install, update, enable, disable, repair, uninstall, and open actions with confirmation and fresh readback",
+        "shared knowledge, connections, models, and base capabilities grouped by the same resource vocabulary",
+        "knowledge source and connection references with authorization, revision, freshness, readiness, and consumers",
+        "knowledge source configuration and reconnect paths through the existing owner controls",
+        "public and authorized software sources with access state and honest catalog counts",
+        "loading, empty, stale, error, unknown, action feedback, and action receipt states"
       ],
       "must_not_show": [
         "fixed_package_roster",
@@ -6900,7 +6907,48 @@
         "knowledge_body",
         "credential_secret",
         "remote_environment_truth"
-      ]
+      ],
+      "section_sources": {
+        "applications": "app_state.agent_packages.directory.entries",
+        "updates": "app_state.managed_update + contracts/app-settings-control-plane.json#app_update_state_policy",
+        "resources": "app_state.application_management",
+        "sources": "app_state.agent_packages.sources"
+      },
+      "shared_resource_management": {
+        "projection_contract_ref": "one-person-lab/contracts/opl-framework/application-management-projection-contract.json",
+        "groups": [
+          "knowledge_source",
+          "connection",
+          "model",
+          "base_capability"
+        ],
+        "configuration_policy": "configure_through_projected_owner_actions_or_owner_settings_route;_share_existing_controls_and_feedback_with_settings",
+        "knowledge_management_contract_ref": "one-person-lab/contracts/opl-framework/knowledge-source-management-contract.json",
+        "knowledge_management_source": "app_state.settings_control_center.app_settings_read_model.resource_sources",
+        "knowledge_source_policy": "show_authorized_Obsidian_or_other_sources_and_owner_projected_list_check_connect_configure_disconnect_actions;_binding_and_grants_remain_Profile_or_Workspace_owner_owned",
+        "connection_policy": "show_redacted_accounts_capability_grants_and_consumers;_credential_login_refresh_and_account_switch_stay_provider_owned",
+        "software_source_entry": "navigate_to_sources_section_using_the_same_source_projection_and_actions",
+        "empty_policy": "separate_no_configured_sources_from_owner_unavailable;_offer_only_owner_projected_configuration_or_retry_actions",
+        "public_projection_policy": "refs_and_safe_status_only;_no_knowledge_body_absolute_source_path_or_credential_material"
+      },
+      "software_source_management": {
+        "access_contract_ref": "one-person-lab/contracts/opl-framework/package-access-contract.json",
+        "operation_spec_ref": "one-person-lab/docs/specs/software-sources.md",
+        "source": "app_state.agent_packages.sources",
+        "catalog_access_policy": "filter_private_metadata_by_current_owner_authorization_before_rendering_or_counting",
+        "count_policy": "unknown_or_unread_entry_count_stays_unknown_never_zero",
+        "action_policy": "owner_projected_configure_check_disconnect_actions;_never_accept_or_store_credential_values",
+        "revocation_policy": "hide_uninstalled_private_metadata;_retain_minimum_local_installation_facts_and_available_local_actions;_block_remote_download_actions_until_reauthorized"
+      },
+      "state_feedback_policy": {
+        "initial_loading": "show_loading_without_zero_inventory_no_problem_or_disconnected_claims",
+        "read_failure": "retain_last_successful_projection_with_stale_notice_and_inline_retry",
+        "unknown": "preserve_unknown_until_owner_readback_supplies_a_value",
+        "attention": "installed_failures_missing_required_resources_and_owner_reported_access_failures;_optional_uninstalled_items_are_not_faults",
+        "mutation": "single_flight_with_owner_declared_confirmation_visible_feedback_and_receipt",
+        "unknown_outcome": "inspect_original_owner_state_without_replaying_mutation",
+        "success": "fresh_owner_readback_of_the_same_object_required"
+      }
     },
     "runtime_status": {
       "route_classification": "core_dynamic_agent_runtime",
