@@ -443,6 +443,7 @@ export function resolveManualBuildDependencies(
     '--framework-root', frameworkRoot,
     '--output', resolutionDir,
     '--dependency', 'kimi-cu',
+    '--dependency', 'codex-cli',
   ], {
     cwd: appRoot,
     timeoutMs: 300_000,
@@ -450,6 +451,12 @@ export function resolveManualBuildDependencies(
   const qualificationManifestPath = path.join(resolutionDir, 'qualification-input-manifest.json');
   const qualificationManifest = readJson(qualificationManifestPath);
   const kimiCu = assertResolvedKimiCuArchiveIdentity(qualificationManifest?.runtime_payloads?.kimi_cu);
+  const codex = qualificationManifest?.runtime_payloads?.codex_cli;
+  if (!/^\d+\.\d+\.\d+$/.test(codex?.version ?? '')
+    || !/^sha512-[A-Za-z0-9+/=]+$/.test(codex?.npm_integrity ?? '')
+    || !/^[a-f0-9]{64}$/.test(codex?.tarball_sha256 ?? '')) {
+    throw new Error('Studio builds require a valid Framework-resolved Codex qualification input.');
+  }
   const resolution = readJson(path.join(resolutionDir, 'dependency-resolution.json'));
   return {
     qualificationManifestPath,

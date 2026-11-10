@@ -23,6 +23,7 @@ import {
 import {
   assertFullDmgCodexCarrierBoundary,
   prepareManualRuntimeDependencies,
+  resolveManualBuildDependencies,
 } from '../../../scripts/manual-latest-build.ts';
 import {
   mineruOpenApiBinaryUrl,
@@ -682,6 +683,43 @@ test('manual latest commands and operator guide remain discoverable', () => {
     fs.existsSync(path.join(appRoot, 'docs', 'delivery', 'release', 'manual-latest-builds.md')),
     true,
   );
+});
+
+test('manual build freezes KimiCU and the Codex input required by the Studio build entry', (context) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-manual-resolved-dependencies-'));
+  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const framework = path.join(root, 'framework');
+  fs.mkdirSync(path.join(framework, 'scripts'), { recursive: true });
+  const fixtures = [
+    { dependency_id: 'kimi-cu', version: '0.7.1', source_ref: '0.7.1',
+      archive_url: 'https://example.invalid/kimi.zip', archive_sha256: 'a'.repeat(64), archive_size_bytes: 10 },
+    { dependency_id: 'codex-cli', version: '1.0.0', source_ref: '1.0.0',
+      archive_url: 'https://example.invalid/codex.tgz', archive_sha256: 'b'.repeat(64), archive_size_bytes: 10,
+      npm_integrity: 'sha512-Y29kZXg=', install_metadata: { npm_platform: {
+        package: '@openai/codex-darwin-arm64', version: '1.0.0', npm_integrity: 'sha512-cGxhdGZvcm0=',
+        tarball_url: 'https://example.invalid/platform.tgz', tarball_sha256: 'c'.repeat(64), tarball_size_bytes: 10,
+      } } },
+  ];
+  fs.writeFileSync(path.join(framework, 'scripts', 'resolve-dependency-releases.mjs'), `
+    import fs from 'node:fs';
+    import { parseArgs } from 'node:util';
+    const { values } = parseArgs({ options: {
+      dependency: { type: 'string', multiple: true }, platform: { type: 'string' },
+      arch: { type: 'string' }, output: { type: 'string' },
+    } });
+    const fixtures = ${JSON.stringify(fixtures)};
+    fs.writeFileSync(values.output, JSON.stringify({
+      dependencies: fixtures.filter(entry => values.dependency.includes(entry.dependency_id)),
+    }));
+  `);
+  const result = resolveManualBuildDependencies(framework, path.join(root, 'build'));
+  const manifest = JSON.parse(fs.readFileSync(result.qualificationManifestPath, 'utf8'));
+  assert.equal(manifest.runtime_payloads.kimi_cu.archive_sha256, 'a'.repeat(64));
+  assert.equal(manifest.runtime_payloads.codex_cli.version, '1.0.0');
+  assert.equal(manifest.runtime_payloads.codex_cli.npm_integrity, 'sha512-Y29kZXg=');
+  assert.equal(manifest.runtime_payloads.codex_cli.tarball_sha256, 'b'.repeat(64));
+  assert.deepEqual(result.sourceLock.dependencies.map(entry => entry.dependency_id), ['kimi-cu', 'codex-cli']);
+  assert.match(result.sourceLock.qualification_manifest_sha256, /^[a-f0-9]{64}$/);
 });
 
 test('manual latest build does not require the retired UI UX Pro Max companion source', () => {
