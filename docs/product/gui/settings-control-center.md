@@ -111,7 +111,9 @@ available choice; an installed failure or missing required resource is an item
 needing attention.
 
 A Homebrew source can expose its native App and CLI inventory inside the same
-Software Sources view. These rows show installation state, installed and
+Software Sources view and the Applications list. Both views consume the same
+`app_state.agent_packages.sources.entries[].native_items` projection and action
+objects. These rows show installation state, installed and
 available versions, and the owner-projected install, update and uninstall
 actions. Homebrew remains the inventory, version and lifecycle authority; App
 uses the same action feedback and readback interaction without introducing

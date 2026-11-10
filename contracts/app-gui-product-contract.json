@@ -6922,7 +6922,7 @@
         "remote_environment_truth"
       ],
       "section_sources": {
-        "applications": "app_state.agent_packages.directory.entries",
+        "applications": "app_state.agent_packages.directory.entries + app_state.agent_packages.sources.entries[].native_items",
         "updates": "app_state.managed_update + contracts/app-settings-control-plane.json#app_update_state_policy",
         "resources": "app_state.application_management",
         "sources": "app_state.agent_packages.sources"
@@ -6948,7 +6948,8 @@
         "access_contract_ref": "one-person-lab/contracts/opl-framework/package-access-contract.json",
         "operation_spec_ref": "one-person-lab/docs/specs/software-sources.md",
         "source": "app_state.agent_packages.sources",
-        "native_catalog_policy": "render_native_app_and_cli_items_from_the_source_owner_projection;_Homebrew_owns_inventory_versions_and_lifecycle",
+        "native_catalog_policy": "render_the_same_native_items_in_applications_and_the_expanded_software_source;_Homebrew_owns_inventory_versions_and_lifecycle",
+        "native_catalog_source": "app_state.agent_packages.sources.entries[].native_items",
         "native_lifecycle_policy": "show_installed_and_available_versions_and_only_projected_install_update_uninstall_actions;_verify_through_the_same_native_owner_after_execution",
         "catalog_access_policy": "filter_private_metadata_by_current_owner_authorization_before_rendering_or_counting",
         "count_policy": "unknown_or_unread_entry_count_stays_unknown_never_zero",
