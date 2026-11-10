@@ -389,16 +389,16 @@ export function validateGuiDesignSystemSourceAndReference({
     sourceShellAdoption.active_shell !== 'opl-studio' ||
     sourceShellAdoption.reuse_mode !== 'bounded_vendored_visual_source_with_opl_adapters' ||
     sourceShellAdoption.required_source_manifest !==
-      'packages/desktop/src/renderer/vendor/deepseek-harness/visual-source-manifest.json' ||
+      'src/composition/deepseekHarnessSourceManifest.json' ||
     sourceShellAdoption.required_license_notice !==
-      'packages/desktop/src/renderer/vendor/deepseek-harness/LICENSE' ||
-    sourceShellAdoption.provider_component !== 'OplVisualProvider' ||
-    sourceShellAdoption.icon_adapter_component !== 'OplIcon' ||
+      'src/vendor/deepseek-harness/LICENSE' ||
+    sourceShellAdoption.provider_component !== 'StudioFrame' ||
+    sourceShellAdoption.icon_adapter_component !== 'DSH icon sprite and upstream icon components' ||
     JSON.stringify(sourceShellAdoption.allowed_vendor_normalizations) !==
       JSON.stringify(expectedVisualSourceNormalizations) ||
     sourceShellAdoption.app_product_authority_transfer_allowed !== false ||
     sourceShellAdoption.framework_abi_change_allowed !== false ||
-    !stringArray(visualSourceCohort.excluded_source_and_runtime).includes('packages/client/ui-slots') ||
+    stringArray(visualSourceCohort.excluded_source_and_runtime).includes('packages/client/ui-slots') ||
     !stringArray(visualSourceCohort.excluded_source_and_runtime).includes('complete DSH Client Cordis host') ||
     !sameStrings(visualSourceCohort.phase_one_surfaces, [
       'titlebar',

@@ -29,6 +29,19 @@ export function validateScheduledTasksProductPolicy(policy, label = 'Scheduled T
     timezone: 'explicit_iana_timezone_on_write', permissions: [':read-only', ':workspace'],
     write_confirmation: 'framework_preview_then_explicit_confirm', overlap_policy: 'skip', late_start_limit_minutes: 5,
   }, `${label} execution`);
+  assertDeepEqualJson(policy.ui_reuse, {
+    components: [
+      '@deepseek-ai/dsh-client-ui-schedule/TaskManagerPage',
+      '@deepseek-ai/dsh-client-ui-schedule/TaskDetail',
+    ],
+    reuse_mode: 'official_schedule_ui_with_framework_temporal_owner_adapter',
+    catalog_owner: 'framework_workbench_services_temporal',
+    action_owner: 'framework_workbench_services_task_actions',
+    run_history_owner: 'framework_temporal_workflow_history',
+    execution_result_owner: 'opl_codex_native_canonical_thread_turn',
+    native_dsh_schedule_host_loaded: false,
+    native_dsh_schedule_session_authority_adopted: false,
+  }, `${label} UI reuse`);
   assertIncludesAll(policy.forbidden_implementation_layers, ['second_scheduler', 'second_task_store', 'scheduler_migration_ledger'], `${label} owner boundaries`);
   assertDeepEqualJson(policy.evidence_axes, {
     contract_implies_source: false, source_implies_pixel: false, source_implies_install: false, source_implies_release: false,
