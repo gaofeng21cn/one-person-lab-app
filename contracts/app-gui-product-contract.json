@@ -512,7 +512,7 @@
       "selection_policy": "pinned_source_commit_only",
       "source_cohort_ref": "contracts/app-gui-visual-source-cohort.json",
       "required_source_identity": ["repository", "commit", "license", "notice_inventory", "source_inventory"],
-      "usage": "bounded_source_reuse_for_icons_theme_tokens_and_visual_primitive_geometry_only",
+      "usage": "pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters",
       "forbidden_authority": [
         "product_behavior",
         "routes",
@@ -3491,6 +3491,19 @@
       "write_confirmation": "framework_preview_then_explicit_confirm",
       "overlap_policy": "skip",
       "late_start_limit_minutes": 5
+    },
+    "ui_reuse": {
+      "components": [
+        "@deepseek-ai/dsh-client-ui-schedule/TaskManagerPage",
+        "@deepseek-ai/dsh-client-ui-schedule/TaskDetail"
+      ],
+      "reuse_mode": "official_schedule_ui_with_framework_temporal_owner_adapter",
+      "catalog_owner": "framework_workbench_services_temporal",
+      "action_owner": "framework_workbench_services_task_actions",
+      "run_history_owner": "framework_temporal_workflow_history",
+      "execution_result_owner": "opl_codex_native_canonical_thread_turn",
+      "native_dsh_schedule_host_loaded": false,
+      "native_dsh_schedule_session_authority_adopted": false
     },
     "forbidden_implementation_layers": [
       "second_scheduler",
@@ -7891,7 +7904,7 @@
         "diagnostic_without_runtime_evidence_is_not_ready": true,
         "startup_missing_readiness_or_counts_is_unknown_not_false_or_zero": true,
         "startup_attention_requires_reason_and_recovery_entry": true,
-        "schedule_ui_reference": "DSH RC2 ui-schedule TaskManagerPage and TaskDetail; reuse Button Input StateDot",
+        "schedule_ui_reference": "contracts/app-gui-product-contract.json#scheduled_tasks_policy.ui_reuse",
         "unsupported_and_unimplemented_are_not_user_configuration_errors": true
       }
     },

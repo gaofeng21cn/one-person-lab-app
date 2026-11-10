@@ -19,8 +19,8 @@ export type GuiDesignSystemValidation = {
   };
   visual_source_cohort: {
     contract: 'contracts/app-gui-visual-source-cohort.json';
-    source_commit: '47f943859bef60e4160492346772ded9b24f765a';
-    source_usage: 'bounded_source_reuse_for_icons_theme_tokens_and_visual_primitive_geometry_only';
+    source_commit: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159';
+    source_usage: 'pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters';
   };
   interaction_reference: string;
   pixel_reference: string;
@@ -73,22 +73,14 @@ export type GuiDesignSystemValidation = {
 };
 
 export const visualSourceCohortPath = 'contracts/app-gui-visual-source-cohort.json';
-export const visualSourceCommit = '47f943859bef60e4160492346772ded9b24f765a';
-export const visualSourceUsage = 'bounded_source_reuse_for_icons_theme_tokens_and_visual_primitive_geometry_only';
-export const expectedVisualSourceNormalizations = [
-  {
-    path: 'packages/client/ui-primitives/src/icons/index.tsx',
-    kind: 'classic_react_jsx_runtime_import',
-    change: "add import React from 'react' without changing glyph markup",
-    reason: 'OPL Studio compiles TSX with jsx=react while the pinned DSH package uses the automatic JSX runtime',
-  },
-] as const;
+export const visualSourceCommit = 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159';
+export const visualSourceUsage = 'pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters';
+export const expectedVisualSourceNormalizations = [] as const;
 export const expectedPhaseOneBehaviorInvariants = [
   'routes_unchanged',
   'handlers_unchanged',
   'framework_state_and_action_abi_unchanged',
   'app_state_ownership_unchanged',
-  'arco_control_semantics_unchanged',
   'bilingual_copy_unchanged',
   'keyboard_tooltip_focus_and_accessible_name_preserved',
 ] as const;

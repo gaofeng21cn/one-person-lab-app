@@ -58,6 +58,21 @@ test('Scheduled Tasks product policy rejects an executor selector or a second sc
   assert.throws(() => validateScheduledTasksProductPolicy(secondStore), /Scheduled Tasks product policy/);
 });
 
+test('Scheduled Tasks reuses official UI while keeping the DSH schedule Host unloaded', () => {
+  const { gui } = readContracts();
+  const ownerLeak = structuredClone(gui.scheduled_tasks_policy);
+  ownerLeak.ui_reuse.native_dsh_schedule_host_loaded = true;
+  assert.throws(() => validateScheduledTasksProductPolicy(ownerLeak), /Scheduled Tasks product policy UI reuse/);
+
+  const componentFork = structuredClone(gui.scheduled_tasks_policy);
+  componentFork.ui_reuse.components = ['OPL-private-TaskManager'];
+  assert.throws(() => validateScheduledTasksProductPolicy(componentFork), /Scheduled Tasks product policy UI reuse/);
+
+  const historyLeak = structuredClone(gui.scheduled_tasks_policy);
+  historyLeak.ui_reuse.run_history_owner = 'dsh_schedule_inbox_delivery_receipt';
+  assert.throws(() => validateScheduledTasksProductPolicy(historyLeak), /Scheduled Tasks product policy UI reuse/);
+});
+
 test('Scheduled Tasks page state keeps service failures local', () => {
   const { gui, matrix } = readContracts();
   const page = structuredClone(matrix.pages.find((entry) => entry.id === 'scheduled_tasks'));

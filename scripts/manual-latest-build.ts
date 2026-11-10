@@ -15,6 +15,7 @@ import {
 } from './release-version.ts';
 import {
   assertDevelopmentRepoSnapshotsUnchanged,
+  commandResult,
   deriveManualLocalAppIdentity,
   fileSha256,
   githubApi,

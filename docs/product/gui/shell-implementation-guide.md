@@ -381,5 +381,5 @@ App Server；DSH 提供工作台和插件生命周期。共享 OPL 模块与 Rel
 下一次用户请求；App 发来的消息放入输入框，由用户审阅发送。关闭、切换模块或对话时
 释放桥接与临时绑定，保留原有 typed contribution 和浏览器工作台回退。
 
-DSH 固定 `0.2.1-rc.2` 与已核对的 `0.2.2-rc.1` 提供 MCP tools/resources，尚无标准
+DSH 固定 `0.2.2-rc.1` 与已核对的 `0.2.2-rc.1` 提供 MCP tools/resources，尚无标准
 MCP App UI 宿主，因此只增加官方 SDK 到现有 Codex/DSH 的适配，不引入 DSH session/LLM。
