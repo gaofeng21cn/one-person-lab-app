@@ -124,10 +124,10 @@ export function validateSettingsAgentsDirectoryProjection(agentsPage) {
     directory.primary_identity !== "public_agent_package_directory_entries" ||
     directory.purpose_role !== "secondary_tag_filter_only" ||
     directory.home_shortcut_integration !==
-      "inline_visibility_and_order_controls_on_package_rows"
+      "visibility_and_order_controls_in_software_details"
   ) {
     throw new Error(
-      "Settings Agents directory projection must be package-directory first with inline Home shortcut management",
+      "Settings Agents directory projection must be software-directory first with Home shortcuts in details",
     );
   }
   if (
@@ -136,11 +136,10 @@ export function validateSettingsAgentsDirectoryProjection(agentsPage) {
     directory.directory_collection_source !==
       "app_state.agent_packages.directory.entries" ||
     typeof directory.directory_collection_policy !== "string" ||
-    !Array.isArray(directory.visible_package_roles) ||
-    directory.visible_package_roles.length !== 2 ||
-    directory.visible_package_roles[0] !== "standard_agent" ||
-    directory.visible_package_roles[1] !== "workflow_profile" ||
-    directory.other_package_role_destination !== "capabilities" ||
+    !Array.isArray(directory.visible_software_types) ||
+    directory.visible_software_types.length !== 1 ||
+    directory.visible_software_types[0] !== "agent" ||
+    directory.other_software_type_destination !== "app_management" ||
     directory.app_owned_package_id_allowlist_allowed !== false ||
     directory.display_metadata_source !==
       "app_state.agent_packages.directory.entries" ||
@@ -195,14 +194,17 @@ export function validateSettingsAgentsDirectoryProjection(agentsPage) {
   }
   const statusModel = directory.status_model;
   if (
-    statusModel?.policy !== "generic_package_status_projection" ||
+    statusModel?.policy !== "software_management_status_with_readiness_details" ||
     statusModel?.user_facing_projection_ref !==
+      "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy" ||
+    statusModel?.detail_readiness_projection_ref !==
       "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection" ||
+    statusModel?.readiness_projection_scope !== "software_details_and_conversation_entry_only" ||
     statusModel?.localized_metadata_source !==
       "app_state.agent_packages.directory.entries"
   ) {
     throw new Error(
-      "Settings Agents must keep the generic Package status model",
+      "Settings Agents must keep the software management status model with readiness in details",
     );
   }
   assertDeepEqualJson(

@@ -1775,19 +1775,31 @@
       "manifest_lock_receipt_parser_allowed": false,
       "action_id_allowlist_allowed": false,
       "catalog_presentation_policy": {
-        "section_order": ["native", "agents", "capabilities"],
+        "section_order": [
+          "opl",
+          "external",
+          "components"
+        ],
         "application_management_policy_ref": "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
         "ownership_classifier": {
-          "source_fields": ["official", "publisher"],
-          "opl_official": true,
-          "opl_publisher": "one-person-lab",
+          "source_fields": [
+            "catalog_origin",
+            "origin_basis",
+            "catalog_source",
+            "catalog_scope"
+          ],
+          "opl_origin": "opl",
+          "unknown_origin": "external",
+          "publisher_or_name_inference_allowed": false,
+          "maintenance_origin_grants_trust_or_actions": false,
           "hardcoded_package_ids_allowed": false
         },
         "section_policy": {
-          "native": "independent applications including MCP Apps and CLI products; classify by owner product kind and group installation variants by product identity",
-          "agents": "software-scope agents, including standard and nonstandard agents, identified by owner product kind",
-          "capabilities": "software-scope capability products, including workflow profiles, identified by owner product kind",
-          "availability_status_is_row_state_not_grouping": true
+          "opl": "one catalog for all OPL-maintained software, independent of product type, access visibility and delivery channel",
+          "external": "other publishers and unclassified sources, grouped by their actual source and manager",
+          "components": "only owner-declared runtime dependencies; host-bundled optional extensions remain with their external source",
+          "availability_status_is_row_state_not_grouping": true,
+          "product_type_is_filter_not_section": true
         },
         "standard_agent_name_policy": "owner-projected invariant English brand name in every locale",
         "description_locale_policy": "active UI locale then owner-default fallback",
@@ -1808,10 +1820,8 @@
         "raw_package_role_visible": false,
         "dependency_hierarchy": {
           "source": "app_state.agent_packages.status_index.packages[].dependent_guard.required_by_package_ids",
-          "direction": "a_package_with_one_visible_required_by_package_id_is_nested_under_that_parent_package",
-          "single_parent_policy": "render_once_as_a_compact_child_row_under_the_visible_parent",
-          "multiple_parent_policy": "render_once_in_the_ownership-matched_capability_group_with_localized_parent_labels",
-          "missing_or_invisible_parent_policy": "render_once_in_the_ownership-matched_capability_group",
+          "presentation": "details_and_uninstall_impact",
+          "ordinary_list_policy": "one_product_one_row_without_inline_dependency_tree",
           "hardcoded_package_relationships_allowed": false,
           "duplicate_rows_allowed": false,
           "status_and_actions_source": "unchanged_Framework_directory_and_status_index_projection"
@@ -1824,7 +1834,23 @@
             "workspace_and_repository_protection_summary"
           ],
           "ordinary_catalog_remains_visible_when_collapsed": true
-        }
+        },
+        "list_columns": [
+          "software",
+          "software_type",
+          "installed_version",
+          "available_version",
+          "status",
+          "action"
+        ],
+        "row_statuses": [
+          "not_installed",
+          "installed",
+          "update_available",
+          "attention",
+          "unknown"
+        ],
+        "installation_mode_presentation": "separate_detail_or_badge_not_product_type_or_maturity"
       },
       "shell_consumption_policy": "generated_product_profile_only_no_renderer_literal"
     }
@@ -2600,12 +2626,12 @@
             "agent_home_visibility_and_order",
             "agent_launch_and_dependency_readiness"
           ],
-          "visible_package_roles": ["standard_agent", "workflow_profile"],
+          "visible_software_types": ["agent"],
           "catalog_partition_policy": {
-            "standard_agents": "Framework directory entries with package_role=standard_agent; the Official Profile summary is a separate first-install requirement and never defines membership",
-            "agent_workflows": "Framework directory entries with package_role=workflow_profile",
-            "capability_packages": "manage all Package roles in Extensions & Apps; Agents is a filtered view of the same catalog",
-            "unknown_roles": "show in the unified Extensions & Apps catalog without guessing role or creating a private registry",
+            "standard_agents": "Framework software_type=agent entries include standard agents; the Official Profile summary is a separate first-install requirement and never defines catalog membership",
+            "agent_workflows": "Framework software_type=agent entries also include nonstandard agents; a workflow_profile is classified by its declared software_type",
+            "capability_packages": "manage all independent software in Application Management; Agents is a product-type filter of the same catalog",
+            "unknown_roles": "retain unknown product types in their projected maintenance scope without guessing a type or creating a private registry",
             "app_owned_package_id_allowlist_allowed": false
           },
           "must_not_own": ["skill_or_plugin_catalog", "opl_flow_recommendation_policy", "cli_currentness"]
@@ -4190,12 +4216,12 @@
               "surface": "settings_agents",
               "primary_identity": "public_agent_package_directory_entries",
               "purpose_role": "secondary_tag_filter_only",
-              "home_shortcut_integration": "inline_visibility_and_order_controls_on_package_rows",
+              "home_shortcut_integration": "visibility_and_order_controls_in_software_details",
               "canonical_projection": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + app_state.runtime_source_carriers.items[]",
               "directory_collection_source": "app_state.agent_packages.directory.entries",
-              "directory_collection_policy": "render canonical entries whose Framework-projected package_role is standard_agent or workflow_profile without an App-owned Package id allowlist or starter metadata catalog; capability_package entries belong to Capabilities",
-              "visible_package_roles": ["standard_agent", "workflow_profile"],
-              "other_package_role_destination": "capabilities",
+              "directory_collection_policy": "render canonical software_type=agent entries, including standard and nonstandard agents, with the same maintenance scopes and lifecycle actions as Application Management",
+              "visible_software_types": ["agent"],
+              "other_software_type_destination": "app_management",
               "app_owned_package_id_allowlist_allowed": false,
               "display_metadata_source": "app_state.agent_packages.directory.entries",
               "display_metadata_policy": "use owner-projected display metadata with a package-id fallback; App profile metadata must not define catalog membership, ordering, status, readiness, or actions",
@@ -4210,8 +4236,10 @@
               "settings_action_scope": "owner_projected_settings_actions_only",
               "settings_action_inference_allowed": false,
               "status_model": {
-                "policy": "generic_package_status_projection",
-                "user_facing_projection_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection",
+                "policy": "software_management_status_with_readiness_details",
+                "user_facing_projection_ref": "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
+                "detail_readiness_projection_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection",
+                "readiness_projection_scope": "software_details_and_conversation_entry_only",
                 "localized_metadata_source": "app_state.agent_packages.directory.entries",
                 "axes": [
                   "presence",
@@ -5861,23 +5889,23 @@
             "label_zh": "智能体",
             "label_en": "Agents",
             "primary_information": [
-              "standard_agent and workflow_profile filtered view of the unified Extensions & Apps Package catalog",
-              "dedicated package catalog search with package role, availability status, and source filters",
+              "standard and nonstandard agents filtered by software_type within the unified software catalog",
+              "dedicated software search with product type, status and maintenance-source filters",
               "visible dynamic directory reload from fresh App state and projected per-row non-activation lifecycle actions",
               "Settings, new conversation, and ordinary composer send never execute package activation; selected project directories establish session cwd and future domain workspace identity only",
               "owner-projected display metadata and shortcuts from app_state.agent_packages.directory.entries",
               "global automatic, managed, or developer source mode with selected workspace and authority summary",
               "Developer Mode auto activation state, authorized repository scope, and dirty-worktree protection",
               "per-package automatic, managed, or developer source selection in package details",
-              "Home visibility, shortcut order, launch readiness, and lifecycle management on Agent rows",
-              "localized package-role labels with no raw internal enum in ordinary rows",
-              "professional Agents ordered by App metadata, workflow profiles separated, and dependency packages grouped from dependent_guard.required_by_package_ids",
+              "Home visibility, shortcut order and launch readiness in software details; lifecycle action on the row",
+              "localized product-type labels with technical Package roles confined to details",
+              "one list within each projected maintenance scope; product type filters and dependency relationships in details",
               "runtime source and authorized repository maintenance collapsed as advanced configuration by default",
-              "Skills and Plugins excluded and routed to Capabilities",
+              "external plugins and independent skills use Other sources and their native manager; compatibility routes share the same projection",
               "AionUI custom assistants excluded from the OPL product surface"
             ],
             "management_discoverability": {
-              "primary_row_controls": ["home_visibility", "recommended_action", "manage"],
+              "primary_row_controls": ["recommended_action", "manage"],
               "projected_action_source": "app_state.agent_packages.directory.entries[].available_actions[]",
               "projected_action_semantic_source": "app_state.agent_packages.directory.entries[].available_actions[].semantic",
               "action_id_allowlist_allowed": false,
@@ -5910,10 +5938,14 @@
             },
             "catalog_presentation": {
               "policy_ref": "contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy",
-              "section_order": ["professional_agents", "capability_packages", "workflow_profiles", "other_packages"],
-              "role_label_policy": "localized_product_label_never_raw_package_role_enum",
+              "section_order": [
+                "opl",
+                "external",
+                "components"
+              ],
+              "role_label_policy": "localized_product_type_filter_never_raw_package_role_enum",
               "dependency_source": "app_state.agent_packages.status_index.packages[].dependent_guard.required_by_package_ids",
-              "dependency_policy": "single_parent_nested_multi_parent_or_missing_parent_capability_packages_each_package_rendered_once",
+              "dependency_policy": "dependency_relations_in_details_and_uninstall_impact_each_product_rendered_once",
               "hardcoded_relationships_allowed": false
             },
             "first_viewport_groups": [

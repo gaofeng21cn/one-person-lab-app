@@ -171,7 +171,7 @@ export function validateAgentPackageLifecycleUx(surface, label) {
     surface.manual_agent_install_entry,
     {
       source: 'app_state.actions[action_id=install_from_manifest_url]',
-      destination: 'settings.agents.catalog',
+      destination: 'settings.agents.catalog.advanced',
       visibility_policy: 'show_only_when_the_current_App_action_declares_manifest_url_and_trust_tier_with_dry_run_and_confirmation',
       input_fields: ['manifest_url', 'trust_tier'],
       trust_tier_policy: 'user_explicit_third_party_unverified_or_third_party_verified',

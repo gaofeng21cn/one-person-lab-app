@@ -42,8 +42,8 @@ readiness, installed App currentness, or owner acceptance.
 
 ## Application Management Surface
 
-`/apps` is the App-owned application management surface for the common OPL
-base. It is reached from the primary navigation as **应用管理** and answers
+`/apps` is the App-owned management surface for the OPL software ecosystem and
+connected external sources. It is reached from the primary navigation as **应用管理** and answers
 four related questions in one place: which applications are installed and
 usable, which installed objects need an update or repair, which shared knowledge
 or connection resources are available to the current local environment, and
@@ -125,87 +125,28 @@ owner even when Homebrew is absent, its tap is missing, or source inspection
 fails. This field does not claim automatic discovery for every product or
 installer; other installations require their own adapter evidence.
 
-### Software, components and the common base
+### Software catalog
 
-The default software catalog contains independent Packages, agents, MCP Apps,
-and other applications or CLI products with a supported lifecycle. It covers
-software beyond the OPL core. Its three groups are **Applications**, **Agents**
-and **Capability packages**, classified by the owner's `software_type` projection.
-Unclassified software stays in the software scope without a guessed type.
-Standard and nonstandard agents share the Agents group; a workflow capability
-can use a workflow subtype. The three technical Package roles remain
-`standard_agent`, `workflow_profile` and `capability_package`. A technical
-capability role can carry an independent App, so these roles do not by themselves
-determine the user's product category, release maturity or installation mode.
+The product interaction standard is [软件管理](software-management.md). Its default
+scope is OPL-maintained software, with external sources and runtime dependencies
+separate. Product type is a filter over one compact list. Maintenance origin is
+projected by Framework; publisher text and carrier paths cannot establish it.
+Optional Codex extensions such as PDF remain external extensions even when they
+are bundled with the host.
 
-Framework's `catalog_scope` separates this catalog from **System components**.
-Native Host extensions without an explicit OPL Package manifest, and entries
-whose classification has not been established, remain inspectable in that
-separate scope. They do not inflate the software count. A concept repository is
-not an installable product; an internal application-host implementation such as
-Studio is maintained with its owning App. The UI follows owner classifications
-instead of maintaining repository-name exclusions.
+The ordinary list shows software identity, type, installed version, available
+version, concise status and a contextual action. Installation modes, multiple
+copies, lifecycle owners, source revisions and release references belong in
+details. Development access counts as installed and never implies preview
+maturity. The Settings compatibility routes consume the same policy, source
+projections and owner actions as Application Management.
 
-The OPL core subset has five responsibility layers:
-
-| Layer | What the user manages | Lifecycle owner |
-| --- | --- | --- |
-| OPL base | Framework runtime and shared management services | Framework and its selected installer |
-| OPL App | The desktop or selected headless application | App updater or the selected native carrier |
-| OPL standard agents | Independently versioned domain agents | Package owner and configured carrier |
-| Capability packages | Independently managed tools, connectors and workflow profiles | Package owner and configured carrier |
-| Dependencies | Runtime engines, Host extensions and internal libraries | Their parent product or native dependency manager |
-
-These layers explain the OPL core's responsibilities; they do not partition or
-limit the larger software catalog, create five new Package roles, or add five
-peer updaters. A dependency with its own independent Package identity can
-also be an ordinary capability package. A library included in its parent
-product stays a component. Knowledge sources, Obsidian vaults and account
-connections remain Shared Resources, with their existing content and
-credential owners.
-
-### Sources, installations and development
-
-Software Sources admits public Package distributions, authorized private
-distributions, and declared native application or CLI carriers. Each must
-provide verifiable identity, version, installation content and owner actions.
-A repository checkout is a development input when explicitly bound by its
-owner; its presence alone does not add software to the catalog. Source version,
-installed version, active runtime source and update availability remain separate
-facts. A selected catalog version is not necessarily the latest remote version.
-
-The directory separates formal name, purpose, stable ID, local version and
-selected source version. It preserves unknown values. `development_only`
-describes distribution admission, not preview maturity. The source/release
-distribution field does not grade quality; a maturity label requires an
-explicit product-owner declaration. A technical prototype uses the same
-installation and management contracts, while its domain readiness remains
-visible through the domain owner.
-
-One software identity may have several installations. Package `installed` and
-`installed_version` describe its configured plugin carrier; owner-projected
-`local_installations` can report other installed or development instances.
-The detail view identifies their mode, version, owner and safe location
-reference. A missing plugin carrier is not a machine-wide absence claim.
-Standard, Full and Nightly installation options for the same App are grouped
-under the owner-projected product identity, while their individual channel and
-installation receipts remain distinct.
-
-Installation paths follow their existing owners: native App directories,
-package-manager roots, OPL managed locators and explicitly selected development
-workspaces. User data and Obsidian content retain their existing locations.
-The shared interface provides consistent discovery and ownership; it does not
-silently move these files into one physical root. A source checkout or the
-label `git_checkout` alone does not establish development mode: the Framework
-may use Git internally for managed installation. Developer mode follows the
-effective source policy or explicit editable-install evidence, and automatic
-updates must not overwrite that source.
-
-The current adapter's observed instances and actions determine which operations
-are available. Unobserved alternate installations remain unknown, and an
-external installation without a projected lifecycle action stays read-only
-with its owner identified. These product rules do not claim that every
-historical installer already has an automatic migration or management adapter.
+Public Package, authorized private and Homebrew channels supply one OPL catalog.
+External plugins and independent skills retain their native managers and
+separate discovery scope. A missing carrier receipt is not machine-wide absence;
+unknown versions and unsupported installation adapters remain explicit. Native
+installation roots, developer workspaces, Obsidian content and credentials keep
+their existing owners and locations.
 
 ### DSH-derived successor application
 

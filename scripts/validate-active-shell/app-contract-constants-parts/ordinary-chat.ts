@@ -39,6 +39,7 @@ export const appOwnedAgentPackageOrdinaryStatusInputMapping = {
 };
 export const appOwnedAgentPackageUserStatusProjection = {
   schema: "agent_package_user_status_projection.v3",
+  display_scope: "software_details_and_conversation_entry_only",
   locale_policy: "follow_current_app_locale_with_zh_CN_and_en_US_required",
   primary_status_policy:
     "one_user_facing_status_one_concrete_explanation_and_at_most_one_most_relevant_action_per_package_without_contradictory_badges",

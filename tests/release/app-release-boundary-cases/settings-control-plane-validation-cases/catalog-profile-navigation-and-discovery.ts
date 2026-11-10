@@ -398,10 +398,7 @@ test("Settings binds the five current standard Agents to the Official Profile wi
     ),
     true,
   );
-  assert.deepStrictEqual(ownership.agents.visible_package_roles, [
-    "standard_agent",
-    "workflow_profile",
-  ]);
+  assert.deepStrictEqual(ownership.agents.visible_software_types, ["agent"]);
   assert.equal(
     ownership.agents.catalog_partition_policy.app_owned_package_id_allowlist_allowed,
     false,
@@ -566,7 +563,7 @@ test("Settings Agents treats the canonical directory as discovery truth and expo
   );
   assert.deepStrictEqual(lifecycle.manual_agent_install_entry, {
     source: "app_state.actions[action_id=install_from_manifest_url]",
-    destination: "settings.agents.catalog",
+    destination: "settings.agents.catalog.advanced",
     visibility_policy:
       "show_only_when_the_current_App_action_declares_manifest_url_and_trust_tier_with_dry_run_and_confirmation",
     input_fields: ["manifest_url", "trust_tier"],
@@ -600,6 +597,7 @@ test("Settings Agents treats the canonical directory as discovery truth and expo
     session_launch_disposition: "ready",
   });
   assert.equal(lifecycle.user_facing_status_projection.schema, "agent_package_user_status_projection.v3");
+  assert.equal(lifecycle.user_facing_status_projection.display_scope, "software_details_and_conversation_entry_only");
   assert.equal(lifecycle.user_facing_status_projection.per_package_identity_key, "package_id");
   assert.equal(
     lifecycle.user_facing_status_projection.aggregate_status_policy,
@@ -675,9 +673,9 @@ test("Settings Agents treats the canonical directory as discovery truth and expo
   assert.ok(lifecycle.user_facing_status_projection.forbidden_ordinary_labels_zh.includes("需关注"));
   assert.ok(lifecycle.user_facing_status_projection.forbidden_ordinary_labels_zh.includes("需要操作"));
   assert.deepStrictEqual(lifecycle.directory_controls.filters, [
-    "package_role",
-    "availability_status",
-    "source",
+    "software_type",
+    "installation_status",
+    "catalog_origin",
   ]);
   assert.equal(lifecycle.directory_controls.catalog_search_is_settings_global_search, false);
   assert.ok(lifecycle.directory_controls.top_controls.includes("reload_dynamic_directory"));
@@ -726,6 +724,11 @@ test("Settings Agents treats the canonical directory as discovery truth and expo
   );
   assert.equal(directory.settings_action_scope, "owner_projected_settings_actions_only");
   assert.equal(directory.settings_action_inference_allowed, false);
+  assert.equal(
+    directory.status_model.user_facing_projection_ref,
+    "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
+  );
+  assert.equal(directory.status_model.readiness_projection_scope, "software_details_and_conversation_entry_only");
   assert.equal(Object.hasOwn(directory, "stage_runtime_activation_contract_ref"), false);
   assert.equal(Object.hasOwn(directory, "settings_activation_execution_allowed"), false);
   assert.equal(Object.hasOwn(directory, "stage_runtime_activation_owner"), false);

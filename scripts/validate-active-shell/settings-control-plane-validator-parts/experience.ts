@@ -405,7 +405,7 @@ export function validateSettingsExperienceContract(experience) {
   assertDeepEqualJson(
     pageContracts.agents.management_discoverability,
     {
-      primary_row_controls: ["home_visibility", "recommended_action", "manage"],
+      primary_row_controls: ["recommended_action", "manage"],
       projected_action_source:
         "app_state.agent_packages.directory.entries[].available_actions[]",
       projected_action_semantic_source:
@@ -437,18 +437,13 @@ export function validateSettingsExperienceContract(experience) {
     {
       policy_ref:
         "contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy",
-      section_order: [
-        "professional_agents",
-        "capability_packages",
-        "workflow_profiles",
-        "other_packages",
-      ],
+      section_order: ["opl", "external", "components"],
       role_label_policy:
-        "localized_product_label_never_raw_package_role_enum",
+        "localized_product_type_filter_never_raw_package_role_enum",
       dependency_source:
         "app_state.agent_packages.status_index.packages[].dependent_guard.required_by_package_ids",
       dependency_policy:
-        "single_parent_nested_multi_parent_or_missing_parent_capability_packages_each_package_rendered_once",
+        "dependency_relations_in_details_and_uninstall_impact_each_product_rendered_once",
       hardcoded_relationships_allowed: false,
     },
     "Settings Agents catalog presentation",

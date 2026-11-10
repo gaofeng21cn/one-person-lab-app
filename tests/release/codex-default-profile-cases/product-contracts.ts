@@ -20,6 +20,7 @@ import {
 } from "./fixtures.ts";
 import { appOwnedOplStandardAgentMembershipPolicy } from "../../../scripts/validate-active-shell/app-contract-constants.ts";
 import { validateAppSettingsPages } from "../../../scripts/validate-active-shell/page-state-app-settings-validator.ts";
+import { assertAgentPackageRegistryProjection } from "../../../scripts/app-product-profile/profile-contract-parts/packages.ts";
 
 test('Codex interaction surfaces stay aligned across the App profile and contracts', () => {
   assert.doesNotThrow(() => assertCodexModelPolicyProjection(readModelPolicyBundle()));
@@ -326,7 +327,7 @@ test('product profile has one presence-only Official Profile shared by Standard 
   );
 });
 
-test('Agent catalog presentation rejects raw roles, hardcoded hierarchy, and duplicate rows', () => {
+test('Software catalog presentation rejects inferred origin, raw roles, and duplicate rows', () => {
   const installExposure = readJson('contracts/app-install-exposure-policy.json');
   for (const mutate of [
     (profile: any) => {
@@ -347,13 +348,24 @@ test('Agent catalog presentation rejects raw roles, hardcoded hierarchy, and dup
       profile.gui.agent_package_registry.catalog_presentation_policy.developer_controls_disclosure.default_state =
         'expanded';
     },
+    (profile: any) => {
+      profile.gui.agent_package_registry.catalog_presentation_policy.ownership_classifier.source_fields = ['official', 'publisher'];
+    },
+    (profile: any) => {
+      profile.gui.agent_package_registry.catalog_presentation_policy.ownership_classifier.maintenance_origin_grants_trust_or_actions = true;
+    },
+    (profile: any) => {
+      profile.gui.agent_package_registry.catalog_presentation_policy.section_policy.product_type_is_filter_not_section = false;
+    },
   ]) {
     const profile = structuredClone(readJson('contracts/app-product-profile.json'));
     mutate(profile);
-    assert.throws(
+    for (const validate of [
       () => validateProductProfile(profile, installExposure),
-      /localized product ordering and projected dependency hierarchy/,
-    );
+      () => assertAgentPackageRegistryProjection(profile),
+    ]) {
+      assert.throws(validate, /projected maintenance scopes, concise rows, and owner-provided lifecycle actions/);
+    }
   }
 });
 test('Home capability palette is dynamic, localized, shortcut-independent, and agent-Skill deduplicated', () => {
