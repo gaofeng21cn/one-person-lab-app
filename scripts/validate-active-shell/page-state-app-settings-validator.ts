@@ -78,6 +78,8 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'provenance_sources',
     'section_sources',
     'shared_resource_management',
+    'software_catalog_policy',
+    'installation_instance_policy',
     'software_source_management',
     'state_feedback_policy',
     'required_ui',

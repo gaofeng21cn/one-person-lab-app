@@ -6965,17 +6965,99 @@
         "empty_policy": "separate_no_configured_sources_from_owner_unavailable;_offer_only_owner_projected_configuration_or_retry_actions",
         "public_projection_policy": "refs_and_safe_status_only;_no_knowledge_body_absolute_source_path_or_credential_material"
       },
+      "software_catalog_policy": {
+        "scope_field": "app_state.agent_packages.directory.entries[].catalog_scope",
+        "default_scope": "software",
+        "scope_controls": [
+          "software",
+          "components"
+        ],
+        "software_scope": "independent owner-declared Packages agents MCP Apps and other application or CLI products with a supported lifecycle",
+        "component_scope": "host_component and unclassified native Host adapters; separate from software counts",
+        "software_group_order": [
+          "native",
+          "agents",
+          "capabilities"
+        ],
+        "classification_policy": "use owner-projected software_type; technical Package role does not decide product kind; unknown software type remains unclassified within its established scope",
+        "classification_field": "app_state.agent_packages.directory.entries[].software_type",
+        "classification_values": ["application", "agent", "capability", "unknown"],
+        "unclassified_software_group": "unclassified-software",
+        "unclassified_software_policy": "retain management in software scope without assigning a guessed product type",
+        "core_scope_policy": "OPL base App standard agents capability packages and dependencies describe the core subset; they do not limit catalog admission",
+        "concept_or_source_repository_is_software": false,
+        "internal_host_implementation_is_independent_app": false,
+        "native_product_identity": "owner-projected product_id; package or carrier identity when no product relation is established",
+        "variant_policy": "one product row with distinct installation instances or carrier options; Standard Full and Nightly do not become three products",
+        "identity_fields": [
+          "display_name",
+          "description",
+          "package_id_or_product_id"
+        ],
+        "version_fields": [
+          "local_installation_version",
+          "selected_source_version"
+        ],
+        "version_policy": "preserve unknown; source selection is not necessarily latest and never falls back to the local version",
+        "maturity_policy": "only an explicit product-owner declaration establishes maturity; development_only admission never implies preview and admitted never implies stable",
+        "distribution_field": "app_state.agent_packages.directory.entries[].distribution_channel",
+        "distribution_values": [
+          "source",
+          "release",
+          "unknown"
+        ],
+        "unknown_scope_policy": "show classification pending in components rather than infer a software role from identity text",
+        "hardcoded_product_roster_allowed": false
+      },
+      "installation_instance_policy": {
+        "identity_policy": "one software identity may have multiple owner-reported installation instances",
+        "package_plugin_fields": "installed and installed_version describe the configured Package carrier; local_installations describe other verified owner installations",
+        "package_instance_source": "app_state.agent_packages.directory.entries[].local_installations",
+        "native_instance_source": "app_state.agent_packages.sources.entries[].native_items",
+        "presence_policy": "a missing receipt from one carrier does not prove that the product is absent from the machine",
+        "instance_details": [
+          "version",
+          "installation_mode",
+          "installation_owner",
+          "location_or_safe_location_reference",
+          "evidence_source"
+        ],
+        "installation_mode_policy": "distinguish installed from development using owner receipts and effective source policy; an ordinary checkout or git_checkout label alone proves neither",
+        "effective_source_policy": "the selected runtime source is separate from installed copies and available source versions",
+        "action_policy": "dispatch only actions projected by the owner of the selected installation instance; never apply Homebrew or Codex-plugin lifecycle to another owner installation",
+        "homebrew_policy": "homebrew_installed describes Homebrew custody; installation_owner describes the detected product installation",
+        "path_policy": "reuse each native carrier root and existing OPL managed locator; keep explicit developer workspaces and user data separate",
+        "implicit_path_migration_allowed": false,
+        "second_installation_registry_allowed": false,
+        "unknown_instance_policy": "show not observed or unknown for that carrier; do not claim machine-wide absence"
+      },
       "software_source_management": {
         "access_contract_ref": "one-person-lab/contracts/opl-framework/package-access-contract.json",
         "operation_spec_ref": "one-person-lab/docs/specs/software-sources.md",
         "source": "app_state.agent_packages.sources",
-        "native_catalog_policy": "render_the_same_native_items_in_applications_and_the_expanded_software_source;_Homebrew_owns_inventory_versions_and_lifecycle",
+        "native_catalog_policy": "render owner-projected native products and carrier options; Homebrew owns its recipes and receipts while each detected installation retains its lifecycle owner",
         "native_catalog_source": "app_state.agent_packages.sources.entries[].native_items",
-        "native_lifecycle_policy": "show_installed_and_available_versions_and_only_projected_install_update_uninstall_actions;_verify_through_the_same_native_owner_after_execution",
+        "native_lifecycle_policy": "show actual local and selected source versions with per-carrier ownership; execute only the projected actions for that installation and verify through the same owner",
         "catalog_access_policy": "filter_private_metadata_by_current_owner_authorization_before_rendering_or_counting",
         "count_policy": "unknown_or_unread_entry_count_stays_unknown_never_zero",
         "action_policy": "owner_projected_configure_check_disconnect_actions;_never_accept_or_store_credential_values",
-        "revocation_policy": "hide_uninstalled_private_metadata;_retain_minimum_local_installation_facts_and_available_local_actions;_block_remote_download_actions_until_reauthorized"
+        "revocation_policy": "hide_uninstalled_private_metadata;_retain_minimum_local_installation_facts_and_available_local_actions;_block_remote_download_actions_until_reauthorized",
+        "source_admission": {
+          "managed_sources": [
+            "public_package_distribution",
+            "authorized_private_package_distribution",
+            "declared_native_application_and_cli_carriers"
+          ],
+          "component_sources": "Host-managed extensions remain in components and retain their original Host lifecycle",
+          "excluded_sources": [
+            "concept_repositories",
+            "source_checkouts_without_explicit_developer_binding",
+            "knowledge_bodies",
+            "credentials",
+            "private_business_data"
+          ],
+          "development_source_policy": "an explicitly selected developer binding is an effective source override, not an installable public software feed"
+        }
       },
       "state_feedback_policy": {
         "initial_loading": "show_loading_without_zero_inventory_no_problem_or_disconnected_claims",
@@ -8244,11 +8326,11 @@
         "row_presentation": "compact OPL brand badge immediately after the localized display name on every matching row",
         "scope_policy": "all package roles; the badge remains visible whenever its matching row is visible under any source filter",
         "catalog_group_order": [
-          "opl_managed",
-          "other_agents",
-          "other_capabilities"
+          "native",
+          "agents",
+          "capabilities"
         ],
-        "grouping_policy": "classify every projected row dynamically by OPL ownership and package role; render the OPL-managed group before non-OPL agents and capabilities without a package-id allowlist",
+        "grouping_policy": "use the application-management software scope and product groups; ownership remains a badge or source filter, never a second catalog taxonomy",
         "standard_agent_name_policy": "the owner projects the invariant English brand name for every locale; the App and Shell never translate or replace that brand name",
         "description_policy": "select the owner-projected description for the active UI locale with the owner default as fallback",
         "managed_update_policy": {

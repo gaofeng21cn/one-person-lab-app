@@ -165,9 +165,9 @@ test('DSH visual primitives and session controls match App contracts', () => {
   );
   const catalogPolicy = productProfile.gui.agent_package_registry.catalog_presentation_policy;
   assert.deepStrictEqual(catalogPolicy.section_order, [
-    'opl_managed',
-    'other_agents',
-    'other_capabilities',
+    'native',
+    'agents',
+    'capabilities',
   ]);
   assert.equal(catalogPolicy.ownership_classifier.hardcoded_package_ids_allowed, false);
   assert.equal(catalogPolicy.section_policy.availability_status_is_row_state_not_grouping, true);

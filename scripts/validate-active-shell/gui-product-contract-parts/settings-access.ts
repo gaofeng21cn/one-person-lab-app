@@ -155,9 +155,9 @@ export function validateGuiContractSettingsAccessAndAgents(guiContract) {
       row_presentation: 'compact OPL brand badge immediately after the localized display name on every matching row',
       scope_policy:
         'all package roles; the badge remains visible whenever its matching row is visible under any source filter',
-      catalog_group_order: ['opl_managed', 'other_agents', 'other_capabilities'],
+      catalog_group_order: ['native', 'agents', 'capabilities'],
       grouping_policy:
-        'classify every projected row dynamically by OPL ownership and package role; render the OPL-managed group before non-OPL agents and capabilities without a package-id allowlist',
+        'use the application-management software scope and product groups; ownership remains a badge or source filter, never a second catalog taxonomy',
       standard_agent_name_policy:
         'the owner projects the invariant English brand name for every locale; the App and Shell never translate or replace that brand name',
       description_policy:
