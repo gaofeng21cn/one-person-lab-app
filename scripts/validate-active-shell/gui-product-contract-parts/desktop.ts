@@ -89,6 +89,7 @@ export function validateBrandedDeepLinkPolicy(policy) {
           '/apps?section=applications',
           '/apps?section=updates',
           '/apps?section=resources',
+          '/apps?section=sources',
           '/settings/environment?section=updates',
         ],
         section_query_parameter: 'section',

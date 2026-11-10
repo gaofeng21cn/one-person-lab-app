@@ -6360,6 +6360,7 @@
         "/apps?section=applications",
         "/apps?section=updates",
         "/apps?section=resources",
+        "/apps?section=sources",
         "/settings/environment?section=updates"
       ],
       "section_query_parameter": "section",
@@ -6853,7 +6854,8 @@
       "sections": [
         "applications",
         "updates",
-        "resources"
+        "resources",
+        "sources"
       ],
       "section_query_parameter": "section",
       "default_section": "applications",
@@ -6879,7 +6881,7 @@
         "opl-app-management-environment"
       ],
       "must_show": [
-        "three sections for applications, updates, and shared resources",
+        "four sections for applications, updates, shared resources, and software sources",
         "current local environment scope with an explicit environment selector boundary",
         "installed, operational, and update status shown as separate state axes",
         "owner-projected lifecycle actions with confirmation and fresh readback",
