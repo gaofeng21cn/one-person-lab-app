@@ -3,10 +3,10 @@
   "schema": "opl_app_gui_visual_source_cohort.v1",
   "owner": "one-person-lab-app",
   "state": "pinned_for_opl_studio_visual_foundation",
-  "machine_boundary": "Defines the pinned DeepSeek Harness source cohort used by OPL Studio for icon glyphs, theme tokens, and visual primitive geometry. It does not own product behavior, routes, Framework ABI, App state/actions, runtime, sessions, connections, release authority, or pixel acceptance.",
+  "machine_boundary": "Pins the DSH shell components, theme, icons and primitives reused by Studio. OPL adapters supply product data and actions; DSH gains no Codex, Framework, credential or release authority.",
   "upstream": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
-    "commit": "47f943859bef60e4160492346772ded9b24f765a",
+    "commit": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
     "default_branch_at_review": "master",
     "license": "MIT",
     "license_source_path": "LICENSE",
@@ -49,32 +49,39 @@
   "shell_adoption": {
     "active_shell": "opl-studio",
     "reuse_mode": "bounded_vendored_visual_source_with_opl_adapters",
-    "required_source_manifest": "packages/desktop/src/renderer/vendor/deepseek-harness/visual-source-manifest.json",
-    "required_license_notice": "packages/desktop/src/renderer/vendor/deepseek-harness/LICENSE",
-    "provider_component": "OplVisualProvider",
-    "icon_adapter_component": "OplIcon",
-    "existing_control_library": "Arco controls remain behavior owners",
-    "existing_handler_policy": "reuse current OPL Studio handlers without DSH event or state imports",
-    "theme_application_policy": "OplVisualProvider bridges current OPL Studio light and dark state to the pinned DSH body attributes and semantic tokens",
-    "legacy_icon_policy": "IconPark remains only on explicitly unmigrated surfaces and is not visual authority for migrated surfaces",
-    "vendor_file_modification_policy": "byte_identical_except_import_path_normalization_recorded_in_manifest",
-    "allowed_vendor_normalizations": [
-      {
-        "path": "packages/client/ui-primitives/src/icons/index.tsx",
-        "kind": "classic_react_jsx_runtime_import",
-        "change": "add import React from 'react' without changing glyph markup",
-        "reason": "OPL Studio compiles TSX with jsx=react while the pinned DSH package uses the automatic JSX runtime"
-      }
-    ],
+    "required_source_manifest": "src/composition/deepseekHarnessSourceManifest.json",
+    "required_license_notice": "src/vendor/deepseek-harness/LICENSE",
+    "provider_component": "StudioFrame",
+    "icon_adapter_component": "DSH icon sprite and upstream icon components",
+    "existing_control_library": "DSH ui-primitives for shared controls",
+    "existing_handler_policy": "DSH slots and presentation stores receive OPL Codex and Framework callbacks",
+    "theme_application_policy": "App theme state sets the official body attributes; desktop preload supplies the real host platform",
+    "legacy_icon_policy": "Lucide remains on OPL-owned content surfaces only",
+    "vendor_file_modification_policy": "pinned_upstream_plus_manifest_bound_reviewed_react19_compatibility_patch",
+    "allowed_vendor_normalizations": [],
     "app_product_authority_transfer_allowed": false,
-    "framework_abi_change_allowed": false
+    "framework_abi_change_allowed": false,
+    "sidebar_policy": {
+      "components": [
+        "AppFrame",
+        "SidebarRoot",
+        "PanelIcon",
+        "HeaderLeadingControls",
+        "WorkspaceBrowser"
+      ],
+      "more_slot": "sidebar.panellist.actions",
+      "pin_store": "createPanelPins",
+      "platform_marker": "desktop_preload_only_html_data_platform",
+      "macos_window_material": "official_sidebar_vibrancy_with_transparent_window_and_body",
+      "generic_shell_css_overrides_allowed": false,
+      "opl_more_actions": "Framework application management replaces DSH plugin installer and creator actions"
+    }
   },
   "excluded_source_and_runtime": [
     "apps/web",
     "packages/client/connection",
     "packages/client/modules",
     "packages/client/runtime",
-    "packages/client/ui-slots",
     "DSH session log and conversation state",
     "DSH router and route ownership",
     "DSH provider model and credential stores",
@@ -94,7 +101,6 @@
     "handlers_unchanged",
     "framework_state_and_action_abi_unchanged",
     "app_state_ownership_unchanged",
-    "arco_control_semantics_unchanged",
     "bilingual_copy_unchanged",
     "keyboard_tooltip_focus_and_accessible_name_preserved"
   ],

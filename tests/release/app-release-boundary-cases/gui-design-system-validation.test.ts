@@ -80,8 +80,8 @@ test('GUI design-system validator accepts a complete Studio fixture without prom
   assert.equal(summary.release_ready, false);
   assert.deepEqual(summary.visual_source_cohort, {
     contract: 'contracts/app-gui-visual-source-cohort.json',
-    source_commit: '47f943859bef60e4160492346772ded9b24f765a',
-    source_usage: 'bounded_source_reuse_for_icons_theme_tokens_and_visual_primitive_geometry_only',
+    source_commit: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
+    source_usage: 'pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters',
   });
   assert.equal(summary.interaction_reference, interactionReference);
   assert.equal(summary.pixel_reference, pixelReference);
@@ -193,7 +193,10 @@ test('GUI design-system validator fail-closes the pinned DSH phase, deferred, up
       (policy.required_evidence as string[]).shift();
     }],
     ['shell_adoption.allowed_vendor_normalizations', (cohort: Record<string, unknown>) => {
-      (cohort.shell_adoption as Record<string, unknown>).allowed_vendor_normalizations = [];
+      (cohort.shell_adoption as Record<string, unknown>).allowed_vendor_normalizations = [{
+        path: 'packages/client/ui-primitives/src/icons/index.tsx',
+        kind: 'untracked_source_mutation',
+      }];
     }],
   ] as const;
 

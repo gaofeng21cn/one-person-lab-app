@@ -28,7 +28,7 @@ test('Studio contract requires source-preserving DSH reuse instead of pixel reim
   assert.equal(candidate.dsh_source_reuse_contract?.parallel_opl_visual_system_allowed, false);
   assert.equal(
     candidate.dsh_source_reuse_contract?.vendor_byte_policy,
-    'selected_gui_files_remain_byte_identical_to_their_recorded_upstream_paths_at_the_pinned_ref',
+    'pinned_upstream_plus_manifest_bound_reviewed_compatibility_patches',
   );
 });
 

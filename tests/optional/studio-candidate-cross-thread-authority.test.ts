@@ -161,8 +161,8 @@ test('OPL Studio candidate mounts the shared renderer through the RC2 Cordis cli
   assert.match(main, /globalThis\.__OPL_STUDIO_CLIENT__ = oplStudioClientPlugin/);
   assert.match(main, /mountOplStudioClient\(rootElement\)/);
   assert.match(main, /new AppWebEntry\(rootElement\)\.run\(\)/);
-  assert.match(slotHost, /this\.renderer\.renderRoot\(this\.host, \{ contributions \}\)/);
-  assert.match(clientPlugin, /root\.render\(renderOplStudioRoot\(contributions\)\)/);
+  assert.match(slotHost, /this\.core\.renderSlot\("root", \{\}\)/);
+  assert.match(clientPlugin, /root\.render\(<McpAppsClientContext\.Provider value=\{mcpApps\}>\{slotHost\.renderRoot\(\)\}/);
   assert.match(clientPlugin, /ctx\.plugin\(oplStudioClientPlugin\)/);
   assert.doesNotMatch(main, /createRoot\(rootElement\)\.render\(renderOplStudioRoot\(\)\)/);
 });
@@ -266,7 +266,7 @@ test('OPL Studio candidate evidence binds layout and interaction semantics to pi
       product_layout_contract: alignment,
       primary_visual_reference: {
         reference_product: 'DeepSeek Harness',
-        reference_version: '687f282e8625c6b8d11ff58211a90524be2e4317',
+        reference_version: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
         reference_date: '2026-08-22',
         source_usage: 'direct_gui_source_reuse_with_application_host_cohort',
         left_side: 'persistent project and conversation rail with search and Settings only',
@@ -275,7 +275,7 @@ test('OPL Studio candidate evidence binds layout and interaction semantics to pi
       },
       visual_style_reference: {
         reference_product: 'DeepSeek Harness',
-        reference_version: '687f282e8625c6b8d11ff58211a90524be2e4317',
+        reference_version: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
         reference_date: '2026-08-22',
         scope: 'eleven_pinned_gui_package_source_trees_with_opl_slot_adapters',
         token_source: 'src/vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css',
