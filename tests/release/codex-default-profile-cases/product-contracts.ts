@@ -569,11 +569,21 @@ test('application management page state keeps the App-owned route and lifecycle 
     (page: any) => { page.required_state_axes = ['installed']; },
     (page: any) => { page.fresh_readback_required = false; },
     (page: any) => { page.must_not_own = []; },
+    (page: any) => { page.official_ui_reuse.forbidden_authorities = []; },
   ]) {
     const drift = structuredClone(matrix);
     mutate(drift.pages.find((page: any) => page.id === 'app_management'));
     assert.throws(() => validateAppSettingsPages(drift, guiContract), /app_management/);
   }
+
+  const conflictingPluginAuthority = structuredClone(guiContract);
+  const conflictingPluginPage = structuredClone(matrix);
+  conflictingPluginAuthority.pages.app_management.official_ui_reuse.forbidden_authorities = [];
+  conflictingPluginPage.pages.find((page: any) => page.id === 'app_management').official_ui_reuse.forbidden_authorities = [];
+  assert.throws(
+    () => validateAppSettingsPages(conflictingPluginPage, conflictingPluginAuthority),
+    /pinned DSH PluginManager page while preserving Framework Package ownership/,
+  );
 });
 
 test('product profile rejects pre-Codex-baseline interaction states', () => {

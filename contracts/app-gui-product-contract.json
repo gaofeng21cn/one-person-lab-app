@@ -6883,6 +6883,27 @@
       ],
       "action_source": "owner_projected_actions_only",
       "fresh_readback_required": true,
+      "official_ui_reuse": {
+        "page_identity": "应用管理",
+        "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
+        "upstream_ref": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+        "reused_interaction_and_visuals": [
+          "grouped plugin cards and compact metadata",
+          "official artwork and state dots",
+          "official switch, tag, segmented tabs, and action controls",
+          "list-to-detail navigation with back affordance",
+          "component rows, disclosure, loading, empty, and failure states",
+          "official add, update, uninstall, and confirmation presentation",
+          "official plugin page CSS and spacing tokens"
+        ],
+        "opl_adapter_boundary": "Framework package projection supplies the snapshot; owner-projected actions retain permission, confirmation, lifecycle execution, and fresh readback",
+        "forbidden_authorities": [
+          "DSH pluginManager apply/controller",
+          "DSH profile or pnpm plugin lifecycle",
+          "DSH Agent/Session inventory as the OPL Package registry"
+        ],
+        "acceptance_boundary": "source integration, candidate rendering, and installed App runtime acceptance are separate evidence layers"
+      },
       "shared_resource_policy": "show_authorized_knowledge_sources_connections_and_shared_capabilities_as_refs_and_readiness;_never_copy_knowledge_body_or_secret",
       "legacy_settings_routes": [
         "/settings/agents",

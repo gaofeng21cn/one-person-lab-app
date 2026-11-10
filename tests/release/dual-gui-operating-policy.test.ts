@@ -190,7 +190,11 @@ test('DeepSeek Harness Application Host and visual source reuse stay Studio-only
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-settings-general/src/client/SettingsRoot.tsx'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-theme/src/styles/design-platform.css'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-renderer/src/client/scoped-slots.tsx'));
-  assert.equal(reference?.adopted_source?.package_roots.length, 22);
+  assert.equal(reference?.adopted_source?.package_roots.length, 25);
+  assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx'));
+  assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-plugin-manager/src/client/PluginManagerPage.module.css'));
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-official-bundles'], '0.2.2-rc.1');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-util-crypto'], '0.2.2-rc.1');
   assert.equal(reference?.upstream_intake?.floating_ref_allowed, false);
   assert.equal(reference?.upstream_intake?.automatic_promotion_allowed, false);
   assert.equal(visualCohort.upstream.commit, 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159');

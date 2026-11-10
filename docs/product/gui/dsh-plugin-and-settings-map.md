@@ -145,14 +145,14 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 | 官方能力 | OPL 状态 | 原因/替代 |
 | --- | --- | --- |
 | MCP Apps UI host | **已接入官方 MCP ext-apps SDK 与 OPL DSH 插件** | 当前 DSH master cohort 有 MCP client/tools/resources，尚无标准 MCP Apps UI 宿主；`opl-mcp-apps` 只增加临时 view binding 与 sandbox renderer。每次 DSH 升级重新核对，不另建 session/凭据 owner。 |
-| DSH host plugin inventory | **Host inventory 已加载；官方 Plugin Manager UI 未加载** | 原生 inventory 管理 DSH 宿主插件元数据，不授予其 OPL Package authority。OPL 能力目录读取 Framework projection；官方 Manager 页面需通过 App actions 承接 Framework owner 后才可替换现有 view。 |
+| DSH host plugin inventory | **Host inventory 已加载；官方 PluginManagerPage 源码已接入应用管理** | 原生 inventory 管理 DSH 宿主插件元数据，不授予其 OPL Package authority。页面布局、卡片、详情、状态表现和导航复用 DSH 官方组件；OPL adapter 读取 Framework Package projection 并转发其 owner actions。 |
 | Session、Agent loop、LLM、Authorization/Credentials、Account | 屏蔽 | 持久会话和凭据分别归 `opl-codex-native`、Codex App Server 与 Gateway/Framework。不能把 DSH Settings 当第二套账户或 session store。 |
 | `dsh-schedule`、`ui-schedule` | **本次迁移官方 TaskManagerPage/TaskDetail 组件；官方 Schedule Host 未加载** | 任务页复用固定 cohort 的官方组件，以 OPL owner adapter 提供 Framework/Temporal catalog、确认动作与运行历史，并补入 Codex permissions、timeout 和 thread/turn 结果。DSH Host 的 durable Session 投递、store 和 Agent executor 不进入 OPL profile；官方 inbox delivery receipt 与 OPL turn 完成仍分开表达。 |
 | DSH jobs | **官方能力存在，OPL 当前未装载** | 官方 jobs UI 观察 DSH Agent/Session 产生的后台 job；不能替代 OPL Temporal workflow 与 Codex turn history。可复用状态/列表交互，数据继续来自 Framework projection。 |
 | Time context | **OPL 自有薄适配已接入；DSH 同名能力未装载** | OPL 在发起 Codex turn 时按产品偏好附加当前时间与时区，不读取日历；注入开关和实际作用范围归 App/Codex adapter。采用 DSH 的设置 primitive 和说明方式即可，不应启用竞争的 DSH Agent 后端。 |
 | Auto Review | **OPL Codex 设置已接入；DSH experimental Auto Review 未装载** | OPL 把选择映射到 Codex App Server 的 `approvalsReviewer`，审批与 turn 结果仍归 Codex。官方对应物是 `dsh-experimental-auto-review`；`ui-settings-agent-loop` 只设置单步并行工具调用上限。DSH 实验插件在 DSH Agent 的工具调用前审查，不能替代 Codex reviewer；可继续复用设置控件和状态表达。 |
 | Shortcuts | **OPL 自有 App-local 快捷键页已接入；官方 `ui-shortcuts` 未装载** | 当前页面用 DSH Button/Input/ShortcutKeys 等原语，但命令、按键绑定与存储仍由 OPL 持有。官方包提供更完整的目录、录制、冲突检查和本地偏好流程；在逐项映射 OPL 命令、平台行为、调用回调和偏好存储后，应改用官方包并删除重复设置组件。 |
-| Plugin Manager / plugin settings | **OPL 的能力目录已接入；官方 `ui-plugin-manager` 未装载** | 已加载的 DSH host plugin inventory 仅负责 DSH 宿主插件清单，不等于官方 Plugin Manager UI，也不拥有 OPL Packages。业务 Package 安装、启停、currentness 和动作继续走 Framework owner；官方页面可复用的浏览/详情/设置交互需先通过 App actions 映射，不能把 DSH plugin lifecycle 当 Package lifecycle。 |
+| Plugin Manager / plugin settings | **官方 `PluginManagerPage` 与样式已复用；DSH pluginManager Host 未加载** | 应用管理保持 OPL 产品名称与四个产品分区；应用目录直接使用固定 DSH cohort 的页面、导航 store、状态点、卡片、详情和官方原生控件。Framework projection/action adapter 保留 Package 安装、启停、currentness、权限确认和 fresh readback。禁止加载官方 `apply()`/`PluginManagerController`、profile 或 pnpm lifecycle，也不把 DSH Agent/Session inventory 当成 OPL Package registry。源码接入不等于本机已安装，安装版窗口验收单独记录。 |
 | Inspector | **OPL typed projection 详情面已接入；DSH experimental Inspector 未装载** | 继续复用 DSH sidebar tabs、折叠和状态原语；详情内容来自 OPL task/artifact owner。官方 Inspector 若仍绑定 DSH Agent/runtime 数据，只能复用其界面模式，不能用它建立第二份 thread/runtime store。 |
 | Voice input / speech-to-text | **OPL 浏览器语音适配已接入；DSH experimental voice bundle 未装载** | OPL 当前调用浏览器 `SpeechRecognition` 并把转写写入当前线程草稿。DSH 可选 bundle 提供本地 SenseVoice provider、准备/缓存流程和麦克风 UI；不能把其本地 provider 当作 OPL carrier 已就绪。可复用官方入口与未就绪体验；只有 OPL capability/connection owner 能提供安装、权限、语言和 readiness readback 后，才切换真实调用者并删除浏览器适配。 |
 | Web search/fetch、filesystem、sandbox | 只保留兼容边界 | DSH plugin 可注册 `ctx.tools` 时可被 MCP 暴露；权限、sandbox 和审批仍由 Codex/App Server owner。含 DSH session/agent/credential 依赖的插件不能原样装载。 |
@@ -161,13 +161,13 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 
 Cordis boot/profile、插件 metadata/inventory、Client Modules、SlotRegistry 与 Settings store/actions 已直接使用上游机制。Studio 的七个 OPL DSH 包继续承担 owner adapter、carrier composition 或产品 projection。可移除的是已被官方 UI/slot 和 owner adapter 完整接管的重复呈现与交互；移除前必须切换真实调用者并验证各 carrier。
 
-本 cohort 中官方包存在不表示 OPL profile 已加载。`@deepseek-ai/dsh-schedule` 仍仅用于开发/类型边界，官方 Host 未进入 OPL profile；`ui-schedule` 的 TaskManagerPage/TaskDetail 源码组件由 OPL 页面组合，并非启用完整官方 Schedule 插件。`ui-shortcuts`、`ui-plugin-manager`、Auto Review 和 voice bundle 也未作为 OPL 运行时插件装载。官方 Web profile 会加载 `dsh-schedule` 与 `ui-schedule`，standard/ptc preset 会加载 `tool-schedule`；这些默认组合不能推导为 OPL 已启用。
+本 cohort 中官方包存在不表示 OPL profile 已加载。`@deepseek-ai/dsh-schedule` 仍仅用于开发/类型边界，官方 Host 未进入 OPL profile；`ui-schedule` 的 TaskManagerPage/TaskDetail 源码组件由 OPL 页面组合，并非启用完整官方 Schedule 插件。`ui-plugin-manager` 也只复用官方 renderer page 源码、CSS 与 UI primitives，没有注册官方 Client plugin 或加载 Plugin Manager Host；官方 `apply()`/Controller、profile/pnpm lifecycle 均不参与 OPL Package 管理。`ui-shortcuts`、Auto Review 和 voice bundle 仍未接入。官方 Web profile 会加载 `dsh-schedule` 与 `ui-schedule`，standard/ptc preset 会加载 `tool-schedule`；这些默认组合不能推导为 OPL 已启用。
 
 ## 3. OPL 自有插件和功能
 
 七个 Studio 插件没有可由当前 DSH 官方插件整体直接替换的包；它们连接不同 owner，
-不等于七份重复的业务实现。本次任务页迁移到官方 TaskManagerPage/TaskDetail 组件；
-快捷键、目录和文件预览中可由官方 renderer 完整承接的局部 view 继续作为删除候选。
+不等于七份重复的业务实现。本次任务页迁移到官方 TaskManagerPage/TaskDetail 组件，
+应用目录迁移到官方 PluginManagerPage；快捷键和文件预览中可由官方 renderer 完整承接的局部 view 继续作为删除候选。
 服务适配只保留真实跨 owner 的部分。
 
 | OPL 插件/适配 | 保留的 owner 边界 | 可复用/可迁移部分；删除条件 |
@@ -225,7 +225,8 @@ DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础�
 | 当前状态 | 能力 | 需要补的 OPL 设置/适配 | 迁移或完成标志 |
 | --- | --- | --- | --- |
 | 已有 OPL owner | Auto Review、Time context | 审阅策略、时间上下文开关/间隔/作用域 | Codex owner 能返回启用状态、拒绝结果和当前策略；DSH Agent backend 不加载。 |
-| 目标为 UI 迁移 | Plugin Manager、Shortcuts、Inspector | 能力包管理、快捷键、详情栏布局/标签 | 先映射 App action/readback，再换官方 UI；真实调用者切换后删除重复 view。 |
+| 本次迁移官方页面 | Plugin Manager | Framework Package snapshot、权限动作与 fresh readback adapter | 官方页面提供卡片、导航、详情、状态和原生控件；保留“应用管理”产品名及 OPL 四分区，不加载 DSH Plugin Manager Host 或 profile/pnpm lifecycle。源码、候选渲染与安装版验收分别记录。 |
+| 目标为 UI 迁移 | Shortcuts、Inspector | 快捷键、详情栏布局/标签 | 先映射 App action/readback，再换官方 UI；真实调用者切换后删除重复 view。 |
 | 本次迁移官方组件 | Schedule | TaskManagerPage/TaskDetail 与 OPL catalog/action/history adapter | 官方组件承担任务页结构；权限、超时、确认和 Codex/Temporal 结果由 owner adapter 提供。官方 Schedule Host 未加载；构建/运行验收独立回读。 |
 | 候选复用交互 | Jobs | 后台 job 的列表、状态与运行观察 | 仅复用交互，不把 DSH Session jobs 当作 Temporal execution history。 |
 | 待 capability owner | Voice input | 语音入口、设备权限、provider/语言和失败引导 | capability package 提供安装/授权/readiness projection 后，切换真实 carrier 并删除浏览器适配。 |

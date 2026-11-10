@@ -1,7 +1,7 @@
 # DSH 升级与 OPL UI 复用审计
 
 Owner: `one-person-lab-app`
-State: `source implementation and local acceptance complete`
+State: `source implementation and isolated UI acceptance complete; installed App acceptance tracked separately`
 DSH source: `master@fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`
 Package cohort: `0.2.2-rc.1`
 
@@ -31,7 +31,7 @@ Bun 是 OPL 早期选择的 JavaScript 运行时、测试与打包工具，不�
 | OPL Auto Review | DSH `experimental/auto-review` | 保留 Codex App Server 的 `approvalsReviewer` owner；只借用可迁移的控件表达 | DSH Auto Review 审查 DSH Agent 工具调用，和 Codex reviewer 并非同一 executor |
 | OPL time context | DSH `dsh-time-context` | 可复用设置和说明；注入继续走 Codex/Framework owner | 注入范围、隐私和默认关闭策略是 OPL 产品合同 |
 | OPL 快捷键页面 | 官方 `ui-shortcuts` | 当前仍是 OPL 页面；逐项映射命令与 App-local 偏好后可迁移到官方编辑器 | 官方页面未加载，DSH 按键目录不能自动替代 OPL commands/callbacks |
-| OPL 插件/能力目录 | 官方 `dsh-host-plugin-inventory` 与 `ui-plugin-manager` | Framework Package projection/actions 继续归 Framework；可迁移 UI 浏览模式 | OPL 当前加载 host inventory，不是官方 Plugin Manager UI；Package currentness 不是 DSH plugin inventory |
+| OPL 插件/能力目录 | 官方 `ui-plugin-manager` 页面源码、CSS 与 primitives；Framework Package projection/actions | Framework 继续拥有 Package lifecycle；DSH 官方页面拥有目录的卡片、详情、状态点、切换导航、筛选/页签和确认表现 | 已接入固定 cohort 的 `PluginManagerPage`；只构造其 renderer-facing props 与 owner adapter，不加载官方 `apply()`/Controller、profile 或 pnpm lifecycle。DSH host inventory 仍是另一种数据，Package currentness 不是 DSH plugin inventory |
 | OPL 语音输入 | DSH experimental voice/SenseVoice packages | OPL 当前保留浏览器 `SpeechRecognition`；待 provider、权限、readiness owner 可回读后迁移 | 官方 voice bundle 未加载，也不能把 DSH 本地 provider 状态冒充 OPL carrier readiness |
 
 ## UI 分叉审计
@@ -41,11 +41,13 @@ Bun 是 OPL 早期选择的 JavaScript 运行时、测试与打包工具，不�
 | 左侧栏背景、字体、圆角、选中态、按钮密度 | 旧实现自绘导航并覆盖 DSH 外观；当前 Studio 源码已改用官方 `AppFrame`/`SidebarRoot` 与 DSH semantic theme tokens | 否 | 当前浏览器验收截图显示 DSH 侧栏几何、颜色和选中态。OPL 保留业务行和 owner adapter；具体配色由 DSH 主题定义 |
 | `More` 折叠菜单 | 旧实现没有官方 More slot；当前源码已注册 `sidebar.panellist.actions` 并启用官方 `SidebarRoot` 更多菜单 | 否 | 菜单外壳/定位来自 DSH，OPL 提供 Framework 管理行与 pin action。浏览器验收通过菜单打开、取消固定和重新固定 |
 | 侧栏导航滚动与工作区列表 | OPL 把列表单独滚动，和 DSH viewport 行为不同 | 否 | 接入新版 `sidebar.workspaces` hook 和 scroll handoff，沿用官方折叠、窄屏 drawer 与 hover/focus 状态 |
-| 应用管理、运行状态、计划任务、能力工作台 | DSH 已有通用插件、任务等页面；OPL 的 owner/schema/action 不同 | 产品内容与 owner 必须由 OPL 保留，页面布局/控件不要求分叉 | 通过官方 main/sidebar slots 接入 OPL projection；计划任务 UI 本次迁移到官方 TaskManager/TaskDetail，并由 OPL adapter 保持 Temporal/Codex 语义 |
+| 应用管理、运行状态、计划任务、能力工作台 | DSH 已有通用插件、任务等页面；OPL 的 owner/schema/action 不同 | 产品名、页面 IA 和领域 projection 必须遵从 OPL 合同；可对应的布局、控件、卡片、详情导航和状态表达直接复用 DSH | 应用管理的应用目录已接入官方 `PluginManagerPage` 表现；OPL adapter 保持 Framework Package actions/readback。计划任务 UI 复用官方 TaskManager/TaskDetail 并保持 Temporal/Codex owner |
 | One Person Lab 品牌文本 | DSH 默认 DeepSeek 品牌 | 是 | 通过官方 brand slots 替换为文本，不复制品牌图形或另建 logo 系统 |
 | Codex 线程、审批、权限、Framework 状态 | DSH 有自己的 Session/Agent/credential authority | 是 | 保留 `opl-codex-native`、Framework bridge 和 App contracts；只使用 DSH UI/slot，不加载 `dsh-base` authority |
 | 计划任务执行器 | DSH schedule 依赖 DSH Agent/Session | 是 | 只复用 UI 和交互；保留 Framework/Temporal executor，直到有等价 adapter |
 | 设置 IA、路由、产品页名称 | OPL App contract 定义了当前产品目录和 owner | 产品分组和语义遵从 App contract；视觉、布局和通用搜索控件可以复用 DSH | 当前 `SettingsRoot`/theme/slots 已复用；设置全局搜索由社区包提供，非 DSH 官方能力 |
+
+应用管理合同仍使用“应用管理”产品名称及 applications、updates、resources、sources 四分区。其 applications 目录直接复用上游 `PluginManagerPage.tsx` 的卡片、官方 artwork/StateDot、detail navigation、组件列表和原生 action/confirmation UI。Framework projection 是唯一 Package snapshot，owner-projected actions 是唯一生命周期入口；DSH Plugin Manager 的 `apply()`、Controller、profile 和 pnpm 管理均不加载。该源码采用固定 ref `fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`。源码与 contracts 的接入状态不代表普通安装 App 已更新；本地安装和窗口交互另行验收。
 
 附件截图反映了旧 OPL 自绘 rail 的分叉：旧侧栏导航组件、局部颜色/间距规则与缺失的 More slot 已在本次源码改动中移除或替换。当前浏览器验收已确认 DSH sidebar/theme/More、窄屏 drawer、浅色/深色主题和官方任务页；原生 Electron 验收也已通过：隔离实例的 CDP 检查与 Quartz 实际窗口截图确认了 macOS 侧栏材质、More 和 system/light/dark 主题；未安装或触碰 Stable。必须保留的是 One Person Lab 品牌、App 当前产品导航/信息架构，以及 Codex/Framework 的数据和动作 authority；布局、控件与颜色应继续复用 DSH。
 
