@@ -72,7 +72,7 @@
       "^hermes\\/(?:web|ui|frontend)(?:\\/|$)",
       "^hermes\\/tests?(?:\\/|$)",
       "^hermes\\/.*(?:voice|tts|telegram|discord|slack|matrix|dingtalk|feishu)",
-      "^modules\\/[^/]+\\/\\.venv(?:\\/|$)",
+      "^modules\\/[^/]+\\/(?:\\.local|\\.venv)(?:\\/|$)",
       "^modules\\/[^/]+\\/node_modules(?:\\/|$)",
       "^modules\\/[^/]+\\/tests?(?:\\/|$)",
       "^modules\\/[^/]+\\/(?:build|dist|htmlcov|docs\\/_build|notebooks|playwright-report|runtime|runtime-state|runs|sessions|test-results|\\.ds)(?:\\/|$)",
@@ -177,6 +177,7 @@
       "python/*/lib/python*/site-packages/pip/_vendor/distlib/*.exe",
       "python/*/Frameworks/Python.framework/Versions/*/lib/python*/site-packages/pip/_vendor/distlib/*.exe",
       "modules/*/.venv",
+      "modules/*/.local",
       "modules/*/node_modules",
       "modules/*/tests",
       "modules/*/logs",
@@ -206,6 +207,8 @@
     "runtime_tree": {
       "excluded": [
         "modules/mas/.venv/lib/python3.12/site-packages/numpy/core.so",
+        "modules/med-autocast/.local/first-run-acceptance/.venv/lib/python3.12/site-packages/PIL/.dylibs/libjpeg.62.4.0.dylib",
+        "modules/med-autocast/.local/overview-update/.venv/lib/python3.12/site-packages/PIL/.dylibs/libjpeg.62.4.0.dylib",
         "modules/rca/node_modules/@types/node/index.d.ts",
         "modules/mas/runtime/legacy-state.json",
         "modules/mas/runtime/authority_functions/debug-cache.json",

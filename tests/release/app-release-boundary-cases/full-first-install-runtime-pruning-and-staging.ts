@@ -189,6 +189,14 @@ test("Full domain copy keeps only contract-declared authority inventories from r
     writeFile(path.join(options.masRoot, "runs", "latest.json"), "{}\n");
     writeFile(path.join(options.masRoot, "sessions", "current.json"), "{}\n");
     writeFile(path.join(options.masRoot, "cache", "result.json"), "{}\n");
+    writeFile(path.join(options.macRoot, "src", "med_autocast", "__init__.py"), "# runtime\n");
+    const localEnvPaths = [
+      ".local/first-run-acceptance/.venv/lib/python3.12/site-packages/PIL/.dylibs/libjpeg.62.4.0.dylib",
+      ".local/overview-update/.venv/lib/python3.12/site-packages/PIL/.dylibs/libjpeg.62.4.0.dylib",
+    ];
+    for (const relativePath of localEnvPaths) {
+      writeFile(path.join(options.macRoot, relativePath), "local environment binary\n");
+    }
     buildDomainLayer(layerRoot, options);
 
     for (const relativePath of declaredModules.flatMap(([, moduleName]) => [
@@ -196,6 +204,11 @@ test("Full domain copy keeps only contract-declared authority inventories from r
       `modules/${moduleName}/src/index.py`,
     ])) {
       assert.equal(fs.existsSync(path.join(layerRoot, relativePath)), true, relativePath);
+    }
+    assert.equal(fs.existsSync(path.join(layerRoot, "modules/med-autocast/src/med_autocast/__init__.py")), true);
+    assert.equal(fs.existsSync(path.join(layerRoot, "modules/med-autocast/.local")), false);
+    for (const relativePath of localEnvPaths) {
+      assert.equal(fs.existsSync(path.join(options.macRoot, relativePath)), true, relativePath);
     }
     for (const relativePath of [
       ...declaredModules.flatMap(([, moduleName]) => [
