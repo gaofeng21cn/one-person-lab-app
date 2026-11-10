@@ -98,6 +98,7 @@ test('branded deep links keep navigation inside the exact App-owned route regist
     '/apps?section=applications',
     '/apps?section=updates',
     '/apps?section=resources',
+    '/apps?section=sources',
     '/settings/environment?section=updates',
   ]);
 
