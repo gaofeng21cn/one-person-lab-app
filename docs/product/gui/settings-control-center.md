@@ -44,24 +44,27 @@ readiness, installed App currentness, or owner acceptance.
 
 `/apps` is the App-owned application management surface for the common OPL
 base. It is reached from the primary navigation as **应用管理** and answers
-three related questions in one place: which applications are installed and
-usable, which installed objects need an update or repair, and which shared
-knowledge or connection resources are available to the current local
-environment. The page is a coordinator and projection surface; it does not
+four related questions in one place: which applications are installed and
+usable, which installed objects need an update or repair, which shared knowledge
+or connection resources are available to the current local environment, and
+which public or authorized software sources supply the catalog.
+The page is a coordinator and projection surface; it does not
 become a second Package registry, updater, credential store, or knowledge base.
 
 The machine contract is
 [`contracts/app-gui-product-contract.json#pages.app_management`](../../../contracts/app-gui-product-contract.json)
 and its page-state entry is
 [`contracts/app-page-state-matrix.json#pages[id=app_management]`](../../../contracts/app-page-state-matrix.json).
-The three sections are addressable with `?section=applications`,
-`?section=updates`, and `?section=resources`. Desktop branded links admit these
-exact section routes and the legacy Updates route through the App-owned allowlist;
+The four sections are addressable with `?section=applications`,
+`?section=updates`, `?section=resources`, and `?section=sources`. Desktop branded
+links admit these exact section routes and the legacy Updates route through the App-owned allowlist;
 unknown query parameters, sections and fragments remain invalid. Applications
 uses the dynamic Package projection, Updates uses the managed-update and App
 updater projections, and Shared Resources consumes
-`app_state.application_management` for authorized resource relationships. The
-three sections share the same owner-projected action and fresh-readback
+`app_state.application_management` for authorized resource relationships.
+Software Sources consumes `app_state.agent_packages.sources` for source metadata,
+access state, and available connection or check actions. The four sections share
+the same owner-projected action and fresh-readback
 rules; the application-management projection keeps provenance references to
 the Package, update, connection and knowledge owners. Installation,
 operational readiness, and currentness remain separate axes, and a mutation is
