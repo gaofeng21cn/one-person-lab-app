@@ -117,6 +117,14 @@ verified installations owned by other installers. No Homebrew receipt means
 “not managed by Homebrew”; it does not establish that the software is absent.
 The selected installation's owner supplies its update and uninstall actions.
 
+`app_state.agent_packages.sources.installed_products` provides verified owner
+installations independently of a software source. The UI merges these products
+with source carrier options by owner-projected `product_id`. The current
+Framework installation adapter can therefore report Framework and its update
+owner even when Homebrew is absent, its tap is missing, or source inspection
+fails. This field does not claim automatic discovery for every product or
+installer; other installations require their own adapter evidence.
+
 ### Software, components and the common base
 
 The default software catalog contains independent Packages, agents, MCP Apps,

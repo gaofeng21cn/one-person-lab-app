@@ -6943,7 +6943,7 @@
         "remote_environment_truth"
       ],
       "section_sources": {
-        "applications": "app_state.agent_packages.directory.entries + app_state.agent_packages.sources.entries[].native_items",
+        "applications": "app_state.agent_packages.directory.entries + app_state.agent_packages.sources.installed_products + app_state.agent_packages.sources.entries[].native_items",
         "updates": "app_state.managed_update + contracts/app-settings-control-plane.json#app_update_state_policy",
         "resources": "app_state.application_management",
         "sources": "app_state.agent_packages.sources"
@@ -7013,7 +7013,9 @@
         "identity_policy": "one software identity may have multiple owner-reported installation instances",
         "package_plugin_fields": "installed and installed_version describe the configured Package carrier; local_installations describe other verified owner installations",
         "package_instance_source": "app_state.agent_packages.directory.entries[].local_installations",
-        "native_instance_source": "app_state.agent_packages.sources.entries[].native_items",
+        "native_instance_source": "app_state.agent_packages.sources.installed_products + app_state.agent_packages.sources.entries[].native_items",
+        "installed_product_policy": "merge verified owner installations and source carrier options by owner product_id; installed_products stays available independently of Homebrew or tap availability",
+        "installed_product_adapter_scope": "Framework installed-owner readback; other products appear only when their own adapter supplies verified evidence",
         "presence_policy": "a missing receipt from one carrier does not prove that the product is absent from the machine",
         "instance_details": [
           "version",
@@ -7037,6 +7039,7 @@
         "source": "app_state.agent_packages.sources",
         "native_catalog_policy": "render owner-projected native products and carrier options; Homebrew owns its recipes and receipts while each detected installation retains its lifecycle owner",
         "native_catalog_source": "app_state.agent_packages.sources.entries[].native_items",
+        "installed_product_source": "app_state.agent_packages.sources.installed_products",
         "native_lifecycle_policy": "show actual local and selected source versions with per-carrier ownership; execute only the projected actions for that installation and verify through the same owner",
         "catalog_access_policy": "filter_private_metadata_by_current_owner_authorization_before_rendering_or_counting",
         "count_policy": "unknown_or_unread_entry_count_stays_unknown_never_zero",
