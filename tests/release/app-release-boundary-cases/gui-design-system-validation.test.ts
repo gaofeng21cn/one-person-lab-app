@@ -193,7 +193,10 @@ test('GUI design-system validator fail-closes the pinned DSH phase, deferred, up
       (policy.required_evidence as string[]).shift();
     }],
     ['shell_adoption.allowed_vendor_normalizations', (cohort: Record<string, unknown>) => {
-      (cohort.shell_adoption as Record<string, unknown>).allowed_vendor_normalizations = [];
+      (cohort.shell_adoption as Record<string, unknown>).allowed_vendor_normalizations = [{
+        path: 'packages/client/ui-primitives/src/icons/index.tsx',
+        kind: 'untracked_source_mutation',
+      }];
     }],
   ] as const;
 
