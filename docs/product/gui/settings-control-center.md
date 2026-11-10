@@ -110,6 +110,13 @@ remote update remain distinct operations. A missing optional application is an
 available choice; an installed failure or missing required resource is an item
 needing attention.
 
+A Homebrew source can expose its native App and CLI inventory inside the same
+Software Sources view. These rows show installation state, installed and
+available versions, and the owner-projected install, update and uninstall
+actions. Homebrew remains the inventory, version and lifecycle authority; App
+uses the same action feedback and readback interaction without introducing
+a second native-software registry or updater.
+
 ### DSH-derived successor application
 
 The App successor reuses the pinned DSH Settings shell, layout, theme tokens and selected controls as
