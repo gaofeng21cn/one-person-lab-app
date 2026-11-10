@@ -1,8 +1,8 @@
 # DSH 升级与 OPL UI 复用审计
 
-Owner: `one-person-lab-app`  
-State: `source implementation and local acceptance complete`  
-DSH source: `master@fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`  
+Owner: `one-person-lab-app`
+State: `source implementation and local acceptance complete`
+DSH source: `master@fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`
 Package cohort: `0.2.2-rc.1`
 
 ## 结论
