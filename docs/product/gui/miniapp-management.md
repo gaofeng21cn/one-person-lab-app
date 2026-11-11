@@ -158,5 +158,6 @@ OPL 采用这些模型的共同点：Package/插件负责安装和生命周期�
 - 目录读取失败、资源失效和权限撤销只影响对应 App，其他会话和应用保持可用。
 
 本次目录数量、视觉优化和源码验收记录见
-[2026-11-11 验收记录](evidence/miniapp-management-acceptance-2026-11-11.md)。
+[2026-11-12 验收记录](evidence/miniapp-management-acceptance-2026-11-12.md)；此前的
+[2026-11-11 记录](evidence/miniapp-management-acceptance-2026-11-11.md) 保留为历史观察。
 
