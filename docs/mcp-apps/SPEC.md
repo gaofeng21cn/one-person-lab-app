@@ -9,6 +9,12 @@ owns the shared technical standard, and the
 owns its implementation path. This document owns the App host's navigation,
 handoff and interaction acceptance. It introduces no plugin format or protocol.
 
+The product-level presentation and discovery SSOT is
+[MiniApp 管理与工作台](../product/gui/miniapp-management.md).
+It defines when a Package uses the shared view, a dedicated MCP App, or an owner
+professional application. The OPL Apps family visual baseline is kept in
+[`contracts/opl-apps-miniapp-visual-contract.json`](../../contracts/opl-apps-miniapp-visual-contract.json).
+
 The DSH capability workspace renders standard MCP Apps from the existing Codex
 thread MCP catalog. Reuse the official ext-apps AppBridge and the persistent
 Codex App Server connection, approval, and authentication owners.

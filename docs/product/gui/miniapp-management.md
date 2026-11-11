@@ -3,6 +3,7 @@
 Owner: `one-person-lab-app`
 Purpose: 定义标准 MCP App 在 OPL App 中的身份、管理入口、切换入口和运行边界。
 State: `active_product_reference`
+Visual baseline: [`contracts/opl-apps-miniapp-visual-contract.json`](../../../contracts/opl-apps-miniapp-visual-contract.json)
 
 ## 结论
 
@@ -99,6 +100,13 @@ MCP server 进程、工具数量、Package 数量或安装就绪状态当成 Min
 OPL Apps 的 `ui://opl/apps.html` 是一个共享 MiniApp，包含 runtime 和已安装 Package
 提供的逻辑视图；Relay 的独立邮件 UI 与 Med Auto Cast 媒体审看 UI 各是一个独立 surface。
 具体数量随安装及当前会话的连接范围变化，不在宿主维护固定应用清单。
+
+视觉上，OPL Apps 共享宿主、Relay 和 Med Auto Cast 都必须带
+`data-opl-family="opl-apps"`，在品牌区显示 **OPL Apps** 与领域名称，并复用中性灰阶
+画布、raised surface、蓝色强调色、细边框、10–14px 圆角、40px 以上命中区和可见的
+`focus-visible` 环。loading、error、empty 和 action feedback 也必须沿用统一的
+live region/alert 语义；领域可以保留邮件三栏或媒体时间线布局，但不改变 family token
+和可访问性基线。视觉验收以视觉契约和实际渲染为准，不以静态 class 名称代替。
 
 ## 参考模型
 

@@ -189,6 +189,8 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
   现有 MCP Apps 与 DSH/Cordis 负责协议和宿主生命周期。新能力从
   [Framework 开发指南](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/mcp-apps/development.md)
   进入，先复用 owner 操作与共享服务，再选择界面形态。
+  形态选择、自发现链路和管理/工作界面边界以
+  [MiniApp 管理与工作台 SSOT](miniapp-management.md) 为准。
 - 先从 App state/action catalog 取得可用 action 和 disabled reason。
 - Runtime 只调用当前 Runtime contract 声明的动作；typed views 按 contribution/action ABI
   派发，不能从字段名推导可写权限。其他页面的动作仍由各自合同授权。

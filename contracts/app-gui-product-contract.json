@@ -232,6 +232,13 @@
   },
   "mcp_app_host_policy": {
     "discovery": "live_codex_mcp_catalog_tool_ui_resource_metadata_no_fixed_package_list",
+    "presentation_contract_ref": "one-person-lab/contracts/opl-framework/mcp-app-presentation-contract.json",
+    "visual_contract_ref": "contracts/opl-apps-miniapp-visual-contract.json",
+    "discovery_state_axes": ["installed", "enabled", "callable"],
+    "fresh_catalog_after_install_or_update": true,
+    "open_miniapp_session_hot_update": false,
+    "management_surface_owns": ["install", "update", "enable", "disable", "status", "diagnostics"],
+    "work_surface_owns": ["domain_read", "domain_edit", "review", "preview", "owner_readback"],
     "connection_owner": "opl-codex-native_existing_thread_mcp_connections",
     "ui_host": "official_mcp_apps_sdk_in_dsh_capability_workspace",
     "dsh_plugin": "@one-person-lab/opl-mcp-apps",

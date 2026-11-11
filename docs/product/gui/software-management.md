@@ -5,6 +5,11 @@ State: `active`
 Machine contract: [`pages.app_management`](../../../contracts/app-gui-product-contract.json)
 
 应用管理让用户直接回答三个问题：有哪些软件、已经装了什么、哪些可以更新。
+MiniApp 的管理与工作入口按
+[MiniApp 管理与工作台](miniapp-management.md) 分层：软件管理投影 Package 的安装、
+更新、启停与诊断；工作入口再从当前 thread 的 fresh Codex MCP catalog 发现可调用的
+`server + resourceUri`。管理界面不维护固定 MiniApp 清单，也不把第三方 connector
+surface 计入 OPL 自有 MiniApp 数量。
 它管理本机独立安装的软件，包括标准与非标准智能体、Agent 原生应用、本机桌面/Web
 应用、命令行工具及独立能力包。OPL 核心是其中一组产品与依赖关系，不是目录范围上限。
 云端、移动端和设备端产品拥有独立生命周期；OPL App 可以协助部署、查看远端状态和
