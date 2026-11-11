@@ -1624,7 +1624,7 @@
         "concept_or_source_repository_is_software": false,
         "internal_host_implementation_is_independent_app": false,
         "native_product_identity": "owner-projected product_id; package or carrier identity when no product relation is established",
-        "variant_policy": "one product row with distinct installation instances or carrier options; Standard Full and Nightly do not become three products",
+        "variant_policy": "one product row; release tracks (stable/nightly), editions (standard/full), distribution sources and installed instances are separate objects",
         "identity_fields": [
           "display_name",
           "description",
@@ -1634,7 +1634,7 @@
           "local_installation_version",
           "selected_source_version"
         ],
-        "version_policy": "show the selected installation version and verified selected-source version; preserve unknown, never infer latest, and never propose downgrade when a source target is older",
+        "version_policy": "show the owner-selected active installation version and the owner-selected obtainable target for its release track; default to the publisher recommended release; missing versions render an em dash with a specific reason in details, never multiple channels or a guessed highest version",
         "maturity_policy": "only an explicit product-owner declaration establishes maturity; development_only admission never implies preview and admitted never implies stable",
         "distribution_field": "app_state.agent_packages.directory.entries[].distribution_channel",
         "distribution_values": [
@@ -1701,7 +1701,7 @@
           "installation_mode",
           "installation_instances",
           "lifecycle_owner",
-          "safe_location_reference",
+          "installation_location",
           "source_revision",
           "release_reference",
           "dependencies",
@@ -1718,30 +1718,40 @@
         "enablement_policy": "enable and disable belong to software details; enabled state does not replace installation state"
       },
       "installation_instance_policy": {
-        "identity_policy": "one software identity may have multiple owner-reported installation instances",
+        "identity_policy": "one product in one environment can retain multiple installations and has at most one active runtime instance; integration entrypoints refer to that runtime rather than establishing another activation",
         "package_plugin_fields": "installed and installed_version describe the configured Package carrier; local_installations describe other verified owner installations",
-        "package_instance_source": "app_state.agent_packages.directory.entries[].local_installations",
+        "package_instance_source": "app_state.agent_packages.directory.entries[].installations",
         "native_instance_source": "app_state.agent_packages.sources.installed_products + app_state.agent_packages.sources.entries[].native_items",
         "installed_product_policy": "merge verified owner installations and source carrier options by owner product_id; installed_products stays available independently of Homebrew or tap availability",
         "installed_product_adapter_scope": "Framework installed-owner readback; other products appear only when their own adapter supplies verified evidence",
         "presence_policy": "a missing receipt from one carrier does not prove that the product is absent from the machine",
         "instance_details": [
+          "installation_id",
           "version",
-          "installation_mode",
-          "installation_owner",
-          "location_or_safe_location_reference",
-          "evidence_source"
+          "available_version",
+          "mode",
+          "manager",
+          "location",
+          "active",
+          "evidence_source",
+          "available_actions"
         ],
         "installation_mode_policy": "distinguish installed from development using owner receipts and effective source policy; an ordinary checkout or git_checkout label alone proves neither",
-        "effective_source_policy": "the selected runtime source is separate from installed copies and available source versions",
+        "effective_source_policy": "all product entrypoints use the owner active runtime; use active_installation_id and active_installation_status without guessing from version order or discovery",
         "action_policy": "dispatch only actions projected by the owner of the selected installation instance; never apply Homebrew or Codex-plugin lifecycle to another owner installation",
         "homebrew_policy": "homebrew_installed describes Homebrew custody; installation_owner describes the detected product installation",
-        "path_policy": "reuse each native carrier root and existing OPL managed locator; keep explicit developer workspaces and user data separate",
+        "path_policy": "show actual owner-verified software code paths on the current local host; preserve native installer roots; keep source checkouts and user data separate",
         "implicit_path_migration_allowed": false,
         "second_installation_registry_allowed": false,
         "unknown_instance_policy": "show not observed or unknown for that carrier; do not claim machine-wide absence",
-        "list_version_policy": "use the owner-selected installation version when known; show multiple installations without selecting the highest or concatenating versions; inspect each installation in details",
-        "development_presentation": "development is an installation-mode badge; it does not create a separate product category, maturity label or update authority"
+        "list_version_policy": "use the owner-selected active installation only; inactive or unresolved activation has its own visible status; expose all installed locations in details",
+        "development_presentation": "development is an installation-mode badge; it does not create a separate product category, maturity label or update authority",
+        "activation_policy": "explicit owner action switches the active installation after revision and identity checks; retain inactive installations and do not create a UI activation registry",
+        "default_activation_policy": "choose the publisher recommended release on first install; development requires explicit registration and activation; preserve existing owner selection until an explicit switch",
+        "development_lifecycle_policy": "register inspect activate and unlink through the owner; never upgrade checkout source or delete it through release update or uninstall",
+        "source_option_is_installation": false,
+        "first_installation_action_source": "app_state.agent_packages.directory.entries[].installation_actions",
+        "first_installation_policy": "the owner offers an exact published version bound to fresh inventory revision; creating an installation has no existing installation_id and cannot overwrite an existing target"
       },
       "software_source_management": {
         "access_contract_ref": "one-person-lab/contracts/opl-framework/package-access-contract.json",
@@ -1772,7 +1782,8 @@
           "development_source_policy": "an explicitly selected developer binding is an effective source override, not an installable public software feed"
         },
         "presentation_policy": "one OPL software catalog with public, authorized-private and Homebrew delivery channels; channel details do not become competing product catalogs",
-        "external_manager_policy": "external Codex plugins, standalone skills and other sources retain their native discovery and management routes; a plugin list does not claim complete skill coverage"
+        "external_manager_policy": "external Codex plugins, standalone skills and other sources retain their native discovery and management routes; a plugin list does not claim complete skill coverage",
+        "selection_policy": "Framework selects exactly one source target per product using an explicit installed receipt, publisher default, or sole verified source; the renderer does not rank names or version strings"
       },
       "state_feedback_policy": {
         "initial_loading": "show_loading_without_zero_inventory_no_problem_or_disconnected_claims",
