@@ -30,6 +30,7 @@ import {
   type FullRuntimePackageProfile,
 } from './runtime-cache-package-set.ts';
 import { buildRuntimeLayerImplementationHash } from './runtime-layers.ts';
+import { selectedLocalComponentSeedInputs } from './local-component-seeds.ts';
 
 function buildLayerImplementationInput(layerId: FullRuntimeCacheLayerId) {
   return {
@@ -99,6 +100,10 @@ export function buildRuntimeCacheKeyInputs(
     'domain-runtime': {
         selected_package_set: packageSet,
         source_fingerprints: domainSourceFingerprints(options),
+        local_component_seeds: selectedLocalComponentSeedInputs(
+          options,
+          packageProfile.package_ids,
+        ).map(({ payload, ...identity }) => identity),
         implementation: buildLayerImplementationInput('domain-runtime'),
     },
     'opl-runtime': {

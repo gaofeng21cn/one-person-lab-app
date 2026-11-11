@@ -23,6 +23,7 @@ import {
   directorySizeBytes,
 } from './filesystem.ts';
 import { readGitHead } from './git.ts';
+import { materializeSelectedLocalComponentSeeds } from './local-component-seeds.ts';
 import { commandOutput } from './process.ts';
 import {
   FLOW_CAPABILITY_BUILD_LOCK_RELATIVE_PATH,
@@ -775,6 +776,7 @@ export function buildDomainLayer(layerRoot, options) {
   copyTreeFiltered(options.metaAgentRoot, path.join(layerRoot, 'modules', 'meta-agent'), 'modules/meta-agent');
   copyTreeFiltered(options.bookforgeRoot, path.join(layerRoot, 'modules', 'bookforge'), 'modules/bookforge');
   copyTreeFiltered(options.oplFlowRoot, path.join(layerRoot, 'modules', 'opl-flow'), 'modules/opl-flow');
+  materializeSelectedLocalComponentSeeds(layerRoot, options);
 }
 
 export function writeDomainMarkers(runtimeRoot, options, packagedAt) {
@@ -880,7 +882,11 @@ export function buildRuntimeLayerImplementationHash(layerId: FullRuntimeCacheLay
       writeRuntimeWrappers,
       buildToolchainLayer,
     ],
-    'domain-runtime': [copyTreeFiltered, buildDomainLayer],
+    'domain-runtime': [
+      copyTreeFiltered,
+      materializeSelectedLocalComponentSeeds,
+      buildDomainLayer,
+    ],
     'opl-runtime': [
       temporalCoreBridgeReleasesRoot,
       pruneTemporalCoreBridgeReleases,
