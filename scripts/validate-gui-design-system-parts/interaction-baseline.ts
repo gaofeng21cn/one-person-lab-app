@@ -284,7 +284,7 @@ export function validateGuiDesignSystemInteractionBaseline({
       'return_to_no_active_capability_without_changing_executor_workspace_or_draft' ||
     capabilitySelection.starter_palette_selection_sync !==
       'one_active_capability_state_bidirectionally_reflected' ||
-    capabilitySelection.management_surface !== 'settings_agents' ||
+    capabilitySelection.management_surface !== 'app_management' ||
     capabilitySelection.legacy_route_policy !== '/capabilities_redirects_to_home_without_mounting_a_selection_page' ||
     capabilitySelection.composer_persistent_variable_selector !== false ||
     capabilitySelection.composer_context_surface !== 'active_capability_chip' ||

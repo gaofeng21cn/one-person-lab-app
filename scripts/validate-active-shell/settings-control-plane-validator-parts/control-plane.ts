@@ -403,10 +403,10 @@ export function validateSettingsControlPlane(
   const externalUpdates = controlPlane.external_tool_update_policy;
   if (
     guiContract?.interaction_baseline?.capability_selection
-      ?.management_surface !== "settings_agents"
+      ?.management_surface !== "app_management"
   ) {
     throw new Error(
-      "Settings Agents must own Agent package and Home shortcut management",
+      "Software Center must own Package and Home shortcut management",
     );
   }
   assertDeepEqualJson(

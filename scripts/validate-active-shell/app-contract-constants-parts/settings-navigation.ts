@@ -17,7 +17,6 @@ export const appOwnedSettingsNavigationDestinationIds = [
   "working_directory",
   "data_storage",
   "capabilities",
-  "agents",
   "instructions_context",
   "runtime_services",
   "updates_repairs",
@@ -33,8 +32,8 @@ export const appOwnedSettingsNavigationGroupLabels = {
   },
   workspace: { label_zh: "工作区", label_en: "Workspace" },
   agents_capabilities: {
-    label_zh: "扩展与应用",
-    label_en: "Extensions & Apps",
+    label_zh: "能力与指令",
+    label_en: "Capabilities & Instructions",
   },
   runtime_maintenance: {
     label_zh: "运行与维护",
@@ -56,7 +55,6 @@ export const appOwnedSettingsNavigationDestinationOwners = {
     anchor: "current-workspace",
   },
   data_storage: { owner_group_id: "workspace", route_id: "storage" },
-  agents: { owner_group_id: "agents_capabilities", route_id: "agents" },
   capabilities: {
     owner_group_id: "agents_capabilities",
     route_id: "capabilities",

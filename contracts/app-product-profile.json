@@ -3322,10 +3322,10 @@
           },
           {
             "id": "agents_capabilities",
-            "label_zh": "扩展与应用",
-            "label_en": "Extensions & Apps",
+            "label_zh": "能力与指令",
+            "label_en": "Capabilities & Instructions",
             "default_destination_id": "capabilities",
-            "destination_ids": ["capabilities", "agents", "instructions_context"]
+            "destination_ids": ["capabilities", "instructions_context"]
           },
           {
             "id": "runtime_maintenance",
@@ -3390,15 +3390,8 @@
             "id": "capabilities",
             "owner_group_id": "agents_capabilities",
             "route_id": "capabilities",
-            "label_zh": "全部扩展",
-            "label_en": "All extensions"
-          },
-          {
-            "id": "agents",
-            "owner_group_id": "agents_capabilities",
-            "route_id": "agents",
-            "label_zh": "智能体",
-            "label_en": "Agents"
+            "label_zh": "能力配置",
+            "label_en": "Capability settings"
           },
           {
             "id": "instructions_context",
