@@ -815,24 +815,15 @@
                   "select_active_adapter_reported_mode"
                 ]
               }
-            },
-            {
-              "id": "apps_and_connections",
-              "scope": "surface_specific_selection_or_status",
-              "source_ref": "ordinary_capability_selector_policy.configured_mcp_servers_after_negative_filter",
-              "availability_policy": "hide_group_when_no_non_forbidden_configured_session_connection_is_available",
-              "label_policy": "localized_product_name_never_raw_mcp_or_provider_id",
-              "existing_session_rebinding_allowed": false,
-              "surface_actions": {
-                "home_new_session": [
-                  "select_new_session_configured_app_or_connection"
-                ],
-                "existing_conversation": [
-                  "show_loaded_configured_connection_status"
-                ]
-              }
             }
           ],
+          "interactive_mini_app_policy": {
+            "selection_surface": "current_thread_workspace_mini_app_switcher",
+            "management_surface": "/apps",
+            "composer_group_allowed": false,
+            "connection_status_surface": "host_and_application_management",
+            "raw_mcp_server_or_provider_id_visible": false
+          },
           "selected_context_presentation": {
             "workspace_or_initial_cwd": "not_rendered_palette_context_bar_owned",
             "attachments": "existing_send_scoped_attachment_chips",
@@ -840,7 +831,7 @@
           },
           "surface_behavior": {
             "home_new_session": "configure_only_real_new_session_capabilities_supported_by_the_active_adapter",
-            "existing_conversation": "attach_local_inputs_invoke_loaded_skills_show_loaded_connection_status_change_adapter_reported_nonduplicate_modes_without_rebinding",
+            "existing_conversation": "attach_local_inputs_invoke_loaded_skills_change_adapter_reported_nonduplicate_modes_without_rebinding;_open_interactive_mini_apps_from_the_current_thread_workspace_switcher",
             "settings_route_policy": "management_entries_are_explicit_fallbacks_not_fake_session_selection"
           },
           "authority_policy": "render_only_real_picker_actions_owner_or_carrier_projected_skills_and_non_forbidden_configured_session_connections_supported_by_the_active_adapter",
@@ -1485,6 +1476,107 @@
       ],
       "state_source": "opl app state --profile fast --json",
       "refresh_source": "opl app state --profile fast --json"
+    },
+    {
+      "id": "mcp_app_workspace",
+      "expected_source": "App-owned MiniApp navigation and host behavior over the live Codex MCP catalog",
+      "machine_source": "contracts/app-gui-product-contract.json#mcp_app_host_policy + live Codex MCP catalog through the OPL Studio host",
+      "refresh_source": "live MCP catalog for the current thread",
+      "page_contract": "mini_app_workspace",
+      "route": "primary_view:workspace",
+      "navigation_identity": [
+        "mini_app_id"
+      ],
+      "directory_projection": {
+        "identity_source": "mcp_app_host_policy.mini_app_identity",
+        "one_item_per_surface": true,
+        "grouping_key": "server_plus_resource_uri",
+        "stable_id_policy": "declared_ui_app_id_or_ui_id_then_mcp_server_resource_uri_fallback",
+        "display_fields": [
+          "title",
+          "description",
+          "readiness",
+          "session_state"
+        ],
+        "raw_transport_fields_default_visible": false
+      },
+      "surface_policy": {
+        "one_mini_app_per_surface": true,
+        "switcher_owner": "current_thread_workspace",
+        "management_entry": "/apps",
+        "task_detail_entry": "exact_item_id_and_view_id_direct_open",
+        "composer_contains_interactive_apps": false,
+        "declarative_package_contributions_are_mcp_apps": false,
+        "active_session": "zero_or_one_current_thread_ephemeral_binding_with_mounted_surface"
+      },
+      "states": [
+        {
+          "id": "loading",
+          "required_ui": "localized_directory_loading_with_workspace_frame"
+        },
+        {
+          "id": "ready",
+          "required_ui": "stable_id_switcher_and_manage_entry_with_separate_readiness_and_session_state"
+        },
+        {
+          "id": "not_started",
+          "required_ui": "selected_app_summary_and_explicit_read_only_start_action_without_iframe"
+        },
+        {
+          "id": "starting",
+          "required_ui": "localized_start_progress_with_duplicate_start_disabled_and_switch_available"
+        },
+        {
+          "id": "started",
+          "required_ui": "current_app_surface_started_status_and_close_action"
+        },
+        {
+          "id": "launch_error",
+          "required_ui": "preserve_directory_and_user_input_with_localized_launch_retry"
+        },
+        {
+          "id": "empty",
+          "required_ui": "localized_no_declared_mini_apps_with_return_to_conversation"
+        },
+        {
+          "id": "error",
+          "required_ui": "localized_catalog_error_with_retry_and_application_management_entry"
+        },
+        {
+          "id": "unavailable",
+          "required_ui": "localized_current_thread_or_connection_unavailable_without_fabricated_apps"
+        }
+      ],
+      "lifecycle": {
+        "manual_open": "read_only_launch_tool_only",
+        "completed_call_replay": "exact_server_tool_call_id_without_mutation_replay",
+        "switch": "release_old_ephemeral_binding_before_opening_new_surface",
+        "close_or_thread_change": "release_binding_and_preserve_owner_state",
+        "connection_reset": "invalidate_ephemeral_views_and_require_fresh_catalog",
+        "selection": "release_previous_surface_then_show_descriptor_without_automatic_launch"
+      },
+      "must_show": [
+        "current_mini_app_title_and_surface",
+        "stable_mini_app_switcher",
+        "application_management_entry",
+        "task_detail_direct_open_and_return_path",
+        "localized_loading_empty_error_and_unavailable_states",
+        "not_started_starting_started_session_state_separate_from_package_enablement"
+      ],
+      "must_not_show": [
+        "server_tool_as_top_level_app_list",
+        "duplicate_entries_for_tools_sharing_one_resource_uri",
+        "interactive_mini_app_selection_in_composer",
+        "generic_mcp_tool_picker_before_exact_task_detail_app",
+        "raw_server_resource_uri_or_input_schema_as_default_navigation_copy"
+      ],
+      "must_not_own": [
+        "package_installation_or_enablement",
+        "mcp_connection_or_credential_state",
+        "domain_business_state",
+        "runtime_task_truth",
+        "second_mini_app_registry"
+      ]
     },
     {
       "id": "app_management",

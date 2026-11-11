@@ -244,21 +244,14 @@ export const appOwnedUnifiedContextMenu = {
         existing_conversation: ["select_active_adapter_reported_mode"],
       },
     },
-    {
-      id: "apps_and_connections",
-      scope: "surface_specific_selection_or_status",
-      source_ref:
-        "ordinary_capability_selector_policy.configured_mcp_servers_after_negative_filter",
-      availability_policy:
-        "hide_group_when_no_non_forbidden_configured_session_connection_is_available",
-      label_policy: "localized_product_name_never_raw_mcp_or_provider_id",
-      existing_session_rebinding_allowed: false,
-      surface_actions: {
-        home_new_session: ["select_new_session_configured_app_or_connection"],
-        existing_conversation: ["show_loaded_configured_connection_status"],
-      },
-    },
   ],
+  interactive_mini_app_policy: {
+    selection_surface: "current_thread_workspace_mini_app_switcher",
+    management_surface: "/apps",
+    composer_group_allowed: false,
+    connection_status_surface: "host_and_application_management",
+    raw_mcp_server_or_provider_id_visible: false,
+  },
   selected_context_presentation: {
     workspace_or_initial_cwd: "not_rendered_palette_context_bar_owned",
     attachments: "existing_send_scoped_attachment_chips",
@@ -269,7 +262,7 @@ export const appOwnedUnifiedContextMenu = {
     home_new_session:
       "configure_only_real_new_session_capabilities_supported_by_the_active_adapter",
     existing_conversation:
-      "attach_local_inputs_invoke_loaded_skills_show_loaded_connection_status_change_adapter_reported_nonduplicate_modes_without_rebinding",
+      "attach_local_inputs_invoke_loaded_skills_change_adapter_reported_nonduplicate_modes_without_rebinding;_open_interactive_mini_apps_from_the_current_thread_workspace_switcher",
     settings_route_policy:
       "management_entries_are_explicit_fallbacks_not_fake_session_selection",
   },

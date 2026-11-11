@@ -104,8 +104,15 @@ test('DSH visual primitives and session controls match App contracts', () => {
     guiContract.ordinary_conversation.unified_context_menu.groups.map(
       (group: { id: string }) => group.id,
     ),
-    ['local_inputs', 'agent_packages', 'opl_capabilities', 'skills', 'session_modes', 'apps_and_connections'],
+    ['local_inputs', 'agent_packages', 'opl_capabilities', 'skills', 'session_modes'],
   );
+  assert.deepStrictEqual(guiContract.ordinary_conversation.unified_context_menu.interactive_mini_app_policy, {
+    selection_surface: 'current_thread_workspace_mini_app_switcher',
+    management_surface: '/apps',
+    composer_group_allowed: false,
+    connection_status_surface: 'host_and_application_management',
+    raw_mcp_server_or_provider_id_visible: false,
+  });
   const paletteGroups = Object.fromEntries(
     guiContract.ordinary_conversation.unified_context_menu.groups.map((group: { id: string }) => [group.id, group]),
   );

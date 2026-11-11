@@ -182,6 +182,7 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     'settings_local_services',
     'settings_personalization',
     'first_launch_readiness',
+    'mcp_app_workspace',
     'app_management',
     'runtime',
   ]);
@@ -193,6 +194,21 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
   }
   if (requiredPages.size > 0) {
     throw new Error(`Page-state matrix is missing required page(s): ${[...requiredPages].join(', ')}`);
+  }
+  const miniAppPage = matrix.pages.find((page) => page.id === 'mcp_app_workspace');
+  const miniAppPolicy = guiProductContract.mcp_app_host_policy;
+  if (miniAppPage.directory_projection?.grouping_key !== miniAppPolicy.mini_app_identity?.grouping_key
+    || miniAppPage.surface_policy?.management_entry !== miniAppPolicy.navigation_planes?.management_surface
+    || miniAppPage.surface_policy?.composer_contains_interactive_apps !== false
+    || miniAppPage.surface_policy?.declarative_package_contributions_are_mcp_apps !== false
+    || miniAppPolicy.session_presentation?.workspace_cardinality !== 'zero_or_one_active_mini_app_surface'
+    || !miniAppPage.directory_projection?.display_fields?.includes('session_state')) {
+    throw new Error('MiniApp workspace must separate live UI surfaces, session state and Package management');
+  }
+  for (const state of ['loading', 'ready', 'not_started', 'starting', 'started', 'launch_error', 'empty', 'error', 'unavailable']) {
+    if (!miniAppPage.states?.some((entry) => entry.id === state && entry.required_ui)) {
+      throw new Error(`MiniApp workspace is missing required state ${state}`);
+    }
   }
   if (
     JSON.stringify(matrix.remote_companion) !== JSON.stringify({

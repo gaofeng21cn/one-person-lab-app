@@ -241,6 +241,57 @@
     "detail_owner": "framework_shared_mcp_app_with_domain_owned_payloads",
     "resource": "text/html;profile=mcp-app_in_opaque_sandbox_with_declared_csp",
     "scope": "bind_each_view_to_exact_thread_server_and_declared_ui_tool",
+    "mini_app_identity": {
+      "directory_item": "one_mini_app_per_ui_surface",
+      "stable_id_field": "mini_app_id",
+      "declared_id_sources": [
+        "tool._meta.ui.appId",
+        "tool._meta.ui.id",
+        "resource._meta.ui.appId",
+        "resource._meta.ui.id"
+      ],
+      "fallback_id": "mcp:<server>:<resourceUri>",
+      "grouping_key": "server_plus_resource_uri",
+      "same_resource_multiple_tools": "one_directory_item_with_one_read_only_launch_tool_and_internal_app_visible_tool_set",
+      "launch_tool_policy": "manual_open_uses_the_declared_read_only_tool;_completed_call_replay_may_use_the_exact_original_tool_and_call_id_without_replaying_mutation",
+      "directory_fields": [
+        "mini_app_id",
+        "title",
+        "description",
+        "resource_uri",
+        "launch_tool",
+        "tools",
+        "readiness"
+      ],
+      "raw_transport_fields_default_visible": false
+    },
+    "navigation_planes": {
+      "management_surface": "/apps",
+      "management_authority": "existing_application_management_package_projection_and_owner_actions",
+      "navigation_surface": "current_thread_workspace_mini_app_switcher_and_exact_task_detail_entry",
+      "switch_identity": "mini_app_id",
+      "one_surface_per_mini_app": true,
+      "switch_lifecycle": "release_old_ephemeral_binding_before_opening_the_new_mini_app",
+      "task_detail_entry": "open_exact_mini_app_and_view_for_item_id_and_view_id_without_generic_tool_picker",
+      "composer_policy": "composer_contains_agents_skills_files_directories_and_session_context; interactive_mini_apps_are_not_a_composer_selection_group",
+      "package_contribution_boundary": "declarative_package_contribution_views_keep_their_existing_owner_and_broker_contract_and_are_not_mcp_app_directory_items",
+      "second_mini_app_registry_allowed": false,
+      "mini_app_installation_unit": false
+    },
+    "session_presentation": {
+      "catalog_item": "live_descriptor_only; discovery_and_selection_do_not_launch_the_ui",
+      "not_started": "no_active_binding_app_bridge_or_iframe_for_this_directory_item",
+      "starting": "read_only_launch_or_exact_completed_call_replay_then_resource_read",
+      "started": "current_thread_has_an_ephemeral_host_binding_and_mounted_app_bridge_iframe; resource_initialization_has_its_own_loading_or_error_feedback",
+      "active_session_source": "host_ephemeral_binding_plus_current_workspace_mount; never_package_enablement_or_business_task_status",
+      "workspace_cardinality": "zero_or_one_active_mini_app_surface",
+      "selection_effect": "release_previous_surface_and_show_selected_descriptor_without_automatic_launch",
+      "close_effect": "release_ui_binding_only; preserve_package_installation_connections_and_owner_work",
+      "reopen_effect": "fresh_owner_readback_or_exact_completed_result_without_mutation_replay",
+      "failure_scope": "catalog_errors_have_catalog_retry; launch_errors_preserve_directory_and_inputs_for_retry_or_switch",
+      "internal_views": "multiple_views_within_one_resource_remain_one_mini_app",
+      "counts": "count_distinct_live_server_resource_surfaces; count_internal_views_and_active_ui_sessions_separately"
+    },
     "live_access": "revalidate_bound_server_app_visible_tools_and_declared_resources_before_each_call; revoked_or_closed_bindings_cannot_dispatch",
     "connection_reset": "invalidate_ephemeral_views_on_codex_connection_unavailability; reopening_reads_owner_state_without_replaying_mutations",
     "tools": "only_tools_from_bound_server_with_app_visibility_preserve_codex_approvals_and_owner_authorization",
@@ -3927,20 +3978,15 @@
             "home_new_session": ["select_active_adapter_reported_mode"],
             "existing_conversation": ["select_active_adapter_reported_mode"]
           }
-        },
-        {
-          "id": "apps_and_connections",
-          "scope": "surface_specific_selection_or_status",
-          "source_ref": "ordinary_capability_selector_policy.configured_mcp_servers_after_negative_filter",
-          "availability_policy": "hide_group_when_no_non_forbidden_configured_session_connection_is_available",
-          "label_policy": "localized_product_name_never_raw_mcp_or_provider_id",
-          "existing_session_rebinding_allowed": false,
-          "surface_actions": {
-            "home_new_session": ["select_new_session_configured_app_or_connection"],
-            "existing_conversation": ["show_loaded_configured_connection_status"]
-          }
         }
       ],
+      "interactive_mini_app_policy": {
+        "selection_surface": "current_thread_workspace_mini_app_switcher",
+        "management_surface": "/apps",
+        "composer_group_allowed": false,
+        "connection_status_surface": "host_and_application_management",
+        "raw_mcp_server_or_provider_id_visible": false
+      },
       "selected_context_presentation": {
         "workspace_or_initial_cwd": "not_rendered_palette_context_bar_owned",
         "attachments": "existing_send_scoped_attachment_chips",
@@ -3948,7 +3994,7 @@
       },
       "surface_behavior": {
         "home_new_session": "configure_only_real_new_session_capabilities_supported_by_the_active_adapter",
-        "existing_conversation": "attach_local_inputs_invoke_loaded_skills_show_loaded_connection_status_change_adapter_reported_nonduplicate_modes_without_rebinding",
+        "existing_conversation": "attach_local_inputs_invoke_loaded_skills_change_adapter_reported_nonduplicate_modes_without_rebinding;_open_interactive_mini_apps_from_the_current_thread_workspace_switcher",
         "settings_route_policy": "management_entries_are_explicit_fallbacks_not_fake_session_selection"
       },
       "authority_policy": "render_only_real_picker_actions_owner_or_carrier_projected_skills_and_non_forbidden_configured_session_connections_supported_by_the_active_adapter",

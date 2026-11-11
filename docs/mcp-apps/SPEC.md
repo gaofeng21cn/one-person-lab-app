@@ -13,7 +13,19 @@ The DSH capability workspace renders standard MCP Apps from the existing Codex
 thread MCP catalog. Reuse the official ext-apps AppBridge and the persistent
 Codex App Server connection, approval, and authentication owners.
 
-Users select a declared read-only UI tool, enter any required input, and open its
+The product navigation treats one MiniApp resource as one UI surface. The live
+catalog may expose several App-visible tools for that resource, but the host
+groups them by stable `mini_app_id` and presents one switcher entry. A declared
+`ui.appId`/`ui.id` is preferred; when the standard declaration has no stable ID,
+the host uses `mcp:<server>:<resourceUri>`. A read-only `launch_tool` opens the
+surface. Other tools remain App-visible capabilities inside that surface and
+do not become additional top-level applications. Package installation and
+enablement remain in Application Management; the session switcher owns only
+navigation for the current thread. See [MiniApp management and workbench](../product/gui/miniapp-management.md)
+for the product IA and the MiniMax/DSH reference model.
+
+Users select a declared MiniApp, enter any required input for its read-only
+launch tool, and open its
 resource inside an opaque sandbox. Completed agent calls can open their canonical
 results without repeating the tool. Model-only tools may present a UI, while
 the UI calls only App-visible tools on the
