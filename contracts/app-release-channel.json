@@ -4571,6 +4571,7 @@
         "copy_declared_framework_runtime_payload",
         "copy_declared_domain_module_payloads",
         "copy_framework_catalog_declared_capability_package_payloads",
+        "seed_selected_local_components_from_frozen_framework_owner_payloads",
         "copy_declared_foundry_agent_payloads",
         "copy_declared_companion_tool_payloads",
         "write_distribution_manifest",

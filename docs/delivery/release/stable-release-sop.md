@@ -305,6 +305,12 @@ Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同
 
 ## 维护和安装
 
+Full 从冻结 Framework owner projection 选择本次 roots 中的 `local_component`，按其 payload
+声明的精确 source commit、文件路径、模式和 SHA-256 物化到现有 runtime modules。
+seed 身份进入 domain-runtime cache key，既有 packaged-module marker 保留来源；App 不维护
+固定组件清单或独立版本表。Framework 仅在匹配父产品 seed 存在时提供收敛动作，原生 carrier
+仍验证 payload 和 content lock；没有 seed 时不转为在线下载。
+
 实现或合同改变时，同一改动更新本 SOP 与受影响的技术参考，复用现有回归验证。Skill 保持薄层，链接本文件和发布路径索引；通用开发与 worktree 流程分别复用现有 Skill，不复制其正文。App 专属操作留在 App 仓库；只有新增通用工作流行为时才向 OPL Flow owner 投影。
 
 Skill 的版本化源是 `skills/opl-app-release`。本机 `~/.codex/skills/opl-app-release` 指向主线工作区中的这个目录；新机器可在核实仓库后建立相同链接。已有同名安装先检查并保留其改动，再切换链接。发布、新 run 跟进和故障恢复统一使用 `opl-app-release`，不保留单独的故障 Skill。
