@@ -1498,7 +1498,10 @@
           "readiness",
           "session_state"
         ],
-        "raw_transport_fields_default_visible": false
+        "raw_transport_fields_default_visible": false,
+        "product_entry_source": "live_opl_mcp_app_catalog.products",
+        "product_entry_policy": "one_package_entry_with_nested_internal_views; dedicated_app and professional_app modes remain separate surfaces",
+        "entry_fields": ["package_name", "package_summary_i18n", "presentation_mode", "view_count", "direct_entry"]
       },
       "surface_policy": {
         "one_mini_app_per_surface": true,
@@ -1507,7 +1510,9 @@
         "task_detail_entry": "exact_item_id_and_view_id_direct_open",
         "composer_contains_interactive_apps": false,
         "declarative_package_contributions_are_mcp_apps": false,
-        "active_session": "zero_or_one_current_thread_ephemeral_binding_with_mounted_surface"
+        "active_session": "zero_or_one_current_thread_ephemeral_binding_with_mounted_surface",
+        "product_entry_is_not_mini_app": "OPL Apps product cards navigate shared views; only server+resource surfaces count as MiniApps",
+        "dedicated_surface_rule": "Relay and domain dedicated apps are separate MiniApps even when their Package also exposes shared contributions"
       },
       "states": [
         {

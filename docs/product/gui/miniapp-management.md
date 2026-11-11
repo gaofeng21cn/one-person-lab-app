@@ -42,6 +42,14 @@ MiniApp 的稳定身份优先使用工具或资源声明的 `ui.appId`/`ui.id`�
 
 ## 入口规则
 
+### 产品入口与 MiniApp surface
+
+OPL Apps 的“产品入口”是 Package 级导航投影，MiniApp 是 MCP `server + resourceUri` 级运行 surface；两者故意不是同一计数口径。一个产品可以有多个共享声明式 view，也可以同时声明一个独立标准 MCP App。产品卡只负责进入第一个已声明 view、展示入口类型和 view 数，不会因为点击卡片而启动独立 surface。
+
+Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions` 动态生成 `catalog.products`。`shared_view` 表示产品 view 复用 `ui://opl/apps.html`；`dedicated_app` 表示产品拥有自己的标准 MCP App resource；`professional_app` 表示需要高频创作、设备、地图或监测布局的专业应用。缺少 metadata 时安全回退为 `shared_view/product_entry`，使用第一个已声明 view 导航，不按 Package ID 写宿主硬编码。
+
+因此当前统计必须分开报告：OPL 自有 MiniApp surface、OPL Apps 内部 view、第三方 connector surface，以及当前已启动的 UI session。产品入口数量只能说明导航分组，不能替代前三项中的任何一项。
+
 ### 应用管理
 
 应用管理继续复用现有 `/apps` 和 Framework 的 Package projection。MiniApp 不成为新的
@@ -86,9 +94,11 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 catalog 中去重的 `server + resourceUri` 为准，内部 view 数和 UI 会话数另外列出；不把
 MCP server 进程、工具数量、Package 数量或安装就绪状态当成 MiniApp 启动数。
 
+在 OPL Apps 内，进入产品卡或切换内部 view 只是 `ui://opl/apps.html` 里的导航，不会创建新的 iframe 或新的 MiniApp session。Relay 邮件工作台和 Med Auto Cast 媒体审看属于各自独立的 `server + resourceUri` surface；它们只有在各自的只读 launcher 被调用、资源读取并完成 AppBridge 初始化后才算“已启动”。
+
 OPL Apps 的 `ui://opl/apps.html` 是一个共享 MiniApp，包含 runtime 和已安装 Package
-提供的逻辑视图；Relay 的独立邮件 UI 是另一个 surface。具体数量随安装及当前会话的
-连接范围变化，不在宿主维护固定应用清单。
+提供的逻辑视图；Relay 的独立邮件 UI 与 Med Auto Cast 媒体审看 UI 各是一个独立 surface。
+具体数量随安装及当前会话的连接范围变化，不在宿主维护固定应用清单。
 
 ## 参考模型
 

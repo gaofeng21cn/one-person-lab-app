@@ -311,7 +311,9 @@
       "domain_editor_and_quality_verdict_owner": "domain_package",
       "host_context": ["theme", "locale", "viewport", "display_mode"],
       "host_context_policy": "shared_and_dedicated_views_consume_host_context_without_replacing_domain_layout",
-      "new_registry_session_queue_or_credential_store_allowed": false
+      "new_registry_session_queue_or_credential_store_allowed": false,
+      "product_entry_is_not_mini_app_surface": true,
+      "dedicated_app_selection": "use_when_owner_ui_needs_high_density_review_or_editing_and_declares_a_standard_mcp_app_resource"
     },
     "workbench_interaction": {
       "default_content": ["current_work", "available_output", "pending_decisions", "next_available_action"],
@@ -334,7 +336,26 @@
     },
     "lifecycle": "close_bridge_and_release_host_binding_on_view_or_thread_change",
     "fallback": "retain_typed_package_views_and_explicit_browser_workbench_when_native_resource_unavailable",
-    "acceptance": "shared_opl_view_and_relay_dedicated_ui_real_host_rendering_and_synthetic_action_roundtrip"
+    "acceptance": "shared_opl_view_and_relay_dedicated_ui_real_host_rendering_and_synthetic_action_roundtrip",
+    "product_entry_policy": {
+      "surface": "opl_apps_shared_mcp_app_catalog",
+      "purpose": "group_installed_package_views_into_product_entries_without_creating_a_second_miniapp_registry",
+      "source": "Framework_installed_package_descriptor.presentation.miniapp_plus_app_contributions",
+      "one_product_entry_per_package": true,
+      "entry_fields": ["package_id", "package_name", "package_summary_i18n", "presentation_mode", "entry_kind", "direct_entry", "entry_view_id", "view_count"],
+      "presentation_modes": {
+        "shared_view": "进入 OPL Apps 的共享声明式视图；多个 views 仍属于同一个 ui://opl/apps.html surface",
+        "dedicated_app": "产品有独立标准 MCP App surface；OPL Apps 只保留产品入口和状态，启动由 MiniApp 工作台处理",
+        "professional_app": "需要高频创作、设备、地图或监测布局的独立应用；OPL Apps 只保留产品入口"
+      },
+      "entry_kind_policy": {
+        "product_entry": "用户可用的领域产品入口，来源于 Package presentation metadata",
+        "runtime_view": "Framework 运行时的任务、上下文和知识视图，不计为独立产品"
+      },
+      "fallback": "缺少 presentation.miniapp 时使用 shared_view/product_entry，并以第一个已声明 view 作为可导航入口；不硬编码 Package 清单",
+      "internal_view_policy": "internal view is a navigation item within its Package product entry and is never counted as a MiniApp surface",
+      "direct_entry_policy": "direct_entry only changes navigation affordance; it does not start a dedicated surface or mutate owner state"
+    }
   },
   "ui_experience_contract": {
     "schema": "opl_app_ui_experience.v1",
