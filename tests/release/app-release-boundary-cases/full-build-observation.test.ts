@@ -90,6 +90,9 @@ if [ "$1" = "-dv" ]; then
   printf '%s\\n' 'Authority=Developer ID Application: Test Fixture (TESTTEAM)' 'TeamIdentifier=TESTTEAM' >&2
   exit 0
 fi
+for arg in "$@"; do
+  if [ "$arg" = "--verbose=2" ]; then head -c 2097152 /dev/zero >&2; fi
+done
 if [ "$OPL_TEST_FAIL_SIGNATURE" = "1" ]; then exit 2; fi
 exit 0
 `, { mode: 0o755 });
