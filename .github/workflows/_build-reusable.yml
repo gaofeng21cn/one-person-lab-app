@@ -750,11 +750,11 @@ jobs:
         if: startsWith(matrix.platform, 'linux')
         timeout-minutes: 5
         run: |
-          # Avoid the stalled runner mirror; retain Ubuntu's official archive.
+          # Use the signed Ubuntu archive via an HTTPS mirror outside the failed DNS zone.
           if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
             sudo sed -i \
-              -e 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
-              -e 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|g' \
+              -e 's|http://azure.archive.ubuntu.com/ubuntu|https://mirrors.edge.kernel.org/ubuntu|g' \
+              -e 's|mirror+file:/etc/apt/apt-mirrors.txt|https://mirrors.edge.kernel.org/ubuntu|g' \
               /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo apt-get -o APT::Update::Error-Mode=any -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
