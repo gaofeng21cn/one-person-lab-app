@@ -132,7 +132,6 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
       "working_directory",
       "data_storage",
       "capabilities",
-      "agents",
       "instructions_context",
       "runtime_services",
       "updates_repairs",
@@ -243,7 +242,7 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
     values.controlPlane.user_navigation_projection.primary_groups.find(
       (group) => group.id === "agents_capabilities",
     )?.destination_ids,
-    ["capabilities", "agents", "instructions_context"],
+    ["capabilities", "instructions_context"],
   );
   assert.deepStrictEqual(
     values.controlPlane.user_navigation_projection.primary_groups.find(
@@ -281,14 +280,14 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
   assert.throws(() => validate(workspaceOwnsContext), /secondary owner bindings/);
 });
 
-test("Settings validator keeps generic projected Package actions on Agents", () => {
+test("Settings validator delegates projected Package actions to Software Center", () => {
   const values = contracts();
   assert.doesNotThrow(() => validate(values));
   assert.doesNotThrow(() => validateGui(values.guiContract));
   assert.equal(
     values.guiContract.interaction_baseline.capability_selection
       .management_surface,
-    "settings_agents",
+    "app_management",
   );
 
   const staleProfileRef = contracts();
@@ -304,7 +303,7 @@ test("Settings validator keeps generic projected Package actions on Agents", () 
     "settings_capabilities";
   assert.throws(
     () => validate(packageManagementOnCapabilities),
-    /Settings Agents must own Agent package and Home shortcut management/,
+    /Software Center must own Package and Home shortcut management/,
   );
 
   const missingPresenceAxis = contracts();

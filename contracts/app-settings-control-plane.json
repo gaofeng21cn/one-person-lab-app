@@ -191,7 +191,8 @@
         "opl_flow_recommendation_policy",
         "cli_currentness",
         "standard_agent_runtime_registry_or_status_truth"
-      ]
+      ],
+      "presentation_policy": "compatibility entry to /apps; agent metadata and shortcut controls are rendered only in Software Center details"
     },
     "capabilities": {
       "route_id": "capabilities",
@@ -209,7 +210,7 @@
         "image_generation",
         "voice_input"
       ],
-      "presentation_scope_policy": "one unified Package catalog with installation, version, source, lifecycle actions, App visibility and on-demand package status; detailed Skills and native capabilities remain secondary sections",
+      "presentation_scope_policy": "native skill and connection configuration with a Software Center entry; no duplicate Package catalog or install update repair uninstall controls",
       "groups": {
         "opl_flow_managed": {
           "label_zh": "OPL Flow 推荐",
@@ -251,13 +252,13 @@
         "silent_third_party_mutation"
       ],
       "package_management": {
-        "route_id": "capabilities",
-        "path": "/settings/capabilities",
+        "route_id": "app_management",
+        "path": "/apps",
         "catalog_source": "app_state.agent_packages.directory.entries",
         "status_source": "app_state.agent_packages.status_index",
-        "default_catalog_scope": "all",
-        "membership_policy": "all dynamically discovered Package roles and sources, including private and local packages; no Package-id allowlist",
-        "agent_view_policy": "agents is a filtered view of the same Package catalog, not an independent manager",
+        "default_catalog_scope": "opl",
+        "membership_policy": "independently installable local OPL agents, applications and capability packages across supported formal carriers",
+        "agent_view_policy": "legacy Agents routes navigate to Software Center; product type remains a filter",
         "required_row_fields": [
           "display_name",
           "installed_version",
@@ -284,7 +285,7 @@
           "persistence_policy": "preserve the explicit choice across discovery, App restart, package update and App update"
         },
         "settings_contributions": {
-          "destination": "settings.capabilities.package_details",
+          "destination": "app_management.software_details",
           "group_by": "package_id",
           "mount_policy": "only mount and read the expanded enabled package details",
           "services_page_policy": "core runtime service status only; no automatic installed-package sections",
@@ -928,12 +929,11 @@
       },
       {
         "id": "agents_capabilities",
-        "label_zh": "扩展与应用",
-        "label_en": "Extensions & Apps",
+        "label_zh": "能力与指令",
+        "label_en": "Capabilities & Instructions",
         "default_destination_id": "capabilities",
         "destination_ids": [
           "capabilities",
-          "agents",
           "instructions_context"
         ]
       },
@@ -1006,15 +1006,8 @@
         "id": "capabilities",
         "owner_group_id": "agents_capabilities",
         "route_id": "capabilities",
-        "label_zh": "全部扩展",
-        "label_en": "All extensions"
-      },
-      {
-        "id": "agents",
-        "owner_group_id": "agents_capabilities",
-        "route_id": "agents",
-        "label_zh": "智能体",
-        "label_en": "Agents"
+        "label_zh": "能力配置",
+        "label_en": "Capability settings"
       },
       {
         "id": "instructions_context",
@@ -5792,5 +5785,12 @@
     "permissions": "models_and_execution",
     "status": "installation_enablement_connection_and_callability_are_distinct",
     "remote_companion": "not_bundled_or_auto_installed_until_product_completion; preserve_existing_data"
+  },
+  "software_center_integration": {
+    "lifecycle_owner_route": "/apps",
+    "agents_route": "compatibility_navigation_to_software_center",
+    "capabilities_page": "native_skills_and_connections_configuration_with_software_center_link",
+    "updates_page": "navigation_to_software_center_updates",
+    "duplicate_catalog_or_lifecycle_controls_allowed": false
   }
 }

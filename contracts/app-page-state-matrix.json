@@ -1511,7 +1511,7 @@
       ],
       "section_query_parameter": "section",
       "default_section": "applications",
-      "environment_scope": "current_local_host_only_until_a_remote_environment_projection_is_explicitly_selected",
+      "environment_scope": "current_local_host_only; cloud_mobile_device_products_are_deployment_targets_not_local_installations",
       "required_state_axes": [
         "installed",
         "operational",
@@ -1547,7 +1547,7 @@
         "/settings/environment?section=updates",
         "/settings/resources"
       ],
-      "legacy_route_policy": "same_owner_projection_and_action_surface_with_deep_links_to_application_management",
+      "legacy_route_policy": "agents_and_package_management_routes_open_application_management; settings_retain_native_capability_configuration_and_navigation_only",
       "required_ui": [
         "opl-app-management",
         "opl-app-management-tabs",
@@ -1602,15 +1602,15 @@
         "public_projection_policy": "refs_and_safe_status_only;_no_knowledge_body_absolute_source_path_or_credential_material"
       },
       "software_catalog_policy": {
-        "scope_field": "catalog_origin + catalog_scope projected on directory entries, native_items and installed_products",
+        "scope_field": "management_scope + catalog_origin + catalog_scope projected by the owner",
         "default_scope": "opl",
         "scope_controls": [
           "opl",
           "external",
           "components"
         ],
-        "software_scope": "all independently maintained OPL software, including standard and nonstandard agents, applications and capability packages across supported carriers",
-        "component_scope": "only explicitly owner-declared runtime dependencies; host-bundled delivery alone is not dependency evidence",
+        "software_scope": "independently installable local OPL agents, applications and capability packages across supported formal carriers",
+        "component_scope": "owner-declared runtime dependencies and local_component packages; read versions and maintenance ownership from existing managed_update dependency_catalog; never infer dependency from bundled delivery",
         "classification_policy": "use owner-projected software_type as a filter within one software list; technical Package role never decides product kind or maintenance origin",
         "classification_field": "app_state.agent_packages.directory.entries[].software_type",
         "classification_values": [
@@ -1638,8 +1638,8 @@
         "maturity_policy": "only an explicit product-owner declaration establishes maturity; development_only admission never implies preview and admitted never implies stable",
         "distribution_field": "app_state.agent_packages.directory.entries[].distribution_channel",
         "distribution_values": [
-          "source",
           "release",
+          "development",
           "unknown"
         ],
         "unknown_scope_policy": "keep in other sources with an unknown classification; never guess OPL ownership or a runtime dependency",
@@ -1715,7 +1715,23 @@
           "not_installed"
         ],
         "ordinary_install_entry": "install from the selected catalog row; manifest URL import belongs to advanced controls",
-        "enablement_policy": "enable and disable belong to software details; enabled state does not replace installation state"
+        "enablement_policy": "enable and disable belong to software details; enabled state does not replace installation state",
+        "deployment_scope": "cloud, mobile, device and remote service products retain independent lifecycle owners; OPL may assist deployment and show remote status outside the local software catalog",
+        "management_scope_field": "app_state.agent_packages.directory.entries[].management_scope",
+        "management_scope_values": [
+          "local_product",
+          "local_component",
+          "deployment_target",
+          "external_carrier"
+        ],
+        "distribution_policy": "OPL Package installation, update and repair require a formal immutable OCI artifact; native products use their formal native carrier; development checkouts are explicit local overrides only",
+        "artwork_policy": {
+          "source": "owner-projected icon_url backed by immutable package asset metadata",
+          "public_url_policy": "HTTPS public asset bound to an exact source commit; no mutable branch fallback",
+          "private_policy": "do not request anonymous private repository paths; use an authorized owner-projected asset or deterministic fallback",
+          "fallback": "stable product initials and software-type icon; no package-id artwork roster",
+          "failed_image": "retain a readable fallback without layout shift"
+        }
       },
       "installation_instance_policy": {
         "identity_policy": "one product in one environment can retain multiple installations and has at most one active runtime instance; integration entrypoints refer to that runtime rather than establishing another activation",
@@ -1777,9 +1793,11 @@
             "source_checkouts_without_explicit_developer_binding",
             "knowledge_bodies",
             "credentials",
-            "private_business_data"
+            "private_business_data",
+            "independent_cloud_mobile_device_deployments",
+            "source_checkout_distribution"
           ],
-          "development_source_policy": "an explicitly selected developer binding is an effective source override, not an installable public software feed"
+          "development_source_policy": "explicit developer override only; never a normal install update or repair source"
         },
         "presentation_policy": "one OPL software catalog with public, authorized-private and Homebrew delivery channels; channel details do not become competing product catalogs",
         "external_manager_policy": "external Codex plugins, standalone skills and other sources retain their native discovery and management routes; a plugin list does not claim complete skill coverage",
@@ -1793,6 +1811,13 @@
         "mutation": "single_flight_with_owner_declared_confirmation_visible_feedback_and_receipt",
         "unknown_outcome": "inspect_original_owner_state_without_replaying_mutation",
         "success": "fresh_owner_readback_of_the_same_object_required"
+      },
+      "settings_integration": {
+        "lifecycle_owner_route": "/apps",
+        "agents_route": "compatibility_navigation_to_software_center",
+        "capabilities_page": "native_skills_and_connections_configuration_with_software_center_link",
+        "updates_page": "navigation_to_software_center_updates",
+        "duplicate_catalog_or_lifecycle_controls_allowed": false
       }
     },
     {
@@ -4504,7 +4529,10 @@
           "other"
         ]
       },
-      "package_management_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities.package_management"
+      "package_management_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities.package_management",
+      "presentation_owner_route": "/apps",
+      "package_catalog_presentation": "catalog contracts describe the /apps target; Settings does not render another Package list or lifecycle controls",
+      "navigation_policy": "native_capability_configuration_with_link_to_application_management"
     },
     {
       "id": "agents",
@@ -4831,7 +4859,10 @@
       ],
       "primary_action_id": "reload_dynamic_directory",
       "technical_details_default": "collapsed",
-      "exception_emphasis": "attention_only"
+      "exception_emphasis": "attention_only",
+      "presentation_owner_route": "/apps",
+      "package_catalog_presentation": "catalog contracts describe the /apps target; Settings does not render another Package list or lifecycle controls",
+      "navigation_policy": "compatibility_link_to_application_management"
     }
   ],
   "gui_product_contract": "contracts/app-gui-product-contract.json",
