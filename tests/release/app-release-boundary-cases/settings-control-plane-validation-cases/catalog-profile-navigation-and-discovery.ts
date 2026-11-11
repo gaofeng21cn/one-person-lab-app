@@ -320,12 +320,12 @@ test("Settings validator keeps generic projected Package actions on Agents", () 
   );
 });
 
-test("Settings binds the five current standard Agents to the Official Profile without a second runtime registry", () => {
+test("Settings binds the six current standard Agents to the Official Profile without a second runtime registry", () => {
   const values = contracts();
   const ownership = values.controlPlane.agents_capabilities_ownership;
   const baseline =
     ownership.agents.official_installation_baseline;
-  const currentStandardAgentIds = ["mag", "mas", "obf", "oma", "rca"];
+  const currentStandardAgentIds = ["mag", "mas", "obf", "oma", "rca", "med-autocast"];
 
   assert.equal(baseline.requirement_owner, "one-person-lab-app");
   assert.equal(baseline.runtime_status_owner, "one-person-lab");
@@ -337,7 +337,7 @@ test("Settings binds the five current standard Agents to the Official Profile wi
     baseline.standard_agent_membership_source_ref,
     "opl app state --profile fast --json#app_state.agent_packages.directory.entries",
   );
-  assert.equal(baseline.current_profile_required_standard_agent_count, 5);
+  assert.equal(baseline.current_profile_required_standard_agent_count, 6);
   assert.equal(baseline.app_owned_runtime_registry_allowed, false);
   assert.deepStrictEqual(baseline.required_state_axes, [
     "discoverable",

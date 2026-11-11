@@ -122,8 +122,8 @@
         "scope": "current_official_profile_first_install_acceptance_and_settings_status_summary",
         "desired_roots_source_ref": "contracts/app-product-profile.json#official_profile.desired_root_package_ids",
         "standard_agent_membership_source_ref": "opl app state --profile fast --json#app_state.agent_packages.directory.entries",
-        "standard_agent_membership_policy": "select desired roots whose Framework projection declares package_role=standard_agent and first-party OPL ownership; the current Official Profile requires five such roots",
-        "current_profile_required_standard_agent_count": 5,
+        "standard_agent_membership_policy": "select desired roots whose Framework projection declares package_role=standard_agent and first-party OPL ownership; the current Official Profile requires six such roots",
+        "current_profile_required_standard_agent_count": 6,
         "app_owned_runtime_registry_allowed": false,
         "required_state_axes": [
           "discoverable",
