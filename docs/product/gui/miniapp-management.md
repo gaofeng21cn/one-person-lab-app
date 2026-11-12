@@ -45,7 +45,7 @@ MiniApp 的稳定身份优先使用工具或资源声明的 `ui.appId`/`ui.id`�
 
 ### 产品入口与 MiniApp surface
 
-OPL Apps 的“产品入口”是 Package 级导航投影，MiniApp 是 MCP `server + resourceUri` 级运行 surface；两者故意不是同一计数口径。一个产品可以有多个共享声明式 view，也可以同时声明一个独立标准 MCP App。产品卡只负责进入第一个已声明 view、展示入口类型和 view 数，不会因为点击卡片而启动独立 surface。
+OPL Apps 的“产品入口”是 Package 级导航投影，MiniApp 是 MCP `server + resourceUri` 级运行 surface；两者故意不是同一计数口径。一个产品可以有多个共享声明式 view，也可以同时声明一个独立标准 MCP App。共享界面先选择应用，再显示该应用的功能；搜索时可以跨应用查找。选择应用进入其第一个已声明 view，不会启动独立 surface。有专用界面的产品在共享页标为“共享概览”，并说明如何回到 MiniApp 列表打开专用界面，不把共享页标成“专用 App”。
 
 Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions` 动态生成 `catalog.products`。`shared_view` 表示产品 view 复用 `ui://opl/apps.html`；`dedicated_app` 表示产品拥有自己的标准 MCP App resource；`professional_app` 表示需要高频创作、设备、地图或监测布局的专业应用。缺少 metadata 时安全回退为 `shared_view/product_entry`，使用第一个已声明 view 导航，不按 Package ID 写宿主硬编码。
 
@@ -61,7 +61,7 @@ Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions
 ### 应用切换
 
 会话工作台提供一个应用切换器，切换对象是 `mini_app_id`。选择另一项时先释放旧的临时
-AppBridge binding，再显示所选应用介绍；用户点击“启动应用”后才打开新的 App。旧 App 的业务状态仍由其 owner 保管。切换器默认
+AppBridge binding，再显示所选应用介绍；用户点击“打开界面”后才打开新的 App。旧 App 的业务状态仍由其 owner 保管。切换器默认
 显示用户名称、说明、就绪状态和独立的启动状态。宽屏使用目录列表，窄屏使用带名称与
 状态的选择器；不显示 MCP server、tool 或原始 resource URI。
 
@@ -80,12 +80,18 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 拆成多个 `server:tool` 顶层标签。AppBridge 的工具调用、资源读取、主题/语言/尺寸、
 上下文和消息通道继续沿用 `docs/mcp-apps/SPEC.md` 的安全与生命周期规则。
 
+## 用户可见术语
+
+界面统一使用“打开界面／关闭界面”和“界面未打开／界面已打开”，避免把 UI 会话理解成智能体或后台任务进程。工作台说明“关闭或切换仅收起界面，后台任务继续运行”；安装、更新和启停归“应用管理”。“启动”仍用于本文的技术生命周期描述。
+
+共享 OPL Apps 以“选择应用 → 查看功能”组织导航，默认只显示当前应用的功能，避免同时平铺所有产品和所有页面。页面搜索可跨应用；窄屏保留应用和功能选择器。页面名称表达用户任务，server、resource、view 等标识仅在诊断中使用。
+
 ## 未启动、已启动与管理的区别
 
 | 对象或状态 | 实际存在什么 | 用户动作及结果 |
 | --- | --- | --- |
 | 应用管理 | Framework/原生 carrier 投影的安装、启用、版本、权限和连接状态 | 安装、启停或维护 Package；进入管理页不会启动 MiniApp |
-| 未启动 | 当前会话发现的名称、说明、只读入口和参数要求 | 选中只查看介绍；点击“启动应用”才调用只读入口并读取 UI 资源 |
+| 未启动 | 当前会话发现的名称、说明、只读入口和参数要求 | 选中只查看介绍；点击“打开界面”才调用只读入口并读取 UI 资源 |
 | 启动中 | 正在读取启动结果和 UI 资源 | 防止重复启动；可以切换，迟到的结果会被释放 |
 | 已启动 | 当前 thread 的临时 host binding、AppBridge 和一个 iframe | 在应用内交互；页面本身初始化失败时显示恢复提示 |
 | 关闭或切换后 | UI 会话已释放，目录项仍可再次启动 | 不卸载 Package、不停掉 MCP 连接，也不取消 owner 的后台任务 |
@@ -95,7 +101,7 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 catalog 中去重的 `server + resourceUri` 为准，内部 view 数和 UI 会话数另外列出；不把
 MCP server 进程、工具数量、Package 数量或安装就绪状态当成 MiniApp 启动数。
 
-在 OPL Apps 内，进入产品卡或切换内部 view 只是 `ui://opl/apps.html` 里的导航，不会创建新的 iframe 或新的 MiniApp session。Relay 邮件工作台和 Med Auto Cast 媒体审看属于各自独立的 `server + resourceUri` surface；它们只有在各自的只读 launcher 被调用、资源读取并完成 AppBridge 初始化后才算“已启动”。
+在 OPL Apps 内，选择应用或切换其功能 只是 `ui://opl/apps.html` 里的导航，不会创建新的 iframe 或新的 MiniApp session。Relay 邮件工作台和 Med Auto Cast 媒体审看属于各自独立的 `server + resourceUri` surface；它们只有在各自的只读 launcher 被调用、资源读取并完成 AppBridge 初始化后才算“已启动”。
 
 OPL Apps 的 `ui://opl/apps.html` 是一个共享 MiniApp，包含 runtime 和已安装 Package
 提供的逻辑视图；Relay 的独立邮件 UI 与 Med Auto Cast 媒体审看 UI 各是一个独立 surface。

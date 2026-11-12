@@ -237,6 +237,14 @@
     "discovery_state_axes": ["installed", "enabled", "callable"],
     "fresh_catalog_after_install_or_update": true,
     "open_miniapp_session_hot_update": false,
+    "user_language": {
+      "primary_action_zh": "打开界面",
+      "close_action_zh": "关闭界面",
+      "open_state_zh": "界面已打开",
+      "closed_state_zh": "界面未打开",
+      "scope_hint_zh": "关闭或切换仅收起界面，后台任务继续运行。",
+      "management_hint_zh": "安装、更新和启停请到应用管理。"
+    },
     "management_surface_owns": ["install", "update", "enable", "disable", "status", "diagnostics"],
     "work_surface_owns": ["domain_read", "domain_edit", "review", "preview", "owner_readback"],
     "connection_owner": "opl-codex-native_existing_thread_mcp_connections",
@@ -320,6 +328,8 @@
       "host_context_policy": "shared_and_dedicated_views_consume_host_context_without_replacing_domain_layout",
       "new_registry_session_queue_or_credential_store_allowed": false,
       "product_entry_is_not_mini_app_surface": true,
+      "shared_navigation": "select_one_installed_product_then_show_only_its_functions; search_may_cross_products",
+      "shared_dedicated_label": "shared_overview_with_explicit_guidance_to_dedicated_ui; never_label_shared_content_as_the_dedicated_app",
       "dedicated_app_selection": "use_when_owner_ui_needs_high_density_review_or_editing_and_declares_a_standard_mcp_app_resource"
     },
     "workbench_interaction": {

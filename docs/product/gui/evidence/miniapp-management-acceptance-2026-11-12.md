@@ -2,7 +2,7 @@
 
 本记录保存本次 fresh readback，不作为宿主维护的固定 MiniApp 注册表。产品规则与计数口径以
 [MiniApp 管理与工作台](../miniapp-management.md) 和
-[`contracts/app-gui-product-contract.json`](../../../contracts/app-gui-product-contract.json) 为准。
+[`contracts/app-gui-product-contract.json`](../../../../contracts/app-gui-product-contract.json) 为准。
 
 ## 当前数量
 
