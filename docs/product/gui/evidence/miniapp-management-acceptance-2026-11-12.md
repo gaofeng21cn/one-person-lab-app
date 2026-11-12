@@ -80,6 +80,10 @@ iframe/AppBridge session 保持旧 binding，关闭并重新打开后才使用�
 同目录的 source lock 与 build receipt 绑定本次完整构建。App 内嵌 Framework manifest
 绑定 `196229c6985638bd0ed4a29e617f1f967500ff70`。
 
+安装后通过 `opl app state --profile fast --json` 再次读取实际目录：Relay `0.7.3` 与
+Med Auto Cast `0.3.3` 均返回 `readiness.status=ready`、`operational_ready=true`、
+`launch_allowed=true`。这些是 Framework 的安装与可用性回读，不等于已经打开 UI。
+
 桌面工具在重启后返回“Mac 已锁定，无法自动解锁”，因此安装版的打开、切换、关闭实际点击
 验收仍待本机解锁。此前浏览器与 stdio 验收已通过，但不替代本项图形界面验收；当前
 安装版活动 UI session 数仍未读取。
@@ -110,3 +114,22 @@ iframe/AppBridge session 保持旧 binding，关闭并重新打开后才使用�
    空态区分“还没有内容”“未连接”“加载失败”，让用户无需先理解 Package、MCP 或 view。
 3. **保留最近使用的对象与返回路径**。重新打开时优先回到上次看的任务、邮件或单集；恢复对象
    由领域 owner 提供，只读恢复界面，不重放发送、发布或其他写操作。
+
+## 更新链路修复
+
+本次本机更新还暴露了内部 Package 迁移在 discovery 阶段显式注入通用 runner 的问题：
+它重新调用包括远端市场的 `codex plugin list`，造成本地更新被远端列表超时阻断。Framework
+现已让默认发现、安装后回读与移除后回读统一复用原生 `plugin/list` 的 local marketplace
+路径，实际安装与移除仍由原生 carrier 执行。修复进入 Framework `984cc1aba`，8 项本地
+发现／迁移回归测试、类型检查和构建通过。
+
+本机另有一份历史 Git 安装被 Full runtime 覆盖了源码，但旧 Git HEAD 与安装身份仍保留，
+导致后续更新返回 `framework_managed_git_installation_changed`。本次逐项核对 220 个差异：
+217 项与已安装 Full seed 完全一致，2 个未打包 workflow 与冻结 canonical 源码一致，
+剩余一项为 Framework 自己的 source receipt。随后将旧 Git 元数据与身份回执移入相邻的
+`one-person-lab.legacy-git-20261112` 回退目录，让该 App-owned runtime 继续走正常的 owner 更新。
+
+本机两处实际 Framework 安装（App 启动目录与 App managed 目录）已读回 source receipt
+`984cc1aba0b4eb56144d6fce201098309d409b58`，修复文件与 canonical 源码完全一致；
+CLI 的安装入口为 App 启动目录的符号链接。MinerU 通过相同 owner 更新入口使用已验证的
+官方 Full seed 升至 `0.6.1`，回读为 `opl_managed/current`，旧二进制保留回退副本。
