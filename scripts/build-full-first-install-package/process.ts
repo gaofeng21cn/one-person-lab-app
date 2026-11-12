@@ -18,6 +18,7 @@ function runProcess(command, args, options = {}) {
     encoding: 'utf8',
     env: options.env ?? process.env,
     stdio: options.capture ? 'pipe' : 'inherit',
+    maxBuffer: 16 * 1024 * 1024,
   });
   emit(result.status === 0 ? 'completed' : 'failed', {
     duration_seconds: durationSeconds(startedAt, monotonicSeconds()),
@@ -33,6 +34,7 @@ export function run(command, args, options = {}) {
   if (result.status !== 0) {
     throw new Error([
       `Command failed: ${command} ${args.join(' ')}`,
+      result.error ? `${result.error.code ?? 'spawn_failed'}: ${result.error.message}` : '',
       result.stdout?.trim() ? `stdout:\n${result.stdout.trim()}` : '',
       result.stderr?.trim() ? `stderr:\n${result.stderr.trim()}` : '',
     ].filter(Boolean).join('\n'));
