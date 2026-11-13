@@ -125,3 +125,14 @@ Relay 的合成草稿保存、owner 回读、旧 revision 拒绝、重开、窄�
 和 cohort；打包后的启动检查也改为复制产物到源码目录外运行，避免借用源码上层的
 `node_modules`。覆盖“源码有依赖、产物缺依赖”和完整产物的回归测试通过，DSH 升级与
 candidate 检查通过。首次安装记录不作为运行验收通过的证据。
+
+## 修复后本机安装回执
+
+修复后的完整本地构建已安装到 `/Applications/One Person Lab.app`：显示版本
+`26.11.13`、机器版本 `26.11.1391`、构建身份 `local.src9b52a9274574`，
+安装回执为 `completed`、`launched=true`，整包签名验证通过。安装包中的
+`@deepseek-ai/dsh-error@0.2.2-rc.2` 已存在并可由独立 Node 直接加载；隔离源码目录的
+Packaged Host startup check 已通过。该构建仍是本地开发构建，没有发布 Stable/Nightly。
+
+截至本记录写入时，macOS 随后进入锁屏，桌面窗口验收等待解锁后继续；进程启动、签名和
+安装回执不替代 OPL Apps、Relay、媒体审看三个窗口的实际打开与切换验收。
