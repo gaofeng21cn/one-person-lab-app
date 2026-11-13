@@ -78,7 +78,7 @@ Framework `0e031c31c` 修复布局样式覆盖 HTML `hidden` 语义的问题，�
 Relay 可显示已有邮箱列表与邮件；媒体审看可显示已有制作单、当前候选和 7 个镜头，
 选择镜头后当前片段范围随之改变。本轮没有保存邮件草稿、发送邮件、记录审看意见或执行
 真实任务命令。媒体播放与领域审阅决定没有验收。媒体页仍显示技术性的 artifact bridge 提示，
-右侧版本摘要的长 digest 和窄按钮换行有排版问题，保留为媒体 owner 的后续改进项。
+但右侧版本摘要的长 digest 和窄按钮裁切问题已由媒体 owner 修复，详见下方回读记录。
 
 验证：Framework MCP stdio 专项 4/4、Studio 任务入口与导航专项 8/8、两仓 typecheck、
 App `validate:active-shell` 均通过。标准工具的真实安装回读确认，无参数打开选择
@@ -107,3 +107,16 @@ App `validate:active-shell` 均通过。标准工具的真实安装回读确认�
 真实任务、邮件与工作区截图保留在本机
 `~/Library/Caches/One Person Lab/runtime-workbench-acceptance-2026-11-13`，不纳入公开仓库。
 本轮未发起 Agent turn，未发送邮件，未修改真实任务或原有会话草稿。
+
+## 媒体审看右栏裁切修复回读
+
+日期：2026-11-13。该修复属于 Med Auto Cast owner，App 只记录安装与桌面消费结果。
+
+| 层级 | 证据 |
+| --- | --- |
+| Owner 主线 | Med Auto Cast `d94276e833befb75e1bae5cdbdd9e90377b1f08e`（PR #8，两个 `verify` CI 通过）。`review-rail` 改为可收缩的 `minmax(0, 1fr)`，子项允许收缩，版本 digest 任意位置换行；字体、颜色、控件尺寸仍复用 DSH。 |
+| Owner 验证 | `npm run build`、`npm test` 4/4 通过；Impeccable detector 结果为空；1239px 静态回归中 `document.scrollWidth === document.clientWidth`，右栏无横向溢出。 |
+| Installed carrier | 本机 `med-autocast 0.3.5` 已重新安装，`operational_ready=true`、`launch_allowed=true`；安装包内的 `media-review/style.css` 与 `index.html` 含上述收缩与换行规则。 |
+| 桌面实窗 | 重启 `/Applications/One Person Lab.app` 后切换并打开“Med Auto Cast · 媒体审看”。AX 回读显示 1 个已登记单集、7 个镜头、当前镜头“位置与视路”；实窗截图中右侧“审看意见”标题、空态、意见输入区、记录按钮和版本 digest 均完整可见，digest 在栏内换行。 |
+
+这次回读只证明布局、加载和导航可用；没有保存真实审看意见，也没有改变媒体质量状态或作出内容批准。
