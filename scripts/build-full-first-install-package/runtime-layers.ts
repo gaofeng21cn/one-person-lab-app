@@ -764,7 +764,6 @@ export function buildToolchainLayer(layerRoot, sources, flowCapabilityBuildLock)
 
 export function buildDomainLayer(layerRoot, options) {
   copyTreeFiltered(options.macRoot, path.join(layerRoot, 'modules', 'med-autocast'), 'modules/med-autocast');
-  copyTreeFiltered(options.macMediaAssetsRoot, path.join(layerRoot, 'modules', 'mac-media-assets'), 'modules/mac-media-assets');
   copyTreeFiltered(options.masRoot, path.join(layerRoot, 'modules', 'mas'), 'modules/mas');
   copyTreeFiltered(
     options.masScholarSkillsRoot,
@@ -780,7 +779,7 @@ export function buildDomainLayer(layerRoot, options) {
 }
 
 export function writeDomainMarkers(runtimeRoot, options, packagedAt) {
-  for (const [repoName, sourcePath] of [['med-autocast', options.macRoot], ['mac-media-assets', options.macMediaAssetsRoot]]) {
+  for (const [repoName, sourcePath] of [['med-autocast', options.macRoot]]) {
     writePackagedModuleMarker(path.join(runtimeRoot, 'modules', repoName), buildPackagedModuleMarker({
       moduleId: repoName, repoName, sourcePath, headSha: readGitHead(sourcePath), packagedAt,
     }));

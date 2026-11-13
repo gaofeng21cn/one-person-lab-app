@@ -197,7 +197,9 @@ test("Full domain copy keeps only contract-declared authority inventories from r
     for (const relativePath of localEnvPaths) {
       writeFile(path.join(options.macRoot, relativePath), "local environment binary\n");
     }
+    writeFile(path.join(options.macMediaAssetsRoot, "payloads", "large.wav"), "external media only\n");
     buildDomainLayer(layerRoot, options);
+    assert.equal(fs.existsSync(path.join(layerRoot, "modules/mac-media-assets")), false);
 
     for (const relativePath of declaredModules.flatMap(([, moduleName]) => [
       `modules/${moduleName}/runtime/authority_functions/README.md`,

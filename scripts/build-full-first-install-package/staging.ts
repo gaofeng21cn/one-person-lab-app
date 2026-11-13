@@ -85,7 +85,6 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
   }
   const components = {
     med_autocast: { source_path: options.macRoot, git_commit: readGitHead(options.macRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'modules', 'med-autocast')) },
-    mac_media_assets: { source_path: options.macMediaAssetsRoot, git_commit: readGitHead(options.macMediaAssetsRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'modules', 'mac-media-assets')) },
     opl: { source_path: options.frameworkRoot, git_commit: readGitHead(options.frameworkRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'opl')) },
     mas: { source_path: options.masRoot, git_commit: readGitHead(options.masRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'modules', 'mas')) },
     mas_scholar_skills: {

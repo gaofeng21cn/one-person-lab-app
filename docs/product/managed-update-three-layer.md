@@ -52,7 +52,7 @@ There is no shared publication snapshot, combination freeze, or aggregate channe
 - Standard and Full use the same **App Official Profile**.
 - The Profile declares desired root Packages only for first install or explicit
   **Restore official combination**.
-- Full differs only by carrying offline seed bytes for those roots.
+- Full differs only by carrying selected offline seed bytes for those roots. The MAC media library is installed after the core is ready through its existing required dependency, and MAC prepares it again before active production.
 - On an in-place Full upgrade, a compatible installed runtime remains under
   Framework update ownership. A different embedded manifest alone must not
   replace independently updated Base or Package files. The embedded runtime

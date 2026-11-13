@@ -493,7 +493,9 @@ test("real Full domain and prepareRuntime builders package the current MAS Schol
 
     const domainCacheInputs = prepared.runtime_cache.key_inputs["domain-runtime"];
     assert.equal(domainCacheInputs.selected_package_set.profile_id, "starter");
-    assert.equal(domainCacheInputs.selected_package_set.packages.length, 9);
+    assert.equal(domainCacheInputs.selected_package_set.packages.length, 8);
+    assert.equal(fs.existsSync(path.join(prepared.runtimeRoot, "modules/mac-media-assets")), false);
+    assert.equal(domainCacheInputs.selected_package_set.packages.some((entry) => entry.package_id === "mac-media-assets"), false);
     assert.equal(
       domainCacheInputs.selected_package_set.packages.find(
         (entry) => entry.package_id === "mas-scholar-skills",

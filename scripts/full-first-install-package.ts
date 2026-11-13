@@ -404,6 +404,7 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
         official_profile_id: productProfile.official_profile.profile_id,
         desired_root_package_ids: productProfile.official_profile.desired_root_package_ids,
         domain_modules: productProfile.companion_payloads.domain_modules,
+        post_launch_dependency_payloads: productProfile.official_profile.distribution_forms.full.post_launch_dependency_payloads ?? null,
       },
       payload_boundary: {
         role: 'declared_payload_assembly_and_validation',
@@ -829,6 +830,7 @@ export function buildFullFirstInstallReadme(input: {
     '9. After confirming model access in the App, open OPL initialization and confirm the Core ready, Domain modules ready, and family runtime provider ready states. Full readiness requires all three layers to pass.',
     '10. First launch reads provider-backed readiness through opl family-runtime doctor/status. The Full package no longer carries Hermes runtime payloads.',
     '11. Recommended smoke check: open Research Foundry and create or read a workspace status through MAS.',
+    '12. MAC media assets are downloaded after the App core is ready through Framework Package dependencies. They are not embedded in this DMG. Med Auto Cast checks and prepares the media library again before active production; offline users can continue other work or create new assets.',
     '',
     input.runtimeTarName
       ? `Supplemental runtime package: keep ${input.runtimeTarName} as a manual diagnostic artifact if runtime installation from the DMG fails.`

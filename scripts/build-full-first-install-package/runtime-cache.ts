@@ -46,7 +46,6 @@ function domainSourceFingerprints(options) {
   return {
     mas: directoryFingerprint(options.masRoot, 'modules/mas'),
     'med-autocast': directoryFingerprint(options.macRoot, 'modules/med-autocast'),
-    'mac-media-assets': directoryFingerprint(options.macMediaAssetsRoot, 'modules/mac-media-assets'),
     mag: directoryFingerprint(options.magRoot, 'modules/mag'),
     rca: directoryFingerprint(options.rcaRoot, 'modules/rca'),
     oma: directoryFingerprint(options.metaAgentRoot, 'modules/meta-agent'),

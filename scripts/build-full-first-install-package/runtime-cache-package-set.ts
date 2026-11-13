@@ -12,7 +12,6 @@ export const FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE = [
   'obf',
   'mas-scholar-skills',
   'med-autocast',
-  'mac-media-assets',
   'opl-flow',
 ] as const;
 
@@ -179,7 +178,6 @@ export function resolveSelectedPackageSetInput(
   const defaultSourceRoots: Record<string, string | undefined> = {
     mas: options.masRoot,
     'med-autocast': options.macRoot,
-    'mac-media-assets': options.macMediaAssetsRoot,
     mag: options.magRoot,
     rca: options.rcaRoot,
     oma: options.metaAgentRoot,

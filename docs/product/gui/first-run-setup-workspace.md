@@ -55,7 +55,7 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
   Med Auto Cast (`med-autocast`) 是标准集成；Framework 按 MAC manifest 安装必需的
   `mac-media-assets`，并通过 installed descriptor 提供能力和素材库路径。
   Standard 在线安装，Full 优先使用离线 seed；两者读取同一 Profile 和同一 source
-  helper，Full 不增加第二 root 清单。
+  helper，Full 不增加第二 root 清单。`mac-media-assets` 不随 Full DMG 内置，核心就绪后由同一 required 依赖安装；MAC 开始或恢复制作时通过 `prepare` 再检查和补齐，库缺失不阻塞 App 导航。
 - 首次安装通过 generic Package directory/status/action projection 逐 root 收敛，并按
   Package 声明补齐 required identity。
   例如 MAS 需要 `capability:mas-scholar-skills`，但 ScholarSkills 不必重复列为

@@ -628,3 +628,24 @@ test('Official Profile does not expose unrelated stderr JSON or credential-shape
     assert.ok(!JSON.stringify(result).includes('fixture-secret'));
   }
 });
+
+
+test('Full first launch repairs MAC required media dependency even when the MAC seed is present', () => {
+  const packages = new Map<string, PackageState>([['med-autocast', {
+    installed: true, dependencies: [missingDependency('mac-media-assets')], action: 'repair_mac_dependency',
+  }]]);
+  let mutations = 0;
+  const runtime = { execute(args: string[]) {
+    if (args.join(' ') === 'app state --profile fast --json') return { status: 0, stdout: JSON.stringify(fastState(packages)), stderr: '' };
+    assert.deepEqual(args.slice(0, 5), ['app', 'action', 'execute', '--action', 'repair_mac_dependency']);
+    assert.deepEqual(JSON.parse(args[args.indexOf('--payload') + 1]), { package_id: 'med-autocast' });
+    packages.set('med-autocast', { installed: true, dependencies: [readyDependency('mac-media-assets')], action: null });
+    mutations += 1;
+    return { status: 0, stdout: '{}', stderr: '' };
+  } };
+  const result = applyOfficialProfilePackages({ intent: 'first_install', rootPackageIds: ['med-autocast'], runtime });
+  assert.equal(result.official_profile_package_apply.items[0].status, 'reconciled');
+  const again = applyOfficialProfilePackages({ intent: 'first_install', rootPackageIds: ['med-autocast'], runtime });
+  assert.equal(again.official_profile_package_apply.items[0].status, 'already_present');
+  assert.equal(mutations, 1);
+});

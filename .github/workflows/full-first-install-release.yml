@@ -438,13 +438,6 @@ jobs:
           ref: ${{ steps.seed-sources.outputs.med-autocast }}
           path: med-autocast
 
-      - name: Checkout MAC media assets source seed
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: gaofeng21cn/mac-media-assets
-          ref: ${{ steps.seed-sources.outputs.mac-media-assets }}
-          path: mac-media-assets
-
       - name: Checkout MAG
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -507,7 +500,6 @@ jobs:
             mas-scholar-skills/.codex-plugin/plugin.json
             mas-scholar-skills/contracts/opl_capability_package_manifest.json
             med-autocast/plugins/med-autocast/opl-package.json
-            mac-media-assets/opl-package.json
             med-autogrant/pyproject.toml
             redcube-ai/package.json
             opl-meta-agent/package.json
@@ -523,7 +515,7 @@ jobs:
             fi
           done
           for repo in \
-            med-autoscience mas-scholar-skills med-autocast mac-media-assets med-autogrant redcube-ai \
+            med-autoscience mas-scholar-skills med-autocast med-autogrant redcube-ai \
             opl-meta-agent opl-bookforge opl-flow OfficeCLI \
             MinerU-Ecosystem; do
             commit="$(git -C "$GITHUB_WORKSPACE/$repo" rev-parse HEAD)"
@@ -945,7 +937,6 @@ jobs:
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
           export OPL_FULL_MAC_ROOT="$GITHUB_WORKSPACE/med-autocast"
-          export OPL_FULL_MAC_MEDIA_ASSETS_ROOT="$GITHUB_WORKSPACE/mac-media-assets"
           export OPL_FULL_MAG_ROOT="$GITHUB_WORKSPACE/med-autogrant"
           export OPL_FULL_RCA_ROOT="$GITHUB_WORKSPACE/redcube-ai"
           export OPL_FULL_META_AGENT_ROOT="$GITHUB_WORKSPACE/opl-meta-agent"
@@ -1168,7 +1159,6 @@ jobs:
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
           export OPL_FULL_MAC_ROOT="$GITHUB_WORKSPACE/med-autocast"
-          export OPL_FULL_MAC_MEDIA_ASSETS_ROOT="$GITHUB_WORKSPACE/mac-media-assets"
           export OPL_FULL_MAG_ROOT="$GITHUB_WORKSPACE/med-autogrant"
           export OPL_FULL_RCA_ROOT="$GITHUB_WORKSPACE/redcube-ai"
           export OPL_FULL_META_AGENT_ROOT="$GITHUB_WORKSPACE/opl-meta-agent"

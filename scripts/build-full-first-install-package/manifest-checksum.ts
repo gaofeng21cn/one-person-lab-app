@@ -305,7 +305,6 @@ export function buildResolvedFullPayloadRefs(options, sources, components, sourc
       ],
     },
     med_autocast: { source_path: options.macRoot, repository: readGitOriginUrl(options.macRoot), resolved_commit: components.med_autocast?.git_commit ?? readGitHead(options.macRoot) },
-    mac_media_assets: { source_path: options.macMediaAssetsRoot, repository: readGitOriginUrl(options.macMediaAssetsRoot), resolved_commit: components.mac_media_assets?.git_commit ?? readGitHead(options.macMediaAssetsRoot) },
     mas: {
       label: 'MAS',
       source_path: options.masRoot,

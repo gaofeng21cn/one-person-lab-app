@@ -5834,6 +5834,13 @@
       },
       "cache_hit_claim": "cache_hit_is_package_assembly_reuse_only"
     },
+    "full_post_launch_media_library": {
+      "product_profile_ref": "contracts/app-product-profile.json#official_profile.distribution_forms.full.post_launch_dependency_payloads",
+      "bundled": false,
+      "package_dependency_authority": "med-autocast/contracts/opl_agent_package_manifest.json",
+      "startup_installation": "existing_framework_required_dependency_closure",
+      "agent_repair_entrypoint": "med_autocast.py prepare --workspace <workspace>"
+    },
     "full_standard_base_reuse": {
       "start_policy": "after_standard_publication_readback",
       "asset": "sealed_standard_macos_arm64_updater_zip",

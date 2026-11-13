@@ -796,7 +796,13 @@
       },
       "full": {
         "desired_roots_source": "official_profile.desired_root_package_ids",
-        "offline_seed": true
+        "offline_seed": true,
+        "post_launch_dependency_payloads": {
+          "excluded_from_installer": ["mac-media-assets"],
+          "installation": "framework_required_dependency_closure_after_core_ready",
+          "before_domain_use": "med_autocast_prepare_checks_installs_and_discovers_media_library",
+          "blocks_core_startup": false
+        }
       },
       "same_desired_roots_required": true,
       "full_difference": "offline_seed_only",

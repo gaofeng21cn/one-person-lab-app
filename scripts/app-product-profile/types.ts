@@ -98,6 +98,12 @@ export type AppProductProfile = {
       full: {
         desired_roots_source: 'official_profile.desired_root_package_ids';
         offline_seed: true;
+        post_launch_dependency_payloads?: {
+          excluded_from_installer: string[];
+          installation: string;
+          before_domain_use: string;
+          blocks_core_startup: false;
+        };
       };
       same_desired_roots_required: true;
       full_difference: 'offline_seed_only';

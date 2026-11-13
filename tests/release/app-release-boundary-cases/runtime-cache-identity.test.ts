@@ -99,7 +99,6 @@ test('selected package set uses Official Profile roots and records the offline d
     const options = {
       masRoot: sourceRoots.mas,
       macRoot: sourceRoots['med-autocast'],
-      macMediaAssetsRoot: sourceRoots['mac-media-assets'],
       magRoot: sourceRoots.mag,
       rcaRoot: sourceRoots.rca,
       metaAgentRoot: sourceRoots.oma,
@@ -112,6 +111,7 @@ test('selected package set uses Official Profile roots and records the offline d
     assert.deepEqual(packageSet.package_ids, FULL_RUNTIME_STARTER_PROFILE.package_ids);
     assert.equal(packageSet.package_ids.includes('mas-scholar-skills'), false);
     assert.equal(packageSet.dependency_closure.includes('mas-scholar-skills'), true);
+    assert.equal(packageSet.dependency_closure.includes('mac-media-assets'), false);
     assert.equal(packageSet.package_ids.includes('opl-channel-weixin'), true);
     assert.equal(packageSet.dependency_closure.includes('opl-channel-weixin'), false);
     assert.deepEqual(
