@@ -1605,6 +1605,7 @@ jobs:
             },
             dmg_format: fullBuildTiming?.dmg_format ?? null,
             dmg_compression_level: fullBuildTiming?.dmg_compression_level ?? null,
+            dmg_compression_execution: fullBuildTiming?.dmg_compression_execution ?? null,
             build_status: fullBuildTiming?.status ?? null,
             current_build_stage: fullBuildTiming?.current_stage ?? null,
             build_stages: fullBuildTiming?.stages ?? null,

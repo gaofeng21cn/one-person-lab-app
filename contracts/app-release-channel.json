@@ -5851,6 +5851,8 @@
     },
     "full_dmg_compression": {
       "default_ci_format": "ULMO",
+      "ulmo_execution": "create_UDRW_then_convert_ULMO_with_tasks_equal_to_available_parallelism",
+      "ulmo_settings": "system_default",
       "default_ci_level": "9",
       "format_telemetry_field": "dmg_format",
       "telemetry_field": "dmg_compression_level",

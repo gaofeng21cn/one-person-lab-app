@@ -471,6 +471,7 @@ function main() {
       prepared.manifest,
       dmgFormat,
     );
+    timing.metadata.dmg_compression_execution = optimizedPackage?.compression_execution ?? null;
     if (optimizedPackage?.manifest) {
       prepared.manifest = optimizedPackage.manifest;
     }

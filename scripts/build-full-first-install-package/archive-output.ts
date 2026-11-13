@@ -254,12 +254,12 @@ function formatCommandFailure(command, args, result) {
   ].filter(Boolean).join('\n');
 }
 
-function createDmgWithResourceBusyRetry(targetDmg, args) {
+function createDmgWithResourceBusyRetry(targetDmg, args, stage = 'full_dmg_compression') {
   let lastResult = null;
   for (let attempt = 1; attempt <= HDIUTIL_CREATE_ATTEMPTS; attempt += 1) {
     detachMountedImageDevices(targetDmg);
     fs.rmSync(targetDmg, { force: true });
-    const result = runCapture('hdiutil', args, { stage: 'full_dmg_compression' });
+    const result = runCapture('hdiutil', args, { stage });
     if (result.status === 0) {
       return;
     }
@@ -270,7 +270,7 @@ function createDmgWithResourceBusyRetry(targetDmg, args) {
       break;
     }
 
-    console.warn(`hdiutil create returned Resource busy; retrying Full DMG create attempt ${attempt + 1}/${HDIUTIL_CREATE_ATTEMPTS} after ${HDIUTIL_RESOURCE_BUSY_RETRY_MS}ms.`);
+    console.warn(`hdiutil ${args[0]} returned Resource busy; retrying Full DMG attempt ${attempt + 1}/${HDIUTIL_CREATE_ATTEMPTS} after ${HDIUTIL_RESOURCE_BUSY_RETRY_MS}ms.`);
     sleepMs(HDIUTIL_RESOURCE_BUSY_RETRY_MS);
   }
 
@@ -301,6 +301,32 @@ export function copyAppBundleForDmg(source, target) {
   return 'ditto';
 }
 
+export function createFullDmgImage(targetDmg, stagingRoot, volumeName, dmgFormat, compressionLevel = resolveFullDmgCompressionLevel()) {
+  const createArgs = (output, format) => [
+    'create', output, '-volname', volumeName, '-srcfolder', stagingRoot, '-format', format, '-ov',
+    ...(format === 'UDZO' ? ['-imagekey', `zlib-level=${compressionLevel}`] : []),
+  ];
+  if (dmgFormat !== 'ULMO') {
+    createDmgWithResourceBusyRetry(targetDmg, createArgs(targetDmg, dmgFormat));
+    return { method: 'direct_create', format: dmgFormat };
+  }
+  // create -srcfolder compresses while copying on one CPU. convert supports
+  // independent compression tasks without changing ULMO or its compression settings.
+  // Keep the intermediate image outside srcfolder and remove it on every exit.
+  const scratch = fs.mkdtempSync(path.join(path.dirname(targetDmg), '.opl-full-compression-'));
+  const sourceImage = path.join(scratch, 'source.dmg');
+  const tasks = os.availableParallelism();
+  try {
+    createDmgWithResourceBusyRetry(sourceImage, createArgs(sourceImage, 'UDRW'), 'full_dmg_source_image');
+    createDmgWithResourceBusyRetry(targetDmg, [
+      'convert', sourceImage, '-format', 'ULMO', '-tasks', String(tasks), '-o', targetDmg, '-ov',
+    ]);
+    return { method: 'uncompressed_image_then_parallel_convert', format: 'ULMO', tasks };
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
 export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, version, manifest, dmgFormat = resolveFullDmgFormat()) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   removeBuiltDmgCandidates(guiRoot, version);
@@ -321,25 +347,15 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
     // Sign only the final tree, then perform one deep/strict identity check.
     ensureAppBundleAdHocCodesign(stagedApp, 'Full staged app bundle', { force: true });
     fs.symlinkSync('/Applications', path.join(stagingRoot, 'Applications'));
-    const hdiutilCreateArgs = [
-      'create',
-      targetDmg,
-      '-volname',
-      formatCarrierTemplate(carrier.dmgVolumeNameTemplate, { version }),
-      '-srcfolder',
-      stagingRoot,
-      '-format',
-      dmgFormat,
-      '-ov',
-      ...(dmgFormat === 'UDZO' ? ['-imagekey', `zlib-level=${compressionLevel}`] : []),
-    ];
-    createDmgWithResourceBusyRetry(targetDmg, hdiutilCreateArgs);
+    const compressionExecution = createFullDmgImage(targetDmg, stagingRoot,
+      formatCarrierTemplate(carrier.dmgVolumeNameTemplate, { version }), dmgFormat, compressionLevel);
     result = {
       manifest: optimizedManifest,
       app_bundle_trim: trimReport,
       package_boundary_audit: boundaryAudit,
       app_manifest_writes: appManifestWrites,
       staging_copy: stagingCopy,
+      compression_execution: compressionExecution,
     };
   } finally {
     fs.rmSync(stagingRoot, { recursive: true, force: true });

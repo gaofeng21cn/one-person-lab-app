@@ -155,7 +155,7 @@ test('Full entry consumes the creator-verified DMG without a second unchanged-by
   const creator = fs.readFileSync(fileURLToPath(new URL('../../../scripts/build-full-first-install-package/archive-output.ts', import.meta.url)), 'utf8');
   const create = creator.slice(creator.indexOf('export function createFullDmgFromVerifiedApp'), creator.indexOf('export function resolveFullDmgFormat'));
   assert.ok(create.indexOf('ensureAppBundleAdHocCodesign(stagedApp') > create.indexOf('writeFullPackageManifestIntoApp(stagedApp'));
-  assert.ok(create.indexOf('verifyDmgAppBundleLocalAuthorization(targetDmg') > create.indexOf('createDmgWithResourceBusyRetry(targetDmg'));
+  assert.ok(create.indexOf('verifyDmgAppBundleLocalAuthorization(targetDmg') > create.indexOf('createFullDmgImage(targetDmg'));
 });
 
 
