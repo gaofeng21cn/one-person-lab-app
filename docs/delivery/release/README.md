@@ -277,6 +277,8 @@ The [v26.10.2 retrospective](incidents/2026-10-02-stable-release-recovery.md) re
 observed selection error, transport repairs and complete public closeout.
 The [v26.10.8 efficiency review](incidents/2026-10-08-release-efficiency.md) records the
 release-executor typecheck, prepared-tarball preference, and verified offline preflight path.
+The [v26.11.11 efficiency review](incidents/2026-11-11-release-efficiency.md) records the
+end-to-end timing, failed-run tax, and the Full seed admission guard.
 
 The three Framework-backed workflow mutation operations remain exactly:
 
