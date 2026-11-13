@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { readAppProductProfile } from '../app-product-profile/profile-contract.ts';
 import { readGitHead } from './git.ts';
 import { directoryFingerprint } from './hashing.ts';
+import { catalogPackageSeed } from './catalog-package-seed.ts';
 
 export const FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE = [
   'mas',
@@ -174,10 +175,14 @@ export function resolveSelectedPackageSetInput(
   options: JsonRecord,
   packageProfile: FullRuntimePackageProfile = FULL_RUNTIME_STARTER_PROFILE,
 ) {
-  const normalizedProfile = normalizePackageProfile(packageProfile);
+  const catalog = catalogPackageSeed(options.macMediaAssetsRoot);
+  const selectedProfile = catalog && packageProfile.profile_id === 'starter' && !packageProfile.dependency_closure.includes(catalog.packageId)
+    ? { ...packageProfile, dependency_closure: [...packageProfile.dependency_closure, catalog.packageId] } : packageProfile;
+  const normalizedProfile = normalizePackageProfile(selectedProfile);
   const defaultSourceRoots: Record<string, string | undefined> = {
     mas: options.masRoot,
     'med-autocast': options.macRoot,
+    'mac-media-assets': options.macMediaAssetsRoot,
     mag: options.magRoot,
     rca: options.rcaRoot,
     oma: options.metaAgentRoot,
@@ -209,7 +214,7 @@ export function resolveSelectedPackageSetInput(
       customRuntimeModulePaths[packageId] ?? runtimeModulePaths[packageId] ?? `modules/${packageId}`,
       `${packageId} runtime_module_relative_path`,
     );
-    const sourceFingerprint = directoryFingerprint(sourceRoot, runtimeModulePath);
+    const sourceFingerprint = catalog?.packageId === packageId ? catalog.digest.replace(/^sha256:/, '') : directoryFingerprint(sourceRoot, runtimeModulePath);
     if (!sourceFingerprint) {
       throw new Error(`Selected package ${packageId} source fingerprint is unavailable`);
     }
@@ -221,5 +226,5 @@ export function resolveSelectedPackageSetInput(
     };
   });
 
-  return buildSelectedPackageSetInput({ packageProfile, packages });
+  return buildSelectedPackageSetInput({ packageProfile: selectedProfile, packages });
 }

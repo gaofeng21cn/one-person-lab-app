@@ -798,10 +798,16 @@
         "desired_roots_source": "official_profile.desired_root_package_ids",
         "offline_seed": true,
         "post_launch_dependency_payloads": {
-          "excluded_from_installer": ["mac-media-assets"],
+          "excluded_from_installer": [],
           "installation": "framework_required_dependency_closure_after_core_ready",
           "before_domain_use": "med_autocast_prepare_checks_installs_and_discovers_media_library",
           "blocks_core_startup": false
+        },
+        "catalog_media_dependency": {
+          "package_id": "mac-media-assets",
+          "default_profile": "catalog",
+          "max_unpacked_bytes": 52428800,
+          "offline_full_selection": "explicit_software_center_installation"
         }
       },
       "same_desired_roots_required": true,

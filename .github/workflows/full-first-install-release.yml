@@ -403,7 +403,7 @@ jobs:
           node --experimental-strip-types --input-type=module <<'NODE'
           import fs from 'node:fs';
           import { FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE } from './one-person-lab-app/scripts/build-full-first-install-package/runtime-cache-package-set.ts';
-          for (const id of FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE) {
+          for (const id of [...FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE, 'mac-media-assets']) {
             const owner = JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
             const commit = owner.codex_surface?.carrier_source_commit;
             if (owner.package_id !== id || !/^[0-9a-f]{40}$/.test(commit ?? '')) {
@@ -437,6 +437,21 @@ jobs:
           repository: gaofeng21cn/med-autocast
           ref: ${{ steps.seed-sources.outputs.med-autocast }}
           path: med-autocast
+
+      - name: Checkout MAC catalog metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: gaofeng21cn/mac-media-assets
+          ref: ${{ steps.seed-sources.outputs.mac-media-assets }}
+          path: mac-media-assets
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /opl-package.json
+            /contracts/opl_capability_package_manifest.json
+            /catalog/media-storage.json
+
+      - name: Prepare bounded MAC catalog seed
+        run: node --experimental-strip-types one-person-lab-app/scripts/prepare-catalog-media-seed.ts --root mac-media-assets
 
       - name: Checkout MAG
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -500,6 +515,7 @@ jobs:
             mas-scholar-skills/.codex-plugin/plugin.json
             mas-scholar-skills/contracts/opl_capability_package_manifest.json
             med-autocast/plugins/med-autocast/opl-package.json
+            mac-media-assets/opl-package.json
             med-autogrant/pyproject.toml
             redcube-ai/package.json
             opl-meta-agent/package.json
@@ -515,7 +531,7 @@ jobs:
             fi
           done
           for repo in \
-            med-autoscience mas-scholar-skills med-autocast med-autogrant redcube-ai \
+            med-autoscience mas-scholar-skills med-autocast mac-media-assets med-autogrant redcube-ai \
             opl-meta-agent opl-bookforge opl-flow OfficeCLI \
             MinerU-Ecosystem; do
             commit="$(git -C "$GITHUB_WORKSPACE/$repo" rev-parse HEAD)"
@@ -937,6 +953,7 @@ jobs:
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
           export OPL_FULL_MAC_ROOT="$GITHUB_WORKSPACE/med-autocast"
+          export OPL_FULL_MAC_MEDIA_ASSETS_ROOT="$GITHUB_WORKSPACE/mac-media-assets"
           export OPL_FULL_MAG_ROOT="$GITHUB_WORKSPACE/med-autogrant"
           export OPL_FULL_RCA_ROOT="$GITHUB_WORKSPACE/redcube-ai"
           export OPL_FULL_META_AGENT_ROOT="$GITHUB_WORKSPACE/opl-meta-agent"
@@ -1159,6 +1176,7 @@ jobs:
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
           export OPL_FULL_MAC_ROOT="$GITHUB_WORKSPACE/med-autocast"
+          export OPL_FULL_MAC_MEDIA_ASSETS_ROOT="$GITHUB_WORKSPACE/mac-media-assets"
           export OPL_FULL_MAG_ROOT="$GITHUB_WORKSPACE/med-autogrant"
           export OPL_FULL_RCA_ROOT="$GITHUB_WORKSPACE/redcube-ai"
           export OPL_FULL_META_AGENT_ROOT="$GITHUB_WORKSPACE/opl-meta-agent"

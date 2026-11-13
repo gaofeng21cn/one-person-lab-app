@@ -23,6 +23,7 @@ import {
   directorySizeBytes,
 } from './filesystem.ts';
 import { readGitHead } from './git.ts';
+import { catalogPackageSeed, copyCatalogPackageSeed } from './catalog-package-seed.ts';
 import { materializeSelectedLocalComponentSeeds } from './local-component-seeds.ts';
 import { commandOutput } from './process.ts';
 import {
@@ -763,6 +764,7 @@ export function buildToolchainLayer(layerRoot, sources, flowCapabilityBuildLock)
 }
 
 export function buildDomainLayer(layerRoot, options) {
+  copyCatalogPackageSeed(options.macMediaAssetsRoot, path.join(layerRoot, 'modules', 'mac-media-assets'));
   copyTreeFiltered(options.macRoot, path.join(layerRoot, 'modules', 'med-autocast'), 'modules/med-autocast');
   copyTreeFiltered(options.masRoot, path.join(layerRoot, 'modules', 'mas'), 'modules/mas');
   copyTreeFiltered(
@@ -779,6 +781,12 @@ export function buildDomainLayer(layerRoot, options) {
 }
 
 export function writeDomainMarkers(runtimeRoot, options, packagedAt) {
+  if (fs.existsSync(path.join(runtimeRoot, 'modules', 'mac-media-assets', 'opl-package.json'))) {
+    writePackagedModuleMarker(path.join(runtimeRoot, 'modules', 'mac-media-assets'), buildPackagedModuleMarker({
+      moduleId: 'mac-media-assets', repoName: 'mac-media-assets', sourcePath: options.macMediaAssetsRoot,
+      headSha: readGitHead(options.macMediaAssetsRoot), packagedAt,
+    }));
+  }
   for (const [repoName, sourcePath] of [['med-autocast', options.macRoot]]) {
     writePackagedModuleMarker(path.join(runtimeRoot, 'modules', repoName), buildPackagedModuleMarker({
       moduleId: repoName, repoName, sourcePath, headSha: readGitHead(sourcePath), packagedAt,
@@ -883,6 +891,8 @@ export function buildRuntimeLayerImplementationHash(layerId: FullRuntimeCacheLay
     ],
     'domain-runtime': [
       copyTreeFiltered,
+      catalogPackageSeed,
+      copyCatalogPackageSeed,
       materializeSelectedLocalComponentSeeds,
       buildDomainLayer,
     ],

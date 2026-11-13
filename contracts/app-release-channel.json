@@ -5836,10 +5836,13 @@
     },
     "full_post_launch_media_library": {
       "product_profile_ref": "contracts/app-product-profile.json#official_profile.distribution_forms.full.post_launch_dependency_payloads",
-      "bundled": false,
+      "bundled": "catalog_profile_only",
       "package_dependency_authority": "med-autocast/contracts/opl_agent_package_manifest.json",
       "startup_installation": "existing_framework_required_dependency_closure",
-      "agent_repair_entrypoint": "med_autocast.py prepare --workspace <workspace>"
+      "agent_repair_entrypoint": "med_autocast.py prepare --workspace <workspace>",
+      "full_installer_limit_bytes": 52428800,
+      "offline_full_installation": "explicit_software_center_installation",
+      "legacy_payload_fallback": "required_dependency_closure_after_core_startup"
     },
     "full_standard_base_reuse": {
       "start_policy": "after_standard_publication_readback",

@@ -102,7 +102,7 @@ Linux、Windows 和 Full 不创建 optional、adjunct 或独立 Release/tag。�
 ## Computer Use 分发一致性
 
 Standard 与 Full 共用 Official Profile，包含 Med Auto Cast (`med-autocast`)。
-MAC 及其 manifest 声明的必需素材库由 Framework Package 生命周期安装；Full 提供相同包的离线 seed。
+MAC 及其 manifest 声明的必需素材库由 Framework Package 生命周期安装，所有 MAC 标准安装默认选择轻量目录包。Full 仅集成同一素材包经内容锁校验的小核心，解包上限为 50 MiB；已发布旧大包继续排除，直到 Framework 冻结来源指向新版目录包。用户可在软件中心为同一素材库选择“安装离线完整版”，该独立媒体安装不影响核心激活和默认依赖。Full 的小核心提供索引、来源、工具和随包组件，完整媒体离线能力由用户主动安装的完整版提供。
 已有安装保留用户选择，只在首次安装或显式恢复 Official Profile 时收敛全部 roots。
 
 macOS arm64 Standard 与 Full 都默认安装、注册并启用 KimiCU。Standard 在首次

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { catalogPackageSeed } from './catalog-package-seed.ts';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -43,7 +44,9 @@ function buildLayerImplementationInput(layerId: FullRuntimeCacheLayerId) {
 }
 
 function domainSourceFingerprints(options) {
+  const catalog = catalogPackageSeed(options.macMediaAssetsRoot);
   return {
+    ...(catalog ? { [catalog.packageId]: catalog.digest.replace(/^sha256:/, '') } : {}),
     mas: directoryFingerprint(options.masRoot, 'modules/mas'),
     'med-autocast': directoryFingerprint(options.macRoot, 'modules/med-autocast'),
     mag: directoryFingerprint(options.magRoot, 'modules/mag'),

@@ -1,0 +1,85 @@
+import { assert, crypto, fs, os, path, spawnSync, test, writeFile } from './helpers.ts';
+import { catalogPackageSeed, copyCatalogPackageSeed } from '../../../scripts/build-full-first-install-package/catalog-package-seed.ts';
+import { prepareCatalogMediaSeed } from '../../../scripts/prepare-catalog-media-seed.ts';
+import { resolveSelectedPackageSetInput } from '../../../scripts/build-full-first-install-package/runtime-cache-package-set.ts';
+
+function fixture(root: string) {
+  writeFile(path.join(root, 'catalog/media-storage.json'), JSON.stringify({ profile: 'catalog' }));
+  writeFile(path.join(root, 'tools/query.py'), 'print("catalog")\n');
+  const paths = ['catalog/media-storage.json', 'tools/query.py'];
+  const hash = crypto.createHash('sha256');
+  for (const name of paths) {
+    const label = Buffer.from(name), body = fs.readFileSync(path.join(root, name)), size = Buffer.alloc(8);
+    size.writeBigUInt64BE(BigInt(label.length)); hash.update(size); hash.update(label);
+    size.writeBigUInt64BE(BigInt(body.length)); hash.update(size); hash.update(body);
+  }
+  writeFile(path.join(root, 'opl-package.json'), JSON.stringify({ package_id: 'mac-media-assets', version: '1.2.3', content_lock: {
+    algorithm: 'sha256', canonicalization: 'ordered_path_length_file_length_bytes', paths, digest: 'sha256:' + hash.digest('hex'),
+  } }));
+  const descriptor=JSON.parse(fs.readFileSync(path.join(root,'opl-package.json'),'utf8'));
+  writeFile(path.join(root,'contracts/opl_capability_package_manifest.json'),JSON.stringify(descriptor));
+}
+
+test('Full copies only the verified catalog lock, even from a full source checkout', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-catalog-seed-'));
+  try {
+    const root = path.join(temp, 'source'), destination = path.join(temp, 'runtime');
+    fixture(root);
+    const file = fs.openSync(path.join(root, 'unregistered-large-media.bin'), 'w');
+    fs.ftruncateSync(file, 64 * 1024 * 1024); fs.closeSync(file);
+    const seed = copyCatalogPackageSeed(root, destination)!;
+    assert.equal(seed.packageId, 'mac-media-assets');
+    assert.ok(seed.bytes < 1024);
+    assert.equal(fs.readFileSync(path.join(destination,'contracts/opl_capability_package_manifest.json'),'utf8'),
+      fs.readFileSync(path.join(root,'contracts/opl_capability_package_manifest.json'),'utf8'));
+    assert.equal(fs.existsSync(path.join(destination, 'unregistered-large-media.bin')), false);
+    assert.equal(catalogPackageSeed(destination)?.digest, seed.digest);
+    fs.appendFileSync(path.join(root, 'tools/query.py'), '# changed');
+    assert.throws(() => catalogPackageSeed(root), /differs from its content lock/);
+    fixture(root);
+    const oversized = fs.openSync(path.join(root, 'tools/query.py'), 'w');
+    fs.ftruncateSync(oversized, 50 * 1024 * 1024 + 1); fs.closeSync(oversized);
+    assert.throws(() => catalogPackageSeed(root), /exceeds.*budget/);
+    fixture(root);
+    writeFile(path.join(root,'contracts/opl_capability_package_manifest.json'),JSON.stringify({package_id:'mac-media-assets',version:'1.2.3'}));
+    assert.throws(() => catalogPackageSeed(root), /owner manifest differs/);
+  } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('legacy media is deferred, while a catalog seed enters the Full dependency closure', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-catalog-package-set-'));
+  try {
+    writeFile(path.join(root, 'opl-package.json'), '{}');
+    assert.equal(catalogPackageSeed(root), null);
+    fixture(root);
+    for (const args of [['init', '-q'], ['add', '.'], ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture']]) {
+      const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+      assert.equal(result.status, 0, result.stderr);
+    }
+    const selected = resolveSelectedPackageSetInput({ macMediaAssetsRoot: root, macRoot: root }, {
+      profile_id: 'starter', package_ids: ['med-autocast'], dependency_closure: ['med-autocast'],
+    });
+    assert.deepEqual(selected.dependency_closure, ['med-autocast', 'mac-media-assets']);
+    assert.equal(selected.packages.at(-1)?.source_fingerprint, catalogPackageSeed(root)?.digest);
+    const storage = path.join(root, 'catalog/media-storage.json');
+    writeFile(storage, JSON.stringify({ profile: 'full' }));
+    assert.throws(() => catalogPackageSeed(root), /only.*catalog/);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('catalog preparation restores locked files in a non-cone sparse checkout', () => {
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'opl-catalog-sparse-'));
+  try {
+    fixture(root);
+    writeFile(path.join(root,'payloads/large.bin'),'legacy media stays excluded');
+    for (const args of [['init','-q'],['add','.'],['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','fixture'],
+      ['sparse-checkout','set','--no-cone','/catalog/','/contracts/','/opl-package.json']]) {
+      const result=spawnSync('git',args,{cwd:root,encoding:'utf8'});
+      assert.equal(result.status,0,result.stderr);
+    }
+    assert.equal(fs.existsSync(path.join(root,'tools/query.py')),false);
+    assert.equal(prepareCatalogMediaSeed(root).status,'prepared');
+    assert.equal(fs.existsSync(path.join(root,'tools/query.py')),true);
+    assert.equal(fs.existsSync(path.join(root,'payloads/large.bin')),false);
+  } finally {fs.rmSync(root,{recursive:true,force:true});}
+});

@@ -98,6 +98,12 @@ export type AppProductProfile = {
       full: {
         desired_roots_source: 'official_profile.desired_root_package_ids';
         offline_seed: true;
+        catalog_media_dependency: {
+          package_id: string;
+          default_profile: 'catalog';
+          max_unpacked_bytes: number;
+          offline_full_selection: 'explicit_software_center_installation';
+        };
         post_launch_dependency_payloads?: {
           excluded_from_installer: string[];
           installation: string;
