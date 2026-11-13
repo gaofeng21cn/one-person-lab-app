@@ -28,6 +28,13 @@ Agent Packages own business task lifecycle, domain schemas, artifacts and qualit
 verdicts. Temporal owns execution facts; Codex App Server owns thread identity,
 history, permissions and execution protocol.
 
+Persistent service launchers retain discovered absolute carrier entrypoints,
+including stable executable symlinks. They do not turn those links into saved
+version-directory paths. Node services may select a PATH alias only when it
+resolves to the already selected runtime. Current target executability and, for
+the Desktop Host, version and digest admission remain required. Read-only status
+reports broken launchers; existing maintenance actions own configuration repair.
+
 Framework Host is unique in
 `framework_runtime_package_graph_and_app_projection`. Studio's DSH Host owns
 `dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition` only.

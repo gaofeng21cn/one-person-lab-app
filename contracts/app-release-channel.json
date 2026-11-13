@@ -4175,7 +4175,7 @@
           "login_resident": true,
           "run_at_load": true,
           "keep_alive": true,
-          "launcher_policy": "canonical_executable_realpath_or_packaged_runtime_path_never_repo_TypeScript_checkout",
+          "launcher_policy": "discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout",
           "persistent_database_path": "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",
           "persistent_database_argument": "--db-filename",
           "configuration_current_required": true

@@ -7286,6 +7286,21 @@
       "full_detail_source": "selected_work_item_from_work_item_projection_v2_plus_item_scoped_domain_detail_view",
       "full_detail_policy": "selected_work_item_core_plus_typed_domain_detail_view_no_global_operator_drilldown",
       "runtime_cockpit_product_contract": {
+        "status_presentation": {
+          "task_readback_and_service_readiness_separate": true,
+          "overall_availability_from_service_recovery_allowed": false,
+          "task_counts_scope": "selected_agent_project_and_visibility_before_status_filter",
+          "service_issue_in_task_attention_count_allowed": false,
+          "service_notice": "localized_first_causal_reason_plus_maintenance_link",
+          "missing_readback": "unknown_neutral_not_confirmed_failure",
+          "cached_readback": "explicit_last_known_state_not_current_health",
+          "service_notice_actions": [
+            "refresh",
+            "open_maintenance"
+          ],
+          "maintenance_destination": "services",
+          "service_mutation_on_runtime_allowed": false
+        },
         "owner": "one-person-lab-app",
         "role": "minimal_project_work_status_console",
         "observability_dashboard_allowed": false,
@@ -9530,7 +9545,7 @@
             "address",
             "launcher_source"
           ],
-          "launcher_policy": "bind_a_canonical_executable_realpath_or_packaged_runtime_path_never_a_repo_TypeScript_checkout",
+          "launcher_policy": "bind_a_discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_a_repo_TypeScript_checkout",
           "persistent_store_policy": {
             "required_for_desktop_macos_local_managed_service": true,
             "default_database_path": "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",

@@ -108,7 +108,7 @@ function validateReleaseFullTemporalRuntimeProvider(temporalRuntimeProvider) {
     temporalRuntimeProvider?.service_supervisor?.run_at_load !== true ||
     temporalRuntimeProvider?.service_supervisor?.keep_alive !== true ||
     temporalRuntimeProvider?.service_supervisor?.launcher_policy !==
-      'canonical_executable_realpath_or_packaged_runtime_path_never_repo_TypeScript_checkout' ||
+      'discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout' ||
     temporalRuntimeProvider?.service_supervisor?.persistent_database_path !==
       '${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite' ||
     temporalRuntimeProvider?.service_supervisor?.persistent_database_argument !== '--db-filename' ||

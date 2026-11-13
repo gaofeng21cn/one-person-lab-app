@@ -33,6 +33,21 @@ const validatePageState = (matrix: any, guiContract = readJson('contracts/app-gu
 const runtimeContract = () => readJson('contracts/app-gui-product-contract.json');
 const runtimeBridge = () => readJson('contracts/app-runtime-bridge.json');
 
+test('Runtime separates task readback and scoped counts from service readiness', () => {
+  for (const field of [
+    'overall_availability_from_service_recovery_allowed',
+    'service_issue_in_task_attention_count_allowed',
+    'service_mutation_on_runtime_allowed',
+  ]) {
+    const candidate = runtimeContract();
+    candidate.pages.runtime_status.runtime_cockpit_product_contract.status_presentation[field] = true;
+    assert.throws(() => validateGuiContract(candidate), /status_presentation/);
+  }
+  const matrix = readJson('contracts/app-page-state-matrix.json');
+  matrix.pages.find((page: any) => page.id === 'runtime').runtime_view_model.status_presentation.required_states = [];
+  assert.throws(() => validatePageState(matrix), /status presentation/);
+});
+
 test('WebUI contract scopes product transport and cookies to the trusted request base', () => {
   assert.doesNotThrow(() => validateWebuiDeploymentContract(runtimeBridge()));
   for (const [field, value] of Object.entries({

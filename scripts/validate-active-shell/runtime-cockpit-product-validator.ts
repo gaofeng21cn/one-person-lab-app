@@ -103,6 +103,19 @@ export function validateRuntimeCockpitProductContract(contract, label) {
   if (!contract || typeof contract !== 'object') {
     throw new Error(`${label} must be declared`);
   }
+  assertExpectedFields(contract.status_presentation, {
+    task_readback_and_service_readiness_separate: true,
+    overall_availability_from_service_recovery_allowed: false,
+    task_counts_scope: 'selected_agent_project_and_visibility_before_status_filter',
+    service_issue_in_task_attention_count_allowed: false,
+    service_notice: 'localized_first_causal_reason_plus_maintenance_link',
+    missing_readback: 'unknown_neutral_not_confirmed_failure',
+    cached_readback: 'explicit_last_known_state_not_current_health',
+    maintenance_destination: 'services',
+    service_mutation_on_runtime_allowed: false,
+  }, `${label}.status_presentation`);
+  assertDeepEqualJson(contract.status_presentation?.service_notice_actions,
+    ['refresh', 'open_maintenance'], `${label}.status_presentation.service_notice_actions`);
   assertExpectedFields(
     contract,
     {

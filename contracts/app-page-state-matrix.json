@@ -1934,6 +1934,20 @@
       "framework_action_command": "opl app action execute --action work_item_visibility_set --payload <json> --json",
       "page_contract": "runtime_user_task_status_first",
       "runtime_view_model": {
+        "status_presentation": {
+          "product_contract_ref": "contracts/app-gui-product-contract.json#pages.runtime_status.runtime_cockpit_product_contract.status_presentation",
+          "required_states": [
+            "task_readback_ready",
+            "service_configuration_drift",
+            "service_readback_unknown",
+            "cached_service_notice",
+            "scoped_task_counts",
+            "initial_loading",
+            "read_failed_without_snapshot",
+            "empty_filtered_scope"
+          ],
+          "service_mutation_on_runtime_allowed": false
+        },
         "role": "opl_runtime_user_task_status",
         "bridge_contract": "contracts/app-runtime-bridge.json",
         "default_mode": "user_task_status_first",

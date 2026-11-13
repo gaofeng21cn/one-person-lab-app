@@ -496,6 +496,12 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     }
   }
   const runtimeViewModel = runtimePage.runtime_view_model;
+  assertDeepEqualJson(runtimeViewModel?.status_presentation, {
+    product_contract_ref: 'contracts/app-gui-product-contract.json#pages.runtime_status.runtime_cockpit_product_contract.status_presentation',
+    required_states: ['task_readback_ready', 'service_configuration_drift', 'service_readback_unknown',
+      'cached_service_notice', 'scoped_task_counts', 'initial_loading', 'read_failed_without_snapshot', 'empty_filtered_scope'],
+    service_mutation_on_runtime_allowed: false,
+  }, 'Runtime page status presentation');
   if (runtimeViewModel?.role !== 'opl_runtime_user_task_status') {
     throw new Error('Runtime page must declare OPL runtime user task status view model');
   }

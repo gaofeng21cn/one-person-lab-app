@@ -1580,7 +1580,7 @@
       "temporal_cli_wrapper_must_execute_offline_archive": true,
       "must_include_temporal_node_runtime_packages": true,
       "must_exclude_temporal_testing_package": true,
-      "service_supervisor_launcher_policy": "canonical_executable_realpath_or_packaged_runtime_path_never_repo_TypeScript_checkout",
+      "service_supervisor_launcher_policy": "discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout",
       "service_supervisor_platform_scope": "desktop_macos_local_managed_service",
       "service_supervisor_persistent_database_path": "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",
       "service_supervisor_persistent_database_argument": "--db-filename",

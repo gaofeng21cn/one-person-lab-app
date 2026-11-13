@@ -132,7 +132,7 @@ function validateTemporalAutoConfiguration(temporalAutoConfig) {
     temporalAutoConfig.packaged_runtime_policy?.must_include_temporal_node_runtime_packages !== true ||
     temporalAutoConfig.packaged_runtime_policy?.must_exclude_temporal_testing_package !== true ||
     temporalAutoConfig.packaged_runtime_policy?.service_supervisor_launcher_policy !==
-      'canonical_executable_realpath_or_packaged_runtime_path_never_repo_TypeScript_checkout' ||
+      'discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout' ||
     temporalAutoConfig.packaged_runtime_policy?.service_supervisor_platform_scope !==
       'desktop_macos_local_managed_service' ||
     temporalAutoConfig.packaged_runtime_policy?.service_supervisor_persistent_database_path !==
