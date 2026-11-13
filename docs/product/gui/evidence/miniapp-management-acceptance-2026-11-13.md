@@ -94,3 +94,34 @@ MAC 通过已安装 carrier 和 Framework 已登记工作区返回 **212 个单�
    当前 212 集完整读取会扩大首次加载成本；工作区、系列和单集的选择应持续可见。
 3. 把媒体区域中的版本散列、owner 等诊断信息收进详情；主界面用“当前版本、已有审看记录、下一步”
    说明状态，保持专业判断和机器检查的真实边界。
+
+## 直接复用最新版 DSH
+
+用户后续明确要求直接复用 DSH 成熟视觉，旧的 OPL 私有配色、字号和控件尺度不再保留。
+本轮采用官方 `0.2.2-rc.2`、精确来源 `e8f7b93a344964de3dca1ace9e72b6e4d6de87cb`。
+Studio 直接使用官方主题与 primitives；OPL Apps、Relay、媒体审看使用同源生成的官方 CSS，
+仅适配原 HTML 选择器，品牌身份与领域操作布局继续保留。
+
+| 源码归口 | 已回读的远端主线提交 |
+| --- | --- |
+| App 视觉合同与生成入口 | `93e3d0343bcc90bc32c24a641daa1179d34fa74a` |
+| Studio | `ea2ad968605cc672f5e5dda33540b0600aba68a6` |
+| Framework 共享页 | `abd673f218c9c48931ca6db642626b32317b2f70` |
+| Relay | `28073a528f33af79b4183da17ae60cf739f1f25d` |
+| Med Auto Cast | `d81797bee26a40868bfb4714596bba77978a29ce` |
+
+App active-shell 与 GUI design-system 检查通过。完整外壳浏览器验收覆盖桌面、400px 窄屏、
+主题切换、软件中心、设置焦点、会话编辑、撤销重做、排队与 steer；合成文件粘贴只暂存一次，
+前台设置窗口阻止向背后 composer 粘贴。全程无未处理的浏览器错误。
+
+三个 MiniApp 的官方 CSS 字节检查通过。共享页真实 iframe 验收检查 36px 标准按钮、32px
+输入框、12px 控件圆角、14px 界面文字，并与宿主官方控件比对；字体变更与主题更新通过标准
+MCP Apps context 实时传入。此前 1280 × 777 的剩余空间布局继续通过。
+Relay 的合成草稿保存、owner 回读、旧 revision 拒绝、重开、窄屏和深色模式通过。
+媒体审看的 Node、Python 与 contract/carrier 检查通过；最终样式修正后已重新生成安装网页。
+
+首次整包 `local.src21b68049fe06` 安装后，真实窗口发现 Host 启动失败：新版 DSH 的
+`dsh-llm` 引入 `dsh-error` peer，但 Electron 未将其打包。Studio 已将该包加入精确生产依赖
+和 cohort；打包后的启动检查也改为复制产物到源码目录外运行，避免借用源码上层的
+`node_modules`。覆盖“源码有依赖、产物缺依赖”和完整产物的回归测试通过，DSH 升级与
+candidate 检查通过。首次安装记录不作为运行验收通过的证据。
