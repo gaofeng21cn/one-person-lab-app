@@ -24,6 +24,25 @@ new large entries.
 
 ## Full Runtime Layering
 
+Raw downloads and assembled runtime layers serve different points in the build.
+`dependency-archives-v1-` is restored **before** Framework dependency discovery.
+Framework always queries current official release metadata, then revalidates
+cached archive bytes with that metadata's SHA-256 or npm SRI. This covers Codex
+CLI wrapper/native tarballs, Temporal CLI, Python, Node, Go, OfficeCLI, Kimi and
+other resolved archives. It does not cache a latest-version decision.
+
+Python, Temporal, OfficeCLI and the Kimi offline seed consume those same verified downloads
+through Framework's `fetch-dependency-archive.mjs`, instead of fetching the
+archives again after discovery. A missing or damaged cache downloads and
+validates normally. Older frozen Framework sources retain their direct download
+path. Before a main-only save, App retains only archives matching the current
+frozen resolution; keys bind archive identities and exclude resolution time.
+
+Codex clean-VM installation already has a separate cache of its exact wrapper
+and platform tarballs. That remains the installation consumer; Codex is not
+duplicated into the Framework Full runtime. npm/uv/Go caches, raw archives and
+the assembled `toolchain` layer avoid different work and are reported separately.
+
 Standard and Full share the same Electron artifact paths as well as the key.
 Actions also derives a cache version from the path list; identical keys with
 different path lists cannot reuse each other's downloads.
@@ -45,7 +64,7 @@ and symlinks require environment-specific handling and a large transfer.
 
 | Layer | Reused work | Content identity | Deliberate non-invalidators |
 | --- | --- | --- | --- |
-| `toolchain` | Codex, Node/npm, Python, uv, Temporal, OfficeCLI, MinerU, wrappers | Tool bytes and versions, Node/Python/Codex-vendor tree fingerprints, toolchain builder code, toolchain prune projection | Domain sources, Framework runtime source, skill selection |
+| `toolchain` | Node/npm, Python, uv, Temporal, OfficeCLI, MinerU, wrappers | Tool bytes and versions, Node/Python tree fingerprints, toolchain builder code, toolchain prune projection | Domain sources, Framework runtime source, skill selection |
 | `domain-runtime` | Source trees selected for this Full build | Selected package dependency closure plus exact source commits and fingerprints, domain builder code, `modules/*` prune projection | Toolchain bytes, Framework `opl` runtime, standalone companion-skill changes |
 | `opl-runtime` | Framework source and production Node dependency closure | Framework SHA/runtime fingerprint, package metadata, production dependency fingerprint, OPL builder code, `opl/*` prune projection | Domain checkout changes, toolchain and skill changes |
 | `skills` | Skills selected for this Full build | Selected package-set identity, OPL Flow commit/policy when selected, App product profile, selected skill fingerprints, skill packager code, `skills/*` prune projection | Toolchain and Framework runtime-only changes |

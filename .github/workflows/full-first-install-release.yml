@@ -322,6 +322,19 @@ jobs:
       - name: Install frozen Framework resolver dependencies
         run: npm --prefix one-person-lab ci --ignore-scripts --no-audit --no-fund
 
+      - name: Configure dependency archive cache
+        shell: bash
+        run: echo "OPL_DEPENDENCY_ARCHIVE_CACHE_DIR=$RUNNER_TEMP/opl-dependency-archives" >> "$GITHUB_ENV"
+
+      - name: Restore verified dependency archives
+        id: dependency-archives
+        continue-on-error: true
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/opl-dependency-archives
+          key: dependency-archives-v1-darwin-arm64-restore
+          restore-keys: dependency-archives-v1-darwin-arm64-
+
       - name: Resolve default Full build inputs
         id: full-build-inputs
         env:
@@ -614,7 +627,11 @@ jobs:
           [[ "$PYTHON_ARCHIVE_URL" == https://github.com/astral-sh/python-build-standalone/releases/download/* ]]
           [[ "$PYTHON_ARCHIVE_SHA256" =~ ^[0-9a-f]{64}$ ]]
           python_archive="$RUNNER_TEMP/opl-python-standalone.tar.gz"
-          curl --fail --location --silent --show-error "$PYTHON_ARCHIVE_URL" --output "$python_archive"
+          if [ -f one-person-lab/scripts/fetch-dependency-archive.mjs ]; then
+            node one-person-lab/scripts/fetch-dependency-archive.mjs --url "$PYTHON_ARCHIVE_URL" --sha256 "$PYTHON_ARCHIVE_SHA256" --output "$python_archive"
+          else
+            curl --fail --location --silent --show-error "$PYTHON_ARCHIVE_URL" --output "$python_archive"
+          fi
           test "$(shasum -a 256 "$python_archive" | awk '{print $1}')" = "$PYTHON_ARCHIVE_SHA256"
           python_root="$UV_PYTHON_INSTALL_DIR/cpython-${EXPECTED_PYTHON_VERSION}-macos-aarch64-none"
           mkdir -p "$UV_PYTHON_INSTALL_DIR"
@@ -660,9 +677,12 @@ jobs:
           )
           mkdir -p "$HOME/.local/bin"
           officecli_bin="$HOME/.local/bin/officecli"
-          curl -fL --retry 5 --retry-all-errors --retry-delay 5 \
-            "https://github.com/iOfficeAI/OfficeCLI/releases/download/v${{ steps.full-build-inputs.outputs.officecli_version }}/officecli-mac-arm64" \
-            -o "$officecli_bin"
+          officecli_url="https://github.com/iOfficeAI/OfficeCLI/releases/download/v${{ steps.full-build-inputs.outputs.officecli_version }}/officecli-mac-arm64"
+          if [ -f one-person-lab/scripts/fetch-dependency-archive.mjs ]; then
+            node one-person-lab/scripts/fetch-dependency-archive.mjs --url "$officecli_url" --sha256 '${{ steps.full-build-inputs.outputs.officecli_sha256 }}' --output "$officecli_bin"
+          else
+            curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$officecli_url" -o "$officecli_bin"
+          fi
           echo '${{ steps.full-build-inputs.outputs.officecli_sha256 }}  '"$officecli_bin" | shasum -a 256 -c -
           chmod +x "$officecli_bin"
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
@@ -672,9 +692,12 @@ jobs:
           mineru-open-api version
           temporal_version='${{ steps.full-build-inputs.outputs.temporal_version }}'
           temporal_archive="$RUNNER_TEMP/temporal_cli_${temporal_version}_darwin_arm64.tar.gz"
-          curl -fL --retry 5 --retry-all-errors --retry-delay 5 \
-            "https://github.com/temporalio/cli/releases/download/v${temporal_version}/temporal_cli_${temporal_version}_darwin_arm64.tar.gz" \
-            -o "$temporal_archive"
+          temporal_url="https://github.com/temporalio/cli/releases/download/v${temporal_version}/temporal_cli_${temporal_version}_darwin_arm64.tar.gz"
+          if [ -f one-person-lab/scripts/fetch-dependency-archive.mjs ]; then
+            node one-person-lab/scripts/fetch-dependency-archive.mjs --url "$temporal_url" --sha256 '${{ steps.full-build-inputs.outputs.temporal_sha256 }}' --output "$temporal_archive"
+          else
+            curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$temporal_url" -o "$temporal_archive"
+          fi
           echo '${{ steps.full-build-inputs.outputs.temporal_sha256 }}  '"$temporal_archive" | shasum -a 256 -c -
           tar -xzf "$temporal_archive" -C "$HOME/.local/bin" temporal
           temporal --version | grep -F "temporal version $temporal_version"
@@ -1514,6 +1537,7 @@ jobs:
               go_modules_build: '${{ steps.go-cache.outputs.cache-hit || 'unknown' }}',
               electron_artifacts: '${{ steps.electron-cache.outputs.cache-hit || 'false' }}',
               desktop_renderer_transport: '${{ steps.renderer-cache.outputs.cache-hit || 'false' }}',
+              dependency_archive_restore_key: '${{ steps.dependency-archives.outputs.cache-matched-key || 'miss' }}',
               full_runtime_layers: env.OPL_FULL_RUNTIME_CACHE_HIT || 'unknown',
               full_runtime_cache_key: '${{ steps.runtime-cache-keys.outputs.cache_key }}',
               full_runtime_cache_digest: '${{ steps.runtime-cache-keys.outputs.cache_digest }}',
@@ -1654,6 +1678,33 @@ jobs:
           shell-root: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
           app-root: one-person-lab-app
           cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
+
+      - name: Validate and bound dependency archive cache
+        id: dependency-archive-plan
+        if: ${{ github.ref == 'refs/heads/main' }}
+        continue-on-error: true
+        env:
+          OPL_DEPENDENCY_CACHE_RESTORE_MATCHED_KEY: ${{ steps.dependency-archives.outputs.cache-matched-key }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=one-person-lab-app/scripts/release-dependency-download-cache.ts
+          if [ -f release-executor/scripts/release-dependency-download-cache.ts ]; then script=release-executor/scripts/release-dependency-download-cache.ts; fi
+          if [ -f "$script" ]; then
+            node --experimental-strip-types "$script" \
+              --resolved "$RUNNER_TEMP/opl-full-dependency-resolution/dependency-resolution.json" \
+              --cache-dir "$OPL_DEPENDENCY_ARCHIVE_CACHE_DIR" --prune --github-output "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save verified dependency archives
+        if: ${{ github.ref == 'refs/heads/main' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
+        continue-on-error: true
+        env:
+          OPL_ACTIONS_CACHE_CLASS: dependency_download
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/opl-dependency-archives
+          key: ${{ steps.dependency-archive-plan.outputs.cache_key }}
 
       - name: Save Full Bun install cache
         if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}

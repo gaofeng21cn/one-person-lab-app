@@ -29,6 +29,7 @@
         "bun-install-",
         "bun-",
         "node-cache-",
+        "dependency-archives-v1-",
         "full-uv-",
         "setup-go-",
         "electron-cache-"

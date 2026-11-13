@@ -60,18 +60,25 @@ export function withVerifiedPinnedArchive(input, consume) {
 
   try {
     if (!explicitSourcePath) {
-      requirePath(findExecutable('curl'), 'curl');
-      run('curl', [
-        '--fail',
-        '--location',
-        '--silent',
-        '--show-error',
-        '--retry',
-        '2',
-        '--output',
-        archivePath,
-        input.url,
-      ]);
+      const frameworkRoot = process.env.OPL_FRAMEWORK_ROOT;
+      const downloader = frameworkRoot && path.join(frameworkRoot, 'scripts/fetch-dependency-archive.mjs');
+      if (process.env.OPL_DEPENDENCY_ARCHIVE_CACHE_DIR && downloader && fs.existsSync(downloader)) {
+        run(process.execPath, ['--experimental-strip-types', downloader,
+          '--url', input.url, '--sha256', input.sha256, '--output', archivePath]);
+      } else {
+        requirePath(findExecutable('curl'), 'curl');
+        run('curl', [
+          '--fail',
+          '--location',
+          '--silent',
+          '--show-error',
+          '--retry',
+          '2',
+          '--output',
+          archivePath,
+          input.url,
+        ]);
+      }
     }
     const verification = assertPinnedArchive(archivePath, input);
     return consume(archivePath, verification);
