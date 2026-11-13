@@ -1,4 +1,15 @@
 {
+  "workspace_composition": {
+    "host_chrome": "one_compact_toolbar_with_app_switcher_and_lifecycle_actions",
+    "open_surface": "fill_remaining_host_width_and_height",
+    "directory": "on_demand_switcher_without_permanent_catalog_rail",
+    "help_and_management": "secondary_menu_not_persistent_intro_rows",
+    "shared_navigation": "compact_top_product_and_function_controls_without_permanent_sidebar",
+    "repeated_host_headings_allowed": false,
+    "desktop_host_chrome_max_px": 80,
+    "desktop_surface_min_width_ratio": 0.98,
+    "desktop_surface_min_height_ratio": 0.84
+  },
   "surface_kind": "opl_apps_miniapp_visual_contract.v1",
   "owner": "one-person-lab-app",
   "family_id": "opl-apps",

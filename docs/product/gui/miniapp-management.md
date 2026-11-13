@@ -41,6 +41,9 @@ MiniApp 的稳定身份优先使用工具或资源声明的 `ui.appId`/`ui.id`�
 手动打开只调用 `launch_tool`，而且必须满足只读声明。已完成的 Agent 调用可以用
 原始 `server + tool + call_id` 回放其精确结果；这条回溯路径不会重新执行写操作。
 
+同一资源有多个只读工具时，默认入口优先选择面向模型、无需对象必填参数的工具；
+选择不依赖目录顺序或翻译后的工具名称，避免把内部读取功能显示为应用首页。
+
 ## 入口规则
 
 ### 产品入口与 MiniApp surface
@@ -62,8 +65,8 @@ Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions
 
 会话工作台提供一个应用切换器，切换对象是 `mini_app_id`。选择另一项时先释放旧的临时
 AppBridge binding，再显示所选应用介绍；用户点击“打开界面”后才打开新的 App。旧 App 的业务状态仍由其 owner 保管。切换器默认
-显示用户名称、说明、就绪状态和独立的启动状态。宽屏使用目录列表，窄屏使用带名称与
-状态的选择器；不显示 MCP server、tool 或原始 resource URI。
+显示用户名称、说明、就绪状态和独立的启动状态。所有尺寸均使用紧凑的应用选择器；打开后不保留常驻应用目录侧栏。
+只保留一条宿主工具栏，包含应用切换、打开或关闭、返回和更多操作；不显示 MCP server、tool 或原始 resource URI。
 
 任务详情携带精确的 `item_id`、`view_id` 和 thread，直接打开对应 MiniApp/view，
 不再先进入一个通用的 MCP tool 下拉选择器。关闭后返回 Runtime 任务详情；刷新或切换
@@ -80,11 +83,19 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 拆成多个 `server:tool` 顶层标签。AppBridge 的工具调用、资源读取、主题/语言/尺寸、
 上下文和消息通道继续沿用 `docs/mcp-apps/SPEC.md` 的安全与生命周期规则。
 
+## 内容区与宿主层级
+
+打开 MiniApp 后，主内容区由一条宿主工具栏和填满剩余空间的 App 组成。不能叠放“应用工作台 → MiniApp 工作台 → 当前应用”三层标题，也不能同时常驻宿主应用目录和共享页产品导航两列侧栏。目录刷新、软件管理、模块视图和关闭行为说明放入更多菜单；未打开、缺参数和错误状态才显示必要说明。
+
+桌面宿主工具栏不超过 80px；常规桌面验收中 iframe 至少占主区域宽度的 98%、高度的 84%。应用内部可以保留邮件、任务或镜头列表等业务导航，但产品与功能选择不另占宽侧栏。窄屏允许紧凑工具栏换行，保持操作命中区和完整内容宽度。
+
 ## 连续使用与首屏
 
 共享概览的专用入口来自 Package `presentation.miniapp.dedicated_resource_uri`，不是宿主固定清单。URI fragment 是编码后的 JSON 导航参数，宿主只接受目标 launcher schema 中声明的字段；选中对象的字段由领域页面提供。跨界面打开成功后保留“返回上一界面”，返回时重新读取 owner 当前状态。
 
 三个自有 UI 通过标准 `ui/update-model-context` 的 `structuredContent.navigation` 提供可用于再次打开的参数。宿主只在本机保存按 thread、server、resource 隔离的有限导航偏好，不缓存正文、编辑内容、权限、执行回执或业务状态。用户再次点击“打开界面”时恢复这些参数；显式任务入口优先，旧对象不可用时可“从首页打开”。后台写操作不参与恢复。
+
+媒体审看从 Framework 的已登记当前制作工作区进入；页面显示工作区，单集、镜头和最近位置一并保留 `workspace_path`。显式导航每次经过 contribution broker 核对，未连接时提示登记工作区。
 
 首屏说明当前应用能完成的任务和下一步。未选择对话时可直接返回对话；无连接、无内容与读取失败分别显示原因和对应入口。历史对话尚未加载时只恢复该原生 thread 的连接，不启动 Agent turn、不修改其权限；另一宿主仍持有写入权时提示切换或等待该对话结束。
 
@@ -92,7 +103,7 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 
 界面统一使用“打开界面／关闭界面”和“界面未打开／界面已打开”，避免把 UI 会话理解成智能体或后台任务进程。工作台说明“关闭或切换仅收起界面，后台任务继续运行”；安装、更新和启停归“软件中心”。“启动”仍用于本文的技术生命周期描述。
 
-共享 OPL Apps 以“选择应用 → 查看功能”组织导航，默认只显示当前应用的功能，避免同时平铺所有产品和所有页面。页面搜索可跨应用；窄屏保留应用和功能选择器。页面名称表达用户任务，server、resource、view 等标识仅在诊断中使用。
+共享 OPL Apps 以“选择应用 → 查看功能”组织导航，产品与功能选择器放在紧凑顶部栏，搜索按需展开，不再占用一列常驻导航。页面名称表达用户任务，server、resource、view 等标识仅在诊断中使用。
 
 ## 未启动、已启动与管理的区别
 
@@ -153,7 +164,7 @@ OPL 采用这些模型的共同点：Package/插件负责安装和生命周期�
 当前实现已经完成这次收敛：
 
 1. `McpAppHost` 在 live MCP catalog 中按 `server + resourceUri` 分组，并投影一个 App 目录项。
-2. `McpAppWorkspace` 左侧只负责 MiniApp 切换，右侧只渲染当前 MiniApp surface；加载、
+2. `McpAppWorkspace` 顶部只保留紧凑切换栏，当前 MiniApp 占满剩余内容区；加载、
    空态、错误重试和软件中心入口都在同一工作台内完成。
 3. Task detail 直接打开准确的 MiniApp/view，保留原有 item/view/thread 绑定。
 4. Composer 已删除交互 App 分组，继续保留 Agent、Skill、文件和目录选择。
@@ -172,6 +183,7 @@ OPL 采用这些模型的共同点：Package/插件负责安装和生命周期�
 - 目录读取失败、资源失效和权限撤销只影响对应 App，其他会话和应用保持可用。
 
 本次目录数量、视觉优化和源码验收记录见
-[2026-11-12 验收记录](evidence/miniapp-management-acceptance-2026-11-12.md)；此前的
+[2026-11-13 连续操作与本机验收](evidence/miniapp-management-acceptance-2026-11-13.md)；
+[2026-11-12 安装记录](evidence/miniapp-management-acceptance-2026-11-12.md) 和
 [2026-11-11 记录](evidence/miniapp-management-acceptance-2026-11-11.md) 保留为历史观察。
 

@@ -231,6 +231,15 @@
     }
   },
   "mcp_app_host_policy": {
+    "workspace_layout": {
+      "host_header": "single_compact_app_switcher_toolbar",
+      "surface_size": "remaining_main_content_canvas",
+      "persistent_app_directory_rail": false,
+      "stacked_workspace_miniapp_and_selected_app_headers": false,
+      "management_and_help": "on_demand_secondary_menu",
+      "legacy_module_views": "secondary_entry_in_host_menu",
+      "shared_product_navigation": "top_product_and_function_selectors"
+    },
     "discovery": "live_codex_mcp_catalog_tool_ui_resource_metadata_no_fixed_package_list",
     "presentation_contract_ref": "one-person-lab/contracts/opl-framework/mcp-app-presentation-contract.json",
     "visual_contract_ref": "contracts/opl-apps-miniapp-visual-contract.json",

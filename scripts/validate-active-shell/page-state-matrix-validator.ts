@@ -205,6 +205,13 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     || !miniAppPage.directory_projection?.display_fields?.includes('session_state')) {
     throw new Error('MiniApp workspace must separate live UI surfaces, session state and Package management');
   }
+  if (miniAppPolicy.workspace_layout?.host_header !== 'single_compact_app_switcher_toolbar'
+    || miniAppPolicy.workspace_layout?.surface_size !== 'remaining_main_content_canvas'
+    || miniAppPolicy.workspace_layout?.persistent_app_directory_rail !== false
+    || miniAppPolicy.workspace_layout?.stacked_workspace_miniapp_and_selected_app_headers !== false
+    || miniAppPolicy.workspace_layout?.shared_product_navigation !== 'top_product_and_function_selectors') {
+    throw new Error('MiniApp layout must reserve the main canvas for the app without stacked host headers or persistent directory rails');
+  }
   for (const state of ['loading', 'ready', 'not_started', 'starting', 'started', 'launch_error', 'empty', 'error', 'unavailable']) {
     if (!miniAppPage.states?.some((entry) => entry.id === state && entry.required_ui)) {
       throw new Error(`MiniApp workspace is missing required state ${state}`);

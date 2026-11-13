@@ -104,9 +104,9 @@ Med Auto Cast `0.3.3` 均返回 `readiness.status=ready`、`operational_ready=tr
 本机完整构建额外修复了打包器捕获输出的 1 MB 默认上限：较大的实际应用目录可以完整读取；
 启动失败保留底层错误码。相关 Full runtime 测试 20 项通过。
 
-## 后续优先改进
+## 已落实的改进
 
-下一轮按用户的理解成本排序，不以新增独立 App 数量为目标：
+以下三项已在 [2026-11-13 连续操作与本机验收](miniapp-management-acceptance-2026-11-13.md) 落地，详情与安装版结果见该记录：
 
 1. **从共享概览直达专用界面**。Relay 和媒体审看已有独立 UI，共享页应提供直接入口并携带
    当前对象，减少返回 MiniApp 列表再找一次的操作。入口仍消费 owner descriptor，不新增注册表。
