@@ -546,7 +546,7 @@ test('active Studio keeps Runtime status in primary navigation without expanding
   const profile = structuredClone(readJson('contracts/app-product-profile.json'));
   const navigation = profile.gui.home.home_layout.active_studio_primary_navigation;
   assert.deepStrictEqual(navigation.ordered_entry_ids, ['new_task', 'app_management', 'runtime', 'scheduled_tasks', 'archived']);
-  assert.equal(navigation.app_management_entry.label_i18n['zh-CN'], '应用管理');
+  assert.equal(navigation.app_management_entry.label_i18n['zh-CN'], '软件中心');
   assert.equal(navigation.app_management_entry.route, '/apps');
   assert.equal(navigation.app_management_entry.keyboard_reachable, true);
   assert.equal(navigation.runtime_entry.label_i18n['zh-CN'], '运行状态');
