@@ -4,6 +4,9 @@
 共享概览直达专用界面、用途与下一步提示、最近位置与返回路径。产品规则以
 [MiniApp 管理 SSOT](../miniapp-management.md) 和 `app-gui-product-contract.json` 为准。
 
+后续 Runtime 入口收敛、最新安装身份与真实窗口验收见
+[运行状态与任务工作台的本机验收](runtime-workbench-installed-acceptance-2026-11-13.md)。
+
 ## 已落地行为
 
 - 共享概览根据已安装 Package 的 `presentation.miniapp.dedicated_resource_uri` 显示

@@ -70,6 +70,9 @@ Framework 投影，状态文案、阶段名称、freshness 和 unknown 语义必
 普通 OPL Apps 入口只恢复产品浏览位置；旧版保存的 Runtime 导航失效，任务上下文通过明确的
 任务入口传入，不能把普通产品入口重新带回全局任务列表。
 
+本机开发安装版的导航、页面高度与字体回读见
+[2026-11-13 安装验收](evidence/runtime-workbench-installed-acceptance-2026-11-13.md)。
+
 ## 问题背景
 
 旧页面把五类事实放进同一条 runtime task：
