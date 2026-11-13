@@ -1,0 +1,76 @@
+name: Exact desktop renderer cache
+description: Reuse compiled Studio renderer bytes from an exact source and App contract identity.
+inputs:
+  mode:
+    required: true
+    description: restore or save
+  shell-root:
+    required: true
+    description: Checkout path of the actual frozen Shell
+  app-root:
+    required: true
+    description: Checkout path of the frozen App contracts
+  cache-hit:
+    default: 'false'
+    description: Restore result used to avoid saving an existing cache
+outputs:
+  cache-hit:
+    value: ${{ steps.restore.outputs.cache-hit || 'false' }}
+    description: Exact Actions cache hit; compiled bytes are validated by the Shell before reuse.
+runs:
+  using: composite
+  steps:
+    - name: Resolve compiled renderer identity
+      id: identity
+      env:
+        SHELL_ROOT: ${{ inputs.shell-root }}
+        OPL_APP_REPO_ROOT: ${{ github.workspace }}/${{ inputs.app-root }}
+        CACHE_MODE: ${{ inputs.mode }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        case "$CACHE_MODE" in restore|save) ;; *) exit 1 ;; esac
+        if [ "$CACHE_MODE" = restore ]; then rm -rf "$RUNNER_TEMP/opl-desktop-renderer-cache"; fi
+        script="$SHELL_ROOT/scripts/desktop/renderer-build-cache.mjs"
+        if [ -f "$script" ]; then node "$script"; fi
+    - name: Restore compiled renderer
+      id: restore
+      if: ${{ inputs.mode == 'restore' && steps.identity.outputs.key != '' }}
+      env:
+        OPL_ACTIONS_CACHE_CLASS: compiled_output
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/opl-desktop-renderer-cache
+        key: ${{ steps.identity.outputs.key }}
+    - name: Stage compiled renderer bytes
+      if: ${{ steps.identity.outputs.key != '' && (inputs.mode == 'restore' || steps.identity.outputs.reusable == 'true') }}
+      env:
+        SHELL_ROOT: ${{ inputs.shell-root }}
+        CACHE_MODE: ${{ inputs.mode }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        cache_dir="$RUNNER_TEMP/opl-desktop-renderer-cache"
+        renderer_dir="$SHELL_ROOT/dist/desktop"
+        if [ "$CACHE_MODE" = restore ]; then
+          if [ '${{ steps.restore.outputs.cache-hit }}' = true ]; then
+            rm -rf "$renderer_dir"
+            mkdir -p "$renderer_dir"
+            cp -R "$cache_dir/." "$renderer_dir/"
+          fi
+        else
+          test -f "$renderer_dir/renderer-cache.json"
+          rm -rf "$cache_dir"
+          mkdir -p "$cache_dir"
+          cp -R "$renderer_dir/." "$cache_dir/"
+        fi
+    - name: Save compiled renderer
+      if: ${{ inputs.mode == 'save' && steps.identity.outputs.reusable == 'true' && github.ref == 'refs/heads/main' && inputs.cache-hit != 'true' }}
+      env:
+        OPL_ACTIONS_CACHE_CLASS: compiled_output
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/opl-desktop-renderer-cache
+        key: ${{ steps.identity.outputs.key }}

@@ -9,6 +9,14 @@ frozen App adapter. Stable packages use `electron-builder.stable.yml` and retain
 The release controller supplies the calendar display version and monotonically
 increasing updater version separately.
 
+Standard and Full share exact verified renderer output and Electron downloads;
+Full still starts after Standard publication. See the
+[cache architecture](../actions-cache-architecture.md) for input binding and
+rebuild rules. Full build logs expose separate assembly stages and preserve
+partial timing on failure. Public Full DMG compression remains size-first ULMO.
+The [26.11.11 timing review](incidents/2026-11-11-release-efficiency.md) separates
+observed durations from the next-release planning ranges.
+
 The existing App feed delivers the replacement to AionUI-based installations.
 Studio Preview requires its identity-preserving terminal bridge release before
 it hands off to the Stable feed. Both source populations must be qualified with

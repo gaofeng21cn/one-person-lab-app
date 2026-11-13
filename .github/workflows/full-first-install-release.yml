@@ -577,6 +577,7 @@ jobs:
             ${{ runner.temp }}/.cache/electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
           key: electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
           restore-keys: |
             electron-cache-macos-arm64-arm64-
@@ -834,6 +835,16 @@ jobs:
           set -euo pipefail
           bunx electron-builder install-app-deps
           echo "OPL_FULL_SHELL_DEPS_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Restore exact desktop renderer
+        id: renderer-cache
+        if: ${{ !inputs.cache_only && (inputs.operation == 'append_full' || inputs.candidate_only) }}
+        continue-on-error: true
+        uses: ./release-executor/.github/actions/desktop-renderer-cache
+        with:
+          mode: restore
+          shell-root: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
+          app-root: one-person-lab-app
 
       - name: Prepare domain runtime dependencies
         shell: bash
@@ -1453,7 +1464,7 @@ jobs:
           NODE
 
       - name: Summarize Full caches and timings
-        if: ${{ !inputs.cache_only }}
+        if: ${{ always() && !inputs.cache_only }}
         shell: bash
         env:
           OPL_FULL_NPM_CACHE_HIT: ${{ steps.node-cache.outputs.cache-hit || 'unknown' }}
@@ -1502,6 +1513,7 @@ jobs:
               uv_artifacts: '${{ steps.uv-cache.outputs.cache-hit || 'false' }}',
               go_modules_build: '${{ steps.go-cache.outputs.cache-hit || 'unknown' }}',
               electron_artifacts: '${{ steps.electron-cache.outputs.cache-hit || 'false' }}',
+              desktop_renderer_transport: '${{ steps.renderer-cache.outputs.cache-hit || 'false' }}',
               full_runtime_layers: env.OPL_FULL_RUNTIME_CACHE_HIT || 'unknown',
               full_runtime_cache_key: '${{ steps.runtime-cache-keys.outputs.cache_key }}',
               full_runtime_cache_digest: '${{ steps.runtime-cache-keys.outputs.cache_digest }}',
@@ -1511,6 +1523,9 @@ jobs:
             },
             dmg_format: fullBuildTiming?.dmg_format ?? null,
             dmg_compression_level: fullBuildTiming?.dmg_compression_level ?? null,
+            build_status: fullBuildTiming?.status ?? null,
+            current_build_stage: fullBuildTiming?.current_stage ?? null,
+            build_stages: fullBuildTiming?.stages ?? null,
             duration_seconds: {
               toolchain_install: duration(env.OPL_FULL_WORKFLOW_STARTED_AT, env.OPL_FULL_TOOLCHAIN_READY_AT),
               framework_npm_ci: duration(env.OPL_FULL_TOOLCHAIN_READY_AT, env.OPL_FULL_FRAMEWORK_DEPS_READY_AT),
@@ -1538,6 +1553,7 @@ jobs:
             echo "| uv artifacts | ${{ steps.uv-cache.outputs.cache-hit || 'false' }} |"
             echo "| Go modules/build | ${{ steps.go-cache.outputs.cache-hit || 'unknown' }} |"
             echo "| Electron artifacts | ${{ steps.electron-cache.outputs.cache-hit || 'false' }} |"
+            echo "| Exact desktop renderer transport | ${{ steps.renderer-cache.outputs.cache-hit || 'false' }} |"
             echo "| Full runtime layers | $OPL_FULL_RUNTIME_CACHE_HIT |"
             echo
             echo "## Full Payload Resolved Refs"
@@ -1588,7 +1604,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Full workflow telemetry
-        if: ${{ !inputs.cache_only }}
+        if: ${{ always() && !inputs.cache_only }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-full-workflow-telemetry-${{ env.OPL_RELEASE_VERSION }}
@@ -1629,6 +1645,16 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Save exact desktop renderer
+        if: ${{ !inputs.cache_only && (inputs.operation == 'append_full' || inputs.candidate_only) }}
+        continue-on-error: true
+        uses: ./release-executor/.github/actions/desktop-renderer-cache
+        with:
+          mode: save
+          shell-root: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
+          app-root: one-person-lab-app
+          cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
+
       - name: Save Full Bun install cache
         if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1647,6 +1673,7 @@ jobs:
             ${{ runner.temp }}/.cache/electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
           key: electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full uv artifacts cache
@@ -2221,10 +2248,11 @@ jobs:
           mounted=true
           app_paths=()
           while IFS= read -r candidate; do app_paths+=("$candidate"); done < <(
-            find "$mount_point" -maxdepth 2 -type d -name 'One Person Lab.app' -print | LC_ALL=C sort
+            find "$mount_point" -maxdepth 2 -type d -name '*.app' -print | LC_ALL=C sort
           )
           test "${#app_paths[@]}" -eq 1 || { echo "::error::ARM-finalized Full DMG must contain exactly one App bundle."; exit 1; }
           mounted_app_path="${app_paths[0]}"
+          test "$(basename "$mounted_app_path")" = 'One Person Lab.app'
           mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
           codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
           codesign --verify --strict --verbose=2 "$dmg_path"
@@ -2344,49 +2372,11 @@ jobs:
             shasum -a 256 -c SHA256SUMS.txt
           )
 
-      - name: Summarize ARM-finalized Full package size
-        working-directory: one-person-lab-app
-        env:
-          OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          dmg_path="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
-          dmg_size_bytes="$(stat -f%z "$dmg_path")"
-          node --experimental-strip-types scripts/analyze-full-package-size.ts \
-            --full-dmg-size-bytes "$dmg_size_bytes" \
-            --json > dist/opl-full-release/full-package-size-summary.json
-          node --experimental-strip-types scripts/analyze-full-package-size.ts \
-            --full-dmg-size-bytes "$dmg_size_bytes" \
-            --markdown > dist/opl-full-release/full-package-size-summary.md
-          cat dist/opl-full-release/full-package-size-summary.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Write ARM-finalized Full build artifact cohort manifest
-        env:
-          OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          dmg_path="one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
-          mount_point="$(mktemp -d)"
-          mounted=false
-          cleanup_mount() {
-            if [ "$mounted" = true ]; then hdiutil detach "$mount_point" >/dev/null 2>&1 || true; fi
-            rm -rf "$mount_point"
-          }
-          trap cleanup_mount EXIT
-          hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mount_point" >/dev/null
-          mounted=true
-          packaged_trees=()
-          while IFS= read -r candidate; do packaged_trees+=("$candidate"); done < <(
-            find "$mount_point" -maxdepth 2 -type d -name '*.app' -print | LC_ALL=C sort
-          )
-          test "${#packaged_trees[@]}" -eq 1
           node --experimental-strip-types release-executor/scripts/write-build-artifact-cohort.ts \
             --output "$RUNNER_TEMP/opl-build-cohort.json" \
             --artifact "$dmg_path" \
             --artifact-name "$(basename "$dmg_path")" \
-            --packaged-tree "${packaged_trees[0]}" \
+            --packaged-tree "$mounted_app_path" \
             --app-profile one-person-lab-app/contracts/app-product-profile.json \
             --gui-contract one-person-lab-app/contracts/app-gui-product-contract.json \
             --smoke-harness one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/${{ steps.shell_profile.outputs.smoke_harness }} \
@@ -2406,6 +2396,23 @@ jobs:
             --stable-session-id '${{ inputs.release_bundle_digest }}' \
             --release-cohort-ref '${{ inputs.release_cohort_ref }}'
           cp "$RUNNER_TEMP/opl-build-cohort.json" one-person-lab-app/dist/opl-full-release/opl-build-cohort.json
+
+      - name: Summarize ARM-finalized Full package size
+        working-directory: one-person-lab-app
+        env:
+          OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg_path="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+          dmg_size_bytes="$(stat -f%z "$dmg_path")"
+          node --experimental-strip-types scripts/analyze-full-package-size.ts \
+            --full-dmg-size-bytes "$dmg_size_bytes" \
+            --json > dist/opl-full-release/full-package-size-summary.json
+          node --experimental-strip-types scripts/analyze-full-package-size.ts \
+            --full-dmg-size-bytes "$dmg_size_bytes" \
+            --markdown > dist/opl-full-release/full-package-size-summary.md
+          cat dist/opl-full-release/full-package-size-summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload ARM Full notarization terminal evidence
         if: ${{ always() }}

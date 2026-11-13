@@ -119,7 +119,7 @@ exit 0
 
 test('Full entry consumes the creator-verified DMG without a second unchanged-byte authorization pass', () => {
   const source = fs.readFileSync(fileURLToPath(new URL('../../../scripts/build-full-first-install-package.ts', import.meta.url)), 'utf8');
-  const compression = source.slice(source.indexOf('const packageCompressionStartedAt'), source.indexOf('const manifestChecksumStartedAt'));
+  const compression = source.slice(source.indexOf("timing.start('dmg_package_compression')"), source.indexOf("timing.start('manifest_checksum')"));
   assert.equal((compression.match(/createFullDmgFromVerifiedApp\(/g) ?? []).length, 1);
   assert.doesNotMatch(compression, /ensureAppBundleAdHocCodesign|ensureFullDmgLocalAuthorization|fs\.(?:write|copy|cp|rename)/);
   const creator = fs.readFileSync(fileURLToPath(new URL('../../../scripts/build-full-first-install-package/archive-output.ts', import.meta.url)), 'utf8');

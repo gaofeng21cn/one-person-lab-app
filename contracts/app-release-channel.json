@@ -5478,6 +5478,14 @@
         "large_cache_action_policy": "restore_then_explicit_main_only_save",
         "combined_actions_cache_allowed": false,
         "dynamic_key_class_env": "OPL_ACTIONS_CACHE_CLASS",
+        "desktop_renderer_cache": {
+          "class": "compiled_output",
+          "identity": "shell_source_plugin_source_dependency_lock_app_contracts_node_platform_arch_and_vite_environment",
+          "restore_policy": "exact_key_and_complete_output_digest_inventory_or_rebuild",
+          "transport_path": "runner_temp_opl_desktop_renderer_cache_shared_by_standard_and_full",
+          "artifact_qualification_effect": "none",
+          "full_start_policy": "after_standard_publication_readback"
+        },
         "per_run_data_transport": "github_actions_artifacts",
         "write_scope": {
           "codex_install_asset_cache": "refs/heads/main_only",

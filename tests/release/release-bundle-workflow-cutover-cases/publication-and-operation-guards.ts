@@ -568,7 +568,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     (step: Record<string, unknown>) => step.name === 'Finalize Full Developer ID signing and notarization on ARM',
   );
   const cohortWriter = fullFinalizer.steps.find(
-    (step: Record<string, unknown>) => step.name === 'Write ARM-finalized Full build artifact cohort manifest',
+    (step: Record<string, unknown>) => step.name === 'Verify ARM-finalized Full distribution trust and bind manifest',
   );
   const executorCheckout = fullFinalizer.steps.find(
     (step: Record<string, unknown>) => step.name === 'Checkout canonical Full release executor',

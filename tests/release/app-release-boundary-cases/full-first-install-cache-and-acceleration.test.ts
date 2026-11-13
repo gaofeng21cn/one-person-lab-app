@@ -36,6 +36,49 @@ test("Full workflow may select OPL Flow without a fixed Framework package catalo
   );
 });
 
+test("Full and Standard share the Electron artifact cache surface", () => {
+  const full = parseYaml(fs.readFileSync(path.join(appRoot, ".github/workflows/full-first-install-release.yml"), "utf8"));
+  const reusable = parseYaml(fs.readFileSync(path.join(appRoot, ".github/workflows/_build-reusable.yml"), "utf8"));
+  const fullSteps = full.jobs["full-first-install"].steps as Array<Record<string, any>>;
+  const standardSteps = reusable.jobs.build.steps as Array<Record<string, any>>;
+  const pathValue = (steps: Array<Record<string, any>>, name: string) => String(
+    steps.find((step) => step.name === name)?.with?.path ?? "",
+  ).trim();
+  const fullPath = pathValue(fullSteps, "Restore Electron artifacts cache");
+  const standardPath = pathValue(standardSteps, "Restore Electron artifacts cache");
+  assert.equal(fullPath, standardPath);
+  assert.match(fullPath, /LOCALAPPDATA.*electron-builder/);
+  assert.equal(
+    fullSteps.find((step) => step.name === "Summarize Full caches and timings")?.if,
+    "${{ always() && !inputs.cache_only }}",
+  );
+});
+
+test("Standard and Full use one exact compiled renderer cache and one finalizer mount", () => {
+  const full = parseYaml(fs.readFileSync(path.join(appRoot, ".github/workflows/full-first-install-release.yml"), "utf8"));
+  const reusable = parseYaml(fs.readFileSync(path.join(appRoot, ".github/workflows/_build-reusable.yml"), "utf8"));
+  for (const steps of [full.jobs["full-first-install"].steps, reusable.jobs.build.steps]) {
+    const restore = steps.find((step: any) => step.name === "Restore exact desktop renderer");
+    const save = steps.find((step: any) => step.name === "Save exact desktop renderer");
+    assert.ok(restore.uses.endsWith("/.github/actions/desktop-renderer-cache"));
+    assert.equal(restore.with.mode, "restore");
+    assert.equal(save.with.mode, "save");
+    assert.equal(restore.with["shell-root"], save.with["shell-root"]);
+  }
+  const action = parseYaml(fs.readFileSync(path.join(appRoot, ".github/actions/desktop-renderer-cache/action.yml"), "utf8"));
+  const restore = action.runs.steps.find((step: any) => step.id === "restore");
+  const save = action.runs.steps.find((step: any) => step.name === "Save compiled renderer");
+  assert.equal(restore.with.path, save.with.path);
+  assert.equal(restore.with["restore-keys"], undefined);
+  assert.match(save.if, /github.ref == 'refs\/heads\/main'/);
+  assert.match(save.if, /reusable == 'true'/);
+  const finalizer = full.jobs["full-finalizer"].steps.find((step: any) => step.name === "Verify ARM-finalized Full distribution trust and bind manifest");
+  assert.equal((finalizer.run.match(/hdiutil attach /g) ?? []).length, 1);
+  assert.match(finalizer.run, /--packaged-tree "\$mounted_app_path"/);
+  assert.match(finalizer.run, /trap cleanup_mount EXIT/);
+  assert.equal(full.jobs["full-finalizer"].steps.some((step: any) => step.name === "Write ARM-finalized Full build artifact cohort manifest"), false);
+});
+
 test("Full workflow checks out MAS Scholar Skills and binds both runtime assembly passes", () => {
   const workflow = fs.readFileSync(
     path.join(appRoot, ".github/workflows/full-first-install-release.yml"),

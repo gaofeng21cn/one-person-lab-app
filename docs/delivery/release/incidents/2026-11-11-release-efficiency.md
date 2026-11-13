@@ -19,7 +19,7 @@ Full attempts, platform follow-ups, Docker publication, and final follow-up. It 
 | --- | ---: |
 | First dispatch to final follow-up | 5h33m37s |
 | Accumulated workflow wall time | 5h03m56s |
-| Recovery gaps between runs | 2h36m24s |
+| Sum of adjacent run-creation gaps | 2h36m24s |
 | Failed or cancelled run tax | 3h14m07s across 5 runs |
 | Last successful Full append | 1h20m56s |
 
@@ -39,8 +39,9 @@ The avoidable tax was earlier in the chain:
 - The Linux platform follower spent about 26 minutes in dependency installation before the
   Ubuntu mirror/DNS failure became terminal. The mirror source and archive-zone fixes were then
   landed in `c66b84601` and `b9d80775e` and the platform was recovered successfully.
-- Recovery was started in separate runs after the first failures, creating 2h36m of gaps that
-  were not runner work.
+- Recovery required separate runs after failures. The 2h36m figure sums adjacent
+  creation-time gaps and includes overlapping work; it is not idle runner time
+  and cannot be subtracted from the overall span as a promised saving.
 
 ## Changes landed
 
@@ -59,3 +60,35 @@ reviews report the end-to-end span and the successful single-run duration togeth
 The signed, notarized, ordinary-account clean-VM, exact public-byte, Homebrew, and Docker
 readbacks remain mandatory. The 90-minute target is an execution objective, not permission to
 skip those gates.
+
+## Single-run improvements after this review
+
+Full DMG remains ULMO at the existing compression level, with payload size taking
+priority. The 1,345-second package segment includes staging, signing and checks
+around DMG creation; it is not a measurement of compression alone.
+
+The implemented changes repair the mismatched Standard/Full Electron cache path
+lists, share exact verified renderer output, and reuse the notarizer's exact
+DMG trust receipt in Studio distribution qualification. ZIP App trust and the
+real updater replacement still execute. Temporary loopback updater successor
+ZIPs use store compression and skip their own notarization while retaining
+Developer ID signing; public DMG/ZIP settings are unchanged. Full final trust
+and cohort writing share one read-only mount and retain native-runtime checks.
+
+Full assembly emits separate runtime materialization, offline seed, payload
+sync, Shell build, built-App payload sync, precompression gate, DMG package,
+optional runtime archive and manifest/checksum groups. Timing JSON is refreshed
+at every transition and on failure; it reports the exact failed stage and
+completed durations. Cache and timing summaries also run after build failure.
+
+Local renderer replay measured 21.5 seconds cold and 0.19 seconds on a verified
+hit; a changed output was rejected and rebuilt successfully. These local
+measurements do not predict hosted runner durations.
+
+The observed 392.8-second Full Shell build includes packaging and signing, so
+renderer reuse cannot be credited with all of it. With similar Apple response
+times and cache hits, use **38-41 minutes for Standard and 77-81 minutes for the
+Full append** as conservative planning ranges, about **115-122 minutes sequentially**. These
+are estimates awaiting the next authorized release, not measured new workflow
+durations. Preserving ULMO and the required gates leaves substantial fixed work;
+there is no evidence for a large further reduction from dependency caching alone.

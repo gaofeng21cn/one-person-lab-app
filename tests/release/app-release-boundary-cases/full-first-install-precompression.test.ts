@@ -139,7 +139,7 @@ test('Full builder runs the precompression gate before the expensive DMG stage',
     'utf8',
   );
   const gateIndex = builder.indexOf('runFullPackagePrecompressionGate({');
-  const compressionIndex = builder.indexOf('const packageCompressionStartedAt', gateIndex);
+  const compressionIndex = builder.indexOf("timing.start('dmg_package_compression')", gateIndex);
   const dmgIndex = builder.indexOf('createFullDmgFromVerifiedApp(', compressionIndex);
 
   assert.notEqual(gateIndex, -1);

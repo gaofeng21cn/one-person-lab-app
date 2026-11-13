@@ -39,6 +39,7 @@ import {
   writeJsonFile,
 } from './build-full-first-install-package/manifest-checksum.ts';
 import { appRepoRoot } from './build-full-first-install-package/paths.ts';
+import { createFullBuildTiming } from './build-full-first-install-package/build-timing.ts';
 import { durationSeconds, monotonicSeconds, run } from './build-full-first-install-package/process.ts';
 import { runFullPackagePrecompressionGate } from './build-full-first-install-package/precompression.ts';
 import { buildRuntimeCacheKeyReport } from './build-full-first-install-package/runtime-cache.ts';
@@ -309,239 +310,244 @@ function main() {
     return;
   }
 
-  const timings = {};
-  const buildStartedAt = monotonicSeconds();
-  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_runtime_materialize' }));
-  const prepared = prepareRuntime(options, sources, sourceResolutions);
-  const runtimePreparedAt = monotonicSeconds();
-  timings.runtime_materialize = durationSeconds(buildStartedAt, runtimePreparedAt);
-  timings.runtime_cache_materialize = Number(prepared.runtime_cache.events.reduce((sum, event) => {
-    return sum + (typeof event.duration_seconds === 'number' ? event.duration_seconds : 0);
-  }, 0).toFixed(3));
-  const runtimeCacheEventsPath = path.join(options.outDir, artifactNames.runtimeCacheEvents);
-  writeJsonFile(runtimeCacheEventsPath, prepared.runtime_cache);
-  const runtimeCurrentnessProbePath = path.join(options.outDir, 'full-runtime-currentness-probe.json');
-  writeJsonFile(runtimeCurrentnessProbePath, prepared.runtime_cache.currentness);
-  const runtimeNativeTrustPath = path.join(options.outDir, 'full-runtime-native-trust.json');
-  writeJsonFile(runtimeNativeTrustPath, prepared.manifest.native_trust);
-
-  if (options.warmRuntimeCacheOnly) {
-    fs.rmSync(prepared.stagingRoot, { recursive: true, force: true });
-    console.log(JSON.stringify({
-      status: 'runtime_cache_warmed',
-      version: options.version,
-      out_dir: options.outDir,
-      runtime_cache_events: runtimeCacheEventsPath,
-      runtime_currentness_probe: runtimeCurrentnessProbePath,
-      runtime_native_trust: runtimeNativeTrustPath,
-      runtime_cache: prepared.runtime_cache,
-      resolved_refs: prepared.resolved_refs,
-      duration_seconds: {
-        runtime_materialize: timings.runtime_materialize,
-        runtime_cache_materialize: timings.runtime_cache_materialize,
-      },
-    }, null, 2));
-    return;
-  }
-
-  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_offline_seed' }));
-  materializeFullKimiCuOfflineSeed(prepared);
-
-  const cacheEventsWrittenAt = monotonicSeconds();
-  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_shell_build' }));
-  let payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
-  const payloadSyncedAt = monotonicSeconds();
-  timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
-  const productProfileSync = syncAppProductProfileToShell(options.guiRoot);
-  if (carrier.carrierId === 'opl-studio' && carrier.bundleId === 'cn.onepersonlab.opl') {
-    materializeStudioOfficialProfileResources(options.guiRoot, appRepoRoot);
-  }
-
-  if (!options.skipGuiBuild) {
-    const shellBuildStartedAt = monotonicSeconds();
-    const shellBuildArgs = ['run', 'build-mac:arm64', '--', '--dir-only'];
-    if (options.reuseGuiViteOutput) {
-      shellBuildArgs.push('--skip-vite');
-    }
-    withShellFullRuntimeSigningExcluded(options.guiRoot, () => {
-      run('npm', shellBuildArgs, {
-        cwd: options.guiRoot,
-        env: {
-          ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
-          OPL_APP_REPO_ROOT: appRepoRoot,
-          OPL_DESKTOP_RELEASE_IDENTITY: carrier.bundleId === 'cn.onepersonlab.opl' ? 'stable' : 'preview',
-          OPL_RELEASE_VERSION: options.version,
-          OPL_UPDATER_VERSION: options.updaterVersion,
-          OPL_REQUIRE_FULL_RUNTIME: '1',
-        },
-      });
-    });
-    timings.shell_build = durationSeconds(shellBuildStartedAt, monotonicSeconds());
-  } else {
-    timings.shell_build = 0;
-  }
-
-  const dmgFormat = resolveFullDmgFormat();
-  process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
-  const builtApp = findBuiltApp(options.guiRoot);
-  payloadRoots = {
-    ...payloadRoots,
-    builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(
-      prepared.runtimeRoot,
-      prepared.manifest,
-      builtApp,
-    ),
-  };
-  if (manualLocalAppIdentity) {
-    stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
-  }
-  const precompressionGatePath = path.join(options.outDir, 'full-precompression-gate.json');
-  const precompressionStartedAt = monotonicSeconds();
-  const precompressionGate = runFullPackagePrecompressionGate({
-    builtAppPath: builtApp,
-    resolvedRefs: prepared.resolved_refs,
-    runtimeCurrentness: prepared.runtime_cache.currentness,
-    reportPath: precompressionGatePath,
-  });
-  timings.precompression_gate = durationSeconds(precompressionStartedAt, monotonicSeconds());
-
-  if (options.appOnly) {
-    ensureAppBundleAdHocCodesign(builtApp, 'Full local App bundle');
-    assertAppBundleLocalAuthorization(builtApp, 'Full local App bundle');
-    fs.rmSync(prepared.stagingRoot, { recursive: true, force: true });
-    console.log(JSON.stringify({
-      status: 'full_local_app_built',
-      version: options.version,
-      updater_version: options.updaterVersion,
-      bundle_version: manualLocalAppIdentity.machine_version,
-      local_build_id: manualLocalAppIdentity.local_build_id,
-      build_identity: manualLocalAppIdentity,
-      app_bundle: builtApp,
-      runtime_cache_events: runtimeCacheEventsPath,
-      runtime_currentness_probe: runtimeCurrentnessProbePath,
-      runtime_native_trust: runtimeNativeTrustPath,
-      precompression_gate: precompressionGatePath,
-      resolved_refs: prepared.resolved_refs,
-      duration_seconds: {
-        runtime_materialize: timings.runtime_materialize,
-        runtime_cache_materialize: timings.runtime_cache_materialize,
-        payload_sync: timings.payload_sync,
-        shell_build: timings.shell_build,
-        precompression_gate: timings.precompression_gate,
-        total: durationSeconds(buildStartedAt, monotonicSeconds()),
-      },
-    }, null, 2));
-    return;
-  }
-
-  const packageCompressionStartedAt = monotonicSeconds();
-  const targetDmg = path.join(options.outDir, artifactNames.dmg);
-  const optimizedPackage = createFullDmgFromVerifiedApp(
-    options.guiRoot,
-    builtApp,
-    targetDmg,
-    options.version,
-    prepared.manifest,
-    dmgFormat,
-  );
-  if (optimizedPackage?.manifest) {
-    prepared.manifest = optimizedPackage.manifest;
-  }
-  // The creator verified the final DMG after staging and signing. No DMG bytes
-  // change here, so mounting and assessing it again would repeat that gate.
-  removeStandardGuiArtifacts(options.guiRoot, options.version);
-  console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'release_stage', stage: 'full_archive' }));
-  const runtimeTar = maybeCreateRuntimeTar(options, prepared.runtimeRoot, artifactNames);
-  timings.dmg_package_compression = durationSeconds(packageCompressionStartedAt, monotonicSeconds());
-
-  const manifestChecksumStartedAt = monotonicSeconds();
-  const manifestPath = path.join(options.outDir, artifactNames.manifest);
-  fs.writeFileSync(manifestPath, `${JSON.stringify(prepared.manifest, null, 2)}\n`, 'utf8');
-  const appBundleTrimPath = path.join(options.outDir, 'full-app-bundle-trim-report.json');
-  const packageBoundaryAuditPath = path.join(options.outDir, 'full-package-boundary-audit.json');
-  if (optimizedPackage?.app_bundle_trim) {
-    writeJsonFile(appBundleTrimPath, optimizedPackage.app_bundle_trim);
-  }
-  if (optimizedPackage?.package_boundary_audit) {
-    writeJsonFile(packageBoundaryAuditPath, optimizedPackage.package_boundary_audit);
-  }
-  const readmePath = path.join(options.outDir, artifactNames.readme);
-  fs.writeFileSync(readmePath, buildFullFirstInstallReadme({
-    version: options.version,
-    dmgName: artifactNames.dmg,
-    runtimeTarName: runtimeTar ? artifactNames.runtimeTar : null,
-    notarized: process.env.OPL_FULL_PACKAGE_NOTARIZED === 'true',
-    carrier,
-  }), 'utf8');
-  const releaseManifestPath = path.join(options.outDir, artifactNames.releaseManifest);
-  writeJsonFile(releaseManifestPath, buildFullPublicReleaseManifest({
-    version: options.version,
-    updaterVersion: options.updaterVersion,
-    carrier,
-    artifactNames,
-    outDir: options.outDir,
-    fullDmgPath: targetDmg,
-    fullPackageManifest: prepared.manifest,
-    runtimeCacheEvents: prepared.runtime_cache,
-    runtimeCurrentnessProbePath,
-    runtimeNativeTrust: prepared.manifest.native_trust,
-    appBundleTrimReport: optimizedPackage?.app_bundle_trim ?? null,
-    packageBoundaryAudit: optimizedPackage?.package_boundary_audit ?? null,
-    precompressionGate,
-    carrier,
-  }));
-  const checksumPath = writeChecksums(options.outDir, [
-    targetDmg,
-    releaseManifestPath,
-    readmePath,
-    ...(runtimeTar ? [runtimeTar] : []),
-  ]);
-  timings.manifest_checksum = durationSeconds(manifestChecksumStartedAt, monotonicSeconds());
-  const buildFinishedAt = monotonicSeconds();
   const timingPath = path.join(options.outDir, 'full-package-build-timing.json');
-  writeJsonFile(timingPath, {
-    schema: 'opl_full_package_build_timing.v1',
-    version: options.version,
-    dmg_format: dmgFormat,
-    dmg_compression_level: process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL,
-    duration_seconds: {
-      full_package_build: durationSeconds(buildStartedAt, buildFinishedAt),
-      full_package_build_breakdown: timings,
-    },
-    resolved_refs: prepared.resolved_refs,
-  });
+  const timing = createFullBuildTiming(timingPath, { version: options.version } as Record<string, any>);
+  const timings = timing.timings;
+  let timingStatus = 'failed';
+  try {
+    const buildStartedAt = monotonicSeconds();
+    timing.start('runtime_materialize');
+    const prepared = prepareRuntime(options, sources, sourceResolutions);
+    timing.metadata.resolved_refs = prepared.resolved_refs;
+    const runtimePreparedAt = monotonicSeconds();
+    timings.runtime_materialize = durationSeconds(buildStartedAt, runtimePreparedAt);
+    timings.runtime_cache_materialize = Number(prepared.runtime_cache.events.reduce((sum, event) => {
+      return sum + (typeof event.duration_seconds === 'number' ? event.duration_seconds : 0);
+    }, 0).toFixed(3));
+    const runtimeCacheEventsPath = path.join(options.outDir, artifactNames.runtimeCacheEvents);
+    writeJsonFile(runtimeCacheEventsPath, prepared.runtime_cache);
+    const runtimeCurrentnessProbePath = path.join(options.outDir, 'full-runtime-currentness-probe.json');
+    writeJsonFile(runtimeCurrentnessProbePath, prepared.runtime_cache.currentness);
+    const runtimeNativeTrustPath = path.join(options.outDir, 'full-runtime-native-trust.json');
+    writeJsonFile(runtimeNativeTrustPath, prepared.manifest.native_trust);
 
-  console.log(JSON.stringify({
-    status: 'completed',
-    version: options.version,
-    dmg_format: dmgFormat,
-    dmg_compression_level: process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL,
-    out_dir: options.outDir,
-    app_repo_root: appRepoRoot,
-    framework_root: options.frameworkRoot,
-    dmg: targetDmg,
-    runtime_tar: runtimeTar,
-    manifest: manifestPath,
-    release_manifest: releaseManifestPath,
-    runtime_cache_events: runtimeCacheEventsPath,
-    runtime_native_trust: runtimeNativeTrustPath,
-    app_bundle_trim_report: optimizedPackage?.app_bundle_trim ? appBundleTrimPath : null,
-    package_boundary_audit: optimizedPackage?.package_boundary_audit ? packageBoundaryAuditPath : null,
-    precompression_gate: precompressionGatePath,
-    timing: timingPath,
-    readme: readmePath,
-    checksums: checksumPath,
-    payload_roots: payloadRoots,
-    product_profile: productProfileSync,
-    staging_root: prepared.stagingRoot,
-    runtime_cache: prepared.runtime_cache,
-    package_optimization: prepared.manifest.package_optimization ?? null,
-    resolved_refs: prepared.resolved_refs,
-    duration_seconds: {
-      full_package_build: durationSeconds(buildStartedAt, buildFinishedAt),
-      full_package_build_breakdown: timings,
-    },
-  }, null, 2));
+    if (options.warmRuntimeCacheOnly) {
+      fs.rmSync(prepared.stagingRoot, { recursive: true, force: true });
+      console.log(JSON.stringify({
+        status: 'runtime_cache_warmed',
+        version: options.version,
+        out_dir: options.outDir,
+        runtime_cache_events: runtimeCacheEventsPath,
+        runtime_currentness_probe: runtimeCurrentnessProbePath,
+        runtime_native_trust: runtimeNativeTrustPath,
+        runtime_cache: prepared.runtime_cache,
+        resolved_refs: prepared.resolved_refs,
+        duration_seconds: {
+          runtime_materialize: timings.runtime_materialize,
+          runtime_cache_materialize: timings.runtime_cache_materialize,
+        },
+      }, null, 2));
+      timing.finish('completed');
+      timingStatus = 'completed';
+      return;
+    }
+
+    timing.start('offline_seed');
+    materializeFullKimiCuOfflineSeed(prepared);
+
+    const cacheEventsWrittenAt = monotonicSeconds();
+    timing.start('payload_sync');
+    let payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
+    const payloadSyncedAt = monotonicSeconds();
+    timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
+    const productProfileSync = syncAppProductProfileToShell(options.guiRoot);
+    if (carrier.carrierId === 'opl-studio' && carrier.bundleId === 'cn.onepersonlab.opl') {
+      materializeStudioOfficialProfileResources(options.guiRoot, appRepoRoot);
+    }
+
+    if (!options.skipGuiBuild) {
+      timing.start('shell_build');
+      const shellBuildStartedAt = monotonicSeconds();
+      const shellBuildArgs = ['run', 'build-mac:arm64', '--', '--dir-only'];
+      if (options.reuseGuiViteOutput) {
+        shellBuildArgs.push('--skip-vite');
+      }
+      withShellFullRuntimeSigningExcluded(options.guiRoot, () => {
+        run('npm', shellBuildArgs, {
+          cwd: options.guiRoot,
+          env: {
+            ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
+            OPL_APP_REPO_ROOT: appRepoRoot,
+            OPL_DESKTOP_RELEASE_IDENTITY: carrier.bundleId === 'cn.onepersonlab.opl' ? 'stable' : 'preview',
+            OPL_RELEASE_VERSION: options.version,
+            OPL_UPDATER_VERSION: options.updaterVersion,
+            OPL_REQUIRE_FULL_RUNTIME: '1',
+          },
+        });
+      });
+      timings.shell_build = durationSeconds(shellBuildStartedAt, monotonicSeconds());
+    } else {
+      timings.shell_build = 0;
+    }
+
+    timing.start('built_app_payload_sync');
+    const dmgFormat = resolveFullDmgFormat();
+    timing.metadata.dmg_format = dmgFormat;
+    process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
+    timing.metadata.dmg_compression_level = process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL;
+    const builtApp = findBuiltApp(options.guiRoot);
+    payloadRoots = {
+      ...payloadRoots,
+      builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(
+        prepared.runtimeRoot,
+        prepared.manifest,
+        builtApp,
+      ),
+    };
+    if (manualLocalAppIdentity) {
+      stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
+    }
+    const precompressionGatePath = path.join(options.outDir, 'full-precompression-gate.json');
+    timing.start('precompression_gate');
+    const precompressionStartedAt = monotonicSeconds();
+    const precompressionGate = runFullPackagePrecompressionGate({
+      builtAppPath: builtApp,
+      resolvedRefs: prepared.resolved_refs,
+      runtimeCurrentness: prepared.runtime_cache.currentness,
+      reportPath: precompressionGatePath,
+    });
+    timings.precompression_gate = durationSeconds(precompressionStartedAt, monotonicSeconds());
+
+    if (options.appOnly) {
+      ensureAppBundleAdHocCodesign(builtApp, 'Full local App bundle');
+      assertAppBundleLocalAuthorization(builtApp, 'Full local App bundle');
+      fs.rmSync(prepared.stagingRoot, { recursive: true, force: true });
+      console.log(JSON.stringify({
+        status: 'full_local_app_built',
+        version: options.version,
+        updater_version: options.updaterVersion,
+        bundle_version: manualLocalAppIdentity.machine_version,
+        local_build_id: manualLocalAppIdentity.local_build_id,
+        build_identity: manualLocalAppIdentity,
+        app_bundle: builtApp,
+        runtime_cache_events: runtimeCacheEventsPath,
+        runtime_currentness_probe: runtimeCurrentnessProbePath,
+        runtime_native_trust: runtimeNativeTrustPath,
+        precompression_gate: precompressionGatePath,
+        resolved_refs: prepared.resolved_refs,
+        duration_seconds: {
+          runtime_materialize: timings.runtime_materialize,
+          runtime_cache_materialize: timings.runtime_cache_materialize,
+          payload_sync: timings.payload_sync,
+          shell_build: timings.shell_build,
+          precompression_gate: timings.precompression_gate,
+          total: durationSeconds(buildStartedAt, monotonicSeconds()),
+        },
+      }, null, 2));
+      timing.finish('completed');
+      timingStatus = 'completed';
+      return;
+    }
+
+    timing.start('dmg_package_compression');
+    const targetDmg = path.join(options.outDir, artifactNames.dmg);
+    const optimizedPackage = createFullDmgFromVerifiedApp(
+      options.guiRoot,
+      builtApp,
+      targetDmg,
+      options.version,
+      prepared.manifest,
+      dmgFormat,
+    );
+    if (optimizedPackage?.manifest) {
+      prepared.manifest = optimizedPackage.manifest;
+    }
+    // The creator verified the final DMG after staging and signing. No DMG bytes
+    // change here, so mounting and assessing it again would repeat that gate.
+    removeStandardGuiArtifacts(options.guiRoot, options.version);
+    timing.start('runtime_archive');
+    const runtimeTar = maybeCreateRuntimeTar(options, prepared.runtimeRoot, artifactNames);
+
+    timing.start('manifest_checksum');
+    const manifestPath = path.join(options.outDir, artifactNames.manifest);
+    fs.writeFileSync(manifestPath, `${JSON.stringify(prepared.manifest, null, 2)}\n`, 'utf8');
+    const appBundleTrimPath = path.join(options.outDir, 'full-app-bundle-trim-report.json');
+    const packageBoundaryAuditPath = path.join(options.outDir, 'full-package-boundary-audit.json');
+    if (optimizedPackage?.app_bundle_trim) {
+      writeJsonFile(appBundleTrimPath, optimizedPackage.app_bundle_trim);
+    }
+    if (optimizedPackage?.package_boundary_audit) {
+      writeJsonFile(packageBoundaryAuditPath, optimizedPackage.package_boundary_audit);
+    }
+    const readmePath = path.join(options.outDir, artifactNames.readme);
+    fs.writeFileSync(readmePath, buildFullFirstInstallReadme({
+      version: options.version,
+      dmgName: artifactNames.dmg,
+      runtimeTarName: runtimeTar ? artifactNames.runtimeTar : null,
+      notarized: process.env.OPL_FULL_PACKAGE_NOTARIZED === 'true',
+      carrier,
+    }), 'utf8');
+    const releaseManifestPath = path.join(options.outDir, artifactNames.releaseManifest);
+    writeJsonFile(releaseManifestPath, buildFullPublicReleaseManifest({
+      version: options.version,
+      updaterVersion: options.updaterVersion,
+      carrier,
+      artifactNames,
+      outDir: options.outDir,
+      fullDmgPath: targetDmg,
+      fullPackageManifest: prepared.manifest,
+      runtimeCacheEvents: prepared.runtime_cache,
+      runtimeCurrentnessProbePath,
+      runtimeNativeTrust: prepared.manifest.native_trust,
+      appBundleTrimReport: optimizedPackage?.app_bundle_trim ?? null,
+      packageBoundaryAudit: optimizedPackage?.package_boundary_audit ?? null,
+      precompressionGate,
+      carrier,
+    }));
+    const checksumPath = writeChecksums(options.outDir, [
+      targetDmg,
+      releaseManifestPath,
+      readmePath,
+      ...(runtimeTar ? [runtimeTar] : []),
+    ]);
+    timingStatus = 'completed';
+    timing.finish(timingStatus);
+    const buildFinishedAt = monotonicSeconds();
+
+    console.log(JSON.stringify({
+      status: 'completed',
+      version: options.version,
+      dmg_format: dmgFormat,
+      dmg_compression_level: process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL,
+      out_dir: options.outDir,
+      app_repo_root: appRepoRoot,
+      framework_root: options.frameworkRoot,
+      dmg: targetDmg,
+      runtime_tar: runtimeTar,
+      manifest: manifestPath,
+      release_manifest: releaseManifestPath,
+      runtime_cache_events: runtimeCacheEventsPath,
+      runtime_native_trust: runtimeNativeTrustPath,
+      app_bundle_trim_report: optimizedPackage?.app_bundle_trim ? appBundleTrimPath : null,
+      package_boundary_audit: optimizedPackage?.package_boundary_audit ? packageBoundaryAuditPath : null,
+      precompression_gate: precompressionGatePath,
+      timing: timingPath,
+      readme: readmePath,
+      checksums: checksumPath,
+      payload_roots: payloadRoots,
+      product_profile: productProfileSync,
+      staging_root: prepared.stagingRoot,
+      runtime_cache: prepared.runtime_cache,
+      package_optimization: prepared.manifest.package_optimization ?? null,
+      resolved_refs: prepared.resolved_refs,
+      duration_seconds: {
+        full_package_build: durationSeconds(buildStartedAt, buildFinishedAt),
+        full_package_build_breakdown: timings,
+      },
+    }, null, 2));
+  } finally {
+    if (timingStatus !== 'completed') timing.finish('failed');
+  }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

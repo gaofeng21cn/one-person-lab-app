@@ -57,7 +57,7 @@
     {
       "id": "compiled_output",
       "kind": "verified_build_intermediate",
-      "purpose": "Reuse exact version-bound active-shell Vite output without treating it as a release artifact.",
+      "purpose": "Reuse exact source, dependency, App contract and environment-bound active-shell renderer output without treating it as a release artifact.",
       "key_prefixes": [
         "full-shell-vite-output-"
       ],

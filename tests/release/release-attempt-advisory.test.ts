@@ -34,7 +34,7 @@ test("Full DMG artifacts carry the cohort manifest required by the VM gate", () 
   assert.match(fullWorkflow, /name: Write Full build artifact cohort manifest/);
   assert.match(
     fullWorkflow,
-    /full-finalizer:[\s\S]*name: Write ARM-finalized Full build artifact cohort manifest/,
+    /full-finalizer:[\s\S]*name: Verify ARM-finalized Full distribution trust and bind manifest/,
   );
   assert.match(fullWorkflow, /write-build-artifact-cohort\.ts/);
   assert.match(fullWorkflow, /--kind full/);

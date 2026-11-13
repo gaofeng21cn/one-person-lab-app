@@ -712,6 +712,16 @@ jobs:
           echo "Commit: ${{ steps.commit.outputs.short }}"
           echo "=========================================="
 
+      - name: Restore exact desktop renderer
+        id: renderer-cache
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && hashFiles('.github/actions/desktop-renderer-cache/action.yml') != '' }}
+        continue-on-error: true
+        uses: ./.github/actions/desktop-renderer-cache
+        with:
+          mode: restore
+          shell-root: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
+          app-root: .
+
       # macOS code signing certificate installation
       - name: Setup macOS code signing (macOS only)
         if: startsWith(matrix.platform, 'macos')
@@ -1238,11 +1248,22 @@ jobs:
             node ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/validate-desktop-package.mjs --distribution --write-receipt --identity stable --version "$OPL_RELEASE_VERSION"
             if [ "${{ runner.os }}" = macOS ] && [ "${{ inputs.require_macos_gatekeeper }}" = true ]; then
               OPL_DESKTOP_RELEASE_IDENTITY=stable OPL_UPDATER_VERSION="$OPL_UPDATER_VERSION" \
+                OPL_DESKTOP_NOTARIZATION_RECEIPT="$GITHUB_WORKSPACE/${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json" \
                 node ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/desktop/macos-distribution.mjs --require-release-trust
             fi
           else
             bun run validate:opl-package
           fi
+
+      - name: Save exact desktop renderer
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && hashFiles('.github/actions/desktop-renderer-cache/action.yml') != '' }}
+        continue-on-error: true
+        uses: ./.github/actions/desktop-renderer-cache
+        with:
+          mode: save
+          shell-root: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
+          app-root: .
+          cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
 
       - name: Save Electron artifacts cache
         if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}

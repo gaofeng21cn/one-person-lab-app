@@ -24,6 +24,25 @@ new large entries.
 
 ## Full Runtime Layering
 
+Standard and Full share the same Electron artifact paths as well as the key.
+Actions also derives a cache version from the path list; identical keys with
+different path lists cannot reuse each other's downloads.
+
+The `desktop-renderer-cache` composite restores the Studio renderer through one
+fixed runner-temporary directory, independent of checkout layout. Its exact key
+binds working source and plugin bytes, dependency locks, App contracts, Node,
+platform/architecture, and Vite environment. Studio verifies the complete output
+SHA-256/size inventory before reuse; missing, changed or extra files rebuild the
+renderer. Signing, packaging and qualification still run. Old frozen Shells
+without this helper retain their existing build path. Saves are main-only and
+require a validated output inventory; there is no prefix restore.
+
+Full starts after Standard publication, so a cache saved by the successful
+Standard build is available without speculative Full work. npm, uv, Go and the
+four runtime layers remain separate caches. We do not archive `node_modules`:
+the observed dependency installation cost is small, while its native binaries
+and symlinks require environment-specific handling and a large transfer.
+
 | Layer | Reused work | Content identity | Deliberate non-invalidators |
 | --- | --- | --- | --- |
 | `toolchain` | Codex, Node/npm, Python, uv, Temporal, OfficeCLI, MinerU, wrappers | Tool bytes and versions, Node/Python/Codex-vendor tree fingerprints, toolchain builder code, toolchain prune projection | Domain sources, Framework runtime source, skill selection |
