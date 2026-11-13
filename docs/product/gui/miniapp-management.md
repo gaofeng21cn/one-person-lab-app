@@ -52,6 +52,13 @@ OPL Apps 的“产品入口”是 Package 级导航投影，MiniApp 是 MCP `ser
 
 Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions` 动态生成 `catalog.products`。`shared_view` 表示产品 view 复用 `ui://opl/apps.html`；`dedicated_app` 表示产品拥有自己的标准 MCP App resource；`professional_app` 表示需要高频创作、设备、地图或监测布局的专业应用。缺少 metadata 时安全回退为 `shared_view/product_entry`，使用第一个已声明 view 导航，不按 Package ID 写宿主硬编码。
 
+`entry_kind=runtime_view` 是 Framework 的上下文视图，不进入 `catalog.products`，也不计为
+一个独立产品或一个新的 MiniApp surface。首页 `/runtime` 先列出全局 work items，用户选中
+任务后直接打开 `opl.runtime.item`；此时 OPL Apps 只显示“任务工作台”上下文和任务内部视图，
+隐藏产品选择器，避免出现“应用工作台 → MiniApp 工作台 → OPL Runtime → 当前任务”的套娃。
+没有明确任务 focus 时，OPL Apps 默认选择第一个 `product_entry`；这让 OPL Runtime 继续可被
+兼容工具读取，同时不再抢占普通产品入口。
+
 因此当前统计必须分开报告：OPL 自有 MiniApp surface、OPL Apps 内部 view、第三方 connector surface，以及当前已启动的 UI session。产品入口数量只能说明导航分组，不能替代前三项中的任何一项。
 
 ### 软件中心

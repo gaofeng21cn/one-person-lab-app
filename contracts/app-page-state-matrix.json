@@ -1501,6 +1501,7 @@
         "raw_transport_fields_default_visible": false,
         "product_entry_source": "live_opl_mcp_app_catalog.products",
         "product_entry_policy": "one_package_entry_with_nested_internal_views; dedicated_app and professional_app modes remain separate surfaces",
+        "runtime_view_navigation_policy": "catalog products exclude runtime_view; runtime views are opened contextually from the App /runtime task selection",
         "entry_fields": ["package_name", "package_summary_i18n", "presentation_mode", "view_count", "direct_entry"]
       },
       "surface_policy": {
@@ -1508,6 +1509,7 @@
         "switcher_owner": "current_thread_workspace",
         "management_entry": "/apps",
         "task_detail_entry": "exact_item_id_and_view_id_direct_open",
+        "runtime_task_handoff": "App /runtime opens the selected work item directly in the shared task workbench and returns to /runtime",
         "composer_contains_interactive_apps": false,
         "declarative_package_contributions_are_mcp_apps": false,
         "active_session": "zero_or_one_current_thread_ephemeral_binding_with_mounted_surface",

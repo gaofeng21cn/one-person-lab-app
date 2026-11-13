@@ -46,6 +46,21 @@ Framework raw 文案覆盖。
 directory 动态生成。`validate:runtime-route` 是专项验证入口，不表示产品路由可选。
 旧 X0-01 分类和固定 Agent scope 已退出当前机器合同。
 
+## 与 OPL Apps 内 Runtime 视图的边界
+
+首页 `/runtime` 是全局任务总览，回答“现在有哪些工作、哪些需要关注、下一步看什么”。
+它负责全部 Agent、Project scope、状态筛选、归档库、服务提醒和刷新，不承担领域任务的
+证据阅读或连续编辑。
+
+OPL Apps 内的 `opl-runtime` 是同一份 `WorkItemProjection v2` 的上下文工作台，回答“选中的
+这一项具体发生了什么、如何继续”。它只在首页选中 work item 或已有任务结果时打开，展示
+执行进度、研究路径、证据与产物、待人决定、typed domain view 和任务级 action。
+
+因此 `opl.runtime.v1#work-items` 仍是 Framework 的兼容读取视图，但不再作为 OPL Apps 的
+普通产品入口；`opl.runtime.v1#item` 是首页到任务工作台的直接入口。两处只消费同一份
+Framework 投影，状态文案、阶段名称、freshness 和 unknown 语义必须一致。用户从任务工作台
+返回首页运行状态，不能再经过“OPL Apps → OPL Runtime → 当前任务”的重复导航。
+
 ## 问题背景
 
 旧页面把五类事实放进同一条 runtime task：

@@ -388,6 +388,12 @@
         "product_entry": "用户可用的领域产品入口，来源于 Package presentation metadata",
         "runtime_view": "Framework 运行时的任务、上下文和知识视图，不计为独立产品"
       },
+      "runtime_view_navigation_policy": {
+        "catalog_products": "只投影 entry_kind=product_entry；runtime_view 只保留在 views 供上下文打开",
+        "default_selection": "没有明确 focus 时选择第一个 product_entry，不自动进入 runtime_view",
+        "contextual_entry": "首页 /runtime 选中 work item 后直接打开 opl.runtime.item 任务工作台",
+        "return_surface": "任务工作台返回首页运行状态；不在 OPL Apps 产品选择器中重复展示 Runtime"
+      },
       "fallback": "缺少 presentation.miniapp 时使用 shared_view/product_entry，并以第一个已声明 view 作为可导航入口；不硬编码 Package 清单",
       "internal_view_policy": "internal view is a navigation item within its Package product entry and is never counted as a MiniApp surface",
       "direct_entry_policy": "direct_entry selects a shared view; dedicated_resource_uri provides an explicit standard open-link action resolved against live MCP discovery"
