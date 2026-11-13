@@ -10,8 +10,8 @@ export const appOwnedActiveStudioPrimaryNavigation = {
   app_management_entry: {
     route: "/apps",
     label_i18n: {
-      "zh-CN": "应用管理",
-      "en-US": "App management",
+      "zh-CN": "软件中心",
+      "en-US": "Software Center",
     },
     placement: "after_new_task_before_runtime",
     visibility: "always",

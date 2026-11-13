@@ -30,7 +30,7 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 | --- | --- | --- |
 | Agent 原生应用与 MiniApp | [Framework 标准](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md) · [App 宿主](../../mcp-apps/SPEC.md) · [MiniApp 管理与工作台](miniapp-management.md) · [OPL Apps family 视觉契约](../../../contracts/opl-apps-miniapp-visual-contract.json) | Framework 持有共用技术标准；App 持有导航、人机交接与 UI 验收 |
 | MiniApp 管理与工作台 | [MiniApp 管理与工作台](miniapp-management.md) | App 持有 MiniApp 身份、管理入口、切换入口和运行面边界；Studio 负责实现 |
-| 应用管理 | [软件管理](software-management.md) · [Settings Control Center](settings-control-center.md#application-management-surface) · [`app_management` product contract](../../../contracts/app-gui-product-contract.json) | App 统一编排 Package、更新与共享资源 projection；各 owner 保持生命周期、知识和凭证真相 |
+| 软件中心 | [软件管理](software-management.md) · [Settings Control Center](settings-control-center.md#application-management-surface) · [`app_management` product contract](../../../contracts/app-gui-product-contract.json) | App 统一编排 Package、更新与共享资源 projection；各 owner 保持生命周期、知识和凭证真相 |
 | Settings | [Control Center](settings-control-center.md) | [Active gaps](../../active/app-ideal-state-gap-plan.md) |
 | Runtime | [动态任务中心](runtime-overview-redesign.md) | [Package migration](../../active/opl-package-platform-composition-migration.md) |
 | 首次启动 | [First-run setup](first-run-setup-workspace.md) | [Conformance](shell-conformance-matrix.md) |

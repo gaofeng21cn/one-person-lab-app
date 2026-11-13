@@ -314,21 +314,21 @@
               "scheduled_tasks",
               "archived"
             ],
-              "app_management_entry": {
-                "route": "/apps",
-                "label_i18n": {
-                  "zh-CN": "应用管理",
-                  "en-US": "App management"
-                },
-                "placement": "after_new_task_before_runtime",
-                "visibility": "always",
-                "expanded_behavior": "icon_and_label",
-                "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
-                "narrow_drawer_behavior": "icon_and_label",
-                "keyboard_reachable": true,
-                "home_content_effect": "navigation_only_no_dashboard",
-                "route_gate_boundary": "default_release_gate_requires_framework_app_state_and_package_projection"
+            "app_management_entry": {
+              "route": "/apps",
+              "label_i18n": {
+                "zh-CN": "软件中心",
+                "en-US": "Software Center"
               },
+              "placement": "after_new_task_before_runtime",
+              "visibility": "always",
+              "expanded_behavior": "icon_and_label",
+              "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
+              "narrow_drawer_behavior": "icon_and_label",
+              "keyboard_reachable": true,
+              "home_content_effect": "navigation_only_no_dashboard",
+              "route_gate_boundary": "default_release_gate_requires_framework_app_state_and_package_projection"
+            },
             "runtime_entry": {
               "route": "/runtime",
               "label_i18n": {
@@ -1617,7 +1617,7 @@
       "action_source": "owner_projected_actions_only",
       "fresh_readback_required": true,
       "official_ui_reuse": {
-        "page_identity": "应用管理",
+        "page_identity": "软件中心",
         "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
         "upstream_ref": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
         "reused_interaction_and_visuals": [
@@ -1826,9 +1826,11 @@
           "source": "owner-projected icon_url backed by immutable package asset metadata",
           "public_url_policy": "HTTPS public asset bound to an exact source commit; no mutable branch fallback",
           "private_policy": "do not request anonymous private repository paths; use an authorized owner-projected asset or deterministic fallback",
-          "fallback": "stable product initials and software-type icon; no package-id artwork roster",
-          "failed_image": "retain a readable fallback without layout shift"
-        }
+          "fallback": "bundled owner-declared raster artwork, then neutral raster placeholder; no initials or synthetic letter logos",
+          "failed_image": "retain a readable fallback without layout shift",
+          "offline_policy": "generate packaged asset references from the owner artwork manifest; do not hand-maintain a second product list"
+        },
+        "ordinary_use_entry": "Start using opens the declared task or UI entry; an update is a separate secondary action"
       },
       "installation_instance_policy": {
         "identity_policy": "one product in one environment can retain multiple installations and has at most one active runtime instance; integration entrypoints refer to that runtime rather than establishing another activation",
@@ -1914,7 +1916,32 @@
         "agents_route": "compatibility_navigation_to_software_center",
         "capabilities_page": "native_skills_and_connections_configuration_with_software_center_link",
         "updates_page": "navigation_to_software_center_updates",
-        "duplicate_catalog_or_lifecycle_controls_allowed": false
+        "duplicate_catalog_or_lifecycle_controls_allowed": false,
+        "resources_page": "shared_resource_deep_link_and_webui_access_only"
+      },
+      "primary_sections": [
+        "applications",
+        "updates",
+        "resources"
+      ],
+      "experience_policy": {
+        "name": {
+          "zh-CN": "软件中心",
+          "en-US": "Software Center"
+        },
+        "primary_sections": [
+          "applications",
+          "updates",
+          "resources"
+        ],
+        "advanced_navigation": "software sources and runtime components remain reachable from management controls and contextual details",
+        "use_entry": "installed callable software exposes Start using before optional update actions; navigation selects its owner-declared entry without executing a task",
+        "setup_continuity": "retain the selected product while installing or granting shared-resource access; fresh owner readback exposes Continue using",
+        "resource_navigation": "one shared-resource management surface; settings aliases and product details deep-link to it and retain a return route",
+        "attention_policy": "group only proven shared causes by owner identity; include affected products and one recovery route; unknown, unconfigured optional resources and updates are not failures",
+        "installation_disclosure": "current installation with version, mode and location first; other installations and delivery choices are progressively disclosed",
+        "knowledge_connection": "native folder selection where supported; scope choices use readable labels and owner defaults; existing knowledge and credential owners retain authority",
+        "identity_policy": "display name, purpose, artwork and launch entry derive from owner product metadata; bundled artwork is a generated offline projection, not another product inventory"
       }
     },
     {
@@ -4425,7 +4452,16 @@
       ],
       "primary_action_id": "open_selected_resource_action",
       "technical_details_default": "explicit_action_modal",
-      "exception_emphasis": "attention_only"
+      "exception_emphasis": "attention_only",
+      "active_studio_presentation": {
+        "sections": [
+          "shared_resource_link",
+          "web_access"
+        ],
+        "shared_resource_route": "/apps?section=resources",
+        "connection_and_knowledge_controls": "render_once_in_software_center_shared_resources",
+        "existing_source_and_action_contracts": "consumed_by_the_shared_resources_surface; settings_provides_navigation_only"
+      }
     },
     {
       "id": "capabilities",

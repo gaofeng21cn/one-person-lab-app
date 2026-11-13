@@ -58,6 +58,8 @@ export function validateAppSettingsPages(matrix, guiContract) {
     assertIncludesAll(page.must_not_show, expected.must_not_show, `${matrixPageId} must_not_show`);
   }
 
+  assertDeepEqualJson(pageById(matrix, 'settings_resources').active_studio_presentation, guiContract.pages.settings_resources.active_studio_presentation, 'Shared resources settings route');
+
   const applicationManagementPage = pageById(matrix, 'app_management');
   const applicationManagementContract = guiContract.pages.app_management;
   for (const field of [
@@ -67,6 +69,8 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'route_scope',
     'section_query_parameter',
     'default_section',
+    'primary_sections',
+    'experience_policy',
     'environment_scope',
     'required_state_axes',
     'action_source',
@@ -90,7 +94,7 @@ export function validateAppSettingsPages(matrix, guiContract) {
   }
   const officialUiReuse = applicationManagementContract.official_ui_reuse;
   if (
-    officialUiReuse?.page_identity !== '应用管理' ||
+    officialUiReuse?.page_identity !== '软件中心' ||
     officialUiReuse?.upstream_ref !== 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159' ||
     officialUiReuse?.upstream_page !== 'deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx' ||
     !officialUiReuse?.opl_adapter_boundary?.includes('Framework package projection') ||

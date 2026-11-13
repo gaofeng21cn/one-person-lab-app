@@ -15,11 +15,11 @@ MiniApp 有三个彼此分开的平面：
 
 | 平面 | 用户入口 | 负责内容 |
 | --- | --- | --- |
-| 管理 | 应用管理（`/apps`） | Package 的安装、启停、版本、来源、权限和就绪状态；不维护第二份 MiniApp 注册表 |
+| 管理 | 软件中心（`/apps`） | Package 的安装、启停、版本、来源、权限和就绪状态；不维护第二份 MiniApp 注册表 |
 | 导航 | 会话工作台的应用切换器；任务详情的直接入口 | 在当前 thread scope 内选择一个已声明的 MiniApp，并保留回到产生它的会话或 Runtime 任务的路径 |
 | 运行 | 当前 MiniApp surface | 由 MCP App 自己组织页面和业务流程；宿主只提供 AppBridge、主题、语言、尺寸、连接和批准边界 |
 
-因此，应用管理回答“这个能力是否安装并可用”，应用切换回答“当前要看哪个 UI”，
+因此，软件中心回答“这个能力是否安装并可用”，应用切换回答“当前要看哪个 UI”，
 MiniApp 内容回答“这个 UI 如何完成工作”。三者不共享本地状态副本。
 
 ## 身份与分组
@@ -51,9 +51,9 @@ Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions
 
 因此当前统计必须分开报告：OPL 自有 MiniApp surface、OPL Apps 内部 view、第三方 connector surface，以及当前已启动的 UI session。产品入口数量只能说明导航分组，不能替代前三项中的任何一项。
 
-### 应用管理
+### 软件中心
 
-应用管理继续复用现有 `/apps` 和 Framework 的 Package projection。MiniApp 不成为新的
+软件中心继续复用现有 `/apps` 和 Framework 的 Package projection。MiniApp 不成为新的
 安装单元，也不在 Studio 中维护固定清单、锁文件、版本解析或启停状态。一个 Package
 可以提供多个 MiniApp；Package 被禁用、卸载或失去宿主能力后，当前会话重新发现并投影
 相应的目录变化或连接错误；App 不凭空补出第二份 MiniApp 清单。
@@ -70,7 +70,7 @@ AppBridge binding，再显示所选应用介绍；用户点击“打开界面”
 会话不会重放已完成的 mutation。
 
 Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交互式 MiniApp 不再作为
-“应用与连接”选择项出现；连接状态由宿主和应用管理（`/apps`）提供，交互 UI 由应用
+“应用与连接”选择项出现；连接状态由宿主和软件中心（`/apps`）提供，交互 UI 由应用
 切换器提供。
 
 ### 运行面
@@ -90,7 +90,7 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 
 ## 用户可见术语
 
-界面统一使用“打开界面／关闭界面”和“界面未打开／界面已打开”，避免把 UI 会话理解成智能体或后台任务进程。工作台说明“关闭或切换仅收起界面，后台任务继续运行”；安装、更新和启停归“应用管理”。“启动”仍用于本文的技术生命周期描述。
+界面统一使用“打开界面／关闭界面”和“界面未打开／界面已打开”，避免把 UI 会话理解成智能体或后台任务进程。工作台说明“关闭或切换仅收起界面，后台任务继续运行”；安装、更新和启停归“软件中心”。“启动”仍用于本文的技术生命周期描述。
 
 共享 OPL Apps 以“选择应用 → 查看功能”组织导航，默认只显示当前应用的功能，避免同时平铺所有产品和所有页面。页面搜索可跨应用；窄屏保留应用和功能选择器。页面名称表达用户任务，server、resource、view 等标识仅在诊断中使用。
 
@@ -98,7 +98,7 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 
 | 对象或状态 | 实际存在什么 | 用户动作及结果 |
 | --- | --- | --- |
-| 应用管理 | Framework/原生 carrier 投影的安装、启用、版本、权限和连接状态 | 安装、启停或维护 Package；进入管理页不会启动 MiniApp |
+| 软件中心 | Framework/原生 carrier 投影的安装、启用、版本、权限和连接状态 | 安装、启停或维护 Package；进入管理页不会启动 MiniApp |
 | 未启动 | 当前会话发现的名称、说明、只读入口和参数要求 | 选中只查看介绍；点击“打开界面”才调用只读入口并读取 UI 资源 |
 | 启动中 | 正在读取启动结果和 UI 资源 | 防止重复启动；可以切换，迟到的结果会被释放 |
 | 已启动 | 当前 thread 的临时 host binding、AppBridge 和一个 iframe | 在应用内交互；页面本身初始化失败时显示恢复提示 |
@@ -154,7 +154,7 @@ OPL 采用这些模型的共同点：Package/插件负责安装和生命周期�
 
 1. `McpAppHost` 在 live MCP catalog 中按 `server + resourceUri` 分组，并投影一个 App 目录项。
 2. `McpAppWorkspace` 左侧只负责 MiniApp 切换，右侧只渲染当前 MiniApp surface；加载、
-   空态、错误重试和应用管理入口都在同一工作台内完成。
+   空态、错误重试和软件中心入口都在同一工作台内完成。
 3. Task detail 直接打开准确的 MiniApp/view，保留原有 item/view/thread 绑定。
 4. Composer 已删除交互 App 分组，继续保留 Agent、Skill、文件和目录选择。
 5. `package_contribution` 的声明式模块视图保持原有 owner 和 broker 边界；它不是标准
@@ -168,7 +168,7 @@ OPL 采用这些模型的共同点：Package/插件负责安装和生命周期�
 - 手动打开不会调用非只读工具，已完成调用回放不重复 mutation；
 - 切换、关闭、thread 变化和连接重置都会释放旧 binding；
 - Runtime 任务详情能直接打开精确 item/view，并能返回 Runtime；
-- Composer 中没有交互 App 选择项；应用管理仍可从工作台进入；
+- Composer 中没有交互 App 选择项；软件中心仍可从工作台进入；
 - 目录读取失败、资源失效和权限撤销只影响对应 App，其他会话和应用保持可用。
 
 本次目录数量、视觉优化和源码验收记录见

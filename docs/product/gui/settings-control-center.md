@@ -43,7 +43,7 @@ readiness, installed App currentness, or owner acceptance.
 ## Application Management Surface
 
 `/apps` is the App-owned management surface for the OPL software ecosystem and
-connected external sources. It is reached from the primary navigation as **应用管理** and answers
+connected external sources. It is reached from the primary navigation as **软件中心** and answers
 four related questions in one place: which applications are installed and
 usable, which installed objects need an update or repair, which shared knowledge
 or connection resources are available to the current local environment, and
@@ -234,7 +234,7 @@ tab strip.
 | --- | --- | --- |
 | 概览 | 概览 | `general` |
 | 账户与模型 | 账户与访问；模型 | `gateway`; `access` |
-| 连接与部署 | 资源与连接 | `resources` |
+| 连接与部署 | 共享资源与网页访问 | `resources` |
 | 工作区 | 工作目录；数据与存储 | `workspace#current-workspace`; `storage` |
 | 扩展与应用 | 全部扩展；智能体；指令与上下文 | `capabilities`; `agents`; `workspace#personalization` |
 | 运行与维护 | 服务状态；更新与修复；日志与诊断 | `environment#services`; `environment#updates`; `environment#diagnostics` |
@@ -356,7 +356,7 @@ Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的
 插件启用、Skill、MCP App 调用或原生安装，也不因升级或重新发现而自动恢复。
 
 包提供的设置和状态统一放在该包的展开详情中，只有包已在 App 中启用且详情展开时读取。
-“服务状态”只保留 Codex、任务处理和定时等基础运行条件；“资源与连接”保留其自身配置。
+“服务状态”只保留 Codex、任务处理和定时等基础运行条件；“共享资源与网页访问”保留软件中心入口和独立 WebUI 配置。
 所有安装、更新、修复和 App 开关都经现有 Framework 投影与 App action 执行，不维护额外注册表。
 
 列表直接提供“在 OPL App 中启用”开关；安装状态、已安装版本与来源保持可见，关闭后仍能在目录中找到并重新启用。
@@ -943,3 +943,5 @@ Support links are separate rows. Destructive actions remain behind their real pr
 Studio 设置按领域组织，共享 DSH 外壳和控件；生产 Host 位于 `src/host`，脚本只负责启动、构建和验证。Framework 工作台服务仍是一个插件，记忆和存储分别维护。OPL Link Desktop Connector 完整交付前不进入默认安装与内置曝光，既有数据保留。
 
 本轮实现位置与验证边界见 [设置模块化验收](evidence/settings-modularization-acceptance-2026-09-27.md)。
+
+当前 Studio 将知识资料库、账户连接与逐软件授权统一放在软件中心的“共享资源”。设置中的“共享资源与网页访问”保留该页入口和独立 WebUI 部署配置；旧连接管理控件不再重复出现。

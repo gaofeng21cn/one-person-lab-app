@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "owner": "one-person-lab-app",
+  "purpose": "OPL product raster artwork and identity aliases. Asset projection only; does not admit software to the catalog or define its version, access, lifecycle or launch entry.",
+  "fallback": "software-generic.png",
+  "assets": [
+    {
+      "file": "agent-old-photo-workflow.png",
+      "identities": [
+        "agent-old-photo-workflow"
+      ],
+      "sha256": "aaf8d4ae3d9896588dd6639de24b56cbcc7df162891592da7d4a5728bc359b77"
+    },
+    {
+      "file": "agent-session-vault.png",
+      "identities": [
+        "agent-session-vault"
+      ],
+      "sha256": "3d6b08d815fcec96eda28f09b56b7895f8ef9990eddbda84b9f87f24be2e3ce2"
+    },
+    {
+      "file": "codex-models.png",
+      "identities": [
+        "github:gaofeng21cn/opl-codex-models",
+        "codex-models",
+        "codex-model-manager"
+      ],
+      "sha256": "28507b84e87708663efd993d651ef09ab0ab8d38d6601ce67fc72efd9793a5af"
+    },
+    {
+      "file": "glkvm-native.png",
+      "identities": [
+        "glkvm-native"
+      ],
+      "sha256": "9261e2d6475af8a01573294401c45eb68c2fcc5132cc8561a8f38d94e7bce7ef"
+    },
+    {
+      "file": "iphone-steward.png",
+      "identities": [
+        "iphone-steward",
+        "iphone-app-steward"
+      ],
+      "sha256": "176b77c82af41668c63e3664dcf757538f5b8ea7b1f850c2c54cedd4b7395bf9"
+    },
+    {
+      "file": "journey-atlas.png",
+      "identities": [
+        "travel-passport",
+        "journey-atlas"
+      ],
+      "sha256": "0e6071d06f50345ffea07cb45afc9eea5d9558095381217a3eecc0f4b4f7cb0f"
+    },
+    {
+      "file": "kindle-pilot.png",
+      "identities": [
+        "kindle-pilot"
+      ],
+      "sha256": "d1f73f8fd53b0048721e7b44c189c8fb07289d5667445bc4a638ca2e7639e081"
+    },
+    {
+      "file": "mac-media-assets.png",
+      "identities": [
+        "mac-media-assets"
+      ],
+      "sha256": "5de5dac79a5d597a2be06547594b0b6eb69327c1ca663eed80ee0426c28a55cf"
+    },
+    {
+      "file": "med-auto-cast.png",
+      "identities": [
+        "med-autocast",
+        "med-auto-cast"
+      ],
+      "sha256": "359630847a5c93f2a0530ef12e6321928fb98f503e1e0ea48c8b98d2b7cdb884"
+    },
+    {
+      "file": "med-auto-grant.png",
+      "identities": [
+        "mag",
+        "med-autogrant"
+      ],
+      "sha256": "354b0b89a8919c8e6762f4fc1c0d138ec2991a43be3d3aeed1eb55dc1f287e80"
+    },
+    {
+      "file": "med-auto-practice.png",
+      "identities": [
+        "med-autopractice"
+      ],
+      "sha256": "b5cc50be581ed23abf2651fc4096773038b3d4c3e4777ed21d2d157b966e6c3a"
+    },
+    {
+      "file": "med-auto-science.png",
+      "identities": [
+        "mas",
+        "med-autoscience"
+      ],
+      "sha256": "723f2552f8fb6fe6c38fa31ec989e149f719fcbd66fcc6bd4ab0bda9083c1e72"
+    },
+    {
+      "file": "mas-scholar-skills.png",
+      "identities": [
+        "mas-scholar-skills"
+      ],
+      "sha256": "7d78f2ff39984e8dfe50e8b467c66f3070075c52a70093c19166867059a592ac"
+    },
+    {
+      "file": "opl-app.png",
+      "identities": [
+        "github:gaofeng21cn/one-person-lab-app",
+        "one-person-lab-app",
+        "opl-studio",
+        "cask:opl-studio"
+      ],
+      "sha256": "cfcf591e89fa5f1630d937420d45544fba210cf758826e855c3d13a4302f93a8"
+    },
+    {
+      "file": "opl-book-forge.png",
+      "identities": [
+        "obf",
+        "opl-bookforge",
+        "bookforge"
+      ],
+      "sha256": "60d213130eee1acabb6b011c9afa71a158078ce57d574865b3bf9e3aeb39c316"
+    },
+    {
+      "file": "occ.png",
+      "identities": [
+        "occ",
+        "opl-capital-compass"
+      ],
+      "sha256": "15c80ad83123a477b02210fc4e06cb105a56a96ad17c7ca6da786ccb313b8cbb"
+    },
+    {
+      "file": "opl-fleet-agent.png",
+      "identities": [
+        "github:gaofeng21cn/opl-fleet-agent",
+        "opl-fleet-agent",
+        "opl-netfleet",
+        "cask:opl-fleet-agent"
+      ],
+      "sha256": "d3b8bb0165fe398bc4bdb4217609095a43e84af870906cd45b72415109bf515b"
+    },
+    {
+      "file": "opl-flow.png",
+      "identities": [
+        "opl-flow"
+      ],
+      "sha256": "858dce3d41d93f22c36f787e0577fe68ee300cb821e68d1936a4accf5411007c"
+    },
+    {
+      "file": "software-generic.png",
+      "identities": [
+        "github:gaofeng21cn/one-person-lab",
+        "opl-framework",
+        "framework",
+        "formula:opl"
+      ],
+      "sha256": "40636bb2a1aa0a928d39ae2d83fa08e02287469aa688eb2e89f1a5ef81f52c44"
+    },
+    {
+      "file": "opl-meta-agent.png",
+      "identities": [
+        "oma",
+        "opl-meta-agent"
+      ],
+      "sha256": "0f4158dbe3eabc265efb62f92f37e9cfd8391be269eb60d9dd7c6f1276e21472"
+    },
+    {
+      "file": "opl-persona.png",
+      "identities": [
+        "opl-persona",
+        "persona"
+      ],
+      "sha256": "3c0187fd1d22f351663560e204174a7229e706512366dde1594368d56cbaabba"
+    },
+    {
+      "file": "opl-relay.png",
+      "identities": [
+        "opl-relay",
+        "relay"
+      ],
+      "sha256": "a03614469c0bc2bbd8dcefe985f4c1086cc8a383589fe0d4d6ab61c5e014abfb"
+    },
+    {
+      "file": "photo-steward.png",
+      "identities": [
+        "photo-steward"
+      ],
+      "sha256": "83d6b83902cbe18174e7ec78ddbecac8a2548e86042b580f9d4fb4614b63d2b5"
+    },
+    {
+      "file": "redcube-ai.png",
+      "identities": [
+        "rca",
+        "redcube-ai"
+      ],
+      "sha256": "0c1b137e28595746e67bd6658255e3ae0479768a288923e8b5d8241fda9d32b1"
+    },
+    {
+      "file": "rednote-steward.png",
+      "identities": [
+        "rednote-steward"
+      ],
+      "sha256": "064f19c8ec825620ba6e40a8863e9c0cacdbc833bae008348a29d753acae826d"
+    }
+  ]
+}
