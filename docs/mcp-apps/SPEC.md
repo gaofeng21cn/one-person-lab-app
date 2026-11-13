@@ -47,6 +47,19 @@ metadata from resource listing/readback. Unsupported resources retain the
 existing typed views/browser fallback. Sampling and subscriptions are not
 advertised by this host.
 
+A shared overview can request an owner-declared `ui://` resource through the
+standard `ui/open-link` handler. The host resolves a unique live read-only
+launcher, filters URI-fragment navigation arguments against its schema, and
+keeps a return path. Owner-provided `structuredContent.navigation` is a bounded,
+local display preference scoped to thread/server/resource. Reopen calls the
+read-only launcher; explicit task links take precedence and mutations are never
+replayed. See the MiniApp management SSOT for the product behavior.
+
+Historical threads may require native `thread/resume` before MCP discovery;
+resume uses the existing policy and does not start a turn. An active writer in
+another host produces an actionable connection message, never a global-catalog
+fallback.
+
 Validate the shared OPL Apps resource and Relay's dedicated workbench, plus
 synthetic read/confirm/cancel flows, server isolation and stale-session rejection.
 Source, browser interaction, installed App and release evidence are separate.

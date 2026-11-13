@@ -237,6 +237,16 @@
     "discovery_state_axes": ["installed", "enabled", "callable"],
     "fresh_catalog_after_install_or_update": true,
     "open_miniapp_session_hot_update": false,
+    "navigation_continuity": {
+      "handoff_transport": "standard_ui_open_link_to_owner_declared_ui_resource_with_navigation_fragment",
+      "target_resolution": "unique_live_catalog_resource_readonly_launcher_and_declared_input_schema",
+      "navigation_source": "domain_ui_update_model_context_structuredContent.navigation",
+      "cache_scope": "local_display_preferences_per_thread_server_resource_bounded_no_business_content",
+      "restore": "explicit_open_only_owner_revalidates_references_never_replays_mutations",
+      "return_path": "one_step_back_to_source_surface_and_its_navigation",
+      "thread_connection": "resume_exact_unloaded_native_thread_without_starting_turn_or_changing_permissions",
+      "active_writer_elsewhere": "explain_connection_conflict_and_offer_conversation_navigation"
+    },
     "user_language": {
       "primary_action_zh": "打开界面",
       "close_action_zh": "关闭界面",
@@ -371,7 +381,7 @@
       },
       "fallback": "缺少 presentation.miniapp 时使用 shared_view/product_entry，并以第一个已声明 view 作为可导航入口；不硬编码 Package 清单",
       "internal_view_policy": "internal view is a navigation item within its Package product entry and is never counted as a MiniApp surface",
-      "direct_entry_policy": "direct_entry only changes navigation affordance; it does not start a dedicated surface or mutate owner state"
+      "direct_entry_policy": "direct_entry selects a shared view; dedicated_resource_uri provides an explicit standard open-link action resolved against live MCP discovery"
     }
   },
   "ui_experience_contract": {

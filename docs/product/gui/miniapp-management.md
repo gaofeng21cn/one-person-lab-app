@@ -45,7 +45,7 @@ MiniApp 的稳定身份优先使用工具或资源声明的 `ui.appId`/`ui.id`�
 
 ### 产品入口与 MiniApp surface
 
-OPL Apps 的“产品入口”是 Package 级导航投影，MiniApp 是 MCP `server + resourceUri` 级运行 surface；两者故意不是同一计数口径。一个产品可以有多个共享声明式 view，也可以同时声明一个独立标准 MCP App。共享界面先选择应用，再显示该应用的功能；搜索时可以跨应用查找。选择应用进入其第一个已声明 view，不会启动独立 surface。有专用界面的产品在共享页标为“共享概览”，并说明如何回到 MiniApp 列表打开专用界面，不把共享页标成“专用 App”。
+OPL Apps 的“产品入口”是 Package 级导航投影，MiniApp 是 MCP `server + resourceUri` 级运行 surface；两者故意不是同一计数口径。一个产品可以有多个共享声明式 view，也可以同时声明一个独立标准 MCP App。共享界面先选择应用，再显示该应用的功能；搜索时可以跨应用查找。选择应用进入其第一个已声明 view，不会启动独立 surface。有专用界面的产品在共享页标为“共享概览”，并提供“打开专用界面”。点击后通过标准 `ui/open-link` 请求 owner 声明的 `dedicated_resource_uri`，宿主在当前 live catalog 中找到唯一目标，只调用其只读 launcher；目标不存在或不唯一时保留当前页面并显示恢复提示。
 
 Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions` 动态生成 `catalog.products`。`shared_view` 表示产品 view 复用 `ui://opl/apps.html`；`dedicated_app` 表示产品拥有自己的标准 MCP App resource；`professional_app` 表示需要高频创作、设备、地图或监测布局的专业应用。缺少 metadata 时安全回退为 `shared_view/product_entry`，使用第一个已声明 view 导航，不按 Package ID 写宿主硬编码。
 
@@ -79,6 +79,14 @@ Composer 只负责 Agent、Skill、文件、目录和当前会话上下文。交
 自己的资源中组织多个页面或业务模块，但这些页面属于同一 App surface；宿主不把它们
 拆成多个 `server:tool` 顶层标签。AppBridge 的工具调用、资源读取、主题/语言/尺寸、
 上下文和消息通道继续沿用 `docs/mcp-apps/SPEC.md` 的安全与生命周期规则。
+
+## 连续使用与首屏
+
+共享概览的专用入口来自 Package `presentation.miniapp.dedicated_resource_uri`，不是宿主固定清单。URI fragment 是编码后的 JSON 导航参数，宿主只接受目标 launcher schema 中声明的字段；选中对象的字段由领域页面提供。跨界面打开成功后保留“返回上一界面”，返回时重新读取 owner 当前状态。
+
+三个自有 UI 通过标准 `ui/update-model-context` 的 `structuredContent.navigation` 提供可用于再次打开的参数。宿主只在本机保存按 thread、server、resource 隔离的有限导航偏好，不缓存正文、编辑内容、权限、执行回执或业务状态。用户再次点击“打开界面”时恢复这些参数；显式任务入口优先，旧对象不可用时可“从首页打开”。后台写操作不参与恢复。
+
+首屏说明当前应用能完成的任务和下一步。未选择对话时可直接返回对话；无连接、无内容与读取失败分别显示原因和对应入口。历史对话尚未加载时只恢复该原生 thread 的连接，不启动 Agent turn、不修改其权限；另一宿主仍持有写入权时提示切换或等待该对话结束。
 
 ## 用户可见术语
 
