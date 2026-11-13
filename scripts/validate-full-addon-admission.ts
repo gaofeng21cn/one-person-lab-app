@@ -22,6 +22,7 @@ export type FullAddonAdmissionPreflight = {
   checks: {
     mas_scholar_skills_ref: 'reachable_exact_commit';
     reusable_harness_scope: 'exact_cohort' | 'verified_reusable_scope' | 'not_requested';
+    full_seed_contract?: 'dynamic_local_component_seed_bridge';
   };
   mas_scholar_skills_ref: string;
   harness_scope?: QualificationHarnessScopeProof;
@@ -34,6 +35,7 @@ export type FullAddonAdmissionPreflightInput = {
   artifactShellSha: string;
   verificationShellSha: string;
   profile?: 'full';
+  freshBuild?: boolean;
 };
 
 function exactSha(value: string, label: string): string {
@@ -77,6 +79,62 @@ function commitReachable(
   }
 }
 
+function readExactAppSource(
+  runner: QualificationHarnessScopeCommandRunner,
+  appSha: string,
+  filePath: string,
+): string {
+  const result = runner('gh', [
+    'api',
+    `repos/gaofeng21cn/one-person-lab-app/contents/${filePath}?ref=${appSha}`,
+    '-H',
+    'Accept: application/vnd.github.raw+json',
+  ]);
+  if (result.status !== 0) {
+    throw new Error(`Read frozen App Full seed contract ${filePath}: ${result.stderr.trim()}`);
+  }
+  return result.stdout;
+}
+
+function validateFreshFullSeedContract(
+  runner: QualificationHarnessScopeCommandRunner,
+  appSha: string,
+): void {
+  const localSeeds = readExactAppSource(
+    runner,
+    appSha,
+    'scripts/build-full-first-install-package/local-component-seeds.ts',
+  );
+  const runtimeCache = readExactAppSource(
+    runner,
+    appSha,
+    'scripts/build-full-first-install-package/runtime-cache.ts',
+  );
+  const localSeedRequirements = [
+    'selectedLocalComponentSeedInputs',
+    "owner.management_scope !== 'local_component'",
+    'carrier_source_commit',
+    'payload.source_commit !== surface.carrier_source_commit',
+  ];
+  const runtimeRequirements = [
+    'local_component_seeds',
+    'selectedLocalComponentSeedInputs(',
+    'packageProfile.package_ids',
+  ];
+  const missingLocalSeedRequirements = localSeedRequirements.filter((needle) => !localSeeds.includes(needle));
+  const missingRuntimeRequirements = runtimeRequirements.filter((needle) => !runtimeCache.includes(needle));
+  if (missingLocalSeedRequirements.length > 0 || missingRuntimeRequirements.length > 0) {
+    const missing = [
+      ...missingLocalSeedRequirements.map((needle) => `local-component-seeds.ts:${needle}`),
+      ...missingRuntimeRequirements.map((needle) => `runtime-cache.ts:${needle}`),
+    ];
+    throw new Error(
+      `Frozen App Full build does not expose the dynamic local-component seed bridge: ${missing.join(', ')}. `
+      + 'Start a new App cohort before spending time on Full packaging.',
+    );
+  }
+}
+
 export function resolveFullScholarSkillsRef(
   input: { requestedRef?: string; fullManifest?: unknown; freshBuild?: boolean; frameworkRef?: string },
   runner: QualificationHarnessScopeCommandRunner = defaultRunner,
@@ -117,6 +175,10 @@ export function runFullAddonAdmissionPreflight(
 
   commitReachable(runner, 'gaofeng21cn/mas-scholar-skills', masScholarSkillsRef);
 
+  if (input.freshBuild) {
+    validateFreshFullSeedContract(runner, artifactAppSha);
+  }
+
   const harnessChanged = artifactAppSha !== verificationAppSha || artifactShellSha !== verificationShellSha;
   if (!harnessChanged) {
     return {
@@ -126,6 +188,7 @@ export function runFullAddonAdmissionPreflight(
       checks: {
         mas_scholar_skills_ref: 'reachable_exact_commit',
         reusable_harness_scope: 'exact_cohort',
+        ...(input.freshBuild ? { full_seed_contract: 'dynamic_local_component_seed_bridge' as const } : {}),
       },
       mas_scholar_skills_ref: masScholarSkillsRef,
     };
@@ -152,6 +215,7 @@ export function runFullAddonAdmissionPreflight(
     checks: {
       mas_scholar_skills_ref: 'reachable_exact_commit',
       reusable_harness_scope: 'verified_reusable_scope',
+      ...(input.freshBuild ? { full_seed_contract: 'dynamic_local_component_seed_bridge' as const } : {}),
     },
     mas_scholar_skills_ref: masScholarSkillsRef,
     harness_scope: harnessScope,
@@ -194,6 +258,7 @@ function main(): void {
     artifactShellSha: values['artifact-shell-sha']!,
     verificationShellSha: values['verification-shell-sha']!,
     profile: 'full',
+    freshBuild: values['fresh-build'],
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }

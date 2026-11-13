@@ -94,6 +94,13 @@ reuse. A bad ref or an unauthorized harness fails in admission within seconds; t
 qualification repeats the scope proof and remains authoritative. This removes repeated 7–10
 minute Full attempts that previously failed only after reaching the VM lane.
 
+Fresh Full append admission also reads the exact frozen App source at the admitted SHA and
+requires the dynamic local-component seed bridge used by the Full runtime cache. The check
+binds `selectedLocalComponentSeedInputs` to `packageProfile.package_ids` and requires owner
+commit and payload commit validation before packaging. A stale App cohort now stops in the
+Ubuntu admission job, before the macOS build and clean VM spend time; recovery of an existing
+Full artifact continues to use its exact manifest and does not read current main.
+
 Stable Windows builds select the contract's `stable_desktop_additional` command with
 `--win nsis`: only the EXE and updater sidecars are published. Do not generate and then
 delete the unused ZIP. Manual builds retain their general Windows targets.
@@ -106,6 +113,12 @@ Bind the file to that run's job, inspect the latest actual stage and prefer the 
 step state and log timestamps. A heartbeat is not progress. Cancel or recover only after
 establishing a real failure, the current owner state and the smallest recovery scope.
 See the [v26.9.15 timing and recovery retrospective](incidents/2026-09-15-release-efficiency.md).
+
+For a complete release request, use `npm run release:actions-timing` with the Standard,
+recovery, platform, Docker, and follow-up run IDs. The report separates first-dispatch-to-final
+closeout span, accumulated successful runner time, failed or cancelled run tax, and the slowest
+jobs and steps. This is the release timing KPI; a single successful append run is reported
+separately from the end-to-end span.
 
 Release-note preparation tries the contracted fallback model when the preferred model fails or
 returns no public text. Both paths use the same evidence and semantic validation; empty responses

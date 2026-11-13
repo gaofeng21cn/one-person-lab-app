@@ -111,6 +111,86 @@ test('fresh Full admission uses the frozen Framework Scholar Skills pin instead 
   assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef }, () => ({ status: 1, stdout: '', stderr: 'unavailable' })), /Read frozen Framework Scholar Skills source: unavailable/);
 });
 
+test('fresh Full admission fails before packaging when the frozen App lacks the dynamic local-component seed bridge', () => {
+  const calls: string[][] = [];
+  const runner = (command: string, args: string[]) => {
+    calls.push([command, ...args]);
+    if (command === 'git' && args[0] === 'rev-parse') {
+      return { status: 0, stdout: `${scholarSha}\n`, stderr: '' };
+    }
+    if (command === 'gh' && args[0] === 'api' && args[1].includes('one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json')) {
+      return {
+        status: 0,
+        stdout: JSON.stringify({ package_id: 'mas-scholar-skills', codex_surface: { carrier_source_commit: scholarSha } }),
+        stderr: '',
+      };
+    }
+    if (command === 'gh' && args[0] === 'api' && args[1].includes('local-component-seeds.ts')) {
+      return { status: 0, stdout: 'export function selectedLocalComponentSeedInputs() {}', stderr: '' };
+    }
+    if (command === 'gh' && args[0] === 'api' && args[1].includes('runtime-cache.ts')) {
+      return { status: 0, stdout: 'local_component_seeds: selectedLocalComponentSeedInputs(options, packageProfile.package_ids)', stderr: '' };
+    }
+    return { status: 0, stdout: '', stderr: '' };
+  };
+
+  assert.throws(() => runFullAddonAdmissionPreflight({
+    masScholarSkillsRef: scholarSha,
+    artifactAppSha: appSha,
+    verificationAppSha: appSha,
+    artifactShellSha: appSha,
+    verificationShellSha: appSha,
+    freshBuild: true,
+  }, runner), /dynamic local-component seed bridge/);
+  assert.ok(calls.some((entry) => entry.join(' ').includes('local-component-seeds.ts')));
+  assert.ok(calls.some((entry) => entry.join(' ').includes('runtime-cache.ts')));
+});
+
+test('fresh Full admission records the seed bridge check after the frozen App source passes', () => {
+  const runner = (command: string, args: string[]) => {
+    if (command === 'git' && args[0] === 'rev-parse') {
+      return { status: 0, stdout: `${scholarSha}\n`, stderr: '' };
+    }
+    if (command === 'gh' && args[0] === 'api' && args[1].includes('one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json')) {
+      return {
+        status: 0,
+        stdout: JSON.stringify({ package_id: 'mas-scholar-skills', codex_surface: { carrier_source_commit: scholarSha } }),
+        stderr: '',
+      };
+    }
+    if (command === 'gh' && args[0] === 'api' && args[1].includes('local-component-seeds.ts')) {
+      return {
+        status: 0,
+        stdout: [
+          'selectedLocalComponentSeedInputs',
+          "owner.management_scope !== 'local_component'",
+          'carrier_source_commit',
+          'payload.source_commit !== surface.carrier_source_commit',
+        ].join('\n'),
+        stderr: '',
+      };
+    }
+    if (command === 'gh' && args[0] === 'api' && args[1].includes('runtime-cache.ts')) {
+      return {
+        status: 0,
+        stdout: 'local_component_seeds selectedLocalComponentSeedInputs( packageProfile.package_ids',
+        stderr: '',
+      };
+    }
+    return { status: 0, stdout: '', stderr: '' };
+  };
+
+  const receipt = runFullAddonAdmissionPreflight({
+    masScholarSkillsRef: scholarSha,
+    artifactAppSha: appSha,
+    verificationAppSha: appSha,
+    artifactShellSha: appSha,
+    verificationShellSha: appSha,
+    freshBuild: true,
+  }, runner);
+  assert.equal(receipt.checks.full_seed_contract, 'dynamic_local_component_seed_bridge');
+});
+
 
 test('Full workflow resolves refs after verified checkpoint restore and freezes the fresh build checkout', () => {
   const read = (name: string) => parse(fs.readFileSync(new URL(`../../.github/workflows/${name}`, import.meta.url), 'utf8'));
