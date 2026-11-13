@@ -283,7 +283,7 @@ Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，
 
 Full 不打包 `mac-media-assets` 的素材库；构建不 checkout、不 fingerprint、不复制这批媒体，也不把它计入离线 cache closure。MAC 的 required 依赖关系保持由其 owner 声明，首次启动在核心就绪后通过既有 Official Profile 安装，MAC 开始/恢复制作时再执行原生 `prepare` 检查和补齐。在线安装失败保持 Package 局部诊断；不扩大为 App 导航阻断，也不能伪报素材库已就绪。
 
-Full DMG 按用户明确要求优先缩小下载体积，允许压缩花更长时间；默认 ULMO。ULMO 先创建 UDRW 镜像，再用 `hdiutil convert -format ULMO -tasks <available CPUs>` 压缩，利用所有可用 CPU；保持系统默认 ULMO 压缩设置。约 4 GB 的未压缩中间镜像位于 staging 输入目录之外，成功或失败均清理；DMG 验签、公证和 clean-VM 消费最终 ULMO。压缩测速只能用于观测，不能自行改成更快但更大的默认格式。确需变更此取舍时，先取得新的直接用户指令，再同步发布合同、workflow 与构建器。
+Full DMG 按用户明确要求优先缩小下载体积，允许压缩花更长时间；默认 ULMO。ULMO 先创建 UDRW 镜像，再用 `hdiutil convert -format ULMO -tasks <available CPUs>` 压缩，利用所有可用 CPU；保持系统默认 ULMO 压缩设置。与未压缩 App 规模相应的中间镜像位于 staging 输入目录之外，成功或失败均清理；DMG 验签、公证和 clean-VM 消费最终 ULMO。压缩测速只能用于观测，不能自行改成更快但更大的默认格式。确需变更此取舍时，先取得新的直接用户指令，再同步发布合同、workflow 与构建器。
 
 Docker 复用主发布的合格镜像时，Bundle 与 cohort 绑定来自原 source authority 的 release 字段；新的渠道派发不能改写镜像内的原构建身份。独立源码资格没有这些字段时才使用其 source-authority digest。
 

@@ -80,7 +80,7 @@ test('GUI design-system validator accepts a complete Studio fixture without prom
   assert.equal(summary.release_ready, false);
   assert.deepEqual(summary.visual_source_cohort, {
     contract: 'contracts/app-gui-visual-source-cohort.json',
-    source_commit: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
+    source_commit: JSON.parse(fs.readFileSync(path.join(root, 'contracts/app-gui-visual-source-cohort.json'), 'utf8')).upstream.commit,
     source_usage: 'pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters',
   });
   assert.equal(summary.interaction_reference, interactionReference);

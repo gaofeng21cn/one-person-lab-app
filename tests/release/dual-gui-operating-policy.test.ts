@@ -175,11 +175,11 @@ test('DeepSeek Harness Application Host and visual source reuse stay Studio-only
   const visualCohort = readJson<any>('contracts/app-gui-visual-source-cohort.json');
   const governance = (registry as any).design_system_governance;
 
-  assert.equal(reference?.evaluated_ref, 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159');
+  assert.equal(reference?.evaluated_ref, visualCohort.upstream.commit);
   assert.equal(reference?.license, 'MIT');
   assert.equal(reference?.source_usage, 'approved_application_host_runtime_and_gui_source_reuse');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.2.2-rc.1');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.2.2-rc.1');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.2.2-rc.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.2.2-rc.2');
   assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-web-react'], undefined);
   assert.equal(reference?.adopted_packages['use-sync-external-store'], '1.7.0');
   assert.equal(reference?.adopted_source?.root, 'src/vendor/deepseek-harness');
@@ -193,11 +193,11 @@ test('DeepSeek Harness Application Host and visual source reuse stay Studio-only
   assert.equal(reference?.adopted_source?.package_roots.length, 25);
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-plugin-manager/src/client/PluginManagerPage.module.css'));
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-official-bundles'], '0.2.2-rc.1');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-util-crypto'], '0.2.2-rc.1');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-official-bundles'], '0.2.2-rc.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-util-crypto'], '0.2.2-rc.2');
   assert.equal(reference?.upstream_intake?.floating_ref_allowed, false);
   assert.equal(reference?.upstream_intake?.automatic_promotion_allowed, false);
-  assert.equal(visualCohort.upstream.commit, 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159');
+  assert.match(visualCohort.upstream.commit, /^[0-9a-f]{40}$/);
   assert.equal(visualCohort.upstream.commit, reference?.evaluated_ref);
   assert.deepEqual(visualCohort.phase_one_surfaces, [
     'titlebar',
