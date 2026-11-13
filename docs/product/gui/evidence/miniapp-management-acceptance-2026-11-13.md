@@ -104,11 +104,11 @@ Studio 直接使用官方主题与 primitives；OPL Apps、Relay、媒体审看�
 
 | 源码归口 | 已回读的远端主线提交 |
 | --- | --- |
-| App 视觉合同与生成入口 | `93e3d0343bcc90bc32c24a641daa1179d34fa74a` |
-| Studio | `ea2ad968605cc672f5e5dda33540b0600aba68a6` |
-| Framework 共享页 | `abd673f218c9c48931ca6db642626b32317b2f70` |
+| App 视觉合同与生成入口 | `d0a1d5a69ebbb5e8b43189337c5c5218f7f4a268` |
+| Studio | `bddb86189eb764bf028c722e65aea60d24d20082` |
+| Framework 共享页 | `17cb4327e961474bdf779b1f0f3c9f742e8593a1` |
 | Relay | `28073a528f33af79b4183da17ae60cf739f1f25d` |
-| Med Auto Cast | `d81797bee26a40868bfb4714596bba77978a29ce` |
+| Med Auto Cast | `5fe79c8602464238a74f8647796b0199bae4c6a3` |
 
 App active-shell 与 GUI design-system 检查通过。完整外壳浏览器验收覆盖桌面、400px 窄屏、
 主题切换、软件中心、设置焦点、会话编辑、撤销重做、排队与 steer；合成文件粘贴只暂存一次，
@@ -119,6 +119,9 @@ App active-shell 与 GUI design-system 检查通过。完整外壳浏览器验�
 MCP Apps context 实时传入。此前 1280 × 777 的剩余空间布局继续通过。
 Relay 的合成草稿保存、owner 回读、旧 revision 拒绝、重开、窄屏和深色模式通过。
 媒体审看的 Node、Python 与 contract/carrier 检查通过；最终样式修正后已重新生成安装网页。
+最终本机安装使用的 source lock 精确绑定 App `441e5b6f3`、Studio `bddb8618`、
+Framework `17cb4327e`、Relay `28073a528` 和 Med Auto Cast `5fe79c860`；表格中的提交为
+当前各仓库远端 `main` 回读值。
 
 首次整包 `local.src21b68049fe06` 安装后，真实窗口发现 Host 启动失败：新版 DSH 的
 `dsh-llm` 引入 `dsh-error` peer，但 Electron 未将其打包。Studio 已将该包加入精确生产依赖
