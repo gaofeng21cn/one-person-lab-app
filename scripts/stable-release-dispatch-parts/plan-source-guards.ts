@@ -163,6 +163,7 @@ export function buildAppendFullPlan(input: {
   shellSha: string;
   frameworkSha: string;
   priorFullArtifactRunId?: string;
+  priorFullFinalizerRunId?: string;
   frameworkExecutorSha?: string;
   artifactProducerRunId?: string;
   qualificationRunId?: string;
@@ -184,6 +185,12 @@ export function buildAppendFullPlan(input: {
       })
       : sha(input.frameworkSha, 'framework_ref'),
   };
+  if (input.priorFullFinalizerRunId) {
+    if (input.priorFullArtifactRunId || isFullCheckpointArtifact(input.sourceArtifact, sourceRunId)) {
+      throw new Error('Unsubmitted Full recovery needs original Standard authority, separately from its handoff.');
+    }
+    workflowInputs.prior_full_artifact_run_id = JSON.stringify({ finalizer_input_run_id: runId(input.priorFullFinalizerRunId, 'prior_full_finalizer_run_id') });
+  }
   if (input.priorFullArtifactRunId) {
     workflowInputs.prior_full_artifact_run_id = runId(
       input.priorFullArtifactRunId,
@@ -193,7 +200,7 @@ export function buildAppendFullPlan(input: {
   if (input.smokeHarnessSha || input.verificationAppSha) {
     const checkpointRecovery = input.sourceArtifact === `opl-release-full-checkpoint-${sourceRunId}`
       || input.sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
-    if (!input.priorFullArtifactRunId && !checkpointRecovery) {
+    if (!input.priorFullArtifactRunId && !input.priorFullFinalizerRunId && !checkpointRecovery) {
       throw new Error('verification harness refs require a reusable Full checkpoint.');
     }
     const smokeHarnessRef = input.smokeHarnessSha

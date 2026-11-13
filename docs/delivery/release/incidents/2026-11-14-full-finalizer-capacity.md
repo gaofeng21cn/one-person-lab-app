@@ -26,3 +26,9 @@ The second attempt retained artifact `14064525824`,
 `opl-full-finalizer-input-26.11.13-43469644209`, with archive digest
 `sha256:d2d50e2958b02e7c9a86b748d133944c7572949198408aa93742ea9a57d6a0ea`.
 Its existence establishes recoverable build input, not a published Full DMG.
+
+The first recovery attempt, `43527717159`, exposed a second boundary: importing
+the expired early append-operation checkpoint caused Framework to reject a new
+operation because no completed `full_built` stage existed. Recovery now traces
+the original Standard checkpoint for fresh authority and passes the unsubmitted
+handoff separately. Framework's expired-operation protection remains unchanged.

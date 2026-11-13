@@ -131,6 +131,26 @@ export function reusableFullFinalizerInput(artifacts: readonly WorkflowArtifact[
   return matches[0];
 }
 
+export function readOriginalStandardCheckpoint(runtime: Runtime, repository: string, handoffRunId: string): { runId: string; artifact: string } {
+  let current = runId(handoffRunId, 'handoff_run_id');
+  const visited = new Set<string>();
+  for (let depth = 0; depth < 20; depth++) {
+    if (visited.has(current)) throw new Error('Full recovery source ancestry contains a cycle.');
+    visited.add(current);
+    const artifacts = workflowArtifacts(runtime, repository, current);
+    if (artifacts.some(artifact => !artifact.expired && (artifact.name === `opl-release-standard-checkpoint-${current}` || artifact.name === `opl-release-standard-operation-checkpoint-${current}`))) {
+      return { runId: current, artifact: selectReusableStandardCheckpointArtifact(artifacts, current) };
+    }
+    const owner = record(JSON.parse(runRequired(runtime, 'gh', ['api', `repos/${repository}/actions/runs/${current}`], 30_000, 'Read Full source ancestry', appRoot)), 'Full source owner');
+    const match = typeof owner.display_title === 'string' && /^OPL Stable append_full source:([1-9][0-9]*) run:([1-9][0-9]*)$/.exec(owner.display_title);
+    if (owner.path !== defaultWorkflow || owner.event !== 'workflow_dispatch' || !match || match[2] !== current) {
+      throw new Error('Full finalizer recovery requires a traceable original Standard checkpoint.');
+    }
+    current = match[1]!;
+  }
+  throw new Error('Full recovery source ancestry exceeds the bounded lookup.');
+}
+
 export function readFullCheckpointCohort(
   runtime: Runtime,
   repository: string,

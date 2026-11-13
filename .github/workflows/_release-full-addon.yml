@@ -42,6 +42,11 @@ on:
         description: Exact Framework executor SHA used to verify and import the checkpoint; independent from the frozen Bundle source SHA
         required: true
         type: string
+      prior_full_finalizer_run_id:
+        description: Exact prior run with unsubmitted Full input, independent of Standard authority
+        required: false
+        default: ''
+        type: string
       prior_full_artifact_run_id:
         description: Exact failed append_full run containing reusable unchanged Full bytes
         required: false
@@ -281,7 +286,8 @@ jobs:
         if: ${{ inputs.prior_full_artifact_run_id == '' && (steps.checkpoint.outputs.completed_stage == 'standard_built' || steps.checkpoint.outputs.completed_stage == 'standard_qualified') }}
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_RUN_ID: ${{ inputs.prior_full_finalizer_run_id || inputs.source_run_id }}
+          PRIOR_FINALIZER_RUN_ID: ${{ inputs.prior_full_finalizer_run_id }}
           VERSION: ${{ steps.checkpoint.outputs.version }}
         shell: bash
         run: |
@@ -292,6 +298,7 @@ jobs:
           import { reusableFullFinalizerInput } from './app-source/scripts/stable-release-dispatch-parts/artifact-retrieval.ts';
           const artifacts = JSON.parse(fs.readFileSync('finalizer-artifacts.json', 'utf8')).flatMap(page => page.artifacts);
           const selected = reusableFullFinalizerInput(artifacts, process.env.SOURCE_RUN_ID);
+          if (!selected && process.env.PRIOR_FINALIZER_RUN_ID) throw new Error('Requested Full finalizer input is unavailable; rebuilding is not authorized');
           if (selected) {
             if (selected.name !== `opl-full-finalizer-input-${process.env.VERSION}-${process.env.SOURCE_RUN_ID}`) throw new Error('Full recovery version drifted');
             if (!/^sha256:[0-9a-f]{64}$/.test(selected.digest ?? '')) throw new Error('Full recovery requires an exact archive digest');

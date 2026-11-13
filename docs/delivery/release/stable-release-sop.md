@@ -186,7 +186,10 @@ Preserve the already public Standard and every completed independent channel.
 
 If the failed run has an `opl-full-finalizer-input-<version>-<run-id>` artifact but
 no completed Full cohort, `append-full` can resume that exact unsubmitted handoff.
-The controller preserves its original content refs; the protected workflow verifies
+The controller preserves its original content refs and traces its source ancestry
+back to the original Standard checkpoint for fresh operation authority. The old
+unsubmitted handoff is a separate input, never an expired `full_built` operation.
+The protected workflow verifies
 the fresh archive digest and every retained file, skips assembly, then performs
 notarization, trust checks, clean-VM qualification and same-tag publication.
 An existing Apple submission recovery artifact requires submission reconciliation

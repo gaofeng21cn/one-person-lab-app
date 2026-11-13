@@ -6,15 +6,43 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parse } from 'yaml';
-import { reusableFullFinalizerInput } from '../../scripts/stable-release-dispatch-parts/artifact-retrieval.ts';
+import { reusableFullFinalizerInput, readOriginalStandardCheckpoint } from '../../scripts/stable-release-dispatch-parts/artifact-retrieval.ts';
 import { reconcileAppendFullTarget } from '../../scripts/stable-release-dispatch-parts/owner-run-reconciliation.ts';
-import { resolveAppendFullCohort } from '../../scripts/stable-release-dispatch-parts/plan-source-guards.ts';
+import { resolveAppendFullCohort, buildAppendFullPlan } from '../../scripts/stable-release-dispatch-parts/plan-source-guards.ts';
 import { downloadArtifact } from '../../scripts/download-github-artifact.mjs';
 
 const workflow = parse(fs.readFileSync('.github/workflows/full-first-install-release.yml', 'utf8'));
 const action = parse(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8'));
 const refs = { app_sha: 'a'.repeat(40), shell_sha: 'b'.repeat(40), framework_sha: 'c'.repeat(40), mas_scholar_skills_sha: 'd'.repeat(40) };
 const artifact = { id: 2, name: 'opl-full-finalizer-input-26.11.13-101', expired: false };
+
+test('prefinalization recovery uses original Standard authority with a separately bound handoff', () => {
+  const runtime = { now: () => new Date(), randomBytes: (n: number) => Buffer.alloc(n), wait: async () => {},
+    runner(_command: string, args: string[]) {
+      const route = args[1]!;
+      const value = route.includes('/artifacts?')
+        ? [{ artifacts: route.includes('/100/') ? [{ id: 1, name: 'opl-release-standard-checkpoint-100', expired: false }] : [artifact] }]
+        : { path: '.github/workflows/release-stable.yml', event: 'workflow_dispatch', display_title: 'OPL Stable append_full source:100 run:101' };
+      return { status: 0, stdout: JSON.stringify(value), stderr: '' };
+    } };
+  const standard = readOriginalStandardCheckpoint(runtime, 'owner/repo', '101');
+  assert.deepEqual(standard, { runId: '100', artifact: 'opl-release-standard-checkpoint-100' });
+  const input = { attemptId: 'recover', sourceRunId: standard.runId, sourceArtifact: standard.artifact, appSha: refs.app_sha, shellSha: refs.shell_sha, frameworkSha: refs.framework_sha, priorFullFinalizerRunId: '101' };
+  const plan = buildAppendFullPlan(input);
+  assert.equal(plan.workflow_inputs.source_run_id, '100');
+  assert.deepEqual(JSON.parse(plan.workflow_inputs.prior_full_artifact_run_id!), { finalizer_input_run_id: '101' });
+  assert.throws(() => buildAppendFullPlan({ ...input, sourceRunId: '101', sourceArtifact: 'opl-release-append-full-operation-checkpoint-v2-101' }), /original Standard authority/);
+
+  const stable = parse(fs.readFileSync('.github/workflows/release-stable.yml', 'utf8'));
+  assert.ok(Object.keys(stable.on.workflow_dispatch.inputs).length <= 25);
+  const admission = stable.jobs.admission.steps.find((step: any) => step.id === 'admission').run;
+  const prefix = admission.slice(0, admission.indexOf('test "$GITHUB_RUN_ATTEMPT"'));
+  for (const [raw, operation, expected] of [[plan.workflow_inputs.prior_full_artifact_run_id, 'append_full', 0], ['{"finalizer_input_run_id":"101","extra":true}', 'append_full', 1], [plan.workflow_inputs.prior_full_artifact_run_id, 'standard', 1]] as const) {
+    const result = spawnSync('bash', ['-c', prefix + '\nprintf "%s|%s" "$PRIOR_FULL_ARTIFACT_RUN_ID" "$PRIOR_FULL_FINALIZER_RUN_ID"'], { encoding: 'utf8', env: { ...process.env, PRIOR_FULL_ARTIFACT_RUN_ID: raw, OPERATION: operation, SOURCE_RUN_ID: '100' } });
+    if (expected === 0) { assert.equal(result.status, 0, result.stderr); assert.equal(result.stdout, '|101'); }
+    else assert.notEqual(result.status, 0);
+  }
+});
 
 test('fresh Full finalization stays on its ARM builder; recovery skips the builder', () => {
   const build = workflow.jobs['full-first-install'];

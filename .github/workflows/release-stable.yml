@@ -123,7 +123,7 @@ on:
         default: ''
         type: string
       prior_full_artifact_run_id:
-        description: Exact failed append_full run containing reusable unchanged Full bytes
+        description: Exact signed Full run ID, or strict finalizer_input_run_id JSON for an unsubmitted handoff
         required: false
         default: ''
         type: string
@@ -792,6 +792,7 @@ jobs:
       source_run_id: ${{ steps.admission.outputs.source_run_id }}
       source_artifact: ${{ steps.admission.outputs.source_artifact }}
       completed_webui_run_id: ${{ steps.admission.outputs.completed_webui_run_id }}
+      prior_full_finalizer_run_id: ${{ steps.admission.outputs.prior_full_finalizer_run_id }}
       prior_full_artifact_run_id: ${{ steps.admission.outputs.prior_full_artifact_run_id }}
       prior_standard_artifact_run_id: ${{ steps.admission.outputs.prior_standard_artifact_run_id }}
       operation_started_at: ${{ steps.admission.outputs.operation_started_at }}
@@ -830,6 +831,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          PRIOR_FULL_FINALIZER_RUN_ID=''
+          if [[ "$PRIOR_FULL_ARTIFACT_RUN_ID" == \{* ]]; then
+            jq -e 'type == "object" and keys == ["finalizer_input_run_id"] and (.finalizer_input_run_id | type == "string" and test("^[1-9][0-9]*$"))' <<<"$PRIOR_FULL_ARTIFACT_RUN_ID" >/dev/null
+            PRIOR_FULL_FINALIZER_RUN_ID="$(jq -er .finalizer_input_run_id <<<"$PRIOR_FULL_ARTIFACT_RUN_ID")"
+            PRIOR_FULL_ARTIFACT_RUN_ID=''
+          fi
+          if [ -n "$PRIOR_FULL_FINALIZER_RUN_ID" ]; then
+            test "$OPERATION" = append_full
+            test -z "$PRIOR_FULL_ARTIFACT_RUN_ID"
+            [[ "$PRIOR_FULL_FINALIZER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            test "$PRIOR_FULL_FINALIZER_RUN_ID" != "$SOURCE_RUN_ID"
+          fi
           test "$GITHUB_RUN_ATTEMPT" = 1 || {
             echo "::error::Stable operations are one-shot; use resume_standard with the portable checkpoint."
             exit 1
@@ -963,8 +976,8 @@ jobs:
                   echo "::error::Only append_full may reuse an exact prior Full artifact run."
                   exit 1
                 }
-              elif [ -n "$PRIOR_FULL_ARTIFACT_RUN_ID" ]; then
-                [[ "$PRIOR_FULL_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]] || {
+              elif [ -n "$PRIOR_FULL_ARTIFACT_RUN_ID$PRIOR_FULL_FINALIZER_RUN_ID" ]; then
+                [[ "${PRIOR_FULL_ARTIFACT_RUN_ID:-$PRIOR_FULL_FINALIZER_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || {
                   echo "::error::append_full recovery requires an exact prior run id."
                   exit 1
                 }
@@ -1028,6 +1041,7 @@ jobs:
             echo "source_run_id=$SOURCE_RUN_ID"
             echo "source_artifact=$SOURCE_ARTIFACT"
             echo "completed_webui_run_id=${completed_webui_run_id:-}"
+            echo "prior_full_finalizer_run_id=$PRIOR_FULL_FINALIZER_RUN_ID"
             echo "prior_full_artifact_run_id=$PRIOR_FULL_ARTIFACT_RUN_ID"
             echo "prior_standard_artifact_run_id=$PRIOR_STANDARD_ARTIFACT_RUN_ID"
             echo "operation_started_at=$operation_started_at"
@@ -1536,6 +1550,7 @@ jobs:
       full_content_shell_ref: ${{ needs.admission.outputs.shell_ref }}
       full_content_framework_ref: ${{ needs.admission.outputs.framework_ref }}
       framework_executor_ref: ${{ needs.admission.outputs.framework_executor_ref }}
+      prior_full_finalizer_run_id: ${{ needs.admission.outputs.prior_full_finalizer_run_id }}
       prior_full_artifact_run_id: ${{ needs.admission.outputs.prior_full_artifact_run_id }}
       smoke_harness_ref: ${{ needs.admission.outputs.smoke_harness_ref }}
       verification_app_ref: ${{ needs.admission.outputs.verification_app_ref }}

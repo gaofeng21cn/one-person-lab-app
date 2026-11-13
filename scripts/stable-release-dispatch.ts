@@ -26,6 +26,7 @@ import {
   downloadStableSourceEvidence,
   isFullCheckpointArtifact,
   readFullCheckpointCohort,
+  readOriginalStandardCheckpoint,
   readReusableStandardSourceGate,
   selectCheckpointArtifact,
   selectPriorFullCandidateRunId,
@@ -416,6 +417,14 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     if (target.state !== 'dispatch_required' || target.source_run_id === null || target.source_artifact === null) {
       throw new Error('Append Full target reconciliation did not produce a dispatch-required source.');
     }
+    let priorFullFinalizerRunId: string | undefined;
+    if (checkpointCohort && typeof checkpointCohort === 'object'
+      && (checkpointCohort as { schema?: string }).schema === 'opl_full_finalizer_input.v1'
+      && isFullCheckpointArtifact(target.source_artifact, target.source_run_id)) {
+      priorFullFinalizerRunId = target.source_run_id;
+      const standard = readOriginalStandardCheckpoint(runtime, repository, priorFullFinalizerRunId);
+      target = { ...target, source_run_id: standard.runId, source_artifact: standard.artifact };
+    }
     const sourceRunId = target.source_run_id;
     const sourceArtifact = target.source_artifact;
     const isFullRecovery = isFullCheckpointArtifact(sourceArtifact, sourceRunId);
@@ -426,6 +435,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       appSha,
       shellSha,
       frameworkSha,
+      priorFullFinalizerRunId,
       priorFullArtifactRunId: isFullRecovery
         ? undefined
         : selectPriorFullCandidateRunId(artifactsByRunId[rootSourceRunId] ?? [], rootSourceRunId),
