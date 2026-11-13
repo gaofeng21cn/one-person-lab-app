@@ -6984,7 +6984,17 @@
         "cancel": "cooperative before native registration; keep partial download for retry; never imply closing a dialog stops execution",
         "retry": "explicit fresh action using owner-selected version and revalidated digest cache",
         "native_lifecycle_owner": "existing native package carrier",
-        "source_failure": "show actionable error and preserve installed version until verified staging is ready"
+        "source_failure": "show actionable error and preserve installed version until verified staging is ready",
+        "presentation": {
+          "preflight_identity": "formal product name, owner-selected version, source display name and declared release/development mode; technical ID in disclosure",
+          "ongoing": "current stage, next stage, measured bytes, speed and download ETA; seconds below one minute; no overall percent",
+          "global_entry": "window-level Software Center activity link outside the page; discover owner operations after reload and continue polling while elsewhere",
+          "catalog_row": "show the same running stage and disable duplicate lifecycle controls for the active package and component",
+          "history": "latest attempt per software; all running and unresolved tasks before collapsed recent history",
+          "unknown": "keep prior observation, hide stale live progress, and offer fresh inspection; interrupted outcome is not failure or success",
+          "completion": "use entry only after fresh owner software state allows launch; completed transfer alone is insufficient",
+          "cache": "show measured cached bytes and explain verification before reuse; retries may restart if server Range or integrity requires it"
+        }
       },
       "route": "/apps",
       "route_scope": "ordinary",
