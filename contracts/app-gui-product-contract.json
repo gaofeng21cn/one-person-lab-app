@@ -270,6 +270,8 @@
     "ui_host": "official_mcp_apps_sdk_in_dsh_capability_workspace",
     "dsh_plugin": "@one-person-lab/opl-mcp-apps",
     "task_workbench": "shared_ui_resource_for_progress_available_artifacts_current_actions_and_domain_decisions",
+    "task_detail_load_policy": "show_work_item_projection_before_optional_runtime_action_inspection_requested_by_user",
+    "task_workbench_layout": "fill_remaining_page_height_below_single_context_header",
     "task_identity": "canonical_item_id_and_exact_domain_work_item_binding",
     "summary_owner": "studio_cross_agent_overview_and_compact_stage_summary",
     "detail_owner": "framework_shared_mcp_app_with_domain_owned_payloads",
@@ -391,6 +393,7 @@
       "runtime_view_navigation_policy": {
         "catalog_products": "只投影 entry_kind=product_entry；runtime_view 只保留在 views 供上下文打开",
         "default_selection": "没有明确 focus 时选择第一个 product_entry，不自动进入 runtime_view",
+        "remembered_navigation": "只恢复普通产品浏览位置，忽略旧版保存的 opl-runtime 导航；明确任务入口保持精确 item_id",
         "contextual_entry": "首页 /runtime 选中 work item 后直接打开 opl.runtime.item 任务工作台",
         "return_surface": "任务工作台返回首页运行状态；不在 OPL Apps 产品选择器中重复展示 Runtime"
       },
