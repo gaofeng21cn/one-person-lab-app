@@ -127,7 +127,7 @@ export function validateReleaseAssetIntegrity(releaseContract: Record<string, an
     fullDraft?.allowed !== false ||
     fullDraft?.published_release_mutation_allowed !== false ||
     fullDraft?.mode !== 'retired_independent_full_release_draft_history_only' ||
-    fullNotarizationRecovery?.workflow !== '.github/workflows/full-first-install-release.yml#full-finalizer' ||
+    fullNotarizationRecovery?.workflow !== '.github/actions/finalize-full/action.yml' ||
     fullNotarizationRecovery?.checkpoint_schema !== 'opl_apple_notarization_recovery_checkpoint.v1' ||
     fullNotarizationRecovery?.artifact_name !== 'opl-full-apple-recovery-<version>-<run-id>' ||
     fullNotarizationRecovery?.runs_on_failure_only !== true ||

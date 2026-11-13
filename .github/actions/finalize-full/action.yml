@@ -1,0 +1,541 @@
+name: Finalize immutable Full package
+description: Sign, notarize and verify an exact Full handoff on the current ARM runner.
+inputs:
+  opl_version:
+    description: Bound opl_version from the protected Full workflow.
+    required: true
+  artifact_app_sha:
+    description: Bound artifact_app_sha from the protected Full workflow.
+    required: true
+  shell_ref:
+    description: Bound shell_ref from the protected Full workflow.
+    required: true
+  framework_ref:
+    description: Bound framework_ref from the protected Full workflow.
+    required: true
+  mas_scholar_skills_ref:
+    description: Bound mas_scholar_skills_ref from the protected Full workflow.
+    required: true
+  target_standard_release_id:
+    description: Bound target_standard_release_id from the protected Full workflow.
+    required: true
+  target_standard_release_tag:
+    description: Bound target_standard_release_tag from the protected Full workflow.
+    required: true
+  target_standard_target_commitish:
+    description: Bound target_standard_target_commitish from the protected Full workflow.
+    required: true
+  release_bundle_digest:
+    description: Bound release_bundle_digest from the protected Full workflow.
+    required: true
+  release_cohort_ref:
+    description: Bound release_cohort_ref from the protected Full workflow.
+    required: true
+  operation_deadline_at:
+    description: Bound operation_deadline_at from the protected Full workflow.
+    required: true
+  finalizer_source_run_id:
+    description: Bound finalizer_source_run_id from the protected Full workflow.
+    required: true
+  finalizer_input_digest:
+    description: Bound finalizer_input_digest from the protected Full workflow.
+    required: true
+  BUILD_CERTIFICATE_BASE64:
+    description: Bound BUILD_CERTIFICATE_BASE64 from the protected Full workflow.
+    required: true
+  P12_PASSWORD:
+    description: Bound P12_PASSWORD from the protected Full workflow.
+    required: true
+  KEYCHAIN_PASSWORD:
+    description: Bound KEYCHAIN_PASSWORD from the protected Full workflow.
+    required: true
+  APPLE_ID:
+    description: Bound APPLE_ID from the protected Full workflow.
+    required: true
+  APPLE_ID_PASSWORD:
+    description: Bound APPLE_ID_PASSWORD from the protected Full workflow.
+    required: true
+  TEAM_ID:
+    description: Bound TEAM_ID from the protected Full workflow.
+    required: true
+  IDENTITY:
+    description: Bound IDENTITY from the protected Full workflow.
+    required: true
+  reuse_build_workspace:
+    description: Reuse the current build runner and its verified handoff and signing keychain.
+    required: false
+    default: 'false'
+outputs:
+  mas_ref:
+    description: Frozen MAS source from the verified handoff.
+    value: ${{ steps.handoff.outputs.mas_ref }}
+  mas_scholar_skills_ref:
+    description: Frozen Scholar Skills source from the verified handoff.
+    value: ${{ steps.handoff.outputs.mas_scholar_skills_ref }}
+runs:
+  using: composite
+  steps:
+    - name: Resolve frozen Full Shell profile
+      id: shell_profile
+      shell: bash
+      run: node --experimental-strip-types one-person-lab-app/scripts/active-shell-build-profile.ts --app-root one-person-lab-app --github-output "$GITHUB_OUTPUT"
+
+    - name: Download immutable Full finalizer input
+      if: ${{ inputs.reuse_build_workspace != 'true' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        OPL_ARTIFACT_RUN_ID: ${{ inputs.finalizer_source_run_id }}
+        OPL_ARTIFACT_NAME: opl-full-finalizer-input-${{ inputs.opl_version }}-${{ inputs.finalizer_source_run_id }}
+        OPL_ARTIFACT_CACHE: ${{ runner.temp }}/opl-finalizer-archive-cache
+        OPL_ARTIFACT_DEST: ${{ runner.temp }}/opl-full-finalizer-input
+        OPL_ARTIFACT_EXPECTED_DIGEST: ${{ inputs.finalizer_input_digest }}
+      run: node --use-env-proxy release-executor/scripts/download-github-artifact.mjs
+
+    - name: Verify immutable Full finalizer handoff
+      id: handoff
+      env:
+        EXPECTED_HANDOFF_ARTIFACT_DIGEST: ${{ inputs.finalizer_input_digest }}
+        EXPECTED_APP_SHA: ${{ inputs.artifact_app_sha }}
+        EXPECTED_SHELL_SHA: ${{ inputs.shell_ref }}
+        EXPECTED_FRAMEWORK_SHA: ${{ inputs.framework_ref }}
+        EXPECTED_MAS_SCHOLAR_SKILLS_SHA: ${{ inputs.mas_scholar_skills_ref }}
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        input_root="$RUNNER_TEMP/opl-full-finalizer-input"
+        manifest="$input_root/handoff-manifest.json"
+        output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
+        [[ "$EXPECTED_HANDOFF_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::Full finalizer handoff artifact digest is missing or malformed."; exit 1; }
+        test -f "$manifest" && test ! -L "$manifest"
+        INPUT_ROOT="$input_root" HANDOFF_MANIFEST="$manifest" node <<'NODE'
+        const crypto = require('node:crypto');
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const root = process.env.INPUT_ROOT;
+        const manifestPath = process.env.HANDOFF_MANIFEST;
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const exact = {
+          app_sha: process.env.EXPECTED_APP_SHA,
+          shell_sha: process.env.EXPECTED_SHELL_SHA,
+          framework_sha: process.env.EXPECTED_FRAMEWORK_SHA,
+          mas_scholar_skills_sha: process.env.EXPECTED_MAS_SCHOLAR_SKILLS_SHA,
+        };
+        if (manifest.schema !== 'opl_full_finalizer_input.v1') throw new Error('Full finalizer handoff schema drifted.');
+        if (manifest.release_version !== process.env.OPL_RELEASE_VERSION) throw new Error('Full finalizer handoff version drifted.');
+        if (JSON.stringify(manifest.source_runner) !== JSON.stringify({ label: 'macos-latest', arch: 'arm64' })) throw new Error('Full finalizer handoff source runner drifted.');
+        if (JSON.stringify(manifest.full_content_sources) !== JSON.stringify(exact)) throw new Error('Full finalizer handoff source refs drifted.');
+        if (!Array.isArray(manifest.files) || manifest.files.length === 0) throw new Error('Full finalizer handoff file inventory is empty.');
+        for (const entry of manifest.files) {
+          const file = path.resolve(root, entry.path);
+          if (!file.startsWith(`${path.resolve(root)}${path.sep}`)) throw new Error(`Full finalizer handoff escaped its root: ${entry.path}`);
+          const stat = fs.lstatSync(file);
+          if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`Full finalizer handoff entry is not a regular file: ${entry.path}`);
+          if (stat.size !== entry.size_bytes) throw new Error(`Full finalizer handoff size drifted: ${entry.path}`);
+          const digest = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          if (digest !== entry.sha256) throw new Error(`Full finalizer handoff digest drifted: ${entry.path}`);
+        }
+        const actual = [];
+        const visit = (directory) => {
+          for (const name of fs.readdirSync(directory).sort()) {
+            const file = path.join(directory, name);
+            const stat = fs.lstatSync(file);
+            if (stat.isSymbolicLink()) throw new Error(`Full finalizer handoff contains symlink: ${file}`);
+            if (stat.isDirectory()) visit(file);
+            else if (stat.isFile()) actual.push(path.relative(root, file));
+            else throw new Error(`Full finalizer handoff contains unsupported entry: ${file}`);
+          }
+        };
+        visit(root);
+        const expected = [...manifest.files.map((entry) => entry.path), 'handoff-manifest.json'].sort();
+        if (JSON.stringify(actual.sort()) !== JSON.stringify(expected)) throw new Error('Full finalizer handoff contains unlisted or missing files.');
+        NODE
+        rm -rf "$output_dir"
+        mkdir -p "$output_dir"
+        cp -R "$input_root/full-output/." "$output_dir/"
+        cp "$input_root/opl-full-toolchain-observation-receipt.json" "$output_dir/"
+        mkdir -p "$RUNNER_TEMP/opl-full-dependency-resolution"
+        cp -R "$input_root/dependency-resolution/." "$RUNNER_TEMP/opl-full-dependency-resolution/"
+        test -f "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+        test ! -L "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+        jq -n \
+          --arg artifact_digest "$EXPECTED_HANDOFF_ARTIFACT_DIGEST" \
+          --arg manifest_sha256 "$(shasum -a 256 "$manifest" | awk '{print $1}')" \
+          --arg source_runner "macos-latest" \
+          --arg finalizer_runner "macos-latest" \
+          '{schema:"opl_full_finalizer_handoff_receipt.v1",status:"passed",artifact_digest:$artifact_digest,handoff_manifest_sha256:$manifest_sha256,source_runner:$source_runner,finalizer_runner:$finalizer_runner}' \
+          > "$output_dir/full-finalizer-handoff-receipt.json"
+        echo "mas_ref=$(jq -er .components.mas.git_commit "$output_dir/full-package-manifest.json")" >> "$GITHUB_OUTPUT"
+        echo "mas_scholar_skills_ref=$EXPECTED_MAS_SCHOLAR_SKILLS_SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Import Developer ID identity for ARM finalization
+      if: ${{ inputs.reuse_build_workspace != 'true' }}
+      env:
+        BUILD_CERTIFICATE_BASE64: ${{ inputs.BUILD_CERTIFICATE_BASE64 }}
+        P12_PASSWORD: ${{ inputs.P12_PASSWORD }}
+        KEYCHAIN_PASSWORD: ${{ inputs.KEYCHAIN_PASSWORD }}
+        APPLE_ID: ${{ inputs.APPLE_ID }}
+        APPLE_ID_PASSWORD: ${{ inputs.APPLE_ID_PASSWORD }}
+        TEAM_ID: ${{ inputs.TEAM_ID }}
+        IDENTITY: ${{ inputs.IDENTITY }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        for secret_name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD APPLE_ID APPLE_ID_PASSWORD TEAM_ID IDENTITY; do
+          test -n "${!secret_name:-}" || { echo "::error::ARM Full finalization requires $secret_name."; exit 1; }
+        done
+        printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+        security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+        security set-keychain-settings -lut 21600 build.keychain
+        security default-keychain -d user -s build.keychain
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+        security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+        rm certificate.p12
+        security find-identity -v -p codesigning build.keychain | grep -F "$IDENTITY" >/dev/null
+
+    - name: Finalize Full Developer ID signing and notarization on ARM
+      working-directory: one-person-lab-app
+      env:
+        appleId: ${{ inputs.APPLE_ID }}
+        appleIdPassword: ${{ inputs.APPLE_ID_PASSWORD }}
+        teamId: ${{ inputs.TEAM_ID }}
+        OPL_RUNTIME_CODESIGN_IDENTITY: ${{ inputs.IDENTITY }}
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+        KEYCHAIN_PASSWORD: ${{ inputs.KEYCHAIN_PASSWORD }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+        security default-keychain -d user -s build.keychain
+        security list-keychains -d user -s build.keychain
+        node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/notarize-macos-dmg.ts" \
+          --dmg "dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" \
+          --output dist/opl-full-release/full-apple-notarization-receipt.json \
+          --submitted-candidate-output "dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.submitted-for-notarization.dmg" \
+          --operation-deadline-at '${{ inputs.operation_deadline_at }}'
+
+    - name: Seal Apple submission recovery checkpoint before diagnostics
+      if: ${{ failure() }}
+      working-directory: one-person-lab-app
+      env:
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        output_dir=dist/opl-full-release
+        recovery_dir=full-apple-recovery
+        rm -rf "$recovery_dir"
+        mkdir -p "$recovery_dir"
+        receipt="$output_dir/full-apple-notarization-receipt.json"
+        candidate="$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.submitted-for-notarization.dmg"
+        submission_id=''
+        receipt_candidate_sha=''
+        receipt_candidate_size=0
+        if [ -f "$receipt" ] && [ ! -L "$receipt" ]; then
+          cp "$receipt" "$recovery_dir/full-apple-notarization-receipt.json"
+          submission_id="$(jq -r '.notarization.id // empty' "$receipt")"
+          if ! [[ "$submission_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            submission_id=''
+          fi
+          receipt_candidate_sha="$(jq -r '.submitted_candidate.sha256 // empty' "$receipt")"
+          receipt_candidate_size="$(jq -r '.submitted_candidate.size_bytes // 0' "$receipt")"
+        else
+          jq -n --arg artifact "One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" \
+            '{schema:"opl_apple_notarization_recovery_unavailable.v1",status:"unavailable",artifact:$artifact,reason:"notarization receipt was not written"}' \
+            > "$recovery_dir/full-apple-notarization-receipt.json"
+        fi
+        if [ -f "$candidate" ] && [ ! -L "$candidate" ]; then
+          cp "$candidate" "$recovery_dir/"
+          candidate_sha="sha256:$(shasum -a 256 "$candidate" | awk '{print $1}')"
+          candidate_size="$(wc -c < "$candidate" | tr -d ' ')"
+          if [ -n "$submission_id" ] && [ "$candidate_sha" = "$receipt_candidate_sha" ] && [ "$candidate_size" = "$receipt_candidate_size" ]; then
+            checkpoint_status=recoverable
+            candidate_status=retained_for_reconcile
+          else
+            checkpoint_status=diagnostic_only
+            candidate_status=unbound_diagnostic
+          fi
+        else
+          checkpoint_status=diagnostic_only
+          candidate_status=not_needed_or_unavailable
+          candidate_sha=''
+          candidate_size=0
+        fi
+        jq -n \
+          --arg status "$checkpoint_status" --arg submission_id "$submission_id" \
+          --arg receipt_sha "sha256:$(shasum -a 256 "$recovery_dir/full-apple-notarization-receipt.json" | awk '{print $1}')" \
+          --arg candidate_status "$candidate_status" --arg candidate_sha "$candidate_sha" \
+          --argjson candidate_size "$candidate_size" --arg run "$GITHUB_RUN_ID" \
+          '{schema:"opl_apple_notarization_recovery_checkpoint.v1",status:$status,source_run_id:$run,submission_id:(if $submission_id == "" then null else $submission_id end),receipt_sha256:$receipt_sha,submitted_candidate:{status:$candidate_status,sha256:(if $candidate_sha == "" then null else $candidate_sha end),size_bytes:(if $candidate_size == 0 then null else $candidate_size end)},resume_policy:(if $status == "recoverable" then "same_submission_finalize_only_after_owner_authoritative_reconcile" else "no_finalize_or_resubmission_authorized" end)}' \
+          > "$recovery_dir/recovery-checkpoint.json"
+
+    - name: Upload sealed Apple submission recovery checkpoint
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: opl-full-apple-recovery-${{ inputs.opl_version }}-${{ github.run_id }}
+        path: one-person-lab-app/full-apple-recovery
+        if-no-files-found: error
+        compression-level: 0
+        retention-days: 30
+
+    - name: Verify ARM-finalized Full distribution trust and bind manifest
+      env:
+        EXPECTED_TEAM_ID: ${{ inputs.TEAM_ID }}
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+        HANDOFF_ARTIFACT_DIGEST: ${{ inputs.finalizer_input_digest }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
+        dmg_path="$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+        mount_point="$(mktemp -d)"
+        mounted=false
+        cleanup_mount() {
+          if [ "$mounted" = true ]; then hdiutil detach "$mount_point" >/dev/null 2>&1 || true; fi
+          rm -rf "$mount_point"
+        }
+        trap cleanup_mount EXIT
+        hdiutil verify "$dmg_path"
+        hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mount_point" >/dev/null
+        mounted=true
+        app_paths=()
+        while IFS= read -r candidate; do app_paths+=("$candidate"); done < <(
+          find "$mount_point" -maxdepth 2 -type d -name '*.app' -print | LC_ALL=C sort
+        )
+        test "${#app_paths[@]}" -eq 1 || { echo "::error::ARM-finalized Full DMG must contain exactly one App bundle."; exit 1; }
+        mounted_app_path="${app_paths[0]}"
+        test "$(basename "$mounted_app_path")" = 'One Person Lab.app'
+        mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
+        codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
+        codesign --verify --strict --verbose=2 "$dmg_path"
+        xcrun stapler validate "$dmg_path"
+        spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
+        spctl --assess --type execute --verbose=4 "$mounted_app_path"
+        receipt="$output_dir/full-apple-notarization-receipt.json"
+        jq -e --arg team_id "$EXPECTED_TEAM_ID" '
+          .schema == "opl_apple_notarized_dmg_receipt.v1"
+          and .status == "passed"
+          and .team_identifier == $team_id
+          and .timestamp_signing.authority_endpoint == "system_default"
+          and .notarization.status == "Accepted"
+          and .stapler_validate_status == "passed"
+          and .dmg_spctl_status == "passed"
+          and .app_spctl_status == "passed"
+        ' "$receipt" >/dev/null
+        jq -e '.status == "passed"' "$output_dir/full-runtime-currentness-probe.json" >/dev/null
+        node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/verify-full-runtime-native-trust.ts" \
+          --runtime-root "$mounted_runtime_root" \
+          --expected-team-id "$EXPECTED_TEAM_ID" \
+          --output "$output_dir/full-runtime-native-trust.json"
+        jq -e '.status == "passed"' "$output_dir/full-runtime-native-trust.json" >/dev/null
+        node - "$mounted_app_path" "$output_dir" <<'NODE'
+        const crypto = require('node:crypto');
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const appPath = process.argv[2];
+        const outputDir = process.argv[3];
+        const notarizationPath = path.join(outputDir, 'full-apple-notarization-receipt.json');
+        const notarization = JSON.parse(fs.readFileSync(notarizationPath, 'utf8'));
+        const runtimeTrust = JSON.parse(fs.readFileSync(path.join(outputDir, 'full-runtime-native-trust.json'), 'utf8'));
+        const policy = {
+          schema: 'opl_gatekeeper_launch_policy.v1',
+          package_kind: 'app_full_first_install',
+          distribution_mode: 'developer_id_notarized',
+          app_path: appPath,
+          team_identifier: notarization.team_identifier,
+          codesign_status: 'passed',
+          spctl_status: 'passed',
+          dmg_codesign_status: 'passed',
+          dmg_spctl_status: 'passed',
+          stapler_validate_status: 'passed',
+          notarization_status: notarization.notarization.status,
+          notarization_receipt_sha256: crypto.createHash('sha256').update(fs.readFileSync(notarizationPath)).digest('hex'),
+          runtime_native_trust_status: runtimeTrust.status,
+          runtime_native_executable_count: runtimeTrust.executable_count,
+          local_authorization_required: false,
+          quarantine_removal_required: false,
+        };
+        fs.writeFileSync(path.join(outputDir, 'full-gatekeeper-launch-policy.json'), `${JSON.stringify(policy, null, 2)}\n`);
+        const readme = path.join(outputDir, 'README-Full-First-Install.txt');
+        const text = fs.readFileSync(readme, 'utf8');
+        fs.writeFileSync(readme, text.replace(/Signing and notarization:.*(?:\n|$)/, 'Signing and notarization: this package has completed Developer ID signing, Apple notarization, stapling, and Gatekeeper checks.\n'));
+        NODE
+        node - "$OPL_RELEASE_VERSION" "$dmg_path" "$output_dir" \
+          '${{ inputs.target_standard_release_id }}' '${{ inputs.target_standard_release_tag }}' \
+          '${{ inputs.target_standard_target_commitish }}' '${{ github.sha }}' \
+          '${{ inputs.artifact_app_sha }}' '${{ inputs.shell_ref }}' '${{ inputs.framework_ref }}' \
+          "$HANDOFF_ARTIFACT_DIGEST" <<'NODE'
+        const crypto = require('node:crypto');
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const [version, dmgPath, outDir, releaseId, releaseTag, targetCommitish, executorSha, appSha, shellSha, frameworkSha, handoffDigest] = process.argv.slice(2);
+        const readJson = (name) => JSON.parse(fs.readFileSync(path.join(outDir, name), 'utf8'));
+        const fullDmgName = path.basename(dmgPath);
+        const releaseManifest = {
+          schema: 'opl_public_release_manifest.v1',
+          package_kind: 'opl_full_first_install_macos_arm64',
+          owner_authority: 'one-person-lab-app',
+          version,
+          release_version: version,
+          primary_install_asset: fullDmgName,
+          carrier_context: {
+            publication_model: 'same_tag_mutable_standard_addon',
+            target_standard_release: {
+              repository: 'gaofeng21cn/one-person-lab-app',
+              release_id: Number(releaseId),
+              tag: releaseTag,
+              target_commitish: targetCommitish,
+              immutable: false,
+              full_asset_append_allowed: true,
+              standard_asset_overwrite_or_delete_allowed: false,
+            },
+            release_executor: { app_sha: executorSha, notarizer_path: 'scripts/notarize-macos-dmg.ts', finalizer_runner: 'macos-latest' },
+            finalizer_handoff: { artifact_digest: handoffDigest, receipt: readJson('full-finalizer-handoff-receipt.json') },
+            full_content_sources: { role: 'observational_build_provenance_only', may_gate_install_or_runtime: false, app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
+            differences: { executor_app_differs_from_full_content_app: executorSha !== appSha, full_content_app_differs_from_target_standard: appSha !== targetCommitish },
+          },
+          assets: [{ name: fullDmgName, role: 'full_first_install_carrier', size_bytes: fs.statSync(dmgPath).size, sha256: `sha256:${crypto.createHash('sha256').update(fs.readFileSync(dmgPath)).digest('hex')}` }],
+          manifest: readJson('full-package-manifest.json'),
+          evidence: {
+            runtime_cache_events: readJson('runtime-cache-events.json'),
+            runtime_currentness_probe: readJson('full-runtime-currentness-probe.json'),
+            runtime_native_trust: readJson('full-runtime-native-trust.json'),
+            app_bundle_trim_report: readJson('full-app-bundle-trim-report.json'),
+            package_boundary_audit: readJson('full-package-boundary-audit.json'),
+            gatekeeper_launch_policy: readJson('full-gatekeeper-launch-policy.json'),
+            apple_notarization_receipt: readJson('full-apple-notarization-receipt.json'),
+            readme_text: fs.readFileSync(path.join(outDir, 'README-Full-First-Install.txt'), 'utf8'),
+          },
+          transition_legacy_assets: ['full-package-manifest.json', 'runtime-cache-events.json', 'full-runtime-currentness-probe.json', 'full-runtime-native-trust.json', 'full-app-bundle-trim-report.json', 'full-package-boundary-audit.json'],
+        };
+        fs.writeFileSync(path.join(outDir, 'opl-release-manifest.json'), `${JSON.stringify(releaseManifest, null, 2)}\n`);
+        NODE
+        (
+          cd "$output_dir"
+          node --input-type=module <<'NODE'
+        import crypto from 'node:crypto';
+        import fs from 'node:fs';
+        const existing = fs.readFileSync('SHA256SUMS.txt', 'utf8').trim().split(/\r?\n/).filter(Boolean).map((line) => line.trim().split(/\s+/).at(-1));
+        const required = ['opl-release-manifest.json', 'full-runtime-currentness-probe.json', 'full-runtime-native-trust.json', 'full-gatekeeper-launch-policy.json', 'full-apple-notarization-receipt.json', 'full-finalizer-handoff-receipt.json'];
+        const names = [...new Set([...existing, ...required])].filter((name) => name && fs.existsSync(name)).sort();
+        fs.writeFileSync('SHA256SUMS.next', `${names.map((name) => `${crypto.createHash('sha256').update(fs.readFileSync(name)).digest('hex')}  ${name}`).join('\n')}\n`);
+        NODE
+          mv SHA256SUMS.next SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+        )
+
+        node --experimental-strip-types release-executor/scripts/write-build-artifact-cohort.ts \
+          --output "$RUNNER_TEMP/opl-build-cohort.json" \
+          --artifact "$dmg_path" \
+          --artifact-name "$(basename "$dmg_path")" \
+          --packaged-tree "$mounted_app_path" \
+          --app-profile one-person-lab-app/contracts/app-product-profile.json \
+          --gui-contract one-person-lab-app/contracts/app-gui-product-contract.json \
+          --smoke-harness one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/${{ steps.shell_profile.outputs.smoke_harness }} \
+          --compiled-expectations one-person-lab-app/contracts/app-first-run-compiled-expectations.json \
+          --qualification-input-manifest "$RUNNER_TEMP/opl-full-dependency-resolution/qualification-input-manifest.json" \
+          --full-input-manifest "$RUNNER_TEMP/opl-full-dependency-resolution/full-input-manifest.json" \
+          --full-package-manifest one-person-lab-app/dist/opl-full-release/full-package-manifest.json \
+          --full-toolchain-observation-receipt one-person-lab-app/dist/opl-full-release/opl-full-toolchain-observation-receipt.json \
+          --app-sha '${{ inputs.artifact_app_sha }}' \
+          --shell-sha '${{ inputs.shell_ref }}' \
+          --framework-sha '${{ inputs.framework_ref }}' \
+          --version "$OPL_RELEASE_VERSION" \
+          --kind full \
+          --actions-run-id "$GITHUB_RUN_ID" \
+          --actions-run-attempt "$GITHUB_RUN_ATTEMPT" \
+          --actions-artifact-name "opl-full-first-install-dmg-${OPL_RELEASE_VERSION}-mac-arm64" \
+          --stable-session-id '${{ inputs.release_bundle_digest }}' \
+          --release-cohort-ref '${{ inputs.release_cohort_ref }}'
+        cp "$RUNNER_TEMP/opl-build-cohort.json" one-person-lab-app/dist/opl-full-release/opl-build-cohort.json
+
+    - name: Summarize ARM-finalized Full package size
+      working-directory: one-person-lab-app
+      env:
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        dmg_path="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+        dmg_size_bytes="$(stat -f%z "$dmg_path")"
+        node --experimental-strip-types scripts/analyze-full-package-size.ts \
+          --full-dmg-size-bytes "$dmg_size_bytes" \
+          --json > dist/opl-full-release/full-package-size-summary.json
+        node --experimental-strip-types scripts/analyze-full-package-size.ts \
+          --full-dmg-size-bytes "$dmg_size_bytes" \
+          --markdown > dist/opl-full-release/full-package-size-summary.md
+        cat dist/opl-full-release/full-package-size-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload ARM Full notarization terminal evidence
+      if: ${{ always() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: opl-full-notarization-evidence-${{ inputs.opl_version }}-${{ github.run_id }}
+        path: |
+          one-person-lab-app/dist/opl-full-release/full-apple-notarization-receipt.json
+          one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${{ inputs.opl_version }}-mac-arm64.submitted-for-notarization.dmg
+          one-person-lab-app/dist/opl-full-release/full-finalizer-handoff-receipt.json
+          one-person-lab-app/dist/opl-full-release/full-runtime-native-trust.json
+        if-no-files-found: warn
+        compression-level: 0
+        retention-days: 30
+
+    - name: Upload ARM-finalized Full diagnostics artifact
+      if: ${{ always() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: opl-full-diagnostics-${{ inputs.opl_version }}
+        path: |
+          one-person-lab-app/dist/opl-full-release/full-workflow-telemetry.json
+          one-person-lab-app/dist/opl-full-release/full-package-build-timing.json
+          one-person-lab-app/dist/opl-full-release/full-package-manifest.json
+          one-person-lab-app/dist/opl-full-release/full-package-size-summary.json
+          one-person-lab-app/dist/opl-full-release/full-package-size-summary.md
+          one-person-lab-app/dist/opl-full-release/runtime-cache-events.json
+          one-person-lab-app/dist/opl-full-release/full-runtime-currentness-probe.json
+          one-person-lab-app/dist/opl-full-release/full-runtime-native-trust.json
+          one-person-lab-app/dist/opl-full-release/full-app-bundle-trim-report.json
+          one-person-lab-app/dist/opl-full-release/full-package-boundary-audit.json
+          one-person-lab-app/dist/opl-full-release/full-gatekeeper-launch-policy.json
+          one-person-lab-app/dist/opl-full-release/full-apple-notarization-receipt.json
+          one-person-lab-app/dist/opl-full-release/full-finalizer-handoff-receipt.json
+          one-person-lab-app/dist/opl-full-release/SHA256SUMS.txt
+          one-person-lab-app/dist/opl-full-release/README-Full-First-Install.txt
+        if-no-files-found: warn
+        retention-days: 30
+
+    - name: Upload Full package workflow artifact
+      if: ${{ success() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: opl-full-first-install-${{ inputs.opl_version }}-mac-arm64
+        path: |
+          one-person-lab-app/dist/opl-full-release
+          !one-person-lab-app/dist/opl-full-release/*.submitted-for-notarization.dmg
+        if-no-files-found: error
+        compression-level: 0
+        retention-days: 14
+
+    - name: Upload Full build artifact cohort manifest
+      if: ${{ success() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64-cohort
+        path: ${{ runner.temp }}/opl-build-cohort.json
+        if-no-files-found: error
+        retention-days: 14
+
+    - name: Upload Full DMG-only workflow artifact
+      if: ${{ success() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64
+        path: one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${{ inputs.opl_version }}-mac-arm64.dmg
+        if-no-files-found: error
+        compression-level: 0
+        retention-days: 14
+

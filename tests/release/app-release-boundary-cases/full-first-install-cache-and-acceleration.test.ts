@@ -72,11 +72,11 @@ test("Standard and Full use one exact compiled renderer cache and one finalizer 
   assert.equal(restore.with["restore-keys"], undefined);
   assert.match(save.if, /github.ref == 'refs\/heads\/main'/);
   assert.match(save.if, /reusable == 'true'/);
-  const finalizer = full.jobs["full-finalizer"].steps.find((step: any) => step.name === "Verify ARM-finalized Full distribution trust and bind manifest");
+  const finalizer = parseYaml(fs.readFileSync(path.join(appRoot, ".github/actions/finalize-full/action.yml"), "utf8")).runs.steps.find((step: any) => step.name === "Verify ARM-finalized Full distribution trust and bind manifest");
   assert.equal((finalizer.run.match(/hdiutil attach /g) ?? []).length, 1);
   assert.match(finalizer.run, /--packaged-tree "\$mounted_app_path"/);
   assert.match(finalizer.run, /trap cleanup_mount EXIT/);
-  assert.equal(full.jobs["full-finalizer"].steps.some((step: any) => step.name === "Write ARM-finalized Full build artifact cohort manifest"), false);
+  assert.equal(parseYaml(fs.readFileSync(path.join(appRoot, ".github/actions/finalize-full/action.yml"), "utf8")).runs.steps.some((step: any) => step.name === "Write ARM-finalized Full build artifact cohort manifest"), false);
 });
 
 test("Full workflow checks out MAS Scholar Skills and binds both runtime assembly passes", () => {

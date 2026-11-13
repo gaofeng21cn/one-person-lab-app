@@ -9,6 +9,7 @@ import {
 } from '../release-dispatch-guard.ts';
 import {
   reusableFullBuildCohorts,
+  reusableFullFinalizerInput,
   selectCheckpointArtifact,
   selectReusableFullCheckpointArtifact,
 } from './artifact-retrieval.ts';
@@ -176,7 +177,7 @@ export function reconcileAppendFullTarget(input: {
           `Run ${owner.id} must expose at most one reusable Full build cohort; found ${fullBuildCohorts.length}.`,
         );
       }
-      if (fullBuildCohorts.length === 0) continue;
+      if (fullBuildCohorts.length === 0 && !reusableFullFinalizerInput(ownerArtifacts, String(owner.id))) continue;
       return {
         state: 'dispatch_required',
         root_source_run_id: root,

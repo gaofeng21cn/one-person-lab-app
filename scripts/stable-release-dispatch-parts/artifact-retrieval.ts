@@ -120,6 +120,17 @@ export function isFullCheckpointArtifact(sourceArtifact: string, sourceRunId: st
     || sourceArtifact === `opl-release-append-full-operation-checkpoint-v2-${sourceRunId}`;
 }
 
+export function reusableFullFinalizerInput(artifacts: readonly WorkflowArtifact[], sourceRunId: string): WorkflowArtifact | undefined {
+  const id = runId(sourceRunId, 'source_run_id');
+  const live = artifacts.filter(artifact => !artifact.expired);
+  const matches = live.filter(artifact => artifact.name.startsWith('opl-full-finalizer-input-') && artifact.name.endsWith(`-${id}`));
+  if (matches.length > 1) throw new Error(`Run ${id} exposes multiple Full finalizer inputs.`);
+  if (matches.length && live.some(artifact => artifact.name.startsWith('opl-full-apple-recovery-'))) {
+    throw new Error(`Run ${id} contains Apple submission recovery evidence; reconcile that submission before finalization.`);
+  }
+  return matches[0];
+}
+
 export function readFullCheckpointCohort(
   runtime: Runtime,
   repository: string,
@@ -127,13 +138,14 @@ export function readFullCheckpointCohort(
   artifacts: WorkflowArtifact[],
 ): unknown {
   const matches = reusableFullBuildCohorts(artifacts);
-  if (matches.length !== 1) {
-    throw new Error(`Run ${sourceRunId} must expose exactly one reusable Full build cohort; found ${matches.length}.`);
+  const handoff = matches.length === 0 ? reusableFullFinalizerInput(artifacts, sourceRunId) : undefined;
+  if (matches.length !== 1 && !handoff) {
+    throw new Error(`Run ${sourceRunId} must expose exactly one reusable Full build cohort or unsubmitted finalizer input; found ${matches.length}.`);
   }
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-checkpoint-cohort-'));
   try {
-    downloadExactWorkflowArtifact(runtime, repository, sourceRunId, matches[0]!.name, tempRoot);
-    return readJsonFile(path.join(tempRoot, 'opl-build-cohort.json'));
+    downloadExactWorkflowArtifact(runtime, repository, sourceRunId, handoff?.name ?? matches[0]!.name, tempRoot);
+    return readJsonFile(path.join(tempRoot, handoff ? 'handoff-manifest.json' : 'opl-build-cohort.json'));
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

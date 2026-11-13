@@ -87,6 +87,7 @@ export async function downloadArtifact(env = process.env) {
   if (matches.length !== 1) throw new Error(`Expected one live exact artifact; found ${matches.length}`);
   const artifact = matches[0];
   if (!/^sha256:[a-f0-9]{64}$/.test(artifact.digest ?? '')) throw new Error('GitHub artifact has no SHA-256 digest');
+  if (env.OPL_ARTIFACT_EXPECTED_DIGEST && artifact.digest !== env.OPL_ARTIFACT_EXPECTED_DIGEST) throw new Error('GitHub artifact digest differs from the admitted handoff');
   const cache = path.resolve(cacheRoot);
   fs.mkdirSync(cache, { recursive: true });
   const archive = path.join(cache, `${artifact.digest.slice(7)}.zip`);

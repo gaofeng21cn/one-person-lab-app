@@ -201,6 +201,8 @@ jobs:
       actions: read
     outputs:
       mas_scholar_skills_ref: ${{ steps.full-refs.outputs.mas_scholar_skills_ref }}
+      finalizer_source_run_id: ${{ steps.finalizer-recovery.outputs.source_run_id }}
+      finalizer_input_digest: ${{ steps.finalizer-recovery.outputs.digest }}
       version: ${{ steps.identity.outputs.version }}
       updater_version: ${{ steps.identity.outputs.updater_version }}
       tag: ${{ steps.identity.outputs.tag }}
@@ -274,12 +276,35 @@ jobs:
           allow-reconcile-required: 'true'
           local-checkpoint-dir: checkpoint-identity-bootstrap
 
+      - name: Resolve unsubmitted Full finalizer recovery
+        id: finalizer-recovery
+        if: ${{ inputs.prior_full_artifact_run_id == '' && (steps.checkpoint.outputs.completed_stage == 'standard_built' || steps.checkpoint.outputs.completed_stage == 'standard_qualified') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          VERSION: ${{ steps.checkpoint.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" --paginate --slurp > finalizer-artifacts.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { reusableFullFinalizerInput } from './app-source/scripts/stable-release-dispatch-parts/artifact-retrieval.ts';
+          const artifacts = JSON.parse(fs.readFileSync('finalizer-artifacts.json', 'utf8')).flatMap(page => page.artifacts);
+          const selected = reusableFullFinalizerInput(artifacts, process.env.SOURCE_RUN_ID);
+          if (selected) {
+            if (selected.name !== `opl-full-finalizer-input-${process.env.VERSION}-${process.env.SOURCE_RUN_ID}`) throw new Error('Full recovery version drifted');
+            if (!/^sha256:[0-9a-f]{64}$/.test(selected.digest ?? '')) throw new Error('Full recovery requires an exact archive digest');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `source_run_id=${process.env.SOURCE_RUN_ID}\ndigest=${selected.digest}\n`);
+          }
+          NODE
+
       - name: Resolve and validate Full refs from the admitted source
         id: full-refs
         env:
           GH_TOKEN: ${{ github.token }}
           MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
-          PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
+          PRIOR_FULL_ARTIFACT_RUN_ID: ${{ inputs.prior_full_artifact_run_id || steps.finalizer-recovery.outputs.source_run_id }}
           CHECKPOINT_STAGE: ${{ steps.checkpoint.outputs.completed_stage }}
           CHECKPOINT_DIR: ${{ steps.checkpoint.outputs.checkpoint_dir }}
           CHECKPOINT_VERSION: ${{ steps.checkpoint.outputs.version }}
@@ -961,6 +986,8 @@ jobs:
       shell_ref: ${{ inputs.full_content_shell_ref }}
       mas_scholar_skills_ref: ${{ needs.restore-standard.outputs.mas_scholar_skills_ref }}
       upload_full_package_artifact: true
+      finalizer_source_run_id: ${{ needs.restore-standard.outputs.finalizer_source_run_id }}
+      finalizer_input_digest: ${{ needs.restore-standard.outputs.finalizer_input_digest }}
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.restore-standard.outputs.bundle_digest }}
       artifact_app_sha: ${{ inputs.full_content_app_ref }}

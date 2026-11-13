@@ -5,6 +5,7 @@ import {
   path,
   readWorkflow,
   parseWorkflow,
+  parseYaml,
   workflowStep,
   runPortableStandardBuildReceiptStep,
 } from "./fixtures.ts";
@@ -372,7 +373,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   const diagnostics = parseWorkflow('release-diagnostics.yml');
   const fullAddon = parseWorkflow('_release-full-addon.yml');
   const fullBuild = parseWorkflow('full-first-install-release.yml');
-  const fullBuildSource = readWorkflow('full-first-install-release.yml');
+  const fullBuildSource = readWorkflow('full-first-install-release.yml') + fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8');
   const fullAddonSource = readWorkflow('_release-full-addon.yml');
   const protectedPreflightEnvironment = "${{ inputs.require_macos_gatekeeper && 'release-stable' || null }}";
   const protectedMacosBuildEnvironment = "${{ inputs.require_macos_gatekeeper && startsWith(matrix.platform, 'macos') && 'release-stable' || null }}";
@@ -531,7 +532,9 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     (step: Record<string, unknown>) => step.name === 'Record candidate-only Full failure without blocking Standard',
   ));
   assert.equal(fullBuild.jobs['full-finalizer']['runs-on'], 'macos-latest');
-  assert.equal(fullBuild.jobs['full-finalizer'].needs, 'full-first-install');
+  assert.equal(fullBuild.jobs['full-finalizer'].needs, undefined);
+  assert.match(fullBuild.jobs['full-finalizer'].if, /inputs.finalizer_source_run_id != ''/);
+  assert.equal(fullBuild.jobs['full-first-install'].if, "${{ inputs.finalizer_source_run_id == '' }}");
   assert.equal(fullBuild.jobs['full-finalizer'].environment, 'release-stable');
   assert.equal(fullBuild.jobs['full-finalizer']['timeout-minutes'], 60);
   assert.deepEqual(fullBuild.jobs['full-finalizer'].permissions, {
@@ -551,7 +554,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   assert.match(String(credentialGate.run), /exit 1/);
 
   const armBuilder = fullBuild.jobs['full-first-install'];
-  const fullFinalizer = fullBuild.jobs['full-finalizer'];
+  const fullFinalizer = parseYaml(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8')).runs;
   const handoffUpload = armBuilder.steps.find(
     (step: Record<string, unknown>) => step.name === 'Upload immutable Full finalizer input',
   );
@@ -570,12 +573,12 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   const cohortWriter = fullFinalizer.steps.find(
     (step: Record<string, unknown>) => step.name === 'Verify ARM-finalized Full distribution trust and bind manifest',
   );
-  const executorCheckout = fullFinalizer.steps.find(
+  const executorCheckout = armBuilder.steps.find(
     (step: Record<string, unknown>) => step.name === 'Checkout canonical Full release executor',
   );
   assert.equal(fullBuild.jobs['full-first-install']['timeout-minutes'], "${{ inputs.operation == 'append_full' && 130 || 90 }}");
-  assert.equal(executorCheckout.if, undefined);
-  assert.match(String(fullFinalizer.if), /inputs\.operation == 'append_full'/);
+  assert.match(executorCheckout.if, /inputs.operation == 'append_full'/);
+  assert.match(armBuilder.steps.find((step: Record<string, unknown>) => step.id === 'finalized').if, /inputs\.operation == 'append_full'/);
   assert.equal(executorCheckout.with.path, 'release-executor');
   assert.equal(executorCheckout.with.ref, '${{ github.sha }}');
   assert.match(

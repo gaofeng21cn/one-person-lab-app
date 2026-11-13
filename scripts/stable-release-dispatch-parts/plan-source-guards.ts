@@ -60,13 +60,17 @@ export function resolveAppendFullCohort(
     };
   } else {
     const manifest = record(checkpointCohort, 'Full checkpoint build cohort');
-    if (manifest.schema !== 'opl_app_build_artifact_cohort.v2') {
+    const prefinalization = manifest.schema === 'opl_full_finalizer_input.v1';
+    if (!prefinalization && manifest.schema !== 'opl_app_build_artifact_cohort.v2') {
       throw new Error('Full checkpoint build cohort schema is invalid.');
     }
-    if (record(manifest.build, 'Full checkpoint build identity').kind !== 'full') {
+    if (!prefinalization && record(manifest.build, 'Full checkpoint build identity').kind !== 'full') {
       throw new Error('Full checkpoint build cohort is not a Full artifact.');
     }
-    const cohort = record(manifest.cohort, 'Full checkpoint content cohort');
+    if (prefinalization && record(manifest.source_runner, 'Full handoff source runner').arch !== 'arm64') {
+      throw new Error('Full finalizer input requires an ARM64 source.');
+    }
+    const cohort = record(prefinalization ? manifest.full_content_sources : manifest.cohort, 'Full checkpoint content cohort');
     defaults = {
       appSha: sha(cohort.app_sha, 'Full checkpoint app_sha'),
       shellSha: sha(cohort.shell_sha, 'Full checkpoint shell_sha'),

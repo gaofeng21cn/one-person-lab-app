@@ -4072,7 +4072,7 @@
       "mounted_app_gatekeeper_required": true,
       "local_authorization_fallback_allowed": false,
       "unknown_submission_recovery": {
-        "workflow": ".github/workflows/full-first-install-release.yml#full-finalizer",
+        "workflow": ".github/actions/finalize-full/action.yml",
         "checkpoint_schema": "opl_apple_notarization_recovery_checkpoint.v1",
         "artifact_name": "opl-full-apple-recovery-<version>-<run-id>",
         "runs_on_failure_only": true,

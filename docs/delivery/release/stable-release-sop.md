@@ -184,6 +184,21 @@ starts build preparation, reconcile the active owner, cancel only that unnecessa
 add-on operation, wait for terminal cancellation, and recover from the later checkpoint.
 Preserve the already public Standard and every completed independent channel.
 
+If the failed run has an `opl-full-finalizer-input-<version>-<run-id>` artifact but
+no completed Full cohort, `append-full` can resume that exact unsubmitted handoff.
+The controller preserves its original content refs; the protected workflow verifies
+the fresh archive digest and every retained file, skips assembly, then performs
+notarization, trust checks, clean-VM qualification and same-tag publication.
+An existing Apple submission recovery artifact requires submission reconciliation
+before this path can run. The handoff is not a `full_built` or qualified checkpoint.
+
+Fresh Full assembly and finalization share the same ARM job through
+`.github/actions/finalize-full`. The standalone finalizer job is recovery-only;
+normal builds must not release their ARM runner and request a second one. A job
+with no runner and no steps must be diagnosed from its check-run annotations:
+GitHub capacity failures are not execution timeouts, and increasing
+`timeout-minutes` does not repair them.
+
 ### 保持产物身份，分别选择执行器与验证器
 
 恢复 Full checkpoint 时，省略产品 ref 会从其 build cohort 读取原 App／Shell／Framework SHA，不追随当前 main。只覆盖某一个产品 ref 也会改变候选：自动恢复仅在原 Standard checkpoint 可用时退回新建 Full；指定了准确 Full artifact，或原 run 不含 Standard 时，会明确拒绝冲突，要求选择原 Standard 来源。只修验收脚本时不要改产品 ref。

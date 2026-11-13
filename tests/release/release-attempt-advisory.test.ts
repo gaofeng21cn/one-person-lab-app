@@ -8,7 +8,7 @@ const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..",
 const fullWorkflow = fs.readFileSync(
   path.join(appRoot, ".github", "workflows", "full-first-install-release.yml"),
   "utf8",
-);
+) + fs.readFileSync(path.join(appRoot, ".github/actions/finalize-full/action.yml"), "utf8");
 const fullAddonWorkflow = fs.readFileSync(
   path.join(appRoot, ".github", "workflows", "_release-full-addon.yml"),
   "utf8",

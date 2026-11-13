@@ -484,7 +484,7 @@ test("old session, broker, operator, writer map, and owner fast path are absent"
 test("append_full is a checkpoint capability and not a Standard Latest requirement", () => {
   const full = release.full_first_install.published_addon;
   assert.deepEqual(release.full_first_install.production_macos_trust.unknown_submission_recovery, {
-    workflow: ".github/workflows/full-first-install-release.yml#full-finalizer",
+    workflow: ".github/actions/finalize-full/action.yml",
     checkpoint_schema: "opl_apple_notarization_recovery_checkpoint.v1",
     artifact_name: "opl-full-apple-recovery-<version>-<run-id>",
     runs_on_failure_only: true,
