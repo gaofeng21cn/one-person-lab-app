@@ -366,6 +366,33 @@ jobs:
             output="${selector%%:*}"; query="${selector#*:}"; value="$(jq -er "$query" "$resolved_full")"
             echo "${output}=$value" >> "$GITHUB_OUTPUT"
           done
+      - name: Validate and bound dependency archive cache
+        id: dependency-archive-plan
+        if: ${{ github.ref == 'refs/heads/main' }}
+        continue-on-error: true
+        env:
+          OPL_DEPENDENCY_CACHE_RESTORE_MATCHED_KEY: ${{ steps.dependency-archives.outputs.cache-matched-key }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=one-person-lab-app/scripts/release-dependency-download-cache.ts
+          if [ -f release-executor/scripts/release-dependency-download-cache.ts ]; then script=release-executor/scripts/release-dependency-download-cache.ts; fi
+          if [ -f "$script" ]; then
+            node --experimental-strip-types "$script" \
+              --resolved "$RUNNER_TEMP/opl-full-dependency-resolution/dependency-resolution.json" \
+              --cache-dir "$OPL_DEPENDENCY_ARCHIVE_CACHE_DIR" --prune --github-output "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save verified dependency archives
+        if: ${{ github.ref == 'refs/heads/main' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
+        continue-on-error: true
+        env:
+          OPL_ACTIONS_CACHE_CLASS: dependency_download
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/opl-dependency-archives
+          key: ${{ steps.dependency-archive-plan.outputs.cache_key }}
+
       - name: Resolve Full source seed identities from frozen Framework
         id: seed-sources
         env:
@@ -1678,33 +1705,6 @@ jobs:
           shell-root: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
           app-root: one-person-lab-app
           cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
-
-      - name: Validate and bound dependency archive cache
-        id: dependency-archive-plan
-        if: ${{ github.ref == 'refs/heads/main' }}
-        continue-on-error: true
-        env:
-          OPL_DEPENDENCY_CACHE_RESTORE_MATCHED_KEY: ${{ steps.dependency-archives.outputs.cache-matched-key }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          script=one-person-lab-app/scripts/release-dependency-download-cache.ts
-          if [ -f release-executor/scripts/release-dependency-download-cache.ts ]; then script=release-executor/scripts/release-dependency-download-cache.ts; fi
-          if [ -f "$script" ]; then
-            node --experimental-strip-types "$script" \
-              --resolved "$RUNNER_TEMP/opl-full-dependency-resolution/dependency-resolution.json" \
-              --cache-dir "$OPL_DEPENDENCY_ARCHIVE_CACHE_DIR" --prune --github-output "$GITHUB_OUTPUT"
-          fi
-
-      - name: Save verified dependency archives
-        if: ${{ github.ref == 'refs/heads/main' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
-        continue-on-error: true
-        env:
-          OPL_ACTIONS_CACHE_CLASS: dependency_download
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/opl-dependency-archives
-          key: ${{ steps.dependency-archive-plan.outputs.cache_key }}
 
       - name: Save Full Bun install cache
         if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}

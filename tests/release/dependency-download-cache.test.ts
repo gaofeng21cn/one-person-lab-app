@@ -44,6 +44,7 @@ test('Full restores raw archives before discovery and consumes the same cache be
   const restore = named('Restore verified dependency archives');
   const save = named('Save verified dependency archives');
   assert.ok(steps.indexOf(restore) < steps.indexOf(named('Resolve default Full build inputs')));
+  assert.ok(steps.indexOf(save) < steps.indexOf(named('Build Full first-install package')), 'verified downloads survive a later packaging failure');
   assert.equal(restore.with.path, save.with.path);
   assert.match(save.if, /github.ref == 'refs\/heads\/main'/);
   for (const name of ['Setup exact Python and packaged uv', 'Install zstd, Temporal CLI, OfficeCLI, and MinerU']) {

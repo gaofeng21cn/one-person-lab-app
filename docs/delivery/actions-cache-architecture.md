@@ -37,6 +37,8 @@ archives again after discovery. A missing or damaged cache downloads and
 validates normally. Older frozen Framework sources retain their direct download
 path. Before a main-only save, App retains only archives matching the current
 frozen resolution; keys bind archive identities and exclude resolution time.
+Verified downloads are saved immediately after resolution, so a later Full
+packaging or notarization failure does not discard that reusable work.
 
 Codex clean-VM installation already has a separate cache of its exact wrapper
 and platform tarballs. That remains the installation consumer; Codex is not
