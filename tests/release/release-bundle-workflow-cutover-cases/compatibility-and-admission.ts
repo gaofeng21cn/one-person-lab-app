@@ -237,7 +237,7 @@ test('Stable Standard publication binds one Desktop carrier without a retired Na
   assert.equal(workflow.jobs['publish-standard'].needs.includes('webui-qualify'), false);
   const fullFirstInstall = parseWorkflow('full-first-install-release.yml').jobs['full-first-install'];
   assert.equal(fullFirstInstall['continue-on-error'], '${{ inputs.candidate_only }}');
-  assert.equal(fullFirstInstall['runs-on'], 'macos-latest');
+  assert.equal(fullFirstInstall['runs-on'], "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}");
   assert.equal(Array.isArray(fullFirstInstall.steps), true);
   assert.match(readWorkflow('_release-full-addon.yml'), /opl_app_full_candidate\.v1/);
   assert.match(readWorkflow('_release-full-addon.yml'), /candidate_only == true/);

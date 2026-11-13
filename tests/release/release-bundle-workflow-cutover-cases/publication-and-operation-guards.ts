@@ -524,7 +524,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
   assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_format.default, 'ULMO');
   assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_compression_level.default, '9');
-  assert.equal(fullBuild.jobs['full-first-install']['runs-on'], 'macos-latest');
+  assert.equal(fullBuild.jobs['full-first-install']['runs-on'], "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}");
   assert.equal(fullBuild.jobs['full-first-install']['continue-on-error'], '${{ inputs.candidate_only }}');
   assert.equal(fullBuild.jobs['full-first-install'].environment, 'release-stable');
   assert.ok(fullBuild.jobs['full-first-install'].steps.some(

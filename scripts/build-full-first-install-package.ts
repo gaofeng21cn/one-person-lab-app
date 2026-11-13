@@ -22,6 +22,7 @@ import {
   withVerifiedPinnedArchive,
 } from './build-full-first-install-package/archive-output.ts';
 import { parseArgs } from './build-full-first-install-package/env.ts';
+import { expectedStandardBase, materializeStandardBase, assertStandardBaseProductInputs } from './prepare-full-standard-base.ts';
 import { requirePath } from './build-full-first-install-package/filesystem.ts';
 import {
   compileFlowCapabilityBuildLock,
@@ -357,7 +358,10 @@ function main() {
 
     const cacheEventsWrittenAt = monotonicSeconds();
     timing.start('payload_sync');
-    let payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
+    const standardBaseDir = process.env.OPL_FULL_STANDARD_BASE_DIR?.trim();
+    if (standardBaseDir) assertStandardBaseProductInputs(process.env.OPL_FULL_FROZEN_APP_ROOT || '', appRepoRoot);
+    let payloadRoots = {};
+    if (!standardBaseDir) payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
     const payloadSyncedAt = monotonicSeconds();
     timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
     const productProfileSync = syncAppProductProfileToShell(options.guiRoot);
@@ -365,7 +369,15 @@ function main() {
       materializeStudioOfficialProfileResources(options.guiRoot, appRepoRoot);
     }
 
-    if (!options.skipGuiBuild) {
+    let reusedStandardApp = null;
+    if (standardBaseDir) {
+      timing.start('shell_build');
+      const reuseStartedAt = monotonicSeconds();
+      reusedStandardApp = materializeStandardBase(standardBaseDir, expectedStandardBase(),
+        path.join(resolveActiveShellPaths({ shellRoot: options.guiRoot }).buildOutputDir, 'mac-arm64'),
+        carrier.appBundleName, carrier.bundleId);
+      timings.shell_build = durationSeconds(reuseStartedAt, monotonicSeconds());
+    } else if (!options.skipGuiBuild) {
       timing.start('shell_build');
       const shellBuildStartedAt = monotonicSeconds();
       const shellBuildArgs = ['run', 'build-mac:arm64', '--', '--dir-only'];
@@ -395,7 +407,7 @@ function main() {
     timing.metadata.dmg_format = dmgFormat;
     process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
     timing.metadata.dmg_compression_level = process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL;
-    const builtApp = findBuiltApp(options.guiRoot);
+    const builtApp = reusedStandardApp ?? findBuiltApp(options.guiRoot);
     payloadRoots = {
       ...payloadRoots,
       builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(

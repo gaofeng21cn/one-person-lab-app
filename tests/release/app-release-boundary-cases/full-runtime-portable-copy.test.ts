@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -6,6 +7,7 @@ import test from 'node:test';
 
 import {
   copyRuntimePayloadTree,
+  copyAppBundleForDmg,
   syncRuntimePayloadToBuiltApp,
 } from '../../../scripts/build-full-first-install-package/archive-output.ts';
 
@@ -96,5 +98,41 @@ test('skip-build Full packaging injects the prepared runtime into the existing c
     if (previousCarrier === undefined) delete process.env.OPL_FULL_CARRIER_ID;
     else process.env.OPL_FULL_CARRIER_ID = previousCarrier;
     fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+
+test('Full staging clone and ditto fallback preserve metadata and independent file bytes', { skip: process.platform !== 'darwin' }, () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-app-clone-'));
+  const source = path.join(root, 'Source.app');
+  const target = path.join(root, 'Target.app');
+  const executable = path.join(source, 'bin', 'tool');
+  const previousPath = process.env.PATH;
+  try {
+    fs.mkdirSync(path.dirname(executable), { recursive: true });
+    fs.writeFileSync(executable, 'original', { mode: 0o755 });
+    fs.symlinkSync('tool', path.join(source, 'bin', 'link'));
+    assert.equal(spawnSync('xattr', ['-w', 'org.opl.test', 'preserved', executable]).status, 0);
+    copyAppBundleForDmg(source, target);
+    const check = () => {
+      assert.equal(fs.readFileSync(path.join(target, 'bin', 'tool'), 'utf8'), 'original');
+      assert.equal(fs.statSync(path.join(target, 'bin', 'tool')).mode & 0o777, 0o755);
+      assert.equal(fs.readlinkSync(path.join(target, 'bin', 'link')), 'tool');
+      assert.equal(spawnSync('xattr', ['-p', 'org.opl.test', path.join(target, 'bin', 'tool')], { encoding: 'utf8' }).stdout.trim(), 'preserved');
+    };
+    check();
+    fs.writeFileSync(path.join(target, 'bin', 'tool'), 'changed');
+    assert.equal(fs.readFileSync(executable, 'utf8'), 'original');
+    fs.rmSync(target, { recursive: true });
+    const bin = path.join(root, 'commands');
+    fs.mkdirSync(bin);
+    fs.writeFileSync(path.join(bin, 'cp'), '#!/bin/sh\nmkdir -p "$4"\ntouch "$4/partial"\nexit 1\n', { mode: 0o755 });
+    process.env.PATH = `${bin}${path.delimiter}${previousPath ?? ''}`;
+    assert.equal(copyAppBundleForDmg(source, target), 'ditto');
+    assert.equal(fs.existsSync(path.join(target, 'partial')), false);
+    check();
+  } finally {
+    if (previousPath === undefined) delete process.env.PATH; else process.env.PATH = previousPath;
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });

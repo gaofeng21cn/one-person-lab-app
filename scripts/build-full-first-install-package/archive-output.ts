@@ -8,14 +8,12 @@ import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 import { appRepoRoot } from './paths.ts';
 import { assertNoExternalSymlinks, requirePath } from './filesystem.ts';
 import {
-  assertAppBundleLocalAuthorization,
   canRunMacosSigningChecks,
   ensureAppBundleAdHocCodesign,
   verifyDmgAppBundleLocalAuthorization,
 } from './macos-trust.ts';
 import {
-  auditFullPackageBundleBoundaries,
-  trimFullAppBundleForDmg,
+  optimizeFullAppBundleForDmg,
   withFullPackageOptimization,
   writeFullPackageManifestIntoApp,
 } from './package-optimization.ts';
@@ -293,27 +291,35 @@ export function findBuiltApp(guiRoot) {
   return found;
 }
 
+export function copyAppBundleForDmg(source, target) {
+  // APFS clones preserve independent file bytes, metadata and symlinks without
+  // copying the Full payload again. Other filesystems retain the ditto path.
+  const clone = runCapture('cp', ['-c', '-a', source, target], { stage: 'full_dmg_stage_clone' });
+  if (clone.status === 0) return 'apfs_clone';
+  fs.rmSync(target, { recursive: true, force: true });
+  run('ditto', [source, target], { stage: 'full_dmg_stage_copy' });
+  return 'ditto';
+}
+
 export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, version, manifest, dmgFormat = resolveFullDmgFormat()) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   removeBuiltDmgCandidates(guiRoot, version);
-  ensureAppBundleAdHocCodesign(appPath, 'Full built app bundle');
-  assertAppBundleLocalAuthorization(appPath, 'Full built app bundle');
   const compressionLevel = resolveFullDmgCompressionLevel();
   const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-dmg-stage-'));
   let result = null;
   try {
     const stagedApp = path.join(stagingRoot, carrier.appBundleName);
-    run('ditto', [appPath, stagedApp], { stage: 'full_dmg_stage_copy' });
-    const trimReport = trimFullAppBundleForDmg(stagedApp);
-    const boundaryAudit = auditFullPackageBundleBoundaries(stagedApp, manifest);
+    const stagingCopy = copyAppBundleForDmg(appPath, stagedApp);
+    const { trimReport, boundaryAudit } = optimizeFullAppBundleForDmg(stagedApp, manifest);
     const optimizedManifest = manifest
       ? withFullPackageOptimization(manifest, { trimReport, boundaryAudit })
       : manifest;
     const appManifestWrites = optimizedManifest
       ? writeFullPackageManifestIntoApp(stagedApp, optimizedManifest)
       : [];
-    ensureAppBundleAdHocCodesign(stagedApp, 'Full staged app bundle');
-    assertAppBundleLocalAuthorization(stagedApp, 'Full staged app bundle');
+    // Runtime injection, pruning and manifest writes invalidate the root seal.
+    // Sign only the final tree, then perform one deep/strict identity check.
+    ensureAppBundleAdHocCodesign(stagedApp, 'Full staged app bundle', { force: true });
     fs.symlinkSync('/Applications', path.join(stagingRoot, 'Applications'));
     const hdiutilCreateArgs = [
       'create',
@@ -333,6 +339,7 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
       app_bundle_trim: trimReport,
       package_boundary_audit: boundaryAudit,
       app_manifest_writes: appManifestWrites,
+      staging_copy: stagingCopy,
     };
   } finally {
     fs.rmSync(stagingRoot, { recursive: true, force: true });
@@ -364,8 +371,6 @@ export function ensureFullDmgLocalAuthorization(guiRoot, targetDmg, version, man
     return null;
   } catch (error) {
     const builtApp = findBuiltApp(guiRoot);
-    ensureAppBundleAdHocCodesign(builtApp, 'Full built app bundle');
-    assertAppBundleLocalAuthorization(builtApp, 'Full built app bundle');
     fs.rmSync(targetDmg, { force: true });
     const rebuiltPackage = createFullDmgFromVerifiedApp(guiRoot, builtApp, targetDmg, version, manifest, dmgFormat);
     console.warn(`Rebuilt Full DMG after local authorization verification failed: ${error instanceof Error ? error.message : String(error)}`);

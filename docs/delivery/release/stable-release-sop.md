@@ -277,6 +277,10 @@ Full 的发布仍以已公开 Standard 为前提；构建后的静态包检查�
 
 Full append 在只读 checkpoint 恢复后验证 Full 专用的精确 ref 和恢复 harness scope，再进入构建或 VM runner。恢复已有 Full 时，Scholar Skills SHA 来自该 checkpoint 的 Full manifest，或指定 prior run 的 Full diagnostics manifest，并须与 manifest 的 component SHA 一致；不能回退到当前 main。新建 Full 时只解析一次 main，并把同一 SHA 传给构建 checkout。此阶段失败说明输入或复用边界不成立，应直接修正 admission 输入；不要让同一候选进入下一轮 Full 构建。
 
+Full 可复用目标 Standard 已公开且 sealed 的 ARM64 updater ZIP。复用前按原 attestation 校验 Release ID、tag、target commit、Bundle digest、组件清单摘要、App/Shell/Framework SHA、机器版本及冻结源码与 executor 的产品输入；任一不匹配或资产不可用时继续常规 Shell 构建。解包后校验 App identity 和 Developer ID，随后注入 Full runtime；不能用移动的 Latest 或其他候选替代。复用时跳过 Shell 重建、Electron 原生重编译和两份仅供重建使用的中间 runtime 复制。最终 staged App 完成裁剪与 manifest 写入后只签名并深度验签一次，DMG 内验签、Full 公证、clean-VM 和公开回读继续执行。
+
+Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，文件系统不支持时回到 `ditto`。裁剪与边界统计共用本次操作的一份目录清点，不跨 operation 缓存合同。构建 job 默认 `macos-latest`；仓库变量 `OPL_FULL_BUILD_RUNNER=macos-15-xlarge` 可选择 GitHub 托管 ARM64 XLarge，其他值使用默认机器。该可选路径需要已有付费 runner 能力，本次优化不启用付费资源，也不把 clean-VM runner 改作构建机。
+
 Full DMG 按用户明确要求优先缩小下载体积，允许压缩花更长时间；默认 ULMO。压缩测速只能用于观测，不能自行改成更快但更大的默认格式。确需变更此取舍时，先取得新的直接用户指令，再同步发布合同、workflow 与构建器。
 
 Docker 复用主发布的合格镜像时，Bundle 与 cohort 绑定来自原 source authority 的 release 字段；新的渠道派发不能改写镜像内的原构建身份。独立源码资格没有这些字段时才使用其 source-authority digest。

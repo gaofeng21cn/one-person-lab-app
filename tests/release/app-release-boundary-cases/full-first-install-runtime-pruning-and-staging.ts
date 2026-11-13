@@ -229,7 +229,7 @@ test("Full domain copy keeps only contract-declared authority inventories from r
 });
 
 test("Studio Full App bundle trim preserves its runtime and native Codex composition", async () => {
-  const { trimFullAppBundleForDmg, auditFullPackageBundleBoundaries, withFullPackageOptimization } =
+  const { optimizeFullAppBundleForDmg, auditFullPackageBundleBoundaries, withFullPackageOptimization } =
     await import("../../../scripts/build-full-first-install-package/package-optimization.ts");
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-app-bundle-trim-"));
   const appPath = path.join(tempRoot, "One Person Lab.app");
@@ -345,7 +345,8 @@ test("Studio Full App bundle trim preserves its runtime and native Codex composi
   );
   fs.rmSync(path.join(appPath, "Contents", "Resources", "bundled-aioncore"), { recursive: true, force: true });
 
-  const trimReport = trimFullAppBundleForDmg(appPath);
+  const { trimReport, boundaryAudit: sharedBoundary } = optimizeFullAppBundleForDmg(appPath);
+  assert.deepEqual(sharedBoundary, auditFullPackageBundleBoundaries(appPath));
   assert.equal(trimReport.schema, "opl_full_app_bundle_trim_report.v1");
   assert.equal(trimReport.required_payload_boundary.preserved, true);
   assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "app.asar.map")), false);

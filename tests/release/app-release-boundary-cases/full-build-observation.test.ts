@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 
 import { run, runCapture } from '../../../scripts/build-full-first-install-package/process.ts';
 import { resolveFullDmgFormat, resolveFullDmgCompressionLevel } from '../../../scripts/build-full-first-install-package/archive-output.ts';
-import { assertAppBundleLocalAuthorization } from '../../../scripts/build-full-first-install-package/macos-trust.ts';
+import { assertAppBundleLocalAuthorization, ensureAppBundleAdHocCodesign } from '../../../scripts/build-full-first-install-package/macos-trust.ts';
 
 test('Full workflow reports absent or invalid stage timestamps as unavailable in JSON and summary', () => {
   const workflow = fs.readFileSync(fileURLToPath(new URL('../../../.github/workflows/full-first-install-release.yml', import.meta.url)), 'utf8');
@@ -112,6 +112,36 @@ exit 0
   } finally {
     for (const [name, value] of [['PATH', previous.PATH], ['OPL_MAC_STRICT_SIGNING_CHECKS', previous.strict], ['OPL_TEST_FAIL_SIGNATURE', previous.fail]]) {
       if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    }
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+test('mutated staged App signs once and performs one strict verification of the resulting identity', { skip: process.platform !== 'darwin' }, () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-final-sign-'));
+  const previous = { ...process.env };
+  fs.writeFileSync(path.join(temp, 'codesign'), `#!/bin/sh
+if [ "$1" = "-dv" ]; then
+  if [ "$OPL_TEST_WRONG_SIGNER" = "1" ]; then
+    printf '%s\\n' 'Signature=adhoc' >&2
+  else
+    printf '%s\\n' 'Authority=Developer ID Application: Test (TESTTEAM)' 'TeamIdentifier=TESTTEAM' >&2
+  fi
+fi
+exit 0
+`, { mode: 0o755 });
+  process.env.PATH = `${temp}${path.delimiter}${previous.PATH ?? ''}`;
+  process.env.OPL_MAC_STRICT_SIGNING_CHECKS = 'true';
+  process.env.OPL_RUNTIME_CODESIGN_IDENTITY = 'fixture';
+  try {
+    const events = captureEvents(() => ensureAppBundleAdHocCodesign('/fixture/App.app', 'Final App', { force: true }));
+    assert.deepEqual(events.filter(({ status }) => status === 'completed').map(({ stage }) => stage),
+      ['full_codesign_sign', 'full_codesign_verify', 'full_codesign_identity']);
+    process.env.OPL_TEST_WRONG_SIGNER = '1';
+    captureEvents(() => assert.throws(() => ensureAppBundleAdHocCodesign('/fixture/App.app', 'Final App', { force: true }), /Developer ID signing verification/));
+  } finally {
+    for (const key of ['PATH', 'OPL_MAC_STRICT_SIGNING_CHECKS', 'OPL_RUNTIME_CODESIGN_IDENTITY', 'OPL_TEST_WRONG_SIGNER']) {
+      if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key];
     }
     fs.rmSync(temp, { recursive: true, force: true });
   }

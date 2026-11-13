@@ -18,8 +18,7 @@ const STAGED_APP_TRIM_FILE_SUFFIXES =
   FULL_RUNTIME_PRUNE_POLICY.app_bundle_staging.trim_file_suffixes as string[];
 const STAGED_APP_TRIM_NODE_MODULE_DIRECTORY_BASENAMES =
   FULL_RUNTIME_PRUNE_POLICY.app_bundle_staging.trim_node_module_directory_basenames as string[];
-function protectedAppBundlePayloads(): string[] {
-  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+function protectedAppBundlePayloads(carrier): string[] {
   return [
     `Contents/Resources/${carrier.runtimeResourceDir}`,
     ...(carrier.shellRuntimePath ? [carrier.shellRuntimePath] : []),
@@ -40,14 +39,14 @@ function pathHasSegment(relativePath: string, segment: string) {
   return relativePath.split('/').includes(segment);
 }
 
-function isInsideProtectedAppBundlePayload(relativePath: string) {
-  return protectedAppBundlePayloads().some((protectedPath) => {
+function isInsideProtectedAppBundlePayload(relativePath: string, protectedPayloads: string[]) {
+  return protectedPayloads.some((protectedPath) => {
     return relativePath === protectedPath || relativePath.startsWith(`${protectedPath}/`);
   });
 }
 
-function trimReason(relativePath: string, stat: fs.Stats) {
-  if (!relativePath || isInsideProtectedAppBundlePayload(relativePath)) {
+function trimReason(relativePath: string, stat: fs.Stats, protectedPayloads: string[]) {
+  if (!relativePath || isInsideProtectedAppBundlePayload(relativePath, protectedPayloads)) {
     return null;
   }
 
@@ -71,69 +70,68 @@ function trimReason(relativePath: string, stat: fs.Stats) {
   return null;
 }
 
-function collectTrimCandidates(appPath: string) {
-  const candidates: Array<{
-    path: string;
-    absolute_path: string;
-    size_bytes: number;
-    reason: string;
-  }> = [];
-  const stack = [appPath];
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current) continue;
+// One operation-local inventory supplies trim accounting and boundary sizes.
+// Protected payloads are measured without evaluating trim rules for their children.
+function trimAndInventory(appPath: string, protectedPayloads: string[]) {
+  const candidates: Array<{ path: string; absolute_path: string; size_bytes: number; reason: string }> = [];
+  const sizes = new Map<string, number>();
+  const walk = (current: string, protectedTree = false, removedTree = false): { before: number; after: number } => {
     const stat = fs.lstatSync(current);
     const relativePath = appRelativePath(appPath, current);
-    const reason = trimReason(relativePath, stat);
-    if (reason) {
-      candidates.push({
-        path: relativePath,
-        absolute_path: current,
-        size_bytes: directorySizeBytes(current),
-        reason,
-      });
-      continue;
-    }
+    const protectedHere = protectedTree || isInsideProtectedAppBundlePayload(relativePath, protectedPayloads);
+    const reason = protectedHere || removedTree ? null : trimReason(relativePath, stat, protectedPayloads);
+    const removing = removedTree || Boolean(reason);
+    let before = stat.isDirectory() ? 0 : stat.size;
+    let after = removing ? 0 : before;
     if (stat.isDirectory()) {
-      for (const entry of fs.readdirSync(current).sort().reverse()) {
-        stack.push(path.join(current, entry));
+      for (const entry of fs.readdirSync(current).sort()) {
+        const child = walk(path.join(current, entry), protectedHere, removing);
+        before += child.before;
+        after += child.after;
       }
     }
-  }
-  return candidates.sort((left, right) => left.path.localeCompare(right.path));
+    if (reason) candidates.push({ path: relativePath, absolute_path: current, size_bytes: before, reason });
+    sizes.set(relativePath, after);
+    return { before, after };
+  };
+  const totals = walk(appPath);
+  for (const candidate of candidates) fs.rmSync(candidate.absolute_path, { recursive: true, force: true });
+  return { candidates: candidates.sort((a, b) => a.path.localeCompare(b.path)), sizes, ...totals };
 }
 
-export function trimFullAppBundleForDmg(appPath: string) {
+function trimWithInventory(appPath: string) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
-  const beforeBytes = directorySizeBytes(appPath);
-  const candidates = collectTrimCandidates(appPath);
-  for (const candidate of candidates) {
-    fs.rmSync(candidate.absolute_path, { recursive: true, force: true });
-  }
-  const afterBytes = directorySizeBytes(appPath);
-  return {
+  const protectedPayloads = protectedAppBundlePayloads(carrier);
+  const { candidates, sizes, before, after } = trimAndInventory(appPath, protectedPayloads);
+  const trimReport = {
     schema: APP_BUNDLE_TRIM_REPORT_SCHEMA,
     mode: 'explicit_non_runtime_prune_only',
     app_bundle_path: appPath,
     required_payload_boundary: {
       full_runtime_resource_dir: `Contents/Resources/${carrier.runtimeResourceDir}`,
-      protected_payloads: protectedAppBundlePayloads(),
+      protected_payloads: protectedPayloads,
       preserved: true,
       rule: 'never trim the declared Full offline runtime payload from the App bundle staging pass',
     },
-    before_bytes: beforeBytes,
-    after_bytes: afterBytes,
-    bytes_removed: Math.max(0, beforeBytes - afterBytes),
+    before_bytes: before,
+    after_bytes: after,
+    bytes_removed: before - after,
     removed_count: candidates.length,
-    removed_paths: candidates.map(({ path: relativePath, size_bytes, reason }) => ({
-      path: relativePath,
-      size_bytes,
-      reason,
-    })),
+    removed_paths: candidates.map(({ path: relativePath, size_bytes, reason }) => ({ path: relativePath, size_bytes, reason })),
   };
+  return { trimReport, sizes, carrier };
 }
 
-function bundleEntry(appPath: string, relativePath: string, owner: string, role: string) {
+export function trimFullAppBundleForDmg(appPath: string) {
+  return trimWithInventory(appPath).trimReport;
+}
+
+export function optimizeFullAppBundleForDmg(appPath: string, manifest: Record<string, any> | null = null) {
+  const { trimReport, sizes, carrier } = trimWithInventory(appPath);
+  return { trimReport, boundaryAudit: auditFullPackageBundleBoundaries(appPath, manifest, { sizes, carrier }) };
+}
+
+function bundleEntry(appPath: string, relativePath: string, owner: string, role: string, sizes?: Map<string, number>) {
   const absolutePath = path.join(appPath, ...relativePath.split('/'));
   const exists = fs.existsSync(absolutePath);
   return {
@@ -141,7 +139,7 @@ function bundleEntry(appPath: string, relativePath: string, owner: string, role:
     owner,
     role,
     exists,
-    size_bytes: exists ? directorySizeBytes(absolutePath) : 0,
+    size_bytes: exists ? (sizes?.get(relativePath) ?? directorySizeBytes(absolutePath)) : 0,
   };
 }
 
@@ -164,8 +162,8 @@ function collectBundlePaths(root: string) {
   return entries;
 }
 
-export function auditFullPackageBundleBoundaries(appPath: string, manifest: Record<string, any> | null = null) {
-  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+export function auditFullPackageBundleBoundaries(appPath: string, manifest: Record<string, any> | null = null, inventory?: { sizes: Map<string, number>; carrier: ReturnType<typeof resolveFullCarrierProfile> }) {
+  const carrier = inventory?.carrier ?? resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const fullRuntimeRoot = path.join(
     appPath,
     'Contents',
@@ -194,30 +192,35 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       `Contents/Resources/${carrier.runtimeResourceDir}`,
       'gaofeng21cn/one-person-lab',
       'Full offline first-install runtime payload assembled by the App repo as consumer/packager',
+      inventory?.sizes,
     ),
     studio_shell_runtime: bundleEntry(
       appPath,
       carrier.shellRuntimePath ?? 'Contents/Resources/opl-studio-runtime',
       'gaofeng21cn/opl-studio',
       'Studio shell runtime; the current carrier intentionally embeds no shell runtime',
+      inventory?.sizes,
     ),
     app_asar: bundleEntry(
       appPath,
       'Contents/Resources/app.asar',
       'gaofeng21cn/opl-studio',
       'Studio renderer and process bundle',
+      inventory?.sizes,
     ),
     app_asar_unpacked: bundleEntry(
       appPath,
       'Contents/Resources/app.asar.unpacked',
       'gaofeng21cn/opl-studio',
       'Studio native unpacked resources',
+      inventory?.sizes,
     ),
     electron_framework: bundleEntry(
       appPath,
       'Contents/Frameworks/Electron Framework.framework',
       'active_shell/electron',
       'Electron runtime framework',
+      inventory?.sizes,
     ),
   };
   return {

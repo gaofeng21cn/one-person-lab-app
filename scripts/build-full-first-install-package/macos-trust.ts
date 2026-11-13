@@ -31,18 +31,18 @@ export function codesignOutputLines(codesign, prefix = 'codesign') {
   ];
 }
 
-export function ensureAppBundleAdHocCodesign(appPath, label) {
+export function ensureAppBundleAdHocCodesign(appPath, label, { force = false } = {}) {
   if (!canRunMacosSigningChecks()) {
     return;
   }
   const strict = strictMacosRuntimeSigningRequired();
   // Keep deep/strict checks without per-object verbose output overflowing capture.
-  const initial = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=1', appPath], { stage: 'full_codesign_verify' });
-  const initialDetails = strict ? runCapture('codesign', ['-dv', '--verbose=4', appPath], { stage: 'full_codesign_identity' }) : null;
+  const initial = force ? null : runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=1', appPath], { stage: 'full_codesign_verify' });
+  const initialDetails = strict && !force ? runCapture('codesign', ['-dv', '--verbose=4', appPath], { stage: 'full_codesign_identity' }) : null;
   const initialSignature = initialDetails
     ? parseMacosCodeSignatureOutput(`${initialDetails.stdout || ''}${initialDetails.stderr || ''}`)
     : null;
-  if (initial.status === 0 && (!strict || (initialSignature && isDeveloperIdApplicationSignature(initialSignature)))) {
+  if (initial?.status === 0 && (!strict || (initialSignature && isDeveloperIdApplicationSignature(initialSignature)))) {
     return;
   }
   const identity = macosSigningIdentity();
@@ -62,15 +62,7 @@ export function ensureAppBundleAdHocCodesign(appPath, label) {
       ]
     : ['--force', '--deep', '--sign', '-', appPath];
   run('codesign', signingArgs, { stage: 'full_codesign_sign' });
-  const verified = runCapture('codesign', ['--verify', '--deep', '--strict', '--verbose=1', appPath], { stage: 'full_codesign_verify' });
-  if (verified.status !== 0) {
-    throw new Error([
-      `${label} signing did not produce a verifiable App bundle: ${appPath}`,
-      initial.stderr?.trim() ? `initial codesign stderr:\n${initial.stderr.trim()}` : '',
-      verified.stdout?.trim() ? `verified codesign stdout:\n${verified.stdout.trim()}` : '',
-      verified.stderr?.trim() ? `verified codesign stderr:\n${verified.stderr.trim()}` : '',
-    ].filter(Boolean).join('\n'));
-  }
+  assertAppBundleLocalAuthorization(appPath, label);
 }
 
 export function assertAppBundleLocalAuthorization(appPath, label) {

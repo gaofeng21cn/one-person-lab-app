@@ -199,7 +199,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   if (
     !candidateJob
     || candidateJob['continue-on-error'] !== '${{ inputs.candidate_only }}'
-    || candidateJob['runs-on'] !== 'macos-latest'
+    || !["macos-latest", "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}"].includes(candidateJob['runs-on'])
     || Array.isArray(candidateJob.steps) === false
   ) {
     failures += reportFailure(

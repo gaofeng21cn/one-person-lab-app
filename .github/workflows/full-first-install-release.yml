@@ -130,7 +130,7 @@ env:
 jobs:
   full-first-install:
     name: Build App-owned Full first-install DMG
-    runs-on: macos-latest
+    runs-on: ${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}
     timeout-minutes: ${{ inputs.operation == 'append_full' && 130 || 90 }}
     continue-on-error: ${{ inputs.candidate_only }}
     environment: release-stable
@@ -809,6 +809,24 @@ jobs:
             echo "OPL_FULL_FRAMEWORK_BUILD_READY_AT=$(date +%s)"
           } >> "$GITHUB_ENV"
 
+      - name: Resolve reusable public Standard App
+        id: standard-base
+        if: ${{ inputs.operation == 'append_full' && !inputs.cache_only }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPL_FULL_FROZEN_APP_ROOT: ${{ github.workspace }}/one-person-lab-app
+          OPL_FULL_STANDARD_RELEASE_ID: ${{ inputs.target_standard_release_id }}
+          OPL_FULL_STANDARD_RELEASE_TAG: ${{ inputs.target_standard_release_tag }}
+          OPL_FULL_STANDARD_TARGET_COMMITISH: ${{ inputs.target_standard_target_commitish }}
+          OPL_RELEASE_BUNDLE_DIGEST: ${{ inputs.release_bundle_digest }}
+          OPL_RELEASE_VERSION: ${{ env.OPL_RELEASE_VERSION }}
+          OPL_UPDATER_VERSION: ${{ env.OPL_UPDATER_VERSION }}
+          OPL_FULL_ARTIFACT_APP_SHA: ${{ inputs.artifact_app_sha }}
+          OPL_FULL_SHELL_REF: ${{ inputs.shell_ref }}
+          OPL_FULL_FRAMEWORK_REF: ${{ inputs.framework_ref }}
+        run: node --experimental-strip-types release-executor/scripts/prepare-full-standard-base.ts "$RUNNER_TEMP/opl-standard-base"
+
       - name: Install App shell dependencies
         if: ${{ !inputs.cache_only }}
         working-directory: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
@@ -869,9 +887,12 @@ jobs:
           fi
           echo "version=$electron_version" >> "$GITHUB_OUTPUT"
           echo "OPL_FULL_SHELL_ELECTRON_VERSION=$electron_version" >> "$GITHUB_ENV"
+          if [ '${{ steps.standard-base.outputs.available }}' = true ]; then
+            echo "OPL_FULL_SHELL_DEPS_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
+          fi
 
       - name: Rebuild App shell native modules for Electron
-        if: ${{ !inputs.cache_only }}
+        if: ${{ !inputs.cache_only && steps.standard-base.outputs.available != 'true' }}
         working-directory: one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}
         shell: bash
         env:
@@ -888,7 +909,7 @@ jobs:
 
       - name: Restore exact desktop renderer
         id: renderer-cache
-        if: ${{ !inputs.cache_only && (inputs.operation == 'append_full' || inputs.candidate_only) }}
+        if: ${{ !inputs.cache_only && steps.standard-base.outputs.available != 'true' && (inputs.operation == 'append_full' || inputs.candidate_only) }}
         continue-on-error: true
         uses: ./release-executor/.github/actions/desktop-renderer-cache
         with:
@@ -1127,6 +1148,15 @@ jobs:
           npm_config_target_arch: arm64
           OPERATION_DEADLINE_AT: ${{ inputs.operation_deadline_at }}
           RELEASE_OPERATION: ${{ inputs.operation }}
+          OPL_FULL_STANDARD_BASE_DIR: ${{ steps.standard-base.outputs.archive_dir }}
+          OPL_FULL_FROZEN_APP_ROOT: ${{ github.workspace }}/one-person-lab-app
+          OPL_FULL_STANDARD_RELEASE_ID: ${{ inputs.target_standard_release_id }}
+          OPL_FULL_STANDARD_RELEASE_TAG: ${{ inputs.target_standard_release_tag }}
+          OPL_FULL_STANDARD_TARGET_COMMITISH: ${{ inputs.target_standard_target_commitish }}
+          OPL_RELEASE_BUNDLE_DIGEST: ${{ inputs.release_bundle_digest }}
+          OPL_FULL_ARTIFACT_APP_SHA: ${{ inputs.artifact_app_sha }}
+          OPL_FULL_SHELL_REF: ${{ inputs.shell_ref }}
+          OPL_FULL_FRAMEWORK_REF: ${{ inputs.framework_ref }}
         run: |
           set -euo pipefail
           ulimit -n 65536 || true
@@ -1564,6 +1594,7 @@ jobs:
               go_modules_build: '${{ steps.go-cache.outputs.cache-hit || 'unknown' }}',
               electron_artifacts: '${{ steps.electron-cache.outputs.cache-hit || 'false' }}',
               desktop_renderer_transport: '${{ steps.renderer-cache.outputs.cache-hit || 'false' }}',
+              standard_base_app: '${{ steps.standard-base.outputs.available || 'false' }}',
               dependency_archive_restore_key: '${{ steps.dependency-archives.outputs.cache-matched-key || 'miss' }}',
               full_runtime_layers: env.OPL_FULL_RUNTIME_CACHE_HIT || 'unknown',
               full_runtime_cache_key: '${{ steps.runtime-cache-keys.outputs.cache_key }}',
@@ -1697,7 +1728,7 @@ jobs:
           retention-days: 30
 
       - name: Save exact desktop renderer
-        if: ${{ !inputs.cache_only && (inputs.operation == 'append_full' || inputs.candidate_only) }}
+        if: ${{ !inputs.cache_only && steps.standard-base.outputs.available != 'true' && (inputs.operation == 'append_full' || inputs.candidate_only) }}
         continue-on-error: true
         uses: ./release-executor/.github/actions/desktop-renderer-cache
         with:
