@@ -6946,6 +6946,40 @@
       }
     },
     "app_management": {
+      "package_installation_progress": {
+        "owner": "opl_framework",
+        "operation_actions": [
+          "package_operation_start",
+          "package_operation_status",
+          "package_operation_cancel"
+        ],
+        "preflight": [
+          "owner_selected_version",
+          "download_bytes",
+          "cached_bytes",
+          "install_location",
+          "available_disk_bytes",
+          "unpacked_bytes_when_known"
+        ],
+        "stages": [
+          "preparing",
+          "downloading",
+          "verifying",
+          "extracting",
+          "installing",
+          "checking",
+          "completed",
+          "failed",
+          "cancelled",
+          "interrupted"
+        ],
+        "progress": "real transferred bytes; no fabricated whole-install percentage or ETA",
+        "background": "continues across navigation and renderer reload; status is read from Framework",
+        "cancel": "cooperative before native registration; keep partial download for retry; never imply closing a dialog stops execution",
+        "retry": "explicit fresh action using owner-selected version and revalidated digest cache",
+        "native_lifecycle_owner": "existing native package carrier",
+        "source_failure": "show actionable error and preserve installed version until verified staging is ready"
+      },
       "route": "/apps",
       "route_scope": "ordinary",
       "page_contract": "app_management",

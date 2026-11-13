@@ -1585,6 +1585,9 @@
     },
     {
       "id": "app_management",
+      "installation_operation_source": "opl app action execute --action package_operation_status --dry-run --json",
+      "installation_states": ["preparing", "downloading", "verifying", "extracting", "installing", "checking", "completed", "failed", "cancelled", "interrupted"],
+      "installation_acceptance": "preview size and location; background navigation and reload; byte progress only during download; cooperative cancellation; retained-byte retry; native installed readback before success",
       "expected_source": "App-owned application management behavior over Framework-owned Package, update, software-source, connection, model, and knowledge projections",
       "machine_source": "opl app state --profile fast --json#app_state.application_management",
       "projection_owner": "one-person-lab",

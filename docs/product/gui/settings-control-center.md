@@ -177,6 +177,14 @@ receipt, the write remains unconfirmed; the UI does not claim that it was absent
 Studio implementation and adoption are tracked through its current adapter and
 [product boundary](opl-studio-plan.md); this page does not maintain a second candidate work plan.
 
+### 大包下载与后台安装
+
+Package 安装、更新和修复通过 Framework 的同一个后台操作入口执行。确认前显示发布方选定版本、下载量、已有缓存、安装位置和可用磁盘空间；旧制品没有解压大小时明确显示待下载后核实，不推算成精确空间需求。下载后从归档头读取实际大小并检查解压与暂存空间。
+
+软件中心展示准备、下载、校验、解压、安装和检查结果。只有下载阶段使用真实字节进度、速度和剩余时间；其他阶段显示名称，不生成虚假的总百分比。操作离开页面和刷新后仍可回读。取消请求只在安全阶段执行，已下载内容保留供显式重试；原生注册开始后说明正在完成安装，不能把关闭对话框视为取消。
+
+Framework 的 digest 缓存只复用传输字节，不持有版本选择或安装真相。私有包每次仍经过既有授权；最终成功以原生 carrier 回读为准。DSH 官方插件安装进度管理其自身 npm 插件，OPL Package 从既有公开 App action 接口投影，二者不共享安装 registry。
+
 ## Startup Performance Boundary
 
 The first interactive Settings window renders from a persisted narrow snapshot
