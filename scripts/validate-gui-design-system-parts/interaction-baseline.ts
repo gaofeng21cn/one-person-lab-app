@@ -661,7 +661,7 @@ export function validateGuiDesignSystemInteractionBaseline({
         timeline: 'single_column_reading_lane',
         assistant_surface: 'unframed',
         user_surface: 'lightweight_bounded',
-        markdown_default_typography: '15/22/400',
+        markdown_default_typography: '14/24/400',
         paragraph_margin_block_px: 10,
         list_item_margin_block_px: 2,
         inline_code: 'subtle_neutral_capsule_12_18',
@@ -679,7 +679,7 @@ export function validateGuiDesignSystemInteractionBaseline({
       'ordinary_pages_use_unframed_sections_flat_rows_and_hairline_dividers_bounded_cards_only_for_repeated_entities_or_confirmation' ||
     visualTarget.accent_scope !==
       'brand_typed_status_and_actions_only_not_ordinary_rail_selection_or_settings_icons' ||
-    visualTarget.opl_teal_and_brand_retained !== true
+    visualTarget.opl_brand_identity_retained !== true
   ) {
     issues.add('interaction baseline must reject the legacy equal-weight inspector taxonomy and keep Settings in maintenance');
   }

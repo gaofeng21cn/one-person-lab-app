@@ -1674,7 +1674,7 @@
         "timeline": "single_column_reading_lane",
         "assistant_surface": "unframed",
         "user_surface": "lightweight_bounded",
-        "markdown_default_typography": "15/22/400",
+        "markdown_default_typography": "14/24/400",
         "paragraph_margin_block_px": 10,
         "list_item_margin_block_px": 2,
         "inline_code": "subtle_neutral_capsule_12_18",
@@ -1686,7 +1686,7 @@
       "settings_icon_policy": "pinned_dsh_icon_cohort_14_16px_currentcolor_with_color_reserved_for_typed_status",
       "settings_surface_policy": "ordinary_pages_use_unframed_sections_flat_rows_and_hairline_dividers_bounded_cards_only_for_repeated_entities_or_confirmation",
       "accent_scope": "brand_typed_status_and_actions_only_not_ordinary_rail_selection_or_settings_icons",
-      "opl_teal_and_brand_retained": true
+      "opl_brand_identity_retained": true
     },
     "opl_retained_differences": [
       "brand",
@@ -6981,7 +6981,7 @@
       "official_ui_reuse": {
         "page_identity": "软件中心",
         "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
-        "upstream_ref": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+        "upstream_ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
         "reused_interaction_and_visuals": [
           "grouped plugin cards and compact metadata",
           "official artwork and state dots",

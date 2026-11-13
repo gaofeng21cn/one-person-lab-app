@@ -58,7 +58,27 @@ Relay 0.7.3、MAC 0.3.3 的 native carrier 已更新，MAC 安装后的 bundle �
 
 完整 Studio 工作台页面的浏览器验收已通过：1280 × 850 的主区域内，iframe 为 1280 × 777，
 即宽度 100%、高度 91.4%，宿主仅占 73px。7 种共享视图、搜索、专用跳转与返回、
-关闭重开、390px 窄屏与深色模式通过。新布局的本机安装验收仍待最终构建完成。
+关闭重开、390px 窄屏与深色模式通过。
+
+布局修复已进入远端主线：Studio `114d372f88a7a2c9fdc5c19df9588a56d1496959`，
+Framework `4bea1e03e8db61d4778d3efe0cbf3ed3e034a2fb`，App `be5201c16dd325a557ad19ad4bb5929448848e63`。
+宿主生命周期、Relay 合成草稿浏览器验收、Framework 构建和 App active-shell 必需门禁通过。
+其中缺少本地插件构建产物的检查已在生成产物后通过；软件中心原有选择测试改用新的选择器，
+原先的选择保持语义继续通过。
+
+完整本地构建已安装并启动：显示版本 `26.11.13`、机器版本 `26.11.1391`，
+构建身份 `local.src5eb2484099c4`。整包签名验证通过，安装回执 `completed`、`launched=true`，
+回执位于 `~/Library/Caches/One Person Lab/manual-latest-build/local-app/26.11.13-26.11.1391-canvas-final/`。
+Framework 的 App runtime 根和独立 managed 根均已更新至上述 `4bea1e03`。
+
+本机真实窗口已通过 OPL Apps、Relay、Med Auto Cast 的打开和切换，以及共享页关闭重开；
+OPL Apps 内容占满剩余工作区，Relay 加载邮箱快照，媒体审看加载“科普视频”工作区、212 个
+登记单集和镜头时间线。原会话草稿保留，未发送邮件、Agent turn 或提交真实审看意见。
+
+安装后的首次打开曾出现 `This tool has no available MCP App`。通过原生 Codex `0.167.1`
+的同一 transport 检查全目录、server 过滤目录、临时及原历史对话，均能列出并打开共享页。
+完整退出并重开 OPL App 后，原历史对话的三个自有界面实际验收通过。尚无稳定复现的目录
+过滤代码缺陷证据，因此不将这次恢复表述为已定位并修复底层连接根因。
 
 ## 本次回读与后续体验重点
 

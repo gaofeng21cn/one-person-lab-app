@@ -27,7 +27,7 @@ import {
   validateActiveProjectLineStateModel,
 } from './shared.ts';
 
-const deepSeekHarnessApplicationHostRef = 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159';
+const deepSeekHarnessApplicationHostRef = 'e8f7b93a344964de3dca1ace9e72b6e4d6de87cb';
 const studioSettingsGroups = [
   'overview',
   'account_models',
@@ -392,7 +392,7 @@ function validateOPLStudioImplementationEvidence(
   if (
     evidence.reuse_policy?.deepseek_harness_source_usage !== 'pinned_application_host_runtime_and_gui_source_reuse'
     || evidence.reuse_policy?.deepseek_harness_source_ref !== deepSeekHarnessApplicationHostRef
-    || evidence.reuse_policy?.deepseek_harness_package_version !== '0.2.2-rc.1'
+    || evidence.reuse_policy?.deepseek_harness_package_version !== '0.2.2-rc.2'
     || evidence.reuse_policy?.deepseek_harness_selected_source_reused !== true
     || evidence.reuse_policy?.other_external_gui_source_copied !== false
     || evidence.reuse_policy?.application_host_runtime_adopted !== true

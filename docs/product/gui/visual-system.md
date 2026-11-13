@@ -37,8 +37,8 @@ OPL App 在基准上保留以下产品例外：
   不复制 model/reasoning 值或模型 allowlist。
 - Runtime、Home capability starters、Settings → Agents / Capabilities、first-run、receipts 和 action refs 使用
   App-owned contracts 与 OPL authority boundary。
-- OPL accent、状态语义和双语 copy 由 App 拥有；不得改变 chat-first composition，也不得
-  覆盖 DSH cohort 的普通视觉语法形成第二套私有风格。
+- OPL 品牌身份、状态语义和双语 copy 由 App 拥有；普通配色直接使用 DSH theme，
+  不覆盖官方视觉语法形成第二套私有风格。
 
 DSH cohort 是受限视觉源码，不是产品 machine truth；Codex observation 是历史交互参考，
 App-owned baseline 是 pixel authority。当前 carrier 的差异和证据状态见
@@ -93,17 +93,17 @@ App-owned baseline 是 pixel authority。当前 carrier 的差异和证据状态
 普通 chrome 的字体栈和字号来自 pinned DSH theme tokens；用户显式字体偏好继续生效。
 代码、命令、路径和技术值使用同一主题定义的 monospace 栈，不另建组件私有字体策略。
 
-推荐层级：
+视觉来源固定到最新已核对 DSH cohort。普通界面直接使用官方组件和 tokens，不另外定义
+OPL 字号、行高、颜色、圆角或按钮尺度。MiniApp 通过 App-owned 同源样式投影复用相同规则。
 
-| Token | Size / line-height | 使用 |
+| 官方角色 | Size / line-height | 使用 |
 | --- | --- | --- |
-| `title` | `20/28`, weight `600` | 页面标题、空状态主标题。 |
-| `section` | `16/24`, weight `600` | Settings section、drawer 标题。 |
-| `conversation` | `15/22`, weight `400` | 用户与 assistant 正文。 |
-| `body` | `var(--dsw-font-s-14)` | 普通 UI、列表摘要。 |
-| `label` | `13/18`, weight `500` | 按钮、tabs、field labels。 |
-| `meta` | `12/18`, weight `400` | 时间、状态、refs 摘要。 |
-| `code` | `12/18`, weight `400` | 命令、路径和 receipt。 |
+| `--dsw-font-l-20` | `20/28`, weight `500` | 页面标题。 |
+| `--dsw-font-base-16` | `16/24`, weight `400` | 区块标题。 |
+| DSH conversation | `14/24`, weight `400` | 会话与长正文。 |
+| `--dsw-font-s-14` | `14/22`, weight `400` | 普通界面与标准控件。 |
+| `--dsw-font-xs-13` | `13/20`, weight `400` | 辅助说明。 |
+| `--dsw-font-xxs-12` | `12/18`, weight `400` | 时间与状态。 |
 
 不得按 viewport width 缩放字号；不得使用负 letter spacing。中文与英文使用相同
 字号层级，必要时通过容器换行、宽度和行高适配，不压缩字形。
@@ -112,8 +112,8 @@ App-owned baseline 是 pixel authority。当前 carrier 的差异和证据状态
 
 以下表格是
 `contracts/app-gui-product-contract.json#interaction_baseline.visual_target` 的人读投影，不是
-独立 token source。视觉以中性灰阶为主；OPL teal 只用于品牌、typed status 和明确品牌动作，
-不参与普通 rail、selected row、Settings 图标或 composer chrome。
+独立 token source。品牌动作与状态色、普通 rail、selected row、Settings 图标和 composer
+chrome 均直接消费 DSH 的语义 token，不保留 OPL 私有强调色。
 
 Light target：
 

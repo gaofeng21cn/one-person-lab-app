@@ -1619,7 +1619,7 @@
       "official_ui_reuse": {
         "page_identity": "软件中心",
         "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
-        "upstream_ref": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+        "upstream_ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
         "reused_interaction_and_visuals": [
           "grouped plugin cards and compact metadata",
           "official artwork and state dots",

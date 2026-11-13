@@ -1,5 +1,7 @@
 # DSH 升级与 OPL UI 复用审计
 
+> 2026-11-10 历史审计。当前 DSH 版本与直接复用规则见 [2026-11-13 对照与升级](evidence/dsh-ui-typography-comparison-2026-11-13.md)。
+
 Owner: `one-person-lab-app`
 State: `source implementation and isolated UI acceptance complete; installed App acceptance tracked separately`
 DSH source: `master@fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`

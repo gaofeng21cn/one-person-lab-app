@@ -14,47 +14,55 @@
   "owner": "one-person-lab-app",
   "family_id": "opl-apps",
   "family_label": "OPL Apps",
-  "reference_style": "DSH compact capability workspace with MiniMax Code level density",
+  "reference_style": "pinned_official_DSH_theme_typography_and_primitives",
   "purpose": "让共享宿主和所有 OPL 自有 MiniApp 在不同领域布局下仍保持可识别的同一家族外观。",
-  "tokens": {
-    "light": {
-      "canvas": "#f5f5f5",
-      "surface": "#ffffff",
-      "surface_subtle": "#ededed",
-      "line": "#e1e1e1",
-      "text": "#171717",
-      "muted": "#666666",
-      "accent": "#1769d1",
-      "accent_soft": "#e8f1ff"
-    },
-    "dark": {
-      "canvas": "#17191c",
-      "surface": "#202328",
-      "surface_subtle": "#343941",
-      "line": "#454b55",
-      "text": "#edf0f5",
-      "muted": "#b3bac5",
-      "accent": "#8bbcff",
-      "accent_soft": "#203b5f"
-    }
+  "typography": {
+    "font_authority": "effective_host_typography",
+    "transport": "standard_mcp_apps_hostContext.styles.variables",
+    "sans_variable": "--font-sans",
+    "mono_variable": "--font-mono",
+    "initial_and_live_updates": true,
+    "standalone_fallback": "system_font_stack",
+    "domain_scale": "use_official_DSH_typography_roles_without_domain_private_scale"
   },
   "required_markers": [
     "root carries data-opl-family=opl-apps",
-    "top chrome or brand block visibly contains the OPL Apps label",
-    "domain name remains visible beside the family label",
+    "top chrome or brand block visibly contains the OPL Apps family mark or label without repeating a host label",
+    "domain name remains visible in the product navigation or domain header",
     "status and readiness use the shared badge and live status treatment"
   ],
   "shared_components": {
-    "chrome": "compact top bar with family label, domain title, status and host actions",
-    "controls": "minimum 40px hit area, 10-14px radius, shared accent hover and active states",
+    "chrome": "compact domain navigation using the official DSH typography and theme",
+    "controls": "official DSH Button and Input styles: 36px standard button, 28px compact button, 32px input; radius from upstream tokens",
     "focus": "visible accent ring for keyboard focus",
-    "surfaces": "neutral canvas and raised white/dark surfaces with one-pixel borders",
+    "surfaces": "official DSH semantic surfaces and borders",
     "feedback": "loading/error/empty states preserve the page frame and use aria-live or alert"
   },
-  "domain_freedom": "领域可以使用列表、时间线、邮件编辑器或媒体审看布局，但不得替换 family tokens, markers or accessibility baseline.",
+  "domain_freedom": "领域保留列表、邮件编辑器或媒体审看布局；字体、配色、控件与圆角直接复用 DSH，不定义领域私有视觉系统。",
   "adopters": [
-    { "surface": "shared-host", "package_id": "opl-apps", "source": "one-person-lab/src/mcp-app" },
-    { "surface": "dedicated-mcp-app", "package_id": "opl-relay", "source": "opl-relay/workbench" },
-    { "surface": "dedicated-mcp-app", "package_id": "med-autocast", "source": "med-autocast/plugins/med-autocast/media-review" }
-  ]
+    {
+      "surface": "shared-host",
+      "package_id": "opl-apps",
+      "source": "one-person-lab/src/mcp-app",
+      "stylesheet": "src/mcp-app/dsh-theme.css"
+    },
+    {
+      "surface": "dedicated-mcp-app",
+      "package_id": "opl-relay",
+      "source": "opl-relay/workbench",
+      "stylesheet": "workbench/dsh-theme.css"
+    },
+    {
+      "surface": "dedicated-mcp-app",
+      "package_id": "med-autocast",
+      "source": "med-autocast/plugins/med-autocast/media-review",
+      "stylesheet": "plugins/med-autocast/media-review/dsh-theme.css"
+    }
+  ],
+  "visual_source": {
+    "contract": "contracts/app-gui-visual-source-cohort.json",
+    "stylesheet": "resources/miniapp-dsh/dsh-theme.css",
+    "generation": "scripts/sync-miniapp-dsh-styles.mjs",
+    "local_palette_or_scale_allowed": false
+  }
 }

@@ -272,13 +272,13 @@ export function validateOPLStudioCandidateContract(candidate: ShellCandidate): v
   }
   const visual = candidate.dsh_source_reuse_contract as DSHSourceReuseContract | undefined;
   if (
-    visual?.source_cohort !== 'DeepSeek Harness fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159 Application Host and selected GUI source' ||
+    visual?.source_cohort !== 'DeepSeek Harness e8f7b93a344964de3dca1ace9e72b6e4d6de87cb Application Host and selected GUI source' ||
     visual.vendor_byte_policy !== 'pinned_upstream_plus_manifest_bound_reviewed_compatibility_patches' ||
     visual.contract_role !== 'application_host_and_source_preservation_with_opl_integration_regression_not_pixel_reimplementation' ||
     visual.reuse_method !== 'pinned_dsh_application_host_packages_plus_source_preserving_gui_reuse_with_opl_plugins_and_adapters' ||
     visual.visual_style_baseline !== 'DeepSeek Harness selected MIT GUI source preserved for DSH-covered modules plus semantically necessary One Person Lab integrations' ||
     visual.visual_style_scope !== 'light_workbench_palette_system_font_stack_type_scale_weight_line_height_sidebar_density_and_composer_surface' ||
-    visual.visual_token_source !== 'deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159' ||
+    visual.visual_token_source !== 'deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@e8f7b93a344964de3dca1ace9e72b6e4d6de87cb' ||
     visual.font_asset_policy !== 'reuse_deepseek_harness_system_font_behavior_without_copying_unrelated_assets' ||
     visual.parallel_opl_visual_system_allowed !== false ||
     visual.css_override_policy !== 'forbidden_for_dsh_covered_modules_unless_a_real_opl_semantic_host_accessibility_or_platform_boundary_requires_the_smallest_external_delta' ||

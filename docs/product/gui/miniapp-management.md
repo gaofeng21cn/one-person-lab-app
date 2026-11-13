@@ -64,8 +64,7 @@ Framework 从已安装 Package 的 `presentation.miniapp` 和 `app_contributions
 ### 应用切换
 
 会话工作台提供一个应用切换器，切换对象是 `mini_app_id`。选择另一项时先释放旧的临时
-AppBridge binding，再显示所选应用介绍；用户点击“打开界面”后才打开新的 App。旧 App 的业务状态仍由其 owner 保管。切换器默认
-显示用户名称、说明、就绪状态和独立的启动状态。所有尺寸均使用紧凑的应用选择器；打开后不保留常驻应用目录侧栏。
+AppBridge binding，再显示所选应用介绍；用户点击“打开界面”后才打开新的 App。旧 App 的业务状态仍由其 owner 保管。切换器显示应用名称，工具栏显示当前界面的打开状态；未打开时在内容区说明用途、就绪条件与必要参数。所有尺寸均使用紧凑的应用选择器；打开后不保留常驻应用目录侧栏。
 只保留一条宿主工具栏，包含应用切换、打开或关闭、返回和更多操作；不显示 MCP server、tool 或原始 resource URI。
 
 任务详情携带精确的 `item_id`、`view_id` 和 thread，直接打开对应 MiniApp/view，
@@ -126,12 +125,16 @@ OPL Apps 的 `ui://opl/apps.html` 是一个共享 MiniApp，包含 runtime 和�
 提供的逻辑视图；Relay 的独立邮件 UI 与 Med Auto Cast 媒体审看 UI 各是一个独立 surface。
 具体数量随安装及当前会话的连接范围变化，不在宿主维护固定应用清单。
 
-视觉上，OPL Apps 共享宿主、Relay 和 Med Auto Cast 都必须带
-`data-opl-family="opl-apps"`，在品牌区显示 **OPL Apps** 与领域名称，并复用中性灰阶
-画布、raised surface、蓝色强调色、细边框、10–14px 圆角、40px 以上命中区和可见的
-`focus-visible` 环。loading、error、empty 和 action feedback 也必须沿用统一的
-live region/alert 语义；领域可以保留邮件三栏或媒体时间线布局，但不改变 family token
-和可访问性基线。视觉验收以视觉契约和实际渲染为准，不以静态 class 名称代替。
+视觉直接复用 App 选定的最新 DSH theme、typography 和 primitives，不维护 OPL 私有配色、字号、
+行高、圆角或控件密度。所有自有 MiniApp 保留 `data-opl-family="opl-apps"` 和可识别的 OPL
+品牌／领域名称，品牌不增加重复的宿主标题。邮件列表、编辑器、时间线等业务布局由领域决定。
+
+App 持有唯一视觉 source cohort 与生成入口；三个自有 MiniApp 嵌入同一份从官方 CSS 生成的
+`dsh-theme.css`。只将官方 CSS Module 的选择器适配到已有 HTML 控件，不修改其样式值，
+因此独立打开时也采用相同 DSH 风格。Studio 通过标准 MCP Apps `hostContext.styles.variables`
+传入当前生效字体和主题变量；主题或字体变化同步到 iframe，不新增通信协议。
+
+详细来源、升级规则和本轮验证见[2026-11-13 UI 与字体对照](evidence/dsh-ui-typography-comparison-2026-11-13.md)。
 
 ## 参考模型
 

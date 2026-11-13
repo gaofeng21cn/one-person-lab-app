@@ -42,7 +42,7 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 | Studio | [Studio plan](opl-studio-plan.md) | Studio owner，采用权仍归 App |
 | DeepSeek Harness 复用 | [Composition plan](deepseek-harness-composition-plan.md) | App/Shell 各自合同与源码 |
 | 插件位置与开发归口 | [插件组织与设置归属](dsh-plugin-and-settings-map.md) | 内置模块随所属 runtime；独立 Package 随领域 owner 与原生 carrier |
-| DSH 升级与 UI 复用 | [DSH 升级与 OPL UI 复用审计](dsh-upgrade-and-ui-parity-20261110.md) | 上游官方能力、私有实现替代关系与视觉分叉理由 |
+| DSH 升级与 UI 复用 | [DSH 升级与 OPL UI 复用审计](dsh-upgrade-and-ui-parity-20261110.md) · [最新 UI 与字体对照](evidence/dsh-ui-typography-comparison-2026-11-13.md) | 上游官方能力、私有实现替代关系与视觉分叉理由 |
 | Console 观察投影 | [OpenScience Console projection](openscience-console-projection.md) | Runtime owner；`app-runtime-bridge.json` 字段与 Framework 投影 |
 
 ## 变更与证据
