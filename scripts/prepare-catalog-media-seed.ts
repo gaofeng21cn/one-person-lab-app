@@ -12,6 +12,17 @@ export function prepareCatalogMediaSeed(root:string){
   const paths=manifest.content_lock?.paths;
   if(!Array.isArray(paths)||paths.some(p=>typeof p!=='string'||/[\r\n*?\[\]]/.test(p)||p.split('/').includes('..')))throw new Error('Invalid catalog media content-lock paths.');
   if(paths.some(p=>!fs.existsSync(path.join(root,p)))){
+    const selected=execFileSync('git',['-C',root,'ls-tree','-rz','HEAD','--',...paths],{encoding:'utf8',maxBuffer:16*1024*1024});
+    const objects=[...new Set(selected.split('\0').filter(Boolean).map(row=>row.split('\t')[0].split(' ').at(-1)!))];
+    // Fetch the selected blobs together; ls-tree -l otherwise lazily fetches
+    // each missing blob in its own remote round trip just to obtain its size.
+    const trace=execFileSync('git',['-C',root,'cat-file','--batch-check=%(objectname) %(objectsize)'],{
+      input:objects.join('\n')+'\n',encoding:'utf8',env:{...process.env,GIT_NO_LAZY_FETCH:'1'},maxBuffer:16*1024*1024,
+    });
+    const missing=trace.split('\n').filter(row=>row.endsWith(' missing')).map(row=>row.split(' ')[0]);
+    if(missing.length)execFileSync('git',['-C',root,'fetch','--no-tags','--no-write-fetch-head','--recurse-submodules=no','--filter=blob:none','--stdin','origin'],{
+      input:missing.join('\n')+'\n',stdio:['pipe','pipe','pipe'],
+    });
     // Asking for every blob's size hydrates excluded media in a partial clone.
     const tree=execFileSync('git',['-C',root,'ls-tree','-rlz','HEAD','--',...paths],{encoding:'utf8',maxBuffer:16*1024*1024});
     const sizes=new Map(tree.split('\0').filter(Boolean).map(row=>{const [header,name]=row.split('\t');return [name,Number(header.trim().split(/\s+/).at(-1))] as const}));

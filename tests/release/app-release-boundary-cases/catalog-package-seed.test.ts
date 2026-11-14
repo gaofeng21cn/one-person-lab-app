@@ -94,6 +94,23 @@ test('catalog preparation leaves excluded media blobs unfetched in a partial clo
   };
   try {
     fixture(source);
+    // Several locked blobs must be absent to expose per-object lazy fetching.
+    for (const name of ['one', 'two', 'three']) {
+      const file = `tools/${name}.py`;
+      writeFile(path.join(source, file), `print("${name}")\n`);
+    }
+    const descriptor = JSON.parse(fs.readFileSync(path.join(source, 'opl-package.json'), 'utf8'));
+    descriptor.content_lock.paths.push('tools/one.py', 'tools/two.py', 'tools/three.py');
+    const hash = crypto.createHash('sha256');
+    for (const name of descriptor.content_lock.paths) {
+      const label = Buffer.from(name), body = fs.readFileSync(path.join(source, name)), size = Buffer.alloc(8);
+      size.writeBigUInt64BE(BigInt(label.length)); hash.update(size); hash.update(label);
+      size.writeBigUInt64BE(BigInt(body.length)); hash.update(size); hash.update(body);
+    }
+    descriptor.content_lock.digest = `sha256:${hash.digest('hex')}`;
+    for (const name of ['opl-package.json', 'contracts/opl_capability_package_manifest.json']) {
+      writeFile(path.join(source, name), JSON.stringify(descriptor));
+    }
     writeFile(path.join(source, 'payloads/large.bin'), 'excluded full media');
     for (const args of [['init', '-q'], ['add', '.'],
       ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'],
@@ -105,7 +122,14 @@ test('catalog preparation leaves excluded media blobs unfetched in a partial clo
     const present = () => git(clone, ['cat-file', '--batch-all-objects', '--batch-check=%(objectname)'])
       .split('\n').includes(excluded);
     assert.equal(present(), false, 'Fixture must start without the excluded blob');
-    assert.equal(prepareCatalogMediaSeed(clone).status, 'prepared');
+    const trace = path.join(temp, 'fetch.log');
+    const result = spawnSync(process.execPath, ['--experimental-strip-types',
+      path.resolve(import.meta.dirname, '../../../scripts/prepare-catalog-media-seed.ts'), '--root', clone],
+      { encoding: 'utf8', env: { ...process.env, GIT_TRACE: trace } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).status, 'prepared');
+    assert.equal(fs.readFileSync(trace, 'utf8').split('\n').filter(line => line.includes('built-in: git fetch')).length,
+      1, 'Selected missing blobs must use a single remote fetch');
     assert.equal(fs.existsSync(path.join(clone, 'tools/query.py')), true);
     assert.equal(present(), false, 'Catalog size inspection must not download full media');
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }

@@ -335,8 +335,9 @@ seed 身份进入 domain-runtime cache key，既有 packaged-module marker 保�
 固定组件清单或独立版本表。Framework 仅在匹配父产品 seed 存在时提供收敛动作，原生 carrier
 仍验证 payload 和 content lock；没有 seed 时不转为在线下载。
 
-MAC catalog 的部分克隆只读取 content lock 所选路径的 Git 对象大小，再恢复这些文件并验证
-原有大小预算和摘要。不得遍历全仓 blob 大小，以免触发完整媒体的隐式下载。
+MAC catalog 的部分克隆只取回 content lock 所选路径的缺失 Git 对象，并将这些对象合并为
+一次 fetch，再读取大小、恢复文件并验证原有大小预算和摘要。不得遍历全仓 blob 大小或
+逐个触发隐式下载，以免下载完整媒体或为每个轻量文件单独联网。
 
 实现或合同改变时，同一改动更新本 SOP 与受影响的技术参考，复用现有回归验证。Skill 保持薄层，链接本文件和发布路径索引；通用开发与 worktree 流程分别复用现有 Skill，不复制其正文。App 专属操作留在 App 仓库；只有新增通用工作流行为时才向 OPL Flow owner 投影。
 
