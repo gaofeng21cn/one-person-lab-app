@@ -16,6 +16,7 @@ test('projects one Framework resolution into Full and qualification inputs', () 
   const qualification = { runtime_payloads: { codex_cli: { package: '@openai/codex', platform: {} }, kimi_cu: {} } };
   const projected = projectResolvedBuildDependencies(resolved, full, qualification);
   assert.equal(projected.qualification.runtime_payloads.codex_cli.version, '1.0.0');
+  assert.equal(projected.qualification.runtime_payloads.codex_cli.tarball_size_bytes, 1);
   assert.equal(projected.qualification.runtime_payloads.codex_cli.platform.tarball_sha256, 'f'.repeat(64));
   assert.equal(projected.qualification.runtime_payloads.kimi_cu.version, '0.6.6');
   assert.equal(projected.full.runtime_payloads.temporal_cli.version, '1.9.0');

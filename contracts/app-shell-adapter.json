@@ -44,7 +44,8 @@
       "aioncore_required": false,
       "framework_managed_payload_in_app_bundle_allowed": false
     },
-    "framework_headless_carrier_policy": "preserved_outside_app_bundle"
+    "framework_headless_carrier_policy": "preserved_outside_app_bundle",
+    "full_offline_seed_contract_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli.full_offline_seed"
   },
   "qualification_external_carrier": {
     "schema": "opl_studio_external_codex_qualification_input.v1",

@@ -52,6 +52,7 @@ import {
 } from './build-full-first-install-package/runtime-layers.ts';
 import { resolveRuntimeSources } from './build-full-first-install-package/runtime-sources.ts';
 import { prepareRuntime } from './build-full-first-install-package/staging.ts';
+import { materializeFullCodexOfflineSeed } from './build-full-first-install-package/codex-offline-seed.ts';
 import { resolveOfficeCliReleaseSource } from './build-full-first-install-package/upstream-release.ts';
 import { resolveFullCarrierProfile } from './build-full-first-install-package/carrier-profile.ts';
 import { fileSha256 } from './release-file-helpers.ts';
@@ -354,6 +355,7 @@ function main() {
 
     timing.start('offline_seed');
     materializeFullKimiCuOfflineSeed(prepared);
+    materializeFullCodexOfflineSeed(prepared);
 
     const cacheEventsWrittenAt = monotonicSeconds();
     timing.start('payload_sync');

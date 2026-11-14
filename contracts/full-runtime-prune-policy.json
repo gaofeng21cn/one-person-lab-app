@@ -6,7 +6,7 @@
   "state": "active",
   "mode": "explicit_non_runtime_prune_only",
   "machine_boundary": "Canonical machine-readable prune policy for the App-owned Full first-install package assembly. Build scripts, cache keys, manifest assertions, and prune audits must derive pruning rules from this file.",
-  "offline_first_install_boundary": "Studio is the only current shell carrier and resolves the external native Codex binary at install or launch without embedding AionUI, AionCore, Claude, or a duplicate Framework Codex payload. Temporal archives, Node, Python, uv, officecli, mineru, domain modules, and packaged default skills stay local; the Framework runtime must not duplicate Codex or introduce lazy downloads for its remaining required launch payloads.",
+  "offline_first_install_boundary": "Studio carries the operation-resolved latest stable Codex npm and platform archives as an offline first-install seed. Framework owns installation, protocol verification, activation and subsequent upstream updates; packaged Framework duplicate Codex paths remain absent. Temporal archives, Node, Python, uv, officecli, mineru, domain modules and default skills stay local. Offline startup requires neither Gateway nor registry access.",
   "external_practice_refs": [
     {
       "source": "Docker build context",

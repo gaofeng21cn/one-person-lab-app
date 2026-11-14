@@ -163,6 +163,16 @@ report real events, without inferring progress from elapsed time.
 
 Standard freeze resolves Codex once and shares the exact dependency artifact with the build and optional VM preparation. Artifact cohorts bind that resolved manifest. Standalone/platform builds resolve their own native Codex input; WebUI maps OCI amd64 to Framework x64 and resolves only Codex. Framework source resolvers require their lockfile dependencies before invocation, including the independent Full build.
 
+Full also packages the operation-resolved Codex root and macOS arm64 platform tarballs in
+`runtime-payloads/codex-cli/<resolved-version>/`. Their size and SHA-256 identities are
+recorded in `codex_offline_seed` and checked again before first use. Studio passes these
+archives to Framework's existing first-install path before starting the persistent App
+Server. Framework materializes the launcher and platform payload locally, verifies the
+binary and App Server protocol, and activates the managed generation. Neither registry
+access, Gateway setup nor a model request is required. Existing usable Codex is preserved.
+The seed is first-install input only: later managed updates resolve upstream stable again,
+and each new release operation resolves fresh metadata before freezing its candidate.
+
 Studio payload environment preserves both controller-provided display and updater versions. The package version is only a fallback for local builds; it must not overwrite the display version used in public asset names.
 
 Prequalified WebUI publication preserves the original source authority release bundle/cohort fields, falling back to its authority digest only for independent source qualification. Re-dispatching publication must not rebind qualified image labels to a different build identity.

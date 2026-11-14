@@ -20,9 +20,7 @@ function validateReleaseFullCodexCliPayload(codexCli) {
     codexCli?.producer_schema_version !== 1 ||
     codexCli?.aioncore_required !== false ||
     codexCli?.framework_managed_payload_in_full_runtime_allowed !== false ||
-    !/active Studio shell must resolve one exact external @openai\/codex platform binary/.test(codexCli?.verification ?? '') ||
-    !/prove Claude absent/.test(codexCli?.verification ?? '') ||
-    !/forbidden duplicate paths absent/.test(codexCli?.verification ?? '')
+    codexCli?.offline_seed_contract_ref !== 'contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli.full_offline_seed'
   ) {
     throw new Error('Release channel Full Codex CLI must use the Studio native external carrier without a Framework duplicate');
   }

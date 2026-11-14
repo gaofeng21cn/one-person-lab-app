@@ -277,6 +277,7 @@ export type ShellAdapterContract = {
       };
     };
     framework_headless_carrier_policy: string;
+    full_offline_seed_contract_ref?: string;
   };
   qualification_external_carrier?: {
     schema: 'opl_studio_external_codex_qualification_input.v1';

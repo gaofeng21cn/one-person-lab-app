@@ -7,6 +7,7 @@ import {
 } from '../full-first-install-package.ts';
 import { directorySizeBytes } from './filesystem.ts';
 import { resolveFullCarrierProfile } from './carrier-profile.ts';
+import { assertFullCodexOfflineSeed } from './codex-offline-seed.ts';
 
 const APP_BUNDLE_TRIM_REPORT_SCHEMA = 'opl_full_app_bundle_trim_report.v1';
 const PACKAGE_BOUNDARY_AUDIT_SCHEMA = 'opl_full_package_boundary_audit.v2';
@@ -178,6 +179,8 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       exists: fs.existsSync(path.join(fullRuntimeRoot, ...relativePath.split('/'))),
     }),
   );
+  const codexOfflineSeedPresent = manifest?.codex_offline_seed
+    ? assertFullCodexOfflineSeed(fullRuntimeRoot, manifest.codex_offline_seed) : false;
   const codexCarrierAudit = {
     schema: 'opl_codex_native_carrier_audit.v1',
     runtime_count: 0,
@@ -237,12 +240,13 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       contains_shell_runtime: entries.studio_shell_runtime.exists,
       native_codex_external_carrier_present: carrier.codexCarrier === 'opl_codex_native',
       native_codex_embedded_payload_present: false,
+      codex_offline_seed_present: codexOfflineSeedPresent,
       claude_payload_absent: codexCarrierAudit.claude_payload_absent,
       codex_carrier_audit: codexCarrierAudit,
       framework_codex_payload_absent: forbiddenFrameworkCodexPaths.every((entry) => !entry.exists),
       forbidden_framework_codex_paths: forbiddenFrameworkCodexPaths,
-      dedupe_policy: 'opl_codex_native_external_binary_is_the_only_codex_carrier_and_the_full_runtime_embeds_no_codex_payload',
-      rule: 'Keep Studio as the only current shell carrier and reject every Framework-managed or bundled Codex archive from the Full runtime.',
+      dedupe_policy: 'studio_offline_seed_with_framework_owned_first_install_and_updates_without_packaged_duplicate_runtime',
+      rule: 'Keep one Studio first-install seed and reject duplicate Framework Codex runtime paths.',
     },
     entries,
   };
@@ -311,6 +315,8 @@ function buildFullPackageOptimizationSection(args: {
         args.boundaryAudit.full_package_boundary?.codex_carrier_audit,
       framework_codex_payload_absent:
         args.boundaryAudit.full_package_boundary?.framework_codex_payload_absent,
+      codex_offline_seed_present:
+        args.boundaryAudit.full_package_boundary?.codex_offline_seed_present,
       forbidden_framework_codex_paths:
         args.boundaryAudit.full_package_boundary?.forbidden_framework_codex_paths,
       dedupe_policy: args.boundaryAudit.full_package_boundary?.dedupe_policy,

@@ -10,7 +10,19 @@
         "binary_path": "package/vendor/aarch64-apple-darwin/bin/codex"
       },
       "dependency_id": "codex-cli",
-      "selection_policy": "latest_stable_at_operation_start"
+      "selection_policy": "latest_stable_at_operation_start",
+      "full_offline_seed": {
+        "required": true,
+        "materialization_role": "studio_owned_first_install_seed",
+        "installation_owner": "one-person-lab",
+        "archives": [
+          "package",
+          "platform"
+        ],
+        "offline_first_launch_requires_gateway": false,
+        "existing_usable_codex_preserved": true,
+        "permanent_version_pin": false
+      }
     },
     "kimi_cu": {
       "provider_id": "kimi-cu",

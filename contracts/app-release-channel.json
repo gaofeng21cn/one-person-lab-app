@@ -4117,7 +4117,8 @@
           "vendor/codex",
           ".runtime-cache/codex-cli"
         ],
-        "verification": "The active Studio shell must resolve one exact external @openai/codex platform binary and pass it through OPL_CODEX_BIN; the App bundle must prove Claude absent and must not embed a Codex payload, and the Full Framework runtime must prove all forbidden duplicate paths absent."
+        "verification": "Full carries the operation-resolved stable Codex npm and macOS arm64 platform archives as a Studio first-install seed. Before starting the persistent App Server, Framework installs and verifies that seed without registry, Gateway or model access. Existing usable Codex is preserved; subsequent managed updates resolve current upstream stable versions. Framework duplicate bin/codex, bin/rg, vendor/codex and cache paths remain absent from the packaged payload.",
+        "offline_seed_contract_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli.full_offline_seed"
       },
       "temporal_cli": {
         "compatibility_mode": "minimum_version_plus_capability_smoke",

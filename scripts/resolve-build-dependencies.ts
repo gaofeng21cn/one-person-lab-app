@@ -59,6 +59,7 @@ export function projectResolvedBuildDependencies(resolved: Json, fullPolicy: Jso
     ...qualification.runtime_payloads.codex_cli,
     version: codex.version, npm_integrity: codex.npm_integrity,
     tarball_url: codex.archive_url, tarball_sha256: codex.archive_sha256,
+    tarball_size_bytes: codex.archive_size_bytes,
     platform: { ...qualification.runtime_payloads.codex_cli.platform, ...platform },
   };
   }
