@@ -23,6 +23,8 @@ Machine boundary: 当前合同、源码和精确发布/安装证据。
 从 26.9.25 起，macOS Stable 使用基于 DSH/Cordis 的 Studio 应用 Host，原生接入
 Codex 会话，由 Framework 提供运行时与 Package 状态。产品仍是 **One Person Lab App**：
 Studio 是实现架构，Stable/Nightly 是发布渠道，Standard/Full 是安装包选择。
+OPL Studio 独立 Preview 桌面版已退休，最终更新源只供既有安装迁移；新安装统一使用
+One Person Lab App 发布入口。
 [9 月架构切换说明](https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.9.25-r1)
 说明了从 26.9.23 切换时的变化；当前分发与迁移边界统一维护在
 [分发与安装参考](docs/delivery/distribution-and-install-ssot.md)。
