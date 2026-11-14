@@ -366,6 +366,9 @@ Full Homebrew 同样从公开 Standard component manifest 读取机器版本；�
 `replacement_full_only` 和 `replacement_include_full`。Full 的资格验证来源于原包清单，
 不重新解析依赖或重建签名包。Standard 和 Full 默认使用冻结 App SHA 的验收器；
 只有确需纯验收修复时才显式指定 `verification_app_ref` 并通过原有 scope proof。
+Full 的 Shell 验收器单独通过 `replacement_smoke_harness_ref` 选择纯验收修复提交；产品
+`shell_ref` 保持原 cohort。断网首启使用 Tart `--net-host` 隔离 VM 外网，保留 Electron 自身
+沙箱；本地 Codex 就绪后重启同一 VM、恢复网络，再继续登录和 Package 验收。
 
 ## 8. 发布后改进
 

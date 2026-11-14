@@ -104,6 +104,11 @@ on:
         required: false
         type: boolean
         default: false
+      replacement_smoke_harness_ref:
+        description: Exact verification-only Shell commit for an unchanged signed Full replacement.
+        required: false
+        type: string
+        default: ''
       replacement_full_only:
         description: Recover Full only; reuse the supplied Standard candidate run without requalifying it.
         required: false
@@ -400,6 +405,7 @@ jobs:
       artifact_app_ref: ${{ needs.prepare-matrix.outputs.app_ref }}
       verification_app_ref: ${{ inputs.verification_app_ref || needs.prepare-matrix.outputs.app_ref }}
       shell_ref: ${{ inputs.shell_ref }}
+      smoke_harness_ref: ${{ inputs.replacement_smoke_harness_ref || inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       framework_executor_ref: ${{ inputs.framework_ref }}
       package_profile: full
