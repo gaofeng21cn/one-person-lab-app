@@ -367,8 +367,10 @@ Full Homebrew 同样从公开 Standard component manifest 读取机器版本；�
 不重新解析依赖或重建签名包。Standard 和 Full 默认使用冻结 App SHA 的验收器；
 只有确需纯验收修复时才显式指定 `verification_app_ref` 并通过原有 scope proof。
 Full 的 Shell 验收器单独通过 `replacement_smoke_harness_ref` 选择纯验收修复提交；产品
-`shell_ref` 保持原 cohort。断网首启使用 Tart `--net-host` 隔离 VM 外网，保留 Electron 自身
-沙箱；本地 Codex 就绪后重启同一 VM、恢复网络，再继续登录和 Package 验收。
+`shell_ref` 保持原 cohort。断网首启在一次性 VM 内临时拒绝 IPv4／IPv6 公网路由，保留
+SSH、本地回环和 Electron 自身沙箱；先以隔离标记核验 DMG 附票，再挂载复制 App。
+本地 Codex 就绪后撤销路由限制，重启 App 并继续登录和 Package 验收；不重启 VM 或切换
+虚拟网络，避免旧 DHCP 租约干扰重连。所有网络修改只发生在本次可丢弃的 VM。
 
 ## 8. 发布后改进
 
