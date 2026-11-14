@@ -16,7 +16,7 @@
 | “只发布／修复某一渠道” | 仅推进该渠道及必要依赖，不自动升级为全家族发布。 |
 | “优化流程／整理 SOP 或 Skill” | 修改并验证流程文件，不因此发布一个产品版本。 |
 
-渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。当前正式 Shell 已选择基于 DSH/Cordis 的 Studio，Stable 继续沿用既有 OPL App 标识与更新仓库。历史 Studio Preview 通过独立身份的终结桥迁入 Stable；普通后续发布使用正式 App 入口，只在明确维护交接时进入 Preview 桥路径。领域 Package 与 Docker WebUI 保持各自 authority，Desktop 成功不代表它们已发布。
+渠道集合从合同和已接纳发布请求读取，不把历史版本或固定 Agent/Package 名单复制到 Skill。当前正式 Shell 已选择基于 DSH/Cordis 的 Studio，Stable 继续沿用既有 OPL App 标识与更新仓库。独立 Studio Preview 已退休，最终迁移 feed 只服务既有安装；普通后续发布统一使用正式 App 入口。领域 Package 与 Docker WebUI 保持各自 authority，Desktop 成功不代表它们已发布。
 
 用户授权完整 App 发布时，完成本次所选交付所必需的公开关联组件正式发布及窄 canonical 修复一并推进，不逐包重复确认；每个组件仍使用自身 owner 的正式入口并回读终态。既有私有源码边界继续有效，App 发布请求也不隐含本机安装授权。未选择的可选 Package 不纳入宿主发布前提。
 

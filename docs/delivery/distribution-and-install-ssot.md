@@ -46,7 +46,7 @@ Docker WebUI 均使用 Studio。正式 App 保留既有安装身份与 Stable fe
 | 身份 | Bundle ID / 安装路径 | 更新 authority | 当前用途 |
 | --- | --- | --- | --- |
 | 历史 OPL App（AionUI） | `cn.onepersonlab.opl` / `/Applications/One Person Lab.app` | App Stable feed | 自动升级到 Studio 实现 |
-| 历史 OPL Studio Preview | `cn.onepersonlab.opl.studio.preview` / `/Applications/One Person Lab Preview.app` | Studio Preview feed | terminal handoff 转入正式 App |
+| 历史 OPL Studio Preview | `cn.onepersonlab.opl.studio.preview` / `/Applications/One Person Lab Preview.app` | 最终迁移 feed | 仅供既有安装转入正式 App |
 | 正式 OPL App（Studio） | `cn.onepersonlab.opl` / `/Applications/One Person Lab.app` | App Stable feed | 唯一正式 Desktop 身份 |
 
 因此有两条不同但最终汇合的升级路线：
@@ -55,7 +55,7 @@ Docker WebUI 均使用 Studio。正式 App 保留既有安装身份与 Stable fe
    Bundle ID、安装路径、Stable repository、updater metadata 命名和严格递增版本。更新后
    第一次启动先执行幂等数据迁移，再进入正常 renderer。实现必须直接支持 cutover manifest
    声明的全部仍受支持 AionUI 版本，不能把用户曾经安装某个中间桥接版本作为正确性前提。
-2. **Studio Preview 用户自动 handoff。** 不同 Bundle ID 和 feed 不能冒充原地更新。
+2. **Studio Preview 用户迁移。** 独立 Preview 发布已经退休，只保留最终迁移 feed 供既有安装转入正式 App。不同 Bundle ID 和 feed 不能冒充原地更新。
    最后一个 Preview 更新只能下载并校验 exact version、URL、SHA-256、Developer ID、
    notarization 和 Gatekeeper 均通过的正式 App，导出 Preview 的允许迁移状态，退出后安装或
    激活正式 App，由正式 App 完成导入并回写 receipt。Preview feed 永远不变成 Stable feed；
