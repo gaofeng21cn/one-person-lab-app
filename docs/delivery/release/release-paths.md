@@ -83,8 +83,7 @@ uv 用于建立环境和安装依赖，不再用其另一个下载目录重新�
 | Windows 升级资格 | `windows-updater-upgrade-vm-preflight.yml`；隔离环境、身份、签名状态及兼容性条件按 Windows 合同读取，未验收要明确保留缺口 |
 | 本地 Full App / DMG | `npm run manual:local-app` / `npm run manual:full-dmg`；Studio native Codex 与正式 Full builder 共用；前者实际替换本机 App，仅在要求本机安装时执行 |
 | 本地 Full 临时公开预览 | `release-manual-full-preview.yml` 的受保护 handoff；详见 [独立手册](manual-full-preview-handoff.md)，不自动升级为 Stable 或 Full 追加 |
-| 历史 Studio Preview 桥维护 | `release-stable.yml` 的 `studio_carrier_admission` → `_release-studio.yml`；独立 Preview 身份，只在明确维护交接时使用，普通 App 发布不再走此入口 |
-| 历史 Studio Full Preview 维护 | 同一 workflow 的 `studio_full_append` → `_release-studio-full.yml`；不等同于正式 App Full |
+| 历史 Studio Preview 迁移桥 | `opl-studio` 的最终 `v0.1.19` feed；只供既有 Preview 用户迁移到正式 App，不创建新的独立桌面版本 |
 | 非发布验证 | `release-source-qualification.yml`、`release-qualification.yml`、`release-bundle-canary.yml`、`build-manual.yml` 普通模式、`docker-webui-clean-vm.yml`；产物或通过结果不授予公开资格 |
 
 ## 同标签修复后的跟随关系

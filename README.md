@@ -25,6 +25,9 @@ Since 26.9.25, macOS Stable uses the Studio application Host built on DSH/Cordis
 with native Codex conversations and Framework-owned runtime and Package state.
 The product remains **One Person Lab App**. Studio is its implementation;
 Stable/Nightly are release channels, and Standard/Full are installation choices.
+Standalone OPL Studio Preview releases are retired. The final Preview feed is
+kept only as a migration bridge for existing installations; new installs use
+the One Person Lab App release channel.
 The [September architecture-transition notes](https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.9.25-r1)
 describe the original cutover from 26.9.23. Current distribution and migration
 boundaries are maintained in the [distribution reference](docs/delivery/distribution-and-install-ssot.md).
