@@ -157,6 +157,8 @@ OPL 公共 Package 源、授权私有源和 Homebrew tap 是同一个 OPL 软件
 
 目录优先使用发布者随不可变版本提供的真实图标。公开图标绑定精确提交；私有图标仅通过已授权资产入口提供，不能向匿名地址试探私有仓库路径。缺图、离线或加载失败时，优先使用由 App 的 `contracts/software-artwork-assets.json` 资产清单生成并随宿主打包的 PNG；仍无图时使用中性位图占位，不生成首字母或拼接字母 Logo。正式名称、用途与入口读取同一产品投影；打包的图标索引是资产投影，不是另一份产品目录。
 
+自有软件的品牌与 README 入口遵循 Framework 的[Agent App 品牌规范](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md#品牌与公开入口)。新图稿先保存于产品 owner 仓库，再同步既有离线资产清单、摘要与 Studio 构建资源；同一产品的 Package 图标与离线图稿保持一致。新增 `opl-image` 继续使用稳定身份，显示为 **OPL Image Lab**，不创建第二个软件条目。
+
 运行组件复用 `managed_update` 的 `dependency_catalog`，展示实际版本、安装位置、维护方和所属产品。Codex CLI、Temporal、Python、uv 等仅在 owner 已声明依赖并回读时出现；不扫描或接管全机开发环境。系统或用户管理的依赖保留原维护方式，更新入口转到父产品或既有依赖管理器。
 
 本轮交互与构建验收见[统一体验验收](evidence/software-center-experience-acceptance-2026-11-13.md)。

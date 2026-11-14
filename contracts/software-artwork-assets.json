@@ -9,14 +9,14 @@
       "identities": [
         "agent-old-photo-workflow"
       ],
-      "sha256": "aaf8d4ae3d9896588dd6639de24b56cbcc7df162891592da7d4a5728bc359b77"
+      "sha256": "d7c48bd267152c293651d3191722ad73b1f6208f64e3399dfc6aafb61eb6777e"
     },
     {
       "file": "agent-session-vault.png",
       "identities": [
         "agent-session-vault"
       ],
-      "sha256": "3d6b08d815fcec96eda28f09b56b7895f8ef9990eddbda84b9f87f24be2e3ce2"
+      "sha256": "13bf74bd28128e22d2b925b54c6215b6c67105748483c9afa753e690de2dcaa0"
     },
     {
       "file": "codex-models.png",
@@ -32,7 +32,7 @@
       "identities": [
         "glkvm-native"
       ],
-      "sha256": "9261e2d6475af8a01573294401c45eb68c2fcc5132cc8561a8f38d94e7bce7ef"
+      "sha256": "bd246fa9b1b1fa8aff4c565bb5e728ffd2e656d9027256378665d44f3b0f9f53"
     },
     {
       "file": "iphone-steward.png",
@@ -40,7 +40,7 @@
         "iphone-steward",
         "iphone-app-steward"
       ],
-      "sha256": "176b77c82af41668c63e3664dcf757538f5b8ea7b1f850c2c54cedd4b7395bf9"
+      "sha256": "5d4ed05f9a1cd92e7a72b351d3d7b98e03e43acd341a20b6800cfbf8e62ec471"
     },
     {
       "file": "journey-atlas.png",
@@ -48,21 +48,21 @@
         "travel-passport",
         "journey-atlas"
       ],
-      "sha256": "0e6071d06f50345ffea07cb45afc9eea5d9558095381217a3eecc0f4b4f7cb0f"
+      "sha256": "3afa3cff86dab51850ad1aa648906aa7b4b92e933e7120c61e6a02b8e22eccb8"
     },
     {
       "file": "kindle-pilot.png",
       "identities": [
         "kindle-pilot"
       ],
-      "sha256": "d1f73f8fd53b0048721e7b44c189c8fb07289d5667445bc4a638ca2e7639e081"
+      "sha256": "c94e541c837909d9d3cdb3b59e10b5df016a20adcba9f93366b01aa0f83db72e"
     },
     {
       "file": "mac-media-assets.png",
       "identities": [
         "mac-media-assets"
       ],
-      "sha256": "5de5dac79a5d597a2be06547594b0b6eb69327c1ca663eed80ee0426c28a55cf"
+      "sha256": "1c714b1f948e9a5c7e12e6254eb82ded9c3ea8881a967f5a8329a41c0ee65c70"
     },
     {
       "file": "med-auto-cast.png",
@@ -127,7 +127,7 @@
         "occ",
         "opl-capital-compass"
       ],
-      "sha256": "15c80ad83123a477b02210fc4e06cb105a56a96ad17c7ca6da786ccb313b8cbb"
+      "sha256": "8e916cf755fa33fbb660453e34fee1d13a899d7ef331f0f1113265fd32d75fc6"
     },
     {
       "file": "opl-fleet-agent.png",
@@ -162,7 +162,7 @@
         "oma",
         "opl-meta-agent"
       ],
-      "sha256": "0f4158dbe3eabc265efb62f92f37e9cfd8391be269eb60d9dd7c6f1276e21472"
+      "sha256": "44ffb6bdb187d95f096442d04d1b6116584b9fc6a9c259bb5d69fdf089c5b83b"
     },
     {
       "file": "opl-persona.png",
@@ -185,7 +185,7 @@
       "identities": [
         "photo-steward"
       ],
-      "sha256": "83d6b83902cbe18174e7ec78ddbecac8a2548e86042b580f9d4fb4614b63d2b5"
+      "sha256": "bd64a4ec93850cd43a6ec70373fc23813f3f1e8783eae2a832ff21e4e969e7d9"
     },
     {
       "file": "redcube-ai.png",
@@ -201,6 +201,14 @@
         "rednote-steward"
       ],
       "sha256": "064f19c8ec825620ba6e40a8863e9c0cacdbc833bae008348a29d753acae826d"
+    },
+    {
+      "file": "opl-image.png",
+      "identities": [
+        "opl-image",
+        "opl-image-lab"
+      ],
+      "sha256": "f37a25cb45680f75cfa990afc7ca60525f625a9e108fbed05523f54ea0458c87"
     }
   ]
 }
