@@ -83,3 +83,30 @@ test('catalog preparation restores locked files in a non-cone sparse checkout', 
     assert.equal(fs.existsSync(path.join(root,'payloads/large.bin')),false);
   } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test('catalog preparation leaves excluded media blobs unfetched in a partial clone', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-catalog-partial-'));
+  const source = path.join(temp, 'source'), clone = path.join(temp, 'clone');
+  const git = (cwd: string, args: string[]) => {
+    const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  try {
+    fixture(source);
+    writeFile(path.join(source, 'payloads/large.bin'), 'excluded full media');
+    for (const args of [['init', '-q'], ['add', '.'],
+      ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'],
+      ['config', 'uploadpack.allowFilter', 'true']]) git(source, args);
+    const excluded = git(source, ['rev-parse', 'HEAD:payloads/large.bin']).trim();
+    git(temp, ['clone', '-q', '--no-checkout', '--filter=blob:none', `file://${source}`, clone]);
+    git(clone, ['sparse-checkout', 'set', '--no-cone', '/catalog/', '/contracts/', '/opl-package.json']);
+    git(clone, ['checkout', '-q']);
+    const present = () => git(clone, ['cat-file', '--batch-all-objects', '--batch-check=%(objectname)'])
+      .split('\n').includes(excluded);
+    assert.equal(present(), false, 'Fixture must start without the excluded blob');
+    assert.equal(prepareCatalogMediaSeed(clone).status, 'prepared');
+    assert.equal(fs.existsSync(path.join(clone, 'tools/query.py')), true);
+    assert.equal(present(), false, 'Catalog size inspection must not download full media');
+  } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+});

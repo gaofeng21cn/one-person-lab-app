@@ -12,7 +12,8 @@ export function prepareCatalogMediaSeed(root:string){
   const paths=manifest.content_lock?.paths;
   if(!Array.isArray(paths)||paths.some(p=>typeof p!=='string'||/[\r\n*?\[\]]/.test(p)||p.split('/').includes('..')))throw new Error('Invalid catalog media content-lock paths.');
   if(paths.some(p=>!fs.existsSync(path.join(root,p)))){
-    const tree=execFileSync('git',['-C',root,'ls-tree','-rlz','HEAD'],{encoding:'utf8',maxBuffer:16*1024*1024});
+    // Asking for every blob's size hydrates excluded media in a partial clone.
+    const tree=execFileSync('git',['-C',root,'ls-tree','-rlz','HEAD','--',...paths],{encoding:'utf8',maxBuffer:16*1024*1024});
     const sizes=new Map(tree.split('\0').filter(Boolean).map(row=>{const [header,name]=row.split('\t');return [name,Number(header.trim().split(/\s+/).at(-1))] as const}));
     const total=paths.reduce((sum,p)=>{if(!sizes.has(p))throw new Error('The frozen source is missing a catalog media member.');return sum+sizes.get(p)!},0);
     const policy=readAppProductProfile().official_profile.distribution_forms.full.catalog_media_dependency;
