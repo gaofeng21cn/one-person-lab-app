@@ -7,7 +7,9 @@
 [源码与接入体验研究](../../opl-link-internet-access.md)，当前推荐 Tailscale Serve 向导；
 本轮没有接入第三方登录或启动公网隧道。
 
-本轮 iOS 源码为 [`ab8927b2`](https://github.com/gaofeng21cn/opl-link/commit/ab8927b21eb2958fbbea71769df6b8423a48d317)。
+本轮原生运行验收基于 [`ab8927b2`](https://github.com/gaofeng21cn/opl-link/commit/ab8927b21eb2958fbbea71769df6b8423a48d317)，
+后续 [`4334f4aa`](https://github.com/gaofeng21cn/opl-link/commit/4334f4aaf71039a76feec4457fde2bfb8184363a)
+补充旧版 Xcode SDK 的编译分支；现代 SDK 的 Duo 导航路径保持相同。
 Studio 沿用 [`728c2a33`](https://github.com/gaofeng21cn/opl-studio/commit/728c2a3334615e523a656d9feba2cccd71cc385e)，
 本轮没有修改其产品源码。
 
