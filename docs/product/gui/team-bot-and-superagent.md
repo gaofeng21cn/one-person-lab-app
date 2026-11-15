@@ -3,20 +3,22 @@
 Owner: `one-person-lab-app`
 State: `source_implemented_and_verified`
 
-Team 与 Bot 使用官方 DSH Agent、Subagent、持久 Session 和 Team 任务板。OPL 标准插件提供 Bot 配置与持久 Codex 执行适配，官方插件源码保持不变。普通 Codex 对话继续使用原有线程；团队逻辑会话由 DSH 持有，关联的 Codex 线程持有真实执行记录。两者通过稳定引用关联，不复制成员或任务状态。
+Team、Subagent 和角色预设直接使用固定版本 DSH 的完整官方 Web 工作台。OPL 插件只提供工作台入口与 Codex 执行适配；会话、模型菜单、确认弹窗、成员导航、任务详情和角色配置均由官方客户端管理。普通 OPL 对话继续使用现有 Codex 界面。
 
-Bot 是可复用配置，包含角色、Skills、模型、权限和工作区；加入 Team 后成为独立具名成员。上下文属于成员实例，不因复用同一 Bot 配置而跨团队共享。
+在 OPL 侧栏打开「智能体协作」，工作台按需启动。原版用法如下：
 
-Superagent 独立使用原型中的 Source、Policy、Ticket、Assignment、Report 与恢复流程。其开关、配置和任务不依赖 Team；没有明确的仓库、账号与授权策略时保持未配置。真实外部消息和仓库操作需要具体配置，不以测试回执声明已接单。
+1. 在工作台中新建或打开根会话，在模型／推理菜单开启「启用智能体协作」。新会话默认关闭。
+2. 向协调者描述分工，由模型通过官方工具创建具名成员、发送消息和创建、认领或完成共享任务。
+3. 点击会话页头的 Subagent 控件，查看成员树及下方的共享任务板；点击成员进入其会话，也可在右侧打开成员聊天。通过普通输入框续作，使用 Stop 停止。任务板只读，修改由模型工具完成。
+4. 关闭协作沿用官方确认流程：已有模型请求时需确认；取消不变；关闭保留成员和任务。子会话不显示根会话的开关和任务板。
+5. 可复用角色使用官方 Settings 中的 Agent Presets。查看配置沿用官方 YAML 视图，创建和修改沿用 Creator。固定版本没有单独的 Bot 模板管理页。
 
-验收覆盖成员持续消息、原线程续作、任务修订与认领、取消及重启恢复。源码验证、真实模型执行、安装与发布分别记录。
+DSH 固定 `dsh-v0.2.2-rc.3`，提交 `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`。协作工作台直接装配官方 `dsh-base` 与 `dsh-web-app`，不复制或改写官方 UI；主 OPL profile 不加载 base。原版 CLI 独立进程通过父 Host 的私有 IPC 复用同一个持久 Codex App Server，官方 DSH 持有逻辑会话、成员和任务，Codex 持有执行线程。执行适配将官方本轮工具目录、模型、推理和权限投影交给 Codex；不创建第二个 Codex 客户端。工作台的 Settings、热更新和退出均由原版 CLI 管理，OPL 停止工作台时中断其确切的活动轮次。Codex 内置命令的细节与 Token 用量仍以原 Codex 线程为准；当前适配展示最终回复与官方 DSH 工具卡片，尚未投影完整的 Codex 原生事件流。
 
-DSH 固定官方 `dsh-v0.2.2-rc.3`，提交 `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`。主 profile 的 Team 服务使用独立工具 registry，普通 Codex 对话不会被暴露 Team 专用工具。桌面和 WebUI 都由同一标准客户端插件注册侧栏与 main slots。
+旧版自制 Bot 模板、创建 Team、手工添加成员页面及其写接口已撤下。原 `$DSH_HOME/opl/sessions` 和 Codex 执行绑定继续使用；旧 `bots.json` 原文件保留供迁移参考，不再作为新角色的配置入口。
 
-Superagent 固定原型 `8c32a9dc5d72c033816c6a8110b37f40cf94fba4`。OPL 只增加构建 wrapper 与独立 profile 的启停，不修改原型源码。数据保存在 `$DSH_HOME/opl-superagent`；停止保留配置与工单。工作台监听运行 Studio 的机器的回环地址，本机可在 App 中打开，远程 WebUI 需操作者转发端口。首次启动展示原型的 setup，引导配置独立模型、专用账号、仓库、Source 与 Policy；未经配置不会接单。
+Superagent 使用独立的完整原型工作台，固定 `8c32a9dc5d72c033816c6a8110b37f40cf94fba4`。Source、Policy、Ticket、Assignment、Report、设置及恢复流程保持原样，与 Team 无依赖。OPL 只管理独立 profile 的启停；数据位于 `$DSH_HOME/opl-superagent`，停止保留配置和工单。在 Superagent 入口启动后，沿用原型 setup 配置独立模型、专用仓库账号、Source 和 Policy；未配置时不接单。
 
-用法：保存 Bot 模板，选择模板创建 Team，再把其他模板加入团队。向协调者分派任务，可要求它创建共享任务、调用官方 subagent 工具委派、发消息和认领或完成任务。选择同一成员可继续讨论；复用模板创建的新成员拥有独立上下文。Superagent 从独立入口启动，按授权策略将外部请求转成 Ticket，每次执行形成 Assignment；失败重试和重启恢复仍由原型管理。
+两种工作台都监听 Studio 所在机器的回环地址，本机可直接在 App 中使用；远程 WebUI 使用者需在该机器打开或显式转发工作台端口。源码验证、真实模型执行、安装、发布和外部接单分别验收；既有真实 Codex 续作和任务修订证据不替代本次官方界面交互验证。Superagent 尚未做 GitHub／飞书真实接单的业务验收。
 
-2026-11-15 源码验收：App `validate:active-shell` 全部通过；Studio 官方插件打包加载、DSH GUI 来源校验及升级测试通过。浏览器使用真实 Codex App Server 完成创建 Bot、创建 Team、创建共享任务和模型委派；Host 重启后同一 reviewer 沿用原 Codex 线程，认领并完成原任务，官方任务修订从 1 变为 3。取消传播、未知派发不重复发送、冷成员历史读取和继承 Bot 权限由真实官方 DSH 服务的集成测试覆盖。
-
-Superagent 的独立进程、原始 UI、未配置状态、启停及设置重启保留已验证。未配置外部专用账号，尚未做 GitHub/飞书真实接单、交付或恢复的业务验收。源码已与首次启动改动整合并进入 App、Studio 的 main；安装和产品发布仍单独执行。
+本次验证覆盖原版 Team 开关及停用确认、成员树、右侧成员聊天和任务详情。真实 Codex 创建、认领并完成共享任务；重启工作台后，同一 reviewer 沿用原 Codex 线程，通过官方工具回读同一项任务。取消、未知派发不重发、父进程通道断开后的退出与恢复已由集成测试覆盖。App 门禁、WebUI 构建及 DSH 来源校验通过；安装和产品发布另行执行。

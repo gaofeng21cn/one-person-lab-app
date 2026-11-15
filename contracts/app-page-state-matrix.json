@@ -6,11 +6,12 @@
   "collaboration_state_model": {
     "contract_ref": "contracts/app-gui-product-contract.json#team_and_bot",
     "teams": {
-      "entry": "sidebar_native_plugin_teams",
+      "entry": "OPL_plugin_launcher_for_complete_official_DSH_workbench",
       "states": [
-        "no_bot",
-        "saved_bot",
-        "empty_team",
+        "root_session_team_off",
+        "root_session_team_on",
+        "disable_confirmation",
+        "empty_catalog_hidden",
         "active_member",
         "idle_member",
         "cancelled_member",
@@ -18,17 +19,19 @@
         "restored_team"
       ],
       "actions": [
-        "save_bot",
-        "delete_bot",
-        "create_team",
-        "add_member",
-        "send_message",
-        "cancel_member"
+        "official_model_menu_team_toggle",
+        "official_preset_selection_and_Creator",
+        "official_subagent_tree_navigation",
+        "official_right_sidebar_member_chat",
+        "official_composer_followup",
+        "official_Stop",
+        "read_only_shared_task_details"
       ],
       "owners": {
         "members_and_tasks": "official_DSH",
         "execution_threads": "existing_Codex_App_Server",
-        "templates_and_execution_bindings": "OPL_plugins"
+        "role_presets_and_interactions": "official_DSH",
+        "execution_bindings": "OPL_Codex_adapter"
       },
       "unknown_dispatch": "inspect_linked_Codex_thread_before_resend"
     },

@@ -3820,8 +3820,8 @@
   },
   "team_and_bot": {
     "feature_id": "B0-TEAM-BOT",
-    "implementation": "native_dsh_plugins_with_persistent_codex_executor_adapter",
-    "bot_definition": "reusable_role_skill_model_permission_workspace_template",
+    "implementation": "unmodified_official_DSH_base_web_workbench_with_persistent_codex_executor_adapter",
+    "bot_definition": "official_DSH_agent_preset_and_Creator_flow",
     "bot_instance": "one_named_continuable_DSH_agent_per_team_member",
     "coordination_owner": "official_DSH_subagent_tree_inbox_and_agent_team_task_board",
     "execution_owner": "existing_persistent_Codex_App_Server",
@@ -3838,13 +3838,26 @@
       "start_stop_preserve_settings_and_tickets": true
     },
     "acceptance": [
-      "named_bot_creation",
+      "official_preset_selection_and_Creator_entry",
+      "official_team_toggle_and_disable_confirmation",
+      "official_subagent_tree_navigation_and_task_details",
       "same_member_continuation",
-      "member_messages",
       "shared_task_claim_and_completion",
       "restart_restore",
       "permission_and_cancellation_propagation"
-    ]
+    ],
+    "interaction_owner": "official_DSH_complete_web_application",
+    "interaction": {
+      "entry": "OPL_plugin_opens_complete_official_collaboration_workbench",
+      "team_enable": "root_session_model_reasoning_menu",
+      "team_disable": "official_confirmation_after_first_model_request_preserves_members_and_tasks",
+      "members_and_tasks": "official_session_header_subagent_tree_and_read_only_shared_task_board",
+      "member_navigation": "official_child_session_and_right_sidebar_chat",
+      "continuation_and_stop": "official_session_composer_and_Stop",
+      "role_management": "official_Settings_Agent_Presets_and_Creator",
+      "OPL_role_template_CRUD": false,
+      "OPL_team_management_page": false
+    }
   },
   "ordinary_conversation": {
     "path_id": "ordinary_codex_conversation",

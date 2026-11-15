@@ -10,7 +10,10 @@ import { validateGuiContractRuntimeProjections } from './gui-product-contract-pa
 
 export function validateAppGuiProductContract(guiContract, releaseChannel, installExposurePolicy) {
   const collaboration = guiContract.team_and_bot;
-  if (collaboration?.coordination_owner !== 'official_DSH_subagent_tree_inbox_and_agent_team_task_board'
+  if (collaboration?.interaction_owner !== 'official_DSH_complete_web_application'
+    || collaboration.interaction?.OPL_team_management_page !== false
+    || collaboration.interaction?.OPL_role_template_CRUD !== false
+    || collaboration?.coordination_owner !== 'official_DSH_subagent_tree_inbox_and_agent_team_task_board'
     || collaboration.execution_owner !== 'existing_persistent_Codex_App_Server'
     || collaboration.superagent?.team_dependency !== false
     || collaboration.superagent?.start_stop_preserve_settings_and_tickets !== true) {
