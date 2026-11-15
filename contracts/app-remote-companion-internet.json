@@ -185,7 +185,6 @@
   "delivery": {
     "source_ssot": "remote_canonical_main",
     "managed_service_deployment_required": true,
-    "public_container_image_by_immutable_digest": true,
     "instance_protected_workflow_required": true,
     "new_billable_resource_purchase_authorized": false,
     "apple_public_distribution_authorized": false,
@@ -196,6 +195,9 @@
       "same_canonical_conversation_and_requests",
       "bounded_upload_and_ranged_download",
       "network_loss_reconnect_and_no_unknown_mutation_replay"
-    ]
+    ],
+    "private_container_image_by_immutable_digest": true,
+    "runtime_pull_secret_managed_by_instance": true,
+    "image_provenance": "BuildKit_OCI_provenance_bound_to_successful_canonical_main_run_artifact_and_exact_digest"
   }
 }

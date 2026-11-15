@@ -158,7 +158,8 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
   fields(policy.delivery_governance?.execution_policy, { status: 'active_user_restarted', source_ssot: 'remote_canonical_main',
     legacy_source_compatibility_required: false, public_apple_distribution_authorized: false }, 'OPL Link delivery scope');
   const status = policy.implementation_status;
-  requireValue(object(status) && ['installed_desktop_updated', 'real_iphone_qualified', 'public_beta_or_app_store_published', 'release_ready']
+  requireValue(object(status) && ['installed_desktop_updated', 'real_iphone_qualified', 'public_beta_or_app_store_published', 'release_ready',
+    'managed_internet_service_deployed', 'public_internet_native_loop_qualified']
     .every((key) => typeof status[key] === 'boolean'), 'OPL Link implementation evidence must distinguish source, installation, device and publication');
   requireValue(!status.release_ready || (status.installed_desktop_updated && status.real_iphone_qualified),
     'OPL Link release readiness requires installed desktop and real-iPhone qualification');
