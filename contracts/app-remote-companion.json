@@ -26,7 +26,7 @@
   "design_references": [
     {
       "project": "Fish Pocket",
-      "role": "ios_interaction",
+      "role": "ios_interaction_only_not_visual_identity",
       "learn": [
         "conversation_first_reading",
         "collapsed_process",
@@ -39,13 +39,14 @@
     },
     {
       "project": "DSH Go",
-      "role": "complete_mobile_workflows",
+      "role": "primary_visual_and_mobile_workflow_reference",
       "learn": [
         "running_and_waiting_states",
         "deliverable_file_cards",
         "preview_and_share",
         "steer_and_stop",
-        "progressive_disclosure"
+        "progressive_disclosure",
+        "neutral_surfaces_and_clear_chat_typography"
       ],
       "source": "https://github.com/ccch1mneyyy/dsh-Go",
       "code_reuse": "design_reference_only_no_source_copy"
@@ -161,6 +162,29 @@
     "uncertain_send": "show_unknown_outcome_and_refresh_no_automatic_resend",
     "accessibility": "dynamic_type_voiceover_native_hit_targets_reduced_motion_and_light_dark_themes"
   },
+  "native_presentation": {
+    "visual_authority": "DSH_Go_reference_with_native_iOS_controls",
+    "palette": "neutral_surfaces_and_restrained_interactive_accent",
+    "green_brand_or_status_emphasis_allowed": false,
+    "state_cues": "text_symbols_and_motion_with_accessible_non_color_meaning",
+    "layout_authority": "current_window_available_space_and_system_safe_areas",
+    "fixed_device_model_or_idiom_layout_branching_allowed": false,
+    "duo_target": "outer_inner_rotated_and_resized_window_with_state_continuity",
+    "system_chrome": "native_navigation_and_toolbar_adaptation_including_vertical_bars",
+    "resizing_preserves": [
+      "selected_device",
+      "canonical_thread",
+      "draft",
+      "pending_request_identity",
+      "reading_context"
+    ],
+    "acceptance": [
+      "actual_iphone_duo_simulator_outer_and_inner_display",
+      "fold_or_resize_and_orientation_transitions",
+      "keyboard_approval_file_and_conversation_layout",
+      "light_dark_and_dynamic_type_render_review"
+    ]
+  },
   "security": {
     "system_trusted_https_required": true,
     "companion_bearer_cannot_call_general_app_api": true,
@@ -206,6 +230,8 @@
   "implementation_status": {
     "source_status": "native_build_and_real_codex_simulator_validated",
     "source_acceptance_ref": "docs/product/gui/evidence/opl-link-native-companion-acceptance-2026-11-15.md",
+    "native_presentation_status": "dsh_go_visual_and_duo_implementation_in_progress",
+    "duo_simulator_qualified": false,
     "installed_desktop_updated": false,
     "real_iphone_qualified": false,
     "public_beta_or_app_store_published": false,
