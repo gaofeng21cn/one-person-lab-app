@@ -3487,6 +3487,7 @@
     {
       "id": "first_launch_readiness",
       "expected_source": "explicit /first-run recovery route, one-shot post-login setup check, and OPL initialize result; ordinary launch enters /guid",
+      "installation_presentation_ref": "contracts/app-gui-product-contract.json#first_launch_readiness_policy.installation_presentation",
       "startup_loader": {
         "experience_contract_ref": "contracts/app-gui-product-contract.json#ui_experience_contract.startup_loader",
         "visible_product_name": "One Person Lab",

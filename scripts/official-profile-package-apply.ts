@@ -15,6 +15,7 @@ type OplExecution = {
 
 type OfficialProfileApplyRuntime = {
   execute: (args: string[]) => OplExecution;
+  wait?: (milliseconds: number) => void;
 };
 
 type JsonRecord = Record<string, any>;
@@ -252,6 +253,39 @@ function executeProjectedAction(runtime: OfficialProfileApplyRuntime, action: Pr
   return parseJsonResult(runtime.execute(args), args);
 }
 
+// Observe Framework's existing worker; App does not own transfer or installed state.
+function executeObservedPackageAction(runtime: OfficialProfileApplyRuntime, action: ProjectedPackageAction, dryRun: boolean) {
+  if (dryRun || !['agent_package_install', 'agent_package_update', 'agent_package_repair'].includes(action.action_id)) return executeProjectedAction(runtime, action, dryRun);
+  const invoke = (id: string, payload: JsonRecord) => {
+    const args = ['app', 'action', 'execute', '--action', id, '--payload', JSON.stringify(payload), '--json'];
+    return parseJsonResult(runtime.execute(args), args);
+  };
+  // This generic transport is not a Package directory action. Discover its
+  // read-only status endpoint before any write, as the software center does.
+  let supportsObservation = false;
+  try { supportsObservation = Array.isArray(invoke('package_operation_status', {}).app_action_execution?.result?.operations); }
+  catch { /* Older Frameworks keep their canonical synchronous action. */ }
+  if (!supportsObservation) return executeProjectedAction(runtime, action, dryRun);
+  const started = invoke('package_operation_start', { action_id: action.action_id, package_id: action.payload.package_id });
+  const operation = started.app_action_execution?.result?.operation;
+  if (!isRecord(operation) || typeof operation.operation_id !== 'string') throw new Error('Package installation result is not confirmed; inspect software status before retrying.');
+  const deadline = Date.now() + 840_000;
+  while (Date.now() < deadline) {
+    const result = invoke('package_operation_status', { operation_id: operation.operation_id });
+    const current = result.app_action_execution?.result?.operations?.find((item: JsonRecord) => item.operation_id === operation.operation_id);
+    if (!isRecord(current)) throw new Error('Package installation progress is unavailable; inspect software status before retrying.');
+    if (current.status === 'completed') return result;
+    if (current.status !== 'running') {
+      const failure = new OplCommandFailure('Package installation did not complete. Check this item in Software Center and retry.');
+      if (typeof current.error_code === 'string') failure.code = current.error_code;
+      throw failure;
+    }
+    if (runtime.wait) runtime.wait(1000);
+    else Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+  }
+  throw new Error('Package installation is still unconfirmed; inspect software status before retrying.');
+}
+
 function normalizeRoots(rootPackageIds: string[]) {
   const roots = rootPackageIds.map((value) => value.trim()).filter(Boolean);
   if (roots.length === 0) throw new Error('Official Profile requires at least one desired root Package identity.');
@@ -263,16 +297,23 @@ export function applyOfficialProfilePackages(input: {
   rootPackageIds: string[];
   dryRun?: boolean;
   runtime: OfficialProfileApplyRuntime;
+  onProgress?: (progress: JsonRecord) => void;
 }) {
   if (input.intent !== 'first_install' && input.intent !== 'explicit_restore') {
     throw new Error('Official Profile may only be applied for first_install or explicit_restore.');
   }
   const roots = normalizeRoots(input.rootPackageIds);
   const items: JsonRecord[] = [];
-
+  const report = (packageId: string, status: string) => input.onProgress?.({
+    schema: 'opl_official_profile_install_progress.v1', package_id: packageId, status,
+    root_package_ids: roots, completed: items.filter(item => item.status !== 'failed').length,
+    total: roots.length, package_results: items.map(item => ({ package_id: item.package_id, status: item.status })),
+  });
   for (const packageId of roots) {
+    report(packageId, 'installing');
     try {
-      const before = packageSnapshot(fastAppState(input.runtime), packageId);
+      const state = fastAppState(input.runtime);
+      const before = packageSnapshot(state, packageId);
       if (before.installed && before.requiredClosurePresent) {
         items.push({
           package_id: packageId,
@@ -286,7 +327,7 @@ export function applyOfficialProfilePackages(input: {
       }
 
       const action = projectedAction(before.entry, packageId);
-      const actionReadback = executeProjectedAction(input.runtime, action, input.dryRun === true);
+      const actionReadback = executeObservedPackageAction(input.runtime, action, input.dryRun === true);
       if (input.dryRun) {
         items.push({
           package_id: packageId,
@@ -325,6 +366,8 @@ export function applyOfficialProfilePackages(input: {
           message: safeFailureMessage(error instanceof Error ? error.message : String(error)),
         },
       });
+    } finally {
+      report(packageId, items.at(-1)?.status === 'failed' ? 'attention' : 'ready');
     }
   }
 
@@ -403,6 +446,7 @@ async function main() {
     intent: options.intent,
     rootPackageIds,
     dryRun: options.dryRun,
+    onProgress: progress => process.stderr.write(`OPL_PROFILE_PROGRESS ${JSON.stringify(progress)}\n`),
     runtime: {
       execute: (args) =>
         spawnSync(options.oplBin, args, {
