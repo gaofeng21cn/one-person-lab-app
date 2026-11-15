@@ -43,7 +43,8 @@
     "unauthenticated_scope_creation_allowed": false,
     "gateway_user_is_authoritative": true,
     "relay_stores_gateway_password_or_model_key": false,
-    "relay_stores_conversation_or_plaintext_business_payload": false
+    "relay_stores_conversation_or_plaintext_business_payload": false,
+    "gateway_identity_gate": "active_user_role_for_host_registration; no_model_provider_or_paid_balance_requirement"
   },
   "desktop_account_exchange": {
     "credential_owner": "one-person-lab_existing_gateway_account",
@@ -204,10 +205,21 @@
       "dedicated_existing_node_static_store_prepared": true,
       "managed_service_deployed": false,
       "public_native_path_qualified": false,
-      "blocker": "existing_github_read_credentials_denied_and_release_app_permission_set_not_granted",
-      "blocked_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43697266238",
-      "required_identity_action": "github_passkey_reauthentication_to_review_and_authorize_the_minimum_missing_read_permissions",
-      "distinct_ordinary_isolation_test_account_ready": false
-    }
+      "blocker": "single_private_image_package_workflow_read_approval_pending",
+      "blocked_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43695647291",
+      "required_identity_action": "approve_only_opl_link_service_package_actions_read_for_opl_instance_medopl",
+      "distinct_ordinary_isolation_test_account_ready": false,
+      "source_read_authorized": true,
+      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43705995770",
+      "registry_read_grant_applied": false
+    },
+    "source_read_permissions": [
+      "contents:read",
+      "actions:read"
+    ],
+    "registry_read_identity": "instance_repository_GITHUB_TOKEN_with_single_package_Actions_Read",
+    "runtime_registry_authentication": "existing_instance_TCR_credentials_not_job_or_installation_token",
+    "deployment_contract_ref": "https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/deploy/contracts/link-service.json",
+    "high_availability_qualified": false
   }
 }

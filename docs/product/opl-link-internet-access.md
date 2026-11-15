@@ -42,11 +42,32 @@ Studio 只组合官方 Remote lifecycle。固定虚拟 loopback 端口 43177 不
 
 源码实现已完成本地 Relay↔真实 DSH Host↔Swift 原生客户端的完整链路：扫码、Noise claim、同 thread、
 多片附件、ETag 下载、SSE、重连及双层撤销。原生 App 的 Keychain、前后台和终止重开恢复已实跑；
-Duo 公钥确认、键盘与草稿连续性检查通过。公网部署当前被 GitHub 私有源码/镜像读取授权阻挡：既有运行器凭据不可读，发布 App 对所请求只读权限集合返回 422。
-GitHub 权限页需要本人 Passkey 重新验证，用户当前暂不能验证。专用静态 Store 已在已有工作节点准备完成，
-未购买新服务器或云盘；Relay 服务尚未部署，iOS 公网测试尚未运行。恢复需核对最小只读权限并准备独立普通
-隔离测试账号，再继续受保护 deploy/qualify 和 iOS 实测。详见[本轮验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
+Duo 公钥确认、键盘与草稿连续性检查通过。源码读取授权已恢复：既有发布 App 签发固定 Framework、Studio、Link 三仓的 `contents/actions: read` 短期凭据，
+实际 workflow `43705995770` 通过。镜像读取改用 GitHub 官方的单包 Actions access：仅向 Instance 部署仓库
+授予 `opl-link-service` 包的 Read，当前尚待用户确认，没有扩大原发布 App 的全仓权限。
+
+Instance 已实现从 GHCR 固定摘要复制到现有私有 TCR，并在目标复验完整来源；运行时只使用 TCR 凭据，
+避免依赖一小时有效的工作流令牌和节点镜像缓存。该路径已完成源码检查，仍待授权后的真实部署回读。
+专用静态 Store 已在已有工作节点准备完成，未购买新服务器或云盘。公网 Relay 尚未部署，iOS 公网测试尚未运行。
+另一项隔离验收前提是独立的普通测试账号，仍未创建。详见[本轮验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
 已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
+
+## 安全、稳定性与登录边界
+
+互联网中继入口为 `link.medopl.com`。`gateway.medopl.com` 在桌面初次启用时确认已有 OPL 普通用户身份；
+手机扫码授权，不输入账号密码。当前中继准入只检查 active/user 身份，不要求模型余额或指定模型渠道。
+`cloud.medopl.com` 是云平台界面，与中继承担不同职责。
+
+服务与 Cloud 共用现有工作节点，因此进程、存储和网络权限隔离不能消除主机故障的共同影响。当前部署为单副本，
+Local PV 绑定节点，不宣称高可用。主机或中继离线会中断手机通道；已有桌面会话及文件仍由用户电脑持有。
+
+初始部署配置将账号容量收紧为 32，保留 0.5 核 CPU、1 GiB 内存及 128 总连接上限。原版 Store 每账号
+已有 256 设备和 16,384 token records 的边界；按完整序列化上界估算，32 账号状态约 155 MiB，原子写入额外
+约 5 MiB。1 GiB PVC 是容量声明，不是文件系统硬配额。具体数值与执行准入由
+[Instance 部署合同](https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/deploy/contracts/link-service.json)持有。
+
+上线流程会重新检查容量，记录可获得的真实 CPU/内存用量，验证服务健康、双账号隔离、撤销、重连和原生公网链路。
+指标不可用会保留未知状态。当前没有证据证明专用磁盘告警或高可用恢复已经安装，不将源码配置当作运行验收。
 
 ## 固定来源与许可
 
