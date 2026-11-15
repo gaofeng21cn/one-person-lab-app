@@ -78,7 +78,7 @@ flowchart LR
 成功直连时，正文和文件由电脑与手机互传；TURN 及 WSS Relay 分别承担无法直连时的中继，
 托管服务继续负责授权、在线状态、信令和撤销。目前上线情况以[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)为准。
 电脑保持在线并运行 App；
-电脑休眠或离线时，手机保留草稿并显示连接状态。无需入站端口、NAT 配置或同一局域网。
+电脑休眠或离线时，手机保留草稿并显示连接状态。用户电脑无需开放入站端口、配置 NAT 或与手机处于同一局域网。
 
 所有业务路径保持电脑公钥固定的 Noise IK 加密。传输复用 MIT DS Harness Remote 的固定上游版本、
 WebRTC 选路、WSS 信令、Relay、Noise IK 和 `loopback.call`。
@@ -90,7 +90,8 @@ Studio 复用当前 DSH Application Host 的 lifecycle 和受限 `/api/link` 路
 不另起 Codex App Server。进程内固定虚拟目标 `http://127.0.0.1:43177` 不监听端口，只接受手机
 业务路由；桌面设备管理、通用 App action、Package 与任意 shell 均不经此桥开放。
 
-大附件分为 512 KiB 上传片段，完成摘要核验后仅向 turn 传递绑定当前设备和精确 thread/workspace 的
+上传接口每片上限为 512 KiB，托管客户端采用 128 KiB，避免 HTTP 桥封装后的请求在慢链路上超过单次 RPC 预算。
+完成摘要核验后仅向 turn 传递绑定当前设备和精确 thread/workspace 的
 `uploadId`。保留每文件 10 MiB、最多五个限制。下载采用 512 KiB 分段及 ETag/If-Match，最多 256 MiB；
 文件变化时丢弃不完整结果。SSE 沿用同一 Host 的事件源，以有界读取承载；重连后先回读 canonical 状态。
 

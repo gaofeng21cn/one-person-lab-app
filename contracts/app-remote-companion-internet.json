@@ -1,7 +1,7 @@
 {
   "schema": "opl_link_internet.v1",
   "owner": "one-person-lab-app",
-  "state": "adaptive_source_and_public_relay_fallback_qualified_turn_deployment_in_progress",
+  "state": "adaptive_transport_configured_public_business_qualification_in_progress",
   "service_owner": "opl-link/service",
   "deployment_owner": "opl-instance-medopl",
   "service_origin": "https://link.medopl.com",
@@ -177,6 +177,9 @@
   },
   "files": {
     "upload_chunk_bytes": 524288,
+    "managed_upload_chunk_bytes": 131072,
+    "managed_upload_encoded_request_max_bytes": 262144,
+    "managed_upload_json_policy": "standard_JSON_without_unnecessary_slash_escaping",
     "max_file_bytes": 10485760,
     "max_attachments": 5,
     "upload_ttl_seconds": 600,
@@ -234,14 +237,14 @@
       "managed_service_deployed": true,
       "public_account_isolation_qualified": true,
       "public_native_path_qualified": true,
-      "blocker": "production_TURN_native_node_public_mapping_validation_in_progress",
+      "blocker": "public_TURN_full_business_qualification_after_managed_upload_budget_fix_in_progress",
       "deployment_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43720949508",
       "public_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43721620695",
       "native_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43725036282",
       "required_identity_action": "none",
       "distinct_ordinary_isolation_test_account_ready": true,
       "source_read_authorized": true,
-      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43727156593",
+      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43731347393",
       "registry_read_grant_applied": true,
       "last_qualified_transport": "relay_after_direct_attempt",
       "direct_first_source_qualified": true,
@@ -251,7 +254,9 @@
         "turn",
         "relay_fallback"
       ],
-      "public_turn_native_path_qualified": false
+      "public_turn_native_path_qualified": false,
+      "turn_configuration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43730587059",
+      "external_host_registration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43732882055"
     },
     "source_read_permissions": [
       "contents:read",

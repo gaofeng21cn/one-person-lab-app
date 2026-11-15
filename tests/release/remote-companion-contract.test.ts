@@ -47,6 +47,8 @@ test('managed internet preserves account isolation, pinned pairing and bounded b
     (p: Contract) => { p.pairing.relay_enrollment_is_not_conversation_authorization = false; },
     (p: Contract) => { p.pairing.transport_identity_keychain_scope = 'account_only'; },
     (p: Contract) => { p.files.aggregate_entire_file_as_one_rpc_or_base64_json = true; },
+    (p: Contract) => { p.files.managed_upload_chunk_bytes = 524288; },
+    (p: Contract) => { p.files.managed_upload_encoded_request_max_bytes = 1048576; },
     (p: Contract) => { p.recovery.automatic_replay_of_turn_approval_or_interrupt = true; },
   ]) {
     const value = structuredClone(internet); mutate(value);

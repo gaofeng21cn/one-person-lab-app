@@ -28,10 +28,14 @@ Link main `d3513c878b0111f971b9ac732d6a6b22760e132e`，tree `6789964c9dd387273c8
 修复测试配置后改用相同版本原生 coturn验证；Host 保持官方 werift provider，未修改 RTC/Noise 协议或忽略 ICE failed。
 本地用于隔离测试的 loopback peer 许可不适用于生产配置。
 
-最终测试二进制 SHA256 为 `928ff187b01175f36da6dba1ec519dfd693e8d96314ee8c325dae3da34e1a1c6`，
+本地三路径及早期公网测试二进制 SHA256 为 `928ff187b01175f36da6dba1ec519dfd693e8d96314ee8c325dae3da34e1a1c6`，
 源码与二进制绑定、三条路径的原生 summary/transport evidence 已持久保存。
 Studio 最终主线为 `ccc16dfef4f6716272c14002bc68c75a42ab1d7d`；公网测试冻结在其可达前序 `653059ef93fe4ee7c8f0c736c8cf8fdac3cd21bd`。
 后续提交只收掉未使用的诊断分支，不用追新重跑未失效的网络门禁。
+
+App 的完整 active-shell 检查也已完成：Studio typecheck、Node suite（519 passed、0 failed、1 skipped）、
+全部 renderer suites、App contract conformance 和 state model 均通过。检查前补齐任务内 Shell checkout 的依赖及插件构建；
+首次检查暴露的缺失类型和未构建插件属于该隔离 checkout 的准备问题，补齐后从失败阶段继续，未重复已通过的 typecheck。
 
 ## 新服务与公网默认自适应
 
@@ -48,12 +52,37 @@ Framework 固定 `9ddedc14eb6c861fd26379169becd871c5bf4841`、Studio 固定 `653
 本次公网结果证明自动回退工作，不证明该网络已选中公网 P2P 或 TURN。此前 run `43723297752` 因人工交接延迟使
 120 秒配对码过期，客户端拒绝后取消并清理；fresh run 改为下载、解密、启动的连续执行，未复用过期邀请。
 
-## 尚在完成的生产 TURN
+## 生产 TURN 与公网业务资格
 
-当前生产 TURN 尚未配置成功。现有节点属于 TKE 原生节点 owner；沿 TKE 2022 原生节点、精确 subnet 和默认路由，
-已找到同一 VPC 的现有 NAT 与一个可用公网地址，配置带宽为 5000 Mbps，既有 DNAT 为零。
-只读 run `43726975018` 证明资源存在，不证明计费、实际出站端口保持或 TURN 已可用。
-部署 owner 正补充有限的 UDP/TCP 3478 与 32 个 UDP relay 端口映射，不新购资源、不更改 Cloud 原有 SNAT。
-只有真实公网 TURN 被选中并完成加密业务后，才记录公网 TURN 通过。
+生产配置 `43730587059` 已成功，原生 receipt 的 12 项核对全通过。复用精确 TKE 原生节点默认路由上的
+现有 NAT 与公网地址，新增 UDP/TCP 3478 与 32 个 UDP relay 端口的等端口映射；没有新购资源，Cloud 原有
+SNAT 与 Ingress 保持原配置。TURN 初始总上限为 10 Mbps、单 allocation 为 5 Mbps，总 allocation 16、单用户 4，
+短期凭据为 300 秒。具体运行参数由 Instance 持有，配置带宽不构成真实计费或吞吐证明。
+
+coturn 保持非 root、只读文件系统、CapEff 0 与 NoNewPrivs 1；使用同一官方镜像内的 init copy 去除不需要的
+binary file capability。使用单一公网 external-ip 与显式 IPv4 relay-ip，避免 public/private 写法隐式放行节点私网。
+私网、回环、metadata 等 peer 拒绝策略保持启用；未采用已被 4.19 忽略的旧选项作为安全控制。
+
+首个公网 forced-TURN run `43730775718` 中，Host 位于同一云内网，coturn 实际记录拒绝 node-private peer；
+客户端 ICE 失败后自动回退 Relay，完整业务通过，但 TURN 断言失败。随后通过 `43732882055` 的真实 Framework
+普通用户设备授权，把绑定本机 Noise 公钥的 Host device credential 密封交付给外网测试 Host，账号密码、Gateway
+令牌与 TURN HMAC 均未导出。外网 Host 实际选中 TURN 并完成 Noise、claim 和 bootstrap，纯 werift 路径在大附件
+发送阶段失败，因此这部分结果不计完整 TURN 业务通过。
+
+原生 provider 对照另发现已有 Host 重启后的身份库未初始化：`loadExisting` 只验证返回身份，不加载 store cache/peers。
+Studio main `be442af2a3bbf6300cab335395b3db178675f816` 已在验证固定身份后调用官方 `loadOrCreate`，复核身份后再启动；
+真实重启、已有 peer pin、新 peer 与换钥拒绝的回归通过。该提交同时补齐固定 DSH 上游 manifest 本已指定的
+`@roamhq/wrtc 0.10.0` optional 依赖、平台 lock 与完整许可，vendor 原字节不变。
+
+后续公网原生资格固定该 Host 修复提交。独立原生 DataChannel 探针通过 production coturn 完成
+1 MiB + 117 bytes 全文与 SHA 校验，但 UDP Relay 实测需 58.880 秒、RTT 为 0.597 秒；该探针没有运行 App 业务，
+不能代替 Native 业务验收。原 512 KiB 上传片段经 HTTP 桥两次 base64 后约 932 KiB，已超过这条慢链路上 30 秒
+RPC 的传输预算。合同改为 managed 128 KiB、接口最大 512 KiB，单次编码请求上限 256 KiB。
+
+Link 修复候选 `d4b9a450ad57e0faff39ddb985c96e64b24aab23` 同时关闭 JSON 的可选斜杠转义。
+两组 1 MiB + 117 bytes（含最坏 base64 内容）在真实 DSHF/Noise/RTCH 往返中均为 9 片，offset、全文与 SHA 一致；
+1024 bytes Authorization 测试头下，每次追加最多 235,066 bytes。新 Native 二进制 SHA256 为
+`4cdb012012760b83755242bdd3220b3fa8d0596cc3f1c348ed5d155cc1cc5e52`；后续完整业务验收使用该修复，
+不扩大 RPC/RTC 超时或放宽 peer ACL。配置成功、局部加密字节、原始通道吞吐及完整业务资格分别记录。
 
 本轮仍不包含物理 iPhone、运营商切网、真实模型 turn、已安装桌面 App 更新或 Apple 公开分发。

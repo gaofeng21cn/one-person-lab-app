@@ -10,7 +10,7 @@ Owner: `one-person-lab-app`
 OPL 服务继续持有账号、配对、在线状态、信令和撤销；成功直连的业务密文由手机和电脑互传。
 用户仍在 App 开启手机访问、Link 扫码，不选择协议、不填写网络参数，也无需注册额外账号。
 
-用户已批准这一方向，并要求把 TURN 一起接入，完整顺序为 LAN/P2P→TURN→Relay。源码和本地三路径已实现并验收，公网默认回退已通过，生产 TURN 仍在部署验收。
+用户已批准这一方向，并要求把 TURN 一起接入，完整顺序为 LAN/P2P→TURN→Relay。源码和本地三路径已实现，公网默认回退已通过，生产 TURN 已配置；完整公网业务资格见路径验收记录。
 运营商 NAT 和企业防火墙会影响打洞成功率，保留中继才能覆盖这些网络。
 第三方 TURN 可作为中继运营选项，其选择取决于中国大陆实测和正式计费条件；不因公开免费额度就提前绑定。
 
@@ -65,13 +65,14 @@ Standard 8 美元/用户/月，Personal 免费套餐限非商业用途；这些�
 
 本轮沿已有 owner 补齐完整链路：
 
-1. **Studio Host**：复用上游 `loadNodeRtcFactory` 和生命周期，打包纯 TypeScript werift provider，
+1. **Studio Host**：复用上游 `loadNodeRtcFactory` 和生命周期，补齐固定上游本已指定的
+   `@roamhq/wrtc 0.10.0` optional 依赖；按原工厂优先使用原生 WebRTC，无法加载时使用 werift。
    按 LAN/P2P、TURN、Relay 自动选路，继续只开放现有 Link loopback 业务路由。
 2. **iOS Link**：接入 WebRTC 157.0.0 原生 DataChannel adapter，复用现有 Noise、官方分片、RPC 和恢复逻辑。
    使用成熟 ICE 实现，仅建立数据通道，无音视频权限。
 3. **Link service / Instance**：暴露上游 ICE 配置和短期 TURN 凭据入口，复用上游授权信令与
    `/api/v1/turn/credentials?connection_id=...` 语义，保证账号 scope、设备 bearer、连接参与者及 host-client grant 一致；
-   共享密钥仅留在后端，客户端只获短期凭据。Instance 正复用现有 NAT/EIP 进行有限等端口映射和 coturn 部署；不新增付费资源，不改 Cloud 原有 SNAT 出口。
+   共享密钥仅留在后端，客户端只获短期凭据。Instance 已复用现有 NAT/EIP 部署 coturn 与有限等端口映射；未新购付费资源，Cloud 原有 SNAT 出口保持原配置。
 
 固定电脑公钥、Noise 加密、业务授权、撤销和未知操作不重放必须在所有路径一致。服务器仍负责授权与协调，
 成功 P2P 不代表可以永久停掉控制服务。网络切换时重建传输及 Noise 并回读原会话，不承诺未知写操作无缝迁移。

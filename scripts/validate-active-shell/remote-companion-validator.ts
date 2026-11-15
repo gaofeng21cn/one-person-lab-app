@@ -99,6 +99,8 @@ export function validateRemoteCompanionInternetContract(internet: Record<string,
     virtual_target_origin: 'http://127.0.0.1:43177', general_loopback_proxy_allowed: false,
     second_codex_or_dsh_runtime_allowed: false, silent_identity_or_origin_replacement_allowed: false }, 'OPL Link relay');
   closedSet(internet.transport.capabilities, ['transport.lan', 'transport.p2p', 'transport.turn', 'transport.relay'], 'OPL Link transport capabilities');
+  fields(internet.files, { managed_upload_chunk_bytes: 131072, managed_upload_encoded_request_max_bytes: 262144,
+    managed_upload_json_policy: 'standard_JSON_without_unnecessary_slash_escaping' }, 'OPL Link managed upload budget');
   requireValue(JSON.stringify(internet.transport.preferred_transports) === JSON.stringify(['lan', 'p2p', 'turn', 'relay']),
     'OPL Link must try direct paths before the existing Relay fallback');
   fields(internet.transport, { turn_provider: 'instance_configured_standard_TURN_with_short_lived_credentials', turn_advertised_only_when_configured: true,

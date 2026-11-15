@@ -244,7 +244,7 @@
     "real_iphone_qualified": false,
     "public_beta_or_app_store_published": false,
     "release_ready": false,
-    "internet_access_status": "adaptive_source_and_public_relay_fallback_qualified_turn_deployment_in_progress",
+    "internet_access_status": "adaptive_transport_configured_public_business_qualification_in_progress",
     "managed_internet_service_deployed": true,
     "public_internet_native_loop_qualified": true,
     "internet_access_acceptance_ref": "docs/product/gui/evidence/opl-link-internet-acceptance-2026-11-15.md"

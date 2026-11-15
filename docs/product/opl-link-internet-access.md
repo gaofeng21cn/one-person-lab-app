@@ -1,7 +1,7 @@
 # OPL Link 托管互联网接入
 
 Owner: `one-person-lab-app`
-更新日期：2026-11-15
+更新日期：2026-11-16
 机器合同：[app-remote-companion-internet.json](../../contracts/app-remote-companion-internet.json)
 
 用户只在 OPL App 开启手机访问，再用 Link 扫码并核对电脑指纹。App 复用已有 OPL 账号，手机无需输入密码。
@@ -9,7 +9,7 @@ Owner: `one-person-lab-app`
 不要求用户配置 Tailscale、VPN、Cloudflare、域名、证书、端口或路由器。
 
 客户端、Host 和服务已接入上游 LAN/P2P→TURN→Relay 自动选路。本地原生 LAN、TURN 和失败后 Relay
-均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay。公网 TURN 部署与实际路径验收仍在完成。
+均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay。生产 TURN 已配置，完整公网业务资格见本轮路径验收记录。
 TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力；用户不选择网络协议或自行配置服务。
 复用依据见[连接方案评估](opl-link-connection-options.md)，当前进度与证据见[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)。
 
@@ -21,6 +21,7 @@ TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力
 | 网络传输 | MIT DS Harness Remote 固定版本 | 复用 WebRTC 选路、WSS 信令、Relay、Noise IK、分片、连接恢复与公开 Host API |
 | iOS 加密 | MIT swift-noise 固定版本 | 复用成熟 Noise 实现；与上游向量及真实 Node 密文逐字节互通 |
 | iOS WebRTC | BSD-3-Clause WebRTC 157.0.0 | 使用成熟 DataChannel 和 ICE；不增加音视频权限 |
+| 桌面 WebRTC | 上游指定的 BSD-2-Clause `@roamhq/wrtc 0.10.0` | 复用原生优先工厂及 werift 兜底，不另建 ICE 实现 |
 | TURN | 官方 coturn 4.19.0 | 采用标准短期凭据与有限中继端口，复用现有网络资源 |
 | 业务与授权 | 现有 Studio Link HTTP/SSE 和 Codex owner | 继续同一个 canonical thread、审批和工作区 |
 | 托管与部署 | 独立 Link 容器，Instance 受保护工作流 | 复用现有 OPL 域名/TLS/集群，独立于 Cloud 业务与其发布 cohort |
@@ -42,7 +43,8 @@ Relay enrollment 不授予对话权限；Relay 无法读取业务正文。每台
 凭据，更换电脑或撤销不会误伤其他电脑。
 
 Studio 只组合官方 Remote lifecycle。固定虚拟 loopback 端口 43177 不监听 socket，只接 `/api/link` 手机
-路由，不提供通用代理、终端、桌面管理或第二个 runtime。附件和下载各按 512 KiB 传输；事件有心跳和有界
+路由，不提供通用代理、终端、桌面管理或第二个 runtime。上传接口每片最多 512 KiB，托管客户端采用 128 KiB，
+使 HTTP 桥封装后的单次请求低于 256 KiB；下载采用最多 512 KiB 分段。事件有心跳和有界
 读取。网络恢复先回读同一 canonical 状态，不自动重发发送、审批或停止，也不建立离线写队列。
 
 ## 实施与验收状态
@@ -88,5 +90,6 @@ Local PV 绑定节点，不宣称高可用。控制服务离线会影响配对�
 - [DS Harness Remote](https://github.com/liguobao/ds-harness-remote/tree/f214c5abb39434d0e8358956bfca8d4529981fee)：MIT；Studio Host bundle、协议、Relay Gateway/Store 保留原字节、来源与摘要。
 - [swift-noise](https://github.com/swift-libp2p/swift-noise/tree/0adfd28786322784860fb3c8f228591c6e8fd92f)：MIT；使用 `Noise_IK_25519_ChaChaPoly_SHA256`，依赖锁定 revision。
 - [WebRTC](https://github.com/stasel/WebRTC/tree/157.0.0)：BSD-3-Clause；iOS 使用 DataChannel，保留许可证。
+- [node-webrtc](https://github.com/WonderInventions/node-webrtc/tree/75f1f55642d803ee558abd7f99b1915598ad21a0)：`@roamhq/wrtc 0.10.0`，BSD-2-Clause；Studio 同时保留该版本的 WebRTC 与第三方许可证。
 - [coturn](https://github.com/coturn/coturn)：BSD-3-Clause；标准 TURN 服务，运行镜像固定摘要由 Instance 持有。
 - [DSH Go](https://github.com/ccch1mneyyy/dsh-Go)：视觉与移动工作流参考，不引入其账号、历史库或本机 runtime。
