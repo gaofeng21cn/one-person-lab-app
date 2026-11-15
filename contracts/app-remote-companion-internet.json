@@ -1,7 +1,7 @@
 {
   "schema": "opl_link_internet.v1",
   "owner": "one-person-lab-app",
-  "state": "implementation_in_progress",
+  "state": "source_validated_deployment_blocked",
   "service_owner": "opl-link/service",
   "deployment_owner": "opl-instance-medopl",
   "service_origin": "https://link.medopl.com",
@@ -198,6 +198,16 @@
     ],
     "private_container_image_by_immutable_digest": true,
     "runtime_pull_secret_managed_by_instance": true,
-    "image_provenance": "BuildKit_OCI_provenance_bound_to_successful_canonical_main_run_artifact_and_exact_digest"
+    "image_provenance": "BuildKit_OCI_provenance_bound_to_successful_canonical_main_run_artifact_and_exact_digest",
+    "current_evidence": {
+      "service_image_published": true,
+      "dedicated_existing_node_static_store_prepared": true,
+      "managed_service_deployed": false,
+      "public_native_path_qualified": false,
+      "blocker": "existing_github_read_credentials_denied_and_release_app_permission_set_not_granted",
+      "blocked_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43697266238",
+      "required_identity_action": "github_passkey_reauthentication_to_review_and_authorize_the_minimum_missing_read_permissions",
+      "distinct_ordinary_isolation_test_account_ready": false
+    }
   }
 }

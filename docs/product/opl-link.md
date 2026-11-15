@@ -142,3 +142,7 @@ HTTP、无效证书和跨 origin 重定向；Debug loopback 只用于隔离验�
 普通 iPhone 与独立 iPad 保留代表路径回归。详细范围见
 [视觉与 Duo 验收](gui/evidence/opl-link-dsh-go-duo-acceptance-2026-11-15.md)。这项模拟器资格
 不改变桌面安装、真实 iPhone 网络与 Apple 分发的验收状态。
+
+本轮托管互联网适配已完成源码、跨语言及本地原生闭环，容器已发布、现有节点专用静态 Store 已准备。
+公网服务部署受 GitHub 私有读取权限阻挡，用户当前无法完成其要求的 Passkey 重新验证；公网原生资格仍未运行。
+当前实证、恢复输入和边界见[托管互联网验收](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。

@@ -42,8 +42,11 @@ Studio 只组合官方 Remote lifecycle。固定虚拟 loopback 端口 43177 不
 
 源码实现已完成本地 Relay↔真实 DSH Host↔Swift 原生客户端的完整链路：扫码、Noise claim、同 thread、
 多片附件、ETag 下载、SSE、重连及双层撤销。原生 App 的 Keychain、前后台和终止重开恢复已实跑；
-Duo 公钥确认、键盘与草稿连续性检查通过。公网部署及公网原生回路由本轮受保护工作流和后续实测记录，
-不能从本地成功推导。已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
+Duo 公钥确认、键盘与草稿连续性检查通过。公网部署当前被 GitHub 私有源码/镜像读取授权阻挡：既有运行器凭据不可读，发布 App 对所请求只读权限集合返回 422。
+GitHub 权限页需要本人 Passkey 重新验证，用户当前暂不能验证。专用静态 Store 已在已有工作节点准备完成，
+未购买新服务器或云盘；Relay 服务尚未部署，iOS 公网测试尚未运行。恢复需核对最小只读权限并准备独立普通
+隔离测试账号，再继续受保护 deploy/qualify 和 iOS 实测。详见[本轮验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
+已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
 
 ## 固定来源与许可
 
