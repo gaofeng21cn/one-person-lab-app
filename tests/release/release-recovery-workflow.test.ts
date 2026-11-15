@@ -63,10 +63,13 @@ test('prepared input artifact is exposed only after a successful primary or retr
   assert.equal(evaluate('skipped', 'skipped'), false);
 });
 
-test('Windows guest Host builder installs the active Bun toolchain before invoking Studio', () => {
+test('Windows guest Host builder installs build dependencies and the active Bun toolchain before invoking Studio', () => {
   const steps = workflow('_build-reusable.yml').jobs['prepare-studio-wsl-host'].steps;
   const bun = steps.findIndex((step: any) => String(step.uses ?? '').startsWith('oven-sh/setup-bun@'));
   const build = steps.findIndex((step: any) => String(step.run ?? '').includes('scripts/desktop/prepare-wsl-host-payload.mjs'));
   assert.ok(bun >= 0 && build > bun, 'Linux guest Host build must have Bun on PATH first');
   assert.equal(steps[bun].with['bun-version'], '1.4.0');
+  const install = steps.findIndex((step: any) => step['working-directory'] === 'studio' && String(step.run ?? '').includes('npm ci'));
+  assert.ok(install >= 0 && build > install, 'Linux guest Host build must install Studio build dependencies first');
+  assert.ok(!steps[install].run.includes('--omit=dev'), 'Studio plugin compilation requires its build dependencies');
 });

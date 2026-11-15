@@ -329,6 +329,9 @@ jobs:
             --app-root app-authority --framework-root windows-bootstrap-framework \
             --dependency node --dependency codex-cli --platform linux --arch x64 \
             --output windows-bootstrap-resolution
+      - name: Install frozen Studio build dependencies
+        working-directory: studio
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Build and execute Linux production Host closure
         working-directory: studio
         env:
