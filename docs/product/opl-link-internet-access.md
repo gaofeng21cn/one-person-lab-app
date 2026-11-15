@@ -8,8 +8,10 @@ Owner: `one-person-lab-app`
 固定服务为 `https://link.medopl.com`；电脑与手机均建立出站 WSS。局域网、不同 Wi-Fi 和互联网采用同一流程，
 不要求用户配置 Tailscale、VPN、Cloudflare、域名、证书、端口或路由器。
 
-这是当前已部署的 Relay-only 实现，业务密文持续经过中继。长期成本评估推荐复用上游已有的直连优先选路；
-P2P 与第三方 TURN 尚未接入 OPL，比较和实施差距见[连接方案评估](opl-link-connection-options.md)。
+目前已部署验收的是 Relay-only 路径，业务密文持续经过中继。用户已批准复用上游完整的
+LAN/P2P→TURN→Relay 自动选路，本轮正在补齐原生接入和实际路径验收。
+TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力；用户不选择网络协议或自行配置服务。
+复用依据见[连接方案评估](opl-link-connection-options.md)，当前进度与证据见[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)。
 
 ## 方案与复用
 

@@ -2,7 +2,7 @@
 
 Owner: `one-person-lab-app`  
 核对日期：2026-11-15  
-范围：技术选型建议；当前线上能力仍以[互联网接入合同](../../contracts/app-remote-companion-internet.json)和[验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)为准。
+范围：用户已批准的技术路线与复用依据；当前线上能力仍以[互联网接入合同](../../contracts/app-remote-companion-internet.json)和[直连验收记录](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)为准。
 
 ## 建议
 
@@ -10,7 +10,7 @@ Owner: `one-person-lab-app`
 OPL 服务继续持有账号、配对、在线状态、信令和撤销；成功直连的业务密文由手机和电脑互传。
 用户仍在 App 开启手机访问、Link 扫码，不选择协议、不填写网络参数，也无需注册额外账号。
 
-这一方向最符合现有代码、原生交互和长期流量成本，应优先采用；当前尚未实现 OPL 的 P2P。
+用户已批准这一方向，并要求把 TURN 一起接入，完整顺序为 LAN/P2P→TURN→Relay。当前正在实施。
 运营商 NAT 和企业防火墙会影响打洞成功率，保留中继才能覆盖这些网络。
 第三方 TURN 可作为中继运营选项，其选择取决于中国大陆实测和正式计费条件；不因公开免费额度就提前绑定。
 
@@ -48,7 +48,8 @@ Standard 8 美元/用户/月，Personal 免费套餐限非商业用途；这些�
 用户自带 tailnet 可以作为高级接入；统一托管为产品默认还需确认服务条件与逐用户隔离。
 
 自建 coturn 也能复用成熟实现，但其转发流量仍由我们支付，并增加 UDP/TCP 入口、端口范围和运行维护。
-当前已有合格 WSS Relay，首个直连版本可以先以它兜底；无需为了尝试 P2P 先采购新资源或再部署一种中继。
+当前已有合格 WSS Relay，作为最后兜底保留。TURN 优先利用现有合法资源，并沿用上游短期凭据接口；
+额外实例或付费套餐采购不属于本轮授权。
 
 ## 成本按实际中继字节计算
 
@@ -69,8 +70,8 @@ Standard 8 美元/用户/月，Personal 免费套餐限非商业用途；这些�
 2. **iOS Link**：`Sources/LinkCore/RelayTransport.swift` 只声明 `transport.relay`，连接偏好只有 `relay`。
    需要原生 WebRTC DataChannel adapter，复用现有 Noise、分片、RPC 和恢复逻辑；不自行实现 ICE/NAT 穿透。
    WebRTC 上游已有 [Apple DataChannel API](https://webrtc.googlesource.com/src/+/dc4c019c62abefc09e4903abea44bc36f3427452/sdk/objc/api/peerconnection/RTCDataChannel.h)，具体可持续更新的二进制来源、Apple 构建和许可归 Link owner 核定。
-3. **Link service / Instance**：当前 wrapper 禁用 TURN，未暴露 ICE 配置入口。应复用上游授权信令与
-   `/api/v1/turn/credentials` 语义，保证账号 scope、设备 bearer、连接参与者及 host-client grant 一致；
+3. **Link service / Instance**：原 wrapper 禁用 TURN，未暴露 ICE 配置入口。本轮复用上游授权信令与
+   `/api/v1/turn/credentials?connection_id=...` 语义，保证账号 scope、设备 bearer、连接参与者及 host-client grant 一致；
    第三方服务密钥仅留在后端，客户端只获短期凭据。额外 provider 采购或网络端口变更按部署边界处理。
 
 固定电脑公钥、Noise 加密、业务授权、撤销和未知操作不重放必须在所有路径一致。服务器仍负责授权与协调，

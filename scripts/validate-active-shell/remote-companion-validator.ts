@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const policyRef = 'contracts/app-remote-companion.json';
 const wireRef = 'contracts/app-remote-companion-wire.json';
 const protocol = 'opl_link_studio_wire.v2';
-const transportMode = 'authenticated_https_json_sse_or_dsh_noise_relay_loopback';
+const transportMode = 'authenticated_https_json_sse_or_dsh_noise_adaptive_loopback';
 const internetRef = 'contracts/app-remote-companion-internet.json';
 export const remoteCompanionStates = ['unavailable', 'unpaired', 'qr_ready', 'active', 'revoking', 'attention'];
 export const remoteCompanionMethods = [
@@ -98,7 +98,17 @@ export function validateRemoteCompanionInternetContract(internet: Record<string,
     encryption: 'Noise_IK_25519_ChaChaPoly_SHA256', business_protocol: protocol,
     virtual_target_origin: 'http://127.0.0.1:43177', general_loopback_proxy_allowed: false,
     second_codex_or_dsh_runtime_allowed: false, silent_identity_or_origin_replacement_allowed: false }, 'OPL Link relay');
-  closedSet(internet.transport.capabilities, ['transport.relay'], 'OPL Link transport capabilities');
+  closedSet(internet.transport.capabilities, ['transport.lan', 'transport.p2p', 'transport.turn', 'transport.relay'], 'OPL Link transport capabilities');
+  requireValue(JSON.stringify(internet.transport.preferred_transports) === JSON.stringify(['lan', 'p2p', 'turn', 'relay']),
+    'OPL Link must try direct paths before the existing Relay fallback');
+  fields(internet.transport, { turn_provider: 'instance_configured_standard_TURN_with_short_lived_credentials', turn_advertised_only_when_configured: true,
+    selected_path_evidence: 'actual_selected_ICE_candidate_pair_or_confirmed_relay; no_raw_IP_or_SDP_in_logs',
+    native_rtc: 'mature_WebRTC_DataChannel_runtime; no_custom_ICE_or_NAT_protocol' }, 'OPL Link direct-first boundary');
+  fields(internet.service_api.ice_configuration, { method: 'GET', path: '/api/v1/turn/credentials',
+    authentication: 'scoped_device_bearer_and_establishing_connection_participant_and_exact_host_client_grant',
+    response: 'unmodified_upstream_ICE_configuration_schema',
+    credential_policy: 'short_lived_server_issued_TURN_credentials; provider_secret_never_sent_to_clients' }, 'OPL Link ICE configuration');
+  closedSet(internet.service_api.ice_configuration.query, ['connection_id'], 'OPL Link upstream ICE query');
   fields(internet.account_isolation, {
     strategy: 'one_unmodified_upstream_Gateway_and_Store_per_authenticated_account_scope',
     account_scope_is_authorization: false, websocket_hello_requires_scoped_device_token: true,
@@ -176,7 +186,7 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
 export function validateRemoteCompanionGuiProjection(projection: Record<string, any>): void {
   fields(projection, { policy_ref: policyRef, surface_id: 'remote_companion', app_store_name: 'OPL Link', home_screen_name: 'OPL Link',
     implementation_owner: 'opl-link', product_role: 'native_ios_companion_for_opl_app', primary_user_object: 'canonical_codex_conversation',
-    default_ios_surface: 'conversation_directory', desktop_workbench_remains_canonical: true, transport_target: 'managed_dsh_noise_relay_with_scoped_studio_http_sse',
+    default_ios_surface: 'conversation_directory', desktop_workbench_remains_canonical: true, transport_target: 'managed_dsh_noise_adaptive_with_scoped_studio_http_sse',
     internet_contract_ref: internetRef, external_network_configuration_required: false,
     wire_contract_ref: wireRef, desktop_host_owner: 'opl-studio', pairing_surface: 'settings_resources_opl_link_native_host_panel',
     pairing_access_gate: 'desktop_session_and_single_use_expiring_code' }, 'App GUI OPL Link projection');
@@ -194,7 +204,7 @@ export function validateMobileCompanionTopology(mobile: Record<string, any>): vo
   fields(mobile, { initial_surface: 'native_ios_remote_companion', app_store_name: 'OPL Link', home_screen_name: 'OPL Link',
     implementation_owner: 'opl-link', source_repository: 'https://github.com/gaofeng21cn/opl-link', companion_policy_ref: policyRef,
     wire_contract_ref: wireRef, product_role: 'native_ios_companion_for_opl_app', primary_user_object: 'canonical_codex_conversation',
-    desktop_host_owner: 'opl-studio', transport_target: 'managed_dsh_noise_relay_with_scoped_studio_http_sse',
+    desktop_host_owner: 'opl-studio', transport_target: 'managed_dsh_noise_adaptive_with_scoped_studio_http_sse',
     internet_contract_ref: internetRef, external_network_configuration_required: false, desktop_workbench_remains_canonical: true,
     pairing_surface: 'settings_resources_opl_link_native_host_panel' }, 'Product profile mobile topology');
   requireValue(mobile.release_ready === readContract('app-remote-companion.json').implementation_status.release_ready,

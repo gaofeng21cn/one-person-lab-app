@@ -1,7 +1,7 @@
 {
   "schema": "opl_link_internet.v1",
   "owner": "one-person-lab-app",
-  "state": "managed_service_and_public_native_path_qualified",
+  "state": "direct_first_implementation",
   "service_owner": "opl-link/service",
   "deployment_owner": "opl-instance-medopl",
   "service_origin": "https://link.medopl.com",
@@ -19,11 +19,14 @@
     "source_revision": "f214c5abb39434d0e8358956bfca8d4529981fee",
     "license": "MIT",
     "control": "DSH_Remote_v1_WSS",
-    "data": "DSH_Remote_v1_relay",
+    "data": "DSH_Remote_v1_WebRTC_DataChannel_or_WSS_relay",
     "encryption": "Noise_IK_25519_ChaChaPoly_SHA256",
     "business_bridge": "existing_loopback.call_http.open_http.read_http.close",
     "business_protocol": "opl_link_studio_wire.v2",
     "capabilities": [
+      "transport.lan",
+      "transport.p2p",
+      "transport.turn",
       "transport.relay"
     ],
     "control_path": "/ws/v1/connect",
@@ -32,7 +35,22 @@
     "target_path_prefix": "/api/link/",
     "general_loopback_proxy_allowed": false,
     "second_codex_or_dsh_runtime_allowed": false,
-    "silent_identity_or_origin_replacement_allowed": false
+    "silent_identity_or_origin_replacement_allowed": false,
+    "preferred_transports": [
+      "lan",
+      "p2p",
+      "turn",
+      "relay"
+    ],
+    "stun_urls": [
+      "stun:stun.cloudflare.com:3478"
+    ],
+    "turn_provider": "instance_configured_standard_TURN_with_short_lived_credentials",
+    "direct_attempt_deadline": "upstream_negotiated_bounded_timeout",
+    "fallback": "fresh_connection_and_noise_after_direct_failure; never_replay_unknown_business_mutations",
+    "selected_path_evidence": "actual_selected_ICE_candidate_pair_or_confirmed_relay; no_raw_IP_or_SDP_in_logs",
+    "native_rtc": "mature_WebRTC_DataChannel_runtime; no_custom_ICE_or_NAT_protocol",
+    "turn_advertised_only_when_configured": true
   },
   "account_isolation": {
     "strategy": "one_unmodified_upstream_Gateway_and_Store_per_authenticated_account_scope",
@@ -121,6 +139,16 @@
       "path": "/healthz",
       "authentication": "none",
       "content": "bounded_public_health_only"
+    },
+    "ice_configuration": {
+      "method": "GET",
+      "path": "/api/v1/turn/credentials",
+      "query": [
+        "connection_id"
+      ],
+      "authentication": "scoped_device_bearer_and_establishing_connection_participant_and_exact_host_client_grant",
+      "response": "unmodified_upstream_ICE_configuration_schema",
+      "credential_policy": "short_lived_server_issued_TURN_credentials; provider_secret_never_sent_to_clients"
     }
   },
   "pairing": {
@@ -214,7 +242,10 @@
       "distinct_ordinary_isolation_test_account_ready": true,
       "source_read_authorized": true,
       "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43712238775",
-      "registry_read_grant_applied": true
+      "registry_read_grant_applied": true,
+      "last_qualified_transport": "relay",
+      "direct_first_source_qualified": false,
+      "public_direct_native_path_qualified": false
     },
     "source_read_permissions": [
       "contents:read",

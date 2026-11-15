@@ -5,7 +5,7 @@
     "client": "opl-link",
     "host": "opl-studio"
   },
-  "transport": "authenticated_https_json_sse_or_dsh_noise_relay_loopback",
+  "transport": "authenticated_https_json_sse_or_dsh_noise_adaptive_loopback",
   "base_path": "/api/link",
   "origin_policy": "system_trusted_https_or_wss_and_pinned_noise_IK; explicit_debug_loopback_http_only",
   "pairing_url": "opllink://pair?serverUrl=<origin>&accountScope=<scope>&hostDeviceId=<id>&hostIdentityKey=<key>&enrollmentToken=<token>&code=<single_use_secret>&expiresAt=<expiry>",

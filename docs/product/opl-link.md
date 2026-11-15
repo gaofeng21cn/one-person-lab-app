@@ -77,7 +77,10 @@ OPL 托管 Link Relay：https://link.medopl.com
 同一个 Codex App Server、thread、turn、审批与工作区
 ```
 
-局域网和互联网默认使用同一托管通道，电脑与手机都只需出站访问预置服务。电脑保持在线并运行 App；
+本轮用户批准的网络目标为 LAN/P2P→TURN→Relay 自动选路，同一扫码流程适用于局域网和互联网。
+成功直连时，正文和文件由电脑与手机互传；TURN 及 WSS Relay 分别承担无法直连时的中继，
+托管服务继续负责授权、在线状态、信令和撤销。目前上线情况以[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)为准。
+电脑保持在线并运行 App；
 电脑休眠或离线时，手机保留草稿并显示连接状态。无需入站端口、NAT 配置或同一局域网。
 
 传输复用 MIT DS Harness Remote 的固定上游版本、WSS、Relay、Noise IK 和 `loopback.call`。
