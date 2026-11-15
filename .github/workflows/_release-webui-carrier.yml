@@ -537,8 +537,13 @@ jobs:
           }
           printf '%s\n' initial_start > webui-carrier/container-phase.txt
           wait_for_http
-          docker exec "$container_name" node -e 'const s=require("fs").readFileSync("/proc/1/status","utf8"); if(!/^Uid:\s+1000\s/m.test(s))process.exit(1)'
           printf '%s\n' passed > webui-carrier/http-health.txt
+          printf '%s\n' process_identity > webui-carrier/container-phase.txt
+          docker exec "$container_name" node -e '
+            const status = require("fs").readFileSync("/proc/1/status", "utf8");
+            const uid = status.split("\n").find(line => line.startsWith("Uid:"));
+            console.log(JSON.stringify({ stage: "webui_process_identity", uid, executor_uid: process.getuid() }));
+            if (!/^Uid:\s+1000\s/m.test(status)) throw new Error("WebUI PID 1 must run as the image node user (uid 1000)");'
 
           persistence_marker="${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${{ matrix.architecture }}"
           docker exec "$container_name" sh -c \
