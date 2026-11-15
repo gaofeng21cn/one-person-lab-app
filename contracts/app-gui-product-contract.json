@@ -2106,7 +2106,7 @@
           "owner": "one-person-lab-app",
           "data_truth_owner": "installed_native_carrier_or_provider",
           "projection_owner": "one-person-lab-framework",
-          "settings_destination": "settings.capabilities.plugin_sections",
+          "settings_destination": "settings.environment.services.plugin_sections",
           "status_field_policy": "status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist",
           "command_input_source": "descriptor_declared_action_inputs",
           "command_resolution": "resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input",
@@ -2268,6 +2268,18 @@
         "ui_view_id": "must_reference_local_views_view_id",
         "ui_command_ids": "must_reference_local_commands_command_id"
       },
+      "functional_surface_policy": {
+        "placement_basis": "user_purpose_independent_of_repository_carrier_package_role_or_catalog_scope",
+        "software_center": "installation_update_enablement_removal_and_links_to_the_same_functional_destination",
+        "settings": "persistent_configuration_and_connection_interactions_on_App_owned_functional_pages",
+        "services": "service_status_and_explicitly_enabled_technical_diagnostics_on_the_existing_services_page",
+        "workspace": "operational_lists_timelines_reviews_boards_and_artifacts_through_the_existing_MCP_App_workspace",
+        "task_detail": "task_scoped_stages_artifacts_and_evidence_through_the_existing_contextual_task_workbench",
+        "legacy_settings_slot": "operational_view_placements_are_compatibility_metadata_and_do_not_admit_them_to_Settings",
+        "navigation": "one_workspace_entry_without_parallel_module_view_navigation",
+        "standard_feature_absence": "retain_functional_settings_entry_and_actionable_setup_guidance",
+        "extension_mechanisms": "reuse_DSH_Client_Modules_slots_Settings_and_standard_MCP_Apps_without_a_new_loader_or_registry"
+      },
       "ui_composition": {
         "app_client_contribution_abi": "opl_app_client_contributions.v1",
         "projection_source": "app_state.ui_contributions",
@@ -2348,7 +2360,7 @@
             "ordinary_settings_without_explicit_app_admission": "hidden_from_ordinary_settings"
           },
           "service_status": {
-            "destination": "settings.capabilities.plugin_sections",
+            "destination": "settings.environment.services.plugin_sections",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2356,7 +2368,7 @@
             ]
           },
           "other_settings_section": {
-            "destination": "settings.capabilities.plugin_sections",
+            "destination": null,
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",

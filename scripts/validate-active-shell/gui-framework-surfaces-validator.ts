@@ -355,7 +355,7 @@ export function validatePackageAppContributionsProductContract(contract) {
       owner: 'one-person-lab-app',
       data_truth_owner: 'installed_native_carrier_or_provider',
       projection_owner: 'one-person-lab-framework',
-      settings_destination: 'settings.capabilities.plugin_sections',
+      settings_destination: 'settings.environment.services.plugin_sections',
       status_field_policy: 'status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist',
       command_input_source: 'descriptor_declared_action_inputs',
       command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input',
@@ -438,12 +438,12 @@ export function validatePackageAppContributionsProductContract(contract) {
           ordinary_settings_without_explicit_app_admission: 'hidden_from_ordinary_settings',
         },
         service_status: {
-          destination: 'settings.capabilities.plugin_sections',
+          destination: 'settings.environment.services.plugin_sections',
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },
         other_settings_section: {
-          destination: 'settings.capabilities.plugin_sections',
+          destination: null,
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },

@@ -1248,7 +1248,7 @@
         "capability_workspace_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.capability_workspace",
         "standard_view_contracts_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.standard_view_contracts",
         "service_status_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.standard_view_contracts.service_status",
-        "service_status_settings_destination": "settings.capabilities.plugin_sections",
+        "service_status_settings_destination": "settings.environment.services.plugin_sections",
         "activity_log_settings_destination": null,
         "activity_log_without_explicit_app_admission": "hidden_from_ordinary_settings",
         "rendering_policy": "standard_structured_views_only",

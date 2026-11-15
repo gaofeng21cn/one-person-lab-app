@@ -444,7 +444,7 @@ test('any Package role may project one closed standard App contribution block', 
     owner: 'one-person-lab-app',
     data_truth_owner: 'installed_native_carrier_or_provider',
     projection_owner: 'one-person-lab-framework',
-    settings_destination: 'settings.capabilities.plugin_sections',
+    settings_destination: 'settings.environment.services.plugin_sections',
     status_field_policy: 'status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist',
     command_input_source: 'descriptor_declared_action_inputs',
     command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input',
@@ -894,21 +894,25 @@ test('service_status accepts generic Fleet summaries and rejects unbounded or ma
   }
 });
 
-test('service_status enters package details while activity_log remains hidden from ordinary Settings', () => {
+test('service status uses functional maintenance while operational views stay in the workspace', () => {
   const gui = readJson('contracts/app-gui-product-contract.json');
   const settings = readJson('contracts/app-settings-control-plane.json');
   const placement = gui.framework_surfaces.package_app_contributions.ui_composition.settings_placement_policy;
   const destinations = settings.settings_projection.package_contribution_visibility_policy.destinations;
 
   assert.deepEqual(placement.service_status, {
-    destination: 'settings.capabilities.plugin_sections',
+    destination: 'settings.environment.services.plugin_sections',
     app_admission_required: true,
     admission_basis: ['current_user_task', 'app_placement_policy'],
   });
-  assert.equal(destinations.service_status, 'settings.capabilities.plugin_sections');
+  assert.equal(destinations.service_status, 'settings.environment.services.plugin_sections');
   assert.equal(placement.activity_log.destination, null);
   assert.equal(placement.activity_log.ordinary_settings_without_explicit_app_admission, 'hidden_from_ordinary_settings');
   assert.equal(destinations.activity_log, null);
+  assert.equal(placement.other_settings_section.destination, null);
+  assert.equal(destinations.other_settings_section, null);
+  assert.equal(gui.framework_surfaces.package_app_contributions.functional_surface_policy.placement_basis,
+    'user_purpose_independent_of_repository_carrier_package_role_or_catalog_scope');
 });
 
 test('App contribution product contract rejects role filters, executable UI, and view-type drift', () => {

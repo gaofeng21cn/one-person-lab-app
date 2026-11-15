@@ -287,8 +287,8 @@
         "settings_contributions": {
           "destination": "settings.function_routed_plugin_sections",
           "group_by": "package_id",
-          "mount_policy": "remote channel and companion settings mount on the open Resources and Connections page; other settings mount only in expanded enabled plugin groups in Capability Settings",
-          "services_page_policy": "core runtime service status only; no automatic installed-package sections",
+          "mount_policy": "remote channel and companion settings mount on the open Connections page; service status and opt-in diagnostics mount on Service Status; business views use the single application workspace",
+          "services_page_policy": "core runtime and admitted service_status contributions; technical diagnostics require the technical-details preference",
           "resources_page_policy": "unified configuration from enabled plugin contributions routed by functional view type regardless of installer or catalog scope; software lifecycle remains in Software Center"
         }
       }
@@ -2708,8 +2708,8 @@
         "channel_access": "settings.resources.remote_connections",
         "remote_companion_access": "settings.resources.remote_connections",
         "activity_log": null,
-        "service_status": "settings.capabilities.plugin_sections",
-        "other_settings_section": "settings.capabilities.plugin_sections"
+        "service_status": "settings.environment.services.plugin_sections",
+        "other_settings_section": null
       }
     },
     "section_ids": [
@@ -5781,7 +5781,8 @@
     "host": "opl-studio/src/host",
     "workbench_services": "single_plugin_with_separate_memory_and_storage_services",
     "schedules": "primary_workbench_view; settings_links_to_workbench_and_background_services",
-    "capabilities": "user_purpose_first_with_technical_type_filters",
+    "capabilities": "native_Skills_and_MCP_host_configuration_with_links_to_the_single_application_workspace",
+    "plugin_configuration": "functional_Settings_pages_independent_of_package_delivery_and_catalog_scope",
     "permissions": "models_and_execution",
     "status": "installation_enablement_connection_and_callability_are_distinct",
     "remote_companion": "not_bundled_or_auto_installed_until_product_completion; preserve_existing_data"

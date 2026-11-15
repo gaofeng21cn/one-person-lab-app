@@ -972,9 +972,10 @@ remote-capability details link to this Settings destination.
 
 Software Center owns plugin installation, updates, enablement and removal.
 Settings uses one App-owned route over current `settings.section` contributions:
-channels and remote companions go to Connections & Deployment; other admitted
-configuration goes to Capability Settings, grouped by plugin and loaded when
-expanded. Technical activity views require the user's technical-details setting.
+channels and remote companions go to Connections & Deployment; service status goes to Runtime & Maintenance → Service Status. Technical diagnostics
+use the same page when technical details are enabled. Operational lists, reviews,
+boards and artifacts open in the existing application workspace, including legacy
+contributions declared on `settings.section`.
 Software Center links to the same Settings destination instead of hosting a
 second configuration form. The Weixin remote capability is part of the standard
 OPL App product; its separately managed Package is an engineering delivery unit.
