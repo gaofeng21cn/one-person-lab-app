@@ -9,7 +9,8 @@ Owner: `one-person-lab-app`
 不要求用户配置 Tailscale、VPN、Cloudflare、域名、证书、端口或路由器。
 
 客户端、Host 和服务已接入上游 LAN/P2P→TURN→Relay 自动选路。本地原生 LAN、TURN 和失败后 Relay
-均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay。生产 TURN 已配置，完整公网业务资格见本轮路径验收记录。
+均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay，公网 TURN 也已通过原生完整业务验收。
+本轮尚未实际选中公网 P2P，不据此报告直连成功率或节省费用比例。
 TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力；用户不选择网络协议或自行配置服务。
 复用依据见[连接方案评估](opl-link-connection-options.md)，当前进度与证据见[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)。
 
@@ -63,9 +64,13 @@ Instance 已实现从 GHCR 固定摘要复制到现有私有 TCR，并在目标�
 独立的零余额普通测试账号已获用户授权并创建，测试凭据仅保存在 Gateway 与 Instance 的受保护配置中。
 公网资格 `43721620695` 已通过 HTTPS、WSS、加密往返、双账号隔离及撤销断连。
 该默认测试实际走 Direct 失败后 Relay，不证明公网 P2P 或 TURN 已选中。
+随后以 Link `d4b9a45`、Studio `be442af`、同一普通用户设备授权完成公网 forced-TURN 原生验收，
+1 passed、0 failed、0 skipped：实际 relay/prflx 候选对 succeeded，Noise 发送 1,890,810 bytes、接收 732,333 bytes，
+无 Relay fallback。1 MiB + 117 bytes 附件、下载全文、SSE、fresh Noise 重连与撤销均通过；Host 设备授权已撤销，
+测试进程与私有工作区已清理。该测试使用业务 owner fixture，没有调用真实模型。
 本轮路径证据见[直连验收记录](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)，
 初次 Relay 上线见[原验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
-本次原生公网测试使用 Studio 的业务 owner fixture，没有调用真实模型。已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
+已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
 
 ## 安全、稳定性与登录边界
 

@@ -1,7 +1,7 @@
 {
   "schema": "opl_link_internet.v1",
   "owner": "one-person-lab-app",
-  "state": "adaptive_transport_configured_public_business_qualification_in_progress",
+  "state": "adaptive_transport_public_turn_and_relay_qualified",
   "service_owner": "opl-link/service",
   "deployment_owner": "opl-instance-medopl",
   "service_origin": "https://link.medopl.com",
@@ -237,7 +237,7 @@
       "managed_service_deployed": true,
       "public_account_isolation_qualified": true,
       "public_native_path_qualified": true,
-      "blocker": "public_TURN_full_business_qualification_after_managed_upload_budget_fix_in_progress",
+      "blocker": "none",
       "deployment_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43720949508",
       "public_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43721620695",
       "native_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43725036282",
@@ -246,7 +246,7 @@
       "source_read_authorized": true,
       "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43731347393",
       "registry_read_grant_applied": true,
-      "last_qualified_transport": "relay_after_direct_attempt",
+      "last_qualified_transport": "turn",
       "direct_first_source_qualified": true,
       "public_direct_native_path_qualified": false,
       "local_native_paths_qualified": [
@@ -254,9 +254,11 @@
         "turn",
         "relay_fallback"
       ],
-      "public_turn_native_path_qualified": false,
+      "public_turn_native_path_qualified": true,
       "turn_configuration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43730587059",
-      "external_host_registration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43732882055"
+      "external_host_registration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43732882055",
+      "native_turn_qualification_case": "external-host-managed-upload-be442af-d4b9",
+      "native_turn_qualification_evidence_ref": "docs/product/gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md"
     },
     "source_read_permissions": [
       "contents:read",

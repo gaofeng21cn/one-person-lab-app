@@ -149,7 +149,8 @@ HTTP、无效证书和跨 origin 重定向；Debug loopback 只用于隔离验�
 用户已完成 GitHub 验证并批准单包只读授权，公网服务已部署并通过固定镜像、工作负载及 HTTPS 健康回读。
 专用零余额普通测试账号已创建，公网双账号隔离、加密往返与撤销断连已通过。
 公网原生链路也已在 Duo 模拟器通过，业务执行使用隔离测试 fixture。随后已接入完整自适应选路，
-本地原生 LAN、TURN 与失败后 Relay 均通过；公网默认选路实际回退 Relay，生产 TURN 仍在部署验收。
+本地原生 LAN、TURN 与失败后 Relay 均通过；公网默认选路实际回退 Relay，公网 forced-TURN 也已完成
+同一业务 owner 的附件、下载、事件、重新连接与撤销闭环。公网 P2P 尚未实际选中。
 复用依据与成本见[连接方案评估](opl-link-connection-options.md)，本轮实际路径与边界见
 [直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)，初次上线见
 [托管互联网验收](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。

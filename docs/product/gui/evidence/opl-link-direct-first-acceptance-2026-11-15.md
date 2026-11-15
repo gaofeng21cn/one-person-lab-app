@@ -3,7 +3,7 @@
 用户已批准落地直连优先方案。产品合同先更新为 LAN/P2P 优先、现有 WSS Relay 兜底；
 复用固定 DSH Remote 协议、Noise、授权和现有 Link 业务桥。用户随后明确要求同时接入 TURN，
 目标顺序为 LAN/P2P→TURN→Relay；实例实际配置后才公布 TURN 能力，凭据由后台短期签发。
-STUN 默认使用公开 Cloudflare STUN，仅用于获取候选地址。当前核查可复用资源，不采购新实例或付费套餐。
+STUN 默认使用公开 Cloudflare STUN，仅用于获取候选地址。本轮复用现有资源，没有采购新实例或付费套餐。
 
 先前已完成的部署和公网原生验收仅证明 Relay 路径，见[原验收记录](opl-link-internet-acceptance-2026-11-15.md)。
 本轮原生实现已完成，以下结果来自实际选中的路径，未从配置或候选列表推导成功。
@@ -30,7 +30,7 @@ Link main `d3513c878b0111f971b9ac732d6a6b22760e132e`，tree `6789964c9dd387273c8
 
 本地三路径及早期公网测试二进制 SHA256 为 `928ff187b01175f36da6dba1ec519dfd693e8d96314ee8c325dae3da34e1a1c6`，
 源码与二进制绑定、三条路径的原生 summary/transport evidence 已持久保存。
-Studio 最终主线为 `ccc16dfef4f6716272c14002bc68c75a42ab1d7d`；公网测试冻结在其可达前序 `653059ef93fe4ee7c8f0c736c8cf8fdac3cd21bd`。
+该阶段 Studio 主线为 `ccc16dfef4f6716272c14002bc68c75a42ab1d7d`；公网测试冻结在其可达前序 `653059ef93fe4ee7c8f0c736c8cf8fdac3cd21bd`。
 后续提交只收掉未使用的诊断分支，不用追新重跑未失效的网络门禁。
 
 App 的完整 active-shell 检查也已完成：Studio typecheck、Node suite（519 passed、0 failed、1 skipped）、
@@ -79,10 +79,34 @@ Studio main `be442af2a3bbf6300cab335395b3db178675f816` 已在验证固定身份�
 不能代替 Native 业务验收。原 512 KiB 上传片段经 HTTP 桥两次 base64 后约 932 KiB，已超过这条慢链路上 30 秒
 RPC 的传输预算。合同改为 managed 128 KiB、接口最大 512 KiB，单次编码请求上限 256 KiB。
 
-Link 修复候选 `d4b9a450ad57e0faff39ddb985c96e64b24aab23` 同时关闭 JSON 的可选斜杠转义。
+Link main 修复提交 `d4b9a450ad57e0faff39ddb985c96e64b24aab23` 同时关闭 JSON 的可选斜杠转义。
 两组 1 MiB + 117 bytes（含最坏 base64 内容）在真实 DSHF/Noise/RTCH 往返中均为 9 片，offset、全文与 SHA 一致；
 1024 bytes Authorization 测试头下，每次追加最多 235,066 bytes。新 Native 二进制 SHA256 为
 `4cdb012012760b83755242bdd3220b3fa8d0596cc3f1c348ed5d155cc1cc5e52`；后续完整业务验收使用该修复，
 不扩大 RPC/RTC 超时或放宽 peer ACL。配置成功、局部加密字节、原始通道吞吐及完整业务资格分别记录。
+
+## 最终公网 TURN 验收（2026-11-16）
+
+`external-host-managed-upload-be442af-d4b9` 于 2026-11-15 18:24:32 UTC（北京时间次日 02:24）真实通过，
+XCTest 为 1 passed、0 failed、0 skipped，退出码 0。实际测试用时 168.887 秒，完整 xcresult 已生成。
+固定 Framework `9ddedc14eb6c861fd26379169becd871c5bf4841`、Host `be442af2a3bbf6300cab335395b3db178675f816`、
+iOS `d4b9a450ad57e0faff39ddb985c96e64b24aab23`，使用上列 `4cdb…5e52` 新二进制。
+后续 Link 文档提交 `f2ad1ffbf01451f68705da00afa3132b50b22e33` 不改变已验收产品字节。
+Native source checks `43745913334` 绑定 `d4b9a45` 并通过；最终 App active-shell 检查使用 Host `be442af`
+与官方原生依赖 0.10.0，全部通过。Instance main `8ef42dacb230bd7516dd4c222b7e34cb2702d857`
+已保存本次 invocation、transport 与 xcresult summary 原始字节；registration `43732882055` 中的 Studio `653059e`
+仅为签发授权时的输入，实际业务 Host 绑定以上列原生 invocation 为准。
+
+实际选择 TURN，local `relay`、remote `prflx`、candidate pair `succeeded`；Noise 发送 **1,890,810 bytes**、
+接收 **732,333 bytes**，`relayFallback=false`。本次资格明确强制 TURN，不将其当作默认自动选路或公网 P2P 的证明。
+实际完成 enrollment、固定电脑公钥的 Noise claim/bootstrap、1 MiB + 117 bytes 多片上传及 inspect/delete、
+524,319 bytes 下载全文与摘要校验、SSE、fresh Noise 重新连接、disconnect 与双层撤销。
+
+外网 Host 沿标准 `DELETE /api/v1/devices/self` 撤销后，原 bearer 的 `/api/v1/me` 返回 401；
+Host 进程停止、私有实时工作区和二维码删除已读回。普通测试账号和正式运行资源保留。
+原始 summary、8 字段 transport、invocation 与绑定的 Host metadata 已保存，metadata 字节摘要与 invocation 一致。
+临时源码读取凭据已失效、临时 production Secret 已删除；8 份临时密文 artifact 删除后均回读 404。
+本机临时 TURN 与本次新增的 4 项 Brew 依赖已移除。正式 coturn、Link 服务、运行 Secrets、私有镜像读取授权
+及普通测试账号配置继续保留。
 
 本轮仍不包含物理 iPhone、运营商切网、真实模型 turn、已安装桌面 App 更新或 Apple 公开分发。
