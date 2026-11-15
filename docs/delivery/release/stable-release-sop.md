@@ -117,6 +117,8 @@ Full deep／strict 签名验证保留必要诊断，避免逐个嵌套对象的 
 
 macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 并回读；不足时在打包前明确失败。签名器加载前用现有 `graceful-fs.gracefulify` 为构建进程启用文件句柄排队，并用现有 `p-limit` 将签名器实际解析到的 `isbinaryfile` 探测限制为 32 个并发，避免整棵依赖树同时等待句柄；不修改依赖源码或跳过签名文件。上游扫描提供并发限制后移除此构建适配。
 
+更新器 ZIP 补建和本地后续版本验收会在独立 Actions step 再次调用签名器，必须显式继承同一预加载适配和文件数上限；前一个 step 的 shell `export` 不会自动延续到这些调用。
+
 WebUI 的 Node 基础镜像直接消费冻结 Shell Dockerfile 中唯一的 digest-pinned `NODE_IMAGE`，资格执行器不固定另一个 Node 主版本或从浮动标签重新选择镜像。
 
 Docker 的匿名运行验收应确认非回环 API 返回 401，Framework 状态通过容器内正式 CLI 回读；具名网页登录使用独立 cloud login 验收，不能将匿名访问保护当作运行故障。

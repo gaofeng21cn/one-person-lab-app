@@ -1123,6 +1123,9 @@ jobs:
           test -d "$app_path" && test ! -L "$app_path"
 
           echo "::warning title=Missing standard updater ZIP::${expected_zip} was not produced by the primary macOS build; rebuilding macOS dmg+zip updater targets from ${app_path}."
+          ulimit -S -n 65536
+          test -f "$RUNNER_TEMP/opl-macos-signing-fs.cjs"
+          export NODE_OPTIONS="${NODE_OPTIONS:-} --require=\"$RUNNER_TEMP/opl-macos-signing-fs.cjs\""
           bunx electron-builder \
             --config ${{ needs.resolve-active-shell-ref.outputs.builder_config }} \
             --mac dmg zip \
@@ -1274,6 +1277,11 @@ jobs:
           if [ '${{ needs.resolve-active-shell-ref.outputs.shell_id }}' = opl-studio ]; then
             node ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/validate-desktop-package.mjs --distribution --write-receipt --identity stable --version "$OPL_RELEASE_VERSION"
             if [ "${{ runner.os }}" = macOS ] && [ "${{ inputs.require_macos_gatekeeper }}" = true ]; then
+              # The local updater gate builds a signed successor fixture in a
+              # separate Actions step; it must inherit the same signing adapter.
+              ulimit -S -n 65536
+              test -f "$RUNNER_TEMP/opl-macos-signing-fs.cjs"
+              export NODE_OPTIONS="${NODE_OPTIONS:-} --require=\"$RUNNER_TEMP/opl-macos-signing-fs.cjs\""
               OPL_DESKTOP_RELEASE_IDENTITY=stable OPL_UPDATER_VERSION="$OPL_UPDATER_VERSION" \
                 OPL_DESKTOP_NOTARIZATION_RECEIPT="$GITHUB_WORKSPACE/${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json" \
                 node ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/scripts/desktop/macos-distribution.mjs --require-release-trust
