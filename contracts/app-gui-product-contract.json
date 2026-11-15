@@ -243,11 +243,7 @@
     "discovery": "live_codex_mcp_catalog_tool_ui_resource_metadata_no_fixed_package_list",
     "presentation_contract_ref": "one-person-lab/contracts/opl-framework/mcp-app-presentation-contract.json",
     "visual_contract_ref": "contracts/opl-apps-miniapp-visual-contract.json",
-    "discovery_state_axes": [
-      "installed",
-      "enabled",
-      "callable"
-    ],
+    "discovery_state_axes": ["installed", "enabled", "callable"],
     "fresh_catalog_after_install_or_update": true,
     "open_miniapp_session_hot_update": false,
     "navigation_continuity": {
@@ -268,21 +264,8 @@
       "scope_hint_zh": "关闭或切换仅收起界面，后台任务继续运行。",
       "management_hint_zh": "安装、更新和启停请到软件中心。"
     },
-    "management_surface_owns": [
-      "install",
-      "update",
-      "enable",
-      "disable",
-      "status",
-      "diagnostics"
-    ],
-    "work_surface_owns": [
-      "domain_read",
-      "domain_edit",
-      "review",
-      "preview",
-      "owner_readback"
-    ],
+    "management_surface_owns": ["install", "update", "enable", "disable", "status", "diagnostics"],
+    "work_surface_owns": ["domain_read", "domain_edit", "review", "preview", "owner_readback"],
     "connection_owner": "opl-codex-native_existing_thread_mcp_connections",
     "ui_host": "official_mcp_apps_sdk_in_dsh_capability_workspace",
     "dsh_plugin": "@one-person-lab/opl-mcp-apps",
@@ -360,20 +343,9 @@
       "presentation_selection": "declared_capability_and_owner_schema_not_package_or_agent_name",
       "business_operations": "agent_tools_and_human_views_call_the_same_owner",
       "identity": "registered_workspace_canonical_work_item_and_owner_artifact_reference",
-      "shared_components": [
-        "progress",
-        "artifact",
-        "review",
-        "list_detail",
-        "action_feedback"
-      ],
+      "shared_components": ["progress", "artifact", "review", "list_detail", "action_feedback"],
       "domain_editor_and_quality_verdict_owner": "domain_package",
-      "host_context": [
-        "theme",
-        "locale",
-        "viewport",
-        "display_mode"
-      ],
+      "host_context": ["theme", "locale", "viewport", "display_mode"],
       "host_context_policy": "shared_and_dedicated_views_consume_host_context_without_replacing_domain_layout",
       "new_registry_session_queue_or_credential_store_allowed": false,
       "product_entry_is_not_mini_app_surface": true,
@@ -382,12 +354,7 @@
       "dedicated_app_selection": "use_when_owner_ui_needs_high_density_review_or_editing_and_declares_a_standard_mcp_app_resource"
     },
     "workbench_interaction": {
-      "default_content": [
-        "current_work",
-        "available_output",
-        "pending_decisions",
-        "next_available_action"
-      ],
+      "default_content": ["current_work", "available_output", "pending_decisions", "next_available_action"],
       "input_context": "reuse_exact_task_and_registered_workspace; ask_only_for_missing_or_ambiguous_owner_input",
       "action_source": "currently_available_canonical_app_actions_and_declared_package_actions",
       "short_operation": "owner_result_then_owner_readback",
@@ -413,16 +380,7 @@
       "purpose": "group_installed_package_views_into_product_entries_without_creating_a_second_miniapp_registry",
       "source": "Framework_installed_package_descriptor.presentation.miniapp_plus_app_contributions",
       "one_product_entry_per_package": true,
-      "entry_fields": [
-        "package_id",
-        "package_name",
-        "package_summary_i18n",
-        "presentation_mode",
-        "entry_kind",
-        "direct_entry",
-        "entry_view_id",
-        "view_count"
-      ],
+      "entry_fields": ["package_id", "package_name", "package_summary_i18n", "presentation_mode", "entry_kind", "direct_entry", "entry_view_id", "view_count"],
       "presentation_modes": {
         "shared_view": "进入 OPL Apps 的共享声明式视图；多个 views 仍属于同一个 ui://opl/apps.html surface",
         "dedicated_app": "产品有独立标准 MCP App surface；OPL Apps 只保留产品入口和状态，启动由 MiniApp 工作台处理",
@@ -670,13 +628,7 @@
       "product": "DeepSeek Harness GUI",
       "selection_policy": "pinned_source_commit_only",
       "source_cohort_ref": "contracts/app-gui-visual-source-cohort.json",
-      "required_source_identity": [
-        "repository",
-        "commit",
-        "license",
-        "notice_inventory",
-        "source_inventory"
-      ],
+      "required_source_identity": ["repository", "commit", "license", "notice_inventory", "source_inventory"],
       "usage": "pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters",
       "forbidden_authority": [
         "product_behavior",
@@ -867,7 +819,7 @@
         "narrow_drawer_behavior": "icon_and_label",
         "keyboard_reachable": true,
         "home_content_effect": "navigation_only_no_dashboard",
-        "route_gate_boundary": "default_release_gate_requires_opl_studio_runtime"
+      "route_gate_boundary": "default_release_gate_requires_opl_studio_runtime"
       },
       "capabilities_mapping": "capability_selection_lives_in_new_task_home_and_capability_management_lives_in_application_management_with_settings_compatibility_routes",
       "legacy_capabilities_route": "/capabilities redirects to /guid without deleting capability data or Settings management",
@@ -916,7 +868,7 @@
           "delete": "thread/delete"
         },
         "pin_role": "shell_ui_metadata_only",
-        "local_reset_role": "studio_local_metadata_reset_without_codex_app_server_history_reset",
+      "local_reset_role": "studio_local_metadata_reset_without_codex_app_server_history_reset",
         "shell_local_storage_role": "drafts_preferences_and_rebuildable_cache_only",
         "shell_thread_history_authority": false,
         "codex_session_directory_authority": "canonical_app_server_thread_overview_when_available",
@@ -991,10 +943,7 @@
             "visibility": {
               "desktop_fine_pointer": {
                 "resting": "hidden",
-                "show_on": [
-                  "own_project_row_hover",
-                  "focus_visible"
-                ]
+                "show_on": ["own_project_row_hover", "focus_visible"]
               },
               "coarse_pointer": "visible",
               "mobile": "visible"
@@ -1002,11 +951,7 @@
             "accessibility": {
               "role": "button",
               "tab_reachable": true,
-              "activation": [
-                "click",
-                "Enter",
-                "Space"
-              ],
+              "activation": ["click", "Enter", "Space"],
               "accessible_name_required": true,
               "tooltip_required": true
             },
@@ -1064,7 +1009,7 @@
         "e2e_fixture_storage_policy": "isolated_storage_root_never_production_user_data",
         "directory_group_policy_authority": "app_owned_explicit_project_affinity_and_recorded_cwd_fallback_contract_implemented_by_active_shell",
         "project_affinity_presentation_authority_ref": "conversation_history_surfaces.project_affinity_presentation",
-        "strict_project_affinity_producer": "opl_studio_versioned_ui_metadata_keyed_by_canonical_thread_id",
+          "strict_project_affinity_producer": "opl_studio_versioned_ui_metadata_keyed_by_canonical_thread_id",
         "directory_group_policy": {
           "source": "opl_studio_versioned_ui_metadata_affinity_else_non_managed_scratch_canonical_recorded_cwd_joined_by_canonical_thread_id",
           "role": "presentation_new_session_cwd_shortcut_and_projectless_adoption_only",
@@ -1082,10 +1027,7 @@
           "turn_cwd_reclassifies_bound_session": false,
           "project_adoption_policy": {
             "eligible_state": "canonical_thread_id_present_and_versioned_ui_affinity_absent",
-            "triggers": [
-              "drag_to_directory_group",
-              "keyboard_move_to_project_action"
-            ],
+            "triggers": ["drag_to_directory_group", "keyboard_move_to_project_action"],
             "destination_policy": "one_user_selected_canonical_project_directory_independent_of_explicit_inputs_turn_cwd_and_writable_roots",
             "result": "persist_versioned_ui_project_affinity_keyed_by_canonical_thread_id_without_claiming_app_server_project_id",
             "assignment_commit_policy": "only_after_canonical_thread_id_readback_then_versioned_ui_metadata_writeback_with_recorded_cwd_unchanged",
@@ -1120,10 +1062,7 @@
       "session_workspace_model": {
         "primary_unit": "session_backed_by_codex_thread_id",
         "identity_authority": "codex_core_app_server_thread_id",
-        "project_affinity_states": [
-          "unbound",
-          "bound"
-        ],
+        "project_affinity_states": ["unbound", "bound"],
         "project_affinity_cardinality": "zero_or_one",
         "projectless_session_semantics": "no_user_selected_project_affinity_not_no_runtime_cwd",
         "projectless_detection": "explicit_project_id_absent_defines_unbound_identity_while_managed_scratch_recorded_cwd_including_user_documents_codex_and_user_codex_worktrees_never_creates_directory_group",
@@ -1161,14 +1100,7 @@
       "workspace_directory_role": "new_session_initial_cwd_projectless_adoption_sidebar_grouping_and_visible_metadata_only_not_owner_or_authorization_domain",
       "explicit_session_input_policy": {
         "scope": "current_session_composer",
-        "surfaces": [
-          "attachments",
-          "local_file_picker",
-          "local_directory_picker",
-          "paste",
-          "drop",
-          "/open"
-        ],
+        "surfaces": ["attachments", "local_file_picker", "local_directory_picker", "paste", "drop", "/open"],
         "selection_scope": "any_user_selected_local_file_or_directory",
         "workspace_required": false,
         "access_authority": "codex_permission_approval_and_sandbox_only",
@@ -1180,10 +1112,7 @@
         "composer_consumption": "current_send_only",
         "composer_persistence_after_send": "none",
         "workspace_readiness_boundary": {
-          "gates": [
-            "project_selection",
-            "opl_workspace_controls"
-          ],
+          "gates": ["project_selection", "opl_workspace_controls"],
           "plain_local_conversation_requires_workspace_root": false,
           "send_scoped_local_file_inputs_require_workspace_root": false,
           "agent_package_workspace_requirement_policy": "package_manifest_declared_workspace_or_managed_target_only",
@@ -1275,10 +1204,7 @@
       "shortcut_preference_source_ref": "app_state.agent_packages.status_index.home_shortcut_preferences[]",
       "unknown_standard_agent_policy": "render_unknown_package_ids_only_when_they_match_opl_standard_agent_membership_without_app_allowlist",
       "opl_standard_agent_membership_policy": {
-        "ownership_source_fields": [
-          "official",
-          "publisher"
-        ],
+        "ownership_source_fields": ["official", "publisher"],
         "ownership_match_policy": "official_equals_true_or_publisher_equals_one-person-lab",
         "required_package_role": "standard_agent",
         "required_readiness": "selectable",
@@ -1335,10 +1261,7 @@
         "executor": "codex",
         "shortcut_package_membership_source_ref": "app_state.agent_packages.directory.entries",
         "opl_standard_agent_membership_policy": {
-          "ownership_source_fields": [
-            "official",
-            "publisher"
-          ],
+          "ownership_source_fields": ["official", "publisher"],
           "ownership_match_policy": "official_equals_true_or_publisher_equals_one-person-lab",
           "required_package_role": "standard_agent",
           "required_readiness": "selectable",
@@ -1383,10 +1306,7 @@
           },
           "instance_count_groups": {
             "footer_account_or_settings": {
-              "test_ids": [
-                "sider-footer-account",
-                "sider-footer-settings"
-              ],
+              "test_ids": ["sider-footer-account", "sider-footer-settings"],
               "total": 1
             }
           },
@@ -1425,23 +1345,19 @@
       "selection_equivalence_policy": "same_active_capability_identity_and_send_time_readiness_gate",
       "selection_cancellation_policy": "return_to_no_active_capability_without_changing_executor_workspace_or_draft",
       "starter_palette_selection_sync": "one_active_capability_state_bidirectionally_reflected",
-      "management_surface": "app_management",
-      "legacy_route_policy": "/capabilities_redirects_to_home_without_mounting_a_selection_page",
-      "composer_persistent_variable_selector": false,
-      "composer_context_surface": "active_capability_chip",
-      "contextual_change_scope": "new_session_before_first_send_only",
-      "agent_reference_admission_policy_ref": "ordinary_capability_selector_policy.agent_reference_admission_policy",
-      "backend_or_provider_semantics": false
+    "management_surface": "app_management",
+    "legacy_route_policy": "/capabilities_redirects_to_home_without_mounting_a_selection_page",
+    "composer_persistent_variable_selector": false,
+    "composer_context_surface": "active_capability_chip",
+    "contextual_change_scope": "new_session_before_first_send_only",
+    "agent_reference_admission_policy_ref": "ordinary_capability_selector_policy.agent_reference_admission_policy",
+    "backend_or_provider_semantics": false
     },
     "composer": {
       "definition_role": "opl_target_translation_not_literal_codex_observation",
       "placement": "floating_bottom_with_safe_inset",
-      "persistent_context": [
-        "active_capability"
-      ],
-      "send_scoped_inputs": [
-        "attachments"
-      ],
+      "persistent_context": ["active_capability"],
+      "send_scoped_inputs": ["attachments"],
       "send_scoped_consumption_policy": "consumed_by_current_send_not_persisted_in_context_strip",
       "forbidden_persistent_context": [
         "project",
@@ -1548,11 +1464,7 @@
         "html",
         "diff"
       ],
-      "markdown_embedded_renderers": [
-        "mermaid",
-        "katex",
-        "code"
-      ],
+      "markdown_embedded_renderers": ["mermaid", "katex", "code"],
       "ref_resolution_policy": "explicit_session_attachment_or_conversation_result_ref_or_user_selected_legal_absolute_local_path_without_copying_artifact_body",
       "session_reference_policy": {
         "attachment_ref_scope": "current_session_explicit_attachment_only",
@@ -1567,12 +1479,7 @@
         "access_authority": "codex_permission_approval_and_sandbox",
         "automatic_silent_read_allowed": false
       },
-      "forbidden_inputs": [
-        "relative_parent_traversal",
-        "illegal_or_unsupported_scheme",
-        "automatic_silent_read",
-        "implicit_workspace_context_ref"
-      ],
+      "forbidden_inputs": ["relative_parent_traversal", "illegal_or_unsupported_scheme", "automatic_silent_read", "implicit_workspace_context_ref"],
       "artifact_body_authority": "external_owner_ref_only",
       "keyboard_reachable_open_action": true,
       "failure_policy": "keep_ref_visible_and_fail_closed_with_reason",
@@ -1736,7 +1643,7 @@
         "text_semantics": {
           "uno_t_primary_value": "var(--text-primary)",
           "uno_t_tertiary_value": "var(--color-text-3)",
-          "text_primary_bridge_value": "var(--dsw-alias-label-primary)",
+        "text_primary_bridge_value": "var(--dsw-alias-label-primary)",
           "body_color_value": "var(--text-primary)"
         }
       },
@@ -1834,12 +1741,7 @@
         "prerelease"
       ],
       "draft_or_prerelease_policy": "reject_as_intake_target",
-      "classifications": [
-        "accept",
-        "adapt",
-        "redirect",
-        "reject"
-      ],
+      "classifications": ["accept", "adapt", "redirect", "reject"],
       "classification_meanings": {
         "accept": "reuse_without_changing_app_product_authority",
         "adapt": "reuse_through_app_contract_profile_bridge_or_overlay",
@@ -1934,6 +1836,8 @@
     "default_ios_surface": "conversation_directory",
     "desktop_workbench_remains_canonical": true,
     "transport_target": "managed_dsh_noise_relay_with_scoped_studio_http_sse",
+    "internet_contract_ref": "contracts/app-remote-companion-internet.json",
+    "external_network_configuration_required": false,
     "wire_contract_ref": "contracts/app-remote-companion-wire.json",
     "desktop_host_owner": "opl-studio",
     "pairing_surface": "settings_resources_opl_link_native_host_panel",
@@ -1965,9 +1869,7 @@
       "arbitrary_shell_or_file_command",
       "offline_command_queue"
     ],
-    "release_ready": false,
-    "internet_contract_ref": "contracts/app-remote-companion-internet.json",
-    "external_network_configuration_required": false
+    "release_ready": false
   },
   "active_shell": "opl-studio",
   "implementation_carrier": "opl-studio",
@@ -2670,10 +2572,7 @@
     "advanced_full_drilldown": {
       "command": "opl runtime app-operator-drilldown --detail full --json",
       "policy": "settings_maintenance_diagnostics_or_release_evidence_only",
-      "consumer_surfaces": [
-        "/settings/environment?section=diagnostics",
-        "release_evidence_tooling"
-      ],
+      "consumer_surfaces": ["/settings/environment?section=diagnostics", "release_evidence_tooling"],
       "runtime_page_allowed": false
     },
     "state_index_sidecar": {
@@ -3701,10 +3600,7 @@
     "home_presentation_source_ref": "app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.home_shortcut_preferences[]",
     "home_shortcut_visibility_source_ref": "app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.home_shortcut_preferences[visible=true]",
     "opl_standard_agent_membership_policy": {
-      "ownership_source_fields": [
-        "official",
-        "publisher"
-      ],
+      "ownership_source_fields": ["official", "publisher"],
       "ownership_match_policy": "official_equals_true_or_publisher_equals_one-person-lab",
       "required_package_role": "standard_agent",
       "required_readiness": "selectable",
@@ -3761,13 +3657,7 @@
     "workspace_session_rail_default_state": "visible_wide_drawer_narrow",
     "active_studio_primary_navigation": {
       "scope": "active_opl_studio_current_product_only",
-      "ordered_entry_ids": [
-        "new_task",
-        "app_management",
-        "runtime",
-        "scheduled_tasks",
-        "archived"
-      ],
+      "ordered_entry_ids": ["new_task", "app_management", "runtime", "scheduled_tasks", "archived"],
       "app_management_entry": {
         "route": "/apps",
         "label_i18n": {
@@ -3986,12 +3876,8 @@
     "model_status_surface": "executor_policy.default_model_display_value",
     "technical_details_policy": "single_compact_model_reasoning_menu_without_backend_or_provider",
     "composer_placeholder_policy": "opl_owned_localized_task_prompt_without_backend_name_interpolation",
-    "composer_context_strip": [
-      "active_capability"
-    ],
-    "composer_send_scoped_inputs": [
-      "attachments"
-    ],
+    "composer_context_strip": ["active_capability"],
+    "composer_send_scoped_inputs": ["attachments"],
     "composer_send_scoped_consumption_policy": "consumed_by_current_send_not_persisted_in_context_strip",
     "send_failure_input_policy": {
       "must_preserve_send_scoped_local_inputs": true,
@@ -4000,10 +3886,7 @@
         "initial_message_send",
         "in_conversation_send"
       ],
-      "preserved_inputs": [
-        "prompt",
-        "attachments"
-      ],
+      "preserved_inputs": ["prompt", "attachments"],
       "success_consumption_policy": "clear_only_the_accepted_send_snapshot",
       "failure_restore_policy": "restore_failed_send_snapshot_to_the_current_composer",
       "concurrent_edit_merge_policy": "prepend_failed_prompt_before_post_submit_user_input_without_overwriting_it_and_union_attachments_by_path",
@@ -4053,20 +3936,9 @@
       "searchable": true,
       "search_field_policy": "visible_top_field_filters_name_description_and_aliases",
       "keyboard_navigation": true,
-      "keyboard_commands": [
-        "ArrowDown",
-        "ArrowUp",
-        "Home",
-        "End",
-        "Enter",
-        "Escape"
-      ],
+      "keyboard_commands": ["ArrowDown", "ArrowUp", "Home", "End", "Enter", "Escape"],
       "escape_focus_return": "plus_trigger",
-      "query_fields": [
-        "localized_name",
-        "localized_description",
-        "aliases"
-      ],
+      "query_fields": ["localized_name", "localized_description", "aliases"],
       "desktop_panel_width_policy": "match_composer_outer_width",
       "desktop_panel_max_width_px": 736,
       "desktop_panel_alignment": "above_composer_with_outer_edges_aligned",
@@ -4083,19 +3955,13 @@
           "scope": "current_send_only",
           "source": "user_selected_local_paths",
           "surface_actions": {
-            "home_new_session": [
-              "attach_file",
-              "attach_folder"
-            ],
-            "existing_conversation": [
-              "attach_file",
-              "attach_folder"
-            ]
+            "home_new_session": ["attach_file", "attach_folder"],
+            "existing_conversation": ["attach_file", "attach_folder"]
           }
         },
-        {
-          "id": "agent_packages",
-          "scope": "new_session_configuration_or_existing_turn_invocation",
+          {
+            "id": "agent_packages",
+            "scope": "new_session_configuration_or_existing_turn_invocation",
           "label_i18n": {
             "zh-CN": "OPL 标准智能体",
             "en-US": "OPL standard agents"
@@ -4103,10 +3969,7 @@
           "source_ref": "app_state.agent_packages.directory.entries",
           "catalog_membership_source_ref": "app_state.agent_packages.directory.entries",
           "opl_standard_agent_membership_policy": {
-            "ownership_source_fields": [
-              "official",
-              "publisher"
-            ],
+            "ownership_source_fields": ["official", "publisher"],
             "ownership_match_policy": "official_equals_true_or_publisher_equals_one-person-lab",
             "required_package_role": "standard_agent",
             "required_readiness": "selectable",
@@ -4124,42 +3987,34 @@
           "home_shortcut_independence_policy": "render_the_complete_opl_standard_agent_catalog_regardless_of_home_shortcut_visibility_or_order",
           "availability_policy": "render_only_membership_matches_and_join_by_package_id_for_fresh_readiness_without_app_allowlist",
           "action_policy": "render_only_directory_available_actions_and_recommended_action_ref",
-          "unknown_standard_agent_policy": "include_unknown_package_ids_only_when_they_match_opl_standard_agent_membership",
-          "existing_session_rebinding_allowed": false,
-          "existing_conversation_invocation_policy": "invoke_selected_standard_agent_for_current_turn_without_rebinding_the_codex_thread",
-          "surface_actions": {
-            "home_new_session": [
-              "select_new_session_agent_package"
-            ],
-            "existing_conversation": [
-              "invoke_agent_package_for_current_turn"
-            ]
-          }
-        },
-        {
-          "id": "opl_capabilities",
-          "scope": "current_turn_invocation_only",
-          "label_i18n": {
-            "zh-CN": "OPL 能力",
-            "en-US": "OPL capabilities"
+            "unknown_standard_agent_policy": "include_unknown_package_ids_only_when_they_match_opl_standard_agent_membership",
+            "existing_session_rebinding_allowed": false,
+            "existing_conversation_invocation_policy": "invoke_selected_standard_agent_for_current_turn_without_rebinding_the_codex_thread",
+            "surface_actions": {
+              "home_new_session": ["select_new_session_agent_package"],
+              "existing_conversation": ["invoke_agent_package_for_current_turn"]
+            }
           },
-          "source_ref": "app_state.agent_packages.directory.entries + ordinary_capability_selector_policy",
-          "membership_policy": "official_OPL_non_standard_agent_packages_with_enabled_required_skills_projected_by_the_active_adapter",
-          "package_entry_cardinality": "one_shortcut_per_package_using_first_enabled_required_skill",
-          "duplicate_package_entries_for_multiple_required_skills": false,
-          "availability_policy": "render_only_owner_or_carrier_projected_skill_matches_without_app_package_allowlist",
-          "activation_policy": "skill_injection_for_current_turn_only_no_package_activation_or_lifecycle_mutation",
-          "thread_ownership_policy": "does_not_change_codex_thread_agent_identity_or_create_a_second_scheduler",
-          "existing_session_rebinding_allowed": false,
-          "surface_actions": {
-            "home_new_session": [
-              "invoke_opl_capability_for_current_turn"
-            ],
-            "existing_conversation": [
-              "invoke_opl_capability_for_current_turn"
-            ]
-          }
-        },
+          {
+            "id": "opl_capabilities",
+            "scope": "current_turn_invocation_only",
+            "label_i18n": {
+              "zh-CN": "OPL 能力",
+              "en-US": "OPL capabilities"
+            },
+            "source_ref": "app_state.agent_packages.directory.entries + ordinary_capability_selector_policy",
+            "membership_policy": "official_OPL_non_standard_agent_packages_with_enabled_required_skills_projected_by_the_active_adapter",
+            "package_entry_cardinality": "one_shortcut_per_package_using_first_enabled_required_skill",
+            "duplicate_package_entries_for_multiple_required_skills": false,
+            "availability_policy": "render_only_owner_or_carrier_projected_skill_matches_without_app_package_allowlist",
+            "activation_policy": "skill_injection_for_current_turn_only_no_package_activation_or_lifecycle_mutation",
+            "thread_ownership_policy": "does_not_change_codex_thread_agent_identity_or_create_a_second_scheduler",
+            "existing_session_rebinding_allowed": false,
+            "surface_actions": {
+              "home_new_session": ["invoke_opl_capability_for_current_turn"],
+              "existing_conversation": ["invoke_opl_capability_for_current_turn"]
+            }
+          },
         {
           "id": "skills",
           "scope": "surface_specific_configuration_or_invocation",
@@ -4168,12 +4023,8 @@
           "agent_owned_skill_deduplication_policy": "on_home_new_session_exclude_required_skill_ids_owned_by_rendered_professional_agents_from_the_standalone_skills_group",
           "existing_session_rebinding_allowed": false,
           "surface_actions": {
-            "home_new_session": [
-              "configure_new_session_scoped_skill"
-            ],
-            "existing_conversation": [
-              "invoke_loaded_owner_or_carrier_projected_skill"
-            ]
+            "home_new_session": ["configure_new_session_scoped_skill"],
+            "existing_conversation": ["invoke_loaded_owner_or_carrier_projected_skill"]
           }
         },
         {
@@ -4183,12 +4034,8 @@
           "availability_policy": "hide_group_when_no_adapter_reported_nonduplicate_mode_is_available",
           "mode_deduplication_policy": "exclude_permission_access_equivalent_modes",
           "surface_actions": {
-            "home_new_session": [
-              "select_active_adapter_reported_mode"
-            ],
-            "existing_conversation": [
-              "select_active_adapter_reported_mode"
-            ]
+            "home_new_session": ["select_active_adapter_reported_mode"],
+            "existing_conversation": ["select_active_adapter_reported_mode"]
           }
         }
       ],
@@ -4225,10 +4072,7 @@
     "session_workspace_model": {
       "primary_unit": "session_backed_by_codex_thread_id",
       "identity_authority": "codex_core_app_server_thread_id",
-      "project_affinity_states": [
-        "unbound",
-        "bound"
-      ],
+      "project_affinity_states": ["unbound", "bound"],
       "project_affinity_cardinality": "zero_or_one",
       "projectless_session_semantics": "no_user_selected_project_affinity_not_no_runtime_cwd",
       "projectless_detection": "explicit_project_id_absent_defines_unbound_identity_while_managed_scratch_recorded_cwd_including_user_documents_codex_and_user_codex_worktrees_never_creates_directory_group",
@@ -4261,14 +4105,7 @@
     },
     "explicit_session_input_policy": {
       "scope": "current_session_composer",
-      "surfaces": [
-        "attachments",
-        "local_file_picker",
-        "local_directory_picker",
-        "paste",
-        "drop",
-        "/open"
-      ],
+      "surfaces": ["attachments", "local_file_picker", "local_directory_picker", "paste", "drop", "/open"],
       "selection_scope": "any_user_selected_local_file_or_directory",
       "workspace_required": false,
       "access_authority": "codex_permission_approval_and_sandbox_only",
@@ -4280,10 +4117,7 @@
       "composer_consumption": "current_send_only",
       "composer_persistence_after_send": "none",
       "workspace_readiness_boundary": {
-        "gates": [
-          "project_selection",
-          "opl_workspace_controls"
-        ],
+        "gates": ["project_selection", "opl_workspace_controls"],
         "plain_local_conversation_requires_workspace_root": false,
         "send_scoped_local_file_inputs_require_workspace_root": false,
         "agent_package_workspace_requirement_policy": "package_manifest_declared_workspace_or_managed_target_only",
@@ -4457,19 +4291,8 @@
         "conversation_result_ref",
         "explicit_absolute_local_path"
       ],
-      "supported_content_types": [
-        "markdown",
-        "pdf",
-        "code",
-        "image",
-        "html",
-        "diff"
-      ],
-      "markdown_embedded_renderers": [
-        "mermaid",
-        "katex",
-        "code"
-      ],
+      "supported_content_types": ["markdown", "pdf", "code", "image", "html", "diff"],
+      "markdown_embedded_renderers": ["mermaid", "katex", "code"],
       "ref_resolution_policy": "explicit_session_attachment_or_conversation_result_ref_or_user_selected_legal_absolute_local_path_without_copying_artifact_body",
       "session_reference_policy": {
         "attachment_ref_scope": "current_session_explicit_attachment_only",
@@ -4484,12 +4307,7 @@
         "access_authority": "codex_permission_approval_and_sandbox",
         "automatic_silent_read_allowed": false
       },
-      "forbidden_inputs": [
-        "relative_parent_traversal",
-        "illegal_or_unsupported_scheme",
-        "automatic_silent_read",
-        "implicit_workspace_context_ref"
-      ],
+      "forbidden_inputs": ["relative_parent_traversal", "illegal_or_unsupported_scheme", "automatic_silent_read", "implicit_workspace_context_ref"],
       "artifact_body_authority": "external_owner_ref_only",
       "keyboard_reachable_open_action": true,
       "failure_policy": "keep_ref_visible_and_fail_closed_with_reason",
@@ -4731,10 +4549,7 @@
     },
     "palette_agent_catalog_source_ref": "app_state.agent_packages.directory.entries",
     "opl_standard_agent_membership_policy": {
-      "ownership_source_fields": [
-        "official",
-        "publisher"
-      ],
+      "ownership_source_fields": ["official", "publisher"],
       "ownership_match_policy": "official_equals_true_or_publisher_equals_one-person-lab",
       "required_package_role": "standard_agent",
       "required_readiness": "selectable",
@@ -4975,11 +4790,7 @@
     ],
     "appearance_mode": {
       "config_key": "theme.appearanceMode",
-      "allowed_values": [
-        "system",
-        "light",
-        "dark"
-      ],
+      "allowed_values": ["system", "light", "dark"],
       "default_value": "system",
       "settings_placement": "preferences_display",
       "presentation": "three_visual_preview_cards",
@@ -5636,17 +5447,17 @@
             "comparison_scope": "same_route_spatial_typographic_and_status_hierarchy",
             "acceptance": "preserve_or_improve"
           },
-          "footer_structure": {
-            "layout": "compact",
-            "controls": [
-              "gateway_account_or_account_access_entry",
-              "app_update_status_and_trigger"
-            ],
-            "account_entry": "gateway_display_name_when_connected_else_account_access_entry_without_a_duplicate_settings_entry",
-            "update_entry": "show_confirmed_newer_app_update_as_account_row_trailing_action_and_reuse_existing_carrier_updater_without_owning_update_truth",
-            "theme_quick_toggle": "forbidden_theme_mode_lives_in_settings_preferences",
-            "help_navigation": "about_is_the_single_sidebar_bottom_auxiliary_entry",
-            "duplicate_settings_entry": "forbidden_inside_settings"
+        "footer_structure": {
+          "layout": "compact",
+          "controls": [
+            "gateway_account_or_account_access_entry",
+            "app_update_status_and_trigger"
+          ],
+          "account_entry": "gateway_display_name_when_connected_else_account_access_entry_without_a_duplicate_settings_entry",
+          "update_entry": "show_confirmed_newer_app_update_as_account_row_trailing_action_and_reuse_existing_carrier_updater_without_owning_update_truth",
+          "theme_quick_toggle": "forbidden_theme_mode_lives_in_settings_preferences",
+          "help_navigation": "about_is_the_single_sidebar_bottom_auxiliary_entry",
+          "duplicate_settings_entry": "forbidden_inside_settings"
           },
           "theme_gallery": {
             "presentation": "not_exposed",
@@ -6087,13 +5898,7 @@
       "webui_fallback_source": "opl app state --profile fast --json#managed_update.components[component_id=opl_app]",
       "app_update_state_policy_ref": "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.app_update_state_policy",
       "visibility": "only_when_newer_version_confirmed_available",
-      "hidden_states": [
-        "unknown",
-        "checking",
-        "current",
-        "up_to_date",
-        "error_without_confirmed_update"
-      ],
+      "hidden_states": ["unknown", "checking", "current", "up_to_date", "error_without_confirmed_update"],
       "trigger": "existing_carrier_updater_update_intent",
       "settings_route_fallback": "/settings/environment?section=updates",
       "new_updater_implementation_forbidden": true,
@@ -6129,12 +5934,7 @@
     "installation_presentation": {
       "ui_reuse": {
         "onboarding_container": "DSH official OnboardingModal from pinned ui-settings-models package",
-        "components": [
-          "DisclosureRow",
-          "StateDot",
-          "Tag",
-          "Button"
-        ],
+        "components": ["DisclosureRow", "StateDot", "Tag", "Button"],
         "shell_geometry_and_theme": "DSH AppFrame SidebarRoot and official theme",
         "local_ui_scope": "OPL owner projections copy and minimal content layout only"
       },
@@ -6469,10 +6269,7 @@
         "must_preserve_prompt": true
       },
       "send_scoped_local_inputs": {
-        "required_items": [
-          "codex_cli",
-          "codex_config"
-        ],
+        "required_items": ["codex_cli", "codex_config"],
         "workspace_root_required": false,
         "supported_inputs": [
           "file_dialog_attachment",
@@ -6483,9 +6280,7 @@
         ]
       },
       "workspace_controls": {
-        "required_items": [
-          "workspace_root"
-        ],
+        "required_items": ["workspace_root"],
         "restricted_capabilities": [
           "project_workspace_selection",
           "opl_workspace_controls"
@@ -6819,10 +6614,7 @@
       "home_layout_ref": "home_layout",
       "agent_package_source_ref": "app_state.agent_packages.directory.entries",
       "opl_standard_agent_membership_policy": {
-        "ownership_source_fields": [
-          "official",
-          "publisher"
-        ],
+        "ownership_source_fields": ["official", "publisher"],
         "ownership_match_policy": "official_equals_true_or_publisher_equals_one-person-lab",
         "required_package_role": "standard_agent",
         "required_readiness": "selectable",
@@ -7646,10 +7438,7 @@
             "full_display_names_required": true,
             "membership_source": "work_item_projection_v2.agent_catalog",
             "inclusion_policy": "installed_present_kind_agent_with_task_provider",
-            "identity_fields": [
-              "agent_id",
-              "agent_display_name"
-            ],
+            "identity_fields": ["agent_id", "agent_display_name"],
             "app_hardcoded_agent_ids_allowed": false
           },
           "project_level": {
@@ -7744,12 +7533,7 @@
           "current_attempt_visible_here": true,
           "current_attempt_default_row_visible": false,
           "historical_attempt_ids_visible": false,
-          "viewport_widths_px": [
-            375,
-            768,
-            1024,
-            1440
-          ],
+          "viewport_widths_px": [375, 768, 1024, 1440],
           "horizontal_overflow_allowed": false
         },
         "text_wrapping": {
@@ -7929,9 +7713,7 @@
             "stage_and_total_tokens",
             "action"
           ],
-          "secondary_sections": [
-            "domain_detail_views"
-          ],
+          "secondary_sections": ["domain_detail_views"],
           "diagnostic_sections": [],
           "primary_sections_visible_on_open": true,
           "diagnostic_sections_allowed": false,
@@ -7940,12 +7722,7 @@
           "timeline_owner_surface": "/settings/environment?section=diagnostics",
           "equal_weight_tab_wall_allowed": false,
           "current_attempt_visibility": "stage_popover_and_selected_work_item_detail_only",
-          "domain_detail_view_entry_fields": [
-            "view_id",
-            "view_kind",
-            "title",
-            "availability"
-          ],
+          "domain_detail_view_entry_fields": ["view_id", "view_kind", "title", "availability"],
           "domain_detail_view_summary_visibility": "only_when_typed_descriptor_is_present",
           "domain_detail_view_open_command": "button_with_route_map_icon",
           "delivered_stage_map_terminal_boundary": {
@@ -7985,13 +7762,7 @@
             "registry_composition_owner": "framework_shared_mcp_app",
             "delivery_mode": "owner_contract_rendered_by_shared_mcp_app",
             "registration_key": "view_kind",
-            "registration_required_fields": [
-              "view_kind",
-              "owner_package_id",
-              "renderer_id",
-              "schema_compatibility",
-              "component"
-            ],
+            "registration_required_fields": ["view_kind", "owner_package_id", "renderer_id", "schema_compatibility", "component"],
             "schema_compatibility_source": "owner_declared_payload_schema",
             "payload_schema_and_validation_owner": "domain_owner_schema_via_framework",
             "runtime_dynamic_code_loading_allowed": false,
@@ -8013,24 +7784,12 @@
           "layout_contract": {
             "route": "/runtime/item/:itemId/insights/:viewId",
             "surface": "full_width_owner_view",
-            "responsive_viewport_widths_px": [
-              375,
-              768,
-              1024,
-              1440
-            ],
+            "responsive_viewport_widths_px": [375, 768, 1024, 1440],
             "horizontal_page_overflow_allowed": false,
             "keyboard_access_required": true,
             "machine_fields_visible": false
           },
-          "availability_states": [
-            "unread",
-            "available",
-            "missing",
-            "stale",
-            "invalid",
-            "read_error"
-          ],
+          "availability_states": ["unread", "available", "missing", "stale", "invalid", "read_error"],
           "availability_copy_policy": "localized_generic_view_transport_state_no_machine_enum",
           "availability_is_transport_state_only": true,
           "transport_state_may_be_interpreted_as_domain_outcome": false,
@@ -8138,7 +7897,8 @@
         "item-scoped owner views selected by view_kind with unknown kinds degraded locally",
         "platform maintenance, software updates, module health, safe actions, and operator diagnostics excluded from Runtime and routed to Settings",
         "responsive semantic row reflow without horizontal page overflow",
-        "contract, Framework producer, Shell consumer, and live evidence tracked separately",
+        "contract, Framework producer, Shell consumer, and live evidence tracked separately"
+        ,
         "localized Runtime failure summary with Retry and Open Maintenance actions",
         "collapsed copyable technical details without narrow-window clipping"
       ],
@@ -8159,7 +7919,8 @@
         "Temporal",
         "raw projection",
         "evidence ledger",
-        "current_control_state",
+        "current_control_state"
+        ,
         "raw JSON, absolute paths, or Node warnings on the primary failure surface",
         "simultaneous refresh-failed and unavailable error panels"
       ],
@@ -8362,71 +8123,13 @@
       "connection_authorization": {
         "source": "settings_control_center.app_settings_read_model.connections.authorization",
         "owner_projection_ref": "settings_control_center.connection_authorization",
-        "connection_fields": [
-          "id",
-          "display_name",
-          "provider_type",
-          "status",
-          "security_revision",
-          "account_label",
-          "capabilities"
-        ],
+        "connection_fields": ["id", "display_name", "provider_type", "status", "security_revision", "account_label", "capabilities"],
         "connection_security_policy": "status_and_security_revision_are_owner_projected; account_label_is_redacted; endpoint_and_credential_handle_are_never_projected",
-        "request_fields": [
-          "request_id",
-          "status",
-          "consumer_package_id",
-          "consumer_display_name",
-          "consumer_manifest_sha256",
-          "consumer_content_digest",
-          "connection_id",
-          "connection_display_name",
-          "connection_provider_type",
-          "connection_security_revision",
-          "capabilities",
-          "created_at",
-          "decided_at"
-        ],
-        "grant_fields": [
-          "grant_id",
-          "status",
-          "consumer_package_id",
-          "consumer_display_name",
-          "consumer_manifest_sha256",
-          "consumer_content_digest",
-          "connection_id",
-          "connection_display_name",
-          "connection_provider_type",
-          "connection_security_revision",
-          "capabilities",
-          "created_at",
-          "decided_at"
-        ],
-        "capability_fields": [
-          "capability_id",
-          "label",
-          "risk"
-        ],
-        "invocation_fields": [
-          "invocation_id",
-          "consumer_package_id",
-          "consumer_display_name",
-          "connection_id",
-          "connection_display_name",
-          "capability_id",
-          "started_at",
-          "finished_at",
-          "disposition"
-        ],
-        "available_connection_fields": [
-          "connection_id",
-          "display_name",
-          "provider_type",
-          "status",
-          "security_revision",
-          "account_label",
-          "mailbox_ref"
-        ],
+        "request_fields": ["request_id", "status", "consumer_package_id", "consumer_display_name", "consumer_manifest_sha256", "consumer_content_digest", "connection_id", "connection_display_name", "connection_provider_type", "connection_security_revision", "capabilities", "created_at", "decided_at"],
+        "grant_fields": ["grant_id", "status", "consumer_package_id", "consumer_display_name", "consumer_manifest_sha256", "consumer_content_digest", "connection_id", "connection_display_name", "connection_provider_type", "connection_security_revision", "capabilities", "created_at", "decided_at"],
+        "capability_fields": ["capability_id", "label", "risk"],
+        "invocation_fields": ["invocation_id", "consumer_package_id", "consumer_display_name", "connection_id", "connection_display_name", "capability_id", "started_at", "finished_at", "disposition"],
+        "available_connection_fields": ["connection_id", "display_name", "provider_type", "status", "security_revision", "account_label", "mailbox_ref"],
         "available_connections_policy": "owner_projected_existing_connections_only_no_secret_material; mailbox_ref_is_the_relay_owner_identity_and_not_connection_id",
         "invocation_limit": 20,
         "invocation_history_policy": "latest_bounded_owner_projection_no_arguments_results_errors_or_credentials",
@@ -8437,25 +8140,10 @@
         "revocation_scope": "one_consumer_grant_without_changing_connection_or_other_grants",
         "relay_import_action_id": "connection_relay_import",
         "relay_import_input": "existing_owner_projected_mailbox_ref_only",
-        "ordinary_owner_action_ids": [
-          "connection_access_request_deny",
-          "connection_grant_revoke",
-          "connection_relay_import"
-        ],
-        "relay_import_payload_fields": [
-          "mailbox_ref"
-        ],
+        "ordinary_owner_action_ids": ["connection_access_request_deny", "connection_grant_revoke", "connection_relay_import"],
+        "relay_import_payload_fields": ["mailbox_ref"],
         "approval_action_id_in_generic_action_catalog": false,
-        "forbidden_fields": [
-          "credential_handle",
-          "endpoint",
-          "access_token",
-          "refresh_token",
-          "secret",
-          "arguments",
-          "result",
-          "error"
-        ]
+        "forbidden_fields": ["credential_handle", "endpoint", "access_token", "refresh_token", "secret", "arguments", "result", "error"]
       },
       "refresh_source": "opl app state --profile fast --json",
       "sections": [
@@ -9043,7 +8731,7 @@
             "available_actions",
             "authority_boundary"
           ],
-          "unavailable_policy": "show loading, empty, stale, or failed canonical directory state; never substitute an App-owned static Agent presentation overlay as directory truth",
+        "unavailable_policy": "show loading, empty, stale, or failed canonical directory state; never substitute an App-owned static Agent presentation overlay as directory truth",
           "first_party_policy": "first-party and third-party packages use the same directory entries and action contract"
         },
         "runtime_source_surface": "app_state.runtime_source_carriers.items[]",
@@ -9181,217 +8869,170 @@
           "detail_surface",
           "status_read_error"
         ],
-        "readiness_profile_policy": {
-          "fast_activated": {
-            "status": "verification_deferred",
-            "operational_ready": false,
-            "launch_allowed": false,
-            "verification_deferred": true,
-            "reason": "live_verification_deferred",
-            "session_launch_disposition": "conversation_available_without_shell_activation"
-          },
-          "full_verified": {
-            "status": "ready",
-            "operational_ready": true,
-            "launch_allowed": true,
-            "verification_deferred": false,
-            "reason": null,
-            "session_launch_disposition": "ready"
-          },
-          "presentation_policy": "fast verification_deferred remains truthful owner state while ordinary Settings projects available copy with no preconfiguration action; domain StageRun readiness remains Framework-owned"
+      "readiness_profile_policy": {
+        "fast_activated": {
+          "status": "verification_deferred",
+          "operational_ready": false,
+          "launch_allowed": false,
+          "verification_deferred": true,
+          "reason": "live_verification_deferred",
+          "session_launch_disposition": "conversation_available_without_shell_activation"
         },
-        "ordinary_user_status_input_mapping": {
-          "schema": "agent_package_ordinary_status_input_mapping.v1",
-          "visibility": "implementation_and_advanced_diagnostics_only",
-          "precedence": [
-            "temporarily_unavailable",
-            "disabled",
-            "supporting_without_direct_entry",
-            "available_verified",
-            "available_auto_confirm",
-            "localized_owner_action_required",
-            "unlocalized_owner_attention",
-            "checking"
-          ],
-          "signals": {
-            "disabled": "installed_true_and_configured_carrier_disabled_with_complete_recommended_action_ref_semantic_enable",
-            "supporting_without_direct_entry": "package_role_capability_package_and_operational_ready_true_and_codex_visibility_not_visible",
-            "available_verified": "operational_ready_true_and_launch_allowed_true",
-            "available_auto_confirm": "readiness_status_verification_deferred_or_reason_live_verification_deferred_or_scope_materialization_missing_with_package_installed_and_exposed",
-            "localized_owner_action_required": "owner_projection_requires_one_complete_settings_action_with_projected_semantic_surface_payload_and_confirmation",
-            "unlocalized_owner_attention": "owner_projection_requires_user_intervention_but_no_complete_settings_action_is_projected",
-            "temporarily_unavailable": "owner_projection_reports_blocked_failed_or_status_read_error",
-            "checking": "canonical_directory_or_readiness_state_is_loading_unknown_or_stale"
-          },
-          "scope_materialization_policy": "Settings_projects_available_with_no_preflight_action_and_reserves_scope_activation_for_Framework_domain_StageRun_or_StageAttempt",
-          "status_index_repair_action_role": "technical_diagnostics_only_never_ordinary_status_or_action_selection"
+        "full_verified": {
+          "status": "ready",
+          "operational_ready": true,
+          "launch_allowed": true,
+          "verification_deferred": false,
+          "reason": null,
+          "session_launch_disposition": "ready"
         },
-        "user_facing_status_projection": {
-          "schema": "agent_package_user_status_projection.v3",
-          "display_scope": "software_details_and_conversation_entry_only",
-          "locale_policy": "follow_current_app_locale_with_zh_CN_and_en_US_required",
-          "primary_status_policy": "one_user_facing_status_one_concrete_explanation_and_at_most_one_most_relevant_action_per_package_without_contradictory_badges",
-          "per_package_identity_key": "package_id",
-          "aggregate_status_policy": "count_only_standard_agent_direct_conversation_availability_and_never_override_each_projected_package_status",
-          "aggregate_projection": {
-            "schema": "agent_package_standard_agent_direct_entry_aggregate.v1",
-            "population": "directory_entries_where_package_role_standard_agent",
-            "available_numerator": "population_entries_projected_as_available_with_direct_conversation_entry",
-            "excluded_package_roles": [
-              "workflow_profile",
-              "capability_package"
-            ],
+        "presentation_policy": "fast verification_deferred remains truthful owner state while ordinary Settings projects available copy with no preconfiguration action; domain StageRun readiness remains Framework-owned"
+      },
+      "ordinary_user_status_input_mapping": {
+        "schema": "agent_package_ordinary_status_input_mapping.v1",
+        "visibility": "implementation_and_advanced_diagnostics_only",
+        "precedence": ["temporarily_unavailable", "disabled", "supporting_without_direct_entry", "available_verified", "available_auto_confirm", "localized_owner_action_required", "unlocalized_owner_attention", "checking"],
+        "signals": {
+          "disabled": "installed_true_and_configured_carrier_disabled_with_complete_recommended_action_ref_semantic_enable",
+          "supporting_without_direct_entry": "package_role_capability_package_and_operational_ready_true_and_codex_visibility_not_visible",
+          "available_verified": "operational_ready_true_and_launch_allowed_true",
+          "available_auto_confirm": "readiness_status_verification_deferred_or_reason_live_verification_deferred_or_scope_materialization_missing_with_package_installed_and_exposed",
+          "localized_owner_action_required": "owner_projection_requires_one_complete_settings_action_with_projected_semantic_surface_payload_and_confirmation",
+          "unlocalized_owner_attention": "owner_projection_requires_user_intervention_but_no_complete_settings_action_is_projected",
+          "temporarily_unavailable": "owner_projection_reports_blocked_failed_or_status_read_error",
+          "checking": "canonical_directory_or_readiness_state_is_loading_unknown_or_stale"
+        },
+        "scope_materialization_policy": "Settings_projects_available_with_no_preflight_action_and_reserves_scope_activation_for_Framework_domain_StageRun_or_StageAttempt",
+        "status_index_repair_action_role": "technical_diagnostics_only_never_ordinary_status_or_action_selection"
+      },
+      "user_facing_status_projection": {
+        "schema": "agent_package_user_status_projection.v3",
+        "display_scope": "software_details_and_conversation_entry_only",
+        "locale_policy": "follow_current_app_locale_with_zh_CN_and_en_US_required",
+        "primary_status_policy": "one_user_facing_status_one_concrete_explanation_and_at_most_one_most_relevant_action_per_package_without_contradictory_badges",
+        "per_package_identity_key": "package_id",
+        "aggregate_status_policy": "count_only_standard_agent_direct_conversation_availability_and_never_override_each_projected_package_status",
+        "aggregate_projection": {
+          "schema": "agent_package_standard_agent_direct_entry_aggregate.v1",
+          "population": "directory_entries_where_package_role_standard_agent",
+          "available_numerator": "population_entries_projected_as_available_with_direct_conversation_entry",
+          "excluded_package_roles": ["workflow_profile", "capability_package"],
+          "label_i18n": {
+            "zh-CN": "专业智能体可直接对话：{available} / {total}",
+            "en-US": "Professional agents ready for conversation: {available} / {total}"
+          },
+          "empty_policy": "show_zero_of_zero_without_substituting_all_directory_entries"
+        },
+        "ordinary_row_cardinality": {
+          "user_status": 1,
+          "concrete_explanation": 1,
+          "most_relevant_action_max": 1,
+          "technical_status_fields": "details_only"
+        },
+        "input_mapping_ref": "ordinary_user_status_input_mapping",
+        "raw_internal_status_visibility": "advanced_diagnostics_only",
+        "rules": [
+          {
+            "id": "disabled",
+            "when": "disabled",
+            "user_status_id": "disabled",
             "label_i18n": {
-              "zh-CN": "专业智能体可直接对话：{available} / {total}",
-              "en-US": "Professional agents ready for conversation: {available} / {total}"
+              "zh-CN": "已停用",
+              "en-US": "Disabled"
             },
-            "empty_policy": "show_zero_of_zero_without_substituting_all_directory_entries"
+            "explanation_i18n": {
+              "zh-CN": "已安装，但当前已停用。",
+              "en-US": "Installed, but currently disabled."
+            },
+            "primary_action_policy": "execute_only_the_complete_recommended_action_ref_when_semantic_enable_surface_settings_and_payload_exposure_action_enable"
           },
-          "ordinary_row_cardinality": {
-            "user_status": 1,
-            "concrete_explanation": 1,
-            "most_relevant_action_max": 1,
-            "technical_status_fields": "details_only"
+          {
+            "id": "supporting_without_direct_entry",
+            "when": "supporting_without_direct_entry",
+            "user_status_id": "available",
+            "label_i18n": {
+              "zh-CN": "可用",
+              "en-US": "Available"
+            },
+            "explanation_i18n": {
+              "zh-CN": "作为配套能力使用，无独立对话入口。",
+              "en-US": "Available as a supporting capability without a standalone conversation entry."
+            },
+            "primary_action_policy": "none"
           },
-          "input_mapping_ref": "ordinary_user_status_input_mapping",
-          "raw_internal_status_visibility": "advanced_diagnostics_only",
-          "rules": [
-            {
-              "id": "disabled",
-              "when": "disabled",
-              "user_status_id": "disabled",
-              "label_i18n": {
-                "zh-CN": "已停用",
-                "en-US": "Disabled"
-              },
-              "explanation_i18n": {
-                "zh-CN": "已安装，但当前已停用。",
-                "en-US": "Installed, but currently disabled."
-              },
-              "primary_action_policy": "execute_only_the_complete_recommended_action_ref_when_semantic_enable_surface_settings_and_payload_exposure_action_enable"
+          {
+            "id": "available_verified",
+            "when": "available_verified",
+            "user_status_id": "available",
+            "label_i18n": {
+              "zh-CN": "可用",
+              "en-US": "Available"
             },
-            {
-              "id": "supporting_without_direct_entry",
-              "when": "supporting_without_direct_entry",
-              "user_status_id": "available",
-              "label_i18n": {
-                "zh-CN": "可用",
-                "en-US": "Available"
-              },
-              "explanation_i18n": {
-                "zh-CN": "作为配套能力使用，无独立对话入口。",
-                "en-US": "Available as a supporting capability without a standalone conversation entry."
-              },
-              "primary_action_policy": "none"
+            "explanation_i18n": {
+              "zh-CN": "可直接发起对话，无需提前操作。",
+              "en-US": "You can start a conversation now; no advance action is required."
             },
-            {
-              "id": "available_verified",
-              "when": "available_verified",
-              "user_status_id": "available",
-              "label_i18n": {
-                "zh-CN": "可用",
-                "en-US": "Available"
-              },
-              "explanation_i18n": {
-                "zh-CN": "可直接发起对话，无需提前操作。",
-                "en-US": "You can start a conversation now; no advance action is required."
-              },
-              "primary_action_policy": "none"
+            "primary_action_policy": "none"
+          },
+          {
+            "id": "available_auto_confirm",
+            "when": "available_auto_confirm",
+            "user_status_id": "available",
+            "label_i18n": {
+              "zh-CN": "可用",
+              "en-US": "Available"
             },
-            {
-              "id": "available_auto_confirm",
-              "when": "available_auto_confirm",
-              "user_status_id": "available",
-              "label_i18n": {
-                "zh-CN": "可用",
-                "en-US": "Available"
-              },
-              "explanation_i18n": {
-                "zh-CN": "已安装，可直接发起对话，无需提前设置。",
-                "en-US": "Installed and ready for conversation; no advance setup is required."
-              },
-              "primary_action_policy": "none"
+            "explanation_i18n": {
+              "zh-CN": "已安装，可直接发起对话，无需提前设置。",
+              "en-US": "Installed and ready for conversation; no advance setup is required."
             },
-            {
-              "id": "owner_projected_action_available",
-              "when": "localized_owner_action_required",
-              "user_status_id": "action_available",
-              "label_i18n": {
-                "zh-CN": "可继续处理",
-                "en-US": "Action available"
-              },
-              "explanation_i18n": {
-                "zh-CN": "提供者已给出下一步操作。",
-                "en-US": "The provider has projected the next action."
-              },
-              "primary_action_policy": "show_the_complete_recommended_action_ref_without_mapping_or_branching_on_action_id"
+            "primary_action_policy": "none"
+          },
+          {
+            "id": "owner_projected_action_available",
+            "when": "localized_owner_action_required",
+            "user_status_id": "action_available",
+            "label_i18n": {"zh-CN": "可继续处理", "en-US": "Action available"},
+            "explanation_i18n": {"zh-CN": "提供者已给出下一步操作。", "en-US": "The provider has projected the next action."},
+            "primary_action_policy": "show_the_complete_recommended_action_ref_without_mapping_or_branching_on_action_id"
+          },
+          {
+            "id": "unlocalized_owner_attention",
+            "when": "unlocalized_owner_attention",
+            "user_status_id": "needs_attention",
+            "label_i18n": {"zh-CN": "需要处理", "en-US": "Needs attention"},
+            "explanation_i18n": {"zh-CN": "打开详情查看具体原因和下一步。", "en-US": "Open details to see the specific reason and next step."},
+            "primary_action_policy": "open_details_only_without_a_generic_setup_or_action_label"
+          },
+          {
+            "id": "temporarily_unavailable",
+            "when": "temporarily_unavailable",
+            "user_status_id": "temporarily_unavailable",
+            "label_i18n": {
+              "zh-CN": "暂时无法使用",
+              "en-US": "Temporarily unavailable"
             },
-            {
-              "id": "unlocalized_owner_attention",
-              "when": "unlocalized_owner_attention",
-              "user_status_id": "needs_attention",
-              "label_i18n": {
-                "zh-CN": "需要处理",
-                "en-US": "Needs attention"
-              },
-              "explanation_i18n": {
-                "zh-CN": "打开详情查看具体原因和下一步。",
-                "en-US": "Open details to see the specific reason and next step."
-              },
-              "primary_action_policy": "open_details_only_without_a_generic_setup_or_action_label"
+            "explanation_policy": "show_one_localized_owner_reason_and_at_most_one_exact_owner_projected_recovery_action"
+          },
+          {
+            "id": "checking",
+            "when": "checking",
+            "user_status_id": "checking",
+            "label_i18n": {
+              "zh-CN": "正在确认",
+              "en-US": "Checking"
             },
-            {
-              "id": "temporarily_unavailable",
-              "when": "temporarily_unavailable",
-              "user_status_id": "temporarily_unavailable",
-              "label_i18n": {
-                "zh-CN": "暂时无法使用",
-                "en-US": "Temporarily unavailable"
-              },
-              "explanation_policy": "show_one_localized_owner_reason_and_at_most_one_exact_owner_projected_recovery_action"
+            "explanation_i18n": {
+              "zh-CN": "正在确认当前状态，请稍候。",
+              "en-US": "Confirming the current status."
             },
-            {
-              "id": "checking",
-              "when": "checking",
-              "user_status_id": "checking",
-              "label_i18n": {
-                "zh-CN": "正在确认",
-                "en-US": "Checking"
-              },
-              "explanation_i18n": {
-                "zh-CN": "正在确认当前状态，请稍候。",
-                "en-US": "Confirming the current status."
-              },
-              "primary_action_policy": "none"
-            }
-          ],
-          "forbidden_ordinary_labels_zh": [
-            "待验证",
-            "需关注",
-            "对话中可用",
-            "对话中不可用",
-            "不可使用",
-            "首次使用时检查",
-            "需要完成设置",
-            "需要操作",
-            "完成下方操作后即可使用",
-            "需要为当前工作区启用",
-            "暂时不能使用",
-            "正在读取状态"
-          ],
-          "forbidden_ordinary_labels_en": [
-            "Verification deferred",
-            "Needs attention",
-            "Available in conversation",
-            "Unavailable in conversation",
-            "Checked on first use",
-            "Setup required",
-            "Action required",
-            "Complete the action below",
-            "Enable for this workspace"
-          ],
-          "technical_input_policy": "raw readiness fields and reason codes are consumed only through the input mapping and may appear only in advanced details"
-        },
+            "primary_action_policy": "none"
+          }
+        ],
+        "forbidden_ordinary_labels_zh": ["待验证", "需关注", "对话中可用", "对话中不可用", "不可使用", "首次使用时检查", "需要完成设置", "需要操作", "完成下方操作后即可使用", "需要为当前工作区启用", "暂时不能使用", "正在读取状态"],
+        "forbidden_ordinary_labels_en": ["Verification deferred", "Needs attention", "Available in conversation", "Unavailable in conversation", "Checked on first use", "Setup required", "Action required", "Complete the action below", "Enable for this workspace"],
+        "technical_input_policy": "raw readiness fields and reason codes are consumed only through the input mapping and may appear only in advanced details"
+      },
         "failure_reason_fields": [
           "readiness.status",
           "readiness.reason",
@@ -9479,34 +9120,16 @@
           ]
         },
         "exposure_state_contract": {
-          "state_fields": [
-            "enabled",
-            "visibility"
-          ],
-          "visibility_values": [
-            "visible",
-            "hidden"
-          ],
+          "state_fields": ["enabled", "visibility"],
+          "visibility_values": ["visible", "hidden"],
           "execution_authority": "enabled",
           "discovery_and_home_authority": "visibility",
           "codex_visible_derivation": "enabled === true && visibility === 'visible'",
           "transition_matrix": {
-            "hide": {
-              "enabled": "preserve",
-              "visibility": "hidden"
-            },
-            "unhide": {
-              "enabled": "preserve",
-              "visibility": "visible"
-            },
-            "disable": {
-              "enabled": false,
-              "visibility": "preserve"
-            },
-            "enable": {
-              "enabled": true,
-              "visibility": "preserve"
-            }
+            "hide": {"enabled": "preserve", "visibility": "hidden"},
+            "unhide": {"enabled": "preserve", "visibility": "visible"},
+            "disable": {"enabled": false, "visibility": "preserve"},
+            "enable": {"enabled": true, "visibility": "preserve"}
           },
           "post_state_readback_policy": "refresh the Framework projection and accept enabled plus visibility only from the new directory state",
           "disabled_stage_boundary_policy": "Framework_stage_runtime_activation_returns_package_disabled_without_activation_side_effects",
@@ -9536,39 +9159,39 @@
           "owner_receipt_authority"
         ]
       },
-      "status_model": {
-        "policy": "software_management_status_with_readiness_details",
-        "user_facing_projection_ref": "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
-        "detail_readiness_projection_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection",
-        "readiness_projection_scope": "software_details_and_conversation_entry_only",
-        "localized_metadata_source_ref": "app_state.agent_packages.directory.entries",
-        "axes": [
-          "presence",
-          "install_state",
-          "source_state",
-          "trust_state",
-          "capability_exposure",
-          "directory_readiness",
-          "dependency_readiness",
-          "runtime_source_readiness",
-          "operational_ready",
-          "launch_allowed"
-        ],
-        "source_inputs": [
-          "app_state.agent_packages.directory.entries[]",
-          "app_state.agent_packages.status_index.packages[]",
-          "app_state.agent_packages.status_index.home_shortcut_preferences[]",
-          "app_state.runtime_source_carriers.items[] diagnostic enrichment only"
-        ],
-        "forbidden_inputs": [
-          "App-owned Package metadata",
-          "manifest or Package lock",
-          "lifecycle receipts",
-          "rollback or last-known-good state",
-          "physical paths",
-          "Shell-inferred installed state"
-        ]
-      },
+    "status_model": {
+      "policy": "software_management_status_with_readiness_details",
+      "user_facing_projection_ref": "contracts/app-gui-product-contract.json#pages.app_management.software_catalog_policy",
+      "detail_readiness_projection_ref": "contracts/app-gui-product-contract.json#pages.settings_agents.agent_package_lifecycle_ux.user_facing_status_projection",
+      "readiness_projection_scope": "software_details_and_conversation_entry_only",
+      "localized_metadata_source_ref": "app_state.agent_packages.directory.entries",
+      "axes": [
+        "presence",
+        "install_state",
+        "source_state",
+        "trust_state",
+        "capability_exposure",
+        "directory_readiness",
+        "dependency_readiness",
+        "runtime_source_readiness",
+        "operational_ready",
+        "launch_allowed"
+      ],
+      "source_inputs": [
+        "app_state.agent_packages.directory.entries[]",
+        "app_state.agent_packages.status_index.packages[]",
+        "app_state.agent_packages.status_index.home_shortcut_preferences[]",
+        "app_state.runtime_source_carriers.items[] diagnostic enrichment only"
+      ],
+      "forbidden_inputs": [
+        "App-owned Package metadata",
+        "manifest or Package lock",
+        "lifecycle receipts",
+        "rollback or last-known-good state",
+        "physical paths",
+        "Shell-inferred installed state"
+      ]
+    },
       "list_density_policy": {
         "row_identity_key": "package_id",
         "grouping_policy_ref": "contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy",
@@ -9648,10 +9271,10 @@
         "normal Agent rows visually quiet with package diagnostics collapsed",
         "localized product type labels with technical Package roles confined to details",
         "one software list within each maintenance scope, with product type as a filter and dependency relationships in details",
-        "runtime source and authorized repository maintenance controls collapsed as advanced configuration by default",
+      "runtime source and authorized repository maintenance controls collapsed as advanced configuration by default",
         "owner-projected localized names and descriptions for every Package directory item, including unknown future Agents",
-        "verification deferred or scope materialization missing does not change installation status or require a preflight Settings action; conversation readiness appears in details and stays Framework-owned",
-        "one localized status, one concrete explanation, and at most one most relevant action per package with technical status axes confined to details"
+      "verification deferred or scope materialization missing does not change installation status or require a preflight Settings action; conversation readiness appears in details and stays Framework-owned",
+      "one localized status, one concrete explanation, and at most one most relevant action per package with technical status axes confined to details"
       ],
       "must_not_show": [
         "non-agent software and internal Skill, Plugin, tool, connector, or workflow inventories as rows in the Agents compatibility view",
@@ -9665,14 +9288,14 @@
         "App-owned static Agent presentation overlay used as the directory collection, OMA seed, availability source, status source, or action source",
         "Settings global search presented as the package catalog search",
         "dynamic directory reload hidden inside technical details",
-        "package status, ready state, action id, or action payload inferred by the Shell",
-        "manifest URL installation presented as the ordinary primary install path",
-        "raw setup_required, local_check_not_completed, verification_deferred, scope_materialization_missing, 待验证, 需关注, 不可使用, or contradictory availability labels on ordinary Agent rows",
-        "global workspace root used as a target_workspace activation value from Settings",
-        "scope materialization missing presented as a Settings attention state or preflight action",
-        "Shell-inferred Package activation, workspace targeting, or private lifecycle action ids",
-        "aggregate ready or unavailable counts used as the status of every package",
-        "hardcoded package parent-child relationships or duplicate dependency rows"
+      "package status, ready state, action id, or action payload inferred by the Shell",
+      "manifest URL installation presented as the ordinary primary install path",
+      "raw setup_required, local_check_not_completed, verification_deferred, scope_materialization_missing, 待验证, 需关注, 不可使用, or contradictory availability labels on ordinary Agent rows",
+      "global workspace root used as a target_workspace activation value from Settings",
+      "scope materialization missing presented as a Settings attention state or preflight action",
+      "Shell-inferred Package activation, workspace targeting, or private lifecycle action ids",
+      "aggregate ready or unavailable counts used as the status of every package",
+      "hardcoded package parent-child relationships or duplicate dependency rows"
       ],
       "product_page_id": "agents",
       "experience_contract_ref": "contracts/app-settings-control-plane.json#experience_contract.page_contracts.agents",
@@ -9889,9 +9512,9 @@
           "real_path",
           "binary_path"
         ],
-        "external_update_policy": "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
-        "default_update_policy": "OPL-managed Base and capability roots are silent_managed by default; auto_apply eligibility is a live execution condition and must not be displayed as a manual user preference",
-        "manual_operation_policy": {
+          "external_update_policy": "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
+          "default_update_policy": "OPL-managed Base and capability roots are silent_managed by default; auto_apply eligibility is a live execution condition and must not be displayed as a manual user preference",
+          "manual_operation_policy": {
           "silent_managed": "route to the existing OPL Base update or repair action and never synthesize a per-dependency action",
           "explicit_owner_delegated": "render the Framework update_action only after explicit confirmation",
           "detect_only_guidance": "show owner guidance without a fake update action"
@@ -10386,13 +10009,13 @@
           "source_ref": "app_state.settings_control_center.app_settings_read_model.storage_lifecycle.webui_data_volume",
           "owner_route": "/settings/storage#webui-data",
           "data_volume_mapping": "OnePersonLab/data -> /data",
-          "raw_source_path_visibility": "diagnostics_only",
-          "action_policy": "owner_projected_dry_run_then_exact_confirmation_then_fresh_terminal_readback",
-          "execute_payload_policy": "submit_only_projected_action_id_and_dry_run_plan_ref_or_hash",
-          "recovery_policy": "owner_receipt_and_restore_action_required_for_user_data",
-          "host_action_capability_id": "carrier_host.storage.webui_data_volume.lifecycle",
-          "host_action_abi_ref": "contracts/app-release-channel.json#local_data_lifecycle.owner_storage_projections.webui_data_volume.host_action_abi",
-          "generic_docker_prune_allowed": false,
+        "raw_source_path_visibility": "diagnostics_only",
+        "action_policy": "owner_projected_dry_run_then_exact_confirmation_then_fresh_terminal_readback",
+        "execute_payload_policy": "submit_only_projected_action_id_and_dry_run_plan_ref_or_hash",
+        "recovery_policy": "owner_receipt_and_restore_action_required_for_user_data",
+        "host_action_capability_id": "carrier_host.storage.webui_data_volume.lifecycle",
+        "host_action_abi_ref": "contracts/app-release-channel.json#local_data_lifecycle.owner_storage_projections.webui_data_volume.host_action_abi",
+        "generic_docker_prune_allowed": false,
           "shell_direct_path_delete_allowed": false
         }
       },
@@ -10408,16 +10031,16 @@
           ],
           "owner_projection_policy": "merge_valid_sections_non_blocking"
         },
-        "webui": {
-          "core_route": "/settings/storage",
-          "local_lifecycle_transport": "owner_projected_host_action_only_no_electron_ipc",
+      "webui": {
+        "core_route": "/settings/storage",
+        "local_lifecycle_transport": "owner_projected_host_action_only_no_electron_ipc",
           "local_sections": [],
           "visible_section_source": "valid_owner_projections_only",
           "missing_projection_policy": "fail_open_keep_route_available_and_omit_missing_sections",
           "manual_refresh": "owner_inventory_actions_all_settled_then_force_fresh_fast_app_state",
           "unknown_bytes_policy": "unavailable_never_zero",
-          "host_action_abi_ref": "contracts/app-release-channel.json#local_data_lifecycle.owner_storage_projections.webui_data_volume.host_action_abi",
-          "host_action_policy": "complete_carrier_host_abi_enables_plan_execute_restore_else_status_only_fail_open",
+        "host_action_abi_ref": "contracts/app-release-channel.json#local_data_lifecycle.owner_storage_projections.webui_data_volume.host_action_abi",
+        "host_action_policy": "complete_carrier_host_abi_enables_plan_execute_restore_else_status_only_fail_open",
           "shell_or_docker_action_inference_allowed": false,
           "raw_host_paths_visible": false
         }
