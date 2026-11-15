@@ -136,7 +136,7 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 | MCP App UI | `opl-mcp-apps` ＋官方 `@modelcontextprotocol/ext-apps` AppBridge | 启用 | 在 DSH 能力工作台内渲染标准 UI 资源，复用 Codex 的线程、连接、权限和审批；共享 OPL Apps 与领域独立 MCP App 使用同一宿主。 |
 | OPL Client | `opl-studio-client`、slot/contribution adapters | 启用 | 将 App/Framework 投影渲染到 DSH slots；不建立第二份 registry 或状态库。 |
 
-主 profile 不加载 `dsh-base`。普通对话仍归 Codex；Team 专域加载官方 Session、AgentLoop、Subagent 与 Team 服务，由 OPL LLM adapter 复用同一个持久 Codex App Server。Superagent 独立 profile 加载官方 base/web bundle，单独配置模型、凭据与授权策略。完整对象边界见 [Team、Bot 与 Superagent](team-bot-and-superagent.md)。
+主 profile 不加载 `dsh-base`。普通对话仍归 Codex；按需启动的协作工作台完整加载官方 base/web 应用，复用官方会话内的 Team 开关、成员树、任务板及 Agent Preset/Creator 交互，由 OPL LLM adapter 复用同一个持久 Codex App Server。Superagent 独立 profile 加载官方 base/web bundle，单独配置模型、凭据与授权策略。完整对象边界见 [Team、Bot 与 Superagent](team-bot-and-superagent.md)。
 
 ## 2. 官方插件：优先吸收，冲突才排除
 
