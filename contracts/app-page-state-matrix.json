@@ -1248,7 +1248,7 @@
         "capability_workspace_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.capability_workspace",
         "standard_view_contracts_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.standard_view_contracts",
         "service_status_contract_ref": "contracts/app-gui-product-contract.json#framework_surfaces.package_app_contributions.standard_view_contracts.service_status",
-        "service_status_settings_destination": "settings.capabilities.package_details",
+        "service_status_settings_destination": "settings.capabilities.plugin_sections",
         "activity_log_settings_destination": null,
         "activity_log_without_explicit_app_admission": "hidden_from_ordinary_settings",
         "rendering_policy": "standard_structured_views_only",
@@ -4274,6 +4274,9 @@
         "core.codex"
       ],
       "must_show": [
+        "standard remote connection Settings section remains discoverable without an installed or ready provider and gives a setup path",
+        "channel_access and remote_companion_access configuration is reachable regardless of software or host_component catalog scope",
+        "Weixin owner authorization QR and current-challenge phone PIN submission, retry, cancellation and expiry states",
         "browser access to this computer with port, account, and password management entry",
         "renderer-owned channel account, pairing, and authorized-user management through AionCore in AionUI or the standard channel_access contribution in the successor",
         "Only completed, admitted connector contributions; OPL Link is excluded from bundled installation until product completion",

@@ -3,7 +3,7 @@
   "package_id": "opl-channel-weixin",
   "display_name": "OPL Channel Weixin",
   "publisher": "one-person-lab",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "source": "first_party",
   "source_repo": "https://github.com/gaofeng21cn/one-person-lab-app.git",
   "package_role": "capability_package",
@@ -44,6 +44,8 @@
         "data_ref": "weixin.channel-access#state",
         "command_ids": [
           "weixin-connect",
+          "weixin-connect-other",
+          "weixin-submit-pin",
           "weixin-disconnect"
         ],
         "badge_ids": [],
@@ -57,10 +59,28 @@
       {
         "command_id": "weixin-connect",
         "label_i18n": {
-          "en": "Connect",
-          "zh-CN": "扫码连接"
+          "en": "Connect own Weixin",
+          "zh-CN": "连接本人微信"
         },
         "action_ref": "weixin.channel-access#connect",
+        "confirmation_required": false
+      },
+      {
+        "command_id": "weixin-connect-other",
+        "label_i18n": {
+          "en": "Connect another person’s Weixin",
+          "zh-CN": "连接他人微信"
+        },
+        "action_ref": "weixin.channel-access#connect-other",
+        "confirmation_required": false
+      },
+      {
+        "command_id": "weixin-submit-pin",
+        "label_i18n": {
+          "en": "Verify and continue",
+          "zh-CN": "验证并继续"
+        },
+        "action_ref": "weixin.channel-access#submit-pin",
         "confirmation_required": false
       },
       {
@@ -105,7 +125,7 @@
       "dist/src/types.js",
       "package.json"
     ],
-    "digest": "sha256:2bb6afac7d4432ec1c7f2a2fb2fb6d99ca9028d05a86362447bfb17da0dcf3c8"
+    "digest": "sha256:14f6ea85585268046b6d5c04569cbf9d4a4dc8c0722b35ce268e82bff32a2b5f"
   },
   "codex_surface": {
     "plugin_id": "opl-channel-weixin",

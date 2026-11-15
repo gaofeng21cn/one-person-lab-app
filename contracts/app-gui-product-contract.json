@@ -2106,7 +2106,7 @@
           "owner": "one-person-lab-app",
           "data_truth_owner": "installed_native_carrier_or_provider",
           "projection_owner": "one-person-lab-framework",
-          "settings_destination": "settings.capabilities.package_details",
+          "settings_destination": "settings.capabilities.plugin_sections",
           "status_field_policy": "status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist",
           "command_input_source": "descriptor_declared_action_inputs",
           "command_resolution": "resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input",
@@ -2210,10 +2210,10 @@
       },
       "opl_connect_connector_settings": {
         "product_group": "OPL Connect",
-        "destination": "settings.capabilities.package_details",
+        "destination": "settings.resources.remote_connections",
         "section_labels": {
-          "zh_cn": "消息与连接",
-          "en": "Messages & Connections"
+          "zh_cn": "远程连接",
+          "en": "Remote connections"
         },
         "contribution_contract": "an_installed_connector_package_declares_a_settings_section_view_using_an_app_admitted_standard_view_and_action_refs",
         "runtime_membership_source": "app_state.ui_contributions.slots.settings.section",
@@ -2227,10 +2227,10 @@
           "framework_cordis_host_has_admitted_and_loaded_the_connector_provider",
           "settings_section_contribution_is_valid_and_app_placement_is_admitted",
           "every_referenced_data_and_action_ref_is_current_and_valid",
-          "package_app_enabled_and_package_details_expanded"
+          "package_app_enabled_and_remote_connections_settings_open"
         ],
         "visible_disconnected_state": "show_the_connector_with_disconnected_status_and_its_available_connect_or_pair_action_when_the_package_and_host_path_are_ready",
-        "unready_policy": "omit_the_connector_row_route_and_placeholder_when_the_package_host_contribution_or_required_refs_are_not_ready",
+        "unready_policy": "keep_standard_remote_connections_section_visible_with_setup_guidance; never_fabricate_ready_connector_rows_or_actions",
         "page_model": "app_owned_standard_renderer_with_package_projected_data_and_actions_not_package_supplied_arbitrary_ui_code",
         "top_level_settings_navigation_allowed": false,
         "ordinary_display_fields": [
@@ -2323,7 +2323,7 @@
         ],
         "settings_placement_policy": {
           "channel_access": {
-            "destination": "settings.capabilities.package_details",
+            "destination": "settings.resources.remote_connections",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2331,7 +2331,7 @@
             ]
           },
           "remote_companion_access": {
-            "destination": "settings.capabilities.package_details",
+            "destination": "settings.resources.remote_connections",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2348,7 +2348,7 @@
             "ordinary_settings_without_explicit_app_admission": "hidden_from_ordinary_settings"
           },
           "service_status": {
-            "destination": "settings.capabilities.package_details",
+            "destination": "settings.capabilities.plugin_sections",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2356,7 +2356,7 @@
             ]
           },
           "other_settings_section": {
-            "destination": "settings.capabilities.package_details",
+            "destination": "settings.capabilities.plugin_sections",
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -2373,7 +2373,7 @@
             }
           },
           "top_level_settings_navigation": "client_static_destinations_only_package_contributions_never_create_navigation_entries",
-          "same_package_grouping": "group_settings_contributions_by_package_id_in_expanded_enabled_package_details_and_preserve_declared_order",
+          "same_package_grouping": "group_settings_contributions_by_package_id_on_functional_settings_destination_and_preserve_declared_order",
           "ordinary_presentation": "show_package_display_name_and_view_title_without_package_id_or_trust_carrier_provenance",
           "technical_provenance": "available_only_when_the_user_enables_developer_details",
           "native_app_inference": "a_package_contribution_does_not_establish_that_a_separate_native_os_app_is_installed_running_or_equivalent"
@@ -5043,8 +5043,8 @@
           "id": "resources_connections",
           "group_id": "connections_deployment",
           "route_id": "resources",
-          "label_zh": "资源与连接",
-          "label_en": "Resources & Connections"
+          "label_zh": "远程连接与网页访问",
+          "label_en": "Remote connections & web access"
         },
         {
           "id": "working_directory",
@@ -5628,8 +5628,8 @@
         "ordinary_entry_policy": "default_destination_under_agents_capabilities"
       },
       "resources": {
-        "label_zh": "资源与连接",
-        "label_en": "Resources & Connections",
+        "label_zh": "远程连接与网页访问",
+        "label_en": "Remote connections & web access",
         "role": "local_access_webui_and_optional_owner_projected_connections",
         "primary_question": "Which local access paths and currently projected external connections can my tasks use?",
         "ia_group": "connections_deployment",

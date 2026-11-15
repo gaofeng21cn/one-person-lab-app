@@ -343,6 +343,7 @@ test('any Package role may project one closed standard App contribution block', 
     { $ref: '#/$defs/channel_action_input' },
     { $ref: '#/$defs/channel_pairing_action_input' },
     { $ref: '#/$defs/channel_user_action_input' },
+    { $ref: '#/$defs/channel_verification_submit_input' },
   ]);
   for (const entry of ['navigation', 'view', 'command', 'badge', 'ui_placement']) {
     assert.equal(schema.$defs[entry].additionalProperties, false);
@@ -443,7 +444,7 @@ test('any Package role may project one closed standard App contribution block', 
     owner: 'one-person-lab-app',
     data_truth_owner: 'installed_native_carrier_or_provider',
     projection_owner: 'one-person-lab-framework',
-    settings_destination: 'settings.capabilities.package_details',
+    settings_destination: 'settings.capabilities.plugin_sections',
     status_field_policy: 'status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist',
     command_input_source: 'descriptor_declared_action_inputs',
     command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input',
@@ -588,6 +589,27 @@ test('unknown descriptor-neutral Package contributions route through the broker 
     'plugin_path',
     'plugin_url',
   ]);
+});
+
+test('channel verification challenges are state scoped and PIN values are submission only', () => {
+  const schema = readJson('contracts/opl-app-contributions.schema.json');
+  const ajv = new Ajv2020({ allErrors: true, strictSchema: true, strictTypes: false });
+  ajv.addSchema(schema);
+  const validate = ajv.getSchema(`${schema.$id}#/$defs/channel_access_result`)!;
+  const value: any = {
+    schema_version: 'opl-app-channel-access.v1', status: 'available', channel_id: 'weixin',
+    connection: { state: 'pin_required', verification_challenge: { challenge_id: 'challenge-1', expires_at_ms: 1800000000000, retry: false } },
+    actions: [{ command_id: 'weixin-submit-pin', input: { channel_id: 'weixin', challenge_id: 'challenge-1' } }],
+    pending_pairings: [], authorized_users: [],
+  };
+  assert.equal(validate(value), true, JSON.stringify(validate.errors));
+  value.actions[0].input.verify_code = '012345';
+  assert.equal(validate(value), false, 'PIN values must never be projected');
+  delete value.actions[0].input.verify_code;
+  value.connection.state = 'connected';
+  assert.equal(validate(value), false, 'completed connections cannot keep a challenge');
+  value.connection = { state: 'authorizing', qr_challenge: { payload: 'https://weixin110.qq.com/auth', expires_at_ms: 1800000000000 } };
+  assert.equal(validate(value), true, JSON.stringify(validate.errors));
 });
 
 test('channel_access requires exact inputs, state-scoped QR challenges, and no stale unavailable state', () => {
@@ -879,11 +901,11 @@ test('service_status enters package details while activity_log remains hidden fr
   const destinations = settings.settings_projection.package_contribution_visibility_policy.destinations;
 
   assert.deepEqual(placement.service_status, {
-    destination: 'settings.capabilities.package_details',
+    destination: 'settings.capabilities.plugin_sections',
     app_admission_required: true,
     admission_basis: ['current_user_task', 'app_placement_policy'],
   });
-  assert.equal(destinations.service_status, 'settings.capabilities.package_details');
+  assert.equal(destinations.service_status, 'settings.capabilities.plugin_sections');
   assert.equal(placement.activity_log.destination, null);
   assert.equal(placement.activity_log.ordinary_settings_without_explicit_app_admission, 'hidden_from_ordinary_settings');
   assert.equal(destinations.activity_log, null);

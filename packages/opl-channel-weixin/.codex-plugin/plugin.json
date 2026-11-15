@@ -1,6 +1,6 @@
 {
   "name": "opl-channel-weixin",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "OPL App-owned Weixin iLink channel capability package.",
   "author": {
     "name": "One Person Lab",

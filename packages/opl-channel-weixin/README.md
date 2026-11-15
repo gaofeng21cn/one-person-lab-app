@@ -16,7 +16,7 @@ for the other plugin source owners.
 
 ## Current boundary
 
-- Stable provider identity: `opl-channel-weixin` (`0.1.1`).
+- Stable provider identity: `opl-channel-weixin` (`0.2.0`).
 - The installed entrypoint exports a zero-argument factory. Each invocation
   returns a fresh `ChannelProvider` for one host attachment. Framework injects
   only the bounded callback; the provider's explicit QR login action keeps the
@@ -118,3 +118,25 @@ The iLink request/response semantics were independently adapted from AionCore
 `v0.1.57`, commit `4452a3a72ebb612f3ddd4402aeb5542187a6fbdf`, tree
 `a20f8a6276966c681a8e3333949915bb1cddb2b3`, under Apache License 2.0. See
 `NOTICE` for the exact retained boundary.
+
+
+## Official protocol compatibility
+
+The binding transport follows Tencent's published
+`@tencent-weixin/openclaw-weixin@3.0.0-beta-0` beta (npm tarball SHA-1
+`912a746c80be9ca9b5a24f854891ea5c03f265fb`); `latest` remains `2.4.10`.
+Use Settings → Connections & Deployment → Remote connections & web access.
+Self binding directly presents the bot QR. Binding another person's bot first
+asks the operator to scan the real-name authorization QR, then presents the
+actual user's bot QR. Server-requested phone PINs are submitted against a
+single current challenge; mismatches issue a fresh challenge and blocked
+attempts stop with an actionable reason. Tokens, PINs and authorization tickets
+remain transient. QR creation uses the official POST shape, and scan/IDC redirect
+states follow the current protocol. Inbound messages are restricted to the
+binding owner when Weixin supplies their user ID.
+
+The official plugin is an OpenClaw host extension, not a standalone transport
+SDK. Loading it would introduce OpenClaw account/session ownership. OPL therefore
+adapts its public wire semantics in the existing ChannelProvider while retaining
+Framework composition and Codex thread/turn ownership. The App standard renderer
+owns the human binding interaction. This does not add OpenClaw as another runtime.

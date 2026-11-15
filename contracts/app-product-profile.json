@@ -2516,8 +2516,8 @@
           "ordinary_entry_policy": "second_level_destination_under_agents_capabilities"
         },
         "resources": {
-          "label_zh": "资源与连接",
-          "label_en": "Resources & Connections",
+          "label_zh": "远程连接与网页访问",
+          "label_en": "Remote connections & web access",
           "role": "local_access_webui_and_optional_owner_projected_connections",
           "primary_question": "Which local access paths and currently projected external connections can my tasks use?",
           "ia_group": "connections_deployment",
@@ -2703,11 +2703,11 @@
               "persistence_policy": "preserve the explicit choice across discovery, App restart, package update and App update"
             },
             "settings_contributions": {
-              "destination": "settings.capabilities.package_details",
+              "destination": "settings.function_routed_plugin_sections",
               "group_by": "package_id",
-              "mount_policy": "only mount and read the expanded enabled package details",
+              "mount_policy": "remote channel and companion settings mount on the open Resources and Connections page; other settings mount only in expanded enabled plugin groups in Capability Settings",
               "services_page_policy": "core runtime service status only; no automatic installed-package sections",
-              "resources_page_policy": "resource and connection configuration only; package contributions remain in package details"
+              "resources_page_policy": "unified configuration from enabled plugin contributions routed by functional view type regardless of installer or catalog scope; software lifecycle remains in Software Center"
             }
           }
         },
@@ -3345,8 +3345,8 @@
             "id": "resources_connections",
             "owner_group_id": "connections_deployment",
             "route_id": "resources",
-            "label_zh": "资源与连接",
-            "label_en": "Resources & Connections"
+            "label_zh": "远程连接与网页访问",
+            "label_en": "Remote connections & web access"
           },
           {
             "id": "working_directory",
@@ -3579,8 +3579,8 @@
           "id": "resources",
           "path": "/settings/resources",
           "label_key": "settings.resources",
-          "default_label_en": "Resources & Connections",
-          "default_label_zh": "资源与连接",
+          "default_label_en": "Remote connections & web access",
+          "default_label_zh": "远程连接与网页访问",
           "icon_token": "resources",
           "ia_group": "connections_deployment",
           "slot_id": "settings_resources",
@@ -6016,8 +6016,8 @@
             "product_page_id": "resources",
             "route_id": "resources",
             "matrix_page_id": "settings_resources",
-            "label_zh": "资源与连接",
-            "label_en": "Resources & Connections",
+            "label_zh": "远程连接与网页访问",
+            "label_en": "Remote connections & web access",
             "primary_information": [
               "local browser access to this computer",
               "Docker WebUI deployment and access entry",

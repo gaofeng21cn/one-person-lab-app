@@ -285,11 +285,11 @@
           "persistence_policy": "preserve the explicit choice across discovery, App restart, package update and App update"
         },
         "settings_contributions": {
-          "destination": "app_management.software_details",
+          "destination": "settings.function_routed_plugin_sections",
           "group_by": "package_id",
-          "mount_policy": "only mount and read the expanded enabled package details",
+          "mount_policy": "remote channel and companion settings mount on the open Resources and Connections page; other settings mount only in expanded enabled plugin groups in Capability Settings",
           "services_page_policy": "core runtime service status only; no automatic installed-package sections",
-          "resources_page_policy": "resource and connection configuration only; package contributions remain in package details"
+          "resources_page_policy": "unified configuration from enabled plugin contributions routed by functional view type regardless of installer or catalog scope; software lifecycle remains in Software Center"
         }
       }
     },
@@ -984,8 +984,8 @@
         "id": "resources_connections",
         "owner_group_id": "connections_deployment",
         "route_id": "resources",
-        "label_zh": "资源与连接",
-        "label_en": "Resources & Connections"
+        "label_zh": "远程连接与网页访问",
+        "label_en": "Remote connections & web access"
       },
       {
         "id": "working_directory",
@@ -1218,8 +1218,8 @@
       "id": "resources",
       "path": "/settings/resources",
       "label_key": "settings.resources",
-      "default_label_en": "Resources & Connections",
-      "default_label_zh": "资源与连接",
+      "default_label_en": "Remote connections & web access",
+      "default_label_zh": "远程连接与网页访问",
       "icon_token": "resources",
       "ia_group": "connections_deployment",
       "slot_id": "settings_resources",
@@ -2705,11 +2705,11 @@
         }
       },
       "destinations": {
-        "channel_access": "settings.capabilities.package_details",
-        "remote_companion_access": "settings.capabilities.package_details",
+        "channel_access": "settings.resources.remote_connections",
+        "remote_companion_access": "settings.resources.remote_connections",
         "activity_log": null,
-        "service_status": "settings.capabilities.package_details",
-        "other_settings_section": "settings.capabilities.package_details"
+        "service_status": "settings.capabilities.plugin_sections",
+        "other_settings_section": "settings.capabilities.plugin_sections"
       }
     },
     "section_ids": [
@@ -3954,8 +3954,8 @@
         "product_page_id": "resources",
         "route_id": "resources",
         "matrix_page_id": "settings_resources",
-        "label_zh": "资源与连接",
-        "label_en": "Resources & Connections",
+        "label_zh": "远程连接与网页访问",
+        "label_en": "Remote connections & web access",
         "primary_information": [
           "local browser access to this computer",
           "Docker WebUI deployment and access entry",

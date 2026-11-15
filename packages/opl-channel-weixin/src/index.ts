@@ -6,6 +6,8 @@ export {
   IlinkApi,
   IlinkError,
   DEFAULT_ILINK_BASE_URL,
+  WEIXIN_CHANNEL_VERSION,
+  WEIXIN_PROTOCOL_VERSION,
   loginWithWeixinQr,
   type WeixinQrCode,
   type WeixinQrLoginOptions,

@@ -86,14 +86,17 @@ export function validatePackageAppContributionsProductContract(contract) {
     [
       {
         properties: { state: { const: 'qr_ready' } },
+        not: { required: ['verification_challenge'] },
       },
+      { properties: { state: { const: 'authorizing' } }, required: ['qr_challenge'], not: { required: ['verification_challenge'] } },
+      { properties: { state: { const: 'pin_required' } }, required: ['verification_challenge'], not: { required: ['qr_challenge'] } },
       {
         properties: {
           state: {
             enum: ['disconnected', 'connecting', 'qr_scanned', 'connected', 'attention'],
           },
         },
-        not: { required: ['qr_challenge'] },
+        not: { anyOf: [{ required: ['qr_challenge'] }, { required: ['verification_challenge'] }] },
       },
     ],
     'App contributions schema channel_access QR state boundary',
@@ -104,6 +107,7 @@ export function validatePackageAppContributionsProductContract(contract) {
       { $ref: '#/$defs/channel_action_input' },
       { $ref: '#/$defs/channel_pairing_action_input' },
       { $ref: '#/$defs/channel_user_action_input' },
+      { $ref: '#/$defs/channel_verification_submit_input' },
     ],
     'App contributions schema channel_access action inputs',
   );
@@ -351,7 +355,7 @@ export function validatePackageAppContributionsProductContract(contract) {
       owner: 'one-person-lab-app',
       data_truth_owner: 'installed_native_carrier_or_provider',
       projection_owner: 'one-person-lab-framework',
-      settings_destination: 'settings.capabilities.package_details',
+      settings_destination: 'settings.capabilities.plugin_sections',
       status_field_policy: 'status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist',
       command_input_source: 'descriptor_declared_action_inputs',
       command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input',
@@ -418,12 +422,12 @@ export function validatePackageAppContributionsProductContract(contract) {
       scopes: ['root', 'work_item'],
       settings_placement_policy: {
         channel_access: {
-          destination: 'settings.capabilities.package_details',
+          destination: 'settings.resources.remote_connections',
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },
         remote_companion_access: {
-          destination: 'settings.capabilities.package_details',
+          destination: 'settings.resources.remote_connections',
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },
@@ -434,12 +438,12 @@ export function validatePackageAppContributionsProductContract(contract) {
           ordinary_settings_without_explicit_app_admission: 'hidden_from_ordinary_settings',
         },
         service_status: {
-          destination: 'settings.capabilities.package_details',
+          destination: 'settings.capabilities.plugin_sections',
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },
         other_settings_section: {
-          destination: 'settings.capabilities.package_details',
+          destination: 'settings.capabilities.plugin_sections',
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },
@@ -453,7 +457,7 @@ export function validatePackageAppContributionsProductContract(contract) {
           },
         },
         top_level_settings_navigation: 'client_static_destinations_only_package_contributions_never_create_navigation_entries',
-        same_package_grouping: 'group_settings_contributions_by_package_id_in_expanded_enabled_package_details_and_preserve_declared_order',
+        same_package_grouping: 'group_settings_contributions_by_package_id_on_functional_settings_destination_and_preserve_declared_order',
         ordinary_presentation: 'show_package_display_name_and_view_title_without_package_id_or_trust_carrier_provenance',
         technical_provenance: 'available_only_when_the_user_enables_developer_details',
         native_app_inference: 'a_package_contribution_does_not_establish_that_a_separate_native_os_app_is_installed_running_or_equivalent',

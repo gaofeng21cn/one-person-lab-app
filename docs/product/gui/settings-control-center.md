@@ -953,3 +953,30 @@ Studio 设置按领域组织，共享 DSH 外壳和控件；生产 Host 位于 `
 本轮实现位置与验证边界见 [设置模块化验收](evidence/settings-modularization-acceptance-2026-09-27.md)。
 
 当前 Studio 将知识资料库、账户连接与逐软件授权统一放在软件中心的“共享资源”。设置中的“共享资源与网页访问”保留该页入口和独立 WebUI 部署配置；旧连接管理控件不再重复出现。
+
+
+### Remote connection settings
+
+Remote channels, including the standard Weixin capability, and third-party
+remote companion contributions are configured under **Settings → Connections &
+Deployment → Remote connections & web access**. The section remains visible
+with setup guidance when no provider is ready. Ready `channel_access` and
+`remote_companion_access` contributions render from the current Framework Host
+projection, including Packages classified as runtime components. Catalog scope
+controls installation browsing; it must not control whether a feature can be
+configured. Software Center retains installation, update and removal, and its
+remote-capability details link to this Settings destination.
+
+
+### Plugin management and user settings
+
+Software Center owns plugin installation, updates, enablement and removal.
+Settings uses one App-owned route over current `settings.section` contributions:
+channels and remote companions go to Connections & Deployment; other admitted
+configuration goes to Capability Settings, grouped by plugin and loaded when
+expanded. Technical activity views require the user's technical-details setting.
+Software Center links to the same Settings destination instead of hosting a
+second configuration form. The Weixin remote capability is part of the standard
+OPL App product; its separately managed Package is an engineering delivery unit.
+Its provider still owns protocol and credentials, while App owns discoverability,
+binding interactions and the unavailable/setup state.

@@ -11,8 +11,8 @@ test('channel settings admit exactly one provider route per renderer', () => {
   const channelAccess = gui.framework_surfaces.package_app_contributions.standard_view_contracts.channel_access;
   const remoteCompanionAccess = gui.framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access;
 
-  assert.equal(contract.destination, 'settings.capabilities.package_details');
-  assert.equal(contract.section_labels.zh_cn, '消息与连接');
+  assert.equal(contract.destination, 'settings.resources.remote_connections');
+  assert.equal(contract.section_labels.zh_cn, '远程连接');
   assert.equal(contract.runtime_membership_source, 'app_state.ui_contributions.slots.settings.section');
   assert.equal(
     contract.runtime_membership_policy,
@@ -24,7 +24,7 @@ test('channel settings admit exactly one provider route per renderer', () => {
   assert.match(contract.renderer_admission.opl_studio, /dynamic_framework_host_projection/);
   assert.match(contract.page_model, /app_owned_standard_renderer/);
   assert.match(contract.visible_disconnected_state, /show_the_connector/);
-  assert.match(contract.unready_policy, /omit_the_connector_row_route_and_placeholder/);
+  assert.match(contract.unready_policy, /keep_standard_remote_connections_section_visible_with_setup_guidance/);
 
   const weixin = contract.currently_defined_product_classifications.find(
     ({ package_id_example }: { package_id_example?: string }) => package_id_example === 'opl-channel-weixin',

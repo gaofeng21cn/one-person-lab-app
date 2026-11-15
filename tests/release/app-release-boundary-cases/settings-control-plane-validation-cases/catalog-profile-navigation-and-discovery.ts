@@ -106,7 +106,7 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
       "工作区",
       "智能体",
       "扩展与应用",
-      "资源与连接",
+      "远程连接与网页访问",
       "维护",
       "数据与存储",
       "偏好",

@@ -3,6 +3,7 @@ import { type ChannelDisposable, type ChannelProvider, type ChannelProviderStatu
 export declare class WeixinChannelProvider implements ChannelProvider {
     readonly provider_id: "opl-channel-weixin";
     private readonly accountId;
+    private readonly ownerUserId;
     private readonly api;
     private readonly sleep;
     private readonly backoffBaseMs;
@@ -45,19 +46,22 @@ export declare class WeixinInstalledChannelProvider implements ChannelProvider {
             status: string;
             channel_id: string;
             connection: {
+                verification_challenge?: {
+                    challenge_id: string;
+                    expires_at_ms: number;
+                    retry: boolean;
+                };
                 qr_challenge?: {
                     payload: string;
                     expires_at_ms: number;
                 };
                 reason_code?: string;
                 account_display_name?: string;
-                state: "disconnected" | "connecting" | "qr_ready" | "qr_scanned" | "connected" | "attention";
+                state: "pin_required" | "disconnected" | "connecting" | "authorizing" | "qr_ready" | "qr_scanned" | "connected" | "attention";
             };
             actions: {
                 command_id: string;
-                input: {
-                    channel_id: string;
-                };
+                input: Record<string, unknown>;
             }[];
             pending_pairings: never[];
             authorized_users: never[];
@@ -71,19 +75,22 @@ export declare class WeixinInstalledChannelProvider implements ChannelProvider {
             status: string;
             channel_id: string;
             connection: {
+                verification_challenge?: {
+                    challenge_id: string;
+                    expires_at_ms: number;
+                    retry: boolean;
+                };
                 qr_challenge?: {
                     payload: string;
                     expires_at_ms: number;
                 };
                 reason_code?: string;
                 account_display_name?: string;
-                state: "disconnected" | "connecting" | "qr_ready" | "qr_scanned" | "connected" | "attention";
+                state: "pin_required" | "disconnected" | "connecting" | "authorizing" | "qr_ready" | "qr_scanned" | "connected" | "attention";
             };
             actions: {
                 command_id: string;
-                input: {
-                    channel_id: string;
-                };
+                input: Record<string, unknown>;
             }[];
             pending_pairings: never[];
             authorized_users: never[];
@@ -100,6 +107,8 @@ export declare class WeixinInstalledChannelProvider implements ChannelProvider {
     private contributionState;
     private contributionQr;
     private contributionReason;
+    private pinChallenge;
+    private resolvePin;
     constructor(contributionLoginOptions?: WeixinChannelLoginOptions);
     get status(): ChannelProviderStatus;
     get session(): WeixinChannelSession | null;

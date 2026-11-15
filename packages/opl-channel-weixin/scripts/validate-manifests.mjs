@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { WEIXIN_CHANNEL_VERSION } from '../dist/src/index.js';
 
 const readJson = async (path) => JSON.parse(await readFile(new URL(`../${path}`, import.meta.url), 'utf8'));
 const readAppJson = async (path) => JSON.parse(await readFile(new URL(`../../../${path}`, import.meta.url), 'utf8'));
@@ -22,6 +23,7 @@ assert.deepEqual(marketplace.plugins, [{
 
 assert.equal(plugin.name, 'opl-channel-weixin');
 assert.equal(plugin.version, npmPackage.version);
+assert.equal(WEIXIN_CHANNEL_VERSION, npmPackage.version);
 assert.equal(plugin.license, 'Apache-2.0');
 assert.equal(plugin.repository, 'https://github.com/gaofeng21cn/one-person-lab-app');
 assert.equal(Object.hasOwn(plugin, 'mcpServers'), false);

@@ -427,7 +427,7 @@ test('installed provider expires projected QR challenges without persisting them
   await new Promise((resolve) => setTimeout(resolve, 30));
   const expired = await provider.channel_access.read({}) as any;
   assert.equal(expired.connection.state, 'attention');
-  assert.equal(expired.connection.reason_code, 'qr_expired');
+  assert.equal(expired.connection.reason_code, 'timeout');
   assert.equal(Object.hasOwn(expired.connection, 'qr_challenge'), false);
   await provider.channel_access.execute({
     action_ref: 'weixin.channel-access#disconnect',
@@ -484,3 +484,44 @@ async function waitFor(predicate: () => boolean | Promise<boolean>): Promise<voi
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
 }
+
+test('installed PIN actions reject stale challenges and never project submitted PINs', async () => {
+  let polls = 0;
+  let sentCode: string | null = null;
+  const provider = new WeixinInstalledChannelProvider({ qr: { sleep: async () => {}, fetch: async (input, init = {}) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith('get_bot_qrcode')) return jsonResponse({ qrcode: 'controller-pin' });
+    if (url.pathname.endsWith('getupdates')) return abortingResponse(init.signal);
+    if (++polls === 1) return jsonResponse({ status: 'need_verifycode' });
+    sentCode = url.searchParams.get('verify_code');
+    return jsonResponse({ status: 'confirmed', bot_token: 'pin-token', ilink_bot_id: 'pin-account' });
+  } } });
+  const lifecycle = await provider.start({ callback_api_version: CHANNEL_CALLBACK_API_VERSION, callback: inertCallback() });
+  try {
+    await provider.channel_access.execute({ action_ref: 'weixin.channel-access#connect', input: { channel_id: 'weixin' } });
+    await waitFor(async () => (await provider.channel_access.read({}) as any).connection.state === 'pin_required');
+    const state = await provider.channel_access.read({}) as any;
+    const input = { channel_id: 'weixin', challenge_id: state.connection.verification_challenge.challenge_id, verify_code: '012345' };
+    await assert.rejects(provider.channel_access.execute({ action_ref: 'weixin.channel-access#submit-pin', input: { ...input, challenge_id: 'stale' } }), /Invalid or expired/);
+    const submitted = await provider.channel_access.execute({ action_ref: 'weixin.channel-access#submit-pin', input });
+    assert.equal(JSON.stringify(submitted).includes('012345'), false);
+    await waitFor(() => provider.session?.account_id === 'pin-account');
+    assert.equal(sentCode, '012345');
+    await assert.rejects(provider.channel_access.execute({ action_ref: 'weixin.channel-access#submit-pin', input }), /Invalid or expired/);
+  } finally { await lifecycle.dispose(); }
+});
+
+test('binding owner identity blocks other senders before invoking Codex', async () => {
+  let polls = 0;
+  const started: string[] = [];
+  const callback = inertCallback();
+  callback.startThread = async input => { started.push(input.channel_session_id); return { canonical_thread_host: 'host-1', canonical_thread_id: 'thread-1' }; };
+  const provider = createWeixinChannelProvider({ credentials: { account_id: 'account', bot_token: 'token', user_id: 'owner' } }, {
+    fetch: async (_input, init = {}) => ++polls === 1
+      ? jsonResponse({ ret: 0, msgs: ['other', 'owner'].map(from_user_id => ({ from_user_id, item_list: [{ type: 1, text_item: { text: 'hello' } }] })), get_updates_buf: 'owner-cursor' })
+      : abortingResponse(init.signal),
+  });
+  const lifecycle = await provider.start({ callback_api_version: CHANNEL_CALLBACK_API_VERSION, callback });
+  try { await waitFor(() => polls >= 2); assert.deepEqual(started, ['owner']); }
+  finally { await lifecycle.dispose(); }
+});

@@ -169,9 +169,16 @@
     },
     "channel_action_input": {
       "type": "object",
-      "required": ["channel_id"],
+      "required": [
+        "channel_id"
+      ],
       "properties": {
-        "channel_id": { "$ref": "#/$defs/stable_id" }
+        "channel_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/opaque_id"
+        }
       },
       "additionalProperties": false
     },
@@ -195,10 +202,61 @@
     },
     "channel_access_action_input": {
       "oneOf": [
-        { "$ref": "#/$defs/channel_action_input" },
-        { "$ref": "#/$defs/channel_pairing_action_input" },
-        { "$ref": "#/$defs/channel_user_action_input" }
+        {
+          "$ref": "#/$defs/channel_action_input"
+        },
+        {
+          "$ref": "#/$defs/channel_pairing_action_input"
+        },
+        {
+          "$ref": "#/$defs/channel_user_action_input"
+        },
+        {
+          "$ref": "#/$defs/channel_verification_submit_input"
+        }
       ]
+    },
+    "channel_verification_submit_input": {
+      "type": "object",
+      "required": [
+        "channel_id",
+        "challenge_id",
+        "verify_code"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "verify_code": {
+          "type": "string",
+          "pattern": "^[0-9]{1,16}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "channel_verification_challenge": {
+      "type": "object",
+      "required": [
+        "challenge_id",
+        "expires_at_ms",
+        "retry"
+      ],
+      "properties": {
+        "challenge_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retry": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     },
     "channel_action": {
       "type": "object",
@@ -256,26 +314,106 @@
     },
     "channel_access_connection": {
       "type": "object",
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "properties": {
         "state": {
-          "enum": ["disconnected", "connecting", "qr_ready", "qr_scanned", "connected", "attention"]
+          "enum": [
+            "disconnected",
+            "connecting",
+            "authorizing",
+            "qr_ready",
+            "qr_scanned",
+            "pin_required",
+            "connected",
+            "attention"
+          ]
         },
-        "account_display_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "reason_code": { "$ref": "#/$defs/stable_id" },
-        "qr_challenge": { "$ref": "#/$defs/channel_access_qr_challenge" }
+        "account_display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reason_code": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "qr_challenge": {
+          "$ref": "#/$defs/channel_access_qr_challenge"
+        },
+        "verification_challenge": {
+          "$ref": "#/$defs/channel_verification_challenge"
+        }
       },
       "oneOf": [
         {
-          "properties": { "state": { "const": "qr_ready" } }
+          "properties": {
+            "state": {
+              "const": "qr_ready"
+            }
+          },
+          "not": {
+            "required": [
+              "verification_challenge"
+            ]
+          }
         },
         {
           "properties": {
             "state": {
-              "enum": ["disconnected", "connecting", "qr_scanned", "connected", "attention"]
+              "const": "authorizing"
             }
           },
-          "not": { "required": ["qr_challenge"] }
+          "required": [
+            "qr_challenge"
+          ],
+          "not": {
+            "required": [
+              "verification_challenge"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "pin_required"
+            }
+          },
+          "required": [
+            "verification_challenge"
+          ],
+          "not": {
+            "required": [
+              "qr_challenge"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "enum": [
+                "disconnected",
+                "connecting",
+                "qr_scanned",
+                "connected",
+                "attention"
+              ]
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "qr_challenge"
+                ]
+              },
+              {
+                "required": [
+                  "verification_challenge"
+                ]
+              }
+            ]
+          }
         }
       ],
       "additionalProperties": false

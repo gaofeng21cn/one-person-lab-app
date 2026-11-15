@@ -73,6 +73,7 @@ export type WeixinProviderConfig = {
     credentials: {
         account_id: string;
         bot_token: string;
+        user_id?: string;
     };
     ilink?: {
         base_url?: string;

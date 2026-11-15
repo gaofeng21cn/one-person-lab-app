@@ -10,6 +10,7 @@
 - 用户可见行为、页面状态、模型/引导策略或 release-ready 边界变化时，先更新 App contract、docs 和 tests，再实现 Shell；上游 fork body 默认只读。
 - Package、carrier 与 executor 是独立角色。App/Shell 从动态 projection 渲染，不维护固定 Package/Agent 清单、依赖图、版本解析、lock、payload、receipt 或 currentness 镜像。
 - 普通读取使用 `opl app state --profile fast --json`；写入统一走 `opl app action execute ... --json`。未知外部 mutation 只做 owner-authoritative inspect/reconcile，不重发或猜测。
+- 迁移、合并或隐藏 GUI 入口时，验证从原入口到新入口的完整用户路径；按 fresh owner projection 覆盖普通软件、运行组件、第三方、未安装与已停用状态。安装分类不决定功能配置归属；所有插件设置通过同一贡献机制按功能进入设置，微信远程是 App 标准功能，插件化只用于开发与运维。移除旧入口前，新入口须已有真实挂载、读取和动作验证，描述符存在或安装成功不能代替可达性验收。
 - GUI 工作从 `docs/product/gui/README.md` 开始；App contracts 或 wrappers 变更后运行 `bun run validate:active-shell`，本地缺 Shell 时先运行 `npm run ensure:shell`。测试通过不等于发布完成。
 - 并发只拆分可独立推进且可验收的任务；不得创建只能等待其他 repo、producer、candidate 或 `main` 进入 authority 的 consumer 任务。依赖只决定最终吸收顺序：各 owner 先在任务 worktree 完成兼容桥、producer/consumer 实现、cross-test 与 fresh replay；无独立可执行切片时立即合并 ownership 或重组 scope。write-set overlap 仅在最终 canonical 集成短窗口串行，并按 fresh SSOT 解决冲突。
 - failed run 或 fail-closed 只终止当前 operation，不结束 objective；除非确实缺少权限或外部输入，owner 必须修复首个真实断点并继续。source 吸收须基于 fresh `main` 语义重放和验证，远端 ref/tree/blob 回读一致后用 OPL Flow `scripts/worktree_absorption_audit.py` 或等价确定性证明确认已吸收，才清理 task-owned worktree/branch。

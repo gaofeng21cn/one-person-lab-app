@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { boundedExponentialBackoffMs, abortableSleep } from './backoff.js';
 import {
   IlinkApi,
@@ -31,6 +32,8 @@ const WEIXIN_CHANNEL_ID = 'weixin';
 const WEIXIN_STATE_REF = 'weixin.channel-access#state';
 const WEIXIN_CONNECT_REF = 'weixin.channel-access#connect';
 const WEIXIN_DISCONNECT_REF = 'weixin.channel-access#disconnect';
+const WEIXIN_CONNECT_OTHER_REF = 'weixin.channel-access#connect-other';
+const WEIXIN_SUBMIT_PIN_REF = 'weixin.channel-access#submit-pin';
 
 type TrackedDisposable = ChannelDisposable & { disposed: boolean };
 
@@ -38,6 +41,7 @@ export class WeixinChannelProvider implements ChannelProvider {
   readonly provider_id = CHANNEL_PROVIDER_ID;
 
   private readonly accountId: string;
+  private readonly ownerUserId: string | undefined;
   private readonly api: IlinkApi;
   private readonly sleep: Sleep;
   private readonly backoffBaseMs: number;
@@ -54,6 +58,7 @@ export class WeixinChannelProvider implements ChannelProvider {
 
   constructor(config: WeixinProviderConfig, dependencies: WeixinProviderDependencies = {}) {
     this.accountId = exactConfigString(config.credentials.account_id, 'account_id');
+    this.ownerUserId = config.credentials.user_id;
     const botToken = exactConfigString(config.credentials.bot_token, 'bot_token');
     this.api = new IlinkApi({
       botToken,
@@ -165,6 +170,7 @@ export class WeixinChannelProvider implements ChannelProvider {
       return;
     }
 
+    if (this.ownerUserId && channelSessionId !== this.ownerUserId) return;
     const callback = this.callback;
     if (!callback) return;
     const identity = {
@@ -354,7 +360,7 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
 
   readonly channel_access = Object.freeze({
     data_ref: WEIXIN_STATE_REF,
-    action_refs: Object.freeze([WEIXIN_CONNECT_REF, WEIXIN_DISCONNECT_REF]),
+    action_refs: Object.freeze([WEIXIN_CONNECT_REF, WEIXIN_CONNECT_OTHER_REF, WEIXIN_SUBMIT_PIN_REF, WEIXIN_DISCONNECT_REF]),
     read: (input: Readonly<Record<string, unknown>>) => this.readContribution(input),
     execute: (input: Readonly<{
       action_ref: string;
@@ -369,9 +375,11 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
   private sessionHandle: WeixinChannelSession | null = null;
   private sessionDisposable: ChannelDisposable | null = null;
   private contributionRevision = 0;
-  private contributionState: 'disconnected' | 'connecting' | 'qr_ready' | 'qr_scanned' | 'connected' | 'attention' = 'disconnected';
+  private contributionState: 'disconnected' | 'connecting' | 'authorizing' | 'qr_ready' | 'qr_scanned' | 'pin_required' | 'connected' | 'attention' = 'disconnected';
   private contributionQr: { payload: string; expires_at_ms: number } | null = null;
   private contributionReason: string | null = null;
+  private pinChallenge: { challenge_id: string; expires_at_ms: number; retry: boolean } | null = null;
+  private resolvePin: ((code: string) => void) | null = null;
 
   constructor(private readonly contributionLoginOptions: WeixinChannelLoginOptions = {}) {}
 
@@ -410,8 +418,10 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
     if (externalSignal?.aborted) abortController.abort();
     externalSignal?.addEventListener('abort', onExternalAbort, { once: true });
     const revision = ++this.contributionRevision;
-    const timeoutMs = options.qr?.timeout_ms ?? 180_000;
+    const timeoutMs = options.qr?.timeout_ms ?? 480_000;
     this.contributionState = 'connecting';
+    this.pinChallenge = null;
+    this.resolvePin = null;
     this.contributionQr = null;
     this.contributionReason = null;
     const externalOnQrCode = options.qr?.onQrCode;
@@ -420,6 +430,21 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
       ...options,
       qr: {
         ...options.qr,
+        onAuthorizationQr: (challenge) => {
+          options.qr?.onAuthorizationQr?.(challenge);
+          if (this.contributionRevision !== revision) return;
+          this.contributionState = 'authorizing';
+          this.contributionQr = { ...challenge };
+        },
+        requestVerifyCode: options.qr?.requestVerifyCode ?? ((request) => {
+          if (this.contributionRevision !== revision || abortController.signal.aborted) {
+            return Promise.reject(new IlinkError('aborted', 'Weixin login was cancelled.'));
+          }
+          this.contributionState = 'pin_required';
+          this.contributionQr = null;
+          this.pinChallenge = { challenge_id: randomUUID(), ...request };
+          return new Promise<string>((resolve) => { this.resolvePin = resolve; });
+        }),
         onQrCode: (qrCode) => {
           externalOnQrCode?.(qrCode);
           if (this.contributionRevision !== revision) return;
@@ -431,7 +456,7 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
         },
         onStatus: (status) => {
           externalOnStatus?.(status);
-          if (this.contributionRevision === revision && status === 'scanned') {
+          if (this.contributionRevision === revision && (status === 'scanned' || status === 'scaned')) {
             this.contributionState = 'qr_scanned';
           }
         },
@@ -439,6 +464,8 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
     }, abortController.signal).then((session) => {
       if (this.contributionRevision === revision) {
         this.contributionState = 'connected';
+        this.pinChallenge = null;
+        this.resolvePin = null;
         this.contributionQr = null;
         this.contributionReason = null;
       }
@@ -446,6 +473,8 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
     }, (error: unknown) => {
       if (this.contributionRevision === revision) {
         this.contributionState = 'attention';
+        this.pinChallenge = null;
+        this.resolvePin = null;
         this.contributionQr = null;
         this.contributionReason = diagnosticReason(error);
       }
@@ -466,6 +495,8 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
     if (this.loginTask) await this.loginTask.catch(() => {});
     await this.disposeSession();
     this.contributionState = 'disconnected';
+    this.pinChallenge = null;
+    this.resolvePin = null;
     this.contributionQr = null;
     this.contributionReason = null;
   }
@@ -499,6 +530,7 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
       credentials: {
         account_id: credentials.account_id,
         bot_token: credentials.bot_token,
+        ...(credentials.user_id ? { user_id: credentials.user_id } : {}),
       },
       ilink: { base_url: credentials.base_url },
       ...(options.poll === undefined ? {} : { poll: options.poll }),
@@ -544,12 +576,18 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
       this.contributionQr = null;
       this.contributionReason = 'qr_expired';
     }
-    const actions = this.contributionState === 'connected'
+    const channelInput = { channel_id: WEIXIN_CHANNEL_ID };
+    const actions: Array<{ command_id: string; input: Record<string, unknown> }> = this.contributionState === 'connected'
       || this.contributionState === 'connecting'
+      || this.contributionState === 'authorizing'
+      || this.contributionState === 'pin_required'
       || this.contributionState === 'qr_ready'
       || this.contributionState === 'qr_scanned'
       ? [{ command_id: 'weixin-disconnect', input: { channel_id: WEIXIN_CHANNEL_ID } }]
-      : [{ command_id: 'weixin-connect', input: { channel_id: WEIXIN_CHANNEL_ID } }];
+      : [{ command_id: 'weixin-connect', input: channelInput }, { command_id: 'weixin-connect-other', input: channelInput }];
+    if (this.contributionState === 'pin_required' && this.pinChallenge) {
+      actions.unshift({ command_id: 'weixin-submit-pin', input: { ...channelInput, challenge_id: this.pinChallenge.challenge_id } });
+    }
     return {
       schema_version: 'opl-app-channel-access.v1',
       status: 'available',
@@ -560,9 +598,10 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
           ? { account_display_name: this.sessionHandle.account_id }
           : {}),
         ...(this.contributionReason ? { reason_code: this.contributionReason } : {}),
-        ...(this.contributionState === 'qr_ready' && this.contributionQr
+        ...(['qr_ready', 'authorizing'].includes(this.contributionState) && this.contributionQr
           ? { qr_challenge: { ...this.contributionQr } }
           : {}),
+        ...(this.contributionState === 'pin_required' && this.pinChallenge ? { verification_challenge: { ...this.pinChallenge } } : {}),
       },
       actions,
       pending_pairings: [],
@@ -575,15 +614,33 @@ export class WeixinInstalledChannelProvider implements ChannelProvider {
     action_ref: string;
     input: Readonly<Record<string, unknown>>;
   }>) {
+    if (input.action_ref === WEIXIN_SUBMIT_PIN_REF) {
+      const { channel_id, challenge_id, verify_code } = input.input;
+      if (Object.keys(input.input).some(key => !['channel_id', 'challenge_id', 'verify_code'].includes(key))
+        || channel_id !== WEIXIN_CHANNEL_ID || typeof verify_code !== 'string' || !/^[0-9]{1,16}$/.test(verify_code)
+        || !this.pinChallenge || challenge_id !== this.pinChallenge.challenge_id || !this.resolvePin
+        || this.contributionState !== 'pin_required' || this.pinChallenge.expires_at_ms <= Date.now()) {
+        throw new TypeError('Invalid or expired Weixin PIN challenge.');
+      }
+      const resolve = this.resolvePin;
+      this.resolvePin = null;
+      this.pinChallenge = null;
+      this.contributionState = 'connecting';
+      resolve(verify_code);
+      return this.readContribution({ channel_id: WEIXIN_CHANNEL_ID });
+    }
     this.assertContributionInput(input.input);
-    if (input.action_ref === WEIXIN_CONNECT_REF) {
+    if (input.action_ref === WEIXIN_CONNECT_REF || input.action_ref === WEIXIN_CONNECT_OTHER_REF) {
       if (this.hostLifecycle !== 'running') {
         throw new Error('Provider must be attached before Weixin login.');
       }
       if (this.sessionDisposable || this.loginTask) {
         throw new Error('A Weixin channel session is already active or connecting.');
       }
-      void this.loginWithQr(this.contributionLoginOptions).catch(() => {});
+      void this.loginWithQr({
+        ...this.contributionLoginOptions,
+        qr: { ...this.contributionLoginOptions.qr, bind_owner: input.action_ref === WEIXIN_CONNECT_OTHER_REF ? 'other' : 'self' },
+      }).catch(() => {});
       return this.readContribution(input.input);
     }
     if (input.action_ref === WEIXIN_DISCONNECT_REF) {
