@@ -227,6 +227,57 @@ function dependencyIssueCode(dependency: string) {
     : 'unsupported_load_path';
 }
 
+// Upstream npm binaries can retain unused paths from their build machine. Full
+// removes them only when every real load retains local or system resolution.
+export function normalizeFullShellNativeRpaths(
+  builtAppPath: string,
+  resign: (target: string) => void,
+) {
+  const modulesRoot = path.join(builtAppPath, 'Contents/Resources/app.asar.unpacked/node_modules');
+  if (!fs.existsSync(modulesRoot)) return [];
+  const changes: Array<{ relative_path: string; removed_rpaths: string[] }> = [];
+  const bundles = new Set<string>();
+  for (const filePath of listMachOFiles(modulesRoot)) {
+    const rpaths = inspectMachORpaths(filePath);
+    const removed = [...new Set(rpaths.filter((entry) => path.isAbsolute(entry) && !portableRpath(entry)))];
+    if (removed.length === 0) continue;
+    const installIds = new Set(inspectMachO(filePath, '-D'));
+    const retained = rpaths.filter((entry) => !removed.includes(entry));
+    const expandLoader = (entry: string) => entry === '@loader_path'
+      ? path.dirname(filePath)
+      : entry.startsWith('@loader_path/')
+        ? path.resolve(path.dirname(filePath), entry.slice('@loader_path/'.length))
+        : entry;
+    for (const dependency of inspectMachO(filePath, '-L')) {
+      if (installIds.has(dependency)) continue;
+      if (dependency.startsWith('/usr/lib/') || dependency.startsWith('/System/Library/')) continue;
+      const candidates = dependency.startsWith('@rpath/')
+        ? retained.filter((entry) => entry.startsWith('@loader_path'))
+          .map((entry) => path.join(expandLoader(entry), dependency.slice('@rpath/'.length)))
+        : dependency.startsWith('@loader_path/') ? [expandLoader(dependency)] : [];
+      if (!candidates.some((candidate) => fs.existsSync(candidate))) {
+        throw new Error(`Cannot remove build-machine RPATH from ${filePath}: ${dependency} has no retained local resolution.`);
+      }
+    }
+    const result = spawnSync('install_name_tool', [
+      ...removed.flatMap((entry) => ['-delete_rpath', entry]), filePath,
+    ], { encoding: 'utf8' });
+    if (result.status !== 0) throw new Error(`install_name_tool failed for ${filePath}: ${result.stderr || result.error?.message}`);
+    if (inspectMachORpaths(filePath).some((entry) => removed.includes(entry))) {
+      throw new Error(`Build-machine RPATH remains after normalization: ${filePath}`);
+    }
+    resign(filePath);
+    let parent = path.dirname(filePath);
+    while (parent !== modulesRoot && parent.startsWith(`${modulesRoot}${path.sep}`)) {
+      if (parent.endsWith('.app')) bundles.add(parent);
+      parent = path.dirname(parent);
+    }
+    changes.push({ relative_path: normalizeRelativePath(builtAppPath, filePath), removed_rpaths: removed });
+  }
+  for (const bundle of [...bundles].sort((left, right) => right.length - left.length)) resign(bundle);
+  return changes;
+}
+
 function rpathIssueCode(rpath: string) {
   if (/\/(?:opt\/homebrew|usr\/local|home\/linuxbrew\/\.linuxbrew)\/Cellar\//i.test(rpath)) {
     return 'homebrew_cellar_rpath';

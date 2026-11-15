@@ -42,7 +42,7 @@ import {
 import { appRepoRoot } from './build-full-first-install-package/paths.ts';
 import { createFullBuildTiming } from './build-full-first-install-package/build-timing.ts';
 import { durationSeconds, monotonicSeconds, run } from './build-full-first-install-package/process.ts';
-import { runFullPackagePrecompressionGate } from './build-full-first-install-package/precompression.ts';
+import { normalizeFullShellNativeRpaths, runFullPackagePrecompressionGate } from './build-full-first-install-package/precompression.ts';
 import { buildRuntimeCacheKeyReport } from './build-full-first-install-package/runtime-cache.ts';
 import {
   assertResolvedKimiCuArchiveIdentity,
@@ -420,6 +420,8 @@ function main() {
     if (manualLocalAppIdentity) {
       stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
     }
+    timing.metadata.shell_native_rpath_normalization = normalizeFullShellNativeRpaths(builtApp,
+      (target) => ensureAppBundleAdHocCodesign(target, 'Full portable Shell native code', { force: true }));
     const precompressionGatePath = path.join(options.outDir, 'full-precompression-gate.json');
     timing.start('precompression_gate');
     const precompressionStartedAt = monotonicSeconds();
