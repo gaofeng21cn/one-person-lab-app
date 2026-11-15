@@ -447,6 +447,22 @@
   },
   "scenarios": [
     {
+      "id": "standard_full_installation_presentation",
+      "package_type": "standard_or_full",
+      "expects": [
+        "standard_explains_initial_network_downloads",
+        "full_explains_offline_seed_and_online_model_access",
+        "full_offline_first_install_runs_with_automatic_updates_disabled",
+        "pending_update_failure_does_not_skip_packaged_codex_first_install",
+        "bootstrap_failure_preserves_actual_bundled_stage_and_retry_error",
+        "bootstrap_stage_replayed_when_renderer_subscribes_late",
+        "official_profile_each_root_waiting_installing_ready_attention",
+        "framework_transfer_bytes_only_no_invented_overall_percentage",
+        "package_failure_preserves_app_entry_and_software_center_recovery",
+        "same_profile_and_required_catalog_both_forms_full_media_on_demand"
+      ]
+    },
+    {
       "id": "standard_app_existing_framework",
       "package_type": "standard",
       "expects": [

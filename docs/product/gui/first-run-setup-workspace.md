@@ -55,7 +55,7 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
   Med Auto Cast (`med-autocast`) 是标准集成；Framework 按 MAC manifest 安装必需的
   `mac-media-assets`，并通过 installed descriptor 提供能力和素材库路径。
   Standard 在线安装，Full 优先使用离线 seed；两者读取同一 Profile 和同一 source
-  helper，Full 不增加第二 root 清单。`mac-media-assets` 不随 Full DMG 内置，核心就绪后由同一 required 依赖安装；MAC 开始或恢复制作时通过 `prepare` 再检查和补齐，库缺失不阻塞 App 导航。
+  helper，Full 不增加第二 root 清单。`mac-media-assets` 的轻量 catalog 随 Full 离线种子预置，Standard 随 MAC 的 required 依赖自动安装；完整媒体由用户在软件中心按需安装。MAC 开始或恢复制作时通过 `prepare` 再检查和补齐必需目录，库缺失只影响对应制作功能。
 - 首次安装通过 generic Package directory/status/action projection 逐 root 收敛，并按
   Package 声明补齐 required identity。
   例如 MAS 需要 `capability:mas-scholar-skills`，但 ScholarSkills 不必重复列为
@@ -75,27 +75,31 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
   aggregation，不能来自 OPL lock、payload、receipt 或下载成功。该 installed
   outcome 仍需对应 carrier 的安装用户路径验收。
 
+## 首次安装的说明与进度
+
+Standard 和 Full 是同一产品的两种安装来源。Standard 首启联网补齐运行环境（必要时包括托管 Node）、Codex CLI、后台任务服务、本机操作助手，以及同一 Official Profile 的智能体与必需依赖。Full 使用包内离线种子完成这些本机准备。准备完成后两者使用相同的智能体和能力；不要求物理缓存、安装目录或安装当天独立更新的版本号逐字节相同。
+
+首次准备面先说明正在做什么，再展示实际执行阶段和已用时间；本机环境阶段、智能体后台准备和模型访问分别说明。Framework 返回下载字节、总量和速度时显示真实传输进度；没有总量时只显示阶段，不估造整体百分比或剩余时间。Official Profile 按同一 roots 提供等待、安装、就绪和需要处理状态，成功仍须安装后的权威状态回读。
+
+Core 就绪后可进入 App；官方智能体继续在后台准备，并提供软件中心进度入口。读取进度失败显示“进度待确认”，不得推断停止或自动重发安装。失败提供检查或重试入口，已成功的内容由原安装器校验复用。用户卸载后的启动不重新应用 Profile。
+
+MAC 轻量素材目录随 MAC 自动安装；完整大素材、额外模型和用户自选资源不属于默认下载。两版的 Gateway 登录、云端模型调用和需要联网的研究任务仍需要网络；Full 的离线保证覆盖本机安装与启动。
+
+Full 的本机首次安装独立于自动更新偏好；待激活更新失败后仍通过 Framework 安装包内已校验的 Codex 种子。启动不能等待 Gateway 登录、模型请求或上游版本查询。runtime 安装失败保留实际阶段和安装来源，不降级成隐藏的联网安装；重试失败应在原入口可见。
+
+离线验收使用空用户目录、拒绝外部网络和无 Gateway 凭据的实际 App，检查窗口可进入以及真实 Codex App Server 的 initialize 和 thread/list。只有对应最终产物通过该检查后，才可将其称为已验证的离线 Full；源码测试或种子存在不能替代产物验收。
+
 ## 桌面布局
 
-- 使用全视口 `focused_setup_workspace`，覆盖普通 Titlebar、Sider 和会话历史区。
-- Studio 的首次准备层通过 body portal 挂载，独立于 Settings slot 所在的侧栏；覆盖整个视口，居中显示工作目录、本机助手和模型访问检查，窄窗口内可滚动。打开时普通 App 根节点设置 `inert` 和 `aria-hidden`，首焦点与 Tab 循环留在准备层，退出后恢复原属性和焦点。不得把完整准备面板作为侧栏底部的普通内容渲染。
-- `/first-run` 是认证后的独立路由，不挂载普通 Layout，因此普通快捷键、托盘、deep link 和通知导航不会卸载首启。
-- readiness 的 ready、blocked、unknown、timeout 和读取失败都不得把普通启动改道到
-  `/first-run`。fresh WebUI login 是唯一例外：它先进入 `/guid` 并携带一次性检查意图，
-  仅当 fast state 明确显示任一 Core 项未完成时 replace 到 `/first-run`；ready、unknown、
-  timeout 或 read failure 均留在 `/guid`。任何导航都不得修改 readiness。
-- 顶部是精简品牌栏，显示 One Person Lab 品牌、未就绪时始终可用的“进入 OPL”动作与帮助入口。
-- macOS 品牌栏保留 traffic lights 安全区；Windows/Linux 复用现有最小化、最大化和关闭按钮。
-- 主工作区最大宽度约 1040px，采用 `240px + 1fr` 两栏。
-- 左侧固定三步：工作目录、本机能力、模型访问。Official Profile 的 Package
-  安装进度归“本机能力”，不新增第四步或独立 Package setup wizard。
-- 左侧只显示步骤状态和 `已完成数 / 总数`，不显示百分比。
-- 右侧一次只承载当前任务；检查中、需要配置、失败和完成在同一位置原位替换。
-- 技术详情在工作区下方折叠，帮助入口可以打开该折叠区。
-
-普通导航在用户主动进入 `/guid` 之前不可见，包括 `ready_to_launch` 已成立但仍停留在完成态时。
-普通 Layout 不挂载；FirstRun 仍对根节点内的非自身 sibling 设置 `inert` 和 `aria-hidden`，首焦点留在 FirstRun；卸载首启页时恢复原属性。
-首启页不得把新会话、搜索、定时任务、运行状态、设置或空会话历史作为首次配置的视觉或交互竞争项。
+- Studio 直接复用固定 DSH cohort 官方 `OnboardingModal`（`ui-settings-models` npm 包），由它负责 body portal、居中容器、遮罩、滚动、响应式尺寸、`inert` 与焦点生命周期；OPL 仅提供工作目录、本机助手、模型访问和真实安装进度。
+- 状态和操作直接使用官方 `DisclosureRow`、`StateDot`、`Tag` 与 `Button`；不保留平行的首启容器、控件样式或焦点管理。官方容器已经覆盖所需行为时不再自行实现。
+- 本机准备和智能体进度是实际正文，展示期间使用 DSH 现有 active 会话布局；不把长进度区塞进空会话的居中 hero。该适配仅影响展示，不创建或修改 Codex 会话。首启窄屏尺寸与滚动由官方容器负责，删除旧自绘首启的响应式 padding。
+- 安装器运行期间显示当前真实阶段、来源和已用时间；“准备哪些内容”按需展开。没有总字节数的本机环境准备不显示整体百分比。
+- 本机准备按工作目录、本机助手、模型访问的固定顺序显示状态。Professional Packages 归本机能力的后台准备，不增加独立安装向导。
+- 保留“进入 OPL”，交由 DSH Settings 的 onboarding coordinator 结束当前展示；该动作不取消后台安装，也不修改 readiness。其后以会话内状态和软件中心入口继续呈现进度。
+- 普通 App 根节点在官方首启容器打开时由 DSH 设置 `inert`；键盘焦点和 Tab 由同一官方 modal layer 管理。首启层不放进侧栏内容区，也不同时呈现两份进度。
+- macOS 交通灯与标题栏安全区、窄屏侧栏 drawer 继续由 DSH AppFrame/SidebarRoot 和载体处理。OPL 不另写响应式侧栏或首启遮罩。
+- 400×600 最小检查视口中，官方容器保持可滚动，当前动作和“进入 OPL”可访问，无横向溢出。正文、状态、展开行和按钮沿用 DSH 字体与主题。
 
 ## 模型访问
 
@@ -191,7 +195,7 @@ API Key 输入保留可见字段标签、密码显隐、安全说明和 renderer
   desired-state controller，不在用户卸载后静默恢复。
 - 不在首启实现 Package resolver、版本兼容器、lock、payload、receipt、
   materialization、rollback 或跨 Package transaction。
-- 不修改 AionUI 通用 Layout/Sider fork body；专注模式由 OPL FirstRun overlay 实现。
+- 不修改上游 DSH 通用 Layout/Sidebar/Modal body；产品内容通过官方组件和 slots 接入。
 - 不引入新 UI 依赖、插画、渐变、玻璃效果或营销式首屏。
 
 ## 验收

@@ -649,3 +649,48 @@ test('Full first launch repairs MAC required media dependency even when the MAC 
   assert.equal(again.official_profile_package_apply.items[0].status, 'already_present');
   assert.equal(mutations, 1);
 });
+
+
+test('first install observes the Framework worker and reports readiness only after fresh closure readback', () => {
+  const packages = new Map<string, PackageState>([['mas', { installed: false, action: 'agent_package_install' }]]);
+  const calls: string[] = [];
+  const progress: any[] = [];
+  let polls = 0;
+  const result = applyOfficialProfilePackages({ intent: 'first_install', rootPackageIds: ['mas'], onProgress: value => progress.push(value), runtime: {
+    wait() {},
+    execute(args) {
+      if (args[1] === 'state') {
+        const state = fastState(packages);
+        Object.assign(state.app_state, { actions: [{ action_id: 'package_operation_start' }, { action_id: 'package_operation_status' }] });
+        return { status: 0, stdout: JSON.stringify(state), stderr: '' };
+      }
+      const id = args[args.indexOf('--action') + 1]; calls.push(id);
+      if (id === 'package_operation_start') return { status: 0, stdout: JSON.stringify({ app_action_execution: { result: { operation: { operation_id: 'worker-1' } } } }), stderr: '' };
+      assert.equal(id, 'package_operation_status');
+      if (calls.length === 1) return { status: 0, stdout: JSON.stringify({ app_action_execution: { result: { operations: [] } } }), stderr: '' };
+      if (++polls === 2) packages.set('mas', { installed: true });
+      return { status: 0, stdout: JSON.stringify({ app_action_execution: { result: { operations: [{ operation_id: 'worker-1', status: polls === 2 ? 'completed' : 'running' }] } } }), stderr: '' };
+    }
+  } });
+  assert.deepEqual(calls, ['package_operation_status', 'package_operation_start', 'package_operation_status', 'package_operation_status']);
+  assert.equal(result.official_profile_package_apply.status, 'completed');
+  assert.deepEqual(progress.map(item => [item.status, item.completed]), [['installing', 0], ['ready', 1]]);
+  assert.deepEqual(progress.at(-1).package_results, [{ package_id: 'mas', status: 'installed' }]);
+});
+
+test('unknown worker result is not restarted or accepted as installation success', () => {
+  const packages = new Map<string, PackageState>([['mas', { installed: false, action: 'agent_package_install' }]]);
+  let starts = 0;
+  const result = applyOfficialProfilePackages({ intent: 'first_install', rootPackageIds: ['mas'], runtime: { wait() {}, execute(args) {
+    if (args[1] === 'state') {
+      const state = fastState(packages);
+      Object.assign(state.app_state, { actions: [{ action_id: 'package_operation_start' }, { action_id: 'package_operation_status' }] });
+      return { status: 0, stdout: JSON.stringify(state), stderr: '' };
+    }
+    const start = args.includes('package_operation_start'); if (start) starts++;
+    return { status: 0, stdout: JSON.stringify({ app_action_execution: { result: start ? { operation: { operation_id: 'worker-1' } } : { operations: [] } } }), stderr: '' };
+  } } });
+  assert.equal(starts, 1);
+  assert.equal(result.official_profile_package_apply.status, 'failed');
+  assert.equal(result.official_profile_package_apply.items[0].error.message.includes('inspect software status'), true);
+});

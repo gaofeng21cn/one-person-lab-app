@@ -5937,6 +5937,39 @@
     }
   },
   "first_launch_readiness_policy": {
+    "installation_presentation": {
+      "ui_reuse": {
+        "onboarding_container": "DSH official OnboardingModal from pinned ui-settings-models package",
+        "components": ["DisclosureRow", "StateDot", "Tag", "Button"],
+        "shell_geometry_and_theme": "DSH AppFrame SidebarRoot and official theme",
+        "local_ui_scope": "OPL owner projections copy and minimal content layout only"
+      },
+      "scope": "first_install_only_standard_and_full",
+      "offline_launch": {
+        "full_required": true,
+        "acceptance": "clean_home_external_network_denied_visible_app_and_real_codex_app_server_initialize_and_thread_list_without_gateway_credentials",
+        "required_initialization": "independent_of_automatic_update_preference_and_pending_update_failure",
+        "online_work": "update_checks_gateway_authentication_and_model_requests_are_not_launch_prerequisites",
+        "bootstrap_failure": "preserve_actual_stage_and_source_no_silent_online_fallback",
+        "artifact_boundary": "source_or_seed_presence_is_not_published_full_offline_acceptance"
+      },
+      "distribution_explanation": {
+        "standard": "download_missing_runtime_codex_and_official_profile_required_dependencies",
+        "full": "install_same_capabilities_from_bundled_offline_seeds",
+        "installed_outcome": "same_official_roots_required_dependencies_and_callable_capabilities",
+        "network_services": "gateway_login_and_model_requests_require_network_in_both_forms"
+      },
+      "progress_sources": [
+        "desktop_runtime_bootstrap_observed_stage",
+        "official_profile_helper_root_results",
+        "framework_package_operation_status"
+      ],
+      "presentation": "localized_current_stage_elapsed_time_root_counts_and_real_transfer_bytes",
+      "unknown_total_policy": "indeterminate_no_overall_percentage_or_invented_eta",
+      "background_policy": "keep_app_entry_available_show_software_center_progress_and_recovery",
+      "mac_media_policy": "required_catalog_installed_automatically_full_media_explicit_on_demand",
+      "completion_authority": "fresh_configured_carrier_readback_not_download_or_seed_presence"
+    },
     "startup_loader_ref": "ui_experience_contract.startup_loader",
     "launch_gate": "ready_to_launch",
     "ui_order": "before_first_conversation_not_before_guid",
