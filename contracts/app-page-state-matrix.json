@@ -112,26 +112,22 @@
     "surface_id": "remote_companion",
     "page_entry": "settings_resources",
     "ios_surface": "native_ios_companion",
-      "states": [
-        "unavailable",
-        "unpaired",
-        "reserving",
-        "qr_ready",
-        "awaiting_confirmation",
-        "active",
-        "revoking",
-        "attention"
-      ],
-      "state_rules": {
-        "unavailable": "show_unavailable_without_fabricated_pair_or_device_state_and_keep_the_desktop_workbench_usable",
-        "unpaired": "show_one_pair_action_and_no_conversation_data",
-        "reserving": "show_broker_authoritative_reservation_progress_without_conversation_or_device_secrets",
-        "qr_ready": "show_the_complete_bounded_expiring_qr_payload_only_for_this_transient_pairing_interaction",
-        "awaiting_confirmation": "show_six_digit_authentication_digits_and_expiry_without_caching_or_logging_claim_material",
-        "active": "show_authorized_desktop_and_mobile_devices_and_allow_only_projected_conversation_actions",
-        "revoking": "show_terminal_revoke_progress_and_do_not_infer_that_the_pair_seat_is_released",
-        "attention": "show_owner_projected_pairing_or_device_attention_without_inventing_a_new_state"
-      },
+    "states": [
+      "unavailable",
+      "unpaired",
+      "qr_ready",
+      "active",
+      "revoking",
+      "attention"
+    ],
+    "state_rules": {
+      "unavailable": "explain_https_endpoint_or_host_unavailability_without_affecting_desktop",
+      "unpaired": "offer_scan_or_paste_link_without_fabricated_conversations",
+      "qr_ready": "transient_single_use_link_with_expiry",
+      "active": "authorized_device_canonical_conversations_and_pending_requests",
+      "revoking": "disable_device_calls_and_close_streams",
+      "attention": "show_error_and_recovery_without_replaying_unknown_mutations"
+    },
     "forbidden_in_page_state": [
       "provider_history_as_conversation_truth",
       "cloud_queued_command",

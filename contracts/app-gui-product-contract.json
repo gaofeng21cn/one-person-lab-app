@@ -1831,83 +1831,43 @@
     "app_store_name": "OPL Link",
     "home_screen_name": "OPL Link",
     "implementation_owner": "opl-link",
-    "product_role": "remote_companion_channel_not_a_runtime_or_third_workbench",
+    "product_role": "native_ios_companion_for_opl_app",
     "primary_user_object": "canonical_codex_conversation",
     "default_ios_surface": "conversation_directory",
-    "task_grouping_policy": "optional_metadata_or_external_opl_flow_ledger_linear_reference_not_an_opl_link_control_plane",
     "desktop_workbench_remains_canonical": true,
-    "transport_target": "ably_free_realtime_with_cloudflare_workers_d1_control_plane",
-    "transport_selection_status": "target_pending_mainland_china_probe",
-    "current_connector_implementation": "legacy_tencent_source_requires_migration",
-    "release_ready": false,
-    "standard_view_type": "remote_companion_access",
-      "standard_view_contract_ref": "framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access",
-      "pairing_access_gate": "one_time_invitation_and_worker_d1_pair_admission_with_release_cohort_metadata_lock",
-      "release_cohort_lock_ref": "contracts/app-remote-companion.json#transport.release_cohort_lock",
-      "pairing_capacity_policy": {
-        "authority": "opl-link/service_cloudflare_worker_and_d1",
-        "active_pair_limit": 20,
-        "warning_threshold": 15,
-        "limit_scope": "validation_cohort_not_provider_seat_limit",
-        "warning_projection": "service_capacity_warning_when_active_pair_count_at_or_above_15",
-        "hard_stop": "service_rejects_new_pairing_when_active_pair_count_at_or_above_20",
-        "metadata_or_config_digest_mismatch": "fail_closed_before_claim_or_transport_connection",
-        "testflight_is_capacity_authority": false
-      },
-      "pairing_surface": "settings_resources_desktop_pairing_qr_and_ios_scan",
+    "transport_target": "authenticated_studio_https_json_sse",
+    "wire_contract_ref": "contracts/app-remote-companion-wire.json",
+    "desktop_host_owner": "opl-studio",
+    "pairing_surface": "settings_resources_opl_link_native_host_panel",
+    "pairing_access_gate": "desktop_session_and_single_use_expiring_code",
     "access_status_values": [
       "unavailable",
       "unpaired",
-      "reserving",
       "qr_ready",
-      "awaiting_confirmation",
       "active",
       "revoking",
       "attention"
     ],
-    "access_actions": [
-      "pair.start",
-      "pair.refresh",
-      "pair.confirm",
-      "pair.cancel",
-      "device.rename",
-      "pair.revoke"
-    ],
-    "secret_boundary": {
-      "transient_interaction_fields": [
-        "invitation_code",
-        "manual_code",
-        "qr_payload",
-        "authentication_digits"
-      ],
-      "never_cached_logged_or_returned_by_app_action": [
-        "invitation_code",
-        "manual_code",
-        "qr_payload",
-        "claim_secret",
-        "claim_material"
-      ],
-      "qr_payload_only_in_status": "qr_ready",
-      "qr_payload_max_length": 8192
-    },
     "ordinary_ios_actions": [
       "conversation.list",
       "conversation.open",
-      "conversation.refresh",
       "conversation.start",
-      "conversation.send_text",
-      "conversation.turn.stop",
+      "conversation.send",
+      "conversation.steer",
+      "conversation.interrupt",
       "conversation.approval.respond",
-      "pair.revoke"
+      "conversation.question.respond",
+      "workspace.preview",
+      "workspace.download",
+      "device.revoke"
     ],
     "forbidden_ios_controls": [
-      "provider_or_model_editor",
-      "permission_policy_editor",
+      "provider_credentials_editor",
       "package_lifecycle_editor",
       "arbitrary_shell_or_file_command",
       "offline_command_queue"
     ],
-    "missing_provider_or_transport_policy": "show_unavailable_without_fabricated_online_or_conversation_state_and_keep_desktop_workbench_usable"
+    "release_ready": false
   },
   "active_shell": "opl-studio",
   "implementation_carrier": "opl-studio",
@@ -2095,25 +2055,25 @@
           "placement": "settings.section",
           "trust_tier": "declarative",
           "owner": "one-person-lab-app",
-          "data_truth_owner": "opl-link_desktop_connector_and_opl_link_service",
+          "data_truth_owner": "declaring_remote_companion_provider",
           "projection_owner": "one-person-lab-framework",
           "renderer_activation_policy": {
             "aionui": {
-              "provider_owner": "opl_link_desktop_connector",
+              "provider_owner": "declaring_remote_companion_provider",
               "settings_surface": "app_standard_remote_companion_access",
               "framework_remote_companion_host_activation_allowed": true,
               "framework_projected_remote_companion_access_rendering_allowed": true
             },
             "opl_studio": {
-              "provider_owner": "opl_link_desktop_connector",
+              "provider_owner": "declaring_remote_companion_provider",
               "settings_surface": "app_standard_remote_companion_access",
               "framework_remote_companion_host_activation_allowed": true,
               "framework_projected_remote_companion_access_rendering_allowed": true
             },
             "single_active_provider_path_per_renderer_required": true
           },
-          "migration_state": "source_baseline_frozen_caller_cutover_and_live_qualification_pending",
-          "runtime_status": "target_projection_contract_only_service_connector_ios_shell_network_apns_and_testflight_qualification_unverified",
+          "migration_state": "generic_optional_package_contribution_not_opl_link_v2_host",
+          "runtime_status": "provider_authoritative_dynamic_projection",
           "command_input_source": "validated_remote_companion_access_action_inputs",
           "command_resolution": "resolve_fixed_action_id_against_the_same_current_descriptor_then_dispatch_only_the_declared_closed_input_shape",
           "post_action_readback": "fresh_remote_companion_access_read_required_after_action_success",
@@ -2288,15 +2248,6 @@
             "display_name": "微信",
             "package_id_example": "opl-channel-weixin",
             "connector_kind": "message_channel_connector",
-            "classification_role": "product_documentation_example_not_runtime_membership"
-          },
-          {
-            "display_name": "OPL Link",
-            "target_package_id": "opl-link-desktop-connector",
-            "connector_kind": "remote_companion_connector",
-            "classification_scope": "desktop_connector_only_ios_app_and_opl_link_service_remain_opl_link_owned",
-            "target_package_implemented": true,
-            "legacy_shell_connector_migration_required": true,
             "classification_role": "product_documentation_example_not_runtime_membership"
           }
         ]

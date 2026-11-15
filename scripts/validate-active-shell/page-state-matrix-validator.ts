@@ -1,3 +1,4 @@
+import { validateRemoteCompanionPageState } from './remote-companion-validator.ts';
 import { assertDeepEqualJson, assertIncludesAll, readJson } from './assertions.ts';
 import { isDefaultReleaseAdapter } from './active-shell-contract.ts';
 import {
@@ -217,42 +218,7 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
       throw new Error(`MiniApp workspace is missing required state ${state}`);
     }
   }
-  if (
-    JSON.stringify(matrix.remote_companion) !== JSON.stringify({
-      policy_ref: 'contracts/app-remote-companion.json',
-      surface_id: 'remote_companion',
-      page_entry: 'settings_resources',
-      ios_surface: 'native_ios_companion',
-      states: [
-        'unavailable',
-        'unpaired',
-        'reserving',
-        'qr_ready',
-        'awaiting_confirmation',
-        'active',
-        'revoking',
-        'attention',
-      ],
-      state_rules: {
-        unavailable: 'show_unavailable_without_fabricated_pair_or_device_state_and_keep_the_desktop_workbench_usable',
-        unpaired: 'show_one_pair_action_and_no_conversation_data',
-        reserving: 'show_broker_authoritative_reservation_progress_without_conversation_or_device_secrets',
-        qr_ready: 'show_the_complete_bounded_expiring_qr_payload_only_for_this_transient_pairing_interaction',
-        awaiting_confirmation: 'show_six_digit_authentication_digits_and_expiry_without_caching_or_logging_claim_material',
-        active: 'show_authorized_desktop_and_mobile_devices_and_allow_only_projected_conversation_actions',
-        revoking: 'show_terminal_revoke_progress_and_do_not_infer_that_the_pair_seat_is_released',
-        attention: 'show_owner_projected_pairing_or_device_attention_without_inventing_a_new_state',
-      },
-      forbidden_in_page_state: [
-        'provider_history_as_conversation_truth',
-        'cloud_queued_command',
-        'phone_local_runtime_ready_claim',
-        'shell_inferred_canonical_thread_binding',
-      ],
-    })
-  ) {
-    throw new Error('Page-state remote companion contract must match the App-owned companion policy');
-  }
+  validateRemoteCompanionPageState(matrix.remote_companion);
   const runtimePage = (matrix.pages ?? []).find((page) => page.id === 'runtime');
   for (const [field, expected] of Object.entries({
     route_classification: 'core_dynamic_agent_runtime',

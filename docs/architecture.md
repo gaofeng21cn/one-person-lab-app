@@ -177,6 +177,14 @@ own cloud scheduling, storage, credentials, billing, environment bodies or domai
 policy. [OPL Link](product/opl-link.md) owns the remote-companion product boundary;
 [Persona integration](product/opl-persona-integration.md) owns its Package view consumer.
 
+OPL Link is the native iPhone/iPad companion for the selected Studio Host. It
+uses companion-scoped HTTPS routes and SSE in that same DSH Host, forwarding
+conversation, approval and bounded workspace operations to the existing
+`opl-codex-native` instance. It neither launches another Codex runtime nor
+requires a separate pairing cloud, message provider or Framework Connector
+Package. Its phone-reachable HTTPS endpoint and TLS terminator belong to the
+user-trusted deployment boundary.
+
 ## Evidence
 
 Contracts define admitted behavior, source/tests establish implementation,

@@ -198,41 +198,19 @@ export type AppDeliveryTopology = {
   };
   mobile: {
     initial_surface: 'native_ios_remote_companion';
-    product_name: 'OPL Link';
+    app_store_name: 'OPL Link';
     home_screen_name: 'OPL Link';
     implementation_owner: 'opl-link';
     source_repository: 'https://github.com/gaofeng21cn/opl-link';
     companion_policy_ref: 'contracts/app-remote-companion.json';
+    wire_contract_ref: 'contracts/app-remote-companion-wire.json';
+    product_role: 'native_ios_companion_for_opl_app';
     primary_user_object: 'canonical_codex_conversation';
-    default_surface: 'conversation_directory';
-    task_management_surface: false;
-    transport_target: 'ably_free_realtime_with_cloudflare_workers_d1_control_plane';
-    transport_selection_status: 'target_pending_mainland_china_probe';
-    current_implementation: 'legacy_tencent_and_go_sqlite_source_not_conformant_to_target';
-    access_view_type: 'remote_companion_access';
-    access_view_contract_ref: 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result';
-    access_status_values: [
-      'unavailable',
-      'unpaired',
-      'reserving',
-      'qr_ready',
-      'awaiting_confirmation',
-      'active',
-      'revoking',
-      'attention',
-    ];
-    access_actions: [
-      'pair.start',
-      'pair.refresh',
-      'pair.confirm',
-      'pair.cancel',
-      'device.rename',
-      'pair.revoke',
-    ];
+    desktop_host_owner: 'opl-studio';
+    transport_target: 'authenticated_studio_https_json_sse';
+    desktop_workbench_remains_canonical: true;
+    pairing_surface: 'settings_resources_opl_link_native_host_panel';
     release_ready: false;
-    optional_web_fallback: 'desktop_webui_remains_available_but_is_not_the_ios_product';
-    separate_product_renderer_allowed: false;
-    full_workbench_surface: false;
   };
   successor_product: {
     candidate_id: 'opl-studio';

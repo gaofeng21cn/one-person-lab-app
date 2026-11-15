@@ -37,7 +37,7 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 | 团队与主动代理 | [Team、Bot 与 Superagent](team-bot-and-superagent.md) | 官方 DSH 协作 owner、Codex 执行适配与独立 Superagent profile |
 | 模型选择 | [Codex Auto](codex-auto-model-policy.md) | App profile 与 Shell consumer |
 | Computer Use | [Computer Use](computer-use.md) | 对应 release qualification |
-| OPL Link | [OPL Link](../opl-link.md) | Link owner 的冻结/重启边界 |
+| OPL Link | [OPL Link](../opl-link.md) | 原生 iOS 伴侣、Studio 接入与跨端验收 |
 | 历史 AionCore / Codex 包装 | [Codex-only carrier](../../architecture/aioncore-codex-only-carrier.md) | 旧版升级来源与原始 artifact evidence |
 | AionUI 退役与维护出处 | [Fork maintenance](../../architecture/opl-aionui-fork-maintenance-strategy.md) | 历史说明；不授权新生产构建或 upstream intake |
 | Studio | [Studio plan](opl-studio-plan.md) | Studio owner，采用权仍归 App |

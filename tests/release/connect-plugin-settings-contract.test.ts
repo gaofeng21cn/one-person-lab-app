@@ -63,27 +63,22 @@ test('channel settings admit exactly one provider route per renderer', () => {
   });
   assert.equal(weixinManifest.authority_boundary.second_channel_provider_path_allowed, false);
 
-  const link = contract.currently_defined_product_classifications.find(
-    ({ target_package_id }: { target_package_id?: string }) =>
-      target_package_id === 'opl-link-desktop-connector',
-  );
-  assert.equal(link.connector_kind, 'remote_companion_connector');
-  assert.equal(link.target_package_implemented, true);
-  assert.equal(link.legacy_shell_connector_migration_required, true);
+  assert.equal(remoteCompanionAccess.data_truth_owner, 'declaring_remote_companion_provider');
+  assert.equal(contract.currently_defined_product_classifications.some(
+    ({ target_package_id }: { target_package_id?: string }) => target_package_id === 'opl-link-desktop-connector',
+  ), false);
 });
 
-test('OPL Link keeps product ownership while its desktop connector moves to OPL Connect', () => {
+test('OPL Link uses the active Studio Host while generic connector contributions retain their own authority', () => {
   const gui = readJson('contracts/app-gui-product-contract.json');
   const remote = readJson('contracts/app-remote-companion.json');
   const connector = remote.desktop_connector_boundary;
 
-  assert.equal('desktop_connector' in gui.remote_companion, false);
-  assert.equal(connector.opl_module_classification, 'opl_connect.remote_companion_connector');
-  assert.equal(connector.target_path, 'packages/opl-link-desktop-connector');
-  assert.equal(connector.package_owner, 'opl-link');
-  assert.equal(connector.runtime_host_owner, 'one-person-lab-framework');
-  assert.match(connector.cordis_host_policy, /single_framework_host/);
-  assert.match(connector.product_boundary, /ios_app_and_opl_link_service_remain_independent/);
-  assert.equal(remote.implementation_status.desktop_connector_target_package_implemented, true);
-  assert.equal(remote.implementation_status.legacy_shell_connector_migration_required, true);
+  assert.equal(gui.remote_companion.desktop_host_owner, 'opl-studio');
+  assert.equal(connector.implementation_owner, 'opl-studio');
+  assert.equal(connector.canonical_executor, 'existing_opl_codex_native_instance');
+  assert.equal(connector.new_codex_process_allowed, false);
+  assert.equal(connector.separate_framework_connector_package_required, false);
+  assert.equal(connector.generic_remote_companion_access_contribution_is_link_runtime, false);
+  assert.equal(gui.framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access.projection_owner, 'one-person-lab-framework');
 });

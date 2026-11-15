@@ -1,171 +1,108 @@
-# OPL Link 产品与交付基线
+# OPL Link：OPL App 的 iOS 手机伴侣
 
 Owner: `one-person-lab-app`
 Purpose: `opl_link_product_and_delivery_ssot`
-State: `frozen_pending_manual_restart`
+State: `active`
 
-## 结论
+OPL Link 让用户离开电脑后，在 iPhone 或 iPad 上找到 OPL App 的已有对话、了解执行进展、
+继续提问、回应审批与问题，以及预览和分享结果文件。桌面仍然持有同一个 Codex thread、模型、
+权限、工作目录与工具。手机是原生操作和阅读界面，不运行第二个 Agent，也不建立另一份历史权威。
 
-2026-09-06 起保留产品、冻结开发，等待用户明确手动重启。此前连续推进外部 TestFlight 的要求已被
-替代；本轮只校正方案与源码基线，不继续登录、部署、探针或发布。执行策略归 App contract 的
-`delivery_governance.execution_policy`，分阶段重启步骤归
-[Link delivery plan](https://github.com/gaofeng21cn/opl-link/blob/main/docs/delivery-plan.md)。
+2026-11-15 用户重启开发，并授权按当前产品目标破坏性替换旧 Link 实现。旧代码的兼容与保留不再
+构成本次要求。当前产品合同是 [`app-remote-companion.json`](../../contracts/app-remote-companion.json)，
+跨端接口由 [`app-remote-companion-wire.json`](../../contracts/app-remote-companion-wire.json) 持有。
 
-OPL Link 是 OPL App 的独立原生 iOS 对话连接器。它让用户离开电脑后继续桌面端的 Codex
-conversation/thread，不是移动版 OPL App、第二个 Codex runtime、第二个历史库，也不是 OPL
-Flow、OPL Ledger 或 Linear 的任务控制面。
+## 设计目标
 
-目标技术路线只有一条：
+设计参考与工程复用分别决策。学习成熟产品的交互，不让候选代码的改造难度决定体验上限。
 
-```text
-iPhone OPL Link <-> Ably Free <-> Desktop OPL Connector
-        \               /
-         Cloudflare Workers Free + D1 Free
-         邀请、配对、短期 JWT、设备授权与撤销
-```
+| 参考 | 采用的设计理念 | 在 OPL Link 中的表现 |
+| --- | --- | --- |
+| [Fish Pocket](https://github.com/imsai-sh/fish-pocket) | 原生 iOS 对话、渐进展开、拇指可达的决策 | 正文优先；过程默认折叠；审批与问题使用底部面板；iPad 使用主从导航 |
+| [DSH Go](https://github.com/ccch1mneyyy/dsh-Go) | 完整工作流、清楚的运行状态与成果交付 | 区分执行、等待、失败和完成；支持插话与停止；结果文件具有预览、下载和分享动作 |
+| [Agents Anywhere](https://github.com/anywhere-labs/Agents-Anywhere) | 设备、项目和会话的清楚归属 | 当前设备和项目可见；从最近对话、项目分组或待处理请求进入工作 |
 
-这条路线不要求用户电脑有公网 IP，不要求端口转发、VPN、Tailscale、Cloudflare Tunnel 或本机
-常驻公网 Service，也不依赖 OPL Cloud、Cloud Candidate、TKE 或完整 Cloud 发布物。Workers 按请求
-运行，D1 承担轻量控制面持久化；在免费额度内没有固定服务器费用，也没有 CloudBase 每 6 个月
-续期一次的运维动作。
-
-免费是受额度约束的验证目标，不是 20 pair 持续在线的费用保证。heartbeat、流式消息与投递都会
-消耗额度，静默 APNs 也不能保证后台即时唤醒；重启时先实测预算、通知节流和撤销收敛。
-托管服务并不能让离线电脑执行对话，桌面 OPL App 仍须在线。
-
-Ably 是当前目标 provider，但尚未通过中国大陆网络探针，因此不能写成已经可用。实施前必须同时
-验证 Ably realtime、Worker HTTPS/token refresh 和 Ably Push -> APNs 在移动、联通、电信与代表性
-Wi-Fi 下的可达性和恢复行为。只有探针证据不达标时，才允许通过新的明确决策将一个 release cohort
-切换为腾讯云 IM；不双写、不运行时自动 fallback，已有 pair 必须重新配对。
+上述项目是设计参考，不因此引入其本机运行时、账号、云平台、品牌或受限素材。代码复用须单独核对
+确切目录及授权；本轮原生客户端和 Studio 适配使用 OPL 自有实现、Apple 平台组件与许可适合的
+成熟阅读组件。正文使用 MarkdownUI 渲染 GFM 表格、列表和代码块，代码支持复制；Markdown
+和文本文件使用原生阅读路径，其他受支持格式使用 Quick Look，文件通过系统分享导出。
 
 ## 用户闭环
 
+桌面生成一次性二维码，手机扫码或粘贴链接，确认连接后进入对话。连接前不要求用户理解插件、
+消息提供商和协议。设备管理与高级网络说明位于设置。
+
+用户从已有对话开始，也可以在选中的设备上新建对话。项目分组是对 canonical workspace 的只读
+导航投影；本地置顶、草稿和阅读位置属于设备偏好，不重写 thread 历史或项目身份。
+
+打开对话后先显示 canonical 历史，再接收同一个 App Server 的实时事件。工具过程默认折叠，正在
+等待的审批和问题保持可见。用户可以继续发送、在运行中补充要求或停止当前 turn。现有对话沿用
+桌面已确认的设置；模型和思考深度只在真实能力可用时提供显式选择，不隐式重置权限。
+
+审批显示动作原因、对象与范围，并给出允许和拒绝；结构化问题保留选项、自由回答及明确提交。
+只转发当前真实 pending request 支持的响应，不在手机生成额外授权或扩大权限。文件修改审批
+展示对应请求的路径和 diff；取得完整范围后才提供允许按钮，否则保留拒绝与回电脑处理入口。
+
+文件卡片帮助用户直接取走成果：报告、PPT、表格、图像等可预览和通过系统分享。引用文件、
+本轮修改和本轮交付需要明确区分；工作区浏览不把目录中的所有文件都称为当前成果。下载始终
+绑定 canonical thread workspace，保留真实路径与符号链接边界。
+
+## 当前架构
+
 ```text
-安全配对 -> 查看对话列表 -> 打开对话 -> 阅读历史/流式输出
-        -> 继续发送消息或停止当前 turn -> 前后台恢复后重新同步
+iPhone / iPad：原生 SwiftUI OPL Link
+            │ 已认证 HTTPS JSON + SSE
+            ▼
+选中的 OPL Studio Host：配对、设备授权、有限动作与事件
+            │ 现有 opl-codex-native / workspace service
+            ▼
+同一个 Codex App Server、thread、turn、审批与工作区
 ```
 
-首发闭环包括：
+Studio 复用当前 DSH Application Host 的 HTTP 路由和 lifecycle，不加载 `dsh-base`，不另起
+Codex App Server。手机只访问 `/api/link` 下的受限接口；设备 bearer 无权调用通用 App action、
+配置、Package 安装或任意 shell。通用 `remote_companion_access` Package 贡献仍可服务其他
+provider，OPL Link v2 的运行不依赖该贡献或另一个 Framework Connector Package。
 
-- 配对一台正在运行的桌面 OPL App；
-- 查看桌面已有对话的标题、摘要、最近更新时间和当前状态；
-- 在当前已加载的对话目录中按标题本地过滤，不冒充 canonical 全历史搜索；
-- 打开对话，阅读历史和流式输出，继续发送文字或停止当前 turn；
-- 新建对话并沿用桌面默认工作区、模型、权限和 Agent 配置；
-- 处理桌面明确投影的低/中影响审批；
-- 接收不含正文、路径、审批内容或密钥的通用更新提醒；
-- 从任一端撤销 pair，阻止 token 续签；desktop 收到撤销信号后阻断命令并清钥，离线或信号丢失时
-  按授权到期规则收敛。撤销中与已完成必须分开显示，不能承诺所有网络分区下立即 detach。
+网络前提是手机可访问的、使用系统信任证书的 OPL HTTPS 入口，可复用现有 WebUI 部署与用户信任的
+HTTPS 代理。当前架构不提供自动 NAT 穿透，也不另外建立消息中继或云端配对服务。配置和实际
+访问必须指向同一台选中的 OPL Host，不能把另一个云端实例当作原桌面的对话。
 
-“任务”只可能是桌面对话的元数据、虚拟分组或可选的 OPL Flow/Ledger/Linear 外部引用。
-OPL Link 不创建或管理 owner、deadline、dependency、stage、lifecycle 或工作流。
+HTTPS 的 TLS 终点属于用户信任边界；若采用反向代理，该代理处于此边界内。本路线不宣称跨第三方
+中继的应用层端到端加密。Release 客户端拒绝明文 HTTP、无效证书和跨 origin 重定向；仅 Debug
+验证允许双方明确开启的 loopback HTTP，不开放普通局域网明文连接。
 
-## Authority
+## 配对、设备与恢复
 
-| 主题 | 唯一 owner | 边界 |
-| --- | --- | --- |
-| 产品身份、用户结果、安全与发布门禁 | `one-person-lab-app` | 本文与 App contracts |
-| iOS UI、Keychain、E2EE、transport adapter | `opl-link` | 不持有 canonical history |
-| 桌面 Connector Package | `opl-link/packages/opl-link-desktop-connector` | 归类为 OPL Connect 的 `remote_companion_connector`；源码已存在，真实链路未验收 |
-| Connector lifecycle/composition | OPL Framework runtime/Package/App projection scope 内唯一的 Cordis Host | 动态发现、托管并投影贡献；不进入 Studio DSH Host |
-| Shell renderer 与 canonical App bridge | `opl-aion-shell` 或已准入 successor | 只渲染投影和桥接 read/action；当前 Connector 业务源码待迁出 |
-| 邀请、配对、短期 JWT、设备授权与撤销 | `opl-link/service` on Workers/D1 | 不存对话正文或 pair master key |
-| 实时密文与通用推送信号 | Ably | 不成为业务 truth |
-| 对话历史、turn、模型与执行 | Codex App Server + 桌面 OPL runtime | 唯一 canonical authority |
-| OPL Cloud | 可选 Workspace/WebUI host | 不是 Link 运行或发布前置 |
+桌面已认证用户创建 120 秒有效的单次配对链接。成功兑换后，Studio 签发 companion scope 的设备
+凭据；手机写入 Keychain，Host 只持久化 token hash 与设备元数据。设备凭据有效期为 30 天。
+配对码、二维码和 bearer 不进入日志、普通偏好或消息历史。桌面可查看并撤销设备；撤销同时拒绝
+后续请求并关闭该设备的事件流。手机断开连接也撤销自身授权。
 
-## OPL Connect 与桌面设置
+每个 mutation 使用独立 request ID，Host 拒绝相同 ID 的不同操作。连接中断、超时或结果未知时，
+手机显示真实的不确定状态并回读 canonical 对话，不自动重发消息、审批或停止动作。离线保留草稿，
+禁用写动作；恢复后重新读取设备状态、目录、当前 thread 和 pending requests。
 
-OPL Link 整体不是 OPL Connect 的下属产品。只有把桌面 OPL App 接入远程对话链路的
-`opl-link-desktop-connector` Package 属于 OPL Connect；OPL Link iOS App 与
-`opl-link/service` 仍由 OPL Link 持有。OPL Connect 不接管它们的产品语义、远端服务、凭据、
-对话历史或 provider 生命周期。
+系统挂起后的即时更新不属于当前连接能力。回前台必须同步；小组件、Live Activity 或通知只表达
+已取得的真实状态。没有推送服务时，不承诺 App 被结束后仍能即时收到进展。
 
-桌面 Connector 复用 OPL Framework 在 runtime/Package/App projection scope 内唯一的 Cordis Host。Shell 只渲染 Framework projection 并通过
-canonical App bridge 执行动作，不长期拥有 Connector 业务逻辑，也不创建产品专用 Host。目标 Package、
-Host ABI 和 bridge 已有源码与历史集成证据；既有 Shell Connector caller 切换及清理仍是缺口，
-不能把历史安装证据表述为当前端到端可用。重启只绑定当时 active carrier，不强制所有 carrier 并行改造。
+## Owner 与交付
 
-Connector 不创建顶级设置导航，而是用 App-owned `remote_companion_access` 标准声明式视图进入
-`设置 > 资源 > 消息与连接`。微信等消息渠道继续使用独立的 `channel_access` 语义；OPL Link
-不得因为不是 `channel_access` 而被 Shell 或 Host 过滤。只有 Package descriptor 当前、已安装、已启用且可调用，
-Framework Host 已接入，贡献与 action refs 均有效时才显示。Connector 已就绪但尚未配对时显示
-`pair.start`；Package 或 Host 未就绪时完全隐藏，不显示静态入口或占位。
+| 主题 | Owner |
+| --- | --- |
+| 产品定位、体验、安全边界与跨端 wire | `one-person-lab-app` |
+| iOS/iPadOS UI、Keychain、客户端恢复和 Apple carrier | `opl-link` |
+| 当前桌面 Host 的配对、设备鉴权、有限路由、事件和文件桥接 | `opl-studio` |
+| canonical 对话、turn、模型、权限和审批 | 当前 `opl-codex-native` 与 Codex App Server |
+| 文件内容、真实工作区及路径准入 | 现有 workspace owner |
+| Package 与领域任务生命周期 | 原 Framework 与领域 owner |
 
-普通界面只显示图标、名称、配对状态、设备、主要动作和必要详情；Package ID、carrier/trust 与诊断只在
-开发者详情显示。微信消息渠道 Connector 与 OPL Link desktop Connector 是当前已明确的产品分类，
-不是运行时白名单。Package 只贡献结构化数据和 action refs，不能下发任意 Swift 或 React UI；
-`remote_companion_access` 的动作固定为 `pair.start`、`pair.refresh`、`pair.confirm`、`pair.cancel`、
-`device.rename`、`pair.revoke`，不接受任意表单或 UI 输入。配对投影的状态固定为
-`unavailable`、`unpaired`、`reserving`、`qr_ready`、`awaiting_confirmation`、`active`、`revoking`、
-`attention`；邀请、短码、QR claim material 和 claim secret 只在当前交互瞬时出现，不进入缓存、日志或
-App action readback，完整 QR payload 只允许在有界且未过期的 `qr_ready` 投影中出现。
+验收顺序是产品与接口合同、Host 与客户端行为检查、原生构建、source Host 到模拟器的同一对话闭环、
+真实界面审看。Demo 只用于界面状态；source 联调不代替已安装 App 或真机网络验收。
 
-TestFlight 只负责 iOS carrier 分发；用户准入和验证 cohort 由 `opl-link/service` 在 Cloudflare
-Workers/D1 上的邀请与 pair admission 控制，不能用 TestFlight 名额代替。当前冻结的 validation
-cohort 内容锁把 hard limit 设为 20、warning threshold 设为 15；这是该 cohort 的 admission
-配置，不是 Ably/Tencent provider seat，也不是 TestFlight capacity。新 pairing 在 20 个已占用
-admission 时必须由 D1 原子拒绝，达到 15 时由 service capacity readback 报 warning。
+本次源代码与文档更新进入各 owner 的远端 canonical `main`。桌面安装更新、真实 iPhone 的 HTTPS
+网络与前后台恢复、Apple 签名和公开分发分别回读，不由本地测试推导。当前任务不启动外部 TestFlight
+或 App Store 发布。旧 Apple build 证据不证明 v2 的发布状态。
 
-配对前必须读取并匹配 `opl-link/release-cohort.json` 的 environment、cohort、protocol、provider、
-service origin、完整 `config_summary` 和 `config_digest`。任何 metadata 或 digest 不一致都在 claim
-或 transport connection 前 fail closed。当前 lock 仍指向 validation 占位 origin；service 源码已存在，
-部署、真实 provider reachability 和 TestFlight qualification 均未完成。
-
-公共 activation/credential wire 只暴露 `transport_provider`、opaque `transport_credential`、
-`key_epoch`、`credential_expires_at` 和 `push_recipient_id`。App、Shell、Framework 与 Codex core
-不得解析 provider credential；只有选中的 `opl-link` provider adapter 可以解码它。
-
-## 当前实现与目标的差距
-
-已存在且可保留的当前源码：
-
-- conversation-first SwiftUI 页面、E2EE envelope、Keychain/projection 和 deterministic 测试；
-- provider-neutral credential、Ably Swift/TypeScript adapters 与桌面 Connector Package；
-- Worker routes、D1 schema、原子 admission、scoped JWT 与 revoke 源码；
-- Framework Host ABI、protected blob 与 Shell canonical bridge 的历史集成证据；
-- 尚未清理的腾讯 IM adapters、Go + SQLite Service，以及旧 TestFlight carrier build 证据。
-
-其中最后一项不符合当前目标架构。Tencent adapter、Go/SQLite Service 和 Shell 的 Tencent credential
-wire 是 `active_gap`，不是首发方案、fallback 运行路径或发布前置；必须由 Ably adapter、
-Workers/D1 control plane 和新的 provider-neutral credential wire 替换。旧源码在真实 caller
-切换和纵向链路通过前保留，只用于迁移与回归，不得据此宣称目标已实现。
-
-当前明确未完成：
-
-- Ably + Worker endpoint 的大陆三网选择探针；
-- 目标 Package 与当前桌面 carrier 的唯一真实 caller 切换、旧逻辑迁移与删除；
-- Worker/D1 真实部署，以及消息预算、push 节流、撤销信号丢失和无人轮询时容量回收的验证；
-- iPhone -> Ably -> desktop -> canonical action -> Ably -> iPhone 的真实密文往返；
-- Ably Push/APNs 实机通知；
-- clean install、跨端 pair、前后台恢复、三网和 TestFlight qualification。
-
-## 发布流程纠正
-
-此前的开发顺序有实质问题：公网鉴权端、稳定 endpoint、真实 provider、跨端配对和消息往返都没有
-闭合，就先完成了 iOS 构建、签名与 TestFlight 上传。这个 build 对“OPL Link 是否能工作”的产品
-验收没有意义，只能证明某个 iOS carrier 可以编译、签名和上传。把 carrier evidence 当能力完成，
-会让团队在最关键的技术可行性尚未验证时继续投入 UI、资格和发布工作。
-
-重启后仍按选择探针、最小真实纵向链路、功能面、release qualification 的顺序推进；
-先部署 validation 才能执行网络探针，不能要求部署前提供依赖该部署的证据。
-具体 Gate 与阶段终点只由 Link delivery plan 维护：先证明一对设备可行，再决定小范围自用，
-外部 TestFlight 另行明确启动。阶段化不降低发布验收标准，也不要求一开始招满 20 pair。
-
-任一源码、单元测试、签名、IPA 或 TestFlight 上传都不能越过前面的真实链路门禁。
-
-## 方案取舍
-
-| 方案 | 结论 | 原因 |
-| --- | --- | --- |
-| Ably Free + Workers Free + D1 Free | 当前目标 | 无常驻服务器、免费验证、token/pair authority 清晰、维护面最小 |
-| 腾讯云 IM | 条件备选 | 仅在大陆探针证明当前目标不达标后显式切 cohort |
-| CloudBase 免费环境 | 保底，不是当前目标 | 每 6 个月手动续期会形成持续运维风险 |
-| CloudKit | 不作实时主通道 | 同步延迟和系统调度不适合对话流式 transport |
-| Durable Objects 自建消息层 | 不采用 | 自建重连、顺序、推送和消息语义的维护成本过高 |
-| Cloudflare Tunnel + 本机 Service | 不采用 | 笔记本离线即全局服务消失，不符合产品预期 |
-| OPL Cloud/TKE | 不采用 | 为 Link 部署完整 Cloud 过重，owner 和成本边界错误 |
-
-机器边界见 [`contracts/app-remote-companion.json`](../../contracts/app-remote-companion.json) 与
-[`contracts/app-remote-companion-wire.json`](../../contracts/app-remote-companion-wire.json)。
-实现细节与 active gaps 由 `opl-link` 仓的 contracts 和 docs 持有。
+2026-11-15 已完成原生构建、界面审看与真实 Codex 到模拟器的同一对话续聊、前台恢复和文件正文
+预览。详细范围与源码组合见[源码验收记录](gui/evidence/opl-link-native-companion-acceptance-2026-11-15.md)。

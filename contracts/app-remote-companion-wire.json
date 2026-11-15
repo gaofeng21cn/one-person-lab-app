@@ -1,922 +1,152 @@
 {
-  "schema": "opl_app_remote_companion_wire.v2",
+  "schema": "opl_link_studio_wire.v2",
   "owner": "one-person-lab-app",
-  "state": "frozen_source_baseline_live_qualification_pending",
-  "protocol_version": "opl_remote_transport.v1",
-  "contract_boundary": "This contract owns the target cross-repository OPL Link control-plane HTTP and encrypted transport wire shape. It selects Ably plus Cloudflare Workers and D1 as the current target without claiming that iOS, desktop, service, provider, network, APNs, or TestFlight qualification is complete. OPL Cloud, a user-managed server, Cloudflare Tunnel, and provider history are not runtime or release authorities.",
-  "service_owner": "opl-link/service",
-  "target_runtime": {
-    "control_plane_compute": "cloudflare_workers_free",
-    "control_plane_persistence": "cloudflare_d1_free",
-    "realtime_provider": "ably_free",
-    "always_on_application_server_required": false,
-    "local_resident_service_required": false,
-    "cloudflare_tunnel_required": false
+  "implementation_owners": {
+    "client": "opl-link",
+    "host": "opl-studio"
   },
-  "compatibility": {
-    "version_field_required": true,
-    "supported_versions": [
-      "opl_remote_transport.v1"
-    ],
-    "unknown_version_policy": "reject_before_decryption_or_action_dispatch",
-    "unknown_action_policy": "reject_without_forwarding_to_the_canonical_action_bridge",
-    "manual_code": {
-      "status": "short_code_user_fallback",
-      "client_behavior": "resolve_through_the_configured_ios_worker_origin_then_reuse_the_same_code_in_the_existing_claim_request",
-      "resolution_eligibility": "reserved_pairing_before_first_claim_only"
-    },
-    "legacy_transport_identifiers": {
-      "status": "v1_wire_aliases_only",
-      "action_prefix": "canonical_task",
-      "event_prefix": "task",
-      "product_object": "canonical_codex_conversation",
-      "product_semantics_source": "contracts/app-remote-companion.json#surface_boundary.conversation_model",
-      "must_not_be_interpreted_as": "opl_link_task_control_plane_or_task_lifecycle_authority"
-    }
-  },
-  "app_access_projection": {
-    "view_type": "remote_companion_access",
-    "result_schema_ref": "contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result",
-    "status_values": [
-      "unavailable",
-      "unpaired",
-      "reserving",
-      "qr_ready",
-      "awaiting_confirmation",
-      "active",
-      "revoking",
-      "attention"
-    ],
-    "actions": [
-      "pair.start",
-      "pair.refresh",
-      "pair.confirm",
-      "pair.cancel",
-      "device.rename",
-      "pair.revoke"
-    ],
-    "secret_policy": {
-      "transient_only": [
-        "invitation_code",
-        "manual_code",
-        "qr_payload",
-        "authentication_digits"
-      ],
-      "never_in_cache_log_or_app_action_readback": [
-        "invitation_code",
-        "manual_code",
-        "claim_secret",
-        "claim_material"
-      ],
-      "qr_payload_only_when": "status_equals_qr_ready",
-      "qr_payload_max_length": 8192
-    },
-    "wire_alias_policy": "opl_remote_transport.v1_is_an_internal_wire_compatibility_alias_only; product_model_uses_conversation_and_canonical_thread"
-  },
-  "serialization": {
-    "media_type": "application/json",
-    "field_names": "lower_snake_case",
-    "binary_encoding": "unpadded_base64url",
-    "timestamp_encoding": "rfc3339_utc",
-    "opaque_identifier_encoding": "uuid_v4_or_128_bit_random_base64url",
-    "maximum_encrypted_transport_message_bytes": 65536
-  },
-  "control_plane_http": {
-    "base_path": "/v1/remote-companion",
-    "tls_required": true,
-    "mutation_idempotency_header": "Idempotency-Key",
-    "authorization_header": "Authorization: Bearer <opaque_token>",
-    "tokens": {
-      "desktop_pair_token": "single_pairing_desktop_poll_and_confirmation_then_desktop_active_device_credential_after_activation",
-      "ios_claim_token": "single_pairing_ios_poll_then_ios_active_device_credential_after_activation",
-      "active_device_credential": "role_bound_to_the_callers_existing_desktop_pair_token_or_ios_claim_token_after_activation_without_minting_a_second_bearer",
-      "revoked_desktop_credential_scope": "after_revoke_the_existing_desktop_credential_can_only_submit_the_matching_desktop_detach_ack_and_cannot_access_any_other_route",
-      "revocation_receipt_token": "single_revocation_status_read_only_until_terminal_or_expiry",
-      "storage": "store_only_sha256_or_server_keyed_hashes_in_d1_and_return_plaintext_once",
-      "transport": "bearer_header_only_never_url_query_or_qr"
-    },
-    "release_cohort_lock": {
-      "source": "opl-link/release-cohort.json",
-      "product_contract_ref": "contracts/app-remote-companion.json#transport.release_cohort_lock",
-      "owner": "opl-link/service",
-      "source_status": "source_integrated_validation_placeholder_not_live_qualified",
-      "metadata_match_required_before_pairing": true,
-      "match_fields": [
-        "environment",
-        "cohort_id",
-        "protocol_version",
-        "provider",
-        "service_origin",
-        "config_digest"
-      ],
-      "config_summary_match_required": true,
-      "config_digest_match_required": true,
-      "expected_validation_cohort": {
-        "environment": "validation",
-        "cohort_id": "ably-validation-20260819",
-        "protocol_version": "opl_remote_transport.v1",
-        "provider": "ably",
-        "service_origin": "https://validation.invalid",
-        "deployment_state": "not_live_qualified",
-        "active_pair_limit": 20,
-        "warning_threshold": 15
+  "transport": "authenticated_https_json_and_server_sent_events",
+  "base_path": "/api/link",
+  "origin_policy": "https_with_system_trust; explicit_debug_loopback_http_only",
+  "pairing_url": "opllink://pair?endpoint=<percent_encoded_https_base>&code=<single_use_secret>",
+  "pairing_ttl_seconds": 120,
+  "credential_ttl_days": 30,
+  "host_routes": {
+    "POST /pair": {
+      "auth": "desktop_session_and_csrf",
+      "input": {
+        "endpoint": "https_base_url"
       },
-      "admission_authority": "opl-link/service_cloudflare_worker_and_d1",
-      "limit_scope": "validation_cohort_not_provider_seat_limit",
-      "fixed_provider_seat_limit": false,
-      "mismatch_policy": "fail_closed_before_claim_or_transport_connection"
-    },
-    "endpoints": [
-      {
-        "id": "service_health",
-        "method": "GET",
-        "path": "/healthz",
-        "auth": "none",
-        "idempotency_required": false,
-        "proof_scope": "worker_process_reachable_only",
-        "response_fields": [
-          "status"
-        ]
-      },
-      {
-        "id": "service_metadata",
-        "method": "GET",
-        "path": "/metadata",
-        "auth": "none",
-        "idempotency_required": false,
-        "response_fields": [
-          "protocol_version",
-          "provider",
-          "environment",
-          "cohort_id",
-          "service_origin",
-          "service_origin_source",
-          "deployment_state",
-          "config_summary",
-          "config_digest"
-        ]
-      },
-      {
-        "id": "service_readiness",
-        "method": "GET",
-        "path": "/readyz",
-        "auth": "operator_bearer_from_OPL_LINK_OPERATOR_TOKEN",
-        "idempotency_required": false,
-        "proof_scope": "d1_read_write_and_scoped_ably_jwt_issuance",
-        "response_fields": [
-          "status",
-          "protocol_version",
-          "database_read",
-          "database_write",
-          "scoped_jwt_issuance",
-          "provider",
-          "active_pair_count"
-        ],
-        "response_must_not_include": [
-          "capability_token",
-          "transport_credential",
-          "ably_api_key",
-          "operator_token"
-        ]
-      },
-      {
-        "id": "operator_create_invitation",
-        "method": "POST",
-        "path": "/v1/remote-companion/invitations",
-        "auth": "operator_bearer_from_cloudflare_worker_secret",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "label",
-          "expires_at"
-        ],
-        "response_fields": [
-          "invitation_code",
-          "expires_at"
-        ],
-        "secret_response_fields": [
-          "invitation_code"
-        ]
-      },
-      {
-        "id": "operator_read_capacity",
-        "method": "GET",
-        "path": "/v1/remote-companion/capacity",
-        "auth": "operator_bearer_from_OPL_LINK_OPERATOR_TOKEN",
-        "idempotency_required": false,
-        "response_fields": [
-          "protocol_version",
-          "active_pair_count",
-          "active_pair_limit",
-          "warning_threshold",
-          "warning"
-        ]
-      },
-      {
-        "id": "desktop_create_pairing",
-        "method": "POST",
-        "path": "/v1/remote-companion/pairings",
-        "auth": "one_time_invitation_code_in_body",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "invitation_code",
-          "desktop_device_id",
-          "desktop_device_label",
-          "desktop_public_key"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "desktop_pair_token",
-          "claim_secret",
-          "manual_code",
-          "expires_at",
-          "service_url"
-        ],
-        "secret_response_fields": [
-          "desktop_pair_token",
-          "claim_secret",
-          "manual_code"
-        ]
-      },
-      {
-        "id": "ios_resolve_manual_pairing",
-        "method": "POST",
-        "path": "/v1/remote-companion/pairings/resolve",
-        "auth": "manual_code_in_body",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "manual_code"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "service_url",
-          "desktop_public_key",
-          "expires_at"
-        ],
-        "secret_request_fields": [
-          "manual_code"
-        ],
-        "allowed_pairing_state": "reserved",
-        "response_must_not_include": [
-          "claim_secret",
-          "desktop_pair_token",
-          "ios_claim_token",
-          "provider_credential"
-        ]
-      },
-      {
-        "id": "ios_claim_pairing",
-        "method": "POST",
-        "path": "/v1/remote-companion/pairings/claim",
-        "auth": "claim_secret_or_manual_code_in_body",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "pairing_id",
-          "claim_secret_or_manual_code",
-          "ios_device_id",
-          "ios_device_label",
-          "ios_public_key"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "ios_claim_token",
-          "state",
-          "authentication_string",
-          "expires_at"
-        ],
-        "secret_response_fields": [
-          "ios_claim_token"
-        ]
-      },
-      {
-        "id": "read_pairing",
-        "method": "GET",
-        "path": "/v1/remote-companion/pairings/{pairing_id}",
-        "auth": "desktop_pair_token_or_ios_claim_token_or_active_device_credential",
-        "idempotency_required": false,
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "state",
-          "authentication_string",
-          "expires_at",
-          "device_activation"
-        ],
-        "pre_active_device_activation": null,
-        "device_activation_fields": [
-          "device_id",
-          "device_label",
-          "peer_device_id",
-          "peer_device_label",
-          "peer_public_key",
-          "transport_provider",
-          "transport_credential",
-          "key_epoch",
-          "credential_expires_at",
-          "push_recipient_id"
-        ],
-        "active_device_credential_source": "desktop_pair_token_for_desktop_and_ios_claim_token_for_ios_become_active_after_pair_activation",
-        "device_activation_policy": "return_only_the_calling_devices_own_activation_and_the_minimum_peer_route_identity_device_label_and_public_key_required_for_e2ee; pre_active_pairing_returns_null; transport_credential_is_opaque_to_app_shell_framework_and_core_and_decoded_only_by_the_selected_provider_adapter; never_return_or_echo_a_pair_bearer_in_device_activation"
-      },
-      {
-        "id": "desktop_confirm_pairing",
-        "method": "POST",
-        "path": "/v1/remote-companion/pairings/{pairing_id}/confirm",
-        "auth": "desktop_pair_token",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "authentication_string"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "state"
-        ]
-      },
-      {
-        "id": "refresh_provider_credentials",
-        "method": "POST",
-        "path": "/v1/remote-companion/pairings/{pairing_id}/credentials",
-        "auth": "active_device_credential",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "device_id"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "transport_provider",
-          "transport_credential",
-          "key_epoch",
-          "credential_expires_at",
-          "push_recipient_id"
-        ],
-        "secret_response_fields": [
-          "transport_credential"
-        ]
-      },
-      {
-        "id": "rename_own_device",
-        "method": "PATCH",
-        "path": "/v1/remote-companion/pairings/{pairing_id}/devices/{device_id}",
-        "auth": "active_credential_for_the_same_pairing_and_device",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "display_name"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "device_id",
-          "display_name"
-        ]
-      },
-      {
-        "id": "register_own_push_recipient",
-        "method": "PUT",
-        "path": "/v1/remote-companion/pairings/{pairing_id}/devices/{device_id}/push-registration",
-        "auth": "active_credential_for_the_same_pairing_and_device",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "push_recipient_id"
-        ],
-        "forbidden_request_fields": [
-          "apns_token",
-          "device_token",
-          "push_token"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "device_id",
-          "push_recipient_id"
-        ]
-      },
-      {
-        "id": "delete_own_push_recipient",
-        "method": "DELETE",
-        "path": "/v1/remote-companion/pairings/{pairing_id}/devices/{device_id}/push-registration",
-        "auth": "active_credential_for_the_same_pairing_and_device",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "device_id",
-          "push_recipient_id"
-        ]
-      },
-      {
-        "id": "revoke_pair",
-        "method": "DELETE",
-        "path": "/v1/remote-companion/pairings/{pairing_id}",
-        "auth": "active_device_credential_or_desktop_pair_token",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "state",
-          "revocation_receipt_id",
-          "revocation_receipt_token"
-        ],
-        "secret_response_fields": [
-          "revocation_receipt_token"
-        ]
-      },
-      {
-        "id": "read_revocation",
-        "method": "GET",
-        "path": "/v1/remote-companion/revocations/{revocation_receipt_id}",
-        "auth": "revocation_receipt_token",
-        "idempotency_required": false,
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "state",
-          "device_authorization_revoked",
-          "token_renewal_denied",
-          "desktop_connector_detached",
-          "pair_admission_released",
-          "detachment_basis"
-        ],
-        "terminal_rule": "state_is_revoked_and_pair_admission_released_is_true_only_after_d1_denies_future_tokens_and_the_desktop_connector_is_detached"
-      },
-      {
-        "id": "desktop_detach_ack",
-        "method": "POST",
-        "path": "/v1/remote-companion/revocations/{revocation_receipt_id}/desktop-detach",
-        "auth": "matching_revoked_desktop_credential_only",
-        "idempotency_required": true,
-        "request_fields": [
-          "protocol_version",
-          "detachment_basis"
-        ],
-        "detachment_basis_values": [
-          "desktop_ack"
-        ],
-        "response_fields": [
-          "protocol_version",
-          "pairing_id",
-          "state",
-          "device_authorization_revoked",
-          "token_renewal_denied",
-          "desktop_connector_detached",
-          "pair_admission_released",
-          "detachment_basis"
-        ]
-      }
-    ],
-    "pairing_states": [
-      "reserved",
-      "claimed",
-      "awaiting_desktop_confirmation",
-      "activating",
-      "active",
-      "revoking",
-      "revoked",
-      "expired"
-    ],
-    "error_envelope": {
-      "fields": [
-        "protocol_version",
-        "error_code",
-        "retryable",
-        "request_id"
-      ],
-      "allowed_error_codes": [
-        "invalid_request",
-        "unsupported_protocol",
-        "invitation_invalid",
-        "invitation_expired",
-        "invitation_consumed",
-        "capacity_unavailable",
-        "pairing_not_found",
-        "pairing_expired",
-        "claim_invalid",
-        "claim_attempts_exhausted",
-        "authentication_mismatch",
-        "pairing_not_ready",
-        "credential_invalid",
-        "pair_revoked",
-        "provider_unavailable",
-        "service_unavailable",
-        "forbidden",
-        "conflict",
-        "idempotency_conflict",
-        "idempotency_in_flight",
-        "rate_limited",
-        "internal_error"
-      ],
-      "must_not_include": [
-        "conversation_text",
-        "task_text",
-        "workspace_path",
-        "provider_secret",
-        "invitation_code",
-        "claim_secret",
-        "device_credential",
-        "transport_credential"
-      ]
-    }
-  },
-  "pairing_qr": {
-    "url_scheme": "opllink",
-    "host": "pair",
-    "fields": [
-      "protocol_version",
-      "service_url",
-      "pairing_id",
-      "claim_secret",
-      "desktop_public_key",
-      "expires_at"
-    ],
-    "forbidden_fields": [
-      "desktop_pair_token",
-      "invitation_code",
-      "provider_secret",
-      "device_credential",
-      "transport_credential",
-      "workspace_path",
-      "conversation_text",
-      "task_text"
-    ],
-    "single_use": true
-  },
-  "provider_transport": {
-    "selected_target": "ably",
-    "selected_plan": "free",
-    "implementation_status": "source_implemented_not_live_verified",
-    "credential_wire": {
-      "public_core_fields": [
-        "transport_provider",
-        "transport_credential",
-        "key_epoch",
-        "credential_expires_at",
-        "push_recipient_id"
-      ],
-      "opaque_field": "transport_credential",
-      "opaque_to": [
-        "one-person-lab-app",
-        "opl-studio",
-        "one-person-lab-framework",
-        "codex_core_app_server"
-      ],
-      "decoder_owner": "opl-link_selected_provider_adapter",
-      "provider_adapter_may_decode": true,
-      "provider_specific_public_fields_forbidden": [
-        "transport_client_id",
-        "publish_channel",
-        "subscribe_channel",
-        "channel_epoch",
-        "capability_token",
-        "capability_expires_at"
+      "output": [
+        "schema",
+        "endpoint",
+        "code",
+        "expiresAt",
+        "pairingURL"
       ]
     },
-    "channel_model": {
-      "channels_per_active_pair": 2,
-      "ios_publish": "opaque_pair_channel_ios_to_desktop",
-      "ios_subscribe": "opaque_pair_channel_desktop_to_ios",
-      "desktop_publish": "opaque_pair_channel_desktop_to_ios",
-      "desktop_subscribe": "opaque_pair_channel_ios_to_desktop",
-      "public_or_group_channels_allowed": false
+    "POST /claim": {
+      "auth": "single_use_pair_code",
+      "input": [
+        "code",
+        "deviceName"
+      ],
+      "output": [
+        "schema",
+        "token",
+        "expiresAt",
+        "device",
+        "host"
+      ]
     },
-    "credential": {
-      "format": "provider_adapter_defined_opaque_transport_credential",
-      "issuer": "opl-link_service_cloudflare_worker",
-      "maximum_ttl_minutes": 60,
-      "capability": "selected_provider_adapter_enforces_pair_scoped_directional_transport_and_push_scope",
-      "api_key_in_client": false
-    },
-    "switching": {
-      "conditional_alternative": "tencent_cloud_im",
-      "automatic_fallback": false,
-      "dual_write": false,
-      "explicit_cohort_decision_and_repair_required": true
-    }
-  },
-  "pairing_authentication_string": {
-    "input_serialization": "utf8_length_prefixed_fields_in_exact_order_pair_id_desktop_public_key_ios_public_key_joined_by_ascii_pipe",
-    "field_encoding": "name_equals_utf8_byte_count_colon_value",
-    "digest": "sha256",
-    "decimal_derivation": "unsigned_big_endian_first_4_digest_bytes_modulo_1000000",
-    "display_format": "zero_padded_6_digits_grouped_as_3_space_3",
-    "test_vector": {
-      "pair_id": "pair-test-001",
-      "desktop_public_key": "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08",
-      "ios_public_key": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo",
-      "serialized_input": "pair_id=13:pair-test-001|desktop_public_key=43:3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08|ios_public_key=43:hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo",
-      "sha256_hex": "4c0c31d417933196080996b1ac1012c4a5d1b890bf722c07b49f45f6cc794b53",
-      "authentication_string": "867 604"
-    }
-  },
-  "transport_envelope": {
-    "outer_fields": [
-      "protocol_version",
-      "pair_id",
-      "sender_device_id",
-      "recipient_device_id",
-      "key_epoch",
-      "sender_sequence",
-      "nonce",
-      "ciphertext"
-    ],
-    "outer_plaintext_must_not_include": [
-      "action_id",
-      "thread_id",
-      "conversation_text",
-      "task_text",
-      "workspace_path",
-      "approval_text",
-      "model",
-      "permission"
-    ],
-    "associated_data_fields": [
-      "protocol_version",
-      "pair_id",
-      "sender_device_id",
-      "recipient_device_id",
-      "key_epoch",
-      "sender_sequence",
-      "channel_direction"
-    ],
-    "nonce_bytes": 12,
-    "cipher": "aes_256_gcm",
-    "key_agreement": "x25519",
-    "key_derivation": "hkdf_sha256",
-    "directional_keys": true,
-    "direction_values": [
-      "ios_to_desktop",
-      "desktop_to_ios"
-    ],
-    "x25519_key_encoding": "raw_32_bytes_then_unpadded_base64url_on_wire",
-    "hkdf_salt": "utf8_pair_id",
-    "hkdf_info": "utf8_opl_remote_transport.v1_pipe_key_epoch_equals_decimal_pipe_direction_equals_direction_value",
-    "associated_data_serialization": "utf8_name_equals_utf8_byte_count_colon_value_fields_in_declared_order_joined_by_ascii_pipe",
-    "ciphertext_encoding": "aes_gcm_ciphertext_followed_by_16_byte_tag_then_unpadded_base64url",
-    "encrypted_payload_variants": {
-      "command": {
-        "fields": [
-          "kind",
-          "request_id",
-          "action_id",
-          "canonical_thread_id",
-          "payload"
-        ],
-        "kind": "command",
-        "allowed_action_ids": [
-          "canonical_task.list",
-          "canonical_task.read",
-          "canonical_task.refresh",
-          "canonical_task.start",
-          "canonical_task.send_text",
-          "canonical_turn.stop",
-          "canonical_approval.respond",
-          "pair.revoke"
-        ],
-        "product_action_mapping": {
-          "canonical_task.list": "conversation.list",
-          "canonical_task.read": "conversation.open",
-          "canonical_task.refresh": "conversation.refresh",
-          "canonical_task.start": "conversation.start",
-          "canonical_task.send_text": "conversation.send_text",
-          "canonical_turn.stop": "conversation.turn.stop",
-          "canonical_approval.respond": "conversation.approval.respond",
-          "pair.revoke": "pair.revoke"
-        },
-        "payload_contracts": {
-          "canonical_task.list": {
-            "canonical_thread_id_required": false,
-            "payload_fields": []
-          },
-          "canonical_task.read": {
-            "canonical_thread_id_required": true,
-            "payload_fields": []
-          },
-          "canonical_task.refresh": {
-            "canonical_thread_id_required": false,
-            "payload_fields": []
-          },
-          "canonical_task.start": {
-            "canonical_thread_id_required": false,
-            "payload_fields": [
-              "text"
-            ]
-          },
-          "canonical_task.send_text": {
-            "canonical_thread_id_required": true,
-            "payload_fields": [
-              "text"
-            ]
-          },
-          "canonical_turn.stop": {
-            "canonical_thread_id_required": true,
-            "payload_fields": [],
-            "turn_selection": "desktop_resolves_and_validates_the_current_canonical_active_turn"
-          },
-          "canonical_approval.respond": {
-            "canonical_thread_id_required": true,
-            "payload_fields": [
-              "approval_id",
-              "decision"
-            ],
-            "decision_values": [
-              "approve",
-              "reject"
-            ],
-            "decision_mapping": {
-              "approve": "desktop_may_map_only_to_the_owner_allowed_one_shot_accept_decision",
-              "reject": "desktop_may_map_only_to_the_owner_allowed_decline_decision"
-            },
-            "impact_policy": "desktop_must_revalidate_the_owner_projected_low_or_medium_impact_and_allowed_decision_without_trusting_client_impact"
-          },
-          "pair.revoke": {
-            "canonical_thread_id_required": false,
-            "payload_fields": []
-          }
-        }
-      },
-      "event": {
-        "fields": [
-          "kind",
-          "event_id",
-          "request_id",
-          "event_type",
-          "canonical_revision",
-          "payload"
-        ],
-        "kind": "event",
-        "allowed_event_types": [
-          "task.snapshot",
-          "task.list_snapshot",
-          "thread.snapshot",
-          "turn.delta",
-          "turn.completed",
-          "turn.stopped",
-          "approval.requested",
-          "approval.resolved",
-          "action.accepted",
-          "action.rejected",
-          "desktop.heartbeat",
-          "pair.revoked"
-        ],
-        "product_event_mapping": {
-          "task.list_snapshot": "conversation.directory_snapshot",
-          "task.snapshot": "conversation.summary_snapshot",
-          "thread.snapshot": "conversation.snapshot",
-          "turn.delta": "conversation.turn_delta",
-          "turn.completed": "conversation.turn_completed",
-          "turn.stopped": "conversation.turn_stopped",
-          "approval.requested": "conversation.approval_requested",
-          "approval.resolved": "conversation.approval_resolved",
-          "action.accepted": "conversation.action_accepted",
-          "action.rejected": "conversation.action_rejected",
-          "desktop.heartbeat": "desktop.heartbeat",
-          "pair.revoked": "pair.revoked"
-        },
-        "payload_contracts": {
-          "task.list_snapshot": [
-            "tasks",
-            "complete"
-          ],
-          "task.snapshot": [
-            "task"
-          ],
-          "thread.snapshot": [
-            "thread_id",
-            "messages",
-            "approval"
-          ],
-          "turn.delta": [
-            "thread_id",
-            "turn_id",
-            "delta"
-          ],
-          "turn.completed": [
-            "thread_id",
-            "turn_id"
-          ],
-          "turn.stopped": [
-            "thread_id",
-            "turn_id"
-          ],
-          "approval.requested": [
-            "thread_id",
-            "approval"
-          ],
-          "approval.resolved": [
-            "thread_id",
-            "approval_id",
-            "decision"
-          ],
-          "action.accepted": [
-            "action_id"
-          ],
-          "action.rejected": [
-            "action_id",
-            "error_code",
-            "refresh_required"
-          ],
-          "desktop.heartbeat": [
-            "sent_at"
-          ],
-          "pair.revoked": [
-            "pairing_id"
-          ]
-        },
-        "projection_shapes": {
-          "task": [
-            "id",
-            "title",
-            "status",
-            "updated_at",
-            "needs_user_action",
-            "active_turn_id"
-          ],
-          "message": [
-            "id",
-            "role",
-            "text",
-            "created_at"
-          ],
-          "approval": [
-            "id",
-            "summary",
-            "impact"
-          ]
-        }
+    "GET /devices": {
+      "auth": "desktop_session",
+      "output": {
+        "devices": "paired_device_metadata_without_tokens"
       }
     },
-    "ordering": {
-      "sender_sequence_starts_at": 1,
-      "sender_sequence_monotonic_per_pair_key_epoch_and_sender": true,
-      "duplicate_nonce_rejected": true,
-      "duplicate_or_regressed_sequence_rejected": true,
-      "duplicate_request_id_is_idempotent": true,
-      "gap_policy": "mark_projection_stale_and_refresh_canonical_state_before_new_commands",
-      "unknown_send_result_policy": "do_not_resend_refresh_canonical_state"
-    },
-    "test_vector": {
-      "source": "rfc7748_x25519_alice_and_bob_keys_plus_opl_wire_parameters",
-      "sender_role": "ios",
-      "ios_private_key_hex": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
-      "ios_public_key_hex": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
-      "desktop_private_key_hex": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
-      "desktop_public_key_hex": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
-      "shared_secret_hex": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
-      "pair_id": "pair-test-001",
-      "sender_device_id": "ios-test-device",
-      "recipient_device_id": "desktop-test-device",
-      "key_epoch": 1,
-      "sender_sequence": 1,
-      "direction": "ios_to_desktop",
-      "derived_key_hex": "6017bf36ae1274c1168a217e69737e9792226ab555e0447dddec1b278f15de59",
-      "associated_data_utf8": "protocol_version=23:opl_remote_transport.v1|pair_id=13:pair-test-001|sender_device_id=15:ios-test-device|recipient_device_id=19:desktop-test-device|key_epoch=1:1|sender_sequence=1:1|channel_direction=14:ios_to_desktop",
-      "nonce_hex": "000102030405060708090a0b",
-      "plaintext_utf8": "OPL Link wire vector v1",
-      "ciphertext_and_tag_hex": "c90ce480a4b58bf4d5c076ee419a3661510728dcf874430328912093e560fccc293cd3535ea01c"
+    "DELETE /devices/:id": {
+      "auth": "desktop_session_and_csrf",
+      "effect": "revoke_device_and_close_its_streams"
     }
   },
-  "desktop_dispatch": {
-    "canonical_bridge": "opl_app_state_and_action_bridge",
-    "command_allowlist_source": "contracts/app-remote-companion.json#action_policy.mvp_allowed_actions",
-    "product_action_mapping_source": "contracts/app-remote-companion.json#action_policy.wire_action_id_mapping",
-    "request_dedupe_scope": "pair_id_key_epoch_request_id",
-    "high_impact_approval_policy": "reject_and_keep_desktop_only",
-    "provider_history_read_for_business_state": false,
-    "cloud_conversation_store": false,
-    "task_management_authority": false
+  "client_routes": {
+    "GET /bootstrap": {
+      "auth": "device_bearer",
+      "output": [
+        "schema",
+        "host",
+        "device",
+        "capabilities"
+      ]
+    },
+    "POST /invoke": {
+      "auth": "device_bearer",
+      "input": [
+        "method",
+        "payload",
+        "requestId"
+      ],
+      "output": {
+        "result": "canonical_owner_response"
+      }
+    },
+    "GET /events": {
+      "auth": "device_bearer",
+      "output": "sse_data_frames_with_canonical_method_and_params"
+    },
+    "POST /download": {
+      "auth": "device_bearer",
+      "input": [
+        "threadId",
+        "relativePath"
+      ],
+      "output": "bounded_workspace_file_bytes"
+    },
+    "POST /disconnect": {
+      "auth": "device_bearer",
+      "effect": "revoke_this_device"
+    }
   },
-  "secret_and_log_policy": {
-    "never_log": [
-      "conversation_content",
-      "task_content",
-      "workspace_path",
-      "invitation_code",
-      "claim_secret",
-      "manual_code",
-      "desktop_pair_token",
-      "ios_claim_token",
-      "device_credential",
-      "private_key",
-      "pair_master_key",
-      "transport_credential",
-      "ably_api_key"
-    ],
-    "push_payload": "generic_pair_scoped_update_signal_only",
-    "provider_or_cloud_plaintext_conversation_content": false
+  "methods": {
+    "listThreads": "canonical_thread_directory",
+    "readThread": "canonical_thread_and_turns",
+    "startTurn": "return_threadId_and_turnId_after_start_without_waiting_for_completion; inherit_existing_thread_settings",
+    "steerTurn": "canonical_active_turn_steering",
+    "interruptTurn": "canonical_active_turn_interrupt",
+    "listPendingServerRequests": "canonical_pending_approvals_and_questions",
+    "respondToServerRequest": "validate_pending_id_method_and_response_then_forward_to_existing_owner",
+    "readCodexModels": "canonical_model_catalog",
+    "listThreadWorkspace": "bounded_canonical_thread_workspace_directory",
+    "readThreadWorkspaceFile": "bounded_file_preview",
+    "readThreadWorkspaceGit": "canonical_workspace_git_projection",
+    "renameThread": "canonical_thread_rename",
+    "setArchived": "canonical_thread_archive_or_restore"
+  },
+  "turn_input": {
+    "threadId": "optional_existing_id",
+    "prompt": "text",
+    "model": "optional_explicit_selection",
+    "reasoningEffort": "optional_explicit_selection",
+    "attachments": "optional_bounded_name_mimeType_base64_files"
+  },
+  "steer_input": {
+    "threadId": "required_existing_id",
+    "expectedTurnId": "required_active_turn_id",
+    "prompt": "text",
+    "attachments": "optional_bounded_name_mimeType_base64_files",
+    "model_or_reasoning_override_allowed": false
+  },
+  "limits": {
+    "control_request_bytes": 16384,
+    "invoke_request_bytes": 73400320,
+    "attachment_count": 5,
+    "attachment_bytes_each": 10485760,
+    "download_bytes": 268435456
+  },
+  "stream_projection": "no_snapshot_cursor; coalesce_text_deltas_into_canonical_thread_reread_instead_of_appending_to_recovery_snapshots",
+  "event_policy": "reconnect_then_reread_canonical_snapshots; never_replay_mutations",
+  "mutation_policy": "requestId_deduplication_and_conflict_rejection; unknown_outcome_requires_canonical_readback",
+  "security": [
+    "bearer_scoped_to_companion_routes",
+    "hash_device_credentials_at_rest",
+    "single_use_expiring_pair_codes",
+    "reject_cross_origin_redirects",
+    "revoke_closes_live_streams",
+    "workspace_realpath_and_symlink_bounds",
+    "no_offline_command_queue",
+    "no_model_credentials_on_phone"
+  ],
+  "error": {
+    "error": {
+      "code": "machine_readable",
+      "message": "human_readable",
+      "details": "optional_object"
+    }
+  },
+  "desktop_bridge_methods": {
+    "readLinkDevices": "desktop_context_only_paired_device_metadata_without_tokens",
+    "createLinkPairing": "desktop_context_only_expiring_single_use_qr_material",
+    "revokeLinkDevice": "desktop_context_only_revoke_and_disconnect_device"
   }
 }

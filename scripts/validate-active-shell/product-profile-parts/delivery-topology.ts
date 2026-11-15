@@ -1,3 +1,4 @@
+import { validateMobileCompanionTopology } from '../remote-companion-validator.ts';
 import { readAppShellAdapterContract } from '../../app-shell-adapter.ts';
 import { assertDeepEqualJson } from '../assertions.ts';
 import { validateMinimumCompleteProductContract } from '../../validate-shell-candidates/candidate-contract.ts';
@@ -235,58 +236,7 @@ export function validateDeliveryTopology(profile) {
     },
     'Product profile Docker WebUI topology',
   );
-  assertDeepEqualJson(
-    topology.mobile,
-    {
-      initial_surface: 'native_ios_remote_companion',
-      product_name: 'OPL Link',
-      home_screen_name: 'OPL Link',
-      implementation_owner: 'opl-link',
-      source_repository: 'https://github.com/gaofeng21cn/opl-link',
-      companion_policy_ref: 'contracts/app-remote-companion.json',
-      primary_user_object: 'canonical_codex_conversation',
-      default_surface: 'conversation_directory',
-      task_management_surface: false,
-      transport_target: 'ably_free_realtime_with_cloudflare_workers_d1_control_plane',
-      transport_selection_status: 'target_pending_mainland_china_probe',
-      current_implementation: 'legacy_tencent_and_go_sqlite_source_not_conformant_to_target',
-      access_view_type: 'remote_companion_access',
-      access_view_contract_ref: 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result',
-      release_cohort_lock_ref: 'contracts/app-remote-companion.json#transport.release_cohort_lock',
-      validation_cohort_admission: {
-        authority: 'opl-link/service_cloudflare_worker_and_d1',
-        active_pair_limit: 20,
-        warning_threshold: 15,
-        limit_scope: 'validation_cohort_not_provider_seat_limit',
-        fixed_provider_seat_limit: false,
-        testflight_is_capacity_authority: false,
-        metadata_or_config_digest_mismatch: 'fail_closed_before_claim_or_transport_connection',
-      },
-      access_status_values: [
-        'unavailable',
-        'unpaired',
-        'reserving',
-        'qr_ready',
-        'awaiting_confirmation',
-        'active',
-        'revoking',
-        'attention',
-      ],
-      access_actions: [
-        'pair.start',
-        'pair.refresh',
-        'pair.confirm',
-        'pair.cancel',
-        'device.rename',
-        'pair.revoke',
-      ],
-      release_ready: false,
-      optional_web_fallback: 'desktop_webui_remains_available_but_is_not_the_ios_product',
-      separate_product_renderer_allowed: false,
-      full_workbench_surface: false,
-    },
-    'Product profile mobile topology',
-  );
+  validateMobileCompanionTopology(topology.mobile);
   assertDeepEqualJson(
     topology.successor_product,
     {
