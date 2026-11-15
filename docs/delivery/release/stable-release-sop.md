@@ -115,6 +115,8 @@ Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产�
 
 Full deep／strict 签名验证保留必要诊断，避免逐个嵌套对象的 verbose 输出耗尽子进程捕获缓冲。Linux 系统依赖通过 HTTPS 镜像获取 Ubuntu 签名归档，保留 apt 签名验证并使用有界重试与超时；失败只恢复该平台。
 
+macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 并回读；不足时在打包前明确失败，避免签名器并发扫描解包依赖时触发 `EMFILE`。
+
 WebUI 的 Node 基础镜像直接消费冻结 Shell Dockerfile 中唯一的 digest-pinned `NODE_IMAGE`，资格执行器不固定另一个 Node 主版本或从浮动标签重新选择镜像。
 
 Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。缺失、无效或倒序的阶段时间戳在 telemetry 中记为 `null`，人读摘要显示 `n/a`，不推算成零或负时长。首次自动安装的结构化终态失败须绑定本次启动 PID、时间；旧日志不构成本次失败证据。Standard 保留 Package 失败与缺包诊断并继续判断宿主就绪，宿主回读失败或 Core 不可用仍失败。Full 所选 roots 未齐且安装已终态失败时立即结束等待，不延长超时掩盖断点。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断；初次 exit 1 仅在当前 PID 的相关安装仍为 `running` 时有界重读。

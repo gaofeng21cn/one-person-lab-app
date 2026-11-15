@@ -919,6 +919,13 @@ jobs:
         id: macos-build
         shell: bash
         run: |
+          # osx-sign scans unpacked dependencies concurrently. Set the process
+          # limit before starting Node so signing inherits sufficient capacity.
+          ulimit -S -n 65536 || {
+            echo "::error::macOS signing requires an open-file limit of at least 65536."
+            exit 1
+          }
+          echo "macOS build open-file limit: $(ulimit -S -n)"
           set +e  # Handle errors manually
 
           # The release-bound build process is killed from the same immutable
