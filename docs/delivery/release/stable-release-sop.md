@@ -119,6 +119,8 @@ macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 
 
 WebUI 的 Node 基础镜像直接消费冻结 Shell Dockerfile 中唯一的 digest-pinned `NODE_IMAGE`，资格执行器不固定另一个 Node 主版本或从浮动标签重新选择镜像。
 
+Docker 的匿名运行验收应确认非回环 API 返回 401，Framework 状态通过容器内正式 CLI 回读；具名网页登录使用独立 cloud login 验收，不能将匿名访问保护当作运行故障。
+
 Full 构建对签名、复制、压缩与磁盘映像挂载操作输出阶段起止、退出码和耗时；失败定位以实际阶段为准。缺失、无效或倒序的阶段时间戳在 telemetry 中记为 `null`，人读摘要显示 `n/a`，不推算成零或负时长。首次自动安装的结构化终态失败须绑定本次启动 PID、时间；旧日志不构成本次失败证据。Standard 保留 Package 失败与缺包诊断并继续判断宿主就绪，宿主回读失败或 Core 不可用仍失败。Full 所选 roots 未齐且安装已终态失败时立即结束等待，不延长超时掩盖断点。Stable 首装读取普通 `fast` 投影，安装包是 Full 不表示要执行 Framework `full` 诊断；初次 exit 1 仅在当前 PID 的相关安装仍为 `running` 时有界重读。
 
 只有 `stage=clone_vm`、`stage=start_vm`、`stage=wait_for_ip`、`vm_name`、`guest_ip` 等 runtime marker 能证明对应 VM 阶段。在此之前报告“VM 尚未证实创建”。心跳不是产物进展。

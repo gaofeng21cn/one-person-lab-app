@@ -557,10 +557,13 @@ jobs:
             const host = resolveWebBindAddress(process.env.OPL_HEADLESS_HOST);
             const base = `http://${host.includes(":") ? `[${host}]` : host}:3000`;
             const ready = await fetch(`${base}/readyz`);
-            if (!ready.ok || (await ready.json()).status !== "ready") process.exit(1);
+            if (!ready.ok || (await ready.json()).status !== "ready") throw new Error(`WebUI readiness returned ${ready.status}`);
             const response = await fetch(`${base}/api/opl/state?profile=fast`);
-            const state = await response.json();
-            if (!response.ok || state.readback?.exitCode !== 0 || !state.app_state) process.exit(1);'
+            if (response.status !== 401) throw new Error(`Non-loopback anonymous API must return 401, received ${response.status}`);
+            const { execFileSync } = await import("node:child_process");
+            const state = JSON.parse(execFileSync("opl", ["app", "state", "--profile", "fast", "--json"], { encoding: "utf8", timeout: 120000 }));
+            if ((state.app_state ?? state).surface_kind !== "opl_app_state.v1") throw new Error("Framework returned no canonical App state");
+            console.log(JSON.stringify({ stage: "webui_runtime_state", anonymous_api_status: response.status, framework_app_state: "passed" }));'
           docker exec "$container_name" codex --version
           docker exec "$container_name" opl --version
 
@@ -579,10 +582,13 @@ jobs:
             const host = resolveWebBindAddress(process.env.OPL_HEADLESS_HOST);
             const base = `http://${host.includes(":") ? `[${host}]` : host}:3000`;
             const ready = await fetch(`${base}/readyz`);
-            if (!ready.ok || (await ready.json()).status !== "ready") process.exit(1);
+            if (!ready.ok || (await ready.json()).status !== "ready") throw new Error(`WebUI readiness returned ${ready.status}`);
             const response = await fetch(`${base}/api/opl/state?profile=fast`);
-            const state = await response.json();
-            if (!response.ok || state.readback?.exitCode !== 0 || !state.app_state) process.exit(1);'
+            if (response.status !== 401) throw new Error(`Non-loopback anonymous API must return 401, received ${response.status}`);
+            const { execFileSync } = await import("node:child_process");
+            const state = JSON.parse(execFileSync("opl", ["app", "state", "--profile", "fast", "--json"], { encoding: "utf8", timeout: 120000 }));
+            if ((state.app_state ?? state).surface_kind !== "opl_app_state.v1") throw new Error("Framework returned no canonical App state");
+            console.log(JSON.stringify({ stage: "webui_runtime_state", anonymous_api_status: response.status, framework_app_state: "passed" }));'
           docker exec "$container_name" codex --version
           docker exec "$container_name" opl --version
           printf '%s\n' passed > webui-carrier/persistence-restart.txt
