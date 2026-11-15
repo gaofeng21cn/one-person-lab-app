@@ -4,7 +4,7 @@ Owner: `one-person-lab-app`
 State: `active`
 Scope: DeepSeek Harness `dsh-v0.2.2-rc.3@38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`0.2.2-rc.3` package cohort）与 OPL Studio 适配。GUI 源码与 npm cohort 均绑定同一官方 release tag。
 
-这份文档说明插件的源码和安装位置、开发归口、DSH 官方插件在 OPL 中的状态，以及设置归属。默认策略是吸收 DSH 的有价值能力；已有 OPL owner 时复用 DSH 的 UI、协议和交互，再接入现有 owner。只有明确与 OPL 设计冲突、会制造第二份 authority 或无法满足安全/数据边界的部分才排除。
+这份文档说明插件的源码和安装位置、开发归口、DSH 官方插件在 OPL 中的状态，以及设置归属。统一分类和仓库决策以 [插件组合与仓库边界](plugin-composition-map.md) 及 [插件组合分类合同](../../../contracts/app-plugin-composition-taxonomy.json) 为准；当前源码组成用 `scripts/plugin-composition-inventory.mjs` 动态读取。默认策略是吸收 DSH 的有价值能力；已有 OPL owner 时复用 DSH 的 UI、协议和交互，再接入现有 owner。只有明确与 OPL 设计冲突、会制造第二份 authority 或无法满足安全/数据边界的部分才排除。
 
 ## 工程原则与升级边界
 

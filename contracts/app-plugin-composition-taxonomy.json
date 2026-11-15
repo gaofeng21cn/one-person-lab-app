@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://onepersonlab.dev/contracts/app-plugin-composition-taxonomy.json",
+  "schema_version": "opl_app_plugin_composition_taxonomy.v1",
+  "owner": "one-person-lab-app",
+  "purpose": "Separate development and delivery units from user-facing OPL App surfaces.",
+  "authority_rule": "repository_location_and_carrier_do_not_choose_the_user_entry",
+  "layers": {
+    "dsh_host_plugin": {
+      "runtime_abi": "dsh_npm_package_cordis_host_plugin",
+      "source_owner": "opl-studio",
+      "composition_owner": "opl-studio_dsh_profile",
+      "lifecycle": "App_and_Shell_release",
+      "user_role": "application_host_service_or_transport",
+      "may_be_user_visible": false,
+      "examples": ["opl-codex-native", "opl-framework-bridge", "opl-mcp-apps"]
+    },
+    "dsh_client_plugin": {
+      "runtime_abi": "dsh_client_module_and_slot_registry",
+      "source_owner": "opl-studio",
+      "composition_owner": "opl-studio_client_composition",
+      "lifecycle": "App_and_Shell_release",
+      "user_role": "shared_navigation_settings_or_workbench_surface",
+      "may_be_user_visible": true,
+      "examples": ["opl-studio-client", "opl-team-bots"]
+    },
+    "framework_capability_package": {
+      "runtime_abi": "Framework_package_descriptor_native_carrier_and_app_contributions",
+      "source_owner": "App_or_domain_package_owner",
+      "composition_owner": "one-person-lab_Framework",
+      "lifecycle": "owner_publication_and_native_carrier",
+      "user_role": "professional_capability_provider_and_declarative_UI_contributor",
+      "dsh_host_plugin": false,
+      "examples": ["opl-channel-weixin", "domain_owned_packages"]
+    },
+    "standard_mcp_app_surface": {
+      "runtime_abi": "MCP_Apps_SDK_AppBridge",
+      "source_owner": "Framework_or_domain_package_owner",
+      "composition_owner": "opl-studio_opl-mcp-apps_host",
+      "lifecycle": "owner_package_and_current_thread_binding",
+      "user_role": "operational_workspace_or_specialized_application_surface",
+      "may_be_user_visible": true,
+      "examples": ["shared_opl_apps", "domain_dedicated_mcp_app"]
+    },
+    "upstream_ecosystem_dependency": {
+      "runtime_abi": "pinned_DSH_or_community_package_metadata",
+      "source_owner": "upstream_owner",
+      "composition_owner": "opl-studio_compatibility_adapter_when_needed",
+      "lifecycle": "pinned_DSH_cohort_or_upstream_release",
+      "user_role": "reused_UI_primitive_or_host_capability",
+      "may_be_user_visible": true,
+      "examples": ["dsh-client-modules", "dsh-settings-search"]
+    }
+  },
+  "user_surface_routing": {
+    "software_center": "install_update_enable_disable_remove_and_show_source_or_dependency",
+    "settings": "persistent_configuration_connections_permissions_and_service_readiness",
+    "application_workspace": "operational_lists_reviews_boards_timelines_artifacts_and_specialized_UI",
+    "task_detail": "task_scoped_stages_artifacts_evidence_and_owner_actions",
+    "runtime_maintenance": "provider_health_diagnostics_and_repair_guidance",
+    "conversation": "ordinary_Codex_conversation_and_agent_selection"
+  },
+  "uniformity_rules": [
+    "user_surface_is_selected_by_functional_purpose_not_repository_package_role_or_catalog_scope",
+    "all_package_UI_uses_app_admitted_declarative_contributions_or_the_standard_MCP_Apps_host",
+    "all_package_actions_use_the_canonical_App_action_bridge_and_owner_readback",
+    "package_installation_does_not_create_a_new_top_level_settings_navigation_entry",
+    "App_and_client_do_not_maintain_a_second_package_registry_currentness_authority_or_domain_state_store"
+  ],
+  "repository_decision_rules": {
+    "keep_in_opl_studio_when": [
+      "the_unit_is_DSH_host_or_client_composition",
+      "it_shares_the_Studio_profile_release_and_cross_plugin_test_cohort",
+      "its_state_is_transport_or_host_lifecycle_state"
+    ],
+    "use_app_owned_package_when": [
+      "the_capability_is_part_of_the_App_product",
+      "it_needs_a_Framework_descriptor_and_native_carrier",
+      "its_domain_logic_should_not_become_a_DSH_host_plugin"
+    ],
+    "use_independent_domain_repo_when": [
+      "the_capability_has_an_independent_domain_owner",
+      "it_has_its_own_publication_or_release_cadence",
+      "it_can_be_consumed_by_more_than_one_product_or_host"
+    ],
+    "do_not_split_or_merge_only_because": [
+      "a_directory_is_named_plugins",
+      "a_package_has_a_Codex_plugin_carrier",
+      "a_feature_contributes_a_user_facing_view"
+    ]
+  },
+  "inventory": {
+    "command": "node scripts/plugin-composition-inventory.mjs --studio-root <path> --framework-root <path>",
+    "source_of_truth": "current_profile_package_manifests_and_Framework_descriptors",
+    "static_package_allowlist": false,
+    "installation_claim": "inventory_describes_source_and_declared_composition_only"
+  }
+}

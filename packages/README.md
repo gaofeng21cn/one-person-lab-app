@@ -9,6 +9,8 @@ The current Package is [OPL Channel Weixin](opl-channel-weixin/README.md).
 Its [Package descriptor](opl-channel-weixin/opl-package.json) defines its
 entrypoint, contributions, carrier and ownership boundary.
 
+This is the current App-owned Package source in this repository. It is not the only independent Package source in OPL: Framework descriptors point to domain owner repositories. Those domain Packages are Framework capabilities, not DSH Host plugins.
+
 Other plugin implementations live with their owning component:
 
 | Component | Source location | Delivery |
