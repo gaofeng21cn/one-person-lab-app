@@ -123,3 +123,9 @@ HTTPS 的 TLS 终点属于用户信任边界；若采用反向代理，该代理
 
 2026-11-15 已完成原生构建、界面审看与真实 Codex 到模拟器的同一对话续聊、前台恢复和文件正文
 预览。详细范围与源码组合见[源码验收记录](gui/evidence/opl-link-native-companion-acceptance-2026-11-15.md)。
+
+随后完成 DSH Go 视觉方向与真正 Duo 模拟器的外屏、展开、半开、旋转、键盘、草稿及审批
+连续性检查；浅深色与辅助功能大字体检查同时修复了正文重复缩放、主按钮对比和问题面板高度。
+普通 iPhone 与独立 iPad 保留代表路径回归。详细范围见
+[视觉与 Duo 验收](gui/evidence/opl-link-dsh-go-duo-acceptance-2026-11-15.md)。这项模拟器资格
+不改变桌面安装、真实 iPhone 网络与 Apple 分发的验收状态。

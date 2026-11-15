@@ -230,8 +230,9 @@
   "implementation_status": {
     "source_status": "native_build_and_real_codex_simulator_validated",
     "source_acceptance_ref": "docs/product/gui/evidence/opl-link-native-companion-acceptance-2026-11-15.md",
-    "native_presentation_status": "dsh_go_visual_and_duo_implementation_in_progress",
-    "duo_simulator_qualified": false,
+    "native_presentation_status": "dsh_go_visual_and_duo_simulator_validated",
+    "native_presentation_acceptance_ref": "docs/product/gui/evidence/opl-link-dsh-go-duo-acceptance-2026-11-15.md",
+    "duo_simulator_qualified": true,
     "installed_desktop_updated": false,
     "real_iphone_qualified": false,
     "public_beta_or_app_store_published": false,
