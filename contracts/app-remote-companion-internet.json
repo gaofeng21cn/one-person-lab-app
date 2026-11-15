@@ -1,7 +1,7 @@
 {
   "schema": "opl_link_internet.v1",
   "owner": "one-person-lab-app",
-  "state": "direct_first_implementation",
+  "state": "adaptive_source_and_public_relay_fallback_qualified_turn_deployment_in_progress",
   "service_owner": "opl-link/service",
   "deployment_owner": "opl-instance-medopl",
   "service_origin": "https://link.medopl.com",
@@ -234,18 +234,24 @@
       "managed_service_deployed": true,
       "public_account_isolation_qualified": true,
       "public_native_path_qualified": true,
-      "blocker": "",
-      "deployment_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43712654458",
-      "public_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43713245266",
-      "native_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43713746380",
+      "blocker": "production_TURN_native_node_public_mapping_validation_in_progress",
+      "deployment_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43720949508",
+      "public_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43721620695",
+      "native_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43725036282",
       "required_identity_action": "none",
       "distinct_ordinary_isolation_test_account_ready": true,
       "source_read_authorized": true,
-      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43712238775",
+      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43727156593",
       "registry_read_grant_applied": true,
-      "last_qualified_transport": "relay",
-      "direct_first_source_qualified": false,
-      "public_direct_native_path_qualified": false
+      "last_qualified_transport": "relay_after_direct_attempt",
+      "direct_first_source_qualified": true,
+      "public_direct_native_path_qualified": false,
+      "local_native_paths_qualified": [
+        "lan",
+        "turn",
+        "relay_fallback"
+      ],
+      "public_turn_native_path_qualified": false
     },
     "source_read_permissions": [
       "contents:read",

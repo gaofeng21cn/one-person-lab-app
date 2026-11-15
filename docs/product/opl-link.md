@@ -64,17 +64,14 @@ OPL Link 让用户离开电脑后，在 iPhone 或 iPad 上找到 OPL App 的已
 
 ## 当前架构
 
-```text
-iPhone / iPad：原生 SwiftUI OPL Link
-            │ 出站 WSS；电脑公钥固定的 Noise IK 加密业务通道
-            ▼
-OPL 托管 Link Relay：https://link.medopl.com
-            ▲ 出站 WSS
-            │
-选中的 OPL Studio Host：配对、设备授权、有限 HTTP/SSE 与文件桥
-            │ 现有 opl-codex-native / workspace service
-            ▼
-同一个 Codex App Server、thread、turn、审批与工作区
+```mermaid
+flowchart LR
+    Phone["iPhone / iPad：OPL Link"] <-->|"LAN / P2P：优先直传"| Host["OPL Studio Host"]
+    Phone <-->|"WebRTC：TURN 中继"| Turn["标准 coturn"]
+    Turn <--> Host
+    Phone <-->|"WSS：信令 / Relay 兜底"| Service["link.medopl.com"]
+    Service <--> Host
+    Host <--> Codex["同一个 Codex thread、审批与工作区"]
 ```
 
 本轮用户批准的网络目标为 LAN/P2P→TURN→Relay 自动选路，同一扫码流程适用于局域网和互联网。
@@ -83,7 +80,8 @@ OPL 托管 Link Relay：https://link.medopl.com
 电脑保持在线并运行 App；
 电脑休眠或离线时，手机保留草稿并显示连接状态。无需入站端口、NAT 配置或同一局域网。
 
-传输复用 MIT DS Harness Remote 的固定上游版本、WSS、Relay、Noise IK 和 `loopback.call`。
+所有业务路径保持电脑公钥固定的 Noise IK 加密。传输复用 MIT DS Harness Remote 的固定上游版本、
+WebRTC 选路、WSS 信令、Relay、Noise IK 和 `loopback.call`。
 每个已认证账号使用独立的原版 Gateway 与 Store；scope header 只负责路由，设备 token 与精确
 电脑—手机 grant 负责授权。Relay 保存公开设备身份、令牌摘要和连接映射，不保存账号密码、模型 Key、
 对话正文或文件明文。端到端业务加密固定至扫码选择的电脑公钥；更换身份必须显式重新配对。
@@ -149,6 +147,8 @@ HTTP、无效证书和跨 origin 重定向；Debug loopback 只用于隔离验�
 本轮托管互联网适配已完成源码、跨语言及本地原生闭环，容器已发布、现有节点专用静态 Store 已准备。
 用户已完成 GitHub 验证并批准单包只读授权，公网服务已部署并通过固定镜像、工作负载及 HTTPS 健康回读。
 专用零余额普通测试账号已创建，公网双账号隔离、加密往返与撤销断连已通过。
-公网原生链路也已在 Duo 模拟器通过，业务执行使用隔离测试 fixture。当前传输仍为 Relay；直连优先的长期成本优化
-推荐与实际差距见[连接方案评估](opl-link-connection-options.md)，尚未切换线上传输。
-当前实证、恢复输入和边界见[托管互联网验收](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
+公网原生链路也已在 Duo 模拟器通过，业务执行使用隔离测试 fixture。随后已接入完整自适应选路，
+本地原生 LAN、TURN 与失败后 Relay 均通过；公网默认选路实际回退 Relay，生产 TURN 仍在部署验收。
+复用依据与成本见[连接方案评估](opl-link-connection-options.md)，本轮实际路径与边界见
+[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)，初次上线见
+[托管互联网验收](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。

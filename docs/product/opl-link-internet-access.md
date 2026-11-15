@@ -8,8 +8,8 @@ Owner: `one-person-lab-app`
 固定服务为 `https://link.medopl.com`；电脑与手机均建立出站 WSS。局域网、不同 Wi-Fi 和互联网采用同一流程，
 不要求用户配置 Tailscale、VPN、Cloudflare、域名、证书、端口或路由器。
 
-目前已部署验收的是 Relay-only 路径，业务密文持续经过中继。用户已批准复用上游完整的
-LAN/P2P→TURN→Relay 自动选路，本轮正在补齐原生接入和实际路径验收。
+客户端、Host 和服务已接入上游 LAN/P2P→TURN→Relay 自动选路。本地原生 LAN、TURN 和失败后 Relay
+均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay。公网 TURN 部署与实际路径验收仍在完成。
 TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力；用户不选择网络协议或自行配置服务。
 复用依据见[连接方案评估](opl-link-connection-options.md)，当前进度与证据见[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)。
 
@@ -18,8 +18,10 @@ TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力
 | 层次 | 当前选择 | 采用原因 |
 | --- | --- | --- |
 | 手机视觉与工作流 | DSH Go 参考，OPL 原生 SwiftUI | 中性雾蓝灰/石板灰、清楚状态、原生阅读与操作；不用绿色品牌风格 |
-| 网络传输 | MIT DS Harness Remote 固定版本 | 复用成熟的 WSS、Relay、Noise IK、分片、连接恢复与公开 Host API |
+| 网络传输 | MIT DS Harness Remote 固定版本 | 复用 WebRTC 选路、WSS 信令、Relay、Noise IK、分片、连接恢复与公开 Host API |
 | iOS 加密 | MIT swift-noise 固定版本 | 复用成熟 Noise 实现；与上游向量及真实 Node 密文逐字节互通 |
+| iOS WebRTC | BSD-3-Clause WebRTC 157.0.0 | 使用成熟 DataChannel 和 ICE；不增加音视频权限 |
+| TURN | 官方 coturn 4.19.0 | 采用标准短期凭据与有限中继端口，复用现有网络资源 |
 | 业务与授权 | 现有 Studio Link HTTP/SSE 和 Codex owner | 继续同一个 canonical thread、审批和工作区 |
 | 托管与部署 | 独立 Link 容器，Instance 受保护工作流 | 复用现有 OPL 域名/TLS/集群，独立于 Cloud 业务与其发布 cohort |
 
@@ -45,20 +47,22 @@ Studio 只组合官方 Remote lifecycle。固定虚拟 loopback 端口 43177 不
 
 ## 实施与验收状态
 
-源码实现已完成本地 Relay↔真实 DSH Host↔Swift 原生客户端的完整链路：扫码、Noise claim、同 thread、
+源码实现已完成本地 LAN、TURN 和 Relay↔真实 DSH Host↔Swift 原生客户端的完整链路：扫码、Noise claim、同 thread、
 多片附件、ETag 下载、SSE、重连及双层撤销。原生 App 的 Keychain、前后台和终止重开恢复已实跑；
 Duo 公钥确认、键盘与草稿连续性检查通过。源码读取授权已恢复：既有发布 App 签发固定 Framework、Studio、Link 三仓的 `contents/actions: read` 短期凭据，
 实际 workflow `43712238775` 通过。镜像读取采用 GitHub 官方的单包 Actions access：用户已批准并实际向 Instance
 部署仓库授予 `opl-link-service` 包的 Read；包保持私有，没有扩大原发布 App 的全仓权限。
 
 Instance 已实现从 GHCR 固定摘要复制到现有私有 TCR，并在目标复验完整来源；运行时只使用 TCR 凭据，
-避免依赖一小时有效的工作流令牌和节点镜像缓存。正式部署 `43712654458` 已成功，固定镜像、TCR 镜像来源、
+避免依赖一小时有效的工作流令牌和节点镜像缓存。自适应服务正式部署 `43720949508` 已成功，固定镜像、TCR 镜像来源、
 工作负载、专用凭据、公网路由和 HTTPS `/healthz` 均已回读。
-专用静态 Store 使用已有工作节点，未购买新服务器或云盘。iOS 公网测试 `43713746380` 已在真实 Duo 模拟器通过，
+专用静态 Store 使用已有工作节点，未购买新服务器或云盘。iOS 公网默认自适应测试 `43725036282` 已在真实 Duo 模拟器通过，
 覆盖配对、Noise claim、同一测试 thread、分片上传、分段下载、SSE、重新握手与撤销；Host 清理已回读完成。
 独立的零余额普通测试账号已获用户授权并创建，测试凭据仅保存在 Gateway 与 Instance 的受保护配置中。
-公网资格 `43713245266` 已通过 HTTPS、WSS、加密往返、双账号隔离及撤销断连。
-详见[本轮验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
+公网资格 `43721620695` 已通过 HTTPS、WSS、加密往返、双账号隔离及撤销断连。
+该默认测试实际走 Direct 失败后 Relay，不证明公网 P2P 或 TURN 已选中。
+本轮路径证据见[直连验收记录](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)，
+初次 Relay 上线见[原验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
 本次原生公网测试使用 Studio 的业务 owner fixture，没有调用真实模型。已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
 
 ## 安全、稳定性与登录边界
@@ -68,7 +72,8 @@ Instance 已实现从 GHCR 固定摘要复制到现有私有 TCR，并在目标�
 `cloud.medopl.com` 是云平台界面，与中继承担不同职责。
 
 服务与 Cloud 共用现有工作节点，因此进程、存储和网络权限隔离不能消除主机故障的共同影响。当前部署为单副本，
-Local PV 绑定节点，不宣称高可用。主机或中继离线会中断手机通道；已有桌面会话及文件仍由用户电脑持有。
+Local PV 绑定节点，不宣称高可用。控制服务离线会影响配对、授权、信令与连接恢复，TURN 和 Relay 各自故障会影响对应中继路径；
+已有桌面会话及文件仍由用户电脑持有。
 
 初始部署配置将账号容量收紧为 32，保留 0.5 核 CPU、1 GiB 内存及 128 总连接上限。原版 Store 每账号
 已有 256 设备和 16,384 token records 的边界；按完整序列化上界估算，32 账号状态约 155 MiB，原子写入额外
@@ -82,4 +87,6 @@ Local PV 绑定节点，不宣称高可用。主机或中继离线会中断手�
 
 - [DS Harness Remote](https://github.com/liguobao/ds-harness-remote/tree/f214c5abb39434d0e8358956bfca8d4529981fee)：MIT；Studio Host bundle、协议、Relay Gateway/Store 保留原字节、来源与摘要。
 - [swift-noise](https://github.com/swift-libp2p/swift-noise/tree/0adfd28786322784860fb3c8f228591c6e8fd92f)：MIT；使用 `Noise_IK_25519_ChaChaPoly_SHA256`，依赖锁定 revision。
+- [WebRTC](https://github.com/stasel/WebRTC/tree/157.0.0)：BSD-3-Clause；iOS 使用 DataChannel，保留许可证。
+- [coturn](https://github.com/coturn/coturn)：BSD-3-Clause；标准 TURN 服务，运行镜像固定摘要由 Instance 持有。
 - [DSH Go](https://github.com/ccch1mneyyy/dsh-Go)：视觉与移动工作流参考，不引入其账号、历史库或本机 runtime。
