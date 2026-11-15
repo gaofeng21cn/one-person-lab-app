@@ -8,6 +8,9 @@ Owner: `one-person-lab-app`
 固定服务为 `https://link.medopl.com`；电脑与手机均建立出站 WSS。局域网、不同 Wi-Fi 和互联网采用同一流程，
 不要求用户配置 Tailscale、VPN、Cloudflare、域名、证书、端口或路由器。
 
+这是当前已部署的 Relay-only 实现，业务密文持续经过中继。长期成本评估推荐复用上游已有的直连优先选路；
+P2P 与第三方 TURN 尚未接入 OPL，比较和实施差距见[连接方案评估](opl-link-connection-options.md)。
+
 ## 方案与复用
 
 | 层次 | 当前选择 | 采用原因 |
@@ -43,14 +46,18 @@ Studio 只组合官方 Remote lifecycle。固定虚拟 loopback 端口 43177 不
 源码实现已完成本地 Relay↔真实 DSH Host↔Swift 原生客户端的完整链路：扫码、Noise claim、同 thread、
 多片附件、ETag 下载、SSE、重连及双层撤销。原生 App 的 Keychain、前后台和终止重开恢复已实跑；
 Duo 公钥确认、键盘与草稿连续性检查通过。源码读取授权已恢复：既有发布 App 签发固定 Framework、Studio、Link 三仓的 `contents/actions: read` 短期凭据，
-实际 workflow `43705995770` 通过。镜像读取改用 GitHub 官方的单包 Actions access：仅向 Instance 部署仓库
-授予 `opl-link-service` 包的 Read，当前尚待用户确认，没有扩大原发布 App 的全仓权限。
+实际 workflow `43712238775` 通过。镜像读取采用 GitHub 官方的单包 Actions access：用户已批准并实际向 Instance
+部署仓库授予 `opl-link-service` 包的 Read；包保持私有，没有扩大原发布 App 的全仓权限。
 
 Instance 已实现从 GHCR 固定摘要复制到现有私有 TCR，并在目标复验完整来源；运行时只使用 TCR 凭据，
-避免依赖一小时有效的工作流令牌和节点镜像缓存。该路径已完成源码检查，仍待授权后的真实部署回读。
-专用静态 Store 已在已有工作节点准备完成，未购买新服务器或云盘。公网 Relay 尚未部署，iOS 公网测试尚未运行。
-另一项隔离验收前提是独立的普通测试账号，仍未创建。详见[本轮验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
-已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
+避免依赖一小时有效的工作流令牌和节点镜像缓存。正式部署 `43712654458` 已成功，固定镜像、TCR 镜像来源、
+工作负载、专用凭据、公网路由和 HTTPS `/healthz` 均已回读。
+专用静态 Store 使用已有工作节点，未购买新服务器或云盘。iOS 公网测试 `43713746380` 已在真实 Duo 模拟器通过，
+覆盖配对、Noise claim、同一测试 thread、分片上传、分段下载、SSE、重新握手与撤销；Host 清理已回读完成。
+独立的零余额普通测试账号已获用户授权并创建，测试凭据仅保存在 Gateway 与 Instance 的受保护配置中。
+公网资格 `43713245266` 已通过 HTTPS、WSS、加密往返、双账号隔离及撤销断连。
+详见[本轮验收记录](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
+本次原生公网测试使用 Studio 的业务 owner fixture，没有调用真实模型。已安装桌面 App、真实手机与 Apple 分发分别保留独立状态。
 
 ## 安全、稳定性与登录边界
 

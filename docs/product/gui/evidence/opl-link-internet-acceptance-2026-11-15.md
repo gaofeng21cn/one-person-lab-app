@@ -22,15 +22,34 @@
 
 ## 公网与原生资格
 
-当前未完成公网部署与原生公网验收。首个正式部署 run `43695647291` 在私有源码读取准入失败，未执行服务部署 mutation。随后独立 source-access run `43696489740` 证明旧配置凭据与运行器原生 gh/registry 路径均不能读取私有源码/镜像。
+正式部署 run `43712654458` 已成功。原生 receipt 的状态为 `deployed`、阶段为 `public_acceptance`，
+`publicHealth`、`exactImageInstalled`、`exactPublicRouteInstalled`、`registryMirrorVerified` 与
+`imagePullCredentialReadback` 均为 true。部署证据归
+[Instance 原生 receipt](https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/receipts/2026-11-15-link-service-deploy-43712654458.json)持有。
 
-Framework 复用已有发布 GitHub App 请求固定三仓 `contents/actions/packages: read` 的短期凭据；run `43697266238` 在 mint 阶段收到 GitHub HTTP 422：`The permissions requested are not granted to this installation`。这证明请求权限集合未获授予，尚不能从响应确定具体缺少哪一项。没有成功签发或导出 token，也没有复制个人 OAuth 或扩大既有 App 权限。
+用户已授权创建独立零余额普通测试账号，Gateway 回读其为 active/user，并发与 RPM 均为 1；
+密码通过 stdin 保存至 Instance production `OPL_LINK_ISOLATION_TEST_*` Secrets，明文临时文件已删除。
+该账号与既有第一普通账号不同；公众注册保持关闭，未使用管理员账号作手机业务验收。
 
-此前 GitHub 权限页要求本人 Passkey 验证，用户当时暂时无法完成；现已完成身份验证，恢复结果见下节。公网部署仍保留为未完成。另一项公网隔离资格前提是独立的普通测试账号；此前两组 Secret 实为历史重复，已修正为独立 `OPL_LINK_ISOLATION_TEST_*` 引用。Gateway 当前关闭公众注册，未为测试打开全局注册或使用管理员账号作业务验收。
+公网资格 run `43713245266` 已通过。原生 `qualified` receipt 的 `health`、`wssRelay`、
+`encryptedRoundTrip`、`accountIsolation` 与 `revocationClosesConnection` 均为 true，source 与同 run 的
+已安装镜像检查严格相等。闭合结果归
+[Instance qualification receipt](https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/receipts/2026-11-15-link-service-qualification-43713245266.json)持有。
 
 受保护 storage run `43694402150` 已实际准备专用静态 Local PV/PVC 并回读 Bound/Retain/节点 affinity，未购买服务器或云盘。Local Store 绑定既有工作节点，节点灾难恢复仍归部署 owner。
 
-原生 iOS 公网测试目标已构建并实际启动 Simulator 测试 runner；缺少私有 QR 时按预期跳过，该结果仅证明 runner 可用。公网 QR 未生成、没有公网手机通过的结论。本地联调、public health 与 Node 公网测试均不代替原生资格。
+公网 Host run `43713746380` 与 iOS `OPLLinkCoreTests/RemoteLiveTests/testManagedRelayRealHost` 均已成功。
+测试在 iOS 27.2 的专用 iPhone Duo Simulator 实际执行，1 passed、0 failed、0 skipped，用时 23.498 秒。
+覆盖公网 WSS enroll、固定电脑公钥的 Noise claim、同一 fixture thread 与待处理请求、1 MiB + 117 bytes 分片
+上传及检查/删除、524,319 bytes 文件 Range 全文比对、SSE、新 Noise 重连及本机 ACK 后 Relay 自撤销。
+
+原生 Host receipt 的身份核验、Host 启动、加密配对交付、配对后移除、Host 停止、私有状态清理六项均为 true，
+终止原因为 `paired_then_removed`。该 receipt 的 `nativeAcceptance` 保持 `not_claimed`，iOS 通过结论来自实际
+XCTest，而非 Host 运行状态。原字节见
+[Instance Host receipt](https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/receipts/2026-11-15-link-native-host-43713746380.json)。
+
+Studio fixture 提供隔离业务 owner；本次验证不包含真实模型 turn、已安装桌面 App 或物理 iPhone。此前首次 Host
+启动失败的具体根因无法从丢弃的子进程日志恢复；后续补充了封闭错误类别记录，未把这一观测改动当成已证根因修复。
 
 本轮不包含 Apple TestFlight/App Store 分发。已安装桌面 App 尚未由本次源码更新自动替换；真实手机、运营商切网与大陆弱网体验分别验收。
 
@@ -40,13 +59,19 @@ Framework 复用已有发布 GitHub App 请求固定三仓 `contents/actions/pac
 未保存扩大其范围的草稿。随后遵循 GitHub 单包 Actions access 路线，源码凭据仅请求固定三仓 Contents/Actions read。
 实际 source-only workflow `43705995770` 成功，没有为现有 App 增加权限，也没有新建个人令牌。
 
-Instance 源码 `3e4be2ba0e6a79e664031e677691c1a5e75929b5`、tree `9a6d207d2e1810591b51c551da8b6275f527f636`
-已通过 CI `43706732398`。源读取、GHCR 工作流读取与持久 TCR 拉取凭据分别归口；固定摘要镜像到 TCR 的复制
-及目标完整 provenance 验证已实现，当前尚未执行生产复制或服务部署。
+源读取、GHCR 工作流读取与持久 TCR 拉取凭据分别归口。固定摘要镜像已实际复制到既有 TCR，目标完整
+provenance 验证通过；运行时 pullSecret 只含 TCR 身份。原部署 workflow 的 heredoc 缩进错误已修复，
+源码 CI `43712648651`、后续 CI `43714438339` 均通过。成功部署、公网资格和原生 Host receipt 已进入 Instance
+main `f25abb3eb67beda87b89b8fac4f97f320ab967e0`，tree `d2b537896fde4c47f081cb4d3a6eec99b8cac23a`。
 
-单包 `opl-link-service` 向 `opl-instance-medopl` Actions 授予 Read 的对话已准备，尚待用户确认；原发布 App 和包的
-私有可见性未改变。Source-only 临时凭据的保守使用截止为 2026-11-15 19:40（北京时间），届时若未使用需重新签发，
-不把它当长期拉取凭据。第二普通测试账号和公网原生验收仍未完成。
+用户已批准单包 `opl-link-service` 向 `opl-instance-medopl` Actions 授予 Read；权限页已实际提交并显示该仓库的
+Role 为 Read。原发布 App 与包的私有可见性保持原状。Source-only workflow `43712238775` 已续签固定三仓的
+Contents/Actions read 临时凭据，不把它当长期拉取凭据。
+公网验收完成后已删除该临时 production Secret，并回读确认不存在；TCR 运行时凭据与获授权的专用测试账号配置保留。
 
 共享主机的故障域、Local PV 的节点依赖、初始 32 账号与资源/连接上限已在现行接入文档明确。现有 Store 硬限下
-估计状态上界约 155 MiB，1 GiB PVC 仍不代表硬配额。没有从这些源码检查推导高可用、压力测试或真实公网已通过。
+估计状态上界约 155 MiB，1 GiB PVC 仍不代表硬配额。服务部署和公网资格已实跑；高可用、压力测试及原生公网资格分别记录。
+
+本次部署前的真实节点快照为 CPU 110m、内存约 8.67 GiB；26 个 Pod 合计 CPU 39m、内存 682 MiB。
+按 requests 计算的剩余调度容量为 CPU 4280m、内存约 8.03 GiB、69 个 Pod slots。实际用量与调度余量分别记录，
+此快照不证明持续峰值下的稳定性，也没有执行压力或主机恢复测试。

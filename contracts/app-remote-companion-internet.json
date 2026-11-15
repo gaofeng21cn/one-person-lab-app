@@ -1,7 +1,7 @@
 {
   "schema": "opl_link_internet.v1",
   "owner": "one-person-lab-app",
-  "state": "source_validated_deployment_blocked",
+  "state": "managed_service_and_public_native_path_qualified",
   "service_owner": "opl-link/service",
   "deployment_owner": "opl-instance-medopl",
   "service_origin": "https://link.medopl.com",
@@ -203,15 +203,18 @@
     "current_evidence": {
       "service_image_published": true,
       "dedicated_existing_node_static_store_prepared": true,
-      "managed_service_deployed": false,
-      "public_native_path_qualified": false,
-      "blocker": "single_private_image_package_workflow_read_approval_pending",
-      "blocked_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43695647291",
-      "required_identity_action": "approve_only_opl_link_service_package_actions_read_for_opl_instance_medopl",
-      "distinct_ordinary_isolation_test_account_ready": false,
+      "managed_service_deployed": true,
+      "public_account_isolation_qualified": true,
+      "public_native_path_qualified": true,
+      "blocker": "",
+      "deployment_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43712654458",
+      "public_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43713245266",
+      "native_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43713746380",
+      "required_identity_action": "none",
+      "distinct_ordinary_isolation_test_account_ready": true,
       "source_read_authorized": true,
-      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43705995770",
-      "registry_read_grant_applied": false
+      "source_read_run": "https://github.com/gaofeng21cn/one-person-lab/actions/runs/43712238775",
+      "registry_read_grant_applied": true
     },
     "source_read_permissions": [
       "contents:read",
