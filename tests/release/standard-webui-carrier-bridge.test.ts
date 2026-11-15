@@ -8,6 +8,7 @@ import test from 'node:test';
 
 import { bindStandardReleaseTrack } from '../../scripts/bind-standard-release-track.ts';
 import { createWebuiSourceAuthority } from '../../scripts/webui-source-authority.ts';
+import { pinnedNodeBaseImage } from '../../scripts/framework-release-adapter-plan.ts';
 import { writeStandardDistributionTrust } from './app-release-boundary-cases/helpers.ts';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
@@ -176,6 +177,19 @@ test('Standard identity v2 binds the exact Bundle cohort and first source run', 
   );
 });
 
+test('WebUI uses the frozen Shell Node image across major upgrades and rejects unpinned or ambiguous bases', () => {
+  for (const major of [22, 26]) {
+    const image = `node:${major}-bookworm-slim@sha256:${'a'.repeat(64)}`;
+    assert.equal(pinnedNodeBaseImage(`ARG NODE_IMAGE=${image}\nFROM \u0024{NODE_IMAGE}\n`), `docker.io/library/${image}`);
+  }
+  for (const declaration of [
+    'ARG NODE_IMAGE=node:26-bookworm-slim',
+    `ARG NODE_IMAGE=other:26@sha256:${'a'.repeat(64)}`,
+    `ARG NODE_IMAGE=node:26@sha256:${'a'.repeat(63)}`,
+    `ARG NODE_IMAGE=node:26@sha256:${'a'.repeat(64)}\nARG NODE_IMAGE=node:22`,
+  ]) assert.throws(() => pinnedNodeBaseImage(declaration), /one digest-pinned Node base/);
+});
+
 function bridgeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-bridge-'));
   const app = gitFixture(root, 'app', {
@@ -184,7 +198,7 @@ function bridgeFixture() {
     'scripts/validate-webui-runtime-image.ts': 'export const fixture = true;\n',
   });
   const shell = gitFixture(root, 'shell', {
-    Dockerfile: 'ARG NODE_IMAGE=node:22-bookworm-slim@sha256:' + 'a'.repeat(64) + '\nFROM ${NODE_IMAGE}\n',
+    Dockerfile: 'ARG NODE_IMAGE=node:26-bookworm-slim@sha256:' + 'a'.repeat(64) + '\nFROM ${NODE_IMAGE}\n',
     'contracts/aionui-upstream-intake.json': `${JSON.stringify({
       managed_runtime: { codex_cli: { package: '@openai/codex', version: '1.2.3' } },
     })}\n`,

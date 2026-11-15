@@ -144,6 +144,15 @@ function frozenBaseImageDescriptor(indexPath: string, architecture: 'amd64' | 'a
   };
 }
 
+export function pinnedNodeBaseImage(dockerfile: string): string {
+  const declarations = dockerfile.match(/^ARG NODE_IMAGE=.*$/gm) ?? [];
+  const match = declarations.length === 1
+    ? /^ARG NODE_IMAGE=(node:[A-Za-z0-9_.-]+@sha256:[0-9a-f]{64})$/.exec(declarations[0]!)
+    : null;
+  if (!match) throw new Error('Exact Studio Dockerfile must bind one digest-pinned Node base.');
+  return `docker.io/library/${match[1]}`;
+}
+
 function frozenBuildInputs(input: {
   values: AdapterOptionValues;
   appRoot: string;
@@ -157,9 +166,7 @@ function frozenBuildInputs(input: {
   const dockerfileRef = 'Dockerfile';
   const dockerfileBytes = gitFileBytes(input.shellRoot, input.shellRef, dockerfileRef, 'Shell Dockerfile');
   const dockerfile = dockerfileBytes.toString('utf8');
-  if (!dockerfile.includes('ARG NODE_IMAGE=node:22-bookworm-slim@sha256:')) {
-    throw new Error('Exact Studio Dockerfile must bind a digest-pinned Node base.');
-  }
+  pinnedNodeBaseImage(dockerfile);
   const intake = readJson(path.resolve(requireOption(input.values, 'resolved-dependency-manifest')));
   const codexVersion = String(intake.runtime_payloads?.codex_cli?.version ?? '');
   if (intake.runtime_payloads?.codex_cli?.package !== '@openai/codex'
