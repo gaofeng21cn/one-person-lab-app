@@ -60,3 +60,5 @@ Markdown 文件正文使用原生阅读组件，其他受支持格式保留 Quic
 
 运行状态继续保持 `installed_desktop_updated=false`、`real_iphone_qualified=false`、
 `public_beta_or_app_store_published=false`、`release_ready=false`。
+
+后续托管互联网适配已复用 DS Harness Remote WSS/Noise；本文记录前一源码资格范围，当前接入以[互联网合同](../../../../contracts/app-remote-companion-internet.json)与[现行文档](../../opl-link-internet-access.md)为准。

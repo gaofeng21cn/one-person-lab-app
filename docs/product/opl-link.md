@@ -10,7 +10,8 @@ OPL Link 让用户离开电脑后，在 iPhone 或 iPad 上找到 OPL App 的已
 
 2026-11-15 用户重启开发，并授权按当前产品目标破坏性替换旧 Link 实现。旧代码的兼容与保留不再
 构成本次要求。当前产品合同是 [`app-remote-companion.json`](../../contracts/app-remote-companion.json)，
-跨端接口由 [`app-remote-companion-wire.json`](../../contracts/app-remote-companion-wire.json) 持有。
+跨端接口由 [`app-remote-companion-wire.json`](../../contracts/app-remote-companion-wire.json) 持有，
+托管互联网连接由 [`app-remote-companion-internet.json`](../../contracts/app-remote-companion-internet.json) 持有。
 
 ## 设计目标
 
@@ -42,8 +43,9 @@ OPL Link 让用户离开电脑后，在 iPhone 或 iPad 上找到 OPL App 的已
 
 ## 用户闭环
 
-桌面生成一次性二维码，手机扫码或粘贴链接，确认连接后进入对话。连接前不要求用户理解插件、
-消息提供商和协议。设备管理与高级网络说明位于设置。
+桌面在“设置 → 资源 → OPL Link”开启手机访问，复用已有 OPL 账号；需要登录时在 App 原有账号页完成。
+桌面显示就绪后生成一次性二维码，手机扫码或粘贴链接，核对电脑指纹后进入对话。服务地址内置，
+用户无需在 App 和 Link 之外安装软件、配置域名、证书、端口或隧道，手机无需输入账号密码。
 
 用户从已有对话开始，也可以在选中的设备上新建对话。项目分组是对 canonical workspace 的只读
 导航投影；本地置顶、草稿和阅读位置属于设备偏好，不重写 thread 历史或项目身份。
@@ -64,37 +66,45 @@ OPL Link 让用户离开电脑后，在 iPhone 或 iPad 上找到 OPL App 的已
 
 ```text
 iPhone / iPad：原生 SwiftUI OPL Link
-            │ 已认证 HTTPS JSON + SSE
+            │ 出站 WSS；电脑公钥固定的 Noise IK 加密业务通道
             ▼
-选中的 OPL Studio Host：配对、设备授权、有限动作与事件
+OPL 托管 Link Relay：https://link.medopl.com
+            ▲ 出站 WSS
+            │
+选中的 OPL Studio Host：配对、设备授权、有限 HTTP/SSE 与文件桥
             │ 现有 opl-codex-native / workspace service
             ▼
 同一个 Codex App Server、thread、turn、审批与工作区
 ```
 
-Studio 复用当前 DSH Application Host 的 HTTP 路由和 lifecycle，不加载 `dsh-base`，不另起
-Codex App Server。手机只访问 `/api/link` 下的受限接口；设备 bearer 无权调用通用 App action、
-配置、Package 安装或任意 shell。通用 `remote_companion_access` Package 贡献仍可服务其他
-provider，OPL Link v2 的运行不依赖该贡献或另一个 Framework Connector Package。
+局域网和互联网默认使用同一托管通道，电脑与手机都只需出站访问预置服务。电脑保持在线并运行 App；
+电脑休眠或离线时，手机保留草稿并显示连接状态。无需入站端口、NAT 配置或同一局域网。
 
-网络前提是手机可访问的、使用系统信任证书的 OPL HTTPS 入口，可复用现有 WebUI 部署与用户信任的
-HTTPS 代理。当前架构不提供自动 NAT 穿透，也不另外建立消息中继或云端配对服务。配置和实际
-访问必须指向同一台选中的 OPL Host，不能把另一个云端实例当作原桌面的对话。
+传输复用 MIT DS Harness Remote 的固定上游版本、WSS、Relay、Noise IK 和 `loopback.call`。
+每个已认证账号使用独立的原版 Gateway 与 Store；scope header 只负责路由，设备 token 与精确
+电脑—手机 grant 负责授权。Relay 保存公开设备身份、令牌摘要和连接映射，不保存账号密码、模型 Key、
+对话正文或文件明文。端到端业务加密固定至扫码选择的电脑公钥；更换身份必须显式重新配对。
 
-降低首次设置成本的后续接入方案见[互联网接入研究](opl-link-internet-access.md)。当前优先评估
-Tailscale Serve 向导；DSH Go 的账号发现、P2P 与中继提供长期体验参考。这些方案尚未接入本版，
-现有网络前提继续有效。Cloudflare Quick Tunnel 不支持 SSE，不能直接作为本版的一键入口。
+Studio 复用当前 DSH Application Host 的 lifecycle 和受限 `/api/link` 路由，不加载 `dsh-base`，
+不另起 Codex App Server。进程内固定虚拟目标 `http://127.0.0.1:43177` 不监听端口，只接受手机
+业务路由；桌面设备管理、通用 App action、Package 与任意 shell 均不经此桥开放。
 
-HTTPS 的 TLS 终点属于用户信任边界；若采用反向代理，该代理处于此边界内。本路线不宣称跨第三方
-中继的应用层端到端加密。Release 客户端拒绝明文 HTTP、无效证书和跨 origin 重定向；仅 Debug
-验证允许双方明确开启的 loopback HTTP，不开放普通局域网明文连接。
+大附件分为 512 KiB 上传片段，完成摘要核验后仅向 turn 传递绑定当前设备和精确 thread/workspace 的
+`uploadId`。保留每文件 10 MiB、最多五个限制。下载采用 512 KiB 分段及 ETag/If-Match，最多 256 MiB；
+文件变化时丢弃不完整结果。SSE 沿用同一 Host 的事件源，以有界读取承载；重连后先回读 canonical 状态。
+
+现有可信 HTTPS 直连接口保留为高级入口；默认设置流程不要求用户填写 URL。Release 客户端拒绝明文
+HTTP、无效证书和跨 origin 重定向；Debug loopback 只用于隔离验收。方案选择、上游来源与当前部署
+证据见[互联网接入](opl-link-internet-access.md)。
 
 ## 配对、设备与恢复
 
 桌面已认证用户创建 120 秒有效的单次配对链接。成功兑换后，Studio 签发 companion scope 的设备
 凭据；手机写入 Keychain，Host 只持久化 token hash 与设备元数据。设备凭据有效期为 30 天。
-配对码、二维码和 bearer 不进入日志、普通偏好或消息历史。桌面可查看并撤销设备；撤销同时拒绝
-后续请求并关闭该设备的事件流。手机断开连接也撤销自身授权。
+配对码通过固定电脑公钥的 Noise 通道发送；Relay enrollment 只建立传输身份。手机的传输身份和凭据
+按服务 origin、账号 scope、电脑 ID 分开保存在 Keychain。配对码、二维码和 bearer 不进入日志、
+普通偏好或消息历史。桌面先持久撤销业务凭据、关闭事件流，再撤销 Relay 授权。手机先取得本机
+撤销 ACK，再自撤 Relay token 并清除当前电脑凭据；未知结果保持可见且不自动重发。
 
 每个 mutation 使用独立 request ID，Host 拒绝相同 ID 的不同操作。连接中断、超时或结果未知时，
 手机显示真实的不确定状态并回读 canonical 对话，不自动重发消息、审批或停止动作。离线保留草稿，
@@ -110,6 +120,9 @@ HTTPS 的 TLS 终点属于用户信任边界；若采用反向代理，该代理
 | 产品定位、体验、安全边界与跨端 wire | `one-person-lab-app` |
 | iOS/iPadOS UI、Keychain、客户端恢复和 Apple carrier | `opl-link` |
 | 当前桌面 Host 的配对、设备鉴权、有限路由、事件和文件桥接 | `opl-studio` |
+| 账号会话兑换与私有凭据文件桥 | `one-person-lab` 现有 Gateway account owner |
+| 托管 Relay、账号隔离、传输令牌和容器源码 | `opl-link/service` |
+| 受保护部署、持久化、Ingress/TLS 和公网资格 | `opl-instance-medopl` |
 | canonical 对话、turn、模型、权限和审批 | 当前 `opl-codex-native` 与 Codex App Server |
 | 文件内容、真实工作区及路径准入 | 现有 workspace owner |
 | Package 与领域任务生命周期 | 原 Framework 与领域 owner |

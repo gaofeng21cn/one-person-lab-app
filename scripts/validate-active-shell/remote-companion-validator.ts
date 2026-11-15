@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 const policyRef = 'contracts/app-remote-companion.json';
 const wireRef = 'contracts/app-remote-companion-wire.json';
 const protocol = 'opl_link_studio_wire.v2';
-const transportMode = 'authenticated_https_json_and_server_sent_events';
+const transportMode = 'authenticated_https_json_sse_or_dsh_noise_relay_loopback';
+const internetRef = 'contracts/app-remote-companion-internet.json';
 export const remoteCompanionStates = ['unavailable', 'unpaired', 'qr_ready', 'active', 'revoking', 'attention'];
 export const remoteCompanionMethods = [
   'listThreads', 'readThread', 'startTurn', 'steerTurn', 'interruptTurn',
@@ -36,26 +37,28 @@ function requiredSet(actual: unknown, required: readonly string[], label: string
 
 export function validateRemoteCompanionWireContract(wire: Record<string, any>, policy?: Record<string, any>): void {
   fields(wire, { schema: protocol, owner: 'one-person-lab-app', transport: transportMode, base_path: '/api/link',
-    origin_policy: 'https_with_system_trust; explicit_debug_loopback_http_only' }, 'OPL Link wire');
+    origin_policy: 'system_trusted_https_or_wss_and_pinned_noise_IK; explicit_debug_loopback_http_only', internet_contract_ref: internetRef }, 'OPL Link wire');
   fields(wire.implementation_owners, { client: 'opl-link', host: 'opl-studio' }, 'OPL Link wire owners');
   requireValue(Number.isSafeInteger(wire.pairing_ttl_seconds) && wire.pairing_ttl_seconds > 0 && wire.pairing_ttl_seconds <= 120,
     'OPL Link pairing code lifetime must be bounded to 120 seconds');
   requireValue(Number.isSafeInteger(wire.credential_ttl_days) && wire.credential_ttl_days > 0 && wire.credential_ttl_days <= 30,
     'OPL Link device credentials must expire within 30 days');
-  requireValue(wire.pairing_url === 'opllink://pair?endpoint=<percent_encoded_https_base>&code=<single_use_secret>',
-    'OPL Link pairing URL must bind the HTTPS endpoint and single-use code');
+  requireValue(wire.pairing_url === 'opllink://pair?serverUrl=<origin>&accountScope=<scope>&hostDeviceId=<id>&hostIdentityKey=<key>&enrollmentToken=<token>&code=<single_use_secret>&expiresAt=<expiry>',
+    'OPL Link pairing URL must bind the scoped Relay, pinned Host key and single-use code');
 
   const hostAuth = { 'POST /pair': 'desktop_session_and_csrf', 'POST /claim': 'single_use_pair_code',
     'GET /devices': 'desktop_session', 'DELETE /devices/:id': 'desktop_session_and_csrf' };
   const clientAuth = { 'GET /bootstrap': 'device_bearer', 'POST /invoke': 'device_bearer', 'GET /events': 'device_bearer',
-    'POST /download': 'device_bearer', 'POST /disconnect': 'device_bearer' };
+    'POST /download': 'device_bearer', 'POST /disconnect': 'device_bearer',
+    'POST /uploads': 'device_bearer', 'PUT /uploads/:id': 'device_bearer', 'GET /uploads/:id': 'device_bearer',
+    'DELETE /uploads/:id': 'device_bearer', 'GET /download': 'device_bearer' };
   for (const [routes, auth, label] of [[wire.host_routes, hostAuth, 'host'], [wire.client_routes, clientAuth, 'client']] as const) {
     requireValue(object(routes), `OPL Link ${label} routes must be an object`);
     closedSet(Object.keys(routes), Object.keys(auth), `OPL Link ${label} routes`);
     for (const [route, role] of Object.entries(auth)) fields(routes[route], { auth: role }, `OPL Link ${route}`);
   }
-  fields(wire.host_routes['POST /pair'].input, { endpoint: 'https_base_url' }, 'OPL Link pairing input');
-  closedSet(wire.host_routes['POST /pair'].output, ['schema', 'endpoint', 'code', 'expiresAt', 'pairingURL'], 'OPL Link pairing response');
+  fields(wire.host_routes['POST /pair'].input, { endpoint: 'optional_https_base_url_for_explicit_advanced_direct_mode; absent_uses_managed_relay' }, 'OPL Link pairing input');
+  closedSet(wire.host_routes['POST /pair'].output, ['schema', 'serverUrl', 'accountScope', 'hostDeviceId', 'hostIdentityKey', 'enrollmentToken', 'code', 'expiresAt', 'hostFingerprint', 'pairingURL'], 'OPL Link pairing response');
   closedSet(wire.host_routes['POST /claim'].input, ['code', 'deviceName'], 'OPL Link claim input');
   closedSet(wire.host_routes['POST /claim'].output, ['schema', 'token', 'expiresAt', 'device', 'host'], 'OPL Link claim response');
   fields(wire.host_routes['GET /devices'].output, { devices: 'paired_device_metadata_without_tokens' }, 'OPL Link device listing');
@@ -64,6 +67,11 @@ export function validateRemoteCompanionWireContract(wire: Record<string, any>, p
   closedSet(wire.client_routes['POST /invoke'].input, ['method', 'payload', 'requestId'], 'OPL Link invocation input');
   fields(wire.client_routes['POST /invoke'].output, { result: 'canonical_owner_response' }, 'OPL Link invocation response');
   closedSet(wire.client_routes['POST /download'].input, ['threadId', 'relativePath'], 'OPL Link download input');
+  closedSet(wire.client_routes['GET /download'].query, ['threadId', 'relativePath', 'offset', 'length'], 'OPL Link ranged download');
+  fields(wire.client_routes['GET /download'], { version_policy: 'If-Match_required_after_first_range; changed_version_returns_412' }, 'OPL Link file version');
+  closedSet(wire.client_routes['PUT /uploads/:id'].input, ['offset', 'base64'], 'OPL Link upload chunk');
+  fields(wire.limits, { upload_chunk_bytes: 524288, download_chunk_bytes: 524288,
+    relay_loopback_body_bytes: 1048576, remote_message_bytes: 4194304, remote_fragment_bytes: 49152 }, 'OPL Link bounded relay payload');
   requireValue(object(wire.methods), 'OPL Link methods must be an object');
   closedSet(Object.keys(wire.methods), remoteCompanionMethods, 'OPL Link method allowlist');
   requireValue(Object.values(wire.methods).every(nonempty), 'OPL Link methods must declare their owner response');
@@ -82,6 +90,34 @@ export function validateRemoteCompanionWireContract(wire: Record<string, any>, p
   }
 }
 
+export function validateRemoteCompanionInternetContract(internet: Record<string, any>): void {
+  fields(internet, { schema: 'opl_link_internet.v1', owner: 'one-person-lab-app', service_owner: 'opl-link/service',
+    deployment_owner: 'opl-instance-medopl', service_origin: 'https://link.medopl.com',
+    external_network_app_or_configuration_required: false, phone_account_password_required: false }, 'OPL Link internet');
+  fields(internet.transport, { source_revision: 'f214c5abb39434d0e8358956bfca8d4529981fee',
+    encryption: 'Noise_IK_25519_ChaChaPoly_SHA256', business_protocol: protocol,
+    virtual_target_origin: 'http://127.0.0.1:43177', general_loopback_proxy_allowed: false,
+    second_codex_or_dsh_runtime_allowed: false, silent_identity_or_origin_replacement_allowed: false }, 'OPL Link relay');
+  closedSet(internet.transport.capabilities, ['transport.relay'], 'OPL Link transport capabilities');
+  fields(internet.account_isolation, {
+    strategy: 'one_unmodified_upstream_Gateway_and_Store_per_authenticated_account_scope',
+    account_scope_is_authorization: false, websocket_hello_requires_scoped_device_token: true,
+    rest_directory_requires_same_scope_and_opposite_role_and_host_grant: true, unauthenticated_scope_creation_allowed: false,
+    relay_stores_gateway_password_or_model_key: false, relay_stores_conversation_or_plaintext_business_payload: false,
+  }, 'OPL Link account isolation');
+  fields(internet.pairing, { ttl_seconds: 120, relay_enrollment_is_not_conversation_authorization: true,
+    local_claim_code_sent_only_inside_pinned_noise_channel: true,
+    transport_identity_keychain_scope: 'server_origin|accountScope|hostDeviceId', host_public_key_pinned_from_desktop_qr: true }, 'OPL Link internet pairing');
+  closedSet(internet.pairing.qr_transport_fields, ['serverUrl', 'accountScope', 'hostDeviceId', 'hostIdentityKey', 'enrollmentToken'], 'OPL Link QR transport');
+  closedSet(internet.pairing.qr_business_fields, ['code', 'expiresAt'], 'OPL Link QR business claim');
+  fields(internet.files, { upload_chunk_bytes: 524288, download_chunk_bytes: 524288,
+    max_file_bytes: 10485760, max_attachments: 5, max_download_bytes: 268435456,
+    aggregate_entire_file_as_one_rpc_or_base64_json: false }, 'OPL Link internet files');
+  fields(internet.recovery, { automatic_transport_reconnect: true,
+    preserve_unknown_business_operation_until_owner_readback: true,
+    automatic_replay_of_turn_approval_or_interrupt: false, offline_mutation_queue: false }, 'OPL Link internet recovery');
+}
+
 export function validateRemoteCompanionContract(policy: Record<string, any>, wire = readContract('app-remote-companion-wire.json')): void {
   fields(policy, { schema: 'opl_app_remote_companion.v5', owner: 'one-person-lab-app' }, 'OPL Link product');
   requireValue(['active_implementation', 'source_validated', 'qualified'].includes(policy.state), 'OPL Link state must describe the active companion implementation');
@@ -97,14 +133,15 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
     separate_framework_connector_package_required: false, settings_surface: 'settings_resources_opl_link_native_host_panel',
     generic_remote_companion_access_contribution_is_link_runtime: false }, 'OPL Link desktop boundary');
   fields(policy.transport, { protocol, mode: transportMode, wire_contract_ref: wireRef, endpoint_owner: 'selected_opl_studio_host',
-    network_prerequisite: 'phone_reachable_https_opl_studio_endpoint_with_system_trusted_certificate',
+    network_prerequisite: 'app_and_link_outbound_access_to_preconfigured_opl_link_service',
     authentication: 'revocable_companion_scoped_device_bearer', public_api_prefix: '/api/link', model_credentials_on_phone: false,
-    offline_command_queue: false, independent_cloud_service_required: false, third_party_relay_required: false,
+    offline_command_queue: false, independent_cloud_service_required: true, third_party_relay_required: false,
+    internet_contract_ref: internetRef, default_access: 'managed_opl_relay_without_external_user_configuration',
     unknown_mutation_result: 'reread_canonical_state_without_automatic_retry',
-    application_layer_relay_e2ee_claim_allowed: false,
+    application_layer_relay_e2ee_claim_allowed: true,
     debug_loopback_http: 'explicit_debug_only_and_loopback_origin_and_peer; never_plain_lan_http' }, 'OPL Link transport');
   fields(policy.pairing, { initiator: 'authenticated_desktop_user', single_use: true,
-    account_or_invitation_service_required: false, ios_credential_store: 'keychain_when_unlocked_this_device_only',
+    account_or_invitation_service_required: true, relay_enrollment_is_not_business_authorization: true, ios_credential_store: 'keychain_when_unlocked_this_device_only',
     desktop_credential_store: 'hashed_device_tokens_and_metadata_only',
     revoke: 'deny_future_calls_and_close_existing_device_event_streams',
     endpoint_change: 'explicit_new_pairing_no_silent_origin_change' }, 'OPL Link pairing');
@@ -130,12 +167,16 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
   fields(policy.source_refs, { wire_contract: wireRef, ios_repository: 'https://github.com/gaofeng21cn/opl-link',
     desktop_repository: 'https://github.com/gaofeng21cn/opl-studio', product_document: 'docs/product/opl-link.md' }, 'OPL Link source references');
   validateRemoteCompanionWireContract(wire, policy);
+  validateRemoteCompanionInternetContract(readContract('app-remote-companion-internet.json'));
+  requireValue(!status.public_internet_native_loop_qualified || status.managed_internet_service_deployed,
+    'Public native qualification requires the managed service deployment');
 }
 
 export function validateRemoteCompanionGuiProjection(projection: Record<string, any>): void {
   fields(projection, { policy_ref: policyRef, surface_id: 'remote_companion', app_store_name: 'OPL Link', home_screen_name: 'OPL Link',
     implementation_owner: 'opl-link', product_role: 'native_ios_companion_for_opl_app', primary_user_object: 'canonical_codex_conversation',
-    default_ios_surface: 'conversation_directory', desktop_workbench_remains_canonical: true, transport_target: 'authenticated_studio_https_json_sse',
+    default_ios_surface: 'conversation_directory', desktop_workbench_remains_canonical: true, transport_target: 'managed_dsh_noise_relay_with_scoped_studio_http_sse',
+    internet_contract_ref: internetRef, external_network_configuration_required: false,
     wire_contract_ref: wireRef, desktop_host_owner: 'opl-studio', pairing_surface: 'settings_resources_opl_link_native_host_panel',
     pairing_access_gate: 'desktop_session_and_single_use_expiring_code' }, 'App GUI OPL Link projection');
   closedSet(projection.access_status_values, remoteCompanionStates, 'App GUI OPL Link states');
@@ -152,7 +193,8 @@ export function validateMobileCompanionTopology(mobile: Record<string, any>): vo
   fields(mobile, { initial_surface: 'native_ios_remote_companion', app_store_name: 'OPL Link', home_screen_name: 'OPL Link',
     implementation_owner: 'opl-link', source_repository: 'https://github.com/gaofeng21cn/opl-link', companion_policy_ref: policyRef,
     wire_contract_ref: wireRef, product_role: 'native_ios_companion_for_opl_app', primary_user_object: 'canonical_codex_conversation',
-    desktop_host_owner: 'opl-studio', transport_target: 'authenticated_studio_https_json_sse', desktop_workbench_remains_canonical: true,
+    desktop_host_owner: 'opl-studio', transport_target: 'managed_dsh_noise_relay_with_scoped_studio_http_sse',
+    internet_contract_ref: internetRef, external_network_configuration_required: false, desktop_workbench_remains_canonical: true,
     pairing_surface: 'settings_resources_opl_link_native_host_panel' }, 'Product profile mobile topology');
   requireValue(mobile.release_ready === readContract('app-remote-companion.json').implementation_status.release_ready,
     'Mobile topology release evidence must match its companion owner');

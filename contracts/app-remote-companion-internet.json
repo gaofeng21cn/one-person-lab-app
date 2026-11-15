@@ -1,0 +1,201 @@
+{
+  "schema": "opl_link_internet.v1",
+  "owner": "one-person-lab-app",
+  "state": "implementation_in_progress",
+  "service_owner": "opl-link/service",
+  "deployment_owner": "opl-instance-medopl",
+  "service_origin": "https://link.medopl.com",
+  "gateway_identity_origin": "https://gateway.medopl.com",
+  "user_flow": [
+    "sign_in_to_existing_opl_account_in_desktop_app_if_needed",
+    "enable_phone_access_in_desktop_app",
+    "scan_desktop_pairing_code_in_link",
+    "confirm_computer_identity_and_continue_the_same_conversation"
+  ],
+  "external_network_app_or_configuration_required": false,
+  "phone_account_password_required": false,
+  "transport": {
+    "upstream": "https://github.com/liguobao/ds-harness-remote",
+    "source_revision": "f214c5abb39434d0e8358956bfca8d4529981fee",
+    "license": "MIT",
+    "control": "DSH_Remote_v1_WSS",
+    "data": "DSH_Remote_v1_relay",
+    "encryption": "Noise_IK_25519_ChaChaPoly_SHA256",
+    "business_bridge": "existing_loopback.call_http.open_http.read_http.close",
+    "business_protocol": "opl_link_studio_wire.v2",
+    "capabilities": [
+      "transport.relay"
+    ],
+    "control_path": "/ws/v1/connect",
+    "account_scope_header": "X-OPL-Account",
+    "virtual_target_origin": "http://127.0.0.1:43177",
+    "target_path_prefix": "/api/link/",
+    "general_loopback_proxy_allowed": false,
+    "second_codex_or_dsh_runtime_allowed": false,
+    "silent_identity_or_origin_replacement_allowed": false
+  },
+  "account_isolation": {
+    "strategy": "one_unmodified_upstream_Gateway_and_Store_per_authenticated_account_scope",
+    "upgrade_dispatch": "public_Node_HTTP_upgrade_event_to_scoped_virtual_server",
+    "account_scope_is_authorization": false,
+    "websocket_hello_requires_scoped_device_token": true,
+    "rest_directory_requires_same_scope_and_opposite_role_and_host_grant": true,
+    "unauthenticated_scope_creation_allowed": false,
+    "gateway_user_is_authoritative": true,
+    "relay_stores_gateway_password_or_model_key": false,
+    "relay_stores_conversation_or_plaintext_business_payload": false
+  },
+  "desktop_account_exchange": {
+    "credential_owner": "one-person-lab_existing_gateway_account",
+    "command": "opl connect gateway authorize-companion --request-stdin --credential-file <private-new-file> --json",
+    "request": "closed_object_with_service_opl_link_and_upstream_device_descriptor",
+    "credential_output": "exclusive_new_file_0600_inside_caller_owned_private_directory",
+    "stdout": "public_result_only_no_tokens_passwords_or_model_keys",
+    "service_origin_is_not_renderer_configurable": true,
+    "gateway_access_token_sent_only_to_preconfigured_relay_over_trusted_https": true,
+    "relay_authorizes_by_gateway_auth_me": true
+  },
+  "service_api": {
+    "host_registration": {
+      "method": "POST",
+      "path": "/api/v1/devices/register",
+      "authentication": "gateway_account_access_token",
+      "body": "upstream_device_registration_request_host_role_only",
+      "response": "upstream_device_credentials_plus_serverUrl_and_accountScope"
+    },
+    "refresh": {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "body": "upstream_device_refresh_request",
+      "scope_header_required": true,
+      "response": "upstream_device_credentials"
+    },
+    "self": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "authentication": "scoped_device_bearer"
+    },
+    "directory": {
+      "method": "GET",
+      "path": "/api/v1/devices",
+      "authentication": "scoped_client_bearer",
+      "visibility": "hosts_granted_by_enrollment_only"
+    },
+    "peer": {
+      "method": "GET",
+      "path": "/api/v1/devices/:id",
+      "authentication": "scoped_device_bearer",
+      "visibility": "opposite_role_with_exact_host_client_grant"
+    },
+    "presence": {
+      "method": "GET",
+      "path": "/api/v1/devices/:id/presence",
+      "authentication": "scoped_device_bearer",
+      "visibility": "same_as_peer"
+    },
+    "create_invitation": {
+      "method": "POST",
+      "path": "/api/v1/link/invitations",
+      "authentication": "scoped_host_bearer",
+      "body": {
+        "ttlSeconds": 120
+      },
+      "response": "invitationId_enrollmentToken_expiresAt"
+    },
+    "enroll": {
+      "method": "POST",
+      "path": "/api/v1/link/enroll",
+      "body": "enrollmentToken_and_upstream_client_device_descriptor",
+      "scope_header_required": true,
+      "response": "upstream_device_credentials_plus_serverUrl_accountScope_hostDeviceId"
+    },
+    "revoke_client": {
+      "method": "DELETE",
+      "path": "/api/v1/link/devices/:id",
+      "authentication": "host_bearer_for_own_granted_client_or_client_self",
+      "effect": "invalidate_tokens_and_close_control_and_data_connections"
+    },
+    "health": {
+      "method": "GET",
+      "path": "/healthz",
+      "authentication": "none",
+      "content": "bounded_public_health_only"
+    }
+  },
+  "pairing": {
+    "existing_desktop_initiated_single_use_claim_remains_authoritative": true,
+    "ttl_seconds": 120,
+    "relay_enrollment_is_not_conversation_authorization": true,
+    "local_claim_code_sent_only_inside_pinned_noise_channel": true,
+    "qr_transport_fields": [
+      "serverUrl",
+      "accountScope",
+      "hostDeviceId",
+      "hostIdentityKey",
+      "enrollmentToken"
+    ],
+    "qr_business_fields": [
+      "code",
+      "expiresAt"
+    ],
+    "phone_identity_persisted_before_enrollment": true,
+    "host_public_key_pinned_from_desktop_qr": true,
+    "unknown_claim_result_requires_fresh_desktop_pairing": true,
+    "qr_format": "flat_opllink_pair_URL_with_exactly_seven_unique_fields; reject_endpoint_in_remote_mode",
+    "transport_identity_keychain_scope": "server_origin|accountScope|hostDeviceId",
+    "explicit_host_key_confirmation_before_enrollment": true,
+    "client_device_grant": "one_host_only; enrollment_to_another_host_conflicts"
+  },
+  "files": {
+    "upload_chunk_bytes": 524288,
+    "max_file_bytes": 10485760,
+    "max_attachments": 5,
+    "upload_ttl_seconds": 600,
+    "create_upload": "POST /api/link/uploads with requestId,threadId_or_cwd,name,mimeType,size,sha256",
+    "append_upload": "PUT /api/link/uploads/:id with offset,base64; identical_offset_and_bytes_are_idempotent",
+    "inspect_upload": "GET /api/link/uploads/:id returns receivedBytes,size,status,expiresAt",
+    "remove_upload": "DELETE /api/link/uploads/:id",
+    "invoke_attachment_reference": "attachments entry with uploadId bound to device_and_exact_canonical_thread_or_workspace",
+    "download_chunk_bytes": 524288,
+    "max_download_bytes": 268435456,
+    "download_range": "GET /api/link/download with threadId,relativePath,offset,length; stable_ETag_and_If-Match_required_after_first_range",
+    "download_scope": "existing_canonical_workspace_realpath_and_open_file_owner",
+    "changed_file_mid_download": "reject_and_delete_partial_file",
+    "aggregate_entire_file_as_one_rpc_or_base64_json": false
+  },
+  "events": {
+    "source": "existing_authenticated_link_SSE",
+    "bridge": "bounded_loopback_http_stream_reads",
+    "heartbeat_seconds": 15,
+    "read_idle_seconds": 20,
+    "max_stream_bytes": 67108864,
+    "reopen": "fresh_canonical_read_before_new_stream_after_eof_or_disconnect",
+    "overflow": "close_and_canonical_resynchronize_never_silent_drop"
+  },
+  "recovery": {
+    "automatic_transport_reconnect": true,
+    "new_noise_session_on_connection_change": true,
+    "clear_old_rpc_fragments_and_stream_handles": true,
+    "retain_draft_selection_and_last_known_reading_state": true,
+    "preserve_unknown_business_operation_until_owner_readback": true,
+    "automatic_replay_of_turn_approval_or_interrupt": false,
+    "offline_mutation_queue": false,
+    "background_push_guarantee": false
+  },
+  "delivery": {
+    "source_ssot": "remote_canonical_main",
+    "managed_service_deployment_required": true,
+    "public_container_image_by_immutable_digest": true,
+    "instance_protected_workflow_required": true,
+    "new_billable_resource_purchase_authorized": false,
+    "apple_public_distribution_authorized": false,
+    "qualification": [
+      "upstream_vectors_and_cross_language_noise",
+      "account_and_pairing_isolation",
+      "actual_public_wss_host_to_native_client",
+      "same_canonical_conversation_and_requests",
+      "bounded_upload_and_ranged_download",
+      "network_loss_reconnect_and_no_unknown_mutation_replay"
+    ]
+  }
+}

@@ -4,7 +4,7 @@
 
 本轮沿用已完成的[原生手机伴侣链路](opl-link-native-companion-acceptance-2026-11-15.md)，
 落实用户指定的 DSH Go 视觉方向及 iPhone Duo 适配。互联网部分完成
-[源码与接入体验研究](../../opl-link-internet-access.md)，当前推荐 Tailscale Serve 向导；
+[源码与接入体验研究](../../opl-link-internet-access.md)，当时推荐 Tailscale Serve 向导（已由后续用户确认的托管 Relay 方案取代）；
 本轮没有接入第三方登录或启动公网隧道。
 
 本轮原生运行验收基于 [`ab8927b2`](https://github.com/gaofeng21cn/opl-link/commit/ab8927b21eb2958fbbea71769df6b8423a48d317)，

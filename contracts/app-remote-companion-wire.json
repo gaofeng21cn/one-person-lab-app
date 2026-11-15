@@ -5,23 +5,28 @@
     "client": "opl-link",
     "host": "opl-studio"
   },
-  "transport": "authenticated_https_json_and_server_sent_events",
+  "transport": "authenticated_https_json_sse_or_dsh_noise_relay_loopback",
   "base_path": "/api/link",
-  "origin_policy": "https_with_system_trust; explicit_debug_loopback_http_only",
-  "pairing_url": "opllink://pair?endpoint=<percent_encoded_https_base>&code=<single_use_secret>",
+  "origin_policy": "system_trusted_https_or_wss_and_pinned_noise_IK; explicit_debug_loopback_http_only",
+  "pairing_url": "opllink://pair?serverUrl=<origin>&accountScope=<scope>&hostDeviceId=<id>&hostIdentityKey=<key>&enrollmentToken=<token>&code=<single_use_secret>&expiresAt=<expiry>",
   "pairing_ttl_seconds": 120,
   "credential_ttl_days": 30,
   "host_routes": {
     "POST /pair": {
       "auth": "desktop_session_and_csrf",
       "input": {
-        "endpoint": "https_base_url"
+        "endpoint": "optional_https_base_url_for_explicit_advanced_direct_mode; absent_uses_managed_relay"
       },
       "output": [
         "schema",
-        "endpoint",
+        "serverUrl",
+        "accountScope",
+        "hostDeviceId",
+        "hostIdentityKey",
+        "enrollmentToken",
         "code",
         "expiresAt",
+        "hostFingerprint",
         "pairingURL"
       ]
     },
@@ -81,11 +86,51 @@
         "threadId",
         "relativePath"
       ],
-      "output": "bounded_workspace_file_bytes"
+      "output": "bounded_workspace_file_bytes",
+      "mode": "advanced_direct_HTTPS_only; managed_client_uses_GET_ranges"
     },
     "POST /disconnect": {
       "auth": "device_bearer",
-      "effect": "revoke_this_device"
+      "effect": "durable_local_revoke_and_ACK_before_phone_relay_self_revoke"
+    },
+    "POST /uploads": {
+      "auth": "device_bearer",
+      "input": [
+        "requestId",
+        "threadId_or_cwd",
+        "name",
+        "mimeType",
+        "size",
+        "sha256"
+      ],
+      "output": "device_and_exact_canonical_thread_or_workspace_scoped_upload_receipt"
+    },
+    "PUT /uploads/:id": {
+      "auth": "device_bearer",
+      "input": [
+        "offset",
+        "base64"
+      ],
+      "effect": "append_512KiB_chunk; identical_offset_and_bytes_are_idempotent"
+    },
+    "GET /uploads/:id": {
+      "auth": "device_bearer",
+      "output": "receivedBytes_size_status_expiresAt"
+    },
+    "DELETE /uploads/:id": {
+      "auth": "device_bearer",
+      "effect": "remove_own_upload_receipt_and_bytes"
+    },
+    "GET /download": {
+      "auth": "device_bearer",
+      "query": [
+        "threadId",
+        "relativePath",
+        "offset",
+        "length"
+      ],
+      "output": "at_most_512KiB_bytes_with_ETag_size_offset_eof",
+      "version_policy": "If-Match_required_after_first_range; changed_version_returns_412"
     }
   },
   "methods": {
@@ -108,13 +153,13 @@
     "prompt": "text",
     "model": "optional_explicit_selection",
     "reasoningEffort": "optional_explicit_selection",
-    "attachments": "optional_bounded_name_mimeType_base64_files"
+    "attachments": "optional_uploadId_receipts; advanced_direct_mode_also_accepts_bounded_name_mimeType_base64_files"
   },
   "steer_input": {
     "threadId": "required_existing_id",
     "expectedTurnId": "required_active_turn_id",
     "prompt": "text",
-    "attachments": "optional_bounded_name_mimeType_base64_files",
+    "attachments": "optional_uploadId_receipts; advanced_direct_mode_also_accepts_bounded_name_mimeType_base64_files",
     "model_or_reasoning_override_allowed": false
   },
   "limits": {
@@ -122,7 +167,14 @@
     "invoke_request_bytes": 73400320,
     "attachment_count": 5,
     "attachment_bytes_each": 10485760,
-    "download_bytes": 268435456
+    "download_bytes": 268435456,
+    "upload_chunk_bytes": 524288,
+    "upload_receipt_ttl_seconds": 600,
+    "download_chunk_bytes": 524288,
+    "relay_loopback_body_bytes": 1048576,
+    "remote_message_bytes": 4194304,
+    "remote_fragment_bytes": 49152,
+    "event_stream_bytes": 67108864
   },
   "stream_projection": "no_snapshot_cursor; coalesce_text_deltas_into_canonical_thread_reread_instead_of_appending_to_recovery_snapshots",
   "event_policy": "reconnect_then_reread_canonical_snapshots; never_replay_mutations",
@@ -135,7 +187,11 @@
     "revoke_closes_live_streams",
     "workspace_realpath_and_symlink_bounds",
     "no_offline_command_queue",
-    "no_model_credentials_on_phone"
+    "no_model_credentials_on_phone",
+    "relay_enrollment_is_not_business_authorization",
+    "pinned_noise_channel_binds_device_bearer_to_remote_peer",
+    "management_routes_not_exposed_over_loopback",
+    "relay_tokens_and_identity_scoped_per_origin_account_and_host"
   ],
   "error": {
     "error": {
@@ -148,5 +204,7 @@
     "readLinkDevices": "desktop_context_only_paired_device_metadata_without_tokens",
     "createLinkPairing": "desktop_context_only_expiring_single_use_qr_material",
     "revokeLinkDevice": "desktop_context_only_revoke_and_disconnect_device"
-  }
+  },
+  "internet_contract_ref": "contracts/app-remote-companion-internet.json",
+  "advanced_direct_pairing_url": "opllink://pair?endpoint=<percent_encoded_https_base>&code=<single_use_secret>"
 }

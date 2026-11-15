@@ -124,11 +124,11 @@
       "attention"
     ],
     "state_rules": {
-      "unavailable": "explain_https_endpoint_or_host_unavailability_without_affecting_desktop",
-      "unpaired": "offer_scan_or_paste_link_without_fabricated_conversations",
-      "qr_ready": "transient_single_use_link_with_expiry",
-      "active": "authorized_device_canonical_conversations_and_pending_requests",
-      "revoking": "disable_device_calls_and_close_streams",
+      "unavailable": "show_existing_opl_account_sign_in_or_managed_service_recovery_inside_app",
+      "unpaired": "enable_phone_access_in_app_then_scan_or_paste_pairing_link",
+      "qr_ready": "transient_120_second_code_and_computer_fingerprint; no_network_URL_input",
+      "active": "authorized_device_canonical_conversations_and_pending_requests; reconnect_preserves_draft_and_unknown_operation",
+      "revoking": "durable_local_invalidation_then_relay_revoke; phone_receives_local_ACK_first",
       "attention": "show_error_and_recovery_without_replaying_unknown_mutations"
     },
     "forbidden_in_page_state": [
@@ -355,7 +355,7 @@
             "scope": "active_opl_studio_current_product_only",
             "ordered_entry_ids": [
               "new_task",
-                "app_management",
+              "app_management",
               "runtime",
               "scheduled_tasks",
               "archived"
@@ -1548,7 +1548,13 @@
         "product_entry_source": "live_opl_mcp_app_catalog.products",
         "product_entry_policy": "one_package_entry_with_nested_internal_views; dedicated_app and professional_app modes remain separate surfaces",
         "runtime_view_navigation_policy": "catalog products exclude runtime_view; runtime views are opened contextually from the App /runtime task selection",
-        "entry_fields": ["package_name", "package_summary_i18n", "presentation_mode", "view_count", "direct_entry"]
+        "entry_fields": [
+          "package_name",
+          "package_summary_i18n",
+          "presentation_mode",
+          "view_count",
+          "direct_entry"
+        ]
       },
       "surface_policy": {
         "one_mini_app_per_surface": true,
@@ -1634,7 +1640,18 @@
     {
       "id": "app_management",
       "installation_operation_source": "opl app action execute --action package_operation_status --dry-run --json",
-      "installation_states": ["preparing", "downloading", "verifying", "extracting", "installing", "checking", "completed", "failed", "cancelled", "interrupted"],
+      "installation_states": [
+        "preparing",
+        "downloading",
+        "verifying",
+        "extracting",
+        "installing",
+        "checking",
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted"
+      ],
       "installation_acceptance": "preview size and location; background navigation and reload; byte progress only during download; cooperative cancellation; retained-byte retry; native installed readback before success",
       "expected_source": "App-owned application management behavior over Framework-owned Package, update, software-source, connection, model, and knowledge projections",
       "machine_source": "opl app state --profile fast --json#app_state.application_management",
@@ -4448,30 +4465,30 @@
           "settings-resources-primary",
           "settings-resources-browser-access",
           "settings-resources-diagnostics-action",
-            "opl-connections-section",
-            "settings-connection-authorization"
+          "opl-connections-section",
+          "settings-connection-authorization"
         ],
         "conditional": [
           {
             "testid": "settings-resources-external",
             "when": "eligible_external_resource_projection_present"
           },
-            {
-              "testid": "settings-connection-access-requests",
-              "when": "pending_connection_authorization_requests_present"
-            },
-            {
-              "testid": "settings-connection-grants",
-              "when": "connection_grants_present"
-            },
-            {
-              "testid": "settings-connection-invocations",
-              "when": "recent_connection_invocations_present"
-            },
-            {
-              "testid": "settings-connection-relay-import",
-              "when": "existing_relay_mailbox_ref_entered"
-            },
+          {
+            "testid": "settings-connection-access-requests",
+            "when": "pending_connection_authorization_requests_present"
+          },
+          {
+            "testid": "settings-connection-grants",
+            "when": "connection_grants_present"
+          },
+          {
+            "testid": "settings-connection-invocations",
+            "when": "recent_connection_invocations_present"
+          },
+          {
+            "testid": "settings-connection-relay-import",
+            "when": "existing_relay_mailbox_ref_entered"
+          },
           {
             "testid": "settings-resources-exception",
             "when": "attention_required"
@@ -5134,7 +5151,10 @@
   "advanced_detail_surface": {
     "command": "opl runtime app-operator-drilldown --detail full --json",
     "policy": "settings_maintenance_diagnostics_or_release_evidence_only",
-    "consumer_surfaces": ["/settings/environment?section=diagnostics", "release_evidence_tooling"],
+    "consumer_surfaces": [
+      "/settings/environment?section=diagnostics",
+      "release_evidence_tooling"
+    ],
     "runtime_page_allowed": false
   },
   "settings_compatibility_redirects": {
@@ -5200,19 +5220,36 @@
     "about_placement": "sidebar_bottom",
     "duplicate_settings_footer_entry_allowed": false,
     "required_dom": {
-      "expanded": ["settings-back-to-app", "settings-search-input"],
-      "collapsed": ["settings-back-to-app"],
-      "narrow": ["settings-titlebar-back-to-app"]
+      "expanded": [
+        "settings-back-to-app",
+        "settings-search-input"
+      ],
+      "collapsed": [
+        "settings-back-to-app"
+      ],
+      "narrow": [
+        "settings-titlebar-back-to-app"
+      ]
     },
-    "forbidden_dom": ["settings-titlebar-history-back"],
+    "forbidden_dom": [
+      "settings-titlebar-history-back"
+    ],
     "destination_behavior": "last_valid_non_settings_location_preserving_search_and_hash_else_guid",
     "keyboard_reachable": true,
     "same_resolver_for_sider_and_titlebar": true,
     "desktop_titlebar_return_forbidden": true,
     "footer_update_entry": {
-      "required_dom_when_update_available": ["sider-footer-update"],
-      "forbidden_dom_when_update_unavailable": ["sider-footer-update"],
-      "forbidden_dom": ["sider-footer-theme", "sider-footer-update-row", "sider-footer-check-updates"],
+      "required_dom_when_update_available": [
+        "sider-footer-update"
+      ],
+      "forbidden_dom_when_update_unavailable": [
+        "sider-footer-update"
+      ],
+      "forbidden_dom": [
+        "sider-footer-theme",
+        "sider-footer-update-row",
+        "sider-footer-check-updates"
+      ],
       "placement": "account_footer_row_trailing_action",
       "availability_source": "single_main_process_updater_state_store",
       "webui_fallback_source": "opl app state --profile fast --json#managed_update.components[component_id=opl_app]",
@@ -5227,7 +5264,11 @@
         "appearance-mode-light",
         "appearance-mode-dark"
       ],
-      "allowed_values": ["system", "light", "dark"],
+      "allowed_values": [
+        "system",
+        "light",
+        "dark"
+      ],
       "presentation": "three_visual_preview_cards",
       "theme_preset_surface": "not_exposed",
       "legacy_active_preset_migration": "default-theme"

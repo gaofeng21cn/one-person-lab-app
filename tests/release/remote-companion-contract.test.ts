@@ -6,6 +6,7 @@ import {
   validateRemoteCompanionGuiProjection,
   validateMobileCompanionTopology,
   validateRemoteCompanionPageState,
+  validateRemoteCompanionInternetContract,
 } from '../../scripts/validate-active-shell/remote-companion-validator.ts';
 
 const read = (name: string) => JSON.parse(fs.readFileSync(`contracts/${name}.json`, 'utf8')) as Record<string, any>;
@@ -24,9 +25,28 @@ test('native Link uses the existing Studio authority and agrees with the current
   const value = policy();
   assert.doesNotThrow(() => validateRemoteCompanionContract(value));
   assert.equal(value.desktop_connector_boundary.canonical_executor, 'existing_opl_codex_native_instance');
-  assert.equal(value.transport.independent_cloud_service_required, false);
+  assert.equal(value.transport.independent_cloud_service_required, true);
   assert.equal(value.transport.offline_command_queue, false);
   assert.equal(value.pairing.desktop_credential_store, 'hashed_device_tokens_and_metadata_only');
+});
+
+test('managed internet preserves account isolation, pinned pairing and bounded business authority', () => {
+  const internet = read('app-remote-companion-internet');
+  assert.doesNotThrow(() => validateRemoteCompanionInternetContract(internet));
+  for (const mutate of [
+    (p: Contract) => { p.external_network_app_or_configuration_required = true; },
+    (p: Contract) => { p.account_isolation.account_scope_is_authorization = true; },
+    (p: Contract) => { p.account_isolation.strategy = 'shared_unscoped_gateway'; },
+    (p: Contract) => { p.transport.general_loopback_proxy_allowed = true; },
+    (p: Contract) => { p.transport.capabilities.push('terminal'); },
+    (p: Contract) => { p.pairing.relay_enrollment_is_not_conversation_authorization = false; },
+    (p: Contract) => { p.pairing.transport_identity_keychain_scope = 'account_only'; },
+    (p: Contract) => { p.files.aggregate_entire_file_as_one_rpc_or_base64_json = true; },
+    (p: Contract) => { p.recovery.automatic_replay_of_turn_approval_or_interrupt = true; },
+  ]) {
+    const value = structuredClone(internet); mutate(value);
+    assert.throws(() => validateRemoteCompanionInternetContract(value));
+  }
 });
 
 test('the native companion cannot acquire a second runtime, history or Framework task authority', () => {

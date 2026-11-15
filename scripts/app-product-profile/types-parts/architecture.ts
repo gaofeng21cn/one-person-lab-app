@@ -207,7 +207,9 @@ export type AppDeliveryTopology = {
     product_role: 'native_ios_companion_for_opl_app';
     primary_user_object: 'canonical_codex_conversation';
     desktop_host_owner: 'opl-studio';
-    transport_target: 'authenticated_studio_https_json_sse';
+    transport_target: 'managed_dsh_noise_relay_with_scoped_studio_http_sse';
+    internet_contract_ref: 'contracts/app-remote-companion-internet.json';
+    external_network_configuration_required: false;
     desktop_workbench_remains_canonical: true;
     pairing_surface: 'settings_resources_opl_link_native_host_panel';
     release_ready: false;

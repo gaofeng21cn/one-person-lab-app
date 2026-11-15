@@ -1,7 +1,7 @@
 {
   "schema": "opl_app_remote_companion.v5",
   "owner": "one-person-lab-app",
-  "state": "source_validated",
+  "state": "active_implementation",
   "decision_date": "2026-11-15",
   "purpose": "native_ios_companion_for_the_current_opl_app",
   "product_identity": {
@@ -21,7 +21,9 @@
     "desktop_access_and_device_authorization": "opl-studio",
     "conversation_history_turns_approvals_models_permissions": "existing_opl_codex_native_and_codex_app_server",
     "workspace_files": "canonical_thread_workspace_owner",
-    "framework_packages_and_domain_tasks": "existing_framework_and_domain_owners"
+    "framework_packages_and_domain_tasks": "existing_framework_and_domain_owners",
+    "internet_relay": "opl-link/service",
+    "internet_service_deployment": "opl-instance-medopl"
   },
   "design_references": [
     {
@@ -80,27 +82,30 @@
   },
   "transport": {
     "protocol": "opl_link_studio_wire.v2",
-    "mode": "authenticated_https_json_and_server_sent_events",
+    "mode": "authenticated_https_json_sse_or_dsh_noise_relay_loopback",
     "wire_contract_ref": "contracts/app-remote-companion-wire.json",
     "endpoint_owner": "selected_opl_studio_host",
-    "network_prerequisite": "phone_reachable_https_opl_studio_endpoint_with_system_trusted_certificate",
+    "network_prerequisite": "app_and_link_outbound_access_to_preconfigured_opl_link_service",
     "automatic_nat_traversal": false,
     "third_party_relay_required": false,
-    "independent_cloud_service_required": false,
+    "independent_cloud_service_required": true,
     "authentication": "revocable_companion_scoped_device_bearer",
     "public_api_prefix": "/api/link",
     "model_credentials_on_phone": false,
     "offline_command_queue": false,
     "unknown_mutation_result": "reread_canonical_state_without_automatic_retry",
     "reconnect": "fresh_bootstrap_directory_active_thread_and_pending_request_readback",
-    "confidentiality": "https_to_the_user_trusted_opl_endpoint; TLS_terminator_is_inside_the_trust_boundary",
-    "application_layer_relay_e2ee_claim_allowed": false,
-    "debug_loopback_http": "explicit_debug_only_and_loopback_origin_and_peer; never_plain_lan_http"
+    "confidentiality": "system_trusted_WSS_to_managed_relay_and_pinned_Noise_IK_to_selected_host; direct_HTTPS_uses_user_trusted_TLS_endpoint",
+    "application_layer_relay_e2ee_claim_allowed": true,
+    "debug_loopback_http": "explicit_debug_only_and_loopback_origin_and_peer; never_plain_lan_http",
+    "internet_contract_ref": "contracts/app-remote-companion-internet.json",
+    "default_access": "managed_opl_relay_without_external_user_configuration",
+    "automatic_transport_reconnect": true
   },
   "pairing": {
     "initiator": "authenticated_desktop_user",
     "method": "scan_or_paste_one_time_pairing_link",
-    "account_or_invitation_service_required": false,
+    "account_or_invitation_service_required": true,
     "ttl_seconds": 120,
     "single_use": true,
     "device_credential_ttl_days": 30,
@@ -108,7 +113,9 @@
     "desktop_credential_store": "hashed_device_tokens_and_metadata_only",
     "revoke": "deny_future_calls_and_close_existing_device_event_streams",
     "qr_material": "transient_not_logged_or_saved_in_normal_settings",
-    "endpoint_change": "explicit_new_pairing_no_silent_origin_change"
+    "endpoint_change": "explicit_new_pairing_no_silent_origin_change",
+    "relay_enrollment_is_not_business_authorization": true,
+    "account_owner": "existing_desktop_opl_gateway_account; no_phone_password"
   },
   "surface_boundary": {
     "conversation_model": {
@@ -236,12 +243,16 @@
     "installed_desktop_updated": false,
     "real_iphone_qualified": false,
     "public_beta_or_app_store_published": false,
-    "release_ready": false
+    "release_ready": false,
+    "internet_access_status": "implementation_in_progress",
+    "managed_internet_service_deployed": false,
+    "public_internet_native_loop_qualified": false
   },
   "source_refs": {
     "wire_contract": "contracts/app-remote-companion-wire.json",
     "ios_repository": "https://github.com/gaofeng21cn/opl-link",
     "desktop_repository": "https://github.com/gaofeng21cn/opl-studio",
-    "product_document": "docs/product/opl-link.md"
+    "product_document": "docs/product/opl-link.md",
+    "internet_contract": "contracts/app-remote-companion-internet.json"
   }
 }
