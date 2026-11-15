@@ -926,6 +926,17 @@ jobs:
             exit 1
           }
           echo "macOS build open-file limit: $(ulimit -S -n)"
+          # isbinaryfile captures fs.open when osx-sign loads. Apply the existing
+          # graceful-fs queue before that import so a large dependency scan waits
+          # for descriptors instead of failing with EMFILE.
+          signing_fs_preload="$RUNNER_TEMP/opl-macos-signing-fs.cjs"
+          node - "$signing_fs_preload" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const anchor = JSON.stringify(path.resolve('package.json'));
+          fs.writeFileSync(process.argv[2], `const fromShell = require('node:module').createRequire(${anchor});\nfromShell('graceful-fs').gracefulify(require('node:fs'));\n`);
+          NODE
+          export NODE_OPTIONS="${NODE_OPTIONS:-} --require=\"$signing_fs_preload\""
           set +e  # Handle errors manually
 
           # The release-bound build process is killed from the same immutable

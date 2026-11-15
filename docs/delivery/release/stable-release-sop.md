@@ -115,7 +115,7 @@ Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产�
 
 Full deep／strict 签名验证保留必要诊断，避免逐个嵌套对象的 verbose 输出耗尽子进程捕获缓冲。Linux 系统依赖通过 HTTPS 镜像获取 Ubuntu 签名归档，保留 apt 签名验证并使用有界重试与超时；失败只恢复该平台。
 
-macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 并回读；不足时在打包前明确失败，避免签名器并发扫描解包依赖时触发 `EMFILE`。
+macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 并回读；不足时在打包前明确失败。签名器加载前用现有 `graceful-fs.gracefulify` 为构建进程启用文件句柄排队，避免 `isbinaryfile` 无界并发打开解包依赖时触发 `EMFILE`；不修改签名器源码或跳过签名文件。
 
 WebUI 的 Node 基础镜像直接消费冻结 Shell Dockerfile 中唯一的 digest-pinned `NODE_IMAGE`，资格执行器不固定另一个 Node 主版本或从浮动标签重新选择镜像。
 
