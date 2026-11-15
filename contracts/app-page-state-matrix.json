@@ -3,6 +3,53 @@
   "owner": "one-person-lab-app",
   "purpose": "page_state_test_matrix",
   "state": "active",
+  "collaboration_state_model": {
+    "contract_ref": "contracts/app-gui-product-contract.json#team_and_bot",
+    "teams": {
+      "entry": "sidebar_native_plugin_teams",
+      "states": [
+        "no_bot",
+        "saved_bot",
+        "empty_team",
+        "active_member",
+        "idle_member",
+        "cancelled_member",
+        "unconfirmed_dispatch",
+        "restored_team"
+      ],
+      "actions": [
+        "save_bot",
+        "delete_bot",
+        "create_team",
+        "add_member",
+        "send_message",
+        "cancel_member"
+      ],
+      "owners": {
+        "members_and_tasks": "official_DSH",
+        "execution_threads": "existing_Codex_App_Server",
+        "templates_and_execution_bindings": "OPL_plugins"
+      },
+      "unknown_dispatch": "inspect_linked_Codex_thread_before_resend"
+    },
+    "superagent": {
+      "entry": "sidebar_native_plugin_superagent",
+      "states": [
+        "stopped",
+        "starting",
+        "running_setup_required",
+        "running_configured",
+        "error"
+      ],
+      "actions": [
+        "start",
+        "stop"
+      ],
+      "configuration_owner": "original_Superagent_management_UI",
+      "remote_access": "port_forward_to_Studio_machine_loopback_listener",
+      "team_dependency": false
+    }
+  },
   "computer_use_state_model": {
     "contract_ref": "contracts/app-gui-product-contract.json#computer_use_policy",
     "settings_surface": "capabilities",

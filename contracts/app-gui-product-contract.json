@@ -3867,6 +3867,34 @@
       "foreign runtime or domain authority"
     ]
   },
+  "team_and_bot": {
+    "feature_id": "B0-TEAM-BOT",
+    "implementation": "native_dsh_plugins_with_persistent_codex_executor_adapter",
+    "bot_definition": "reusable_role_skill_model_permission_workspace_template",
+    "bot_instance": "one_named_continuable_DSH_agent_per_team_member",
+    "coordination_owner": "official_DSH_subagent_tree_inbox_and_agent_team_task_board",
+    "execution_owner": "existing_persistent_Codex_App_Server",
+    "ordinary_conversations": "retain_existing_Codex_threads",
+    "team_conversations": "DSH_owns_logical_collaboration_sessions_Codex_owns_linked_execution_threads",
+    "upstream_policy": "unchanged_official_plugins_exact_pinned_cohort_OPL_adapters_only",
+    "superagent": {
+      "implementation": "independent_official_DSH_profile_and_unmodified_Superagent_management_UI",
+      "upstream_ref": "8c32a9dc5d72c033816c6a8110b37f40cf94fba4",
+      "team_dependency": false,
+      "configuration": "own_model_dedicated_repository_account_Sources_Policy_Tickets_Assignments_Reports_and_recovery",
+      "default_state": "stopped_unconfigured",
+      "loopback_access": "local_machine_or_explicit_operator_port_forward",
+      "start_stop_preserve_settings_and_tickets": true
+    },
+    "acceptance": [
+      "named_bot_creation",
+      "same_member_continuation",
+      "member_messages",
+      "shared_task_claim_and_completion",
+      "restart_restore",
+      "permission_and_cancellation_propagation"
+    ]
+  },
   "ordinary_conversation": {
     "path_id": "ordinary_codex_conversation",
     "entry_source": "home_starter_workspace_initialized_or_projectless_new_session",

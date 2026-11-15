@@ -2,7 +2,7 @@
 
 Owner: `one-person-lab-app`
 State: `active`
-Scope: DeepSeek Harness `master@e8f7b93a344964de3dca1ace9e72b6e4d6de87cb`（`0.2.2-rc.2` package cohort）与 OPL Studio 适配。Git tag 与该源码提交不是同一 ref。
+Scope: DeepSeek Harness `dsh-v0.2.2-rc.3@38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`0.2.2-rc.3` package cohort）与 OPL Studio 适配。GUI 源码与 npm cohort 均绑定同一官方 release tag。
 
 这份文档说明插件的源码和安装位置、开发归口、DSH 官方插件在 OPL 中的状态，以及设置归属。默认策略是吸收 DSH 的有价值能力；已有 OPL owner 时复用 DSH 的 UI、协议和交互，再接入现有 owner。只有明确与 OPL 设计冲突、会制造第二份 authority 或无法满足安全/数据边界的部分才排除。
 
@@ -136,7 +136,7 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 | MCP App UI | `opl-mcp-apps` ＋官方 `@modelcontextprotocol/ext-apps` AppBridge | 启用 | 在 DSH 能力工作台内渲染标准 UI 资源，复用 Codex 的线程、连接、权限和审批；共享 OPL Apps 与领域独立 MCP App 使用同一宿主。 |
 | OPL Client | `opl-studio-client`、slot/contribution adapters | 启用 | 将 App/Framework 投影渲染到 DSH slots；不建立第二份 registry 或状态库。 |
 
-`dsh-base` 没有加载。因而 DSH 的 `dsh-session`、LLM provider routing、`dsh-agent-loop` 和 credentials 不参与 OPL authority；同名 npm 包作为类型或 GUI cohort 依赖存在时，也不能据此推断它们已取得运行时所有权。
+主 profile 不加载 `dsh-base`。普通对话仍归 Codex；Team 专域加载官方 Session、AgentLoop、Subagent 与 Team 服务，由 OPL LLM adapter 复用同一个持久 Codex App Server。Superagent 独立 profile 加载官方 base/web bundle，单独配置模型、凭据与授权策略。完整对象边界见 [Team、Bot 与 Superagent](team-bot-and-superagent.md)。
 
 ## 2. 官方插件：优先吸收，冲突才排除
 
@@ -146,7 +146,7 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 | --- | --- | --- |
 | MCP Apps UI host | **已接入官方 MCP ext-apps SDK 与 OPL DSH 插件** | 当前 DSH master cohort 有 MCP client/tools/resources，尚无标准 MCP Apps UI 宿主；`opl-mcp-apps` 只增加临时 view binding 与 sandbox renderer。每次 DSH 升级重新核对，不另建 session/凭据 owner。 |
 | DSH host plugin inventory | **Host inventory 已加载；官方 PluginManagerPage 源码已接入应用管理** | 原生 inventory 管理 DSH 宿主插件元数据，不授予其 OPL Package authority。页面布局、卡片、详情、状态表现和导航复用 DSH 官方组件；OPL adapter 读取 Framework Package projection 并转发其 owner actions。 |
-| Session、Agent loop、LLM、Authorization/Credentials、Account | 屏蔽 | 持久会话和凭据分别归 `opl-codex-native`、Codex App Server 与 Gateway/Framework。不能把 DSH Settings 当第二套账户或 session store。 |
+| Session、Agent loop、LLM、Authorization/Credentials、Account | 按功能域装配 | 普通 Codex 对话保持现有 owner；Team 的逻辑 Session、成员、任务归官方 DSH，真实执行线程仍归 Codex；Superagent 独立配置与运行，保持原型 Source/Policy/Ticket/Assignment 语义。 |
 | `dsh-schedule`、`ui-schedule` | **本次迁移官方 TaskManagerPage/TaskDetail 组件；官方 Schedule Host 未加载** | 任务页复用固定 cohort 的官方组件，以 OPL owner adapter 提供 Framework/Temporal catalog、确认动作与运行历史，并补入 Codex permissions、timeout 和 thread/turn 结果。DSH Host 的 durable Session 投递、store 和 Agent executor 不进入 OPL profile；官方 inbox delivery receipt 与 OPL turn 完成仍分开表达。 |
 | DSH jobs | **官方能力存在，OPL 当前未装载** | 官方 jobs UI 观察 DSH Agent/Session 产生的后台 job；不能替代 OPL Temporal workflow 与 Codex turn history。可复用状态/列表交互，数据继续来自 Framework projection。 |
 | Time context | **OPL 自有薄适配已接入；DSH 同名能力未装载** | OPL 在发起 Codex turn 时按产品偏好附加当前时间与时区，不读取日历；注入开关和实际作用范围归 App/Codex adapter。采用 DSH 的设置 primitive 和说明方式即可，不应启用竞争的 DSH Agent 后端。 |
@@ -155,7 +155,7 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 | Plugin Manager / plugin settings | **官方 `PluginManagerPage` 与样式已复用；DSH pluginManager Host 未加载** | 应用管理保持 OPL 产品名称与四个产品分区；应用目录直接使用固定 DSH cohort 的页面、导航 store、状态点、卡片、详情和官方原生控件。Framework projection/action adapter 保留 Package 安装、启停、currentness、权限确认和 fresh readback。禁止加载官方 `apply()`/`PluginManagerController`、profile 或 pnpm lifecycle，也不把 DSH Agent/Session inventory 当成 OPL Package registry。源码接入不等于本机已安装，安装版窗口验收单独记录。 |
 | Inspector | **OPL typed projection 详情面已接入；DSH experimental Inspector 未装载** | 继续复用 DSH sidebar tabs、折叠和状态原语；详情内容来自 OPL task/artifact owner。官方 Inspector 若仍绑定 DSH Agent/runtime 数据，只能复用其界面模式，不能用它建立第二份 thread/runtime store。 |
 | Voice input / speech-to-text | **OPL 浏览器语音适配已接入；DSH experimental voice bundle 未装载** | OPL 当前调用浏览器 `SpeechRecognition` 并把转写写入当前线程草稿。DSH 可选 bundle 提供本地 SenseVoice provider、准备/缓存流程和麦克风 UI；不能把其本地 provider 当作 OPL carrier 已就绪。可复用官方入口与未就绪体验；只有 OPL capability/connection owner 能提供安装、权限、语言和 readiness readback 后，才切换真实调用者并删除浏览器适配。 |
-| Web search/fetch、filesystem、sandbox | 只保留兼容边界 | DSH plugin 可注册 `ctx.tools` 时可被 MCP 暴露；权限、sandbox 和审批仍由 Codex/App Server owner。含 DSH session/agent/credential 依赖的插件不能原样装载。 |
+| Web search/fetch、filesystem、sandbox | 只保留兼容边界 | DSH plugin 可注册 `ctx.tools` 时可被 MCP 暴露；权限、sandbox 和审批仍由 Codex/App Server owner。含 Session/Agent 依赖时按 Team 专域装配；含 provider/credential 依赖时进入独立 profile。 |
 | UI theme、locale、model selection、workspace、files、attachments、subagent UI | 复用 UI 源码/原语 | UI 由 DSH 提供，状态与动作由 OPL App/Framework/Codex projection 提供。 |
 | experimental browser/computer use、agent team | **按能力包逐项吸收** | 只要能绑定 OPL 权限、审批、任务和 readback，就进入动态能力目录；必须明确实验状态、所需权限和安装动作。 |
 

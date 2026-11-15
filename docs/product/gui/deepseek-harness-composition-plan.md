@@ -10,8 +10,8 @@ Machine boundary: 本文解释 App 已批准的 Studio Application Host 架构�
 
 ## 结论
 
-OPL Studio 以 DeepSeek Harness `v0.2.2-rc.2`、commit
-`e8f7b93a344964de3dca1ace9e72b6e4d6de87cb` 为基座，复用的是完整 DSH/Cordis
+OPL Studio 以 DeepSeek Harness `v0.2.2-rc.3`、commit
+`38a6a5c965aa99ab525161efb7cc5cf1fe62fced` 为基座，复用的是完整 DSH/Cordis
 Application Host 骨架和选定 GUI 源码，不是只复用 GUI 模块。
 
 插件化与跟随上游升级是持续工程约束；新增上层能力按
@@ -25,9 +25,10 @@ Studio 因此同时承担三类实现责任：
 3. Electron Desktop、standalone headless WebUI 和 Docker WebUI 共用的 renderer、Host core
    与 App bridge。
 
-这个决定不把 DSH 的产品 runtime authority 一并引入 OPL。Studio 不加载 `dsh-base`，也不采用
-DSH Session、LLM Provider routing、Agent Loop 或 Credentials authority。App 产品、Framework
-runtime/Package、Codex thread、domain truth 和 release authority 仍由各自 owner 持有。
+普通对话由 Codex 持有；Team 专域加载官方 DSH Session、AgentLoop、Subagent 与任务板，
+通过标准 OPL 插件复用现有 Codex App Server 执行。主 profile 不加载 `dsh-base`。
+Superagent 使用独立官方 profile、模型、凭据与生命周期。App 产品、Framework runtime/Package、
+Codex 执行线程、领域结果与发布仍归各自 owner。详见 [Team、Bot 与 Superagent](team-bot-and-superagent.md)。
 
 ## 两个 Host，不是两套 OPL
 
@@ -94,7 +95,7 @@ DSH 插件不是因为安装在同一生态就自动兼容，兼容性取决于�
 | --- | --- | --- |
 | 只向 `ctx.tools` 注册工具 | 直接兼容 | `ctx.tools` -> authenticated stateful loopback MCP -> persistent Codex App Server |
 | 只依赖 Studio 已加载的 WebServer、inventory、frontend/client services | 可作为 Studio Host plugin 接入 | 由 Studio profile 明确 allowlist 和 lifecycle |
-| 依赖 DSH Session、LLM Provider、Agent Loop 或 Credentials | 不直接兼容 | 需要单独的 OPL adapter 与 authority 决策；不得通过加载 `dsh-base` 绕过 |
+| 依赖 DSH Session、LLM Provider、Agent Loop 或 Credentials | 按功能域装配 | Team 使用官方协作服务与 Codex adapter；Superagent 使用独立官方 profile 与原始管理 UI |
 | OPL Package / domain capability | 不转换成 DSH plugin | 继续由 Framework installed discovery、App schema 和 Host projection 提供 |
 
 `opl-dsh-tool-mcp` 在 Host loopback 上提供带随机 bearer token 的 stateful MCP endpoint。Token
@@ -171,5 +172,5 @@ Repository relationship、candidate role 和 adoption 只维护在
 - [`opl-studio-plan.md`](opl-studio-plan.md) 的产品角色、adoption 与仓库关系
 - [`gui-shell-candidates.md`](gui-shell-candidates.md) 的 active/candidate Shell 选择
 
-本轮跟随官方 `dsh-v0.2.2-rc.2` 发布候选；DSH 的 prerelease 标记不代表 OPL Stable 资格。
+本轮跟随官方 `dsh-v0.2.2-rc.3` 发布候选；DSH 的 prerelease 标记不代表 OPL Stable 资格。
 App 仍须以准确集成候选完成源码、签名、公证和普通账号首次安装验收后才公开。
