@@ -122,6 +122,9 @@
       "primary_object": "canonical_codex_conversation",
       "canonical_identity": "canonical_thread_id",
       "project_grouping": "readonly_canonical_workspace_projection",
+      "project_identity_policy": "canonical_project_identity_first; explicit_temporary_or_managed_scratch_workspaces_go_to_recent_conversations; legacy_regular_workspace_fallback",
+      "directory_identity": "one_row_per_canonical_thread_id_keep_freshest_owner_record; equal_titles_do_not_merge",
+      "file_access": "visible_conversation_toolbar_folder_opens_canonical_workspace_files",
       "pinning_and_drafts": "device_local_metadata_only"
     },
     "primary_navigation": [
@@ -232,6 +235,7 @@
     "external_qualification": [
       "real_iphone_to_selected_https_endpoint",
       "mainland_network_recovery",
+      "active_wifi_cellular_handover_reconnects_and_resynchronizes_without_restarting_app",
       "apple_signing_and_distribution_if_separately_requested"
     ]
   },

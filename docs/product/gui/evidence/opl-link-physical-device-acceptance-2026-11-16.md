@@ -1,6 +1,6 @@
 # OPL Link 本机安装与 iPhone Duo 真机验收
 
-2026-11-16，真实 iPhone Duo 已覆盖安装 OPL Link 2.0.0（build 2，`com.onepersonlab.link`），保留原设备数据。本机 `/Applications/One Person Lab.app` 已从旧版本更新为 26.11.16 本地开发版。真实桌面配对和模型续话尚在进行，`real_iphone_qualified` 保持 false。
+2026-11-16，真实 iPhone Duo 当前已覆盖安装 OPL Link 2.0.0（build 4，`com.onepersonlab.link`），保留原设备数据。本机 `/Applications/One Person Lab.app` 已从旧版本更新为 26.11.16 本地开发版。真实桌面配对、同一对话手机续话、前后台恢复和重开 App 后的蜂窝收发均已通过；列表、文件入口和前台网络切换仍在本次真机验收中，`real_iphone_qualified` 保持 false。
 
 ## 手机安装与界面
 
@@ -36,10 +36,22 @@ Studio 主线 `ddf6b1d872b936c0136c5615a8fa080292d144e2` 修正为逐帧 128 MiB
 
 用户反馈 OPL Link 扫码黑屏时，iPhone 自带相机也黑屏；退出 Device Hub 远程控制后，自带相机立即恢复。当前证据支持黑屏与远程控制状态相关，尚无官方依据将其定义为苹果明确限制。后续扫码验收停止远程查看、控制或截图手机，由用户直接操作。此前全屏扫码与权限分支调整属于界面试验，不能作为已验证的黑屏根因修复。
 
-扫码及粘贴配对尚未成功，手机曾显示“电脑授权结果尚未确认”，桌面已信任设备仍为 0。随后桌面 `CONNECTION_FAILED` 的受控诊断捕获到 WebSocket upgrade 返回 HTTP 200，公网 `/healthz` 同样返回 200 空正文。同期独立的一体化 Link 部署任务处于工作负载就绪失败，具体部署状态由 Instance owner 回读；本任务未重复部署，也未更改其临时源码凭据。必须恢复有效 JSON 健康响应和 WSS，再生成新配对码，才能继续真机验收。
+公网入口修复前，扫码及粘贴配对未成功，手机曾显示“电脑授权结果尚未确认”，桌面已信任设备仍为 0。随后桌面 `CONNECTION_FAILED` 的受控诊断捕获到 WebSocket upgrade 返回 HTTP 200，公网 `/healthz` 同样返回 200 空正文。同期独立的一体化 Link 部署任务处于工作负载就绪失败，具体部署状态由 Instance owner 回读；本任务未重复部署，也未更改其临时源码凭据。该入口随后恢复有效 JSON 和 WSS，真实配对与业务结果见下节。
 
 ## 证据与剩余验收
 
 本机原始 xcresult summary、真机截图、图标原图和桌面安装回执保存在 `/Users/gaofeng/.codex/visualizations/2026/11/16/opl-link-physical-device/`。证据不包含配对链接、Gateway 密码、设备私钥或业务正文。
 
-真实手机配对、同一 canonical thread 续话、文件预览/分享、前后台恢复和移动网络切换仍需实际回读；此前公网 TURN/Relay 的模拟器资格证据沿用独立验收文档，不计作这些真机业务已通过。
+真实手机配对、同一 canonical thread 续话、前后台恢复及重开后的蜂窝收发已通过。build 4 文件正文与前台自动切网恢复仍待真机确认；此前公网 TURN/Relay 的模拟器资格证据不计作本次手机实际选路。
+
+## 真实配对与手机续话
+
+2026-11-16 18:30（中国标准时间），一体化 Link 的公网 `/healthz` 和 `/readyz` 已返回有效 `{"status":"ok"}`，桌面投影 `internet.status=ready`。用户在退出手机远控的状态下直接扫码并核对电脑指纹；桌面 fresh readback 出现新 iPhone 授权，用户确认手机已看到真实对话。
+
+同一 thread `01a1e307-aee6-7832-bc1d-5778ab1a64bd` 于 18:36:15 收到用户从手机发送的验证说明，18:36:28 完成 `OPL_LINK_IPHONE_OK_20261116` 回复；canonical 会话记录已回读。用户确认前后台恢复正常；关闭 Wi-Fi 后重开 App，18:41:52 发起蜂窝验证，18:42:00 完成 `CELLULAR_OK` 回复，canonical 记录一致。
+
+用户同时发现目录混乱。对手机同源的真实 Host listThreads 投影只读核对得到 65 条记录、37 个唯一 thread ID，28 条为同一 ID 的重复记录；iOS 原来按 cwd 直接分组，又把托管临时目录误当项目。修复按 canonical 项目身份分组，临时目录进入临时对话，重叠 ID 保留最新快照，保留同名不同 ID 的真实会话。未删除或批量归档历史。
+
+用户没有找到文件入口，且前台从 Wi-Fi 切换蜂窝未自动恢复，重开才正常。build 4 将文件入口直接放入对话顶栏，并监听系统网络路径变化，通过现有连接 epoch 重新建立 Noise 会话和同步；业务结果未知时仍不重发。文件正文和不中断前台的网络切换待该安装版真机确认。
+
+真实 Duo 的 CoreDevice 应用读取已确认 2.0.0 build 4；安装保留应用数据和配对。31 项核心测试、2 项环境 skip，定向目录／文件入口模拟器 UI 测试 1 pass；未签名模拟器构建、真机签名构建及严格签名验证通过。
