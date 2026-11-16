@@ -217,6 +217,15 @@
     "return_to_foreground": "resynchronize_canonical_state",
     "notifications_must_not_include_sensitive_content": true
   },
+  "connection_diagnostics": {
+    "source": "actual_selected_ICE_pair_or_encrypted_Relay_frames",
+    "local_observed_noise_bytes_by_path": ["lan", "p2p", "turn", "relay"],
+    "unattributable_migration_intervals": "reported_separately",
+    "storage": "protected_local_preferences",
+    "excluded": ["business_content", "addresses", "SDP", "device_identifiers", "credentials"],
+    "controls": ["share_payload_free_statistics", "reset_without_recounting_live_connection"],
+    "cloud_billing_equivalence": false
+  },
   "delivery_governance": {
     "execution_policy": {
       "status": "active_user_restarted",
@@ -224,7 +233,9 @@
       "destructive_link_source_replacement_authorized": true,
       "legacy_source_compatibility_required": false,
       "source_ssot": "remote_canonical_main",
-      "public_apple_distribution_authorized": false
+      "public_apple_distribution_authorized": true,
+      "apple_distribution_instruction_date": "2026-11-16",
+      "apple_distribution_scope": "TestFlight_beta_installation_and_updates; App_Store_release_remains_separate"
     },
     "acceptance": [
       "contract_and_source_validation",

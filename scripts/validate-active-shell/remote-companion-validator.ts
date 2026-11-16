@@ -168,7 +168,11 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
     'provider_credentials_editor', 'package_lifecycle_manager', 'arbitrary_shell_execution_endpoint'], 'OPL Link excluded authorities');
   fields(policy.notifications, { guaranteed_delivery_when_suspended: false, notifications_must_not_include_sensitive_content: true }, 'OPL Link notification limits');
   fields(policy.delivery_governance?.execution_policy, { status: 'active_user_restarted', source_ssot: 'remote_canonical_main',
-    legacy_source_compatibility_required: false, public_apple_distribution_authorized: false }, 'OPL Link delivery scope');
+    legacy_source_compatibility_required: false }, 'OPL Link delivery scope');
+  requireValue(policy.delivery_governance?.execution_policy?.public_apple_distribution_authorized === true,
+    'Apple distribution authorization must be explicit before TestFlight work');
+  requireValue(policy.delivery_governance?.execution_policy?.apple_distribution_scope === 'TestFlight_beta_installation_and_updates; App_Store_release_remains_separate',
+    'Apple distribution scope must keep App Store release separate');
   const status = policy.implementation_status;
   requireValue(object(status) && ['installed_desktop_updated', 'real_iphone_qualified', 'public_beta_or_app_store_published', 'release_ready',
     'managed_internet_service_deployed', 'public_internet_native_loop_qualified']

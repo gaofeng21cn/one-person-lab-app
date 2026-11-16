@@ -115,7 +115,7 @@ test('source-only implementation cannot claim installation, iPhone qualification
   assert.throws(() => validateRemoteCompanionContract(p), /source-only/);
   rejects([
     ['suspended push guarantee', p => { p.notifications.guaranteed_delivery_when_suspended = true; }],
-    ['Apple publication authorization', p => { p.delivery_governance.execution_policy.public_apple_distribution_authorized = true; }],
+    ['Apple publication authorization scope', p => { p.delivery_governance.execution_policy.apple_distribution_scope = 'App_Store_release'; }],
   ]);
 });
 
