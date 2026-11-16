@@ -17,6 +17,7 @@ export type ProductProfileLike = {
       codex_auto_model_selection?: Record<string, unknown>;
       codex_model_display_options?: Record<string, unknown> & {
         auto_option?: Record<string, unknown>;
+        custom_model_access_option?: Record<string, unknown>;
         reasoning_labels?: Record<string, { zh?: unknown; en?: unknown }>;
         visible_models?: Array<Record<string, unknown>>;
       };

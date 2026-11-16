@@ -21,6 +21,8 @@ additional operator protocols. Full flags are defined by each script's parser.
 | Build selected OS carrier | `npm run build-mac:arm64`, `npm run build-win`, `npm run build-deb` |
 | Check model policy projection | `npm run codex:model-policy:check` |
 | Regenerate model policy projection | `npm run codex:model-policy:sync` |
+| Check official bundled model membership against the selected Codex CLI | `npm run codex:model-policy:check:bundled` (optional `-- --codex /absolute/path/to/codex`) |
+| Refresh bundled model membership without changing the Auto default | `npm run codex:model-policy:sync:bundled` (optional `-- --codex /absolute/path/to/codex`) |
 | Explicit Studio candidate package | `npm run package:candidate:studio` |
 
 Shell selection comes from `contracts/app-shell-adapter.json`; explicit candidate

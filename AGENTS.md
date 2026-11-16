@@ -12,6 +12,7 @@
 - 普通读取使用 `opl app state --profile fast --json`；写入统一走 `opl app action execute ... --json`。未知外部 mutation 只做 owner-authoritative inspect/reconcile，不重发或猜测。
 - 迁移、合并或隐藏 GUI 入口时，验证从原入口到新入口的完整用户路径；按 fresh owner projection 覆盖普通软件、运行组件、第三方、未安装与已停用状态。安装分类不决定功能配置归属；所有插件设置通过同一贡献机制按功能进入设置，微信远程是 App 标准功能，插件化只用于开发与运维。移除旧入口前，新入口须已有真实挂载、读取和动作验证，描述符存在或安装成功不能代替可达性验收。
 - GUI 工作从 `docs/product/gui/README.md` 开始；App contracts 或 wrappers 变更后运行 `bun run validate:active-shell`，本地缺 Shell 时先运行 `npm run ensure:shell`。测试通过不等于发布完成。
+- App 内置模型列表来自选定官方 Codex CLI 在隔离 `CODEX_HOME` 下的 `codex debug models --bundled`，仅纳入 `visibility=list`；不得从本机合并目录、普通 `debug models` 或运行时 `model/list` 反推内置身份。模型功能开发、CLI 升级及相关 PR 验收时运行 `npm run codex:model-policy:check -- --bundled`，漂移则用 `npm run codex:model-policy:sync -- --bundled` 动态刷新合同并验证；可用 `--codex /absolute/path/to/codex` 指定运行时。同步只更新目录与投影，不能顺带改变 Auto 默认模型、推理档或高级自定义开关。
 - 并发只拆分可独立推进且可验收的任务；不得创建只能等待其他 repo、producer、candidate 或 `main` 进入 authority 的 consumer 任务。依赖只决定最终吸收顺序：各 owner 先在任务 worktree 完成兼容桥、producer/consumer 实现、cross-test 与 fresh replay；无独立可执行切片时立即合并 ownership 或重组 scope。write-set overlap 仅在最终 canonical 集成短窗口串行，并按 fresh SSOT 解决冲突。
 - failed run 或 fail-closed 只终止当前 operation，不结束 objective；除非确实缺少权限或外部输入，owner 必须修复首个真实断点并继续。source 吸收须基于 fresh `main` 语义重放和验证，远端 ref/tree/blob 回读一致后用 OPL Flow `scripts/worktree_absorption_audit.py` 或等价确定性证明确认已吸收，才清理 task-owned worktree/branch。
 - GitHub 上自己新建的对外文本用英文书写：commit subject/body、PR 标题与正文、Issue、comment、Release 正文与 Release Notes。产品名、代码标识、路径、命令与原始引用除外。他人写的 Issue、PR 或 comment，无论对方用什么语言，回复沿用对方的语言，不把对象语言改成英文。历史中已有的非英文 commit 保持原样；生成的公开正文直接省略非英文条目，语言不影响任何流程的准入或终态。
@@ -33,6 +34,7 @@
 
 ## Code Review Rules
 
+- 第三方 PR 是提案，不能替代 App SSOT 和原始产品意图。涉及默认模型、Auto、回退、可见模型或普通用户行为时，合并前必须证明改变默认行为的必要性，并给出当前合同、真实调用路径和行为回归证据；CI 通过或可合并本身不构成必要性。可选扩展默认关闭，归入对应功能页的显式高级设置，分别验证默认路径和用户开启后的路径。
 - 只报告当前 diff 可复现的正确性、安全、数据完整性、release/CI 或 machine-readable contract 回归；每条必须给出精确代码或 contract 证据、触发路径和用户可见或自动化可证的影响。安全路径是修复 canonical owner 或其真实 consumer，不是复制一份平行 truth。
 - 将 App contracts、动态 projection 和跨仓 owner 边界视为事实来源；只有改动实际违背这些边界时才报告 P2。不得把文档措辞、命名、格式、主观重构或没有具体回归路径的建议升级成发现。
 - 不报告与当前 diff 无关的既有问题，也不把缺少测试或文档本身当作问题；只有它们直接造成可复现的行为或契约回归时才报告。若不存在高价值可复现问题，明确返回无发现。

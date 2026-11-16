@@ -1,14 +1,5 @@
 import type { ProductProfileLike } from './types.ts';
 
-export const expectedCodexVisibleModels = [
-  { id: 'gpt-6-astra', label_zh: '6 Astra', label_en: '6 Astra' },
-  { id: 'gpt-6-sol', label_zh: '6 Sol', label_en: '6 Sol' },
-  { id: 'gpt-6-luna', label_zh: '6 Luna', label_en: '6 Luna' },
-  { id: 'gpt-5.6-sol', label_zh: '5.6 Sol', label_en: '5.6 Sol' },
-  { id: 'gpt-5.6-terra', label_zh: '5.6 Terra', label_en: '5.6 Terra' },
-  { id: 'gpt-5.6-luna', label_zh: '5.6 Luna', label_en: '5.6 Luna' },
-  { id: 'gpt-5.5', label_zh: '5.5', label_en: '5.5' },
-];
 export const expectedReasoningLabels = {
   low: { zh: '低', en: 'Low' },
   medium: { zh: '中', en: 'Medium' },

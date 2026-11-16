@@ -8145,6 +8145,7 @@
         "provider_source",
         "model",
         "codex_cli",
+        "custom_model_access",
         "model_preferences"
       ],
       "must_show": [
@@ -8153,6 +8154,7 @@
         "real access source from app_state.core.codex.model_access_source",
         "selected and default model",
         "persistent default model and reasoning effort for new conversations",
+        "advanced custom-model access in the Models page advanced disclosure without changing Auto",
         "active Codex CLI readiness as the execution prerequisite; its version and update policy belong to Runtime & Maintenance",
         "one route to Account & Access when credentials need attention"
       ],

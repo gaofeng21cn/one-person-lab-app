@@ -463,6 +463,19 @@ and reasoning preference for new conversations. It may show whether the active
 Codex CLI is ready, but the version and update policy belong only to Runtime &
 Maintenance > Updates & Repair.
 
+Custom-model access belongs to Models, immediately after Default model, in a
+collapsed **Advanced model options** disclosure. **Enable custom models** is off
+for new and migrated users, uses the existing App-local Settings store, and is
+searchable in both languages; a search result opens the disclosure and focuses
+the switch. It is independent of Technical details and only expands explicit
+fixed-model choices. Auto keeps the App default (`gpt-6-astra + max` currently)
+and App-admitted compatibility fallbacks; it never adopts a custom catalog row.
+The switch explains that other models may change standard-Agent behavior. A
+custom fixed selection shows the same notice near the composer. Disabling access
+preserves that selection as unavailable and blocks subsequent sends until the
+user restores Auto, chooses an admitted model, or explicitly re-enables access.
+The composer model menu retains its model, reasoning, and reset rows.
+
 When credentials need attention it exposes one route to Account & Access. It
 does not show the Gateway account card, balance, usage, login form, manual Key
 form, managed Key lifecycle, raw provider paths, Codex CLI version, or update

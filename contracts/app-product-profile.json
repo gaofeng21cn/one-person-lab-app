@@ -1139,6 +1139,14 @@
         "default_reasoning_effort": "max",
         "auto_option_current_resolution_visible": true,
         "model_menu_policy": "model_summary_row_nested_submenu_with_auto_and_fixed_options",
+        "custom_model_access_option": {
+          "default_enabled": false,
+          "surface": "settings_models_collapsed_advanced_disclosure",
+          "label_zh": "启用自定义模型",
+          "label_en": "Enable custom models",
+          "description_zh": "仅在你明确需要时显示本机 Codex 目录中的自定义与第三方模型；它们可能改变 OPL 标准智能体的行为。自动模式保持不变。",
+          "description_en": "Show custom and third-party models from the local Codex catalog only when explicitly needed; they may change OPL standard-Agent behavior. Auto remains unchanged."
+        },
         "menu_structure": {
           "root_rows": ["model", "reasoning_effort", "reset_defaults"],
           "additional_root_rows_allowed": false,
@@ -1195,6 +1203,16 @@
             "id": "gpt-6-astra",
             "label_zh": "6 Astra",
             "label_en": "6 Astra"
+          },
+          {
+            "id": "gpt-6.1-sol",
+            "label_zh": "6.1 Sol",
+            "label_en": "6.1 Sol"
+          },
+          {
+            "id": "gpt-6.1-terra",
+            "label_zh": "6.1 Terra",
+            "label_en": "6.1 Terra"
           },
           {
             "id": "gpt-6-sol",
@@ -1911,9 +1929,19 @@
       "catalog_pagination_completion_policy": "exhaust_pages_until_next_cursor_is_null",
       "catalog_hidden_model_field": "hidden",
       "catalog_hidden_model_policy": "exclude_hidden_models_from_auto_and_fixed_options",
+      "custom_model_access_policy": {
+        "default_enabled": false,
+        "surface": "settings_models_collapsed_advanced_disclosure",
+        "selection": "explicit_fixed_model_only",
+        "auto_behavior": "unchanged",
+        "disabled_selection": "preserve_as_unavailable_and_block_send_until_auto_admitted_model_or_explicit_reenable",
+        "warning_required": true
+      },
       "frontier_model_preference_order_role": "known_model_fallback_and_fixed_option_preference_not_allowlist",
       "frontier_model_preference_order": [
         "gpt-6-astra",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
         "gpt-6-sol",
         "gpt-6-luna",
         "gpt-5.6-sol",
@@ -1927,7 +1955,7 @@
       },
       "unknown_default_model_policy": "ignore_catalog_default_for_app_auto",
       "unknown_model_reasoning_effort_policy": "highest_supported_reasoning_effort_from_catalog",
-      "catalog_without_default_policy": "first_available_known_model_then_first_catalog_model",
+      "catalog_without_default_policy": "first_available_known_model_otherwise_unavailable",
       "catalog_unavailable_fallback": {
         "model": "gpt-6-astra",
         "reasoning_effort": "max"
@@ -1938,7 +1966,8 @@
         "state_encoding": "auto_has_no_model_snapshot_fixed_has_model_and_reasoning",
         "reasoning_override_from_auto": "pin_current_resolved_model_and_exit_auto",
         "stale_fixed_model": "preserve_fixed_selection_as_unavailable_until_user_restores_auto_or_selects_available_model"
-      }
+      },
+      "builtin_model_catalog_source": "codex_debug_models_bundled_in_isolated_codex_home"
     },
     "opl_flow_context": {
       "flow_id": "opl-flow",

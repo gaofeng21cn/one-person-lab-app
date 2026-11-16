@@ -17,15 +17,19 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
 `cursor` 继续翻页，直到响应 `nextCursor=null` 后才把 `data` 视为完整目录：
 
 1. 用户明确固定的模型和推理档优先，升级不覆盖用户选择。
-2. 模型菜单以用户本机 Codex 实际目录为准，保留自定义和非 OpenAI 模型；App 不添加
-   供应商过滤，也不改写本机 `model_catalog_json`、凭据和测试配置。
-3. Auto 优先接受目录中的后续新默认模型；已知默认落后于 App `configured_default` 且
-   App 默认可用时，采用 App 默认，当前为 `gpt-6-astra + max`。旧 Flow 推荐不能降级它。
-4. 完整目录明确不含 App 默认时，参考有效 Flow 推荐、CLI 默认及已知兼容模型。
-   未知新默认模型继续使用 CLI 广告的最高推理档，不需要 App 新建自定义模型。
-5. ACP 只有模型名称而没有能力元数据时，使用 App 默认；缺元数据不代表 CLI 太旧。
+2. 普通模型菜单使用 App-admitted 模型。自定义和第三方 live-catalog 模型只在用户从
+   “账户与模型 → 模型”页的高级折叠区明确开启后进入固定模型选择；App 不添加供应商过滤，
+   也不改写本机 `model_catalog_json`、凭据和测试配置。
+3. Auto 不受高级开关影响，继续按 App policy 解析当前默认模型与推理档；当前默认是
+   `gpt-6-astra + max`。高级用户必须显式固定一个自定义模型，才离开 Auto。
+4. 完整目录明确不含 App 默认时，仅在 App 已知模型中兼容回退；没有可用的已知模型时
+   Auto 显示不可用，不自动转到自定义或第三方模型。高级开关不改变这个边界。
+5. 自定义模型固定选择必须显示可能改变 OPL 标准智能体行为的提示。关闭高级开关后，
+   已保存的自定义选择保留为不可用并阻止发送，直到用户恢复 Auto、选择 admitted 模型
+   或重新开启高级选项。
+6. ACP 只有模型名称而没有能力元数据时，使用 App 默认；缺元数据不代表 CLI 太旧。
    不再硬编码 GPT-5.6 的旧兼容值。
-6. 固定选择从目录消失时，保留为不可用选择，直到用户恢复 Auto 或另选模型。
+7. 固定选择从目录消失时，保留为不可用选择，直到用户恢复 Auto 或另选模型。
    自动模式只保存 Auto，不保存旧解析快照。
 
 当前 Studio 通过 App-admitted resolver 使用外部或 Framework-managed Codex CLI；精确
@@ -42,10 +46,38 @@ Desktop 首页及管理目录刷新通过既有 canonical Codex app-server adapt
 会话，不改写后台 registry；CLI 读取失败时按 App 的目录不可用策略回退，不重新采用旧握手。
 用户固定的模型与推理档独立保存，目录刷新和 App 升级不覆盖它们。
 
-`frontier_model_preference_order` 是已知模型的回退及显示顺序，不是允许列表。
-本机 Codex 自定义模型继续按实际目录展示，未知的新默认模型仍可进入 Auto。
+App 内置身份取自选定官方 Codex CLI 的 `debug models --bundled`，在临时、空的
+`CODEX_HOME` 与工作目录中执行，只纳入 `visibility=list`。本机普通 `debug models`、
+`model/list` 以及 `model_catalog_json` 可能包含自定义模型，均不能作为内置身份来源。
+`opl-codex-models` 也隔离 `CODEX_HOME` 来区分官方目录与合并目录；App 的内置列表
+固定使用 `--bundled`，不消费该工具生成的本机合并文件。
+
+`frontier_model_preference_order` 和 `visible_models` 是这份内置目录的 App 投影；
+App 配置的默认模型排在首位，其余沿用内置目录顺序。模型名称可保留 App 友好标签，
+新模型标签从 CLI 的 `display_name` 生成。运行时再与当前账户的完整可见目录交集，
+确定实际可选项；出现在内置目录中不代表当前账户已有访问权限。
+不在内置投影中的 live-catalog 固定模型属于高级能力，只有在“模型”页的
+高级折叠区开启“启用自定义模型”后才进入选择器。这个开关位于默认模型与 Codex CLI
+状态之间，不增加模型菜单的根行，也不改变 Auto。
 直接读取 `model/list` 的 adapter 必须收集全部分页；ACP 缺少能力元数据时使用上述
 App 默认，不把仅有名称的目录或失败请求当成旧 CLI 的证据。
+
+## 开发时刷新内置列表
+
+开发模型相关能力、升级 Codex CLI 或验收相关 PR 时，先确认使用的官方 CLI，运行：
+
+```bash
+npm run codex:model-policy:check -- --bundled
+# 内置列表变化时同步；如需指定运行时，追加 --codex /absolute/path/to/codex
+npm run codex:model-policy:sync -- --bundled
+npm run codex:model-policy:check -- --bundled
+```
+
+同步会增补新官方可见模型，移除已撤下或隐藏的模型，并维护显示与回退顺序。
+它保留 `configured_default`、推理档和高级开关；若当前默认模型已不在内置可见目录中，
+同步停止并要求明确评估默认策略。读取失败或目录无效时保留原合同，不用本机目录补齐。
+内置成员不再在校验代码中维护第二份硬编码列表。普通不带 `--bundled` 的合同检查保持
+离线、确定性，不要求 CI 主机安装 Codex。CLI 目录更新本身不代表改变 Auto 推荐模型。
 
 ## Owner 边界
 
@@ -53,9 +85,9 @@ App 默认，不把仅有名称的目录或失败请求当成旧 CLI 的证据�
 | --- | --- | --- |
 | OPL Flow | 定义推荐模型与推理档。 | live catalog 可用性、App UI、Auto 持久化与 fallback。 |
 | OPL Framework | 从已安装 Flow policy 产生严格 `model_projection` 并放入 App state。 | App Auto 算法、用户固定选择。 |
-| App product profile | 定义 Auto 算法、已知覆盖、fallback 和持久化语义。 | Flow policy 文件、CLI 实时目录、provider readiness、用户凭证。 |
+| App product profile | 定义 Auto 算法、已知覆盖、fallback、持久化语义和自定义模型高级开关。 | Flow policy 文件、CLI 实时目录、provider readiness、用户凭证。 |
 | Codex CLI | 通过 `model/list` 提供 `isDefault` 和 `supportedReasoningEfforts`。 | App fallback、用户选择持久化、GUI 文案。 |
-| Studio / 其它 admitted Shell | 读取 product profile 和 CLI 目录，解析并展示 Auto，保存 mode 或 fixed override。 | 私有 allowlist、私有模型排序、私有 fallback。 |
+| Studio / 其它 admitted Shell | 读取 product profile 和 CLI 目录，解析并展示 Auto，保存 mode、fixed override 和高级开关。 | 私有 allowlist、私有模型排序、私有 fallback。 |
 | OPL Framework 安装器 | 从 Flow 策略生成首次安装默认配置。 | 另一份默认模型/推理策略。 |
 
 App 新会话和恢复 Auto 使用同一 App 默认；完整目录确认不支持时才兼容回退。Framework 安装器仍按 Flow 策略生成 CLI 初始配置。Shell 当前解析出的具体模型只是运行时结果，不得回写成新的 App product truth。

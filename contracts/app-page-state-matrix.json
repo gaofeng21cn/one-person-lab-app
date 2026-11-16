@@ -4200,6 +4200,7 @@
         "provider_source",
         "model",
         "codex_cli",
+        "custom_model_access",
         "model_preferences"
       ],
       "state_sections": [
@@ -4214,6 +4215,7 @@
         "real access source from app_state.core.codex.model_access_source",
         "selected and default model",
         "persistent default model and reasoning effort for new conversations",
+        "advanced custom-model access in the Models page advanced disclosure without changing Auto",
         "active Codex CLI readiness as the execution prerequisite; its version and update policy belong to Runtime & Maintenance",
         "one route to Account & Access when credentials need attention"
       ],
@@ -4236,6 +4238,7 @@
           "settings-page-models",
           "settings-models-primary",
           "settings-models-model-preference",
+          "settings-models-advanced",
           "settings-models-codex-cli",
           "settings-models-gateway-link"
         ],
@@ -4253,11 +4256,13 @@
       "required_anchors": [
         "provider-source",
         "model",
+        "advanced-model-options",
         "codex-cli"
       ],
       "search_entry_ids": [
         "models.provider_source",
         "models.model",
+        "models.custom_model_access",
         "models.codex_cli"
       ],
       "primary_action_id": "open_gateway_settings",
