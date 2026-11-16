@@ -33,6 +33,16 @@ The current ordinary App may remain fixed to Codex CLI. That product choice
 does not make Codex Plugin Manager the OPL Package authority or require a user
 facing executor selector during this migration.
 
+The local update lanes follow the same ownership split. A current Package does
+not require rebuilding the App: use the App Updates surface or the Framework
+command `opl packages update --json`, which updates only installed Packages
+through their native carriers and verifies fresh readback. Updating OPL Base
+stages the App-owned runtime through `opl update apply --json` and may require
+an App restart. Updating the App or Studio host changes the desktop carrier and
+uses the App updater or the explicit `manual:local-app` build lane. The manual
+lane is therefore for App/Shell/host source changes and development artifacts,
+not the normal path for Package freshness.
+
 Shell-specific maintenance scheduling and activation are implemented against
 the same Framework update interface. The
 [Studio plan](gui/opl-studio-plan.md) owns candidate adoption requirements;

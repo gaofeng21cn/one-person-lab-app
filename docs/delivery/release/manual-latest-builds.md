@@ -11,6 +11,13 @@ Both commands use the same `opl_manual_latest_build_source_lock.v1` resolver.
 When the repositories and upstream releases have not changed, the generated
 `manual-latest-source-lock.json` is byte-identical for both lanes.
 
+These are host-build lanes, not the daily Package update path. If only an OPL
+Package, Skill, or carrier-owned capability needs to move forward, use the App
+Updates surface or Framework's `opl packages update --json`; that path updates
+installed Packages independently and leaves `/Applications/One Person Lab.app`
+in place. Use `manual:local-app` when App/Shell/host source, the desktop
+carrier, or a local development build itself must change.
+
 ## Source Policy
 
 First-party inputs come from each required clean canonical checkout. With an
