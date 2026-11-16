@@ -85,6 +85,11 @@ npm run manual:plugins -- inspect
 npm run manual:plugins -- update-source --package opl-superagent
 # Restart the App and verify the loaded plugin and its functional readback.
 npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+
+# Pull all plugins from the registry to latest compatible versions:
+GITHUB_TOKEN=ghp_... npm run dsh:plugins:update
+# or for a single plugin:
+npm run manual:plugins -- update-registry --package opl-superagent --token ghp_...
 ```
 
 `update-source` builds from local source and packs only the selected package, then

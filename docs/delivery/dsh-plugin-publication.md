@@ -84,13 +84,31 @@ all plugins) is eliminated even on the shell-changed path.
 
 **Location**: GitHub Packages npm registry, `@one-person-lab` scope.  
 **URL**: `https://npm.pkg.github.com`  
-**Read access**: public (consistent with the existing GHCR pattern for OPL packages).  
-**Write access**: `packages:write` scope on the `opl-studio` repository.
+**Read access**: requires a GitHub personal access token with `read:packages` scope, or a `GITHUB_TOKEN` available in CI/App context.  
+**Write access**: `packages:write` scope on the `opl-studio` repository (provided automatically via `GITHUB_TOKEN` in CI).
 
 The registry is a distribution channel for pre-built plugin packages. It is not a Plugin
 identity authority (that belongs to the DSH npm metadata and Studio profile), a
 compatibility matrix, or a lockfile replacement. The DSH profile resolution and pnpm
 remain the sole runtime arbiters of what is actually installed.
+
+### Registry authentication
+
+**In CI**: `GITHUB_TOKEN` is passed via `options.env` to `runPluginCommand`, which
+merges it on top of `scrubbedParentEnv()` (which otherwise strips all `*TOKEN*` names).
+
+**On developer machines**: pass via `--token` flag or set `GITHUB_TOKEN` in the shell.
+The `update-registry` operation writes the token to `.npmrc` in the profile directory
+(mode 0600) under `//npm.pkg.github.com/:_authToken=<token>`. Subsequent installs by
+DSH's native pnpm reuse the `.npmrc` without needing the env var again.
+
+**On end-user machines**: at first use, the user runs `update-registry --token <tok>` once
+to configure the profile `.npmrc`. After that, `dsh:plugins:update` works without
+re-supplying the token (it persists in the profile `.npmrc`). This is a one-time setup
+analogous to `npm login`.
+
+If no token is provided and no `.npmrc` token exists, `pnpm view` and `pnpm add` will
+fail to authenticate; the operation reports per-package failures and exits non-zero.
 
 ## Version Strategy
 
@@ -188,6 +206,24 @@ For a composition-level rollback (e.g., a defective Track 2 release), restore th
 previous composition receipt's pinned versions in the native profile. The bundled
 baseline is always the floor.
 
+## Daily update workflow
+
+```bash
+# Check current profile overrides
+npm run manual:plugins -- inspect
+
+# Pull all published plugins to their latest compatible version
+# (token persists in profile .npmrc after first run)
+GITHUB_TOKEN=<token> npm run dsh:plugins:update
+
+# Or update a single plugin
+npm run manual:plugins -- update-registry --package opl-superagent --token <token>
+
+# Restart the App to load the new versions.
+# To revert a specific plugin to the bundled baseline:
+npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+```
+
 ## Authority Boundary
 
 | Concern | Owner |
@@ -199,47 +235,42 @@ baseline is always the floor.
 | App version and release identity | `one-person-lab-app` |
 | Incremental update user experience | `one-person-lab-app` (Shell renders the projected state) |
 
-## opl-studio Implementation Requirements
+## opl-studio Implementation
 
-### New CI: `release-dsh-plugins.yml`
+**Status: implemented** (`opl-studio` commit `458486d`).
 
-```
-trigger:
-  push to main modifying plugins/<plugin-id>/
-  manual dispatch with explicit package_id input
+### CI: `release-dsh-plugins.yml` (Track 1)
 
-steps:
-  detect_changed:   identify changed plugin packages under plugins/
-  build:            build:plugins --package <ids>
-  test:             run plugin-level unit/integration tests
-  publish:          npm publish --registry https://npm.pkg.github.com (with --provenance)
-  output:           emit published_versions map (package → version)
-```
+Triggers on push to main modifying any publishable plugin directory, or manual dispatch
+with `packages` / `force_all` inputs. Per-plugin matrix: build via `buildDshPlugins([name])`
+then `npm publish --provenance` to GitHub Packages. Already-published versions are skipped.
 
-### New CI: `release-plugin-composition-test.yml`
+### CI: `release-plugin-composition-test.yml` (Track 2)
 
-```
-trigger:
-  on-demand
-  on completion of release-dsh-plugins.yml
+Triggers on manual dispatch or on successful completion of `release-dsh-plugins.yml`.
+Resolves latest `^x.y.0` versions, runs `dsh-profile-plugins.test.mjs` and
+`dsh-plugin-packages.test.mjs`, emits `composition_receipt.json` as a 90-day artifact.
 
-inputs:
-  plugin_versions   optional; map of package → version override
-  dsh_cohort_ref    DSH cohort tag to test against
+### Local: `dsh-profile-plugins.mjs update-registry` (developer + user update)
 
-steps:
-  resolve:    resolve latest ^x.y.0 for all OPL DSH Host plugins against dsh_cohort_ref
-  install:    clean DSH profile install of resolved combination
-  start:      start DSH Host; verify Cordis services, Framework bridge, MCP Apps host
-  smoke:      functional ping of each plugin's core service endpoint
-  receipt:    emit composition_receipt.json { dsh_cohort, plugins: { name: version }, tested_at }
+```bash
+# Update all published plugins to their latest compatible version:
+GITHUB_TOKEN=ghp_... npm run dsh:plugins:update
 
-artifact: composition_receipt.json (archived; referenced by release-stable.yml on shell-unchanged path)
+# Or via the manual:plugins alias:
+npm run manual:plugins -- update-registry --all --token ghp_...
+
+# Update a single plugin:
+npm run manual:plugins -- update-registry --package opl-superagent --token ghp_...
 ```
 
-### Profile changes in `opl-studio`
+Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
+reuse the stored token automatically.
+
+### Profile changes in `opl-studio` (still needed)
 
 - `src/host/dsh/cordis.yml`: change OPL-owned plugin dependency pins from exact version
   to `^x.y.0` semver ranges. Keep DSH upstream cohort packages at exact pins (upstream
   cohort changes remain on the carrier build path).
 - Confirm `engines.dsh` is declared in every OPL-owned DSH Host plugin `package.json`.
+  (Already present in all 11 plugins as of the initial audit.)

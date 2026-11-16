@@ -62,7 +62,7 @@
   },
   "incremental_update_policy": {
     "package_identity_and_resolution_owner": "native_DSH_npm_metadata_profile_and_pnpm",
-    "local_operator_entry": "npm run manual:plugins -- inspect|update-source|remove",
+    "local_operator_entry": "npm run manual:plugins -- inspect|update-source|update-registry|remove",
     "target_profile": "opl-studio",
     "source_update_scope": "explicitly_selected_Studio_DSH_packages_only",
     "activation": "restart_App_then_verify_native_inventory_and_functional_readback",
@@ -82,7 +82,7 @@
       "composition_receipt_schema": "opl_dsh_plugin_composition_receipt.v1",
       "excluded_packages": ["@one-person-lab/opl-studio-client"],
       "design_and_operation_ref": "docs/delivery/dsh-plugin-publication.md",
-      "implementation_status": "design_complete_opl_studio_ci_pending"
+      "implementation_status": "opl_studio_ci_and_registry_update_implemented"
     },
     "plugin_first_stable_path": {
       "shell_unchanged": "composition_receipt_plus_profile_pin_update_plus_resign",
