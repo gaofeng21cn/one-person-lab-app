@@ -786,7 +786,8 @@
         "new_task",
         "app_management",
         "runtime",
-        "scheduled_tasks",
+        "app_workspace",
+        "more",
         "archived"
       ],
       "conditional_entries": [],
@@ -798,7 +799,7 @@
           "en-US": "Software Center"
         },
         "placement": "after_new_task_before_runtime",
-        "visibility": "always",
+        "visibility": "user_pinned_or_reachable_in_more",
         "expanded_behavior": "icon_and_label",
         "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
         "narrow_drawer_behavior": "icon_and_label",
@@ -813,7 +814,7 @@
           "en-US": "Runtime status"
         },
         "placement": "after_new_task_before_scheduled_tasks",
-        "visibility": "always",
+        "visibility": "user_pinned_or_reachable_in_more",
         "expanded_behavior": "icon_and_label",
         "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
         "narrow_drawer_behavior": "icon_and_label",

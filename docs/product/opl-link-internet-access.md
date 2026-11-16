@@ -25,11 +25,22 @@ TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力
 | 桌面 WebRTC | 上游指定的 BSD-2-Clause `@roamhq/wrtc 0.10.0` | 复用原生优先工厂及 werift 兜底，不另建 ICE 实现 |
 | TURN | 官方 coturn 4.19.0 | 采用标准短期凭据与有限中继端口，复用现有网络资源 |
 | 业务与授权 | 现有 Studio Link HTTP/SSE 和 Codex owner | 继续同一个 canonical thread、审批和工作区 |
-| 托管与部署 | 独立 Link 容器，Instance 受保护工作流 | 复用现有 OPL 域名/TLS/集群，独立于 Cloud 业务与其发布 cohort |
+| 托管与部署 | Link 单容器内含 Relay + coturn，Instance 受保护工作流 | 复用现有 OPL 域名/TLS/集群，独立于 Cloud 业务与其发布 cohort |
 
 此前推荐的 Tailscale Serve 向导已由本次“只在 App 与 Link 内配置”的用户目标取代。它以及 Cloudflare
 命名隧道可作用户自选高级接入参考，不是默认方案或交付依赖。Cloudflare Quick Tunnel 的 SSE 限制也不再
 阻挡当前 WSS + Noise 路线。
+
+## 服务端一体化部署
+
+2026-11-16 确认的交付方式是一个 Link 镜像、一个容器，内含固定上游 DSH Remote Relay 和官方 coturn。
+保留两个成熟程序，由同一入口启动、转发终止信号并收回子进程；配置 TURN 后，任一程序意外退出均使容器失败，
+健康检查同时覆盖 Relay 与 TURN listener。未配置 TURN 时保留 LAN/P2P 与 Relay。
+服务统一以 UID/GID 1000、无额外 capabilities 运行；更新复用现有 Store、服务密钥和 TURN REST 密钥。
+域名、TLS、公网 TURN 端口、限额与节点网络由 Instance 管理，手机和桌面无需新增配置。
+
+本决策定义新的打包方式；下文既有公网验收属于之前的分容器部署。一体化镜像的本地验证、镜像发布、
+Instance 切换和公网原生验收分别记录，不能沿用旧部署证据声称已完成新拓扑上线。
 
 ## 接入与隔离
 
@@ -96,5 +107,5 @@ Local PV 绑定节点，不宣称高可用。控制服务离线会影响配对�
 - [swift-noise](https://github.com/swift-libp2p/swift-noise/tree/0adfd28786322784860fb3c8f228591c6e8fd92f)：MIT；使用 `Noise_IK_25519_ChaChaPoly_SHA256`，依赖锁定 revision。
 - [WebRTC](https://github.com/stasel/WebRTC/tree/157.0.0)：BSD-3-Clause；iOS 使用 DataChannel，保留许可证。
 - [node-webrtc](https://github.com/WonderInventions/node-webrtc/tree/75f1f55642d803ee558abd7f99b1915598ad21a0)：`@roamhq/wrtc 0.10.0`，BSD-2-Clause；Studio 同时保留该版本的 WebRTC 与第三方许可证。
-- [coturn](https://github.com/coturn/coturn)：BSD-3-Clause；标准 TURN 服务，运行镜像固定摘要由 Instance 持有。
+- [coturn](https://github.com/coturn/coturn)：BSD-3-Clause；标准 TURN 服务，固定上游镜像由 Link 构建复用；Instance 消费 Link 一体化镜像的固定摘要。
 - [DSH Go](https://github.com/ccch1mneyyy/dsh-Go)：视觉与移动工作流参考，不引入其账号、历史库或本机 runtime。
