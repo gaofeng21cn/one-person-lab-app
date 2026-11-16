@@ -82,7 +82,13 @@
       "composition_receipt_schema": "opl_dsh_plugin_composition_receipt.v1",
       "excluded_packages": ["@one-person-lab/opl-studio-client"],
       "design_and_operation_ref": "docs/delivery/dsh-plugin-publication.md",
-      "implementation_status": "opl_studio_ci_and_registry_update_implemented"
+      "implementation_status": "host_plugin_lane_implemented_public_registry_and_app_update_surface_pending",
+      "verified_gaps": [
+        "plugin_publication_must_pass_registry_publish_and_exact_registry_composition_boot",
+        "plugin_first_stable_workflow_must_consume_a_passing_composition_receipt_without_prepare_source_rebuild",
+        "end_user_update_surface_must_supply_registry_auth_and_update_native_profile_without_a_developer_checkout",
+        "client_plugins_that_are_static_renderer_inputs_remain_carrier_bound_until_moved_to_the_official_DSH_client_module_graph"
+      ]
     },
     "plugin_first_stable_path": {
       "shell_unchanged": "composition_receipt_plus_profile_pin_update_plus_resign",

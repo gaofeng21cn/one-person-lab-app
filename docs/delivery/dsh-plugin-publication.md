@@ -4,14 +4,16 @@ Owner: `one-person-lab-app`
 Purpose: `incremental_dsh_plugin_publication_and_composition_model`
 State: `active`
 
-Defines how OPL's DSH Host plugins are published independently, how the installed App
-picks them up without a full carrier rebuild, and how a stable release consumes
-pre-published and pre-tested plugin versions instead of rebuilding from source every time.
+Defines the target and verified status for independently published DSH Host plugins,
+native profile updates, and shell-unchanged Stable composition. A plugin is only
+current after its published bytes pass composition testing and the installed profile
+readback confirms activation.
 
 Applies to **Layer 2** (DSH Host plugins in `opl-studio/plugins/`) only.
 
 - **Layer 1** (Electron + DSH cohort + static `opl-studio-client` renderer): still requires
-  a full carrier build when it changes — this constraint is intentional and not addressed here.
+  a carrier build today. Moving product UI into official DSH client modules remains the
+  main cutover needed for the requested plugin-first product.
 - **Layer 3** (Framework capability packages): already uses independent per-owner GHCR
   publication; this model does not change that.
 
@@ -54,8 +56,10 @@ Steps:
    plus the DSH cohort ref used. Store as a workflow artifact and in the `opl-studio`
    release registry.
 
-The composition receipt is the input for a Stable release on the shell-unchanged path.
-It is not a lockfile; it records one verified compatible combination, not all valid ones.
+The composition receipt is a candidate input for a Stable release on the shell-unchanged
+path. It is not a lockfile; it records one verified compatible combination, not all valid
+ones. The App release controller must still admit the candidate before signing or
+publishing it.
 
 ### Track 3 — Stable release
 
@@ -68,18 +72,19 @@ Steps:
 1. Update the bundled baseline profile to the composition receipt's pinned versions.
 2. Bump the App version; build only the profile-updated bundle (no Electron/renderer rebuild).
 3. Sign and notarize via the existing `release-stable.yml` path.
-4. The resulting App behaves identically to a fully rebuilt release; the signed bytes differ
-   only in the bundled profile, not in the binary shell.
+4. The App release controller admits the candidate, then signs and publishes it. The
+   resulting App is expected to behave like a fully rebuilt release; this equivalence is
+   not yet established by a successful public candidate.
 
-Wall-clock cost: primarily Apple signing and notarization (~10 min). Plugin compilation
-already happened in Track 1 during development; it is not repeated here.
+Release duration has not been measured for this path. Published Host plugin compilation
+can be reused; signing, notarization and installed acceptance remain required. The current
+candidate still generates the static renderer and unpublished Superagent engine.
 
 #### Shell-changed path
 
-When Electron, DSH cohort, or `opl-studio-client` changes, the full carrier build runs
-as before — but plugins are consumed from the registry at their composition-receipt-pinned
-versions rather than rebuilt from source. The plugin compilation step (~5–10 min across
-all plugins) is eliminated even on the shell-changed path.
+When Electron or the DSH cohort changes, the carrier build remains necessary. Reusing
+published plugin versions in the ordinary production build is a target that still needs
+to be wired into the App release controller; its current path builds from source.
 
 ## Registry
 
@@ -166,7 +171,9 @@ than what is bundled in the running App.
 
 ## Incremental Update in the App UI
 
-The App's Updates surface shows plugin layer freshness alongside Framework Package freshness.
+The target App Updates surface shows plugin freshness alongside Framework Package freshness.
+The current installed UI has no Host-plugin update action or freshness projection; the
+source CLI requires an operator checkout and registry credentials.
 
 | State | Meaning |
 | --- | --- |
@@ -192,8 +199,8 @@ Before a plugin version is included in a composition receipt:
 3. It does not introduce a new peer dependency outside the pinned DSH cohort.
 
 A plugin that fails these checks is published with a pre-release suffix (`-rc.N`) and
-its `^x.y.0` range will not resolve to it. Pre-release versions are available for local
-testing via `update-registry --package <name>@<exact-version>`.
+its `^x.y.0` range will not resolve to it. Pre-release versions require an explicit native DSH package operation for local testing;
+the current `update-registry` command accepts package names and resolves stable ranges.
 
 ## Rollback
 
@@ -240,19 +247,27 @@ npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
 
 ## opl-studio Implementation
 
-**Status: implemented** (`opl-studio` commit `458486d`).
+**Status: partially implemented.** The local source/profile lane is verified. The
+public registry lane exists in source but its first publish run failed before producing
+packages, so no public composition receipt or Stable candidate has been accepted yet.
 
 ### CI: `release-dsh-plugins.yml` (Track 1)
 
 Triggers on push to main modifying any publishable plugin directory, or manual dispatch
-with `packages` / `force_all` inputs. Per-plugin matrix: build via `buildDshPlugins([name])`
-then `npm publish --provenance` to GitHub Packages. Already-published versions are skipped.
+with `packages` / `force_all` inputs. Per-plugin matrix: build via `buildDshPlugins([name])`,
+run the package boot test, then enter the package directory and run
+`npm publish --provenance` to GitHub Packages. Already-published versions are skipped.
+The package directory is required because a positional `npm publish plugins/<name>` was
+parsed as a GitHub package spec and caused the first run to fail.
 
 ### CI: `release-plugin-composition-test.yml` (Track 2)
 
 Triggers on manual dispatch or on successful completion of `release-dsh-plugins.yml`.
-Resolves latest `^x.y.0` versions, runs `dsh-profile-plugins.test.mjs` and
-`dsh-plugin-packages.test.mjs`, emits `composition_receipt.json` as a 90-day artifact.
+Resolves latest `^x.y.0` versions, installs the exact resolved registry packages into a
+clean dependency graph, runs `dsh-plugin-packages.test.mjs` against those bytes, and
+emits `composition_receipt.json`
+as a 90-day artifact. An unpublished or DSH-incompatible package fails the run; the
+receipt never falls back to a local source baseline.
 
 ### CI: `release-dsh-plugins-stable.yml` (Track 3)
 
@@ -262,19 +277,24 @@ Steps:
 1. Download `composition_receipt.json` from that run
 2. `node scripts/apply-composition-receipt.mjs --receipt composition_receipt.json`  
    — patches `package.json` plugin deps from `file:plugins/` to exact registry versions
-3. `npm ci` — installs pre-built plugin packages from GitHub Packages (no source compilation)
-4. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins` flag, which
-   calls `buildDshPlugins({ skipBuild: true })` so plugin bun compilation is skipped
+3. Refresh the lockfile with `npm install --package-lock-only --ignore-scripts`, then run
+   `OPL_DSH_REGISTRY_PLUGINS=1 npm ci`. The root prepare hook preserves the published
+   plugins; dependency lifecycle scripts still prepare Electron and native modules.
+4. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins`; published
+   Host plugins are left untouched while only the static carrier and unpublished
+   Superagent engine are generated.
 5. `electron-builder` packages, `qualify:desktop:distribution` validates
 6. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`
 
-The resulting artifacts are identical in structure to a full carrier build and can be
-handed to the App-side `release-stable.yml` for signing and publication.
+The resulting artifacts have the same structure as a full carrier candidate. They are
+not a Stable release until an App-side consumer admits the exact candidate and performs
+the existing signing, publication and final readback path.
 
 ### Local: `dsh-profile-plugins.mjs update-registry` (developer + user update)
 
 ```bash
-# Update all published plugins to their latest compatible version:
+# Update all published plugins to their latest compatible version from a configured
+# registry credential:
 GITHUB_TOKEN=ghp_... npm run dsh:plugins:update
 
 # Or via the manual:plugins alias:
@@ -287,6 +307,8 @@ npm run manual:plugins -- update-registry --package opl-superagent --token ghp_.
 Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
 reuse the stored token automatically.
 
-All implementation is complete across all three tracks. `engines.dsh` is declared in all
-11 plugin `package.json` files; `cordis.yml` lists plugin names only (no version fields —
-versions are resolved at runtime by DSH from the native profile and bundle).
+The local operator and source composition lanes are implemented. Public publication,
+receipt-backed Stable production, an App-managed end-user update action, and moving
+the static renderer-dependent client graph into independently replaceable DSH client
+modules remain open. `engines.dsh` is declared in all publishable plugin manifests;
+`cordis.yml` lists plugin names only and DSH resolves versions at runtime.
