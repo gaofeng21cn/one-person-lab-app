@@ -15,6 +15,10 @@ export function validateAppGuiProductContract(guiContract, releaseChannel, insta
     || collaboration.interaction?.OPL_role_template_CRUD !== false
     || collaboration?.coordination_owner !== 'official_DSH_subagent_tree_inbox_and_agent_team_task_board'
     || collaboration.execution_owner !== 'existing_persistent_Codex_App_Server'
+    || collaboration.superagent?.execution_owner !== 'existing_persistent_Codex_App_Server'
+    || collaboration.superagent?.separate_provider_credentials_required !== false
+    || collaboration.superagent?.model_provider_onboarding !== false
+    || collaboration.superagent?.initial_panel !== 'official_superagent_management_overview'
     || collaboration.superagent?.team_dependency !== false
     || collaboration.superagent?.start_stop_preserve_settings_and_tickets !== true) {
     throw new Error('Team/Bot requires official DSH coordination, existing Codex execution and an independent persistent Superagent profile');

@@ -50,7 +50,12 @@
       ],
       "configuration_owner": "original_Superagent_management_UI",
       "remote_access": "port_forward_to_Studio_machine_loopback_listener",
-      "team_dependency": false
+      "team_dependency": false,
+      "execution_owner": "existing_Codex_App_Server",
+      "model_source": "current_App_Codex_model_catalog",
+      "separate_provider_credentials_required": false,
+      "initial_panel": "official_superagent_management_overview",
+      "model_provider_onboarding": false
     }
   },
   "computer_use_state_model": {
@@ -355,9 +360,10 @@
             "scope": "active_opl_studio_current_product_only",
             "ordered_entry_ids": [
               "new_task",
-                "app_management",
+              "app_management",
               "runtime",
-              "scheduled_tasks",
+              "app_workspace",
+              "more",
               "archived"
             ],
             "app_management_entry": {
@@ -367,7 +373,7 @@
                 "en-US": "Software Center"
               },
               "placement": "after_new_task_before_runtime",
-              "visibility": "always",
+              "visibility": "user_pinned_or_reachable_in_more",
               "expanded_behavior": "icon_and_label",
               "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
               "narrow_drawer_behavior": "icon_and_label",
@@ -382,13 +388,32 @@
                 "en-US": "Runtime status"
               },
               "placement": "after_new_task_before_scheduled_tasks",
-              "visibility": "always",
+              "visibility": "user_pinned_or_reachable_in_more",
               "expanded_behavior": "icon_and_label",
               "collapsed_behavior": "icon_only_with_tooltip_and_accessible_name",
               "narrow_drawer_behavior": "icon_and_label",
               "keyboard_reachable": true,
               "home_content_effect": "navigation_only_no_dashboard",
               "route_gate_boundary": "default_release_gate_requires_opl_studio_runtime"
+            },
+            "customization": {
+              "default_pinned_panel_ids": [
+                "applications",
+                "runtime",
+                "workspace"
+              ],
+              "default_unpinned_panel_ids": [
+                "schedules",
+                "teams",
+                "superagent"
+              ],
+              "preference_identity": "registered_sidebar_panel_id",
+              "user_override_precedes_default": true,
+              "persistence": "current_carrier_local_profile",
+              "new_panel_default": "unpinned",
+              "more_visibility": "registered_unpinned_entries_only",
+              "active_unpinned_panel": "mark_more_and_selected_menu_entry_without_auto_pin",
+              "unpin_available_when_more_hidden": true
             }
           },
           "right_context_inspector_default_state": "collapsed",
