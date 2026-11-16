@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 import {
   FULL_RUNTIME_PRUNE_POLICY,
@@ -468,6 +470,18 @@ function requiredBuiltExportPayloadStatuses(runtimeRoot, { strict = false } = {}
     if (!status.exists) {
       throw new Error(`Full runtime required built export payload is missing: ${runtimePath}`);
     }
+    if (strict) {
+      // An entry file alone is insufficient: Node must resolve its complete
+      // dependency graph from the packaged tree, without the source checkout.
+      const probe = spawnSync(process.execPath, [
+        '--input-type=module', '--eval', 'await import(process.argv[1]);',
+        pathToFileURL(path.join(runtimeRoot, ...runtimePath.split('/'))).href,
+      ], { cwd: path.join(runtimeRoot, packageRoot), encoding: 'utf8', timeout: 30_000 });
+      if (probe.status !== 0 || probe.error) {
+        throw new Error(`Full runtime required built export cannot load: ${runtimePath}\n`
+          + (probe.error?.message ?? probe.stderr ?? probe.stdout));
+      }
+    }
     return {
       ...status,
       role: declaration.role ?? null,
@@ -840,9 +854,9 @@ export function buildOplLayer(layerRoot, options) {
   const targetRoot = path.join(layerRoot, 'opl');
   copyTreeFiltered(options.frameworkRoot, targetRoot, 'opl');
   copyProductionNodeModules(options.frameworkRoot, targetRoot);
-  requiredBuiltExportPayloadStatuses(layerRoot, { strict: true });
   removePackagedSourceExportConditions(path.join(targetRoot, 'node_modules'));
   pruneTemporalCoreBridgeReleases(path.join(targetRoot, 'node_modules'));
+  requiredBuiltExportPayloadStatuses(layerRoot, { strict: true });
 }
 
 function removeOplSourceCondition(value) {

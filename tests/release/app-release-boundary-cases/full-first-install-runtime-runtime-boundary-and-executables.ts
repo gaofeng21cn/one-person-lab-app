@@ -15,6 +15,7 @@ import {
   flowCapabilityBuildLockFixture,
   createFullRuntimeFixture,
 } from "./full-first-install-runtime-fixtures.ts";
+import { pathToFileURL } from 'node:url';
 
 test("Studio packaged runtime keeps the Full runtime contract explicit", () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-app-packaged-runtime-"));
@@ -164,8 +165,13 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
     writeFile(path.join(packageRoot, "dist", "index.js"), "export const runtimeValue = 'built';\n");
     writeFile(
       path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
-      "export const startCordisChannelProviderHost = () => ({ });\n",
+      "import { catalog } from '../read-models/catalog/index.js';\n"
+        + "export const startCordisChannelProviderHost = () => catalog;\n",
     );
+    writeFile(path.join(frameworkRoot, "dist", "read-models", "catalog", "index.js"),
+      "export { runtimeValue as catalog } from '../../adapters/integration/index.js';\n");
+    writeFile(path.join(frameworkRoot, "dist", "adapters", "integration", "index.js"),
+      "export { runtimeValue } from '@one-person-lab/cordis-abi';\n");
     writeFile(path.join(frameworkRoot, "dist", "host", "other.js"), "export const other = true;\n");
     writeFile(path.join(frameworkRoot, "dist", "other.js"), "export const other = true;\n");
 
@@ -178,8 +184,14 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
       fs.existsSync(path.join(packagedRoot, "dist", "host", "composition-profiles.js")),
       true,
     );
-    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "host", "other.js")), false);
-    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "other.js")), false);
+    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "host", "other.js")), true);
+    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "other.js")), true);
+    const profileProbe = spawnSync(process.execPath, ['--input-type=module', '--eval',
+      "const { startCordisChannelProviderHost } = await import(process.argv[1]); console.log(startCordisChannelProviderHost());",
+      pathToFileURL(path.join(packagedRoot, 'dist', 'host', 'composition-profiles.js')).href,
+    ], { encoding: 'utf8' });
+    assert.equal(profileProbe.status, 0, profileProbe.stderr || profileProbe.stdout);
+    assert.equal(profileProbe.stdout.trim(), 'built');
     const packagedManifest = JSON.parse(
       fs.readFileSync(
         path.join(packagedRoot, "node_modules", "@one-person-lab", "cordis-abi", "package.json"),
@@ -200,6 +212,24 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
     );
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.equal(result.stdout.trim(), "built");
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("Full runtime OPL layer rejects a present Framework export with a missing transitive dependency", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-broken-export-"));
+  const frameworkRoot = path.join(tempRoot, "framework");
+  try {
+    writeJson(path.join(frameworkRoot, "package.json"), {
+      name: "fixture-framework", version: "1.0.0", type: "module",
+      exports: { "./cordis-profiles": "./dist/host/composition-profiles.js" },
+    });
+    writeFile(path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
+      "export { startCordisChannelProviderHost } from '../read-models/catalog/missing.js';\n");
+    const { buildOplLayer } = await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
+    assert.throws(() => buildOplLayer(path.join(tempRoot, "layer"), { frameworkRoot }),
+      /required built export cannot load:[\s\S]*ERR_MODULE_NOT_FOUND/);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
