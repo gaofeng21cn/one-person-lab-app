@@ -119,7 +119,7 @@ export function validateGuiDesignSystemInteractionBaseline({
     railWidth.min !== 280 ||
     railWidth.max !== 340 ||
     navigationRail.top_entries_scope !== 'active_opl_studio_current_product' ||
-    !sameStrings(navigationRail.top_entries, ['new_task', 'app_management', 'runtime', 'scheduled_tasks', 'archived']) ||
+    !sameStrings(navigationRail.top_entries, appOwnedActiveStudioPrimaryNavigation.ordered_entry_ids) ||
     !sameStrings(navigationRail.conditional_entries, []) ||
     navigationRail.runtime_entry_role !==
       'opl_studio_primary_navigation_and_default_release_requirement' ||
