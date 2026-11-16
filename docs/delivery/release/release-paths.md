@@ -58,7 +58,21 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 | Manual Standard Preview / Latest 选择 | `release-manual-preview.yml` | `preview` / `resume_preview` / `move_latest_pointer`；需要明确的 Preview 或指针操作范围 |
 
 附加发布失败只恢复自身。已公开 Standard 不应被 Full、Docker、Windows 或 Homebrew 的失败
-回写成“从未发布”；要求完整矩阵的任务也不能因为 Standard 成功就结束。
+回写成”从未发布”；要求完整矩阵的任务也不能因为 Standard 成功就结束。
+
+## DSH Host 插件发布入口
+
+DSH Host 插件（`opl-studio/plugins/<plugin-id>/`）通过独立 CI 发布到 GitHub Packages，
+与完整 App 构建解耦。设计模型见 [`docs/delivery/dsh-plugin-publication.md`](../dsh-plugin-publication.md)。
+
+| 需求 | 入口（opl-studio CI） | 说明 |
+| --- | --- | --- |
+| 单个或批量插件发布 | `release-dsh-plugins.yml`，自动检测改动或传 `package_id` | 构建 → 测试 → 发布到 `@one-person-lab` GitHub Packages；不改 `app.asar` 或签名 |
+| 插件组合兼容性测试 | `release-plugin-composition-test.yml` | 解析最新兼容版本、安装干净 DSH profile、验证 Cordis 服务和 Framework bridge；产出 composition receipt |
+| Shell 未变的 Stable 发布 | 同 `npm run release:stable-dispatch -- new-product-release` | 以 composition receipt 为输入，只更新 profile pin + 重新签名；不重建 Electron 或插件 |
+
+插件版本和 App 版本相互独立。`opl-studio-client`（静态 renderer）不在此通道；对它的改动
+仍走完整 carrier 构建。上游 DSH cohort 变化也仍走 carrier 构建路径。
 
 Windows 源码修复可在单平台恢复入口指定 `desktop_shell_ref`，绑定准确的 Studio canonical
 main SHA；平台包记录自己的构建来源，重新执行源码质量检查，Standard 字节与来源保持独立。

@@ -48,8 +48,37 @@ and the currently static Studio renderer use the App updater or the explicit
 The three product layers do not require every App change to replace the desktop
 bundle. The bundled DSH profile supplies a baseline; native profile dependencies
 can override individual compatible npm packages outside the signed App. DSH
-owns metadata admission, profile resolution, pnpm locking and rollback. OPL adds
-only an operator entry for selected Studio source packages:
+owns metadata admission, profile resolution, pnpm locking and rollback.
+
+#### Public plugin channel (target model)
+
+OPL DSH Host plugins (`opl-studio/plugins/<plugin-id>/`) are published independently to
+GitHub Packages under `@one-person-lab` scope. Each plugin carries its own semver version
+and an `engines.dsh` field that declares which DSH cohort range it is compatible with.
+
+The native `opl-studio` profile uses a caret semver constraint (`^x.y.0`) for OPL-owned
+plugins so that compatible updates published to the registry are picked up on App start
+without rebuilding the signed bundle. DSH's native pnpm resolves and locks the installed
+version; the App surfaces plugin layer freshness in the Updates view alongside Framework
+Package freshness.
+
+A **composition compatibility test** (`release-plugin-composition-test.yml` in `opl-studio`)
+verifies that the latest published plugin combination works together against the pinned DSH
+cohort and produces a **composition receipt** — a pinned list of `plugin@version` entries
+that is the input for a Stable release on the shell-unchanged path.
+
+When Electron, DSH cohort, and `opl-studio-client` are unchanged from the previous Stable
+release, a new Stable is: composition receipt + profile pin update + re-sign App baseline.
+Plugin compilation is not repeated. The dominant remaining cost is Apple signing and
+notarization (~10 min). When the shell does change, a full carrier build runs but consumes
+already-published plugin versions from the registry, eliminating the plugin compilation step.
+
+Design, registry details, version strategy, and profile constraint format:
+[`docs/delivery/dsh-plugin-publication.md`](../delivery/dsh-plugin-publication.md).
+
+#### Local operator lane (development and debugging)
+
+For local development, testing, or debugging before a plugin is published to the registry:
 
 ```bash
 npm run manual:plugins -- inspect
@@ -58,26 +87,23 @@ npm run manual:plugins -- update-source --package opl-superagent
 npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
 ```
 
-`update-source` builds and packs only the selected packages, then delegates
-installation to the official DSH plugin manager. `remove` removes the profile
-override so the next launch uses the bundled baseline. Neither action changes
-`app.asar`, the desktop signature, Framework Package state, or business data.
-The default target is the installed macOS App and the native `opl-studio`
-profile; operator overrides can select another carrier anchor or DSH home.
+`update-source` builds from local source and packs only the selected package, then
+delegates installation to the official DSH plugin manager. `remove` restores the bundled
+baseline. Neither action changes `app.asar`, the desktop signature, Framework Package
+state, or business data. The default target is the installed macOS App and the native
+`opl-studio` profile.
 
-This is an executable local development update lane. Independent public OPL DSH
-plugin publication and automatic distribution have not been configured.
-`opl-studio-client` still bridges a statically compiled main renderer, so the
-command rejects an incremental update for that package. Upstream DSH core/cohort
-changes also retain the carrier build and compatibility path. Move additional
-client code to official DSH client modules/slots only with its real callers and
-carrier verification; a package directory alone does not make UI dynamic.
+`opl-studio-client` is excluded from both the public channel and the local operator lane
+because it bridges a statically compiled main renderer. Changes to it require a full
+carrier build. Upstream DSH core/cohort changes also remain on the carrier build path.
+Move additional client code to official DSH client modules/slots only with its real
+callers and carrier verification; a package directory alone does not make UI dynamic.
 
-Installed freshness is the compatible running combination of App baseline,
-profile overrides, Base and owner Packages. App version alone cannot describe
-that combination. A saved profile update reports restart required until the
-restarted Host's native resolution/inventory and functional readback establish
-activation. Do not report every package's unqualified `latest` as compatible.
+Installed freshness is the compatible running combination of App baseline, profile
+overrides, Base and owner Packages. App version alone cannot describe that combination.
+A saved profile update reports restart required until the restarted Host's native
+resolution/inventory and functional readback establish activation. Do not report every
+package's unqualified `latest` as compatible.
 
 Shell-specific maintenance scheduling and activation are implemented against
 the same Framework update interface. The

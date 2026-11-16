@@ -1,0 +1,245 @@
+# DSH Plugin Publication and Incremental Update Model
+
+Owner: `one-person-lab-app`
+Purpose: `incremental_dsh_plugin_publication_and_composition_model`
+State: `active_design — opl-studio CI implementation pending`
+
+Defines how OPL's DSH Host plugins are published independently, how the installed App
+picks them up without a full carrier rebuild, and how a stable release consumes
+pre-published and pre-tested plugin versions instead of rebuilding from source every time.
+
+Applies to **Layer 2** (DSH Host plugins in `opl-studio/plugins/`) only.
+
+- **Layer 1** (Electron + DSH cohort + static `opl-studio-client` renderer): still requires
+  a full carrier build when it changes — this constraint is intentional and not addressed here.
+- **Layer 3** (Framework capability packages): already uses independent per-owner GHCR
+  publication; this model does not change that.
+
+## Delivery Tracks
+
+### Track 1 — Per-plugin publish
+
+**Trigger**: push to `opl-studio` main branch modifying `plugins/<plugin-id>/`.
+
+**CI**: `release-dsh-plugins.yml` in `opl-studio`.
+
+Steps:
+1. Detect which plugin packages changed (or accept explicit `package_id` input).
+2. Build changed plugin(s) via `build:plugins` targeting only those packages.
+3. Run the plugin's own unit/integration tests.
+4. Publish to GitHub Packages under `@one-person-lab` scope, with provenance attestation.
+5. Record the published version and `engines.dsh` range as workflow output.
+
+Result: a new `@one-person-lab/<plugin-id>@x.y.z` is live on the registry.
+The installed App picks it up on next start via the semver range in the native profile.
+No `app.asar`, desktop signature, Framework Package state, or business data is modified.
+
+**Excluded from Track 1**: `@one-person-lab/opl-studio-client` (static renderer).
+Changes to the client require a full carrier build via the existing shell-changed path.
+
+### Track 2 — Composition compatibility test
+
+**Trigger**: on-demand, or automatically after Track 1 finishes publishing.
+
+**CI**: `release-plugin-composition-test.yml` in `opl-studio`.
+
+Steps:
+1. Resolve the latest compatible published version of each OPL-owned DSH Host plugin
+   against the pinned DSH cohort (verify `engines.dsh` range covers the cohort tag).
+2. Install the resolved combination into a clean DSH profile (no App bundle involved).
+3. Start the DSH Host; verify Cordis service startup, Framework bridge readiness,
+   MCP Apps host availability, and a functional smoke ping of each plugin's core service.
+4. On pass: emit a **composition receipt** — a pinned list of `plugin@version` entries
+   plus the DSH cohort ref used. Store as a workflow artifact and in the `opl-studio`
+   release registry.
+
+The composition receipt is the input for a Stable release on the shell-unchanged path.
+It is not a lockfile; it records one verified compatible combination, not all valid ones.
+
+### Track 3 — Stable release
+
+#### Shell-unchanged path (most releases)
+
+**Precondition**: Electron, DSH cohort, and `opl-studio-client` are identical to the
+previous Stable release bytes. A passing composition receipt from Track 2 exists.
+
+Steps:
+1. Update the bundled baseline profile to the composition receipt's pinned versions.
+2. Bump the App version; build only the profile-updated bundle (no Electron/renderer rebuild).
+3. Sign and notarize via the existing `release-stable.yml` path.
+4. The resulting App behaves identically to a fully rebuilt release; the signed bytes differ
+   only in the bundled profile, not in the binary shell.
+
+Wall-clock cost: primarily Apple signing and notarization (~10 min). Plugin compilation
+already happened in Track 1 during development; it is not repeated here.
+
+#### Shell-changed path
+
+When Electron, DSH cohort, or `opl-studio-client` changes, the full carrier build runs
+as before — but plugins are consumed from the registry at their composition-receipt-pinned
+versions rather than rebuilt from source. The plugin compilation step (~5–10 min across
+all plugins) is eliminated even on the shell-changed path.
+
+## Registry
+
+**Location**: GitHub Packages npm registry, `@one-person-lab` scope.  
+**URL**: `https://npm.pkg.github.com`  
+**Read access**: public (consistent with the existing GHCR pattern for OPL packages).  
+**Write access**: `packages:write` scope on the `opl-studio` repository.
+
+The registry is a distribution channel for pre-built plugin packages. It is not a Plugin
+identity authority (that belongs to the DSH npm metadata and Studio profile), a
+compatibility matrix, or a lockfile replacement. The DSH profile resolution and pnpm
+remain the sole runtime arbiters of what is actually installed.
+
+## Version Strategy
+
+Each DSH Host plugin has an independent semver version, decoupled from the App version.
+
+- `major.minor.patch` — standard semver.
+- `engines.dsh` in `package.json` declares the compatible DSH cohort range.
+- `engines.opl-studio` optionally declares a minimum `opl-studio` baseline version.
+
+The App version describes the shell combination. The composition receipt describes the
+plugin combination. A single App shell version may correspond to many plugin combination
+updates throughout its lifecycle.
+
+A plugin bump that extends or narrows `engines.dsh` compatibility must use a new **minor**
+version at minimum so that existing installs on older DSH cohorts are not silently broken.
+A bump that changes public Cordis service contracts uses a new **major** version.
+
+## Profile Constraint Format
+
+The bundled baseline profile (shipped inside `app.asar`) pins exact versions for build
+reproducibility:
+
+```yaml
+# cordis.yml — bundled baseline (exact pin, updated per composition receipt)
+dependencies:
+  "@one-person-lab/opl-superagent": "2.1.0"
+  "@one-person-lab/opl-framework-bridge": "3.0.1"
+  "@one-person-lab/opl-mcp-apps": "1.4.2"
+```
+
+The native profile override — applied by DSH's own profile package manager outside the
+signed bundle — uses a semver caret range to pick up compatible updates:
+
+```yaml
+# opl-studio native profile override (applied at runtime, not in app.asar)
+dependencies:
+  "@one-person-lab/opl-superagent": "^2.1.0"
+  "@one-person-lab/opl-framework-bridge": "^3.0.1"
+  "@one-person-lab/opl-mcp-apps": "^1.4.2"
+```
+
+DSH's native pnpm resolves and locks the installed version on each profile update.
+On App start, if a newer compatible version is available and the range allows it, DSH
+installs it and surfaces "restart required" until the loaded Host matches the installed
+package. No custom updater or background service is needed; this is the native DSH
+profile package manager doing its job.
+
+The caret range must not cross `engines.dsh` compatibility boundaries. Any plugin
+update that requires a newer DSH cohort than the current bundled baseline must publish
+under a new minor/major version that the installed App's caret range does not resolve to.
+Such updates become available only after the shell updates to a matching DSH cohort.
+
+## Incremental Update in the App UI
+
+The App's Updates surface shows plugin layer freshness alongside Framework Package freshness.
+
+| State | Meaning |
+| --- | --- |
+| Current | All installed plugins are at the latest compatible published version. |
+| Updates available | One or more compatible plugin updates are published. |
+| Updating | DSH native profile is installing the update. |
+| Restart needed | Update installed; App restart required to load the new version. |
+| Incompatible update | A newer version exists but requires a newer DSH cohort (shell update needed). |
+
+"Update now" for the plugin layer delegates entirely to the DSH native profile package
+manager. The App state machine does not manage per-plugin update lifecycle.
+
+The projection source for plugin layer freshness: DSH native profile installed version
+vs. latest compatible published version on the registry. This can be read from the DSH
+profile resolution output without requiring a separate App-side catalog or mirror.
+
+## Compatibility Gate
+
+Before a plugin version is included in a composition receipt:
+
+1. Its `engines.dsh` range covers the current pinned DSH cohort.
+2. It passes the composition test (Track 2) alongside the current combination.
+3. It does not introduce a new peer dependency outside the pinned DSH cohort.
+
+A plugin that fails these checks is published with a pre-release suffix (`-rc.N`) and
+is not resolved by the caret range in production profile overrides. Pre-release versions
+are available for local testing via the existing `manual:plugins` operator entry.
+
+## Rollback
+
+DSH's native profile mechanism: removing the profile override restores the bundled
+baseline version on next App start. No App-level rollback state machine needed.
+
+```bash
+npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+# Restart the App; the bundled baseline version loads.
+```
+
+For a composition-level rollback (e.g., a defective Track 2 release), restore the
+previous composition receipt's pinned versions in the native profile. The bundled
+baseline is always the floor.
+
+## Authority Boundary
+
+| Concern | Owner |
+| --- | --- |
+| Plugin source, build, and publication | `opl-studio` |
+| Composition test and composition receipt | `opl-studio` CI (`release-plugin-composition-test.yml`) |
+| DSH profile dependency resolution and locking | DSH native pnpm |
+| Stable release entry, shell signing, and notarization | `one-person-lab-app` `release-stable.yml` |
+| App version and release identity | `one-person-lab-app` |
+| Incremental update user experience | `one-person-lab-app` (Shell renders the projected state) |
+
+## opl-studio Implementation Requirements
+
+### New CI: `release-dsh-plugins.yml`
+
+```
+trigger:
+  push to main modifying plugins/<plugin-id>/
+  manual dispatch with explicit package_id input
+
+steps:
+  detect_changed:   identify changed plugin packages under plugins/
+  build:            build:plugins --package <ids>
+  test:             run plugin-level unit/integration tests
+  publish:          npm publish --registry https://npm.pkg.github.com (with --provenance)
+  output:           emit published_versions map (package → version)
+```
+
+### New CI: `release-plugin-composition-test.yml`
+
+```
+trigger:
+  on-demand
+  on completion of release-dsh-plugins.yml
+
+inputs:
+  plugin_versions   optional; map of package → version override
+  dsh_cohort_ref    DSH cohort tag to test against
+
+steps:
+  resolve:    resolve latest ^x.y.0 for all OPL DSH Host plugins against dsh_cohort_ref
+  install:    clean DSH profile install of resolved combination
+  start:      start DSH Host; verify Cordis services, Framework bridge, MCP Apps host
+  smoke:      functional ping of each plugin's core service endpoint
+  receipt:    emit composition_receipt.json { dsh_cohort, plugins: { name: version }, tested_at }
+
+artifact: composition_receipt.json (archived; referenced by release-stable.yml on shell-unchanged path)
+```
+
+### Profile changes in `opl-studio`
+
+- `src/host/dsh/cordis.yml`: change OPL-owned plugin dependency pins from exact version
+  to `^x.y.0` semver ranges. Keep DSH upstream cohort packages at exact pins (upstream
+  cohort changes remain on the carrier build path).
+- Confirm `engines.dsh` is declared in every OPL-owned DSH Host plugin `package.json`.

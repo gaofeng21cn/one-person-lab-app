@@ -52,6 +52,12 @@ Stable 的 Standard 首次安装、Core、Framework、Gateway 登录和 Codex �
 
 候选冻结后，普通文档修改或其他主线提交不要求当前发布追新。保持原候选，只在其不可构建、不可安装、不合法或必然验收失败，或用户明确改发新候选时重新选择。App／Shell／Framework 的兼容与身份检查仍由原 owner 执行。
 
+**Shell-unchanged path（插件优先发布）**：当 Electron、DSH cohort 和 `opl-studio-client`
+与上次 Stable 字节一致时，Shell 不需要重建。此路径的输入是 `opl-studio` CI 产出的
+composition receipt（已测试的插件版本组合），候选准备步骤只需更新 bundled profile pin
+并重签名。签名、公证与首装验收仍为必需，但插件编译已经在各插件发布时完成。
+具体条件见 [`docs/delivery/dsh-plugin-publication.md`](../dsh-plugin-publication.md#track-3--stable-release)。
+
 ## 3. 使用所选渠道的正式入口派发
 
 本节 controller 命令属于 Desktop Stable；Nightly、Docker、Manual Preview 与本地构建使用
