@@ -38,10 +38,46 @@ not require rebuilding the App: use the App Updates surface or the Framework
 command `opl packages update --json`, which updates only installed Packages
 through their native carriers and verifies fresh readback. Updating OPL Base
 stages the App-owned runtime through `opl update apply --json` and may require
-an App restart. Updating the App or Studio host changes the desktop carrier and
-uses the App updater or the explicit `manual:local-app` build lane. The manual
-lane is therefore for App/Shell/host source changes and development artifacts,
-not the normal path for Package freshness.
+an App restart. Compatible DSH Host plugins use the native `opl-studio` profile
+package manager and activate on restart. Electron, the pinned DSH core cohort,
+and the currently static Studio renderer use the App updater or the explicit
+`manual:local-app` build lane.
+
+### DSH Plugin Updates Within The App Layer
+
+The three product layers do not require every App change to replace the desktop
+bundle. The bundled DSH profile supplies a baseline; native profile dependencies
+can override individual compatible npm packages outside the signed App. DSH
+owns metadata admission, profile resolution, pnpm locking and rollback. OPL adds
+only an operator entry for selected Studio source packages:
+
+```bash
+npm run manual:plugins -- inspect
+npm run manual:plugins -- update-source --package opl-superagent
+# Restart the App and verify the loaded plugin and its functional readback.
+npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+```
+
+`update-source` builds and packs only the selected packages, then delegates
+installation to the official DSH plugin manager. `remove` removes the profile
+override so the next launch uses the bundled baseline. Neither action changes
+`app.asar`, the desktop signature, Framework Package state, or business data.
+The default target is the installed macOS App and the native `opl-studio`
+profile; operator overrides can select another carrier anchor or DSH home.
+
+This is an executable local development update lane. Independent public OPL DSH
+plugin publication and automatic distribution have not been configured.
+`opl-studio-client` still bridges a statically compiled main renderer, so the
+command rejects an incremental update for that package. Upstream DSH core/cohort
+changes also retain the carrier build and compatibility path. Move additional
+client code to official DSH client modules/slots only with its real callers and
+carrier verification; a package directory alone does not make UI dynamic.
+
+Installed freshness is the compatible running combination of App baseline,
+profile overrides, Base and owner Packages. App version alone cannot describe
+that combination. A saved profile update reports restart required until the
+restarted Host's native resolution/inventory and functional readback establish
+activation. Do not report every package's unqualified `latest` as compatible.
 
 Shell-specific maintenance scheduling and activation are implemented against
 the same Framework update interface. The
@@ -84,6 +120,7 @@ Each object keeps its narrow owner:
 | --- | --- |
 | OPL Base | Base installer/platform route exposed through a thin Framework adapter. |
 | OPL App | Desktop updater, Docker image route, or the carrier that installed App. |
+| DSH Host plugin inside OPL App | Native DSH npm metadata, `opl-studio` profile and pnpm; bundled baseline plus compatible profile overrides. |
 | OPL Package | The owner publishes identity and complete bytes; Codex Plugin Manager, Git, an OS package manager, or Base OCI adapter carries them; Framework fills only missing generic operations and aggregates complete-Package readback. |
 
 Framework discovers installed identities, checks required capability/package

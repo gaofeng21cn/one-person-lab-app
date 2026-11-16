@@ -15,8 +15,13 @@ These are host-build lanes, not the daily Package update path. If only an OPL
 Package, Skill, or carrier-owned capability needs to move forward, use the App
 Updates surface or Framework's `opl packages update --json`; that path updates
 installed Packages independently and leaves `/Applications/One Person Lab.app`
-in place. Use `manual:local-app` when App/Shell/host source, the desktop
-carrier, or a local development build itself must change.
+in place. For a compatible Studio DSH Host plugin, use
+`npm run manual:plugins -- update-source --package <plugin>` and restart the App;
+the native DSH profile holds the override. See the
+[managed update model](../../product/managed-update-three-layer.md#dsh-plugin-updates-within-the-app-layer)
+for inspection, removal and the remaining static-renderer/publication boundary.
+Use `manual:local-app` when Electron, the DSH core cohort, the static renderer,
+or the desktop carrier itself must change.
 
 ## Source Policy
 

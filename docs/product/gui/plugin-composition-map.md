@@ -38,6 +38,6 @@ Package、插件和 repo 不创建新的顶层设置树。功能界面按用户�
 
 ## 仓库决策
 
-保留在 `opl-studio` 的插件应继续与 DSH profile、App/Shell release 和跨插件测试同生命周期。只有出现独立 owner、独立发布节奏、独立 carrier 或跨产品复用时，才把能力提升为 App-owned 或 domain-owned Package。
+保留在 `opl-studio` 的插件继续复用 DSH profile 和跨插件兼容测试；源码同仓与 App 内置基线不要求每次一起发布或重建。兼容 Host 包可通过原生 profile 单独更新，静态 renderer、Electron 与 DSH core/cohort 仍走 carrier 更新，具体入口与现状见[分层更新模型](../managed-update-three-layer.md#dsh-plugin-updates-within-the-app-layer)。只有出现独立领域 owner、独立 carrier 或跨产品复用等实际边界时，才把能力提升为 App-owned 或 domain-owned Package。
 
 不因为目录叫 `plugins`、能力通过 Codex Plugin Manager 安装，或能力提供了用户界面，就强行拆仓、合仓或改成另一种插件 ABI。统一的是用户入口、状态投影、动作桥和回读；开发者可以保留适合维护的仓库与模块边界。

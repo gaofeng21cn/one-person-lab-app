@@ -10,7 +10,7 @@
       "runtime_abi": "dsh_npm_package_cordis_host_plugin",
       "source_owner": "opl-studio",
       "composition_owner": "opl-studio_dsh_profile",
-      "lifecycle": "App_and_Shell_release",
+      "lifecycle": "App_bundled_baseline_with_native_DSH_profile_package_updates",
       "user_role": "application_host_service_or_transport",
       "may_be_user_visible": false,
       "examples": ["opl-codex-native", "opl-framework-bridge", "opl-mcp-apps"]
@@ -59,6 +59,20 @@
     "task_detail": "task_scoped_stages_artifacts_evidence_and_owner_actions",
     "runtime_maintenance": "provider_health_diagnostics_and_repair_guidance",
     "conversation": "ordinary_Codex_conversation_and_agent_selection"
+  },
+  "incremental_update_policy": {
+    "package_identity_and_resolution_owner": "native_DSH_npm_metadata_profile_and_pnpm",
+    "local_operator_entry": "npm run manual:plugins -- inspect|update-source|remove",
+    "target_profile": "opl-studio",
+    "source_update_scope": "explicitly_selected_Studio_DSH_packages_only",
+    "activation": "restart_App_then_verify_native_inventory_and_functional_readback",
+    "rollback": "native_DSH_remove_profile_dependency_to_restore_bundled_baseline",
+    "app_bundle_mutation": false,
+    "framework_package_lifecycle_mutation": false,
+    "static_renderer_requires_carrier_build": ["@one-person-lab/opl-studio-client"],
+    "upstream_cohort_changes_require_carrier_build": true,
+    "independent_public_DSH_plugin_channel": "not_published",
+    "currentness": "installed_and_running_native_package_identity_separate_from_App_bundle_version"
   },
   "uniformity_rules": [
     "user_surface_is_selected_by_functional_purpose_not_repository_package_role_or_catalog_scope",

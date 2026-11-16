@@ -121,6 +121,7 @@
     "release:notes:prepare": "node --experimental-strip-types scripts/release-notes-ai-writer.ts",
     "release:notes:probe-ai": "node --experimental-strip-types scripts/release-notes-ai-writer.ts --probe-openai-compatible",
     "manual:local-app": "node --experimental-strip-types scripts/manual-latest-build.ts local-app",
+    "manual:plugins": "node --experimental-strip-types scripts/run-active-shell-command.ts node scripts/dsh-profile-plugins.mjs",
     "manual:full-dmg": "node --experimental-strip-types scripts/manual-latest-build.ts full-dmg",
     "release:full:size": "node --experimental-strip-types scripts/analyze-full-package-size.ts",
     "release:full:prune-audit": "node --experimental-strip-types scripts/audit-full-runtime-prune-policy.ts",

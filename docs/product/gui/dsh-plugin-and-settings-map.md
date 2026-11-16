@@ -58,7 +58,8 @@ Codex 仍持有线程和审批；官方 renderer 所需的 session scope 由当�
 ## 0. 源码、安装位置与开发归口
 
 OPL App 复用 DSH/Cordis 的应用骨架和 GUI，通过 Studio 的标准 DSH 插件接入持久
-Codex App Server 与 Framework；这些内置插件目前随 App 一起交付。
+Codex App Server 与 Framework；内置包随 App 提供基线，兼容 Host 包也可以通过原生
+DSH profile 独立更新，见[分层更新模型](../managed-update-three-layer.md#dsh-plugin-updates-within-the-app-layer)。
 “Host 插件”“客户端插件”和“可独立安装的能力包”是不同的交付单位，不能从一个
 `packages/` 目录推断全部插件的位置或安装状态。
 
@@ -68,7 +69,7 @@ Codex App Server 与 Framework；这些内置插件目前随 App 一起交付。
 
 | 类别 | 源码位置 | 装载依据与更新归属 |
 | --- | --- | --- |
-| Studio 内置 Host 插件 | `opl-studio/plugins/<plugin-id>/src/`；共用协议和工具在 `src/host/` | `src/host/dsh/cordis.yml` 与 `web.patch.yml`；随 App/Shell 更新 |
+| Studio 内置 Host 插件 | `opl-studio/plugins/<plugin-id>/src/`；共用协议和工具在 `src/host/` | `src/host/dsh/cordis.yml` 与 `web.patch.yml` 提供基线；兼容包通过原生 profile 独立更新，重启生效 |
 | Studio 客户端适配 | `opl-studio/plugins/opl-studio-client/`、`src/integrations/` 与 `src/workbench/` | Studio 客户端入口、构建和 slots；随 App/Shell 更新 |
 | DSH 官方和社区 UI | Studio 的 npm 依赖、`src/vendor/deepseek-harness/` | 固定 DSH cohort、npm lock 与第三方原包溯源；随 App/Shell 更新 |
 | Framework 内置服务与 Package Host | `one-person-lab/src/host/`、`packages/package-host/` 等 | Framework 公开组合入口与插件描述；随 Framework runtime 更新 |
