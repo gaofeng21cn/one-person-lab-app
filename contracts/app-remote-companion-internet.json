@@ -62,7 +62,7 @@
     "gateway_user_is_authoritative": true,
     "relay_stores_gateway_password_or_model_key": false,
     "relay_stores_conversation_or_plaintext_business_payload": false,
-    "gateway_identity_gate": "active_user_role_for_host_registration; no_model_provider_or_paid_balance_requirement"
+    "gateway_identity_gate": "active_user_or_admin_role_for_host_registration; identical_companion_grants; no_gateway_admin_api_or_paid_balance_requirement"
   },
   "desktop_account_exchange": {
     "credential_owner": "one-person-lab_existing_gateway_account",

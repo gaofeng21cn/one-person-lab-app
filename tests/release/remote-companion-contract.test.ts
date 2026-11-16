@@ -33,6 +33,8 @@ test('native Link uses the existing Studio authority and agrees with the current
 test('managed internet preserves account isolation, pinned pairing and bounded business authority', () => {
   const internet = read('app-remote-companion-internet');
   assert.doesNotThrow(() => validateRemoteCompanionInternetContract(internet));
+  assert.match(internet.account_isolation.gateway_identity_gate, /active_user_or_admin_role/);
+  assert.match(internet.account_isolation.gateway_identity_gate, /identical_companion_grants/);
   for (const mutate of [
     (p: Contract) => { p.external_network_app_or_configuration_required = true; },
     (p: Contract) => { p.account_isolation.account_scope_is_authorization = true; },

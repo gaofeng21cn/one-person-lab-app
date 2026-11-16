@@ -86,6 +86,9 @@ WebRTC 选路、WSS 信令、Relay、Noise IK 和 `loopback.call`。
 电脑—手机 grant 负责授权。Relay 保存公开设备身份、令牌摘要和连接映射，不保存账号密码、模型 Key、
 对话正文或文件明文。端到端业务加密固定至扫码选择的电脑公钥；更换身份必须显式重新配对。
 
+有效的普通账号与管理员账号均可开启手机访问，两者使用相同的伴侣权限。Gateway 管理员角色
+不传递给手机，也不开放 Gateway 管理接口；正式跨账号隔离验收继续使用专用普通账号。
+
 Studio 复用当前 DSH Application Host 的 lifecycle 和受限 `/api/link` 路由，不加载 `dsh-base`，
 不另起 Codex App Server。进程内固定虚拟目标 `http://127.0.0.1:43177` 不监听端口，只接受手机
 业务路由；桌面设备管理、通用 App action、Package 与任意 shell 均不经此桥开放。
