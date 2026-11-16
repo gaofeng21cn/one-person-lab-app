@@ -209,6 +209,19 @@ export function copyNodeRuntimePayload(nodeRoot, targetRoot) {
   for (const relativePath of ['bin/node', 'bin/npm', 'bin/npx']) {
     copyExecutableOrSymlinkTarget(nodeRoot, relativePath, targetRoot);
   }
+  // Homebrew and the official macOS Node builds keep the Node shared library
+  // beside the toolchain's npm tree. The node executable refers to it through
+  // @rpath, so the packaged runtime must carry the matching dylib alongside
+  // the copied toolchain instead of relying on the build machine's Cellar.
+  const nodeLibraryRoot = path.join(nodeRoot, 'lib');
+  if (fs.existsSync(nodeLibraryRoot)) {
+    for (const entry of fs.readdirSync(nodeLibraryRoot)) {
+      if (!/^libnode[^/]*\.dylib$/.test(entry)) continue;
+      const sourcePath = path.join(nodeLibraryRoot, entry);
+      if (!fs.statSync(sourcePath).isFile()) continue;
+      copySingleFile(sourcePath, path.join(targetRoot, 'lib', entry));
+    }
+  }
   for (const packageName of ['npm', 'corepack']) {
     const sourcePath = path.join(nodeRoot, 'lib', 'node_modules', packageName);
     if (!fs.existsSync(sourcePath)) {

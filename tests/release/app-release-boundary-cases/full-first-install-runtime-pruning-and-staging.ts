@@ -455,6 +455,7 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
   writeExecutable(path.join(sourceRoot, "bin", "node"), "#!/bin/sh\nexit 0\n");
   writeExecutable(path.join(sourceRoot, "bin", "npm"), "#!/bin/sh\nexit 0\n");
   writeExecutable(path.join(sourceRoot, "bin", "npx"), "#!/bin/sh\nexit 0\n");
+  writeFile(path.join(sourceRoot, "lib", "libnode.137.dylib"), "node runtime");
   writeFile(path.join(sourceRoot, "include", "node", "node.h"), "header");
   writeFile(path.join(sourceRoot, "share", "man", "man1", "node.1"), "manual");
   writeFile(
@@ -497,6 +498,7 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
     "bin/node",
     "bin/npm",
     "bin/npx",
+    "lib/libnode.137.dylib",
     "lib/node_modules/npm/lib/cli.js",
     "lib/node_modules/npm/node_modules/@npmcli/arborist/lib/index.js",
     "lib/node_modules/corepack/dist/corepack.js",
