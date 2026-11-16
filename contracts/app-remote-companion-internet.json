@@ -276,7 +276,12 @@
       "process_lifecycle": "one_entrypoint_starts_and_stops_relay_and_configured_coturn; unexpected_child_exit_fails_container",
       "health": "relay_readiness_and_configured_TURN_listener",
       "deployment": "one_single_writer_Link_workload; Instance_owns_network_Secrets_storage_and_upgrade",
-      "production_adoption": "pending_separate_exact_image_deployment_and_public_qualification"
+      "production_adoption": "deployed_public_wss_qualified_native_turn_requalification_pending",
+      "deployment_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43848193586",
+      "public_wss_qualification_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43848697943",
+      "final_runtime_inspection_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43858422487",
+      "native_turn_qualified_for_this_layout": false,
+      "deployment_evidence_ref": "https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/docs/runtime/link-service.md"
     }
   }
 }

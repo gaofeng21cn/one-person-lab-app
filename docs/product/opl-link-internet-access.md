@@ -9,7 +9,8 @@ Owner: `one-person-lab-app`
 不要求用户配置 Tailscale、VPN、Cloudflare、域名、证书、端口或路由器。
 
 客户端、Host 和服务已接入上游 LAN/P2P→TURN→Relay 自动选路。本地原生 LAN、TURN 和失败后 Relay
-均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay，公网 TURN 也已通过原生完整业务验收。
+均已完成业务闭环；公网默认自适应已验证 Direct 尝试后自动回退 Relay。此前分容器部署通过了公网 TURN
+原生完整业务验收；当前一体化部署已通过公网 WSS 验收，原生 TURN 尚需重新验证。
 本轮尚未实际选中公网 P2P，不据此报告直连成功率或节省费用比例。
 TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力；用户不选择网络协议或自行配置服务。
 复用依据见[连接方案评估](opl-link-connection-options.md)，当前进度与证据见[直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)。
@@ -39,8 +40,17 @@ TURN 使用后台签发的短期凭据，只有实例实际配置才公布能力
 服务统一以 UID/GID 1000、无额外 capabilities 运行；更新复用现有 Store、服务密钥和 TURN REST 密钥。
 域名、TLS、公网 TURN 端口、限额与节点网络由 Instance 管理，手机和桌面无需新增配置。
 
-本决策定义新的打包方式；下文既有公网验收属于之前的分容器部署。一体化镜像的本地验证、镜像发布、
-Instance 切换和公网原生验收分别记录，不能沿用旧部署证据声称已完成新拓扑上线。
+一体化镜像已由 Instance 部署 [43848193586](https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43848193586)
+上线；[43848697943](https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43848697943) 通过公网加密 WSS、
+双普通账号隔离及撤销断连。[最终运行回读](https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43858422487)
+确认一个容器、完整 34 项 TURN 协议/端口映射、一个 Ready Pod、零重启和 Relay/TURN 联合健康。
+上述结果均绑定当次观测；固定镜像、部署回执及当前实例配置由
+[Instance 服务文档](https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/docs/runtime/link-service.md)持有。
+
+新拓扑的原生 TURN 用例因一次性配对过期而跳过，结果为 0 pass、1 skip，尚未完成业务验收。
+下文分容器部署的 TURN 成功记录保留为历史证据，不能替代本次验证。实体 Duo 已通过真实配对、对话续发、
+文件预览、前后台恢复、蜂窝收发及前台切网恢复，见[真机记录](gui/evidence/opl-link-physical-device-acceptance-2026-11-16.md)；
+本次未采集手机实际 selected ICE pair，也不据此认定它走过 P2P 或 TURN。
 
 ## 接入与隔离
 
@@ -85,15 +95,16 @@ Instance 已实现从 GHCR 固定摘要复制到现有私有 TCR，并在目标�
 
 ## 安全、稳定性与登录边界
 
-互联网中继入口为 `link.medopl.com`。`gateway.medopl.com` 在桌面初次启用时确认已有 OPL 普通用户身份；
-手机扫码授权，不输入账号密码。当前中继准入只检查 active/user 身份，不要求模型余额或指定模型渠道。
+互联网中继入口为 `link.medopl.com`。`gateway.medopl.com` 在桌面初次启用时确认已有 OPL 账号身份；
+手机扫码授权，不输入账号密码。当前中继允许 active/user 和 active/admin 使用相同的有限伴侣权限，
+不向手机开放 Gateway 管理权限，不要求模型余额或指定模型渠道。部署隔离验收仍使用两个专用普通账号。
 `cloud.medopl.com` 是云平台界面，与中继承担不同职责。
 
 服务与 Cloud 共用现有工作节点，因此进程、存储和网络权限隔离不能消除主机故障的共同影响。当前部署为单副本，
 Local PV 绑定节点，不宣称高可用。控制服务离线会影响配对、授权、信令与连接恢复，TURN 和 Relay 各自故障会影响对应中继路径；
 已有桌面会话及文件仍由用户电脑持有。
 
-初始部署配置将账号容量收紧为 32，保留 0.5 核 CPU、1 GiB 内存及 128 总连接上限。原版 Store 每账号
+当前实例将账号容量收紧为 32，并设置 CPU、内存及总连接/单账号连接上限。原版 Store 每账号
 已有 256 设备和 16,384 token records 的边界；按完整序列化上界估算，32 账号状态约 155 MiB，原子写入额外
 约 5 MiB。1 GiB PVC 是容量声明，不是文件系统硬配额。具体数值与执行准入由
 [Instance 部署合同](https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/deploy/contracts/link-service.json)持有。
