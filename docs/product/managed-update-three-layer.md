@@ -56,11 +56,20 @@ OPL DSH Host plugins (`opl-studio/plugins/<plugin-id>/`) are published independe
 GitHub Packages under `@one-person-lab` scope. Each plugin carries its own semver version
 and an `engines.dsh` field that declares which DSH cohort range it is compatible with.
 
-The native `opl-studio` profile uses a caret semver constraint (`^x.y.0`) for OPL-owned
-plugins so that compatible updates published to the registry are picked up on App start
-without rebuilding the signed bundle. DSH's native pnpm resolves and locks the installed
-version; the App surfaces plugin layer freshness in the Updates view alongside Framework
-Package freshness.
+There are two independent resolution contexts:
+
+- **App bundle baseline**: built from `file:plugins/` deps in `opl-studio/package.json`,
+  baked into the signed `app.asar`. `cordis.yml` lists plugin names only — no version
+  fields. This layer is fixed without a carrier rebuild.
+- **Native profile override**: `DSH_HOME/profiles/opl-studio/package.json`, managed by
+  DSH's native pnpm outside the signed App. When `update-registry` installs a package
+  here, DSH's `createRuntimeResolution` picks it over the bundle version. The installed
+  version is an exact resolved version; the caret range is only used during the registry
+  query to find the latest compatible release.
+
+Running `npm run dsh:plugins:update` (or `update-registry`) queries the registry for
+the latest `^x.y.0`-compatible version of each plugin, installs it into the native
+profile, and surfaces "restart required". No carrier rebuild, re-sign, or bundle change.
 
 A **composition compatibility test** (`release-plugin-composition-test.yml` in `opl-studio`)
 verifies that the latest published plugin combination works together against the pinned DSH
@@ -73,7 +82,7 @@ Plugin compilation is not repeated. The dominant remaining cost is Apple signing
 notarization (~10 min). When the shell does change, a full carrier build runs but consumes
 already-published plugin versions from the registry, eliminating the plugin compilation step.
 
-Design, registry details, version strategy, and profile constraint format:
+Design, registry details, auth, and version strategy:
 [`docs/delivery/dsh-plugin-publication.md`](../delivery/dsh-plugin-publication.md).
 
 #### Local operator lane (development and debugging)
