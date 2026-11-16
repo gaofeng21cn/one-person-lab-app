@@ -69,7 +69,7 @@ DSH Host 插件（`opl-studio/plugins/<plugin-id>/`）通过独立 CI 发布到 
 | --- | --- | --- |
 | 单个或批量插件发布 | `release-dsh-plugins.yml`，自动检测改动或传 `package_id` | 构建 → 测试 → 发布到 `@one-person-lab` GitHub Packages；不改 `app.asar` 或签名 |
 | 插件组合兼容性测试 | `release-plugin-composition-test.yml` | 解析最新兼容版本、安装干净 DSH profile、验证 Cordis 服务和 Framework bridge；产出 composition receipt |
-| Shell 未变的 Stable 发布 | `release-dsh-plugins-stable.yml`（opl-studio CI） | 以 composition receipt run ID 为输入：patch package.json → npm ci 拉 registry 预编译插件 → `build:desktop:receipt` 跳过源码编译 → electron-builder 打包 → 产出 DMG/ZIP/blockmap/feed，交给 App 侧签名发布 |
+| Shell 未变的 Stable 候选 | `release-dsh-plugins-stable.yml`（opl-studio CI） | 以 composition receipt run ID 为输入：严格校验 receipt → 刷新 lockfile → 通过 registry prepare 模式执行 `npm ci` 拉预编译插件 → `build:desktop:receipt` 只生成静态 carrier/未公开 engine → electron-builder 打包 → 产出候选 DMG/ZIP/blockmap/feed；当前仍需 App 侧正式 consumer 才能签名发布 |
 
 插件版本和 App 版本相互独立。`opl-studio-client`（静态 renderer）不在此通道；对它的改动
 仍走完整 carrier 构建。上游 DSH cohort 变化也仍走 carrier 构建路径。
@@ -81,9 +81,9 @@ DSH Host 插件（`opl-studio/plugins/<plugin-id>/`）通过独立 CI 发布到 
 1. 在 `opl-studio` 仓库手动触发 `release-plugin-composition-test.yml` 并记录其 run ID
 2. 在 `opl-studio` 仓库手动触发 `release-dsh-plugins-stable.yml`，输入该 run ID
 3. 下载产物（DMG、ZIP、blockmap、feed YAMLs、`plugin-stable-provenance.json`）
-4. 将产物交给 App 侧 `release-stable.yml` 的 `studio_full_append` 或等价入口完成签名和公开发布
+4. 由 App 正式 controller 接纳准确候选，再进入签名、公证和公开发布。该 consumer 尚未接通；`studio_full_append` 是既有 Full 追加路径，不能消费这里的 Standard 候选。
 
-产物结构与完整 carrier 构建输出相同，可直接送入 App 侧签名流程。
+当前 workflow 使用 Preview carrier 配置，证明候选构建；它不分配 Stable 版本、不签名发布，也不能当作已完成的正式发布入口。
 
 Windows 源码修复可在单平台恢复入口指定 `desktop_shell_ref`，绑定准确的 Studio canonical
 main SHA；平台包记录自己的构建来源，重新执行源码质量检查，Standard 字节与来源保持独立。

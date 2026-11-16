@@ -50,7 +50,7 @@ bundle. The bundled DSH profile supplies a baseline; native profile dependencies
 can override individual compatible npm packages outside the signed App. DSH
 owns metadata admission, profile resolution, pnpm locking and rollback.
 
-#### Public plugin channel (target model)
+#### Public plugin channel (current implementation and remaining cutover)
 
 OPL DSH Host plugins (`opl-studio/plugins/<plugin-id>/`) are published independently to
 GitHub Packages under `@one-person-lab` scope. Each plugin carries its own semver version
@@ -77,10 +77,12 @@ cohort and produces a **composition receipt** — a pinned list of `plugin@versi
 that is the input for a Stable release on the shell-unchanged path.
 
 When Electron, DSH cohort, and `opl-studio-client` are unchanged from the previous Stable
-release, a new Stable is: composition receipt + profile pin update + re-sign App baseline.
-Plugin compilation is not repeated. The dominant remaining cost is Apple signing and
-notarization (~10 min). When the shell does change, a full carrier build runs but consumes
-already-published plugin versions from the registry, eliminating the plugin compilation step.
+release, the intended Stable path is composition receipt + profile pin update + re-sign App
+baseline. This path remains pending its first successful registry publication and receipt
+backed candidate.
+The candidate preserves published Host plugin bytes, while the static renderer and
+unpublished Superagent engine still build locally. End-to-end duration is unmeasured.
+The ordinary App production build still needs receipt consumption to reuse this path.
 
 Design, registry details, auth, and version strategy:
 [`docs/delivery/dsh-plugin-publication.md`](../delivery/dsh-plugin-publication.md).
@@ -107,11 +109,13 @@ baseline. Neither action changes `app.asar`, the desktop signature, Framework Pa
 state, or business data. The default target is the installed macOS App and the native
 `opl-studio` profile.
 
-`opl-studio-client` is excluded from both the public channel and the local operator lane
-because it bridges a statically compiled main renderer. Changes to it require a full
-carrier build. Upstream DSH core/cohort changes also remain on the carrier build path.
-Move additional client code to official DSH client modules/slots only with its real
-callers and carrier verification; a package directory alone does not make UI dynamic.
+`opl-studio-client` is excluded from the public channel and local operator lane while it
+bridges the statically compiled main renderer. Changes to it require a full carrier build
+today. This is the main remaining product gap: the stable shell should retain startup,
+authentication, transport and the official DSH module bootstrap, while product UI clients
+move to the official DSH client module graph and become independently replaceable. A
+package directory alone does not make UI dynamic; the real caller, module manifest, shared
+React/runtime dependencies, reload behavior and installed readback must move together.
 
 Installed freshness is the compatible running combination of App baseline, profile
 overrides, Base and owner Packages. App version alone cannot describe that combination.
