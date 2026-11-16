@@ -46,8 +46,11 @@
       ],
       "actions": [
         "start",
+        "open_official_workbench",
         "stop"
       ],
+      "browser_authentication": "official_launch_token_exchange_in_top_level_page_preserving_DSH_cookie_policy",
+      "desktop_presentation": "App_lifecycle_panel_with_explicit_open_workbench_link",
       "configuration_owner": "original_Superagent_management_UI",
       "remote_access": "port_forward_to_Studio_machine_loopback_listener",
       "team_dependency": false,
