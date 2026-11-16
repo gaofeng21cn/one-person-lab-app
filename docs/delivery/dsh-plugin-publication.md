@@ -254,6 +254,23 @@ Triggers on manual dispatch or on successful completion of `release-dsh-plugins.
 Resolves latest `^x.y.0` versions, runs `dsh-profile-plugins.test.mjs` and
 `dsh-plugin-packages.test.mjs`, emits `composition_receipt.json` as a 90-day artifact.
 
+### CI: `release-dsh-plugins-stable.yml` (Track 3)
+
+Manual dispatch, requires `composition_receipt_run_id` (a successful Track 2 run).
+
+Steps:
+1. Download `composition_receipt.json` from that run
+2. `node scripts/apply-composition-receipt.mjs --receipt composition_receipt.json`  
+   — patches `package.json` plugin deps from `file:plugins/` to exact registry versions
+3. `npm ci` — installs pre-built plugin packages from GitHub Packages (no source compilation)
+4. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins` flag, which
+   calls `buildDshPlugins({ skipBuild: true })` so plugin bun compilation is skipped
+5. `electron-builder` packages, `qualify:desktop:distribution` validates
+6. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`
+
+The resulting artifacts are identical in structure to a full carrier build and can be
+handed to the App-side `release-stable.yml` for signing and publication.
+
 ### Local: `dsh-profile-plugins.mjs update-registry` (developer + user update)
 
 ```bash
@@ -270,6 +287,6 @@ npm run manual:plugins -- update-registry --package opl-superagent --token ghp_.
 Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
 reuse the stored token automatically.
 
-All structural implementation is complete. `engines.dsh` is already declared in all 11
-plugin `package.json` files; `cordis.yml` lists plugin names only (no version fields —
+All implementation is complete across all three tracks. `engines.dsh` is declared in all
+11 plugin `package.json` files; `cordis.yml` lists plugin names only (no version fields —
 versions are resolved at runtime by DSH from the native profile and bundle).
