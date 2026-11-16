@@ -247,7 +247,7 @@
     "duo_simulator_qualified": true,
     "installed_desktop_updated": true,
     "physical_ios_acceptance_ref": "docs/product/gui/evidence/opl-link-physical-device-acceptance-2026-11-16.md",
-    "real_iphone_qualified": false,
+    "real_iphone_qualified": true,
     "public_beta_or_app_store_published": false,
     "release_ready": false,
     "internet_access_status": "adaptive_transport_public_turn_and_relay_qualified",

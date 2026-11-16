@@ -1,6 +1,6 @@
 # OPL Link 本机安装与 iPhone Duo 真机验收
 
-2026-11-16，真实 iPhone Duo 当前已覆盖安装 OPL Link 2.0.0（build 4，`com.onepersonlab.link`），保留原设备数据。本机 `/Applications/One Person Lab.app` 已从旧版本更新为 26.11.16 本地开发版。真实桌面配对、同一对话手机续话、前后台恢复和重开 App 后的蜂窝收发均已通过；列表、文件入口和前台网络切换仍在本次真机验收中，`real_iphone_qualified` 保持 false。
+2026-11-16，真实 iPhone Duo 当前已覆盖安装 OPL Link 2.0.0（build 4，`com.onepersonlab.link`），保留原设备数据。本机 `/Applications/One Person Lab.app` 已从旧版本更新为 26.11.16 本地开发版。真实桌面配对、同一对话手机续话、前后台恢复和重开 App 后的蜂窝收发均已通过；build 4 的真实列表、文件预览和前台 Wi-Fi→蜂窝自动恢复已由用户复测通过，`real_iphone_qualified=true`。
 
 ## 手机安装与界面
 
@@ -42,7 +42,7 @@ Studio 主线 `ddf6b1d872b936c0136c5615a8fa080292d144e2` 修正为逐帧 128 MiB
 
 本机原始 xcresult summary、真机截图、图标原图和桌面安装回执保存在 `/Users/gaofeng/.codex/visualizations/2026/11/16/opl-link-physical-device/`。证据不包含配对链接、Gateway 密码、设备私钥或业务正文。
 
-真实手机配对、同一 canonical thread 续话、前后台恢复及重开后的蜂窝收发已通过。build 4 文件正文与前台自动切网恢复仍待真机确认；此前公网 TURN/Relay 的模拟器资格证据不计作本次手机实际选路。
+真实手机配对、同一 canonical thread 续话、前后台恢复及重开后的蜂窝收发已通过。build 4 文件正文与前台自动切网恢复均已由用户确认；此前公网 TURN/Relay 的模拟器资格证据不计作本次手机实际选路。
 
 ## 真实配对与手机续话
 
@@ -52,6 +52,8 @@ Studio 主线 `ddf6b1d872b936c0136c5615a8fa080292d144e2` 修正为逐帧 128 MiB
 
 用户同时发现目录混乱。对手机同源的真实 Host listThreads 投影只读核对得到 65 条记录、37 个唯一 thread ID，28 条为同一 ID 的重复记录；iOS 原来按 cwd 直接分组，又把托管临时目录误当项目。修复按 canonical 项目身份分组，临时目录进入临时对话，重叠 ID 保留最新快照，保留同名不同 ID 的真实会话。未删除或批量归档历史。
 
-用户没有找到文件入口，且前台从 Wi-Fi 切换蜂窝未自动恢复，重开才正常。build 4 将文件入口直接放入对话顶栏，并监听系统网络路径变化，通过现有连接 epoch 重新建立 Noise 会话和同步；业务结果未知时仍不重发。文件正文和不中断前台的网络切换待该安装版真机确认。
+用户没有找到文件入口，且前台从 Wi-Fi 切换蜂窝未自动恢复，重开才正常。build 4 将文件入口直接放入对话顶栏，并监听系统网络路径变化，通过现有连接 epoch 重新建立 Noise 会话和同步；业务结果未知时仍不重发。随后用户确认 build 4 的三项结果均正常：临时分组／重复项、device-check.md 预览、保持前台关闭 Wi-Fi 后继续收发。
 
 真实 Duo 的 CoreDevice 应用读取已确认 2.0.0 build 4；安装保留应用数据和配对。31 项核心测试、2 项环境 skip，定向目录／文件入口模拟器 UI 测试 1 pass；未签名模拟器构建、真机签名构建及严格签名验证通过。
+
+前台切网的同一 canonical thread 于 2026-11-16 19:37:03（中国标准时间）收到“切网检查：只回复 HANDOVER_OK”，19:37:15 完成 `HANDOVER_OK`，原会话记录已回读。真实配对、手机续话、文件预览、前后台恢复与前台 Wi-Fi→蜂窝切换验收通过；文件系统分享、手机本次实际 LAN/P2P/TURN/Relay 路径和 Apple 公开分发不在本次已证明范围。
