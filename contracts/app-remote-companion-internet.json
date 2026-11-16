@@ -267,6 +267,16 @@
     "registry_read_identity": "instance_repository_GITHUB_TOKEN_with_single_package_Actions_Read",
     "runtime_registry_authentication": "existing_instance_TCR_credentials_not_job_or_installation_token",
     "deployment_contract_ref": "https://github.com/gaofeng21cn/opl-instance-medopl/blob/main/deploy/contracts/link-service.json",
-    "high_availability_qualified": false
+    "high_availability_qualified": false,
+    "service_packaging": {
+      "layout": "relay_coturn_one_container",
+      "implementation_owner": "opl-link/service",
+      "turn_implementation": "pinned_official_coturn",
+      "runtime_identity": "uid_gid_1000_no_added_capabilities",
+      "process_lifecycle": "one_entrypoint_starts_and_stops_relay_and_configured_coturn; unexpected_child_exit_fails_container",
+      "health": "relay_readiness_and_configured_TURN_listener",
+      "deployment": "one_single_writer_Link_workload; Instance_owns_network_Secrets_storage_and_upgrade",
+      "production_adoption": "pending_separate_exact_image_deployment_and_public_qualification"
+    }
   }
 }
