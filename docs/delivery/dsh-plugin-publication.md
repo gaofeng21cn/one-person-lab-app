@@ -2,7 +2,7 @@
 
 Owner: `one-person-lab-app`
 Purpose: `incremental_dsh_plugin_publication_and_composition_model`
-State: `active_design — opl-studio CI implementation pending`
+State: `active`
 
 Defines how OPL's DSH Host plugins are published independently, how the installed App
 picks them up without a full carrier rebuild, and how a stable release consumes
@@ -31,7 +31,8 @@ Steps:
 5. Record the published version and `engines.dsh` range as workflow output.
 
 Result: a new `@one-person-lab/<plugin-id>@x.y.z` is live on the registry.
-The installed App picks it up on next start via the semver range in the native profile.
+The installed App picks it up on next `update-registry` run (or `dsh:plugins:update`),
+which installs the new version into the native profile and surfaces "restart required".
 No `app.asar`, desktop signature, Framework Package state, or business data is modified.
 
 **Excluded from Track 1**: `@one-person-lab/opl-studio-client` (static renderer).
@@ -126,40 +127,42 @@ A plugin bump that extends or narrows `engines.dsh` compatibility must use a new
 version at minimum so that existing installs on older DSH cohorts are not silently broken.
 A bump that changes public Cordis service contracts uses a new **major** version.
 
-## Profile Constraint Format
+## Profile Resolution Model
 
-The bundled baseline profile (shipped inside `app.asar`) pins exact versions for build
-reproducibility:
+Understanding the two independent resolution contexts is essential:
 
-```yaml
-# cordis.yml — bundled baseline (exact pin, updated per composition receipt)
-dependencies:
-  "@one-person-lab/opl-superagent": "2.1.0"
-  "@one-person-lab/opl-framework-bridge": "3.0.1"
-  "@one-person-lab/opl-mcp-apps": "1.4.2"
+**App bundle baseline** (inside `app.asar`):
+- Built from `file:plugins/<id>` deps in `opl-studio/package.json` via `npm ci`
+- Results in a fixed set of plugin bytes baked into the signed bundle
+- Never changes without a carrier rebuild and re-sign
+- `cordis.yml` lists only plugin **names** (`id`/`name` pairs) — no version fields
+
+**Native profile override** (`DSH_HOME/profiles/opl-studio/`):
+- Managed by DSH's native pnpm outside the signed App
+- Lives at `~/.dsh/profiles/opl-studio/package.json` (or the configured `DSH_HOME`)
+- When a package appears here, DSH's `createRuntimeResolution` picks it over the bundle version
+- `update-registry` installs **exact resolved versions** here (pnpm locks them)
+- Removing an override restores the bundle baseline on next restart
+
+The semver caret range (`^x.y.0`) is used **only during the resolution query** — when
+`update-registry` calls `pnpm view @one-person-lab/opl-superagent@^0.1.0 version` to
+find the latest compatible published release. The version actually recorded in the native
+profile `package.json` is the exact resolved version, not a range.
+
+```json
+// DSH_HOME/profiles/opl-studio/package.json  (after update-registry)
+{
+  "name": "dsh-profile-opl-studio",
+  "private": true,
+  "dependencies": {
+    "@one-person-lab/opl-superagent": "0.2.3"
+  }
+}
 ```
 
-The native profile override — applied by DSH's own profile package manager outside the
-signed bundle — uses a semver caret range to pick up compatible updates:
-
-```yaml
-# opl-studio native profile override (applied at runtime, not in app.asar)
-dependencies:
-  "@one-person-lab/opl-superagent": "^2.1.0"
-  "@one-person-lab/opl-framework-bridge": "^3.0.1"
-  "@one-person-lab/opl-mcp-apps": "^1.4.2"
-```
-
-DSH's native pnpm resolves and locks the installed version on each profile update.
-On App start, if a newer compatible version is available and the range allows it, DSH
-installs it and surfaces "restart required" until the loaded Host matches the installed
-package. No custom updater or background service is needed; this is the native DSH
-profile package manager doing its job.
-
-The caret range must not cross `engines.dsh` compatibility boundaries. Any plugin
-update that requires a newer DSH cohort than the current bundled baseline must publish
-under a new minor/major version that the installed App's caret range does not resolve to.
-Such updates become available only after the shell updates to a matching DSH cohort.
+The compatibility boundary enforced by `engines.dsh` in each plugin's `package.json`
+ensures that `update-registry` never resolves a version requiring a newer DSH cohort
+than what is bundled in the running App.
 
 ## Incremental Update in the App UI
 
@@ -189,8 +192,8 @@ Before a plugin version is included in a composition receipt:
 3. It does not introduce a new peer dependency outside the pinned DSH cohort.
 
 A plugin that fails these checks is published with a pre-release suffix (`-rc.N`) and
-is not resolved by the caret range in production profile overrides. Pre-release versions
-are available for local testing via the existing `manual:plugins` operator entry.
+its `^x.y.0` range will not resolve to it. Pre-release versions are available for local
+testing via `update-registry --package <name>@<exact-version>`.
 
 ## Rollback
 
@@ -267,10 +270,6 @@ npm run manual:plugins -- update-registry --package opl-superagent --token ghp_.
 Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
 reuse the stored token automatically.
 
-### Profile changes in `opl-studio` (still needed)
-
-- `src/host/dsh/cordis.yml`: change OPL-owned plugin dependency pins from exact version
-  to `^x.y.0` semver ranges. Keep DSH upstream cohort packages at exact pins (upstream
-  cohort changes remain on the carrier build path).
-- Confirm `engines.dsh` is declared in every OPL-owned DSH Host plugin `package.json`.
-  (Already present in all 11 plugins as of the initial audit.)
+All structural implementation is complete. `engines.dsh` is already declared in all 11
+plugin `package.json` files; `cordis.yml` lists plugin names only (no version fields —
+versions are resolved at runtime by DSH from the native profile and bundle).
