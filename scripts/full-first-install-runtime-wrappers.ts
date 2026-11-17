@@ -60,7 +60,8 @@ if [[ -z "\${OPL_TEMPORAL_ADDRESS:-}" ]]; then
 else
   export OPL_TEMPORAL_ADDRESS
 fi
-export OPL_TEMPORAL_NAMESPACE="\${OPL_TEMPORAL_NAMESPACE:-default}"
+# Framework resolves an omitted namespace from the live address-matched worker.
+# Injecting a fallback here would make it an explicit override of that state.
 export OPL_TEMPORAL_TASK_QUEUE="\${OPL_TEMPORAL_TASK_QUEUE:-opl-stage-attempts}"
 export OPL_MODULE_PATH_MEDAUTOSCIENCE="$RUNTIME_HOME/modules/mas"
 export OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS="$RUNTIME_HOME/modules/mas-scholar-skills"

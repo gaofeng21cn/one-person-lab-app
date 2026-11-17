@@ -67,7 +67,7 @@ test("Full first-install manifest consumes execution environment refs and preser
   );
 });
 
-test("Full runtime wrapper preserves the Shell Codex executable and labels only its own Temporal default", async () => {
+test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace resolution to Framework", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-wrapper-"));
   const runtimeRoot = path.join(tempRoot, "runtime");
   const runtimeCommand = path.join(runtimeRoot, "opl", "bin", "opl");
@@ -75,7 +75,7 @@ test("Full runtime wrapper preserves the Shell Codex executable and labels only 
     runtimeCommand,
     [
       "#!/bin/bash",
-      "printf '%s|%s|%s\\n' \"${OPL_TEMPORAL_ADDRESS:-unset}\" \"${OPL_TEMPORAL_ADDRESS_SOURCE:-unset}\" \"${OPL_CODEX_BIN:-unset}\"",
+      "printf '%s|%s|%s|%s\\n' \"${OPL_TEMPORAL_ADDRESS:-unset}\" \"${OPL_TEMPORAL_ADDRESS_SOURCE:-unset}\" \"${OPL_CODEX_BIN:-unset}\" \"${OPL_TEMPORAL_NAMESPACE:-unset}\"",
       "",
     ].join("\n"),
   );
@@ -88,6 +88,8 @@ test("Full runtime wrapper preserves the Shell Codex executable and labels only 
     const baseEnv = { ...process.env };
     delete baseEnv.OPL_TEMPORAL_ADDRESS;
     delete baseEnv.OPL_TEMPORAL_ADDRESS_SOURCE;
+    delete baseEnv.OPL_TEMPORAL_NAMESPACE;
+    delete baseEnv.OPL_CODEX_BIN;
 
     const runWrapper = (overrides = {}) => {
       const result = spawnSync(wrapperPath, [], {
@@ -98,24 +100,32 @@ test("Full runtime wrapper preserves the Shell Codex executable and labels only 
       return result.stdout.trim();
     };
 
-    assert.equal(runWrapper(), "127.0.0.1:7233|packaged_local_default|unset");
+    assert.equal(runWrapper(), "127.0.0.1:7233|packaged_local_default|unset|unset");
+    assert.equal(
+      runWrapper({ OPL_TEMPORAL_NAMESPACE: "operator-namespace" }),
+      "127.0.0.1:7233|packaged_local_default|unset|operator-namespace",
+    );
+    assert.equal(
+      runWrapper({ OPL_TEMPORAL_NAMESPACE: "default" }),
+      "127.0.0.1:7233|packaged_local_default|unset|default",
+    );
     assert.equal(
       runWrapper({
         OPL_TEMPORAL_ADDRESS: "temporal.example:7233",
         OPL_CODEX_BIN: "/shell/managed-resources/codex",
       }),
-      "temporal.example:7233|unset|/shell/managed-resources/codex",
+      "temporal.example:7233|unset|/shell/managed-resources/codex|unset",
     );
     assert.equal(
       runWrapper({ OPL_TEMPORAL_ADDRESS: "127.0.0.1:7233" }),
-      "127.0.0.1:7233|unset|unset",
+      "127.0.0.1:7233|unset|unset|unset",
     );
     assert.equal(
       runWrapper({
         OPL_TEMPORAL_ADDRESS: "temporal.example:7233",
         OPL_TEMPORAL_ADDRESS_SOURCE: "operator_environment",
       }),
-      "temporal.example:7233|operator_environment|unset",
+      "temporal.example:7233|operator_environment|unset|unset",
     );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });

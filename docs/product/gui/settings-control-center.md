@@ -953,6 +953,8 @@ Support links are separate rows. Destructive actions remain behind their real pr
 
 启动自检缺少 readiness 或检查计数时显示“结果不完整”，不把缺失值补成 false 或 0/0。读取失败、未知结果、已证实阻断分别呈现，并提供“重新检查”。真实阻断和用户需处理的维护项同时进入概览问题列表，显示具体检查项、原因和对应设置入口；概览不能一边声称无问题一边要求处理。
 
+同一后台任务问题同时来自启动自检的 `family_runtime_provider` 和 fast runtime projection 时，概览合并为一项，并保留影响说明与服务状态入口。`opl system initialize` 的普通与事件读取均跳过联网查询 Codex 最新版本，版本查询归更新维护。随包 wrapper 保留显式 `OPL_TEMPORAL_NAMESPACE`；未设置时由 Framework 根据仍存活且地址匹配的 worker 状态解析命名空间，找不到时使用 Framework 默认值。验收须经过生成的随包 wrapper，覆盖未设置命名空间和显式覆盖，终端直调 Framework 的健康读数不能替代 App 环境验证。
+
 计划任务参考官方 DSH RC2 `ui-schedule/TaskManagerPage` 与 `TaskDetail`：紧凑的可搜索任务列表、状态与时间元信息、按需展开任务详情和执行历史。复用官方 Button、Input、StateDot，使用 DSH 字体、颜色、分隔线与间距。任务配置和执行继续走 Framework/Temporal，保留 OPL 所需创建表单与执行确认；长路径、完整提示词和技术执行信息不占据列表主体。
 
 扫码连接按每次完成的状态读取安排下一次刷新，不能只因 channel ID 与刷新周期未变化而停止。连接失败须将已有 reason code 翻译为可操作的原因与重试指引；未连接、连接中、待扫码、已连接和失败使用不同状态。获取二维码不是登录完成，扫码确认和消息实际交付需分别验证。

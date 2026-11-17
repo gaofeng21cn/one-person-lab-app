@@ -7,7 +7,7 @@ export const temporalLocalServiceDefaults = {
   address_env: "OPL_TEMPORAL_ADDRESS",
   default_address: "127.0.0.1:7233",
   namespace_env: "OPL_TEMPORAL_NAMESPACE",
-  default_namespace: "default",
+  namespace_resolution: "framework_explicit_environment_then_live_address_matched_worker_then_framework_default",
   task_queue_env: "OPL_TEMPORAL_TASK_QUEUE",
   default_task_queue: "opl-stage-attempts",
 };

@@ -416,10 +416,11 @@ test('any Package role may project one closed standard App contribution block', 
         framework_projected_remote_companion_access_rendering_allowed: true,
       },
       opl_studio: {
-        provider_owner: 'declaring_remote_companion_provider',
-        settings_surface: 'app_standard_remote_companion_access',
-        framework_remote_companion_host_activation_allowed: true,
-        framework_projected_remote_companion_access_rendering_allowed: true,
+        provider_owner: 'opl_studio_native_link_companion_bridge',
+        settings_surface: 'settings_resources_opl_link_native_host_panel',
+        framework_remote_companion_host_activation_allowed: false,
+        framework_projected_remote_companion_access_rendering_allowed: false,
+        legacy_projection_policy: 'retain_typed_remote_companion_access_for_compatibility_and_history_but_filter_it_from_ordinary_settings_when_the_native_link_bridge_is_present',
       },
       single_active_provider_path_per_renderer_required: true,
     },
@@ -964,4 +965,16 @@ test('App contribution product contract rejects a second Weixin provider path in
       /App GUI channel_access standard view contract/,
     );
   }
+});
+
+test('App contribution product contract rejects a parallel legacy Link surface in Studio', () => {
+  const source = readJson('contracts/app-gui-product-contract.json').framework_surfaces.package_app_contributions;
+  assert.doesNotThrow(() => validatePackageAppContributionsProductContract(source));
+  const invalid = structuredClone(source);
+  invalid.standard_view_contracts.remote_companion_access.renderer_activation_policy.opl_studio
+    .framework_projected_remote_companion_access_rendering_allowed = true;
+  assert.throws(
+    () => validatePackageAppContributionsProductContract(invalid),
+    /App GUI remote_companion_access standard view contract/,
+  );
 });

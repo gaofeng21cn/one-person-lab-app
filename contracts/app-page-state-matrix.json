@@ -2526,6 +2526,7 @@
         "one Durable tasks (Temporal) summary that presents Temporal service, OPL task worker, and Scheduled runs as a causal dependency chain rather than three peer services",
         "Temporal server, worker, and scheduler detail only under Service Status",
         "Temporal component detail only under Service Status, with one root-cause action and downstream waiting states instead of repeated generic attention",
+        "one overview issue for the same background-task failure reported by initialize and fast runtime readiness",
         "update channel as an inline persistent configuration",
         "single recommended repair or maintenance action",
         "check, apply, repair, rollback, and package maintenance directly on the daily Maintenance page with progressive confirmation and fresh readback",
