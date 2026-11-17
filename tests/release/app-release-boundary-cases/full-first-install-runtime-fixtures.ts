@@ -482,7 +482,11 @@ export function createFullRuntimeFixture() {
   writeVersionExecutable(nodeBin, "v22.0.0");
   writeVersionExecutable(npmBin, "10.0.0");
   writeVersionExecutable(npxBin, "10.0.0");
-  writeJson(path.join(npmRoot, "package.json"), { name: "npm", version: "10.0.0" });
+  writeJson(path.join(npmRoot, "package.json"), {
+    name: "npm", version: "10.0.0", bin: { npm: "bin/npm-cli.js", npx: "bin/npx-cli.js" },
+  });
+  writeVersionExecutable(path.join(npmRoot, "bin", "npm-cli.js"), "10.0.0");
+  writeVersionExecutable(path.join(npmRoot, "bin", "npx-cli.js"), "10.0.0");
   writeFile(path.join(npmRoot, "lib", "cli.js"), "// npm fixture\n");
 
   const pythonRoot = path.join(toolsRoot, "cpython-3.12-fixture-macos-aarch64-none");
