@@ -4350,6 +4350,7 @@
             ],
             "causal_blocking_policy": "downstream_unready_due_to_an_upstream_component_must_show_waiting_for_the_named_upstream_not_generic_attention",
             "aggregate_status_policy": "show_the_root_cause_and_user_impact_once_never_repeat_one_generic_attention_label_for_every_component",
+            "overview_issue_policy": "merge_initialize_family_runtime_provider_and_fast_runtime_readiness_into_one_actionable_issue",
             "user_visible_statuses": [
               "ready",
               "setup_required",
