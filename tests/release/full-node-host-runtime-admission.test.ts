@@ -77,6 +77,13 @@ if [ "$1" = '-L' ]; then printf '\\t/opt/homebrew/opt/libuv/lib/libuv.1.dylib (c
   process.env.PATH = `${bin}${path.delimiter}${originalPath ?? ''}`;
   assert.throws(() => findNodeToolchain(node, process.env.OPL_APP_SHELL_ROOT),
     /Full Node toolchain is not portable:[\s\S]*\/opt\/homebrew\/opt\/libuv/);
+  const entrypointRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-node-entrypoint-'));
+  context.after(() => fs.rmSync(entrypointRoot, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(entrypointRoot, 'bin'));
+  const entrypoint = path.join(entrypointRoot, 'bin/node');
+  fs.symlinkSync(node, entrypoint);
+  assert.throws(() => findNodeToolchain(entrypoint, process.env.OPL_APP_SHELL_ROOT),
+    /Full Node toolchain is not portable:[\s\S]*\/opt\/homebrew\/opt\/libuv/);
 });
 
 test('Full repairs dereferenced npm launchers when repackaging an installed toolchain', context => {

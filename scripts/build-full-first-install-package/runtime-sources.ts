@@ -100,7 +100,7 @@ export function findNodeToolchain(explicitNodeBin, guiRoot) {
   const admitted = resolveHostNode({ nodeExecutable: found });
   const nodeBin = admitted.command;
   const nodeBinDir = path.dirname(nodeBin);
-  assertFullRuntimeSourcePortable(path.dirname(nodeBinDir), 'Full Node toolchain');
+  assertFullRuntimeSourcePortable(path.dirname(path.dirname(fs.realpathSync(nodeBin))), 'Full Node toolchain');
   const npmBin = requireNodeToolchainFile(nodeBinDir, 'npm');
   const npxBin = requireNodeToolchainFile(nodeBinDir, 'npx');
   // Homebrew's unversioned Node links npm outside its Cellar prefix. Resolve
