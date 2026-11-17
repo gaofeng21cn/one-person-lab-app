@@ -144,6 +144,80 @@
       "a_feature_contributes_a_user_facing_view"
     ]
   },
+  "source_ownership_policy": {
+    "status": "target_recorded_current_source_layout_is_transitional",
+    "purpose": "Make each independently published DSH package understandable and buildable from its own public exports without creating a second plugin ABI or loader.",
+    "target_regions": {
+      "apps": {
+        "responsibility": "Electron carrier, preload, restricted resource bridge, AppWebEntry boot shell and DSH profile composition",
+        "current_location": "opl-studio/desktop plus opl-studio/src/main.tsx and src/host/dsh",
+        "migration_status": "target_only_do_not_claim_moved"
+      },
+      "plugins": {
+        "responsibility": "Independently published DSH Host and Client npm packages, including package-local source and generated lib output",
+        "current_location": "opl-studio/plugins/<plugin-id>",
+        "migration_status": "package_boundaries_exist_but_some_sources_still_import_transitional_root_modules"
+      },
+      "packages": {
+        "responsibility": "Small shared contracts, Host primitives and DSH compatibility adapters justified by current callers and a stable public interface",
+        "target_units": ["host-contracts", "host-kit", "dsh-adapters"],
+        "current_location": "no_complete_shared_source_region_yet",
+        "migration_status": "target_only_create_incrementally_from_real_shared_callers"
+      },
+      "vendor": {
+        "responsibility": "Pinned upstream DSH and Superagent source kept separate from OPL-owned source",
+        "current_location": "opl-studio/src/vendor and opl-studio/vendor",
+        "migration_status": "partial_existing_vendor_boundary"
+      }
+    },
+    "dependency_direction": {
+      "allowed": [
+        "apps_to_plugin_public_exports",
+        "apps_to_packages_public_exports",
+        "plugins_to_packages_public_exports",
+        "plugins_to_official_dsh_packages",
+        "packages_to_base_libraries_and_official_dsh_packages",
+        "packages_or_the_owning_plugin_to_vendor"
+      ],
+      "forbidden": [
+        "plugin_to_root_src_relative_import",
+        "plugin_to_sibling_plugin_src_import",
+        "root_workbench_to_plugin_internal_src_import",
+        "runtime_plugin_to_scripts_import",
+        "vendor_to_opl_owned_runtime_source_import",
+        "shared_package_as_a_second_aggregate_plugin"
+      ],
+      "public_boundary": "Cross-region and cross-plugin imports use package exports, explicit contracts or typed adapters; internal src paths are not a supported API."
+    },
+    "generated_output": {
+      "lib_is_generated": true,
+      "source_of_truth": "plugin source and build inputs",
+      "handwritten_lib_allowed": false,
+      "publish_input": "package-local generated lib selected by the package files field",
+      "cleanliness_rule": "build and release checks distinguish generated lib from editable source"
+    },
+    "transition_rules": {
+      "do_not_claim_complete_until": [
+        "all production imports obey dependency_direction",
+        "each extracted shared package has a justified shared ownership boundary and documented public exports",
+        "the old root or sibling internal import has no production caller",
+        "focused package build and package-outside-checkout runtime tests pass"
+      ],
+      "migration_order": [
+        "extract only pure contracts and ABI types first",
+        "extract host-kit primitives only after repeated shared callers are identified",
+        "move client composition and client-only integrations into opl-studio-client behind public exports",
+        "switch Host callers to sibling package exports before deleting transitional root modules",
+        "retire scripts from runtime imports and keep update tooling as an operator boundary"
+      ],
+      "preserve": [
+        "official DSH dsh.client discovery and AppWebEntry loading",
+        "native profile ownership and restart activation",
+        "Framework and Codex state/action ownership",
+        "independent plugin publication and composition evidence"
+      ]
+    }
+  },
   "inventory": {
     "command": "node scripts/plugin-composition-inventory.mjs --studio-root <path> --framework-root <path>",
     "source_of_truth": "current_profile_package_manifests_and_Framework_descriptors",
