@@ -70,7 +70,7 @@ DSH profile 独立更新，见[分层更新模型](../managed-update-three-layer
 | 类别 | 源码位置 | 装载依据与更新归属 |
 | --- | --- | --- |
 | Studio 内置 Host 插件 | `opl-studio/plugins/<plugin-id>/src/`；共用协议和工具在 `src/host/` | `src/host/dsh/cordis.yml` 与 `web.patch.yml` 提供基线；兼容包通过原生 profile 独立更新，重启生效 |
-| Studio 客户端插件 | `opl-studio/plugins/<client-plugin-id>/`、`src/integrations/` 与 `src/workbench/` | `dsh.client` 声明由官方 Host graph 扫描；profile 更新后重启加载最新客户端字节；Electron/DSH cohort/boot shell 变化才随 App/Shell 更新 |
+| Studio 客户端插件 | 长期归属为 `opl-studio/plugins/<client-plugin-id>/`；当前仍有 `src/integrations/`、`src/composition/` 与 `src/workbench/` 的过渡 caller | `dsh.client` 声明由官方 Host graph 扫描；profile 更新后重启加载最新客户端字节；Electron/DSH cohort/boot shell 变化才随 App/Shell 更新。过渡源码引用不是稳定插件 API，迁移完成前不宣称源码完全独立 |
 | DSH 官方和社区 UI | Studio 的 npm 依赖、`src/vendor/deepseek-harness/` | 固定 DSH cohort、npm lock 与第三方原包溯源；随 App/Shell 更新 |
 | Framework 内置服务与 Package Host | `one-person-lab/src/host/`、`packages/package-host/` 等 | Framework 公开组合入口与插件描述；随 Framework runtime 更新 |
 | App 自有可安装能力包 | 本仓 [`packages/`](../../../packages/README.md)，目前为微信通道 | Package descriptor 与 [App marketplace](../../../.agents/plugins/marketplace.json)；由配置的原生 carrier 安装 |
@@ -105,9 +105,7 @@ npm 包形态：`package.json` 声明名称、版本、描述、许可证、`eng
 Host 入口导出 Cordis `apply`/服务依赖，客户端入口使用 `exports[./client]` 与
 `dsh.client`。DSH profile 一律按包名加载，不再混用相对插件文件路径。
 
-Host/Client 插件由 `build:plugins` 把实现及本地依赖打进各包的 `lib/`；安装产物与官方、
-社区 DSH 插件统一通过 `node_modules/<package-name>/` 解析。源码目录和安装目录
-职责明确，App、WebUI、Docker 使用同一组包和 profile，不能各留一套插件副本。
+Host/Client 插件由 `build:plugins` 把实现及本地依赖打进各包的 `lib/`；`lib/` 是生成发布物，不能作为手写源码或第二套加载入口。安装产物与官方、社区 DSH 插件统一通过 `node_modules/<package-name>/` 解析。源码目录和安装目录职责明确，App、WebUI、Docker 使用同一组包和 profile，不能各留一套插件副本。长期依赖方向、过渡状态和迁移退出条件以 [插件组合与仓库边界](plugin-composition-map.md#源码所有权与依赖方向) 及其合同为准。
 
 官方/社区插件保留原始 npm 包与来源；需要适配的插件同样在 `plugins/` 建立标准
 DSH 包。文档预览随固定 DSH cohort 携带官方源码和客户端载荷，当前文件面板只复用

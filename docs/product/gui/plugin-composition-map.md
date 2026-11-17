@@ -24,6 +24,31 @@ node scripts/plugin-composition-inventory.mjs \
 
 该命令只读取当前 Studio plugin manifests、Studio profile、App-owned Package descriptors 和 Framework Package descriptors；目录存在、carrier metadata 或历史 payload 不代表已安装、已启用或可调用。
 
+## 源码所有权与依赖方向
+
+运行时插件化已经成立，源码物理归属仍处于收敛阶段。`plugins/<plugin-id>/` 是 DSH/npm
+交付边界，但当前 Studio 仍有插件入口引用根目录的 `src/host`、`src/bridge`、
+`src/composition`，也有根目录 Workbench 进入插件内部源码的过渡调用。这些调用解释了
+当前构建为何能产出独立包，却不构成长期源码 API。
+
+目标区域和当前状态以合同的 `source_ownership_policy` 为准：
+
+| 区域 | 长期职责 | 当前状态 |
+| --- | --- | --- |
+| `apps/` | Electron、preload、受限资源桥、AppWebEntry 启动壳和 profile 组合 | 仍分布在 `desktop/`、`src/main.tsx`、`src/host/dsh/`，尚未整体搬迁 |
+| `plugins/` | 可独立发布的 DSH Host/Client 包及其源码与生成 `lib/` | 包边界已成立，部分源码仍依赖过渡性根目录模块 |
+| `packages/` | 纯合同、Host 基础能力和 DSH 适配器 | 尚无完整的 `host-contracts`、`host-kit`、`dsh-adapters` 区域，不预先创建空壳包 |
+| `vendor/` | 固定版本的 DSH/Superagent 上游源码 | 已有部分 `src/vendor` 与 `vendor`，后续按真实调用者收敛 |
+
+依赖方向固定为 `apps -> plugins/packages`、`plugins -> packages/官方 DSH`、
+`packages -> 基础库/官方 DSH`；插件不能依赖 `../../../src`、其他插件的 `src` 或运行时
+脚本，根 Workbench 不能进入插件内部源码。跨边界必须通过 package `exports`、纯类型/ABI
+合同或显式适配器。`lib/` 是构建生成物，不是手写源码，也不成为新的运行时发现机制。
+
+这是迁移目标和开发约束，不代表目录已经搬迁完成。每次迁移先提取真实共享调用者，再切换
+公开 exports，最后删除旧内部 caller；没有当前共享职责时，不创建通用 `host-kit`，也
+不把多个插件重新聚合成一个大插件。
+
 ## 用户入口规则
 
 | 用户任务 | 统一入口 | 实现来源可以是什么 |
