@@ -210,6 +210,11 @@ Timeline 按时间顺序组织用户可理解的工作事实：
   progress、next action、stop。
 - Permission、approval、user-input 与 MCP elicitation 留在相应 turn；后台 target 的请求可在
   selected thread detail 中按 thread/turn/item context 处理，不跳到无上下文的全局 control panel。
+  等待用户审批、回答或补充 MCP 输入期间暂停无活动超时，保留请求与忙碌状态；不能因用户思考
+  时间清掉问题、视为轮次结束或执行需要空闲状态的配置重载。用户回复后重新计算无活动窗口，
+  多个阻塞请求须全部回复后才恢复计时。Codex 明确标记为非阻塞的问题不暂停计时；无 turn
+  关联的 MCP 请求保留所属 thread 范围，不推断 turn，也不随别的 turn 清除。真实终态或
+  App Server 退出仍按请求的协议范围清理。
 - Error 显示 direct reason、影响范围和 App-owned next action；raw stack/protocol 在 details。
 - Turn 完成后保留 result summary、artifact/receipt refs 和继续工作入口。
 - 跨项目 status、长 evidence list 和 full ledger 进入 Runtime/details，不挤占 timeline。
