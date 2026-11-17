@@ -54,7 +54,7 @@ export const appOwnedSettingsTechnicalDetailsDefault = {
 export const appOwnedSettingsPageAnchors = {
   overview: ["status", "attention", "next-action", "codex", "gateway"],
   gateway: ["connection", "account", "usage", "access"],
-  models: ["provider-source", "model", "codex-cli"],
+  models: ["provider-source", "model", "advanced-model-options", "codex-cli"],
   workspace: [
     "current-workspace",
     "permissions",
@@ -99,7 +99,7 @@ export const appOwnedSettingsPageSearchEntryIds = {
     "overview.gateway",
   ],
   gateway: ["gateway.connection", "gateway.account", "gateway.usage", "gateway.access"],
-  models: ["models.provider_source", "models.model", "models.codex_cli"],
+  models: ["models.provider_source", "models.model", "models.custom_model_access", "models.codex_cli"],
   workspace: [
     "workspace.current",
     "workspace.permissions",

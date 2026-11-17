@@ -2068,10 +2068,11 @@
               "framework_projected_remote_companion_access_rendering_allowed": true
             },
             "opl_studio": {
-              "provider_owner": "declaring_remote_companion_provider",
-              "settings_surface": "app_standard_remote_companion_access",
-              "framework_remote_companion_host_activation_allowed": true,
-              "framework_projected_remote_companion_access_rendering_allowed": true
+              "provider_owner": "opl_studio_native_link_companion_bridge",
+              "settings_surface": "settings_resources_opl_link_native_host_panel",
+              "framework_remote_companion_host_activation_allowed": false,
+              "framework_projected_remote_companion_access_rendering_allowed": false,
+              "legacy_projection_policy": "retain_typed_remote_companion_access_for_compatibility_and_history_but_filter_it_from_ordinary_settings_when_the_native_link_bridge_is_present"
             },
             "single_active_provider_path_per_renderer_required": true
           },
@@ -8145,6 +8146,7 @@
         "provider_source",
         "model",
         "codex_cli",
+        "custom_model_access",
         "model_preferences"
       ],
       "must_show": [
@@ -8153,6 +8155,7 @@
         "real access source from app_state.core.codex.model_access_source",
         "selected and default model",
         "persistent default model and reasoning effort for new conversations",
+        "advanced custom-model access in the Models page advanced disclosure without changing Auto",
         "active Codex CLI readiness as the execution prerequisite; its version and update policy belong to Runtime & Maintenance",
         "one route to Account & Access when credentials need attention"
       ],
@@ -9642,6 +9645,7 @@
           ],
           "causal_blocking_policy": "downstream_unready_due_to_an_upstream_component_must_show_waiting_for_the_named_upstream_not_generic_attention",
           "aggregate_status_policy": "show_the_root_cause_and_user_impact_once_never_repeat_one_generic_attention_label_for_every_component",
+          "overview_issue_policy": "merge_initialize_family_runtime_provider_and_fast_runtime_readiness_into_one_actionable_issue",
           "user_visible_statuses": [
             "ready",
             "setup_required",

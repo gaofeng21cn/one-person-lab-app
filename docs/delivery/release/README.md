@@ -155,6 +155,13 @@ rejection tests bind a stable error code instead of human-readable diagnostic wo
 Apple recovery DMGs stay in the dedicated recovery artifact instead of duplicating them in the
 normal Full package transfer.
 
+The Full Framework layer retains its complete compiled `dist` tree. The public
+`./cordis-profiles` entry imports Host plugins, read models and adapters; keeping
+only `composition-profiles.js` leaves channel providers such as WeChat unloadable.
+After copying production dependencies and removing source export conditions, the
+builder loads every required built export with Node from the packaged directory.
+A missing transitive module rejects the layer before it can enter a runtime cache.
+
 Clean-VM input preparation runs beside the macOS build: it checks the Tart source inventory and
 prefetches Codex tarballs from the frozen qualification manifest. This creates no VM and uses no
 Gateway credentials. The final VM gate revalidates tarball digests against the built artifact cohort;

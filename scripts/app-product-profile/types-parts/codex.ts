@@ -26,6 +26,7 @@ export type AppCodexProfile = {
     configured_default_role: string;
     mode_default: string;
     model_catalog_source: string;
+    builtin_model_catalog_source: string;
     catalog_response_models_field: string;
     catalog_default_model_field: string;
     catalog_supported_reasoning_efforts_field: string;
@@ -36,6 +37,14 @@ export type AppCodexProfile = {
     catalog_pagination_completion_policy: string;
     catalog_hidden_model_field: string;
     catalog_hidden_model_policy: string;
+    custom_model_access_policy: {
+      default_enabled: boolean;
+      surface: string;
+      selection: string;
+      auto_behavior: string;
+      disabled_selection: string;
+      warning_required: boolean;
+    };
     frontier_model_preference_order_role: string;
     frontier_model_preference_order: string[];
     known_model_reasoning_effort_overrides: Record<string, string>;

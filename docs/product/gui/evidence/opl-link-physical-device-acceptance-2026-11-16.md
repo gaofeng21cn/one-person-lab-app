@@ -10,7 +10,7 @@
 
 AppIcon 恢复为 Link Git `bd37760` 保存的“手机、电脑与连接环”原始设计；PNG SHA-256 为 `fdd99fa097ba161a752dda17fc81dd0299ab0dfe13bcbe529797df09ff9201fe`。图标与请求面板修复已进入 Link 主线 `cadfc141db7e2951ca0276b88a0ec4e6afd7cae2`。`npm test` 为 29 passed、2 环境 skip、0 failed；开发签名真机构建和未签名模拟器构建均通过。
 
-Touch ID 请求发生在 Xcode UI 测试初始化。Link 源码未接入生物认证；用户反馈的英文标题没有有效截图或可复现原文，本次未修改系统认证文案。
+Touch ID 请求发生在 Xcode UI 测试初始化。用户随后明确英文标题为 “Enable UI Automation”，与 Xcode/XCTest 的系统自动化授权一致。Link 源码未接入生物认证；普通启动和配对不触发这项测试授权，应用不能改写 Apple 的系统认证标题。
 
 ## 桌面连接断点与修复
 

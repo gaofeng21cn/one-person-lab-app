@@ -15,6 +15,7 @@ import {
   flowCapabilityBuildLockFixture,
   createFullRuntimeFixture,
 } from "./full-first-install-runtime-fixtures.ts";
+import { pathToFileURL } from 'node:url';
 
 test("Studio packaged runtime keeps the Full runtime contract explicit", () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-app-packaged-runtime-"));
@@ -66,7 +67,7 @@ test("Full first-install manifest consumes execution environment refs and preser
   );
 });
 
-test("Full runtime wrapper preserves the Shell Codex executable and labels only its own Temporal default", async () => {
+test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace resolution to Framework", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-wrapper-"));
   const runtimeRoot = path.join(tempRoot, "runtime");
   const runtimeCommand = path.join(runtimeRoot, "opl", "bin", "opl");
@@ -74,7 +75,7 @@ test("Full runtime wrapper preserves the Shell Codex executable and labels only 
     runtimeCommand,
     [
       "#!/bin/bash",
-      "printf '%s|%s|%s\\n' \"${OPL_TEMPORAL_ADDRESS:-unset}\" \"${OPL_TEMPORAL_ADDRESS_SOURCE:-unset}\" \"${OPL_CODEX_BIN:-unset}\"",
+      "printf '%s|%s|%s|%s\\n' \"${OPL_TEMPORAL_ADDRESS:-unset}\" \"${OPL_TEMPORAL_ADDRESS_SOURCE:-unset}\" \"${OPL_CODEX_BIN:-unset}\" \"${OPL_TEMPORAL_NAMESPACE:-unset}\"",
       "",
     ].join("\n"),
   );
@@ -87,6 +88,8 @@ test("Full runtime wrapper preserves the Shell Codex executable and labels only 
     const baseEnv = { ...process.env };
     delete baseEnv.OPL_TEMPORAL_ADDRESS;
     delete baseEnv.OPL_TEMPORAL_ADDRESS_SOURCE;
+    delete baseEnv.OPL_TEMPORAL_NAMESPACE;
+    delete baseEnv.OPL_CODEX_BIN;
 
     const runWrapper = (overrides = {}) => {
       const result = spawnSync(wrapperPath, [], {
@@ -97,24 +100,32 @@ test("Full runtime wrapper preserves the Shell Codex executable and labels only 
       return result.stdout.trim();
     };
 
-    assert.equal(runWrapper(), "127.0.0.1:7233|packaged_local_default|unset");
+    assert.equal(runWrapper(), "127.0.0.1:7233|packaged_local_default|unset|unset");
+    assert.equal(
+      runWrapper({ OPL_TEMPORAL_NAMESPACE: "operator-namespace" }),
+      "127.0.0.1:7233|packaged_local_default|unset|operator-namespace",
+    );
+    assert.equal(
+      runWrapper({ OPL_TEMPORAL_NAMESPACE: "default" }),
+      "127.0.0.1:7233|packaged_local_default|unset|default",
+    );
     assert.equal(
       runWrapper({
         OPL_TEMPORAL_ADDRESS: "temporal.example:7233",
         OPL_CODEX_BIN: "/shell/managed-resources/codex",
       }),
-      "temporal.example:7233|unset|/shell/managed-resources/codex",
+      "temporal.example:7233|unset|/shell/managed-resources/codex|unset",
     );
     assert.equal(
       runWrapper({ OPL_TEMPORAL_ADDRESS: "127.0.0.1:7233" }),
-      "127.0.0.1:7233|unset|unset",
+      "127.0.0.1:7233|unset|unset|unset",
     );
     assert.equal(
       runWrapper({
         OPL_TEMPORAL_ADDRESS: "temporal.example:7233",
         OPL_TEMPORAL_ADDRESS_SOURCE: "operator_environment",
       }),
-      "temporal.example:7233|operator_environment|unset",
+      "temporal.example:7233|operator_environment|unset|unset",
     );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -164,8 +175,13 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
     writeFile(path.join(packageRoot, "dist", "index.js"), "export const runtimeValue = 'built';\n");
     writeFile(
       path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
-      "export const startCordisChannelProviderHost = () => ({ });\n",
+      "import { catalog } from '../read-models/catalog/index.js';\n"
+        + "export const startCordisChannelProviderHost = () => catalog;\n",
     );
+    writeFile(path.join(frameworkRoot, "dist", "read-models", "catalog", "index.js"),
+      "export { runtimeValue as catalog } from '../../adapters/integration/index.js';\n");
+    writeFile(path.join(frameworkRoot, "dist", "adapters", "integration", "index.js"),
+      "export { runtimeValue } from '@one-person-lab/cordis-abi';\n");
     writeFile(path.join(frameworkRoot, "dist", "host", "other.js"), "export const other = true;\n");
     writeFile(path.join(frameworkRoot, "dist", "other.js"), "export const other = true;\n");
 
@@ -178,8 +194,14 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
       fs.existsSync(path.join(packagedRoot, "dist", "host", "composition-profiles.js")),
       true,
     );
-    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "host", "other.js")), false);
-    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "other.js")), false);
+    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "host", "other.js")), true);
+    assert.equal(fs.existsSync(path.join(packagedRoot, "dist", "other.js")), true);
+    const profileProbe = spawnSync(process.execPath, ['--input-type=module', '--eval',
+      "const { startCordisChannelProviderHost } = await import(process.argv[1]); console.log(startCordisChannelProviderHost());",
+      pathToFileURL(path.join(packagedRoot, 'dist', 'host', 'composition-profiles.js')).href,
+    ], { encoding: 'utf8' });
+    assert.equal(profileProbe.status, 0, profileProbe.stderr || profileProbe.stdout);
+    assert.equal(profileProbe.stdout.trim(), 'built');
     const packagedManifest = JSON.parse(
       fs.readFileSync(
         path.join(packagedRoot, "node_modules", "@one-person-lab", "cordis-abi", "package.json"),
@@ -200,6 +222,24 @@ test("Full runtime Framework packages resolve built JavaScript instead of TypeSc
     );
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.equal(result.stdout.trim(), "built");
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("Full runtime OPL layer rejects a present Framework export with a missing transitive dependency", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-broken-export-"));
+  const frameworkRoot = path.join(tempRoot, "framework");
+  try {
+    writeJson(path.join(frameworkRoot, "package.json"), {
+      name: "fixture-framework", version: "1.0.0", type: "module",
+      exports: { "./cordis-profiles": "./dist/host/composition-profiles.js" },
+    });
+    writeFile(path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
+      "export { startCordisChannelProviderHost } from '../read-models/catalog/missing.js';\n");
+    const { buildOplLayer } = await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
+    assert.throws(() => buildOplLayer(path.join(tempRoot, "layer"), { frameworkRoot }),
+      /required built export cannot load:[\s\S]*ERR_MODULE_NOT_FOUND/);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

@@ -3389,6 +3389,7 @@
           "model access readiness and real source from app_state.core.codex.model_access_source",
           "selected and default model, with Auto showing its resolved friendly model",
           "persistent default model and reasoning effort for new conversations",
+          "advanced custom-model access as an explicit fixed-selection option without changing Auto",
           "active Codex CLI readiness as the model execution prerequisite; its version and update policy belong to Runtime & Maintenance",
           "one visible route to Account & Access when credentials need attention"
         ],
@@ -3405,6 +3406,10 @@
             },
             {
               "id": "preferred_reasoning_effort",
+              "owner": "models"
+            },
+            {
+              "id": "custom_model_access",
               "owner": "models"
             }
           ],
@@ -3440,6 +3445,7 @@
             "settings-page-models",
             "settings-models-primary",
             "settings-models-model-preference",
+            "settings-models-advanced",
             "settings-models-codex-cli",
             "settings-models-gateway-link"
           ],
@@ -3454,14 +3460,22 @@
             }
           ]
         },
+        "custom_model_access": {
+          "visibility": "collapsed_advanced_only",
+          "placement": "models_page_after_model_preference_before_codex_cli",
+          "storage": "existing_app_local_settings",
+          "technical_details_required": false
+        },
         "required_anchors": [
           "provider-source",
           "model",
+          "advanced-model-options",
           "codex-cli"
         ],
         "search_entry_ids": [
           "models.provider_source",
           "models.model",
+          "models.custom_model_access",
           "models.codex_cli"
         ]
       },
@@ -5014,6 +5028,25 @@
             "model",
             "default",
             "reasoning"
+          ]
+        },
+        {
+          "id": "models.custom_model_access",
+          "page_id": "models",
+          "anchor": "advanced-model-options",
+          "label_zh": "高级模型",
+          "label_en": "Advanced models",
+          "keywords_zh": [
+            "自定义模型",
+            "第三方模型",
+            "高级",
+            "标准智能体"
+          ],
+          "keywords_en": [
+            "custom models",
+            "third-party models",
+            "advanced",
+            "standard agents"
           ]
         },
         {

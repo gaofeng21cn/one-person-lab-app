@@ -127,6 +127,7 @@ function validateTemporalAutoConfiguration(temporalAutoConfig) {
   }
   if (
     temporalAutoConfig.packaged_runtime_policy?.full_wrapper_must_export_defaults !== true ||
+    temporalAutoConfig.packaged_runtime_policy?.full_wrapper_must_not_freeze_worker_namespace !== true ||
     temporalAutoConfig.packaged_runtime_policy?.must_include_temporal_cli_wrapper !== true ||
     temporalAutoConfig.packaged_runtime_policy?.temporal_cli_wrapper_must_execute_offline_archive !== true ||
     temporalAutoConfig.packaged_runtime_policy?.must_include_temporal_node_runtime_packages !== true ||

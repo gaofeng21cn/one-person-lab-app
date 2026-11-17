@@ -79,6 +79,34 @@ test('product profile freezes the real paginated Codex model/list response shape
   assert.equal(policy.catalog_supported_reasoning_effort_option_value_field, 'reasoningEffort');
   assert.equal(policy.catalog_hidden_model_field, 'hidden');
   assert.equal(policy.catalog_hidden_model_policy, 'exclude_hidden_models_from_auto_and_fixed_options');
+  assert.deepEqual(policy.custom_model_access_policy, {
+    default_enabled: false,
+    surface: 'settings_models_collapsed_advanced_disclosure',
+    selection: 'explicit_fixed_model_only',
+    auto_behavior: 'unchanged',
+    disabled_selection: 'preserve_as_unavailable_and_block_send_until_auto_admitted_model_or_explicit_reenable',
+    warning_required: true,
+  });
+});
+
+test('custom model access stays a default-off advanced Models setting', () => {
+  const profile = readJson('contracts/app-product-profile.json');
+  const option = profile.gui.home.codex_model_display_options.custom_model_access_option;
+  assert.deepEqual(option, {
+    default_enabled: false,
+    surface: 'settings_models_collapsed_advanced_disclosure',
+    label_zh: '启用自定义模型',
+    label_en: 'Enable custom models',
+    description_zh: '仅在你明确需要时显示本机 Codex 目录中的自定义与第三方模型；它们可能改变 OPL 标准智能体的行为。自动模式保持不变。',
+    description_en: 'Show custom and third-party models from the local Codex catalog only when explicitly needed; they may change OPL standard-Agent behavior. Auto remains unchanged.',
+  });
+  const modelsPage = readJson('contracts/app-settings-control-plane.json').experience_contract.page_contracts.models;
+  assert.equal(modelsPage.surface_inventory.configuration.at(-1).id, 'custom_model_access');
+  assert.equal(modelsPage.custom_model_access.visibility, 'collapsed_advanced_only');
+  assert.equal(modelsPage.custom_model_access.placement, 'models_page_after_model_preference_before_codex_cli');
+  assert.ok(modelsPage.required_anchors.includes('advanced-model-options'));
+  assert.ok(modelsPage.search_entry_ids.includes('models.custom_model_access'));
+  assert.ok(modelsPage.required_dom.always.includes('settings-models-advanced'));
 });
 
 test('Auto display contract keeps runtime resolution out of the static App profile', () => {

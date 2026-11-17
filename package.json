@@ -49,6 +49,8 @@
     "validate:packaged-runtime": "node --experimental-strip-types scripts/run-active-shell-command.ts bun run validate:packaged-runtime",
     "codex:model-policy:sync": "node --experimental-strip-types scripts/sync-codex-model-policy.ts",
     "codex:model-policy:check": "node --experimental-strip-types scripts/sync-codex-model-policy.ts --check",
+    "codex:model-policy:sync:bundled": "node --experimental-strip-types scripts/sync-codex-model-policy.ts --bundled",
+    "codex:model-policy:check:bundled": "node --experimental-strip-types scripts/sync-codex-model-policy.ts --check --bundled",
     "validate:opl-package": "node --experimental-strip-types scripts/run-active-shell-command.ts bun run validate:opl-package",
     "validate:app-root-boundary": "node --experimental-strip-types scripts/app-root-boundary.ts",
     "validate:active-shell": "node --experimental-strip-types scripts/validate-active-shell.ts",

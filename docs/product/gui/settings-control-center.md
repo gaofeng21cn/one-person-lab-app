@@ -463,6 +463,19 @@ and reasoning preference for new conversations. It may show whether the active
 Codex CLI is ready, but the version and update policy belong only to Runtime &
 Maintenance > Updates & Repair.
 
+Custom-model access belongs to Models, immediately after Default model, in a
+collapsed **Advanced model options** disclosure. **Enable custom models** is off
+for new and migrated users, uses the existing App-local Settings store, and is
+searchable in both languages; a search result opens the disclosure and focuses
+the switch. It is independent of Technical details and only expands explicit
+fixed-model choices. Auto keeps the App default (`gpt-6-astra + max` currently)
+and App-admitted compatibility fallbacks; it never adopts a custom catalog row.
+The switch explains that other models may change standard-Agent behavior. A
+custom fixed selection shows the same notice near the composer. Disabling access
+preserves that selection as unavailable and blocks subsequent sends until the
+user restores Auto, chooses an admitted model, or explicitly re-enables access.
+The composer model menu retains its model, reasoning, and reset rows.
+
 When credentials need attention it exposes one route to Account & Access. It
 does not show the Gateway account card, balance, usage, login form, manual Key
 form, managed Key lifecycle, raw provider paths, Codex CLI version, or update
@@ -939,6 +952,8 @@ Support links are separate rows. Destructive actions remain behind their real pr
 未安装或主动停用的可选智能体不应因为没有首页入口出现在故障列表。已可调用但没有首页入口时，说明需要智能体更新提供入口，而不是要求用户反复修复安装。
 
 启动自检缺少 readiness 或检查计数时显示“结果不完整”，不把缺失值补成 false 或 0/0。读取失败、未知结果、已证实阻断分别呈现，并提供“重新检查”。真实阻断和用户需处理的维护项同时进入概览问题列表，显示具体检查项、原因和对应设置入口；概览不能一边声称无问题一边要求处理。
+
+同一后台任务问题同时来自启动自检的 `family_runtime_provider` 和 fast runtime projection 时，概览合并为一项，并保留影响说明与服务状态入口。`opl system initialize` 的普通与事件读取均跳过联网查询 Codex 最新版本，版本查询归更新维护。随包 wrapper 保留显式 `OPL_TEMPORAL_NAMESPACE`；未设置时由 Framework 根据仍存活且地址匹配的 worker 状态解析命名空间，找不到时使用 Framework 默认值。验收须经过生成的随包 wrapper，覆盖未设置命名空间和显式覆盖，终端直调 Framework 的健康读数不能替代 App 环境验证。
 
 计划任务参考官方 DSH RC2 `ui-schedule/TaskManagerPage` 与 `TaskDetail`：紧凑的可搜索任务列表、状态与时间元信息、按需展开任务详情和执行历史。复用官方 Button、Input、StateDot，使用 DSH 字体、颜色、分隔线与间距。任务配置和执行继续走 Framework/Temporal，保留 OPL 所需创建表单与执行确认；长路径、完整提示词和技术执行信息不占据列表主体。
 

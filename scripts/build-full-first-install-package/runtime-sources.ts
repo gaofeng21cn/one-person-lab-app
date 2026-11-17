@@ -99,12 +99,23 @@ export function findNodeToolchain(explicitNodeBin, guiRoot) {
   const admitted = resolveHostNode({ nodeExecutable: found });
   const nodeBin = admitted.command;
   const nodeBinDir = path.dirname(nodeBin);
-  const nodeRoot = path.dirname(nodeBinDir);
+  const npmBin = requireNodeToolchainFile(nodeBinDir, 'npm');
+  const npxBin = requireNodeToolchainFile(nodeBinDir, 'npx');
+  // Homebrew's unversioned Node links npm outside its Cellar prefix. Resolve
+  // the sibling launchers rather than assuming a lib directory beside Node.
+  const npmRoot = path.dirname(path.dirname(fs.realpathSync(npmBin)));
+  const npxRoot = path.dirname(path.dirname(fs.realpathSync(npxBin)));
+  const packageRoot = fs.existsSync(path.join(npmRoot, 'package.json'))
+    ? npmRoot
+    : path.join(path.dirname(nodeBinDir), 'lib', 'node_modules', 'npm');
+  if (npmRoot !== npxRoot) {
+    throw new Error('Node toolchain npm and npx must resolve to the same package.');
+  }
   return {
     nodeBin,
-    npmBin: requireNodeToolchainFile(nodeBinDir, 'npm'),
-    npxBin: requireNodeToolchainFile(nodeBinDir, 'npx'),
-    npmRoot: requireNodeToolchainDirectory(path.join(nodeRoot, 'lib', 'node_modules', 'npm')),
+    npmBin,
+    npxBin,
+    npmRoot: fs.realpathSync(requireNodeToolchainDirectory(packageRoot)),
   };
 }
 

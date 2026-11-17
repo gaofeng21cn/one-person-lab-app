@@ -204,9 +204,21 @@ export function copyExecutableOrSymlinkTarget(sourceRoot, relativePath, targetRo
   copySingleFile(sourcePath, targetPath);
 }
 
-export function copyNodeRuntimePayload(nodeRoot, targetRoot) {
+export function copyNodeRuntimePayload(nodeRoot, targetRoot, npmRoot = path.join(nodeRoot, 'lib', 'node_modules', 'npm')) {
   fs.rmSync(targetRoot, { recursive: true, force: true });
   for (const relativePath of ['bin/node', 'bin/npm', 'bin/npx']) {
+    const sourcePath = path.join(nodeRoot, relativePath);
+    if (relativePath !== 'bin/node' && fs.lstatSync(sourcePath).isSymbolicLink()) {
+      const resolved = fs.realpathSync(sourcePath);
+      const packageRelative = path.relative(fs.realpathSync(npmRoot), resolved);
+      if (isInsidePath(fs.realpathSync(npmRoot), resolved)) {
+        const targetPath = path.join(targetRoot, relativePath);
+        const packageTarget = path.join(targetRoot, 'lib', 'node_modules', 'npm', packageRelative);
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.symlinkSync(path.relative(path.dirname(targetPath), packageTarget), targetPath);
+        continue;
+      }
+    }
     copyExecutableOrSymlinkTarget(nodeRoot, relativePath, targetRoot);
   }
   // Homebrew and the official macOS Node builds keep the Node shared library
@@ -223,7 +235,7 @@ export function copyNodeRuntimePayload(nodeRoot, targetRoot) {
     }
   }
   for (const packageName of ['npm', 'corepack']) {
-    const sourcePath = path.join(nodeRoot, 'lib', 'node_modules', packageName);
+    const sourcePath = packageName === 'npm' ? npmRoot : path.join(nodeRoot, 'lib', 'node_modules', packageName);
     if (!fs.existsSync(sourcePath)) {
       if (packageName === 'corepack') continue;
       throw new Error(`Node runtime package missing: lib/node_modules/${packageName}`);

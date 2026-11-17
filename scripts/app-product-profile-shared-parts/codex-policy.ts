@@ -1,7 +1,8 @@
 import { assertExpectedFields } from '../value-assertions.ts';
 import type { ModelDisplayOptions, ProductProfileLike } from './types.ts';
 import type { CodexModelDisplayOptionsLike } from './model-display.ts';
-import { assertExactStringArray, expectedCodexVisibleModels, expectedReasoningLabels } from './model-display.ts';
+import { assertExactStringArray, assertCapabilityReferenceListShape, expectedReasoningLabels } from './model-display.ts';
+import { bundledCodexCatalogSource } from '../codex-bundled-models.ts';
 
 export function assertCodexAutoModelPolicy(
   policy: Record<string, unknown> | undefined,
@@ -34,6 +35,7 @@ export function assertCodexAutoModelPolicy(
       { actual: policy?.configured_default_role, expected: 'app_default_with_catalog_compatibility_fallback' },
       { actual: policy?.mode_default, expected: 'auto' },
       { actual: policy?.model_catalog_source, expected: 'codex_cli_model_list' },
+      { actual: policy?.builtin_model_catalog_source, expected: bundledCodexCatalogSource },
       { actual: policy?.catalog_response_models_field, expected: 'data' },
       { actual: policy?.catalog_default_model_field, expected: 'isDefault' },
       { actual: policy?.catalog_supported_reasoning_efforts_field, expected: 'supportedReasoningEfforts' },
@@ -44,10 +46,16 @@ export function assertCodexAutoModelPolicy(
       { actual: policy?.catalog_pagination_completion_policy, expected: 'exhaust_pages_until_next_cursor_is_null' },
       { actual: policy?.catalog_hidden_model_field, expected: 'hidden' },
       { actual: policy?.catalog_hidden_model_policy, expected: 'exclude_hidden_models_from_auto_and_fixed_options' },
+      { actual: (policy?.custom_model_access_policy as Record<string, unknown> | undefined)?.default_enabled, expected: false },
+      { actual: (policy?.custom_model_access_policy as Record<string, unknown> | undefined)?.surface, expected: 'settings_models_collapsed_advanced_disclosure' },
+      { actual: (policy?.custom_model_access_policy as Record<string, unknown> | undefined)?.selection, expected: 'explicit_fixed_model_only' },
+      { actual: (policy?.custom_model_access_policy as Record<string, unknown> | undefined)?.auto_behavior, expected: 'unchanged' },
+      { actual: (policy?.custom_model_access_policy as Record<string, unknown> | undefined)?.disabled_selection, expected: 'preserve_as_unavailable_and_block_send_until_auto_admitted_model_or_explicit_reenable' },
+      { actual: (policy?.custom_model_access_policy as Record<string, unknown> | undefined)?.warning_required, expected: true },
       { actual: policy?.frontier_model_preference_order_role, expected: 'known_model_fallback_and_fixed_option_preference_not_allowlist' },
       { actual: policy?.unknown_default_model_policy, expected: 'ignore_catalog_default_for_app_auto' },
       { actual: policy?.unknown_model_reasoning_effort_policy, expected: 'highest_supported_reasoning_effort_from_catalog' },
-      { actual: policy?.catalog_without_default_policy, expected: 'first_available_known_model_then_first_catalog_model' },
+      { actual: policy?.catalog_without_default_policy, expected: 'first_available_known_model_otherwise_unavailable' },
     ],
     `${label} Codex Auto model policy must follow the Codex CLI catalog`,
   );
@@ -94,6 +102,7 @@ function assertCodexModelDisplayShape(
   label: string,
 ): void {
   const auto = displayOptions?.auto_option;
+  const customModelAccess = displayOptions?.custom_model_access_option;
   const visibleModels = displayOptions?.visible_models ?? [];
   assertExpectedFields(
     [
@@ -121,6 +130,12 @@ function assertCodexModelDisplayShape(
         actual: displayOptions?.model_menu_policy,
         expected: 'model_summary_row_nested_submenu_with_auto_and_fixed_options',
       },
+      { actual: customModelAccess?.default_enabled, expected: false },
+      { actual: customModelAccess?.surface, expected: 'settings_models_collapsed_advanced_disclosure' },
+      { actual: customModelAccess?.label_zh, expected: '启用自定义模型' },
+      { actual: customModelAccess?.label_en, expected: 'Enable custom models' },
+      { actual: customModelAccess?.description_zh, expected: '仅在你明确需要时显示本机 Codex 目录中的自定义与第三方模型；它们可能改变 OPL 标准智能体的行为。自动模式保持不变。' },
+      { actual: customModelAccess?.description_en, expected: 'Show custom and third-party models from the local Codex catalog only when explicitly needed; they may change OPL standard-Agent behavior. Auto remains unchanged.' },
       { actual: auto?.label_zh, expected: '自动（推荐）' },
       { actual: auto?.label_en, expected: 'Auto (recommended)' },
       { actual: auto?.catalog_unavailable_fallback_model, expected: profile.codex?.default_model },
@@ -133,11 +148,7 @@ function assertCodexModelDisplayShape(
       { actual: displayOptions?.fixed_model_description_en, expected: 'Use this model' },
       {
         actual: JSON.stringify(frontierOrder),
-        expected: JSON.stringify(expectedCodexVisibleModels.map((model) => model.id)),
-      },
-      {
-        actual: JSON.stringify(visibleModels.map((model) => model.id)),
-        expected: JSON.stringify(expectedCodexVisibleModels.map((model) => model.id)),
+        expected: JSON.stringify(visibleModels.map((model) => model.id)),
       },
     ],
     `${label} GUI home must expose friendly Codex model display options with reasoning labels`,
@@ -221,16 +232,14 @@ function assertVisibleCodexModelsUseFriendlyDefaults(
   visibleModels: NonNullable<CodexModelDisplayOptionsLike['visible_models']>,
   label: string,
 ): void {
-  for (const expected of expectedCodexVisibleModels) {
-    const actual = visibleModels.find((model) => model.id === expected.id);
-    if (actual?.label_zh !== expected.label_zh || actual?.label_en !== expected.label_en) {
-      throw new Error(`${label} GUI home known Codex model ${expected.id} must keep its App label`);
-    }
-  }
+  assertCapabilityReferenceListShape(visibleModels.map((model) => model.id), `${label} bundled model ids`);
+  if (visibleModels.length === 0) throw new Error(`${label} bundled model list must not be empty`);
   for (const model of visibleModels) {
     if (
       typeof model.label_zh !== 'string' ||
       typeof model.label_en !== 'string' ||
+      !model.label_zh.trim() ||
+      !model.label_en.trim() ||
       model.label_zh === model.id ||
       model.label_en === model.id ||
       'reasoning_effort' in model
