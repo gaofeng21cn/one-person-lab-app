@@ -37,7 +37,7 @@ node scripts/plugin-composition-inventory.mjs \
 | --- | --- | --- |
 | `apps/` | Electron、preload、受限资源桥、AppWebEntry 启动壳和 profile 组合 | 仍分布在 `desktop/`、`src/main.tsx`、`src/host/dsh/`，尚未整体搬迁 |
 | `plugins/` | 可独立发布的 DSH Host/Client 包及其源码与生成 `lib/` | 包边界已成立，部分源码仍依赖过渡性根目录模块 |
-| `packages/` | 纯合同、Host 基础能力和 DSH 适配器 | 尚无完整的 `host-contracts`、`host-kit`、`dsh-adapters` 区域，不预先创建空壳包 |
+| `packages/` | 纯合同、Host 基础能力和 DSH 适配器 | `host-contracts` 已持有共享纯类型；`host-kit` 已持有原生 profile 更新服务；`dsh-adapters` 仅在真实共享调用出现后提取 |
 | `vendor/` | 固定版本的 DSH/Superagent 上游源码 | 已有部分 `src/vendor` 与 `vendor`，后续按真实调用者收敛 |
 
 依赖方向固定为 `apps -> plugins/packages`、`plugins -> packages/官方 DSH`、
@@ -48,6 +48,12 @@ node scripts/plugin-composition-inventory.mjs \
 这是迁移目标和开发约束，不代表目录已经搬迁完成。每次迁移先提取真实共享调用者，再切换
 公开 exports，最后删除旧内部 caller；没有当前共享职责时，不创建通用 `host-kit`，也
 不把多个插件重新聚合成一个大插件。
+
+已落地的源码边界包括共享 bridge、MCP Apps、线程、Team 和 Superagent 纯类型归入
+`host-contracts`；Host Core 消费既有 Cordis 服务，删除兄弟插件内部 service 导入；
+profile 检查与更新服务归入 `host-kit`，运行时不再加载构建脚本。产品客户端策略随
+`opl-studio-client` factory 构建，静态 HTML 不再持有模型、默认置顶和贡献策略。
+客户端组合、Workbench、其余 Host 辅助代码和上游源码物理位置仍按真实调用者逐步收拢。
 
 ## 用户入口规则
 

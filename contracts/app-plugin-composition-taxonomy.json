@@ -161,8 +161,8 @@
       "packages": {
         "responsibility": "Small shared contracts, Host primitives and DSH compatibility adapters justified by current callers and a stable public interface",
         "target_units": ["host-contracts", "host-kit", "dsh-adapters"],
-        "current_location": "no_complete_shared_source_region_yet",
-        "migration_status": "target_only_create_incrementally_from_real_shared_callers"
+        "current_location": "opl-studio/packages/host-contracts and packages/host-kit; dsh-adapters remains a target justified only by actual shared callers",
+        "migration_status": "shared_type_sources_and_native_profile_update_service_extracted_other_root_sources_remain_transitional"
       },
       "vendor": {
         "responsibility": "Pinned upstream DSH and Superagent source kept separate from OPL-owned source",
@@ -197,6 +197,12 @@
       "cleanliness_rule": "build and release checks distinguish generated lib from editable source"
     },
     "transition_rules": {
+      "implemented_boundaries": [
+        "shared_bridge_MCP_Apps_thread_Team_and_Superagent_types_owned_by_host_contracts",
+        "Host_Core_consumes_Cordis_injected_services_without_sibling_internal_service_imports",
+        "native_profile_update_runtime_owned_by_host_kit_with_CLI_build_and_pack_kept_in_scripts",
+        "product_client_policy_shipped_in_the_client_factory_instead_of_static_HTML"
+      ],
       "do_not_claim_complete_until": [
         "all production imports obey dependency_direction",
         "each extracted shared package has a justified shared ownership boundary and documented public exports",
