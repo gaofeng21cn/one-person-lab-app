@@ -299,10 +299,12 @@ carrier-provided DSH cohort and engine.
 The final local carrier verification on 2026-11-17 used App source
 `b5f89a5e6c96b891ee9980e0f84295be8ee7400c` and Studio source
 `fc3a2f2274fda2be5ae25ef01b15e107ddfe009e`.
-After the official manager installed all ten exact registry overrides into profile
-`opl-studio` (the three newly published packages were installed in 17,494 ms), restart
-activated the official client graph at revision `278be0ffeda3` with five entries,
-including MCP Apps, Team and Superagent. The carrier was `26.11.1791` (display
+The final `opl-studio` profile contains all ten exact registry overrides. The native
+package manager removed and reinstalled those overrides in 6,434 ms, clearing the
+experimental `dsh-llm` dependency closure; ordinary DSH dependencies required by the
+published plugins remain profile-managed. Restart activated the official client graph
+at revision `e93c66833b62` with five entries, including MCP Apps, Team and Superagent.
+The carrier was `26.11.1791` (display
 `26.11.17`, `local.srcbe99a0818922`); `app.asar` SHA-256 was
 `3b95aa0e4a3075f1467517cacf91b3815e0046f15cb9f51c7e3c1e1c96464fdf` both before and
 after the profile update. The App UI started Superagent and read its management API
