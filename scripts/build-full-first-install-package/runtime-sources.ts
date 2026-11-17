@@ -6,6 +6,7 @@ import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
 
 import { requirePath } from './filesystem.ts';
 import { findExecutable } from './process.ts';
+import { assertFullRuntimeSourcePortable } from './precompression.ts';
 
 function existingFile(candidate) {
   return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
@@ -99,6 +100,7 @@ export function findNodeToolchain(explicitNodeBin, guiRoot) {
   const admitted = resolveHostNode({ nodeExecutable: found });
   const nodeBin = admitted.command;
   const nodeBinDir = path.dirname(nodeBin);
+  assertFullRuntimeSourcePortable(path.dirname(nodeBinDir), 'Full Node toolchain');
   const npmBin = requireNodeToolchainFile(nodeBinDir, 'npm');
   const npxBin = requireNodeToolchainFile(nodeBinDir, 'npx');
   // Homebrew's unversioned Node links npm outside its Cellar prefix. Resolve

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { findNodeToolchain } from '../build-full-first-install-package/runtime-sources.ts';
 
 import {
   commandOutput,
@@ -44,6 +45,44 @@ export type UpstreamInputs = {
     binary_version: string;
   };
 };
+
+/** Materialize Framework's frozen official Node distribution, never the build host's Node. */
+export function prepareResolvedNodeToolchain(input: JsonRecord, cacheRoot: string, shellRoot: string) {
+  const version = input?.version;
+  if (input?.dependency_id !== 'node' || !/^\d+\.\d+\.\d+$/.test(version ?? '')) {
+    throw new Error('Manual Full build requires the Framework-resolved Node distribution.');
+  }
+  const archiveName = `node-v${version}-darwin-arm64.tar.gz`;
+  const baseUrl = `https://nodejs.org/dist/v${version}`;
+  if (input.archive_url !== `${baseUrl}/${archiveName}`
+    || input.source_ref !== `${baseUrl}/SHASUMS256.txt`
+    || !/^[a-f0-9]{64}$/.test(input.archive_sha256 ?? '')
+    || !Number.isSafeInteger(input.archive_size_bytes) || input.archive_size_bytes <= 0
+    || input.install_metadata?.format !== 'tar.gz'
+    || input.install_metadata?.strip_components !== 1) {
+    throw new Error('Manual Full build requires an exact official Node archive and checksum identity.');
+  }
+  const releaseRoot = path.join(cacheRoot, 'node', `v${version}`);
+  const archive = downloadGithubAsset({
+    digest: `sha256:${input.archive_sha256}`,
+    browser_download_url: input.archive_url,
+  }, path.join(releaseRoot, archiveName), `Node v${version} macOS arm64 archive`);
+  if (fs.statSync(archive.path).size !== input.archive_size_bytes) {
+    throw new Error('Framework-resolved Node archive size drifted.');
+  }
+  const extractedRoot = path.join(releaseRoot, 'extracted');
+  extractVerifiedTarGz(archive.path, extractedRoot);
+  const toolchain = findNodeToolchain(
+    path.join(extractedRoot, `node-v${version}-darwin-arm64`, 'bin', 'node'),
+    shellRoot,
+  );
+  const observedVersion = commandOutput(toolchain.nodeBin, ['--version']);
+  if (observedVersion !== `v${version}`) {
+    throw new Error(`Official Node binary version drifted: expected=v${version} actual=${observedVersion}`);
+  }
+  return { ...toolchain, version, node_sha256: fileSha256(toolchain.nodeBin), archive: archive.path,
+    archive_sha256: archive.sha256 };
+}
 
 function releaseTag(release: JsonRecord, label: string) {
   if (typeof release.tag_name !== 'string' || !release.tag_name) {
