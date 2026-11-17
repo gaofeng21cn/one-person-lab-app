@@ -77,6 +77,7 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'fresh_readback_required',
     'official_ui_reuse',
     'shared_resource_policy',
+    'resource_presentation',
     'legacy_settings_routes',
     'legacy_route_policy',
     'provenance_sources',

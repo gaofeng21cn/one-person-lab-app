@@ -143,7 +143,7 @@ export const appOwnedSettingsTopLevelLabels = {
   },
   agents: { label_zh: "智能体", label_en: "Agents" },
   capabilities: { label_zh: "扩展与应用", label_en: "Extensions & Apps" },
-  resources: { label_zh: "远程连接与网页访问", label_en: "Remote connections & web access" },
+  resources: { label_zh: "资料与连接", label_en: "Libraries & connections" },
   maintenance: { label_zh: "维护", label_en: "Maintenance" },
   storage: { label_zh: "数据与存储", label_en: "Data & Storage" },
   preferences: { label_zh: "偏好", label_en: "Preferences" },
