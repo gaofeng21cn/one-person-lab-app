@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseDocument } from 'yaml';
 
 import { materializeStudioOfficialProfileResources } from './studio-official-profile-resources.ts';
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
@@ -204,14 +205,15 @@ export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
   if (macHeaders.length !== 1) {
     throw new Error(`Shell electron-builder config must contain exactly one top-level mac block; found ${macHeaders.length}.`);
   }
-  const macStart = macHeaders[0].index + macHeaders[0][0].length;
-  const nextTopLevel = originalConfig.slice(macStart).search(/^[^ \t\r\n#][^:\r\n]*:/m);
-  const macEnd = nextTopLevel === -1 ? originalConfig.length : macStart + nextTopLevel;
-  if (/^[ \t]+signIgnore\s*:/m.test(originalConfig.slice(macStart, macEnd))) {
-    throw new Error('Shell electron-builder config already defines mac.signIgnore; merge it in the Shell owner before releasing.');
+  const config = parseDocument(originalConfig);
+  if (config.errors.length) throw new Error(`Invalid Shell electron-builder config: ${config.errors[0].message}`);
+  const declaredIgnore = config.toJS().mac?.signIgnore;
+  const signIgnore = declaredIgnore == null ? [] : Array.isArray(declaredIgnore) ? declaredIgnore : [declaredIgnore];
+  if (signIgnore.some(pattern => typeof pattern !== 'string')) {
+    throw new Error('Shell mac.signIgnore must be a regex string or an array of regex strings.');
   }
-  const signIgnore = `${macHeaders[0][0].endsWith(newline) ? '' : newline}  signIgnore:${newline}    - ${fullRuntimeSignIgnorePattern()}${newline}`;
-  const releaseConfig = `${originalConfig.slice(0, macStart)}${signIgnore}${originalConfig.slice(macStart)}`;
+  config.setIn(['mac', 'signIgnore'], [...new Set([...signIgnore, fullRuntimeSignIgnorePattern()])]);
+  const releaseConfig = config.toString({ lineWidth: 0 }).replace(/\n/g, newline);
 
   const runtimeRoot = shellPaths.packagedRuntimeRoot;
   const parkedDir = fs.existsSync(runtimeRoot)

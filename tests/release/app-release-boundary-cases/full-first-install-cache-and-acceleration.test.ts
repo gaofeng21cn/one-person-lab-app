@@ -301,6 +301,32 @@ test("Full Shell build preserves pre-signed runtime binaries instead of signing 
   assert.equal(fs.readFileSync(path.join(runtimeRoot, "manifest.json"), "utf8"), "preserve this payload");
 });
 
+test("Full Shell build preserves carrier resource exclusions and restores the exact YAML", async (context) => {
+  const { withShellFullRuntimeSigningExcluded } = await import(
+    "../../../scripts/build-full-first-install-package.ts"
+  );
+  const shellRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-shell-data-signing-"));
+  const configPath = path.join(shellRoot, "electron-builder.stable.yml");
+  context.after(() => fs.rmSync(shellRoot, { recursive: true, force: true }));
+  for (const declared of [
+    "  signIgnore: '/fonts/[^/]+[.]ttf$'",
+    "  signIgnore:\n    - '/fonts/[^/]+[.]ttf$'\n    - '/Contents/Resources/opl-studio-full-runtime(?:/|$)'",
+  ]) {
+    const original = `# carrier resource policy\nappId: cn.onepersonlab.opl\nmac:\n${declared}\n  hardenedRuntime: true\nlinux:\n  target: deb\n`;
+    fs.writeFileSync(configPath, original);
+    withShellFullRuntimeSigningExcluded(shellRoot, () => {
+      const effective = parseYaml(fs.readFileSync(configPath, "utf8")) as Record<string, any>;
+      assert.deepEqual(effective.mac.signIgnore, [
+        "/fonts/[^/]+[.]ttf$",
+        "/Contents/Resources/opl-studio-full-runtime(?:/|$)",
+      ]);
+      assert.equal(effective.mac.hardenedRuntime, true);
+      assert.equal(effective.linux.target, "deb");
+    });
+    assert.equal(fs.readFileSync(configPath, "utf8"), original);
+  }
+});
+
 test("Full workflow delegates Codex to the active Shell carrier without a Framework install", () => {
   const workflow = fs.readFileSync(
     path.join(appRoot, ".github/workflows/full-first-install-release.yml"),
