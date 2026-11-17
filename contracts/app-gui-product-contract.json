@@ -5092,8 +5092,8 @@
           "id": "resources_connections",
           "group_id": "connections_deployment",
           "route_id": "resources",
-          "label_zh": "远程连接与网页访问",
-          "label_en": "Remote connections & web access"
+          "label_zh": "资料与连接",
+          "label_en": "Libraries & connections"
         },
         {
           "id": "working_directory",
@@ -5677,8 +5677,8 @@
         "ordinary_entry_policy": "default_destination_under_agents_capabilities"
       },
       "resources": {
-        "label_zh": "远程连接与网页访问",
-        "label_en": "Remote connections & web access",
+        "label_zh": "资料与连接",
+        "label_en": "Libraries & connections",
         "role": "local_access_webui_and_optional_owner_projected_connections",
         "primary_question": "Which local access paths and currently projected external connections can my tasks use?",
         "ia_group": "connections_deployment",
@@ -7128,7 +7128,7 @@
         ],
         "acceptance_boundary": "source integration, candidate rendering, and installed App runtime acceptance are separate evidence layers"
       },
-      "shared_resource_policy": "show_authorized_knowledge_sources_connections_and_shared_capabilities_as_refs_and_readiness;_never_copy_knowledge_body_or_secret",
+      "shared_resource_policy": "read_only_resource_availability_and_missing_access_summary;_configure_only_in_settings_resources_with_software_and_resource_focus",
       "legacy_settings_routes": [
         "/settings/agents",
         "/settings/capabilities",
@@ -7142,13 +7142,13 @@
         "opl-app-management-environment"
       ],
       "must_show": [
-        "four sections for applications, updates, shared resources, and software sources",
+        "software and updates as primary sections; software sources as management entry; legacy resources route redirects to Settings",
         "current local environment scope with an explicit environment selector boundary",
         "installed, operational, and update status shown as separate state axes",
         "owner-projected install, update, enable, disable, repair, uninstall, and open actions with confirmation and fresh readback",
-        "shared knowledge, connections, models, and base capabilities grouped by the same resource vocabulary",
+        "resource availability and missing application access with focused navigation to Settings",
         "knowledge source and connection references with authorization, revision, freshness, readiness, and consumers",
-        "knowledge source configuration and reconnect paths through the existing owner controls",
+        "Settings navigation for knowledge source configuration and reconnect",
         "public and authorized software sources with access state and honest catalog counts",
         "loading, empty, stale, error, unknown, action feedback, and action receipt states"
       ],
@@ -7157,7 +7157,12 @@
         "second_package_registry",
         "optimistic_success_without_readback",
         "unified_cross_owner_version_lock",
-        "knowledge_body_or_credential_secret"
+        "knowledge_body_or_credential_secret",
+        "remote_companion_configuration_in_shared_resources",
+        "model_configuration_in_shared_resources",
+        "base_capability_inventory_in_shared_resources",
+        "internal_source_or_domain_ids_as_primary_labels",
+        "knowledge_or_connection_configuration_forms_in_software_center"
       ],
       "must_not_own": [
         "framework_package_registry",
@@ -7176,15 +7181,13 @@
         "projection_contract_ref": "one-person-lab/contracts/opl-framework/application-management-projection-contract.json",
         "groups": [
           "knowledge_source",
-          "connection",
-          "model",
-          "base_capability"
+          "connection"
         ],
-        "configuration_policy": "configure_through_projected_owner_actions_or_owner_settings_route;_share_existing_controls_and_feedback_with_settings",
+        "configuration_policy": "navigation_only_to_settings_resources_with_software_and_resource_focus;_never_render_configuration_controls_in_software_center",
         "knowledge_management_contract_ref": "one-person-lab/contracts/opl-framework/knowledge-source-management-contract.json",
         "knowledge_management_source": "app_state.settings_control_center.app_settings_read_model.resource_sources",
-        "knowledge_source_policy": "show_authorized_Obsidian_or_other_sources_and_owner_projected_list_check_connect_configure_disconnect_actions;_binding_and_grants_remain_Profile_or_Workspace_owner_owned",
-        "connection_policy": "show_redacted_accounts_capability_grants_and_consumers;_credential_login_refresh_and_account_switch_stay_provider_owned",
+        "knowledge_source_policy": "read_only_authorized_source_status_and_missing_access;_manage_in_settings_resources",
+        "connection_policy": "read_only_redacted_business_account_status_and_missing_access;_manage_in_settings_resources",
         "software_source_entry": "navigate_to_sources_section_using_the_same_source_projection_and_actions",
         "empty_policy": "separate_no_configured_sources_from_owner_unavailable;_offer_only_owner_projected_configuration_or_retry_actions",
         "public_projection_policy": "refs_and_safe_status_only;_no_knowledge_body_absolute_source_path_or_credential_material"
@@ -7408,7 +7411,7 @@
         "capabilities_page": "native_skills_and_connections_configuration_with_software_center_link",
         "updates_page": "navigation_to_software_center_updates",
         "duplicate_catalog_or_lifecycle_controls_allowed": false,
-        "resources_page": "shared_resource_deep_link_and_webui_access_only"
+        "resources_page": "sole_knowledge_and_business_connection_configuration_surface;_separate_remote_access_and_webui_groups"
       },
       "experience_policy": {
         "name": {
@@ -7431,9 +7434,36 @@
       },
       "primary_sections": [
         "applications",
-        "updates",
-        "resources"
-      ]
+        "updates"
+      ],
+      "resource_presentation": {
+        "label": {
+          "zh": "资料与连接",
+          "en": "Libraries & connections"
+        },
+        "groups": [
+          "knowledge_libraries",
+          "business_connections"
+        ],
+        "primary_summary": [
+          "readable_name",
+          "context",
+          "authorized_applications",
+          "availability",
+          "knowledge_review_counts"
+        ],
+        "source_name": "owner_saved_label_with_inline_rename;_legacy_unnamed_sources_use_contextual_display_name_not_internal_id",
+        "consumers": "group_by_owner_package_identity;_retain_individual_domain_permissions_and_never_expand_grants_when_grouping",
+        "secondary_controls": "check_disconnect_and_history_in_disclosure;_internal_ids_and_revisions_in_technical_details",
+        "excluded_configuration": {
+          "remote_companion": "settings.resources",
+          "models": "settings.models_and_account",
+          "runtime_components": "software_center_components_and_updates"
+        },
+        "route_compatibility": "redirect_/apps?section=resources_to_settings.resources;_preserve_software_and_resource_focus",
+        "configuration_owner": "settings.resources"
+      }
+
     },
     "runtime_status": {
       "route_classification": "core_dynamic_agent_runtime",
@@ -8235,7 +8265,10 @@
         "one available action only when the related operation is executable",
         "read-only Open navigates the shell to the projected browser_url",
         "read-only Diagnose executes the projected diagnose action and renders its result",
-        "mutating resource actions use precheck, explicit confirmation, execution, and result or receipt"
+        "mutating resource actions use precheck, explicit confirmation, execution, and result or receipt",
+        "knowledge libraries and business connections with readable names, application grants and review counts",
+        "revision-checked library rename through the source owner",
+        "separate libraries and remote access views; OPL Link appears only in remote access"
       ],
       "must_not_show": [
         "built-in OPL Gateway connection or Gateway count owned by Account & Access",
@@ -8398,12 +8431,18 @@
       },
       "active_studio_presentation": {
         "sections": [
-          "shared_resource_link",
+          "knowledge_libraries",
+          "business_connections",
+          "remote_access",
           "web_access"
         ],
-        "shared_resource_route": "/apps?section=resources",
-        "connection_and_knowledge_controls": "render_once_in_software_center_shared_resources",
-        "existing_source_and_action_contracts": "consumed_by_the_shared_resources_surface; settings_provides_navigation_only"
+        "shared_resource_route": "/settings/resources",
+        "connection_and_knowledge_controls": "render_once_in_settings_resources",
+        "existing_source_and_action_contracts": "consume_existing_owner_projections_and_actions_in_App_owned_settings_renderer;_software_center_only_summarizes_and_navigates",
+        "default_section": "libraries",
+        "section_separation": "libraries_and_business_accounts_separate_from_remote_access_and_webui",
+        "plugin_composition": "owners_declare_settings_contributions;_App_places_approved_view_types;_Studio_uses_shared_settings_container;_no_plugin_top_level_navigation"
+
       }
     },
     "settings_capabilities": {

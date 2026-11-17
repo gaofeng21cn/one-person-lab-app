@@ -984,8 +984,8 @@
         "id": "resources_connections",
         "owner_group_id": "connections_deployment",
         "route_id": "resources",
-        "label_zh": "远程连接与网页访问",
-        "label_en": "Remote connections & web access"
+        "label_zh": "资料与连接",
+        "label_en": "Libraries & connections"
       },
       {
         "id": "working_directory",
@@ -1218,8 +1218,8 @@
       "id": "resources",
       "path": "/settings/resources",
       "label_key": "settings.resources",
-      "default_label_en": "Remote connections & web access",
-      "default_label_zh": "远程连接与网页访问",
+      "default_label_en": "Libraries & connections",
+      "default_label_zh": "资料与连接",
       "icon_token": "resources",
       "ia_group": "connections_deployment",
       "slot_id": "settings_resources",
@@ -3968,8 +3968,8 @@
         "product_page_id": "resources",
         "route_id": "resources",
         "matrix_page_id": "settings_resources",
-        "label_zh": "远程连接与网页访问",
-        "label_en": "Remote connections & web access",
+        "label_zh": "资料与连接",
+        "label_en": "Libraries & connections",
         "primary_information": [
           "local browser access to this computer",
           "Docker WebUI deployment and access entry",

@@ -55,18 +55,19 @@ The machine contract is
 [`contracts/app-gui-product-contract.json#pages.app_management`](../../../contracts/app-gui-product-contract.json)
 and its page-state entry is
 [`contracts/app-page-state-matrix.json#pages[id=app_management]`](../../../contracts/app-page-state-matrix.json).
-The four sections are addressable with `?section=applications`,
-`?section=updates`, `?section=resources`, and `?section=sources`. Desktop branded
+Software and Updates are primary sections. Software Sources is a management entry.
+The routes remain addressable with `?section=applications`, `?section=updates`,
+`?section=sources`, and the compatibility redirect `?section=resources`. Desktop branded
 links admit these exact section routes and the legacy Updates route through the App-owned allowlist;
 unknown query parameters, sections and fragments remain invalid. Applications
 uses the dynamic software and component projections, Updates uses the managed-update and App
-updater projections, and Shared Resources consumes
+updater projections, and the legacy Shared Resources route redirects to Settings, which consumes
 `app_state.application_management` for authorized resource relationships.
 Framework owns these projections; App owns their navigation, presentation and
 interaction contract. The `section_sources` map makes each section's producer
 explicit and does not establish an App-owned data registry.
 Software Sources consumes `app_state.agent_packages.sources` for source metadata,
-access state, and available connection or check actions. The four sections share
+access state, and available connection or check actions. Software Center and resource Settings share
 the same owner-projected action and fresh-readback
 rules; the application-management projection keeps provenance references to
 the Package, update, connection and knowledge owners. Installation,
@@ -76,17 +77,25 @@ successful only after fresh owner readback.
 The existing Settings routes remain compatibility routes and deep links:
 `/settings/agents` and `/settings/capabilities` reach the applications view,
 `/settings/environment?section=updates` reaches updates, and
-`/settings/resources` reaches shared resources. They must use the same
+`/settings/resources` opens the sole libraries and business connections settings surface. They must use the same
 projection and action owner rather than maintain a parallel list or state
 store. Shared resources may include an Obsidian or other personal knowledge
 source, connection handles, authorization, revision/freshness and readiness
 summaries. The source body, credential secret and owner write semantics stay
 with Framework, Connect, Obsidian or the relevant domain owner.
 
-Shared Resources groups **Knowledge & memory**, **Accounts & connections**,
-**Models**, and **Base capabilities** with the same row vocabulary: availability,
-last check, authorization, consumers and a contextual owner action. Software
-source access has one link to the Software Sources section, not a second form.
+Settings is the sole resource configuration surface, labeled **资料与连接 / Libraries & connections**. It manages
+existing knowledge libraries, business accounts and explicit application access.
+Show readable owner-saved names, workspace context, authorized applications and
+available/review-due record counts. Existing libraries can be renamed through the
+same revision-checked owner action; missing names use contextual labels rather
+than internal IDs. Group consumers by package identity while preserving each
+domain's existing read and maintenance grants. Keep checks, disconnect actions
+and history in disclosures; put machine identifiers and revisions in technical
+details. OPL Link and messaging configuration belong to remote settings, models
+and model access belong to their settings pages, and dependencies use existing
+component/update management. Software source access has one contextual link to
+Software Sources. Keep the existing `resources` route. `/apps?section=resources` is a compatibility redirect to Settings. Software Center summarizes missing access and links with the selected software/resource focus; it never renders resource forms. Owners or plugins declare approved settings contributions, Framework validates and projects them, App chooses their placement, and Studio renders them in its shared settings container. Plugins cannot add top-level navigation.
 Knowledge configuration consumes
 `settings_control_center.app_settings_read_model.resource_sources` and the
 Framework [knowledge-source management contract](https://github.com/gaofeng21cn/one-person-lab/blob/main/contracts/opl-framework/knowledge-source-management-contract.json).
@@ -242,7 +251,7 @@ tab strip.
 | --- | --- | --- |
 | 概览 | 概览 | `general` |
 | 账户与模型 | 账户与访问；模型 | `gateway`; `access` |
-| 连接与部署 | 共享资源与网页访问 | `resources` |
+| 连接与部署 | 资料与连接 | `resources` |
 | 工作区 | 工作目录；数据与存储 | `workspace#current-workspace`; `storage` |
 | 扩展与应用 | 全部扩展；智能体；指令与上下文 | `capabilities`; `agents`; `workspace#personalization` |
 | 运行与维护 | 服务状态；更新与修复；日志与诊断 | `environment#services`; `environment#updates`; `environment#diagnostics` |
@@ -364,7 +373,7 @@ Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的
 插件启用、Skill、MCP App 调用或原生安装，也不因升级或重新发现而自动恢复。
 
 包提供的设置和状态统一放在该包的展开详情中，只有包已在 App 中启用且详情展开时读取。
-“服务状态”只保留 Codex、任务处理和定时等基础运行条件；“共享资源与网页访问”保留软件中心入口和独立 WebUI 配置。
+“服务状态”只保留 Codex、任务处理和定时等基础运行条件；“资料与连接”管理资料库和业务账号，远程访问与独立 WebUI 使用分开的设置分组。
 所有安装、更新、修复和 App 开关都经现有 Framework 投影与 App action 执行，不维护额外注册表。
 
 列表直接提供“在 OPL App 中启用”开关；安装状态、已安装版本与来源保持可见，关闭后仍能在目录中找到并重新启用。
@@ -967,7 +976,7 @@ Studio 设置按领域组织，共享 DSH 外壳和控件；生产 Host 位于 `
 
 本轮实现位置与验证边界见 [设置模块化验收](evidence/settings-modularization-acceptance-2026-09-27.md)。
 
-当前 Studio 将知识资料库、账户连接与逐软件授权统一放在软件中心的“共享资源”。设置中的“共享资源与网页访问”保留该页入口和独立 WebUI 部署配置；旧连接管理控件不再重复出现。
+知识资料库、业务账户连接与逐软件授权统一放在“设置 → 资料与连接”。同一设置容器的远程访问分组保留消息通道、OPL Link 和独立 WebUI；软件中心仅显示可用性与缺失授权并导航到设置。
 
 
 ### Remote connection settings

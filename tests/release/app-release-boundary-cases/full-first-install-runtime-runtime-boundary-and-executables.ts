@@ -245,6 +245,32 @@ test("Full runtime OPL layer rejects a present Framework export with a missing t
   }
 });
 
+test("Full runtime production dependencies keep nested test modules used by their public CLI", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-production-runtime-module-"));
+  const source = path.join(tempRoot, "source");
+  const target = path.join(tempRoot, "target");
+  const dependency = path.join(source, "node_modules", "browser-runtime");
+  try {
+    writeJson(path.join(source, "package-lock.json"), {
+      lockfileVersion: 3, packages: { "node_modules/browser-runtime": {} },
+    });
+    writeJson(path.join(dependency, "package.json"), { name: "browser-runtime", version: "1.0.0" });
+    writeFile(path.join(dependency, "cli.cjs"), "console.log(require('./lib/program.cjs').version);\n");
+    writeFile(path.join(dependency, "lib/program.cjs"), "module.exports = require('./mcp/test/backend.cjs');\n");
+    writeFile(path.join(dependency, "lib/mcp/test/backend.cjs"), "module.exports = { version: 'runtime-ready' };\n");
+    writeFile(path.join(dependency, "tests/unused.cjs"), "throw Error('development test');\n");
+    const { copyProductionNodeModules } = await import("../../../scripts/build-full-first-install-package/filesystem.ts");
+    copyProductionNodeModules(source, target);
+    const copied = path.join(target, "node_modules", "browser-runtime");
+    const result = spawnSync(process.execPath, [path.join(copied, "cli.cjs")], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim(), "runtime-ready");
+    assert.equal(fs.existsSync(path.join(copied, "tests")), false);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("Full runtime OPL layer fails closed when a required Framework export payload is missing", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-missing-export-"));
   const frameworkRoot = path.join(tempRoot, "framework");

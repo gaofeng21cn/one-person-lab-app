@@ -162,6 +162,12 @@ After copying production dependencies and removing source export conditions, the
 builder loads every required built export with Node from the packaged directory.
 A missing transitive module rejects the layer before it can enter a runtime cache.
 
+Production npm dependencies may use a nested `test` directory as part of their
+public runtime. Playwright loads `lib/mcp/test` from its CLI and package exports,
+so test-directory pruning applies only at a dependency's root. Verify copied
+entrypoints by executing them; a production lockfile entry and an existing
+launcher do not prove the copied dependency graph is complete.
+
 Clean-VM input preparation runs beside the macOS build: it checks the Tart source inventory and
 prefetches Codex tarballs from the frozen qualification manifest. This creates no VM and uses no
 Gateway credentials. The final VM gate revalidates tarball digests against the built artifact cohort;

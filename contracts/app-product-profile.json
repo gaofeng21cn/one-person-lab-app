@@ -426,6 +426,7 @@
           "feature_id": "B0-06",
           "capability_id": "permissions_sandbox_approval_and_elicitation",
           "owner": "codex_app_server",
+          "pending_human_request_policy": "preserve_blocking_approval_user_input_and_mcp_elicitation_while_waiting; pause_inactivity_timeout_and_block_idle_maintenance; respect_nonblocking_input_and_nullable_mcp_turn_scope",
           "disposition": "required",
           "cutover_blocking": true
         },
@@ -2570,8 +2571,8 @@
           "ordinary_entry_policy": "second_level_destination_under_agents_capabilities"
         },
         "resources": {
-          "label_zh": "远程连接与网页访问",
-          "label_en": "Remote connections & web access",
+          "label_zh": "资料与连接",
+          "label_en": "Libraries & connections",
           "role": "local_access_webui_and_optional_owner_projected_connections",
           "primary_question": "Which local access paths and currently projected external connections can my tasks use?",
           "ia_group": "connections_deployment",
@@ -3399,8 +3400,8 @@
             "id": "resources_connections",
             "owner_group_id": "connections_deployment",
             "route_id": "resources",
-            "label_zh": "远程连接与网页访问",
-            "label_en": "Remote connections & web access"
+            "label_zh": "资料与连接",
+            "label_en": "Libraries & connections"
           },
           {
             "id": "working_directory",
@@ -3633,8 +3634,8 @@
           "id": "resources",
           "path": "/settings/resources",
           "label_key": "settings.resources",
-          "default_label_en": "Remote connections & web access",
-          "default_label_zh": "远程连接与网页访问",
+          "default_label_en": "Libraries & connections",
+          "default_label_zh": "资料与连接",
           "icon_token": "resources",
           "ia_group": "connections_deployment",
           "slot_id": "settings_resources",
@@ -6070,8 +6071,8 @@
             "product_page_id": "resources",
             "route_id": "resources",
             "matrix_page_id": "settings_resources",
-            "label_zh": "远程连接与网页访问",
-            "label_en": "Remote connections & web access",
+            "label_zh": "资料与连接",
+            "label_en": "Libraries & connections",
             "primary_information": [
               "local browser access to this computer",
               "Docker WebUI deployment and access entry",
