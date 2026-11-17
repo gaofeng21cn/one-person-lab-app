@@ -38,7 +38,7 @@ Package、插件和 repo 不创建新的顶层设置树。功能界面按用户�
 
 ## 仓库决策
 
-保留在 `opl-studio` 的 Host/Client 插件继续复用 DSH profile 和跨插件兼容测试；源码同仓与 App 内置基线不要求每次一起发布或重建。兼容包通过 GitHub Packages 上的公开 `@one-person-lab` 插件渠道独立发布，原生 profile 查询 `^x.y.0` 兼容版本并安装准确解析版本。DSH Host 扫描当前已启用 Loader entries 的 `dsh.client` 声明，自动生成客户端模块图；`opl-studio-client` 也属于这组可独立更新的客户端插件。Electron、DSH core/cohort 和极小的 AppWebEntry boot shell 仍走 carrier 更新。
+保留在 `opl-studio` 的 Host/Client 插件继续复用 DSH profile 和跨插件兼容测试；源码同仓与 App 内置基线不要求每次一起发布或重建。兼容包通过 GitHub Packages 上的公开 `@gaofeng21cn` 插件渠道独立发布，原生 profile 查询 `^x.y.0` 兼容版本并安装准确解析版本。DSH Host 扫描当前已启用 Loader entries 的 `dsh.client` 声明，自动生成客户端模块图；`opl-studio-client` 也属于这组可独立更新的客户端插件。Electron、DSH core/cohort 和极小的 AppWebEntry boot shell 仍走 carrier 更新。
 
 运行时不新增 Bundle Profile 或第二份客户端注册表。原生 profile 选择启用关系；官方 graph 负责发现客户端入口和依赖，AppWebEntry 负责装载与挂载。composition receipt 仅记录发布测试通过的一组准确版本，不参与本机 UI 发现。完整设计见 [DSH 插件发布与增量更新模型](../../delivery/dsh-plugin-publication.md)；分层更新模型见 [分层更新](../managed-update-three-layer.md#dsh-plugin-updates-within-the-app-layer)。只有出现独立领域 owner、独立 carrier 或跨产品复用等实际边界时，才把能力提升为 App-owned 或 domain-owned Package。
 

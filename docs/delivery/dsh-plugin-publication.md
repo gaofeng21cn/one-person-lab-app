@@ -31,15 +31,15 @@ Steps:
 1. Detect which plugin packages changed (or accept explicit `package_id` input).
 2. Build changed plugin(s) via `build:plugins` targeting only those packages.
 3. Run the plugin's own unit/integration tests.
-4. Publish to GitHub Packages under `@one-person-lab` scope, with provenance attestation.
+4. Publish to GitHub Packages under `@gaofeng21cn` scope, with provenance attestation.
 5. Record the published version and `engines.dsh` range as workflow output.
 
-Result: a new `@one-person-lab/<plugin-id>@x.y.z` is live on the registry.
+Result: a new `@gaofeng21cn/<plugin-id>@x.y.z` is live on the registry.
 The installed App picks it up on next `update-registry` run (or `dsh:plugins:update`),
 which installs the new version into the native profile and surfaces "restart required".
 No `app.asar`, desktop signature, Framework Package state, or business data is modified.
 
-Client packages, including `@one-person-lab/opl-studio-client`, are included in Track 1.
+Client packages, including `@gaofeng21cn/opl-studio-client`, are included in Track 1.
 Changing the carrier-owned boot shell, Electron, or the pinned DSH cohort still requires
 the shell-changed path.
 
@@ -94,10 +94,16 @@ to be wired into the App release controller; its current path builds from source
 
 ## Registry
 
-**Location**: GitHub Packages npm registry, `@one-person-lab` scope.  
+**Location**: GitHub Packages npm registry, `@gaofeng21cn` scope.
 **URL**: `https://npm.pkg.github.com`  
 **Read access**: requires a GitHub personal access token with `read:packages` scope, or a `GITHUB_TOKEN` available in CI/App context.  
-**Write access**: `packages:write` scope on the `opl-studio` repository (provided automatically via `GITHUB_TOKEN` in CI).
+**Write access**: `packages:write` permission on `gaofeng21cn/opl-studio` (provided by `GITHUB_TOKEN` in CI). Each plugin's npm `repository` field binds the package to this repository.
+
+The package scope matches the repository's GitHub owner. The former
+`@one-person-lab` scope names a separate GitHub account, so the Studio Actions token
+cannot publish there. Studio uses the same `@gaofeng21cn/*` package identity in
+manifests, native profile entries, `dsh.client.inject` and client factories. This
+keeps discovery and activation within DSH's standard package metadata.
 
 The registry is a distribution channel for pre-built plugin packages. It is not a Plugin
 identity authority (that belongs to the DSH npm metadata and Studio profile), a
@@ -156,7 +162,7 @@ Understanding the two independent resolution contexts is essential:
 - Removing an override restores the bundle baseline on next restart
 
 The semver caret range (`^x.y.0`) is used **only during the resolution query** — when
-`update-registry` calls `pnpm view @one-person-lab/opl-superagent@^0.1.0 version` to
+`update-registry` calls `pnpm view @gaofeng21cn/opl-superagent@^0.1.0 version` to
 find the latest compatible published release. The version actually recorded in the native
 profile `package.json` is the exact resolved version, not a range.
 
@@ -166,7 +172,7 @@ profile `package.json` is the exact resolved version, not a range.
   "name": "dsh-profile-opl-studio",
   "private": true,
   "dependencies": {
-    "@one-person-lab/opl-superagent": "0.2.3"
+    "@gaofeng21cn/opl-superagent": "0.2.3"
   }
 }
 ```
@@ -214,7 +220,7 @@ DSH's native profile mechanism: removing the profile override restores the bundl
 baseline version on next App start. No App-level rollback state machine needed.
 
 ```bash
-npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 # Restart the App; the bundled baseline version loads.
 ```
 
@@ -237,7 +243,7 @@ npm run manual:plugins -- update-registry --package opl-superagent --token <toke
 
 # Restart the App to load the new versions.
 # To revert a specific plugin to the bundled baseline:
-npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 ```
 
 ## Authority Boundary
@@ -254,8 +260,11 @@ npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
 ## opl-studio Implementation
 
 **Status: partially implemented.** The local source/profile lane is verified. The
-public registry lane exists in source but its first publish run failed before producing
-packages, so no public composition receipt or Stable candidate has been accepted yet.
+public registry lane exists in source. Earlier publish attempts failed before producing
+packages, first because the publish path was interpreted as a GitHub package spec and
+then because `@one-person-lab` did not belong to the Studio repository owner. The source
+now uses `@gaofeng21cn`; successful registry publication, public composition testing and
+Stable acceptance still require real run readback.
 
 ### CI: `release-dsh-plugins.yml` (Track 1)
 

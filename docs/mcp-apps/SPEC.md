@@ -106,7 +106,7 @@ host specification.
 
 ## Shared task workbench
 
-`@one-person-lab/opl-mcp-apps` is a standard DSH npm plugin. Cordis injects the
+`@gaofeng21cn/opl-mcp-apps` is a standard DSH npm plugin. Cordis injects the
 existing Codex connection, owns Host service disposal, and loads the client view
 through the DSH ModuleLoader. It adds no runtime or credential authority. The
 plugin is bundled with all Studio carriers; publishing a separate npm service is

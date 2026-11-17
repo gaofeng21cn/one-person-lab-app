@@ -58,7 +58,7 @@ that graph on Electron.
 #### Public plugin channel (current implementation and remaining cutover)
 
 OPL DSH Host and Client plugins (`opl-studio/plugins/<plugin-id>/`) are published independently to
-GitHub Packages under `@one-person-lab` scope. Each plugin carries its own semver version
+GitHub Packages under `@gaofeng21cn` scope. Each plugin carries its own semver version
 and an `engines.dsh` field that declares which DSH cohort range it is compatible with.
 
 There are two independent resolution contexts:
@@ -102,7 +102,7 @@ For local development, testing, or debugging before a plugin is published to the
 npm run manual:plugins -- inspect
 npm run manual:plugins -- update-source --package opl-superagent
 # Restart the App and verify the loaded plugin and its functional readback.
-npm run manual:plugins -- remove --package @one-person-lab/opl-superagent
+npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 
 # Pull all plugins from the registry to latest compatible versions:
 GITHUB_TOKEN=ghp_... npm run dsh:plugins:update

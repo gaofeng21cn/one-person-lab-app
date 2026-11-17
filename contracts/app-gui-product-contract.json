@@ -268,7 +268,7 @@
     "work_surface_owns": ["domain_read", "domain_edit", "review", "preview", "owner_readback"],
     "connection_owner": "opl-codex-native_existing_thread_mcp_connections",
     "ui_host": "official_mcp_apps_sdk_in_dsh_capability_workspace",
-    "dsh_plugin": "@one-person-lab/opl-mcp-apps",
+    "dsh_plugin": "@gaofeng21cn/opl-mcp-apps",
     "task_workbench": "shared_ui_resource_for_progress_available_artifacts_current_actions_and_domain_decisions",
     "task_detail_load_policy": "show_work_item_projection_before_optional_runtime_action_inspection_requested_by_user",
     "task_workbench_layout": "fill_remaining_page_height_below_single_context_header",

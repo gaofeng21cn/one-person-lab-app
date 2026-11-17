@@ -74,7 +74,7 @@
     "independent_public_DSH_plugin_channel": {
       "registry": "github_packages_npm",
       "registry_url": "https://npm.pkg.github.com",
-      "package_scope": "@one-person-lab",
+      "package_scope": "@gaofeng21cn",
       "version_strategy": "independent_semver_per_plugin",
       "engines_compatibility_field": "engines.dsh",
       "profile_constraint_format": "bundled_baseline_exact_pin_active_profile_semver_caret",
