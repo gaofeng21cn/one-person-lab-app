@@ -206,18 +206,24 @@ export function copyExecutableOrSymlinkTarget(sourceRoot, relativePath, targetRo
 
 export function copyNodeRuntimePayload(nodeRoot, targetRoot, npmRoot = path.join(nodeRoot, 'lib', 'node_modules', 'npm')) {
   fs.rmSync(targetRoot, { recursive: true, force: true });
+  const npmPackageRoot = fs.realpathSync(npmRoot);
+  const npmManifest = JSON.parse(fs.readFileSync(path.join(npmPackageRoot, 'package.json'), 'utf8'));
   for (const relativePath of ['bin/node', 'bin/npm', 'bin/npx']) {
-    const sourcePath = path.join(nodeRoot, relativePath);
-    if (relativePath !== 'bin/node' && fs.lstatSync(sourcePath).isSymbolicLink()) {
-      const resolved = fs.realpathSync(sourcePath);
-      const packageRelative = path.relative(fs.realpathSync(npmRoot), resolved);
-      if (isInsidePath(fs.realpathSync(npmRoot), resolved)) {
-        const targetPath = path.join(targetRoot, relativePath);
-        const packageTarget = path.join(targetRoot, 'lib', 'node_modules', 'npm', packageRelative);
-        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-        fs.symlinkSync(path.relative(path.dirname(targetPath), packageTarget), targetPath);
-        continue;
+    if (relativePath !== 'bin/node') {
+      // Older packaged toolchains may have dereferenced these links already.
+      // Derive both launchers from npm's public bin entries instead of copying
+      // a relocated script whose relative require paths no longer resolve.
+      const name = path.basename(relativePath);
+      const entry = npmManifest.bin?.[name] ?? `bin/${name}-cli.js`;
+      const sourceEntry = path.resolve(npmPackageRoot, entry);
+      if (!isInsidePath(npmPackageRoot, sourceEntry) || !fs.statSync(sourceEntry).isFile()) {
+        throw new Error(`Node toolchain npm entry is invalid: ${name}`);
       }
+      const targetPath = path.join(targetRoot, relativePath);
+      const packageTarget = path.join(targetRoot, 'lib', 'node_modules', 'npm', path.relative(npmPackageRoot, sourceEntry));
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.symlinkSync(path.relative(path.dirname(targetPath), packageTarget), targetPath);
+      continue;
     }
     copyExecutableOrSymlinkTarget(nodeRoot, relativePath, targetRoot);
   }

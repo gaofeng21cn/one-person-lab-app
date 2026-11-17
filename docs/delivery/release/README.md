@@ -168,6 +168,11 @@ so test-directory pruning applies only at a dependency's root. Verify copied
 entrypoints by executing them; a production lockfile entry and an existing
 launcher do not prove the copied dependency graph is complete.
 
+Node payload assembly creates npm/npx launchers from the resolved npm package's
+public `bin` entries. This also repairs toolchains from an older Full install
+whose launchers were copied as plain files; their relative `require` paths are
+valid only inside the npm package, so re-copying those files breaks npm again.
+
 Clean-VM input preparation runs beside the macOS build: it checks the Tart source inventory and
 prefetches Codex tarballs from the frozen qualification manifest. This creates no VM and uses no
 Gateway credentials. The final VM gate revalidates tarball digests against the built artifact cohort;

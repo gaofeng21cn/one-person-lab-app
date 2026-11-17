@@ -463,6 +463,9 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
     '{"name":"npm"}\n',
   );
   writeFile(path.join(sourceRoot, "lib", "node_modules", "npm", "lib", "cli.js"), "runtime");
+  for (const name of ["npm", "npx"]) {
+    writeExecutable(path.join(sourceRoot, "lib", "node_modules", "npm", "bin", `${name}-cli.js`), "#!/usr/bin/env node\n");
+  }
   writeFile(
     path.join(
       sourceRoot,

@@ -58,3 +58,30 @@ test('Full resolves npm and npx from Homebrew-style shared links', context => {
     assert.equal(result.stdout.trim(), 'fixture-npm');
   }
 });
+
+test('Full repairs dereferenced npm launchers when repackaging an installed toolchain', context => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-node-relocated-'));
+  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const npmRoot = path.join(root, 'source/lib/node_modules/npm');
+  const bin = path.join(root, 'source/bin');
+  fs.mkdirSync(bin, { recursive: true });
+  fs.mkdirSync(path.join(npmRoot, 'bin'), { recursive: true });
+  fs.mkdirSync(path.join(npmRoot, 'lib'));
+  fs.writeFileSync(path.join(npmRoot, 'package.json'), JSON.stringify({ name: 'npm', bin: { npm: 'bin/npm-cli.js', npx: 'bin/npx-cli.js' } }));
+  fs.writeFileSync(path.join(npmRoot, 'lib/cli.js'), "console.log('relocated-npm-ready');\n");
+  fs.writeFileSync(path.join(bin, 'node'), 'fixture-node');
+  for (const name of ['npm', 'npx']) {
+    const source = "require('../lib/cli.js');\n";
+    fs.writeFileSync(path.join(bin, name), source);
+    fs.writeFileSync(path.join(npmRoot, 'bin', `${name}-cli.js`), source);
+  }
+  const packaged = path.join(root, 'packaged');
+  copyNodeRuntimePayload(path.join(root, 'source'), packaged, npmRoot);
+  fs.rmSync(path.join(root, 'source'), { recursive: true });
+  for (const name of ['npm', 'npx']) {
+    const launcher = path.join(packaged, 'bin', name);
+    const result = spawnSync(process.execPath, [launcher], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim(), 'relocated-npm-ready');
+  }
+});
