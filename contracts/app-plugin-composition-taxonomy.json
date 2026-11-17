@@ -19,7 +19,7 @@
       "runtime_abi": "dsh_client_module_and_slot_registry",
       "source_owner": "opl-studio",
       "composition_owner": "opl-studio_client_composition",
-      "lifecycle": "App_and_Shell_release",
+      "lifecycle": "official_DSH_client_module_graph_with_native_profile_override_and_restart_activation",
       "user_role": "shared_navigation_settings_or_workbench_surface",
       "may_be_user_visible": true,
       "examples": ["opl-studio-client", "opl-team-bots"]
@@ -69,7 +69,7 @@
     "rollback": "native_DSH_remove_profile_dependency_to_restore_bundled_baseline",
     "app_bundle_mutation": false,
     "framework_package_lifecycle_mutation": false,
-    "static_renderer_requires_carrier_build": ["@one-person-lab/opl-studio-client"],
+    "carrier_owned_shell_surfaces": ["electron", "pinned_dsh_core_cohort", "app_web_entry_boot_shell"],
     "upstream_cohort_changes_require_carrier_build": true,
     "independent_public_DSH_plugin_channel": {
       "registry": "github_packages_npm",
@@ -80,20 +80,30 @@
       "profile_constraint_format": "bundled_baseline_exact_pin_active_profile_semver_caret",
       "composition_test_before_stable": true,
       "composition_receipt_schema": "opl_dsh_plugin_composition_receipt.v1",
-      "excluded_packages": ["@one-person-lab/opl-studio-client"],
+      "publishable_packages_include_client_modules": true,
+      "excluded_packages": [],
       "design_and_operation_ref": "docs/delivery/dsh-plugin-publication.md",
-      "implementation_status": "host_plugin_lane_implemented_public_registry_and_app_update_surface_pending",
+      "implementation_status": "official_host_and_client_plugin_graph_profile_update_restart_activation_and_composition_admission_implemented",
       "verified_gaps": [
-        "plugin_publication_must_pass_registry_publish_and_exact_registry_composition_boot",
-        "plugin_first_stable_workflow_must_consume_a_passing_composition_receipt_without_prepare_source_rebuild",
-        "end_user_update_surface_must_supply_registry_auth_and_update_native_profile_without_a_developer_checkout",
-        "client_plugins_that_are_static_renderer_inputs_remain_carrier_bound_until_moved_to_the_official_DSH_client_module_graph"
+        "public_registry_publish_and_clean_machine_install_acceptance_still_require_a_real_release_run",
+        "electron_dsh_core_cohort_and_app_web_entry_boot_shell_remain_carrier_bound",
+        "feature_plugin_update_latency_requires_measurement_on_a_real_installed_app"
       ]
     },
     "plugin_first_stable_path": {
       "shell_unchanged": "composition_receipt_plus_profile_pin_update_plus_resign",
       "shell_changed": "full_build_consuming_registry_plugin_versions",
-      "shell_identity_members": ["electron", "pinned_dsh_cohort", "opl-studio-client_renderer"]
+      "shell_identity_members": ["electron", "pinned_dsh_cohort", "app_web_entry_boot_shell"]
+    },
+    "runtime_client_composition": {
+      "enabled_plugin_source": "native_DSH_profile_and_Cordis_Loader_entries",
+      "discovery_source": "official_DSH_clientModules_scan_of_active_dsh_client_declarations",
+      "graph_owner": "official_DSH_clientModules",
+      "boot_owner": "official_DSH_AppWebEntry",
+      "electron_transport_scope": "official_index_injections_and_advertised_plugins_resources",
+      "separate_App_bundle_profile": false,
+      "renderer_package_discovery": false,
+      "release_composition_receipt_role": "evidence_of_one_tested_combination_not_runtime_discovery"
     },
     "currentness": "installed_and_running_native_package_identity_separate_from_App_bundle_version"
   },

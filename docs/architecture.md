@@ -60,6 +60,16 @@ semantics with different renderers and build systems. This is explicit admission
 not unvalidated hot switching. [Shell candidates](product/gui/gui-shell-candidates.md)
 owns launch and adoption details.
 
+Studio's client composition follows the official DSH path. The active Cordis profile
+selects Host plugins; DSH's `clientModules` service scans the active Loader entries
+for each package's `dsh.client` declaration and composes the client module graph.
+The WebUI and Electron file renderer both mount that graph through the official
+`AppWebEntry` boot. Electron's restricted bridge transports only the Host-produced
+index injections and the advertised `/plugins` resources. There is no App-owned
+Bundle Profile, second client registry, or renderer-side package discovery. The
+composition receipt used by release CI records one tested version combination; it
+does not decide which modules are loaded at runtime.
+
 The Framework Host projects a closed declarative graph. The App-owned
 [`opl-app-contributions.schema.json`](../contracts/opl-app-contributions.schema.json)
 admits localized navigation, views, commands and badges independently of Package

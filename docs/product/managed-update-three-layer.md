@@ -38,21 +38,26 @@ not require rebuilding the App: use the App Updates surface or the Framework
 command `opl packages update --json`, which updates only installed Packages
 through their native carriers and verifies fresh readback. Updating OPL Base
 stages the App-owned runtime through `opl update apply --json` and may require
-an App restart. Compatible DSH Host plugins use the native `opl-studio` profile
-package manager and activate on restart. Electron, the pinned DSH core cohort,
-and the currently static Studio renderer use the App updater or the explicit
-`manual:local-app` build lane.
+an App restart. Compatible DSH Host and Client plugins use the native `opl-studio`
+profile package manager and activate on restart. DSH's official `clientModules`
+service scans the active profile's `dsh.client` declarations and rebuilds the graph
+from the resolved packages. Electron, the pinned DSH core cohort, and the small
+`AppWebEntry` boot shell use the App updater or the explicit `manual:local-app`
+build lane.
 
 ### DSH Plugin Updates Within The App Layer
 
 The three product layers do not require every App change to replace the desktop
 bundle. The bundled DSH profile supplies a baseline; native profile dependencies
 can override individual compatible npm packages outside the signed App. DSH
-owns metadata admission, profile resolution, pnpm locking and rollback.
+owns metadata admission, profile resolution, pnpm locking and rollback. DSH's
+official `client-modules` service scans the active Host profile's `dsh.client`
+declarations and composes the browser graph; App/Shell only transport and mount
+that graph on Electron.
 
 #### Public plugin channel (current implementation and remaining cutover)
 
-OPL DSH Host plugins (`opl-studio/plugins/<plugin-id>/`) are published independently to
+OPL DSH Host and Client plugins (`opl-studio/plugins/<plugin-id>/`) are published independently to
 GitHub Packages under `@one-person-lab` scope. Each plugin carries its own semver version
 and an `engines.dsh` field that declares which DSH cohort range it is compatible with.
 
@@ -72,17 +77,19 @@ the latest `^x.y.0`-compatible version of each plugin, installs it into the nati
 profile, and surfaces "restart required". No carrier rebuild, re-sign, or bundle change.
 
 A **composition compatibility test** (`release-plugin-composition-test.yml` in `opl-studio`)
-verifies that the latest published plugin combination works together against the pinned DSH
-cohort and produces a **composition receipt** — a pinned list of `plugin@version` entries
-that is the input for a Stable release on the shell-unchanged path.
+verifies that the latest published Host and Client plugin combination works together against
+the pinned DSH cohort and produces a **composition receipt** — a pinned list of
+`plugin@version` entries that is evidence for a Stable release on the shell-unchanged path.
+The receipt does not replace DSH runtime graph discovery.
 
-When Electron, DSH cohort, and `opl-studio-client` are unchanged from the previous Stable
-release, the intended Stable path is composition receipt + profile pin update + re-sign App
-baseline. This path remains pending its first successful registry publication and receipt
-backed candidate.
-The candidate preserves published Host plugin bytes, while the static renderer and
-unpublished Superagent engine still build locally. End-to-end duration is unmeasured.
-The ordinary App production build still needs receipt consumption to reuse this path.
+When Electron, DSH cohort, and the small `AppWebEntry` boot shell are unchanged from the
+previous Stable release, the candidate path is composition receipt + registry plugin
+install + carrier packaging. Integration with the existing App Stable signing,
+qualification and publication controller remains pending; the candidate workflow
+does not publish a Stable release.
+The candidate preserves published Host and Client plugin bytes, while the small boot shell
+remains carrier-owned. End-to-end duration is measured per candidate rather than asserted
+in advance.
 
 Design, registry details, auth, and version strategy:
 [`docs/delivery/dsh-plugin-publication.md`](../delivery/dsh-plugin-publication.md).
@@ -109,13 +116,12 @@ baseline. Neither action changes `app.asar`, the desktop signature, Framework Pa
 state, or business data. The default target is the installed macOS App and the native
 `opl-studio` profile.
 
-`opl-studio-client` is excluded from the public channel and local operator lane while it
-bridges the statically compiled main renderer. Changes to it require a full carrier build
-today. This is the main remaining product gap: the stable shell should retain startup,
-authentication, transport and the official DSH module bootstrap, while product UI clients
-move to the official DSH client module graph and become independently replaceable. A
-package directory alone does not make UI dynamic; the real caller, module manifest, shared
-React/runtime dependencies, reload behavior and installed readback must move together.
+`opl-studio-client` is a first-party DSH Client Plugin in the public and local operator
+lanes. Its product UI bytes are resolved from the active profile and loaded by the official
+client module graph after restart. The carrier-owned shell retains only startup,
+authentication, transport and the official DSH module bootstrap. A client package is
+independently replaceable only when its `dsh.client` declaration, bundled client export,
+shared platform externals, restart activation and installed readback move together.
 
 Installed freshness is the compatible running combination of App baseline, profile
 overrides, Base and owner Packages. App version alone cannot describe that combination.

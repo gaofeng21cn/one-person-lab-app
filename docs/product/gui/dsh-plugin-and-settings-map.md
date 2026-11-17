@@ -70,7 +70,7 @@ DSH profile 独立更新，见[分层更新模型](../managed-update-three-layer
 | 类别 | 源码位置 | 装载依据与更新归属 |
 | --- | --- | --- |
 | Studio 内置 Host 插件 | `opl-studio/plugins/<plugin-id>/src/`；共用协议和工具在 `src/host/` | `src/host/dsh/cordis.yml` 与 `web.patch.yml` 提供基线；兼容包通过原生 profile 独立更新，重启生效 |
-| Studio 客户端适配 | `opl-studio/plugins/opl-studio-client/`、`src/integrations/` 与 `src/workbench/` | Studio 客户端入口、构建和 slots；随 App/Shell 更新 |
+| Studio 客户端插件 | `opl-studio/plugins/<client-plugin-id>/`、`src/integrations/` 与 `src/workbench/` | `dsh.client` 声明由官方 Host graph 扫描；profile 更新后重启加载最新客户端字节；Electron/DSH cohort/boot shell 变化才随 App/Shell 更新 |
 | DSH 官方和社区 UI | Studio 的 npm 依赖、`src/vendor/deepseek-harness/` | 固定 DSH cohort、npm lock 与第三方原包溯源；随 App/Shell 更新 |
 | Framework 内置服务与 Package Host | `one-person-lab/src/host/`、`packages/package-host/` 等 | Framework 公开组合入口与插件描述；随 Framework runtime 更新 |
 | App 自有可安装能力包 | 本仓 [`packages/`](../../../packages/README.md)，目前为微信通道 | Package descriptor 与 [App marketplace](../../../.agents/plugins/marketplace.json)；由配置的原生 carrier 安装 |
@@ -100,12 +100,12 @@ App 的 [Shell contract](../../../contracts/app-shell-adapter.json) 把 Studio �
 保留项写明具体能力差距与可替换条件；语义等价性由开发者结合源码和运行结果判断，
 不按包名相似度自动替换，也不为通用能力再造并行实现。
 
-OPL 自有 DSH 插件源码集中在 Studio 的 `plugins/<plugin-id>/`，统一采用 DSH 原生
+OPL 自有 DSH Host/Client 插件源码集中在 Studio 的 `plugins/<plugin-id>/`，统一采用 DSH 原生
 npm 包形态：`package.json` 声明名称、版本、描述、许可证、`engines.dsh` 和公开入口；
 Host 入口导出 Cordis `apply`/服务依赖，客户端入口使用 `exports[./client]` 与
 `dsh.client`。DSH profile 一律按包名加载，不再混用相对插件文件路径。
 
-Host 插件由 `build:plugins` 把实现及本地依赖打进各包的 `lib/`；安装产物与官方、
+Host/Client 插件由 `build:plugins` 把实现及本地依赖打进各包的 `lib/`；安装产物与官方、
 社区 DSH 插件统一通过 `node_modules/<package-name>/` 解析。源码目录和安装目录
 职责明确，App、WebUI、Docker 使用同一组包和 profile，不能各留一套插件副本。
 
@@ -188,7 +188,7 @@ Cordis boot/profile、插件 metadata/inventory、Client Modules、SlotRegistry 
 | `opl-mcp-apps` | MCP Apps 的临时 view binding、MCP UI resource 读取和生命周期；连接、审批、线程仍由 Codex | 复用官方 `@modelcontextprotocol/ext-apps` SDK 与 DSH workbench slot。DSH 若提供兼容 MCP Apps host 且仍使用 Codex transport，可替换 renderer/bridge 并删除 OPL host。 |
 | `opl-host-core` | Desktop/WebUI/Docker 共用的 OPL application host composition，组合 Codex、Framework 与 MCP Apps | 复用 Cordis、DSH webserver 与 AppFrame。只有三种载体都有同等官方 composition/lifecycle，且各自调用切换后，才可删除；普通 HTTP host 无法替代 OPL application services。 |
 | `opl-web-routes` | OPL authenticated HTTP/SSE routes 和 renderer static delivery | 复用 DSH webserver 生命周期。只有标准 DSH route extension 能覆盖全部 OPL 认证、SSE、static asset 行为并完成 WebUI/Docker 回归后，才能删路由适配。 |
-| `opl-studio-client` | OPL renderer composition、产品导航与 typed projection 到 DSH slots 的适配 | 主动迁移到 DSH AppFrame、sidebar、More、Settings 与官方 UI slots；仍需把 Framework/Codex 数据接入 OPL panels。只有 OPL 产品 surfaces 已迁到可保持 owner 的官方扩展点并移除真实 imports/callers 后，才可删除剩余适配。 |
+| `opl-studio-client` | OPL Client Plugin：产品导航与 typed projection 到 DSH slots 的适配 | 已通过 `dsh.client` 进入官方 Client Module graph；继续把 Framework/Codex 数据接入 OPL panels。只有 OPL 产品 surfaces 已迁到可保持 owner 的官方扩展点并移除真实 imports/callers 后，才可删除剩余适配。 |
 | `opl-workbench-services`（Framework plugin，不计入七个 Studio 包） | Framework/Temporal 计划与运行历史、Memory 纠错建议、受控存储清理 | 本次用官方 TaskManagerPage/TaskDetail 替换任务页重复呈现，以 OPL adapter 保留 Temporal task owner、Codex executor、确认与 readback。只有服务行为均由同等 owner API 接管、Memory/Storage 调用者也迁走后，才能删除整个服务。 |
 | DSH `ui-sidebar-documentpreview` 官方来源 | 官方载荷随 cohort 提供，但当前文件面板没有启用其 `apply()`；OPL 适配器处理 Markdown、图片、媒体、PDF 与文本 | 文件路径和字节读取继续由 canonical workspace bridge 校验。删除 OPL renderer 的条件是官方 Remote/Resource/Sidebar runtime 已通过同一 owner 读取授权文件，并在 App 面板完成格式与生命周期验收。 |
 | `@objectivex666/dsh-settings-search` 1.14.0（GPL-3.0 社区包） | 当前 OPL 实际加载的全局设置搜索、结果定位与键盘交互 | Studio 直接依赖该社区实现，并把搜索结果映射为 App 设置 projection；authenticated log route 也调用该包。所审 DSH 官方 Settings cohort 未发现等价的全局设置搜索插件。删除条件：官方提供等价可组合的搜索 owner/slot，并能迁移结果定位、当前语言与日志读写的真实调用者。 |

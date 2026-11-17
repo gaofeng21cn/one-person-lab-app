@@ -9,11 +9,13 @@ native profile updates, and shell-unchanged Stable composition. A plugin is only
 current after its published bytes pass composition testing and the installed profile
 readback confirms activation.
 
-Applies to **Layer 2** (DSH Host plugins in `opl-studio/plugins/`) only.
+Applies to **Layer 2** (DSH Host and Client plugins in `opl-studio/plugins/`).
 
-- **Layer 1** (Electron + DSH cohort + static `opl-studio-client` renderer): still requires
-  a carrier build today. Moving product UI into official DSH client modules remains the
-  main cutover needed for the requested plugin-first product.
+- **Layer 1** (Electron + DSH cohort + the small `AppWebEntry` boot shell): Electron,
+  the DSH cohort and the boot shell still require a carrier build. Product Client
+  packages are loaded through DSH's official `dsh.client` graph in WebUI and the
+  Electron file renderer; the desktop bridge transports only the Host-owned graph and
+  bundle bytes.
 - **Layer 3** (Framework capability packages): already uses independent per-owner GHCR
   publication; this model does not change that.
 
@@ -37,8 +39,9 @@ The installed App picks it up on next `update-registry` run (or `dsh:plugins:upd
 which installs the new version into the native profile and surfaces "restart required".
 No `app.asar`, desktop signature, Framework Package state, or business data is modified.
 
-**Excluded from Track 1**: `@one-person-lab/opl-studio-client` (static renderer).
-Changes to the client require a full carrier build via the existing shell-changed path.
+Client packages, including `@one-person-lab/opl-studio-client`, are included in Track 1.
+Changing the carrier-owned boot shell, Electron, or the pinned DSH cohort still requires
+the shell-changed path.
 
 ### Track 2 — Composition compatibility test
 
@@ -47,38 +50,41 @@ Changes to the client require a full carrier build via the existing shell-change
 **CI**: `release-plugin-composition-test.yml` in `opl-studio`.
 
 Steps:
-1. Resolve the latest compatible published version of each OPL-owned DSH Host plugin
+1. Resolve the latest compatible published version of each OPL-owned DSH Host and Client plugin
    against the pinned DSH cohort (verify `engines.dsh` range covers the cohort tag).
 2. Install the resolved combination into a clean DSH profile (no App bundle involved).
 3. Start the DSH Host; verify Cordis service startup, Framework bridge readiness,
    MCP Apps host availability, and a functional smoke ping of each plugin's core service.
-4. On pass: emit a **composition receipt** — a pinned list of `plugin@version` entries
+4. On pass: emit a **composition receipt** — a pinned list of Host and Client `plugin@version` entries
    plus the DSH cohort ref used. Store as a workflow artifact and in the `opl-studio`
    release registry.
 
-The composition receipt is a candidate input for a Stable release on the shell-unchanged
-path. It is not a lockfile; it records one verified compatible combination, not all valid
-ones. The App release controller must still admit the candidate before signing or
-publishing it.
+The composition receipt is evidence for a Stable release on the shell-unchanged path. It is
+not a lockfile, Bundle Profile, runtime module registry, or list of all valid combinations;
+it records one verified compatible combination. DSH's active profile and official
+`clientModules` graph remain the runtime authority. The App release controller must still
+admit the candidate before signing or publishing it.
 
 ### Track 3 — Stable release
 
 #### Shell-unchanged path (most releases)
 
-**Precondition**: Electron, DSH cohort, and `opl-studio-client` are identical to the
+**Precondition**: Electron, DSH cohort, and the `AppWebEntry` boot shell are identical to the
 previous Stable release bytes. A passing composition receipt from Track 2 exists.
 
 Steps:
-1. Update the bundled baseline profile to the composition receipt's pinned versions.
-2. Bump the App version; build only the profile-updated bundle (no Electron/renderer rebuild).
+1. Bind the candidate's bundled baseline and registry package inputs to the composition
+   receipt's pinned versions; do not create a second runtime Bundle Profile.
+2. Bump the App version; build only the carrier bundle (no product Client plugin rebuild
+   when the receipt already supplies its published bytes).
 3. Sign and notarize via the existing `release-stable.yml` path.
 4. The App release controller admits the candidate, then signs and publishes it. The
    resulting App is expected to behave like a fully rebuilt release; this equivalence is
    not yet established by a successful public candidate.
 
-Release duration has not been measured for this path. Published Host plugin compilation
-can be reused; signing, notarization and installed acceptance remain required. The current
-candidate still generates the static renderer and unpublished Superagent engine.
+Release duration is measured per candidate rather than asserted in advance. Published
+Host and Client plugin compilation can be reused; signing, notarization and installed
+acceptance remain required. The small boot shell remains carrier-owned.
 
 #### Shell-changed path
 
@@ -124,9 +130,9 @@ Each DSH Host plugin has an independent semver version, decoupled from the App v
 - `engines.dsh` in `package.json` declares the compatible DSH cohort range.
 - `engines.opl-studio` optionally declares a minimum `opl-studio` baseline version.
 
-The App version describes the shell combination. The composition receipt describes the
-plugin combination. A single App shell version may correspond to many plugin combination
-updates throughout its lifecycle.
+The App version describes the carrier shell combination. The composition receipt describes
+one tested Host/Client plugin combination. A single App shell version may correspond to many
+plugin combination updates throughout its lifecycle.
 
 A plugin bump that extends or narrows `engines.dsh` compatibility must use a new **minor**
 version at minimum so that existing installs on older DSH cohorts are not silently broken.
@@ -281,7 +287,7 @@ Steps:
    `OPL_DSH_REGISTRY_PLUGINS=1 npm ci`. The root prepare hook preserves the published
    plugins; dependency lifecycle scripts still prepare Electron and native modules.
 4. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins`; published
-   Host plugins are left untouched while only the static carrier and unpublished
+   Host and Client plugins are left untouched while only the boot shell and unpublished
    Superagent engine are generated.
 5. `electron-builder` packages, `qualify:desktop:distribution` validates
 6. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`
@@ -308,7 +314,7 @@ Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent ru
 reuse the stored token automatically.
 
 The local operator and source composition lanes are implemented. Public publication,
-receipt-backed Stable production, an App-managed end-user update action, and moving
-the static renderer-dependent client graph into independently replaceable DSH client
-modules remain open. `engines.dsh` is declared in all publishable plugin manifests;
-`cordis.yml` lists plugin names only and DSH resolves versions at runtime.
+receipt-backed Stable production, and App-managed end-user update readback still require
+a real release run. The product Client graph is loaded through official DSH client
+modules; `engines.dsh` is declared in all publishable plugin manifests, `cordis.yml`
+lists Host plugin names only, and DSH resolves active Host/Client package versions at runtime.
