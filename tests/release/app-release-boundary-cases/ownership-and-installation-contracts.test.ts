@@ -1059,3 +1059,20 @@ test('managed update payload and public actions use only the three software obje
   legacyComponent.managed_update_plane.software_lifecycle.public_component_keys.push('runtime_substrate');
   assert.throws(() => validateReleaseChannelContract(legacyComponent), /public component keys/);
 });
+
+test('cold starts require current owner activation without replacing a running generation', () => {
+  const release = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts', 'app-release-channel.json'), 'utf8'));
+  assert.doesNotThrow(() => validateReleaseChannelContract(release));
+  for (const field of [
+    'compatible_installed_runtime_bypasses_currentness',
+    'running_process_runtime_replacement_allowed',
+    'activation_deferred_after_cold_start_allowed',
+  ]) {
+    const unsafe = structuredClone(release);
+    unsafe.managed_update_plane.carrier_reconciliation.cold_start_activation[field] = true;
+    assert.throws(() => validateReleaseChannelContract(unsafe), /Every cold App start/);
+  }
+  const missingBoundary = structuredClone(release);
+  delete missingBoundary.managed_update_plane.carrier_reconciliation.cold_start_activation;
+  assert.throws(() => validateReleaseChannelContract(missingBoundary), /Every cold App start/);
+});
