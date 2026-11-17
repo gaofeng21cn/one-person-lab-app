@@ -555,6 +555,14 @@ function collectMachOPortabilityIssues(builtAppPath: string) {
   };
 }
 
+export function assertFullRuntimeSourcePortable(sourceRoot: string, label: string) {
+  if (process.platform !== 'darwin') return;
+  const portability = collectMachOPortabilityIssues(sourceRoot);
+  if (portability.issues.length > 0) {
+    throw new Error(`${label} is not portable:\n${portability.issues.map((issue) => `  - ${issue.message}`).join('\n')}`);
+  }
+}
+
 function primaryFailureClass(issues: GateIssue[]): FailureClass {
   if (issues.some((issue) => issue.failure_class === 'runtime_source_invalid')) {
     return 'runtime_source_invalid';

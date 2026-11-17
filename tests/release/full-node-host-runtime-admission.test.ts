@@ -59,6 +59,26 @@ test('Full resolves npm and npx from Homebrew-style shared links', context => {
   }
 });
 
+test('Full rejects a Node toolchain with build-machine dylibs before runtime assembly', { skip: process.platform !== 'darwin' }, context => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-node-nonportable-'));
+  const originalPath = process.env.PATH;
+  context.after(() => { process.env.PATH = originalPath; fs.rmSync(root, { recursive: true, force: true }); });
+  const bin = path.join(root, 'bin');
+  fs.mkdirSync(bin);
+  fs.mkdirSync(path.join(root, 'lib/node_modules/npm'), { recursive: true });
+  for (const name of ['npm', 'npx']) fs.writeFileSync(path.join(bin, name), 'fixture');
+  const node = path.join(bin, 'node');
+  fs.writeFileSync(node, '#!/bin/sh\necho \'{"node":"26.13.0","electron":null}\'\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(root, 'lib/libnode.dylib'), Buffer.from('cffaedfe', 'hex'));
+  fs.writeFileSync(path.join(bin, 'otool'), `#!/bin/sh
+printf '%s:\\n' "$3"
+if [ "$1" = '-L' ]; then printf '\\t/opt/homebrew/opt/libuv/lib/libuv.1.dylib (compatibility version 1.0.0)\\n'; fi
+`, { mode: 0o755 });
+  process.env.PATH = `${bin}${path.delimiter}${originalPath ?? ''}`;
+  assert.throws(() => findNodeToolchain(node, process.env.OPL_APP_SHELL_ROOT),
+    /Full Node toolchain is not portable:[\s\S]*\/opt\/homebrew\/opt\/libuv/);
+});
+
 test('Full repairs dereferenced npm launchers when repackaging an installed toolchain', context => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-node-relocated-'));
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));

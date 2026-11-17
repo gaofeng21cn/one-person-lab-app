@@ -41,11 +41,14 @@ its official `checksums.txt`. Local installed copies are never used as build
 authority.
 
 The manual entry also uses the Framework dependency resolver to select the
-KimiCU offline seed and Codex qualification input once before freezing. It stores
+official Node distribution, KimiCU offline seed and Codex qualification input once before freezing. It stores
 the resolved identities and qualification manifest digest in the source lock, then passes that manifest
 to the Full builder through `OPL_RELEASE_DEPENDENCY_MANIFEST`. The builder rejects
 an unresolved identity before downloading; it does not resolve a new version
-after the freeze.
+after the freeze. Node comes from that checksum-verified official archive and is
+passed explicitly to Full assembly; the Node executable that runs the build is
+not a distributable runtime input. Explicit toolchains with build-machine dylib
+loads are rejected before runtime materialization or Electron signing.
 
 The Framework package catalog is projected only in a temporary checkout when a
 first-party owner `main` is newer than Framework `main`. The canonical Framework

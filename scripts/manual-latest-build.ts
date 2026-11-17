@@ -33,7 +33,7 @@ import {
   installLocalApp,
   ManualAppInstallationError,
 } from './manual-latest-build/install-app.ts';
-import { prepareLatestUpstreams } from './manual-latest-build/upstreams.ts';
+import { prepareLatestUpstreams, prepareResolvedNodeToolchain } from './manual-latest-build/upstreams.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -385,6 +385,7 @@ function runBuild(
   snapshots: ReturnType<typeof repoSnapshots>,
   upstreams: ReturnType<typeof prepareLatestUpstreams>,
   dependencyManifestPath: string,
+  nodeBin: string,
   buildIdentity: StampedManualLocalAppIdentity,
 ) {
   const args = [
@@ -395,6 +396,7 @@ function runBuild(
     '--out-dir', options.outDir,
     '--framework-root', snapshots.framework.root,
     '--gui-root', snapshots.shellRoot,
+    '--node-bin', nodeBin,
     '--mas-root', snapshots.owners.mas.root,
     '--mas-scholar-skills-root', snapshots.owners['mas-scholar-skills'].root,
     '--mas-scholar-skills-ref', snapshots.owners['mas-scholar-skills'].head,
@@ -444,6 +446,7 @@ export function resolveManualBuildDependencies(
     '--output', resolutionDir,
     '--dependency', 'kimi-cu',
     '--dependency', 'codex-cli',
+    '--dependency', 'node',
   ], {
     cwd: appRoot,
     timeoutMs: 300_000,
@@ -524,6 +527,10 @@ function main() {
     const runtimeDependencies = prepareManualRuntimeDependencies(snapshots.shellRoot);
     const upstreams = prepareLatestUpstreams(path.join(options.cacheRoot, 'upstreams'));
     const resolvedDependencies = resolveManualBuildDependencies(snapshots.framework.root, buildOutDir);
+    const nodeToolchain = prepareResolvedNodeToolchain(
+      resolvedDependencies.sourceLock.dependencies.find((entry) => entry.dependency_id === 'node'),
+      path.join(options.cacheRoot, 'upstreams'), snapshots.shellRoot,
+    );
     const sourceProvenance = {
       schema: 'opl_manual_latest_build_source_lock.v1',
       display_version: options.version,
@@ -540,7 +547,7 @@ function main() {
         ...snapshots.owners,
       },
       runtime_dependencies: runtimeDependencies.lock,
-      build_dependencies: resolvedDependencies.sourceLock,
+      build_dependencies: { ...resolvedDependencies.sourceLock, node_toolchain: nodeToolchain },
       upstreams,
     };
     const localAppIdentity = deriveManualLocalAppIdentity(
@@ -579,6 +586,7 @@ function main() {
         snapshots,
         upstreams,
         resolvedDependencies.qualificationManifestPath,
+        nodeToolchain.nodeBin,
         stampedLocalAppIdentity,
       );
     } finally {
