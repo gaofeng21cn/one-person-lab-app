@@ -59,6 +59,8 @@ Steps:
    packages' identities, registry origins, integrity and shipped Host/Client entrypoints.
 3. Start the DSH Host; verify Cordis service startup, Framework bridge readiness,
    MCP Apps host availability, and a functional smoke ping of each plugin's core service.
+   Install the packed OPL overrides into a fresh native profile, start the actual
+   Superagent child CLI, read its management API, and stop it.
 4. On pass: emit a **composition receipt** — a pinned list of Host and Client `plugin@version` entries
    plus the DSH cohort ref and App product commit used. Store it as a workflow artifact.
 
@@ -272,34 +274,42 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 **Status: publication, registry composition and local profile activation verified; public
 Stable acceptance remains separate.** The local source/profile lane and source UI are
 implemented. The latest publication
-[run 44033840051](https://github.com/gaofeng21cn/opl-studio/actions/runs/44033840051)
-succeeded at Studio `0399370a981854c1bed9f97dd93166a3c8af0a09`. It published ten
-`@gaofeng21cn` Host/Client packages: `opl-host-core` `0.1.2`,
-`opl-studio-client` `0.1.3`, and the other eight packages `0.1.1`.
+[run 44051623044](https://github.com/gaofeng21cn/opl-studio/actions/runs/44051623044)
+succeeded at Studio `a1d5c8352c1f247183ba25609c05a5e414f1ff01`. The current ten-package
+combination contains `opl-studio-client` `0.1.3`; `opl-codex-agents`, `opl-host-core`,
+`opl-superagent` and `opl-team-bots` `0.1.2`; and the remaining five packages `0.1.1`.
 
-The first registry update attempt routed public dependencies to GitHub Packages because
-the native add command applied `--registry` globally. Studio `0399370` removed that
-global override and relies on each scoped package's registry metadata; the subsequent
-profile update installed all ten packages successfully, including the newly published
-Host Core `0.1.2`.
+The native add command relies on scoped registry metadata, so public dependencies keep
+their normal registry rather than being routed globally to GitHub Packages. The Codex
+adapter and workbench entrypoints declare their pinned official DSH peers; the native
+resolver reuses the carrier cohort when a profile-installed OPL package is linked into
+the Superagent child profile. The private Superagent engine remains carrier-owned and
+is an optional package-manager peer. The clean child-profile gate does not install a
+second DSH runtime: it reuses the carrier cohort and engine.
 
 The latest composition
-[run 44035128669](https://github.com/gaofeng21cn/opl-studio/actions/runs/44035128669)
-succeeded at Studio `fa291d00db01ffdb81e8e16266fba0c478bdd1f8`, with App product
-`b716490b169b0e4e5c448cbe090f8eea765e9872` and DSH `0.2.2-rc.3`. Its receipt installs
+[run 44052012220](https://github.com/gaofeng21cn/opl-studio/actions/runs/44052012220)
+succeeded at the same Studio commit, with App product
+`47187f01da29793dbd747d456170881b3ee54d1d` and DSH `0.2.2-rc.3`. Its receipt installs
 the exact ten published versions, verifies registry origins, integrity and shipped
-entrypoints, and passes the Host/Client boot tests outside the checkout.
+entrypoints, and passes the Host/Client and independent Superagent child-profile boot
+tests outside the checkout. The child test uses only packed registry overrides and the
+carrier-provided DSH cohort and engine.
 
-The local carrier verification on 2026-11-17 used App source
+The final local carrier verification on 2026-11-17 used App source
 `b5f89a5e6c96b891ee9980e0f84295be8ee7400c` and Studio source
 `fc3a2f2274fda2be5ae25ef01b15e107ddfe009e`.
-After the official manager installed all ten registry overrides into profile `opl-studio`,
-restart activated the official client graph at revision `a061b6ae296a`. The carrier was
-`26.11.1791` (display `26.11.17`, `local.srcbe99a0818922`); `app.asar` SHA-256 was
+After the official manager installed all ten exact registry overrides into profile
+`opl-studio` (the three newly published packages were installed in 17,494 ms), restart
+activated the official client graph at revision `278be0ffeda3` with five entries,
+including MCP Apps, Team and Superagent. The carrier was `26.11.1791` (display
+`26.11.17`, `local.srcbe99a0818922`); `app.asar` SHA-256 was
 `3b95aa0e4a3075f1467517cacf91b3815e0046f15cb9f51c7e3c1e1c96464fdf` both before and
-after the profile update. Superagent started and stopped successfully with the Codex
-executor and no Team dependency; the installed Codex history readback returned 63 active
-threads.
+after the profile update. The App UI started Superagent and read its management API
+with `state=running`, `executor=codex`, `error=null`, `teamDependency=false` and HTTP
+200; `setup.problem=repositoryUnset` was the expected unconfigured-repository state.
+The UI then stopped it with `state=stopped`, `error=null` and no workbench URL. The
+installed Codex history readback returned 63 active threads without a next cursor.
 
 Public Stable publication and ordinary-account clean-VM acceptance remain unverified.
 Registry authentication uses the profile `.npmrc` with mode `0600`. Source ownership also
@@ -311,17 +321,20 @@ current boundary is recorded in [plugin composition and source ownership](../pro
 Triggers on push to main modifying plugin or shared build inputs, or manual dispatch
 with `packages` / `force_all` inputs. Each run binds plugin builds to a selected App
 product commit. Per-plugin matrix: build via `buildDshPlugins([name])`,
-run the package boot test, then enter the package directory and run
-`npm publish --provenance` to GitHub Packages. Already-published versions are skipped.
-The package directory is required because a positional `npm publish plugins/<name>` was
-parsed as a GitHub package spec and caused the first run to fail.
+run the Host/Client and independent child-profile boot tests, then enter the package
+directory and run `npm publish --provenance` to GitHub Packages. An already-published
+version is skipped only when its tarball digest matches the selected built package;
+the same version with different bytes fails publication. The package directory is
+required because a positional `npm publish plugins/<name>` is parsed as a GitHub package
+spec.
 
 ### CI: `release-plugin-composition-test.yml` (Track 2)
 
 Triggers on manual dispatch or on successful completion of `release-dsh-plugins.yml`.
 Resolves latest `^x.y.0` versions, installs the exact resolved registry packages into a
-clean dependency graph, runs `dsh-plugin-packages.test.mjs` against those bytes, and
-emits `composition_receipt.json` as a 90-day artifact. Applying the receipt first
+clean dependency graph, runs `dsh-plugin-packages.test.mjs` and
+`dsh-child-profile-packages.test.mjs` against those bytes, and emits
+`composition_receipt.json` as a 90-day artifact. Applying the receipt first
 clears only the selected plugins' old local lock records and installed paths; this
 prevents npm from retaining a same-version `file:` link. The workflow then verifies
 non-linked package directories, exact package identities, registry tarball origins,
