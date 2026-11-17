@@ -190,8 +190,9 @@ The source App Updates surface renders DSH plugin freshness alongside Framework 
 freshness. Studio's `OplSoftwareUpdates.tsx` reads `readDshPluginUpdates`, invokes
 `updateDshPlugins` for available updates, preserves per-plugin check/update failures,
 and offers restart after a successful profile change. The CLI remains available for
-operators with a checkout and registry credentials. Installed App interaction and
-activation require runtime readback.
+operators with a checkout and registry credentials. Native profile installation and
+restart activation are verified on the local candidate recorded below; the in-App
+update-button workflow has not yet had a separate end-to-end interaction readback.
 
 | State | Meaning |
 | --- | --- |
@@ -268,24 +269,42 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 
 ## opl-studio Implementation
 
-**Status: publication and registry composition verified; installed activation and Stable
-production acceptance remain separate.** The local source/profile lane and source UI
-are implemented. On 2026-11-17,
-[publish run 44013393163](https://github.com/gaofeng21cn/opl-studio/actions/runs/44013393163)
-succeeded at Studio `a8a09bc87067aa0d9d7504072bdb55eccf8e8727`, publishing all ten
-`@gaofeng21cn` Host/Client packages. The published product client is `0.1.2`; the other
-nine packages are `0.1.0`.
+**Status: publication, registry composition and local profile activation verified; public
+Stable acceptance remains separate.** The local source/profile lane and source UI are
+implemented. The latest publication
+[run 44033840051](https://github.com/gaofeng21cn/opl-studio/actions/runs/44033840051)
+succeeded at Studio `0399370a981854c1bed9f97dd93166a3c8af0a09`. It published ten
+`@gaofeng21cn` Host/Client packages: `opl-host-core` `0.1.2`,
+`opl-studio-client` `0.1.3`, and the other eight packages `0.1.1`.
 
-[Composition run 44017393604](https://github.com/gaofeng21cn/opl-studio/actions/runs/44017393604)
-succeeded at Studio `bdd44fe5566bf34c79d128a7987fb039c9dd1dcf` with App product
-`4e629d3f8db1d283310d483fb47648da19d00345` and DSH `0.2.2-rc.3`. It installed the ten
-published packages, verified registry origins and shipped entrypoints, passed Host/Client
-boot tests outside the checkout, and uploaded `composition_receipt.json`.
+The first registry update attempt routed public dependencies to GitHub Packages because
+the native add command applied `--registry` globally. Studio `0399370` removed that
+global override and relies on each scoped package's registry metadata; the subsequent
+profile update installed all ten packages successfully, including the newly published
+Host Core `0.1.2`.
 
-The candidate consumer exists, but these two runs do not prove a receipt-backed Stable
-release or installed App activation. Source ownership also remains transitional outside
-the extracted shared contracts and Host update service; its current boundary is recorded
-in [plugin composition and source ownership](../product/gui/plugin-composition-map.md#源码所有权与依赖方向).
+The latest composition
+[run 44035128669](https://github.com/gaofeng21cn/opl-studio/actions/runs/44035128669)
+succeeded at Studio `fa291d00db01ffdb81e8e16266fba0c478bdd1f8`, with App product
+`b716490b169b0e4e5c448cbe090f8eea765e9872` and DSH `0.2.2-rc.3`. Its receipt installs
+the exact ten published versions, verifies registry origins, integrity and shipped
+entrypoints, and passes the Host/Client boot tests outside the checkout.
+
+The local carrier verification on 2026-11-17 used App source
+`b5f89a5e6c96b891ee9980e0f84295be8ee7400c` and Studio source
+`fc3a2f2274fda2be5ae25ef01b15e107ddfe009e`.
+After the official manager installed all ten registry overrides into profile `opl-studio`,
+restart activated the official client graph at revision `a061b6ae296a`. The carrier was
+`26.11.1791` (display `26.11.17`, `local.srcbe99a0818922`); `app.asar` SHA-256 was
+`3b95aa0e4a3075f1467517cacf91b3815e0046f15cb9f51c7e3c1e1c96464fdf` both before and
+after the profile update. Superagent started and stopped successfully with the Codex
+executor and no Team dependency; the installed Codex history readback returned 63 active
+threads.
+
+Public Stable publication and ordinary-account clean-VM acceptance remain unverified.
+Registry authentication uses the profile `.npmrc` with mode `0600`. Source ownership also
+remains transitional outside the extracted shared contracts and Host update service; its
+current boundary is recorded in [plugin composition and source ownership](../product/gui/plugin-composition-map.md#源码所有权与依赖方向).
 
 ### CI: `release-dsh-plugins.yml` (Track 1)
 
@@ -352,8 +371,10 @@ npm run manual:plugins -- update-registry --package opl-superagent --token ghp_.
 Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
 reuse the stored token automatically.
 
-The local operator lane, public publication and registry composition are verified at the
-commits above. Receipt-backed Stable production and installed App update/activation need
-their own final readback. The product Client graph is loaded through official DSH client
-modules; `engines.dsh` is declared in all publishable plugin manifests, `cordis.yml`
-lists Host plugin names only, and DSH resolves active Host/Client package versions at runtime.
+The local operator lane, public publication, registry composition, local profile
+installation and restart activation are verified at the commits and candidate above.
+Receipt-backed Stable production, ordinary-account clean-VM acceptance, and the in-App
+update-button workflow still need their own end-to-end readback. The product Client graph
+is loaded through official DSH client modules; `engines.dsh` is declared in all publishable
+plugin manifests, `cordis.yml` lists Host plugin names only, and DSH resolves active
+Host/Client package versions at runtime.
