@@ -1,0 +1,123 @@
+{
+  "schema": "opl_app_remote_companion_extensions.v1",
+  "owner": "one-person-lab-app",
+  "state": "contract_locked_not_enabled",
+  "purpose": "optional_phone_capabilities_without_changing_remote_companion_behavior",
+  "primary_mission": {
+    "product": "OPL Link",
+    "role": "native_phone_companion_for_remote_operation_of_the_existing_opl_app",
+    "required_workflow": [
+      "find_canonical_conversations",
+      "read_and_continue_existing_codex_turns",
+      "respond_to_owner_pending_requests",
+      "inspect_workspace_results"
+    ],
+    "desktop_is_authority": true,
+    "extension_is_not_a_second_runtime": true
+  },
+  "extension_boundary": {
+    "optional_capabilities": [
+      "calendar_busy_and_event_creation",
+      "reminders_read_and_create",
+      "location_search_and_route",
+      "photo_selection",
+      "music_library_and_playback",
+      "health_read_only_summary",
+      "one_time_alarm_created_by_opl_link"
+    ],
+    "not_in_scope": [
+      "arbitrary_ios_app_ui_automation",
+      "arbitrary_shell_or_desktop_command_execution",
+      "phone_local_agent_runtime",
+      "phone_owned_conversation_history",
+      "phone_provider_credentials",
+      "background_monitoring_or_unsolicited_collection"
+    ],
+    "source_reference": "DSH mobile connector APIs are an implementation reference; OPL owns the adapter and product policy"
+  },
+  "default_policy": {
+    "paired_device_enables_extensions": false,
+    "module_permission_default": false,
+    "ordinary_desktop_conversation_includes_extension_tools": false,
+    "ordinary_phone_remote_conversation_includes_extension_tools": false,
+    "explicit_request_opt_in_required": true,
+    "model_keyword_inference_is_authorization": false,
+    "source_authentication_is_authorization": false,
+    "permission_grant_is_current_request_authorization": false,
+    "selection_lifetime": "current_request_only",
+    "next_request_default": "disabled",
+    "thread_persistence": "never_persist_tool_catalog_or_grant",
+    "prompt_injection": "only_selected_tools_for_the_current_request_after_admission"
+  },
+  "admission": {
+    "desktop_origin": "explicit_exact_paired_phone_and_current_request_capability_selection",
+    "phone_origin": "authenticated_current_request_source_and_explicit_capability_selection",
+    "identity": ["host_id", "phone_id", "canonical_thread_id", "request_id", "turn_id", "lease_id"],
+    "required_intersection": [
+      "explicit_current_request_selection",
+      "module_permission_grant",
+      "declared_device_capability",
+      "live_device_lease",
+      "authenticated_request_origin_and_exact_phone_target",
+      "canonical_thread_owner_admission"
+    ],
+    "mixed_phone_and_desktop_sources": "reject_or_reduce_to_common_safe_subset",
+    "stale_source_or_lease": "deny_without_tool_schema_or_prompt_injection",
+    "offline_or_capability_failure": "only_that_extension_fails;_remote_companion_remains_available",
+    "unavailable_explicit_selection": "report_extension_unavailable_and_offer_ordinary_request_without_silently_substituting_device_or_task",
+    "steer": "cannot_expand_the_active_turn_grant;_new_input_must_not_silently_inherit_old_selection",
+    "invalidated_by": ["next_request", "turn_end", "background", "disconnect", "revocation", "timeout", "identity_or_lease_change"],
+    "result_history": "canonical_thread_may_record_explicit_result;_permissions_and_tool_catalog_never_inherit"
+  },
+  "implementation": {
+    "reuse_policy": "reuse_dsh_mobile_protocol_and_gateway_validation_where_license_and_contract_match",
+    "client_strategy": "thin_native_swift_adapter_over_existing_linkcore; do_not_import_kmp_runtime",
+    "host_strategy": "reuse_existing_dsh_lifecycle_and_authenticated_link_routes_with_verified_request_scoped_tool_admission; do_not_create_second_executor",
+    "runtime_strategy": "not_installed_or_registered_until_codex_request_scoped_tool_admission_is_verified",
+    "global_tool_registration_allowed": false,
+    "global_tools_list_change_allowed": false,
+    "current_codex_gap": "codex_0.167.1_turn_start_and_steer_have_no_dynamic_tools_input;_current_dsh_MCP_has_no_trusted_request_origin",
+    "upstream_refs": {
+      "mobile": { "repository": "https://github.com/Clarklevis1995/dsh-mobile", "revision": "d584e712980be3ab386f9f8d72ac88d94ba7ae6e", "license": "MIT" },
+      "gateway": { "repository": "https://github.com/Clarklevis1995/dsh-plugin-mobile-gateway", "revision": "0adcec73f54aaba1a2ab56443bcffd9d7879525c", "license": "MIT" }
+    }
+  },
+  "future_feature_admission": {
+    "required_decisions": ["user_purpose", "primary_workflow_impact", "canonical_owner", "default_behavior", "isolation_and_failure_behavior", "acceptance_evidence"],
+    "utility_alone_overrides_primary_behavior": false,
+    "new_runtime_or_cloud_service_required": false
+  },
+  "planned_modules": {
+    "calendar": { "default_enabled": false, "write_scope": "create_only_no_invite_edit_or_delete" },
+    "reminders": { "default_enabled": false, "write_scope": "create_only" },
+    "location": { "default_enabled": false, "privacy": "foreground_explicit_request_only" },
+    "photos": { "default_enabled": false, "scope": "one_user_selected_photo_reencoded_without_metadata" },
+    "music": { "default_enabled": false, "scope": "library_and_playback_controls" },
+    "health": { "default_enabled": false, "scope": "read_only_summary_up_to_eight_days" },
+    "alarms": { "default_enabled": false, "scope": "one_time_alarm_created_by_this_app_only" }
+  },
+  "acceptance": {
+    "must_prove_before_enablement": [
+      "ordinary_desktop_tool_catalog_is_unchanged",
+      "ordinary_phone_remote_tool_catalog_is_unchanged",
+      "explicit_current_request_receives_only_selected_and_granted_tools",
+      "next_request_and_concurrent_other_threads_do_not_inherit_tools_or_grants",
+      "permission_revocation_removes_admission_without_reconnecting",
+      "stale_or_mixed_source_is_rejected",
+      "extension_timeout_or_denial_does_not_break_primary_remote_companion",
+      "physical_iphone_permission_and_foreground_limits_are_verified"
+    ],
+    "not_proven_by": [
+      "paired_device_presence",
+      "phone_app_switch_enabled",
+      "global_dsh_tool_registration",
+      "prompt_text_or_keyword_matching",
+      "source_only_or_simulator_only_tests"
+    ]
+  },
+  "source_refs": {
+    "product_contract": "contracts/app-remote-companion.json",
+    "wire_contract": "contracts/app-remote-companion-wire.json",
+    "link_product_doc": "docs/product/opl-link.md"
+  }
+}

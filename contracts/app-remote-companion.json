@@ -4,6 +4,10 @@
   "state": "source_validated",
   "decision_date": "2026-11-15",
   "purpose": "native_ios_companion_for_the_current_opl_app",
+  "primary_mission": "remote_operation_of_the_existing_opl_app_from_a_phone",
+  "product_priority": "remote_companion_before_optional_phone_capabilities",
+  "extensions_contract_ref": "contracts/app-remote-companion-extensions.json",
+  "extension_policy": "optional_explicit_request_scoped_capabilities_must_not_change_primary_companion_behavior",
   "product_identity": {
     "app_store_name": "OPL Link",
     "home_screen_name": "OPL Link",
@@ -264,13 +268,16 @@
     "internet_access_status": "adaptive_transport_public_turn_and_relay_qualified",
     "managed_internet_service_deployed": true,
     "public_internet_native_loop_qualified": true,
-    "internet_access_acceptance_ref": "docs/product/gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md"
+    "internet_access_acceptance_ref": "docs/product/gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md",
+    "optional_phone_capabilities_status": "contract_locked_not_enabled",
+    "optional_phone_capabilities_reason": "request_scoped_codex_tool_admission_not_yet_verified"
   },
   "source_refs": {
     "wire_contract": "contracts/app-remote-companion-wire.json",
     "ios_repository": "https://github.com/gaofeng21cn/opl-link",
     "desktop_repository": "https://github.com/gaofeng21cn/opl-studio",
     "product_document": "docs/product/opl-link.md",
-    "internet_contract": "contracts/app-remote-companion-internet.json"
+    "internet_contract": "contracts/app-remote-companion-internet.json",
+    "extensions_contract": "contracts/app-remote-companion-extensions.json"
   }
 }

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import {
   validateRemoteCompanionContract,
+  validateRemoteCompanionExtensionsContract,
   validateRemoteCompanionGuiProjection,
   validateMobileCompanionTopology,
   validateRemoteCompanionPageState,
@@ -28,6 +29,37 @@ test('native Link uses the existing Studio authority and agrees with the current
   assert.equal(value.transport.independent_cloud_service_required, true);
   assert.equal(value.transport.offline_command_queue, false);
   assert.equal(value.pairing.desktop_credential_store, 'hashed_device_tokens_and_metadata_only');
+});
+
+test('optional phone capabilities cannot change the primary mission or ordinary conversation defaults', () => {
+  rejects([
+    ['extension-first product', p => { p.product_priority = 'phone_automation_before_remote_companion'; }],
+    ['unowned extension contract', p => { p.extensions_contract_ref = 'phone-local-settings'; }],
+    ['unsupported extension qualification', p => { p.implementation_status.optional_phone_capabilities_status = 'qualified'; }],
+  ]);
+  const extensions = read('app-remote-companion-extensions');
+  assert.doesNotThrow(() => validateRemoteCompanionExtensionsContract(extensions));
+  for (const mutate of [
+    (p: Contract) => { p.default_policy.paired_device_enables_extensions = true; },
+    (p: Contract) => { p.default_policy.ordinary_desktop_conversation_includes_extension_tools = true; },
+    (p: Contract) => { p.default_policy.ordinary_phone_remote_conversation_includes_extension_tools = true; },
+    (p: Contract) => { p.default_policy.next_request_default = 'inherit_previous_request'; },
+    (p: Contract) => { p.default_policy.model_keyword_inference_is_authorization = true; },
+    (p: Contract) => { p.default_policy.permission_grant_is_current_request_authorization = true; },
+    (p: Contract) => { p.implementation.global_tool_registration_allowed = true; },
+    (p: Contract) => { p.implementation.global_tools_list_change_allowed = true; },
+    (p: Contract) => { p.planned_modules.calendar.default_enabled = true; },
+    (p: Contract) => { p.admission.required_intersection = ['module_permission_grant']; },
+    (p: Contract) => { p.admission.identity = ['phone_id']; },
+    (p: Contract) => { p.admission.invalidated_by = ['turn_end']; },
+    (p: Contract) => { p.admission.offline_or_capability_failure = 'disable_remote_companion'; },
+    (p: Contract) => { p.future_feature_admission.utility_alone_overrides_primary_behavior = true; },
+    (p: Contract) => { p.state = 'qualified'; },
+    (p: Contract) => { p.acceptance.must_prove_before_enablement = ['paired_device_presence']; },
+  ]) {
+    const value = structuredClone(extensions); mutate(value);
+    assert.throws(() => validateRemoteCompanionExtensionsContract(value));
+  }
 });
 
 test('managed internet preserves account isolation, pinned pairing and bounded business authority', () => {

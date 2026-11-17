@@ -8,6 +8,7 @@
 - DSH 原生扩展机制与可持续升级是 App 的工程约束。定制优先使用官方插件、Cordis 服务/生命周期、客户端 slots 与 profile；OPL contract 只增加产品、领域及 owner 边界所需语义，不建立平行插件格式、加载器、生命周期或通用通信协议。现有兼容适配和源码 overlay 不是新增私有机制的先例；新增能力与 DSH 升级均按 [DSH 插件与升级原则](docs/product/gui/dsh-plugin-and-settings-map.md#工程原则与升级边界) 核对复用、具体差距和退出条件。
 - AionCore 是只读上游依赖。不得为 OPL 建立或维护 AionCore fork、PR 或 patch，也不得单独替换 `/Applications/One Person Lab.app` 内嵌的 AionCore；升级只能由 App/Shell 合同选择官方 release，并通过完整 OPL App 构建、安装和运行时版本回读闭环。
 - 用户可见行为、页面状态、模型/引导策略或 release-ready 边界变化时，先更新 App contract、docs 和 tests，再实现 Shell；上游 fork body 默认只读。
+- 新功能先明确软件用途、主功能影响、owner 与验收。OPL Link 的主要任务是远程操作电脑上的 OPL App；手机连接器遵循 `contracts/app-remote-companion-extensions.json`，默认关闭、仅当前请求显式选择，不向普通电脑或手机远程对话注入工具/提示词。缺少可信按请求隔离时保持扩展禁用，扩展失败不得改变主功能。
 - Package、carrier 与 executor 是独立角色。App/Shell 从动态 projection 渲染，不维护固定 Package/Agent 清单、依赖图、版本解析、lock、payload、receipt 或 currentness 镜像。
 - 普通读取使用 `opl app state --profile fast --json`；写入统一走 `opl app action execute ... --json`。未知外部 mutation 只做 owner-authoritative inspect/reconcile，不重发或猜测。
 - 迁移、合并或隐藏 GUI 入口时，验证从原入口到新入口的完整用户路径；按 fresh owner projection 覆盖普通软件、运行组件、第三方、未安装与已停用状态。安装分类不决定功能配置归属；所有插件设置通过同一贡献机制按功能进入设置，微信远程是 App 标准功能，插件化只用于开发与运维。移除旧入口前，新入口须已有真实挂载、读取和动作验证，描述符存在或安装成功不能代替可达性验收。
