@@ -66,6 +66,14 @@
     "target_profile": "opl-studio",
     "source_update_scope": "explicitly_selected_Studio_DSH_packages_only",
     "activation": "restart_App_then_verify_native_inventory_and_functional_readback",
+    "cold_start_currentness": {
+      "required_on_every_new_App_process": true,
+      "version_resolution": "latest_verified_compatible_release_from_each_enabled_plugin_selected_native_channel",
+      "activation_boundary": "before_Host_and_official_DSH_clientModules_graph_start",
+      "compatible_old_runtime_is_a_user_choice": false,
+      "running_process_plugin_bytes_replacement_allowed": false,
+      "preserve_enabled_disabled_and_uninstalled_selection": true
+    },
     "rollback": "native_DSH_remove_profile_dependency_to_restore_bundled_baseline",
     "app_bundle_mutation": false,
     "framework_package_lifecycle_mutation": false,

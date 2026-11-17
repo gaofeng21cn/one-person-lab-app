@@ -116,6 +116,15 @@ function validateSoftwareLifecycle(lifecycle) {
 }
 
 function validateCarrierReconciliation(reconcile) {
+  const startup = reconcile?.cold_start_activation;
+  if (startup?.required !== true ||
+    startup?.trigger !== 'every_new_App_process_before_Host_App_Server_and_DSH_plugin_graph_start' ||
+    startup?.compatible_installed_runtime_bypasses_currentness !== false ||
+    startup?.running_process_runtime_replacement_allowed !== false ||
+    startup?.activation_deferred_after_cold_start_allowed !== false ||
+    startup?.preserve_user_configuration_and_enabled_package_selection !== true) {
+    throw new Error('Every cold App start must activate the owner-selected current runtime before Host startup without replacing a running generation');
+  }
   if (
     reconcile?.contract !== 'opl_app_carrier_reconciliation.v1' ||
     reconcile?.trigger !== 'app_startup_after_core_ready_when_running_app_version_checkpoint_is_missing_or_changed' ||

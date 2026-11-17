@@ -123,8 +123,12 @@ authentication, transport and the official DSH module bootstrap. A client packag
 independently replaceable only when its `dsh.client` declaration, bundled client export,
 shared platform externals, restart activation and installed readback move together.
 
-Installed freshness is the compatible running combination of App baseline, profile
-overrides, Base and owner Packages. App version alone cannot describe that combination.
+Installed freshness is the latest verified compatible running combination from the
+selected App, Base and enabled plugin/Package channels. Each cold launch resolves
+that combination through its native owners and activates it before starting the
+Host, Codex App Server and official DSH client module graph. A merely compatible
+older runtime does not bypass this check or become an optional retention mode.
+App version alone cannot describe the effective combination.
 A saved profile update reports restart required until the restarted Host's native
 resolution/inventory and functional readback establish activation. Do not report every
 package's unqualified `latest` as compatible.
@@ -148,11 +152,14 @@ There is no shared publication snapshot, combination freeze, or aggregate channe
 - Standard and Full use the same **App Official Profile**.
 - The Profile declares desired root Packages only for first install or explicit
   **Restore official combination**.
-- Full differs only by carrying selected offline seed bytes for those roots. The MAC media library is installed after the core is ready through its existing required dependency, and MAC prepares it again before active production.
-- On an in-place Full upgrade, a compatible installed runtime remains under
-  Framework update ownership. A different embedded manifest alone must not
-  replace independently updated Base or Package files. The embedded runtime
-  bootstraps missing or incompatible installations and preserves user state.
+- Full also carries verified offline bootstrap and update candidates for those
+  roots. The MAC media library is installed after the core is ready through its
+  existing required dependency, and MAC prepares it again before active production.
+- On an in-place Full upgrade, the new payload enters the same Framework-owned
+  selection and activation path as online updates. Restart must activate the latest
+  verified owner selection; usability of the old runtime is insufficient. Native
+  owners resolve independently updated plugins without downgrading them to a bundled
+  baseline. User configuration and installed/enabled selections remain intact.
 - Required dependencies are expanded by identity presence, for example
   `MAS -> MAS Scholar Skills`.
 - A user-uninstalled Package stays uninstalled. Startup and background update
@@ -240,6 +247,15 @@ Callability alone never proves that an upstream update check succeeded.
 
 Base background work stages verified runtime generations and leaves activation,
 Temporal service/Worker changes, and seed application to the next App startup.
+Every cold startup is an activation boundary, including when the App version has
+not changed or the periodic maintenance interval has not elapsed. Before any Host
+or App Server uses runtime bytes, the native owners resolve currentness, admit the
+available verified updates and activate the selected generations. The App then
+re-resolves Node, wrappers, Framework and plugin inventory from the activated
+generation; paths captured before activation are not sufficient evidence. Running
+processes keep their loaded generation until exit. Activation failures remain
+visible with their owner recovery action and cannot be reported as an up-to-date
+installation.
 The App updater checks every six hours and retries failures at thirty-minute
 intervals up to three times. Resume checks run only when due. No background
 update forces a running App to restart. Managed maintenance retains failure,

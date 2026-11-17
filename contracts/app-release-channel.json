@@ -6795,7 +6795,7 @@
           "base_or_packages_mutation_allowed": false
         }
       },
-      "carrier_alignment_rule": "Carrier choice does not change software-object identity or lifecycle authority. Full carriers may seed payloads, but Framework lifecycle owns Base and Packages activation, reconciliation, update, repair, rollback, and uninstall.",
+      "carrier_alignment_rule": "Carrier choice does not change software-object identity or lifecycle authority. Full carriers supply verified offline bootstrap and update candidates; Framework lifecycle owns Base and Packages activation, reconciliation, update, repair, rollback, and uninstall.",
       "public_actions": {
         "refresh": "opl update status --json",
         "check": "opl update check --json",
@@ -6813,6 +6813,19 @@
     },
     "carrier_reconciliation": {
       "contract": "opl_app_carrier_reconciliation.v1",
+      "cold_start_activation": {
+        "required": true,
+        "trigger": "every_new_App_process_before_Host_App_Server_and_DSH_plugin_graph_start",
+        "selection_authority": "Framework_managed_runtime_and_native_package_or_DSH_profile_owner",
+        "target": "latest_verified_compatible_versions_in_each_selected_owner_channel",
+        "full_payload_role": "verified_offline_update_candidate_for_the_same_owner_activation_path",
+        "compatible_installed_runtime_bypasses_currentness": false,
+        "running_process_runtime_replacement_allowed": false,
+        "activation_deferred_after_cold_start_allowed": false,
+        "preserve_user_configuration_and_enabled_package_selection": true,
+        "readback": "effective_Node_wrappers_Framework_and_native_plugin_inventory_after_activation",
+        "failure_policy": "report_the_owner_failure_and_recovery_state_without_claiming_latest_activation"
+      },
       "trigger": "app_startup_after_core_ready_when_running_app_version_checkpoint_is_missing_or_changed",
       "carrier_neutral": true,
       "installation_source_scope": "all_supported_app_carriers",
@@ -6856,7 +6869,7 @@
         "package_plan_eligibility": "available_during_check_and_plan_before_apply",
         "package_currentness": "unknown_until_native_owner_check_not_inferred_from_callability",
         "background_base_policy": "stage_only_without_pending_activation_or_temporal_restart",
-        "startup_pending_activation": "opl update activate --json before App Server start with a new OPL_APP_PROCESS_INSTANCE_ID; verify pending bytes and protocol, retain the previous generation on failure",
+        "startup_pending_activation": "At every cold start, resolve the selected owner channels and verified offline candidates, stage missing eligible updates, then run opl update activate --json before Host, App Server and plugin graph start with a new OPL_APP_PROCESS_INSTANCE_ID; re-resolve the effective runtime environment after activation and verify its bytes and protocol. A compatible older installation is not an activation bypass.",
         "package_success_gate": "fresh_native_presence_and_required_entrypoints",
         "recovery_policy": "persist_failure_retry_and_restart_guidance_and_recheck_when_online_or_visible"
       },
@@ -6882,7 +6895,7 @@
         "silent_apply_when": "Framework plan auto_apply.eligible and app_background_safe are true and command_ref is present",
         "attention_when": "Framework skips a dirty, developer, user-managed, global, incompatible, or verification-failed target",
         "opl_packages_activation": "immediate_after_framework_receipt_with_codex_refresh_recommended_when_projection_changed",
-        "opl_base_runtime_activation": "stage_and_switch_on_next_app_restart_with_rollback_ref",
+        "opl_base_runtime_activation": "activate_latest_verified_owner_selection_before_Host_on_every_cold_start_with_rollback_ref",
         "opl_app_activation": "carrier_install_then_running_version_switch_on_restart_or_next_launch",
         "failure_display": "show_framework_reason_and_repair_or_review_action_without_claiming_update_complete"
       }
