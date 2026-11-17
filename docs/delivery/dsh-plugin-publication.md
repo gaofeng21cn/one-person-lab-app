@@ -23,12 +23,14 @@ Applies to **Layer 2** (DSH Host and Client plugins in `opl-studio/plugins/`).
 
 ### Track 1 — Per-plugin publish
 
-**Trigger**: push to `opl-studio` main branch modifying `plugins/<plugin-id>/`.
+**Trigger**: push to `opl-studio` main branch modifying a plugin or its declared shared
+source/build inputs (`plugins/`, `packages/`, transitional `src/`, and selected build files).
 
 **CI**: `release-dsh-plugins.yml` in `opl-studio`.
 
 Steps:
-1. Detect which plugin packages changed (or accept explicit `package_id` input).
+1. Detect changed plugin packages (or accept explicit `packages` / `force_all` input).
+   Shared source or build-input changes select all publishable packages.
 2. Build changed plugin(s) via `build:plugins` targeting only those packages.
 3. Run the plugin's own unit/integration tests.
 4. Publish to GitHub Packages under `@gaofeng21cn` scope, with provenance attestation.
@@ -52,12 +54,13 @@ the shell-changed path.
 Steps:
 1. Resolve the latest compatible published version of each OPL-owned DSH Host and Client plugin
    against the pinned DSH cohort (verify `engines.dsh` range covers the cohort tag).
-2. Install the resolved combination into a clean DSH profile (no App bundle involved).
+2. Replace the source dependencies with exact registry versions, refresh their lock
+   entries, and install the combination without an App bundle. Verify the installed
+   packages' identities, registry origins, integrity and shipped Host/Client entrypoints.
 3. Start the DSH Host; verify Cordis service startup, Framework bridge readiness,
    MCP Apps host availability, and a functional smoke ping of each plugin's core service.
 4. On pass: emit a **composition receipt** — a pinned list of Host and Client `plugin@version` entries
-   plus the DSH cohort ref used. Store as a workflow artifact and in the `opl-studio`
-   release registry.
+   plus the DSH cohort ref and App product commit used. Store it as a workflow artifact.
 
 The composition receipt is evidence for a Stable release on the shell-unchanged path. It is
 not a lockfile, Bundle Profile, runtime module registry, or list of all valid combinations;
@@ -183,9 +186,12 @@ than what is bundled in the running App.
 
 ## Incremental Update in the App UI
 
-The target App Updates surface shows plugin freshness alongside Framework Package freshness.
-The current installed UI has no Host-plugin update action or freshness projection; the
-source CLI requires an operator checkout and registry credentials.
+The source App Updates surface renders DSH plugin freshness alongside Framework Package
+freshness. Studio's `OplSoftwareUpdates.tsx` reads `readDshPluginUpdates`, invokes
+`updateDshPlugins` for available updates, preserves per-plugin check/update failures,
+and offers restart after a successful profile change. The CLI remains available for
+operators with a checkout and registry credentials. Installed App interaction and
+activation require runtime readback.
 
 | State | Meaning |
 | --- | --- |
@@ -193,7 +199,10 @@ source CLI requires an operator checkout and registry credentials.
 | Updates available | One or more compatible plugin updates are published. |
 | Updating | DSH native profile is installing the update. |
 | Restart needed | Update installed; App restart required to load the new version. |
-| Incompatible update | A newer version exists but requires a newer DSH cohort (shell update needed). |
+| Unavailable | A package lookup or compatibility check could not complete; its failure remains visible. |
+
+The resolver selects the latest version compatible with the running DSH cohort. The
+current UI does not separately list incompatible newer releases.
 
 "Update now" for the plugin layer delegates entirely to the DSH native profile package
 manager. The App state machine does not manage per-plugin update lifecycle.
@@ -259,17 +268,30 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 
 ## opl-studio Implementation
 
-**Status: partially implemented.** The local source/profile lane is verified. The
-public registry lane exists in source. Earlier publish attempts failed before producing
-packages, first because the publish path was interpreted as a GitHub package spec and
-then because `@one-person-lab` did not belong to the Studio repository owner. The source
-now uses `@gaofeng21cn`; successful registry publication, public composition testing and
-Stable acceptance still require real run readback.
+**Status: publication and registry composition verified; installed activation and Stable
+production acceptance remain separate.** The local source/profile lane and source UI
+are implemented. On 2026-11-17,
+[publish run 44013393163](https://github.com/gaofeng21cn/opl-studio/actions/runs/44013393163)
+succeeded at Studio `a8a09bc87067aa0d9d7504072bdb55eccf8e8727`, publishing all ten
+`@gaofeng21cn` Host/Client packages. The published product client is `0.1.2`; the other
+nine packages are `0.1.0`.
+
+[Composition run 44017393604](https://github.com/gaofeng21cn/opl-studio/actions/runs/44017393604)
+succeeded at Studio `bdd44fe5566bf34c79d128a7987fb039c9dd1dcf` with App product
+`4e629d3f8db1d283310d483fb47648da19d00345` and DSH `0.2.2-rc.3`. It installed the ten
+published packages, verified registry origins and shipped entrypoints, passed Host/Client
+boot tests outside the checkout, and uploaded `composition_receipt.json`.
+
+The candidate consumer exists, but these two runs do not prove a receipt-backed Stable
+release or installed App activation. Source ownership also remains transitional outside
+the extracted shared contracts and Host update service; its current boundary is recorded
+in [plugin composition and source ownership](../product/gui/plugin-composition-map.md#源码所有权与依赖方向).
 
 ### CI: `release-dsh-plugins.yml` (Track 1)
 
-Triggers on push to main modifying any publishable plugin directory, or manual dispatch
-with `packages` / `force_all` inputs. Per-plugin matrix: build via `buildDshPlugins([name])`,
+Triggers on push to main modifying plugin or shared build inputs, or manual dispatch
+with `packages` / `force_all` inputs. Each run binds plugin builds to a selected App
+product commit. Per-plugin matrix: build via `buildDshPlugins([name])`,
 run the package boot test, then enter the package directory and run
 `npm publish --provenance` to GitHub Packages. Already-published versions are skipped.
 The package directory is required because a positional `npm publish plugins/<name>` was
@@ -280,26 +302,34 @@ parsed as a GitHub package spec and caused the first run to fail.
 Triggers on manual dispatch or on successful completion of `release-dsh-plugins.yml`.
 Resolves latest `^x.y.0` versions, installs the exact resolved registry packages into a
 clean dependency graph, runs `dsh-plugin-packages.test.mjs` against those bytes, and
-emits `composition_receipt.json`
-as a 90-day artifact. An unpublished or DSH-incompatible package fails the run; the
-receipt never falls back to a local source baseline.
+emits `composition_receipt.json` as a 90-day artifact. Applying the receipt first
+clears only the selected plugins' old local lock records and installed paths; this
+prevents npm from retaining a same-version `file:` link. The workflow then verifies
+non-linked package directories, exact package identities, registry tarball origins,
+lock integrity and shipped entrypoints before the boot test. An unpublished or
+DSH-incompatible package fails the run; the receipt never falls back to a local source
+baseline.
 
 ### CI: `release-dsh-plugins-stable.yml` (Track 3)
 
-Manual dispatch, requires `composition_receipt_run_id` (a successful Track 2 run).
+Candidate build via manual dispatch or reusable workflow call; requires
+`composition_receipt_run_id` (a successful Track 2 run).
 
 Steps:
 1. Download `composition_receipt.json` from that run
 2. `node scripts/apply-composition-receipt.mjs --receipt composition_receipt.json`  
    — patches `package.json` plugin deps from `file:plugins/` to exact registry versions
+   and removes only those plugins' prior local resolutions
 3. Refresh the lockfile with `npm install --package-lock-only --ignore-scripts`, then run
    `OPL_DSH_REGISTRY_PLUGINS=1 npm ci`. The root prepare hook preserves the published
    plugins; dependency lifecycle scripts still prepare Electron and native modules.
-4. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins`; published
+4. `verify-composition-installation.mjs` checks the same registry-origin, integrity and
+   shipped-entrypoint boundary as Track 2.
+5. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins`; published
    Host and Client plugins are left untouched while only the boot shell and unpublished
    Superagent engine are generated.
-5. `electron-builder` packages, `qualify:desktop:distribution` validates
-6. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`
+6. `electron-builder` packages, `qualify:desktop:distribution` validates
+7. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`
 
 The resulting artifacts have the same structure as a full carrier candidate. They are
 not a Stable release until an App-side consumer admits the exact candidate and performs
@@ -322,8 +352,8 @@ npm run manual:plugins -- update-registry --package opl-superagent --token ghp_.
 Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
 reuse the stored token automatically.
 
-The local operator and source composition lanes are implemented. Public publication,
-receipt-backed Stable production, and App-managed end-user update readback still require
-a real release run. The product Client graph is loaded through official DSH client
+The local operator lane, public publication and registry composition are verified at the
+commits above. Receipt-backed Stable production and installed App update/activation need
+their own final readback. The product Client graph is loaded through official DSH client
 modules; `engines.dsh` is declared in all publishable plugin manifests, `cordis.yml`
 lists Host plugin names only, and DSH resolves active Host/Client package versions at runtime.
