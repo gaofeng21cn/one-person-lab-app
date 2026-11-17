@@ -20,9 +20,12 @@ Release qualification belongs to the release operation and its exact artifacts.
 | Remote environment scope | Keep the first `/apps` release scoped to the current local host; add remote environments only after an explicit environment projection and selection contract exists. | Framework environment projection and App page-state contract; no inferred remote inventory or cross-host update action. |
 | Dynamic Runtime | Qualify the required core route with real dynamic producers and generic views for the current consumer cohort. | [Package integration acceptance](opl-package-platform-composition-migration.md) and [Runtime reference](../product/gui/runtime-overview-redesign.md); source status stays in conformance, with unknown producer/view degradation proved separately. |
 
-OPL Link development is frozen. Its unresolved transport, pairing, quota, push and
-qualification facts stay with [OPL Link](../product/opl-link.md) and its owning
-repository; this index does not restart that work.
+OPL Link is now an active native companion surface. The current implementation
+owns one desktop Settings entry, automatic transport recovery, pairing,
+connection diagnostics and the iPhone Duo path. Remaining work is limited to
+the owner-specific release and distribution gates recorded in
+[OPL Link](../product/opl-link.md); this index does not create a second Link
+state machine or a second connector surface.
 
 ## Evidence Work
 

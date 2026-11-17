@@ -550,7 +550,7 @@
         "slot contributions must be capability-gated, scope-bound, reversible, and absent without leaving placeholder navigation",
         "OPL should reuse the smallest independently testable GUI packages and vendor selected source only when the published package boundary is broken or insufficient while preserving the exact ref and notices",
         "Framework remains the authoritative OPL runtime Package graph and App projection Host; Studio separately owns its DSH Application Host lifecycle without receiving Framework runtime or Package authority",
-        "channel_access is the App-owned declarative standard view for Weixin/channel providers; remote_companion_access is the separate OPL Link pairing/device view and must not be filtered by channel view type"
+        "channel_access is the App-owned declarative standard view for Weixin/channel providers; OPL Studio's native Link companion owns ordinary OPL Link pairing/device Settings, while legacy remote_companion_access data remains typed compatibility input and must not be mounted beside the native surface"
       ],
       "forbidden_reuse": [
         "do not adopt DeepSeek Harness session log, agent loop, provider routing, credential store, Package currentness, product, domain, or release authority",
@@ -1203,7 +1203,7 @@
           "OPL injects only brand text App-owned data capability classification and host behavior through public slots props typed contributions and external adapters without a parallel visual system or unearned CSS overrides",
           "ordinary UI keeps only projects, conversations, search, and Settings in the left rail and opens run status, files and results, or agents and capabilities in the DSH details column on demand",
           "runtime status consumes the current Codex thread and active_project_lines while hypotheses and roadmaps come from owner-projected runtime.detail contributions",
-          "Weixin/channel access renders only from a current channel_access contribution while OPL Link pairing/device access renders from remote_companion_access without a channel view-type filter; each absent provider remains a local unavailable state while transport binding projection remains pending",
+          "Weixin/channel access renders only from a current channel_access contribution while the native OPL Studio Link surface renders pairing/device access from the Link bridge; legacy remote_companion_access is retained for typed compatibility and filtered from ordinary Settings when the native owner is present; each absent provider remains a local unavailable state",
           "in-app identity is text-only One Person Lab while platform bundle icons remain allowed",
           "WebUI parity evidence proves the same renderer host core and product semantics as Electron desktop",
           "one Codex App Server adapter exposes canonical thread list, read, start, resume, fork, archive, unarchive, and ordinary turn start and steer",

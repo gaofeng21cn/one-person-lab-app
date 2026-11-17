@@ -47,6 +47,10 @@ OPL Link 让用户离开电脑后，在 iPhone 或 iPad 上找到 OPL App 的已
 桌面显示就绪后生成一次性二维码，手机扫码或粘贴链接，核对电脑指纹后进入对话。服务地址内置，
 用户无需在 App 和 Link 之外安装软件、配置域名、证书、端口或隧道，手机无需输入账号密码。
 
+Studio 的原生 Link 面板是桌面唯一的普通配对与设备管理入口。旧版
+`remote_companion_access` 保留为兼容数据，不与原生面板同时显示；微信继续通过
+`channel_access` 提供独立连接功能。
+
 用户从已有对话开始，也可以在选中的设备上新建对话。项目分组是对 canonical workspace 的只读
 导航投影；本地置顶、草稿和阅读位置属于设备偏好，不重写 thread 历史或项目身份。
 
@@ -115,6 +119,10 @@ HTTP、无效证书和跨 origin 重定向；Debug loopback 只用于隔离验�
 手机显示真实的不确定状态并回读 canonical 对话，不自动重发消息、审批或停止动作。离线保留草稿，
 禁用写动作；恢复后重新读取设备状态、目录、当前 thread 和 pending requests。
 
+桌面保持手机访问开启时自动恢复掉线的互联网连接，并按退避间隔重试；手动重新连接保留为
+补救动作。恢复沿用已保存的设备身份，不因电脑改名要求重新配对。连接诊断显示实际路径和
+最近失败原因，不能以手动点击恢复代替自动恢复的实现。
+
 系统挂起后的即时更新不属于当前连接能力。回前台必须同步；小组件、Live Activity 或通知只表达
 已取得的真实状态。没有推送服务时，不承诺 App 被结束后仍能即时收到进展。
 
@@ -157,3 +165,8 @@ HTTP、无效证书和跨 origin 重定向；Debug loopback 只用于隔离验�
 复用依据与成本见[连接方案评估](opl-link-connection-options.md)，本轮实际路径与边界见
 [直连验收](gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md)，初次上线见
 [托管互联网验收](gui/evidence/opl-link-internet-acceptance-2026-11-15.md)。
+
+2026-11-16 的[真实 iPhone Duo 验收](gui/evidence/opl-link-physical-device-acceptance-2026-11-16.md)
+已覆盖配对、续话、文件预览、前后台恢复和前台 Wi-Fi→蜂窝切换。用户随后确认的
+“Enable UI Automation”来自 Xcode/XCTest 的系统自动化授权；普通 Link 启动和配对不请求这项
+认证。该系统文案由 Apple 提供，不是 Link 的应用内标题。
