@@ -287,7 +287,7 @@ Steps:
    `OPL_DSH_REGISTRY_PLUGINS=1 npm ci`. The root prepare hook preserves the published
    plugins; dependency lifecycle scripts still prepare Electron and native modules.
 4. `npm run build:desktop:receipt` — builds desktop with `--registry-plugins`; published
-   Host plugins are left untouched while only the static carrier and unpublished
+   Host and Client plugins are left untouched while only the boot shell and unpublished
    Superagent engine are generated.
 5. `electron-builder` packages, `qualify:desktop:distribution` validates
 6. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`

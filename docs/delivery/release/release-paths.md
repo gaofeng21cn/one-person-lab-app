@@ -60,9 +60,9 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 附加发布失败只恢复自身。已公开 Standard 不应被 Full、Docker、Windows 或 Homebrew 的失败
 回写成”从未发布”；要求完整矩阵的任务也不能因为 Standard 成功就结束。
 
-## DSH Host 插件发布入口
+## DSH Host/Client 插件发布入口
 
-DSH Host 插件（`opl-studio/plugins/<plugin-id>/`）通过独立 CI 发布到 GitHub Packages，
+DSH Host/Client 插件（`opl-studio/plugins/<plugin-id>/`）通过独立 CI 发布到 GitHub Packages，
 与完整 App 构建解耦。设计模型见 [`docs/delivery/dsh-plugin-publication.md`](../dsh-plugin-publication.md)。
 
 | 需求 | 入口（opl-studio CI） | 说明 |

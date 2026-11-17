@@ -83,9 +83,10 @@ the pinned DSH cohort and produces a **composition receipt** — a pinned list o
 The receipt does not replace DSH runtime graph discovery.
 
 When Electron, DSH cohort, and the small `AppWebEntry` boot shell are unchanged from the
-previous Stable release, the Stable path is composition receipt admission + registry
-plugin install + carrier packaging. The App Stable controller admits the exact receipt
-before the Studio workflow is called.
+previous Stable release, the candidate path is composition receipt + registry plugin
+install + carrier packaging. Integration with the existing App Stable signing,
+qualification and publication controller remains pending; the candidate workflow
+does not publish a Stable release.
 The candidate preserves published Host and Client plugin bytes, while the small boot shell
 remains carrier-owned. End-to-end duration is measured per candidate rather than asserted
 in advance.
