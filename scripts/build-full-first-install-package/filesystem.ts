@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import {
   listFullRuntimeProductionNodeModulePaths,
@@ -249,6 +250,15 @@ export function copyNodeRuntimePayload(nodeRoot, targetRoot, npmRoot = path.join
     copyNodeToolchainPackage(sourcePath, path.join(targetRoot, 'lib', 'node_modules', packageName));
   }
   assertNoExternalSymlinks(targetRoot, 'Full first-install Node runtime');
+  for (const name of ['npm', 'npx']) {
+    const probe = spawnSync(path.join(targetRoot, 'bin', 'node'), [path.join(targetRoot, 'bin', name), '--version'], {
+      cwd: targetRoot, encoding: 'utf8', timeout: 15_000,
+      env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+    });
+    if (probe.status !== 0 || probe.error) {
+      throw new Error(`Packaged Node ${name} launcher failed: ${probe.error?.message ?? probe.stderr}`);
+    }
+  }
 }
 
 function copyNodeToolchainPackage(sourceRoot, targetRoot) {

@@ -69,7 +69,7 @@ test('Full repairs dereferenced npm launchers when repackaging an installed tool
   fs.mkdirSync(path.join(npmRoot, 'lib'));
   fs.writeFileSync(path.join(npmRoot, 'package.json'), JSON.stringify({ name: 'npm', bin: { npm: 'bin/npm-cli.js', npx: 'bin/npx-cli.js' } }));
   fs.writeFileSync(path.join(npmRoot, 'lib/cli.js'), "console.log('relocated-npm-ready');\n");
-  fs.writeFileSync(path.join(bin, 'node'), 'fixture-node');
+  fs.writeFileSync(path.join(bin, 'node'), `#!/bin/sh\nexec '${process.execPath.replaceAll("'", "'\\''")}' "$@"\n`, { mode: 0o755 });
   for (const name of ['npm', 'npx']) {
     const source = "require('../lib/cli.js');\n";
     fs.writeFileSync(path.join(bin, name), source);
@@ -84,4 +84,17 @@ test('Full repairs dereferenced npm launchers when repackaging an installed tool
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout.trim(), 'relocated-npm-ready');
   }
+});
+
+test('Full rejects npm that cannot load from the copied package', context => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-node-broken-npm-'));
+  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const npmRoot = path.join(root, 'source/lib/node_modules/npm');
+  fs.mkdirSync(path.join(root, 'source/bin'), { recursive: true });
+  fs.mkdirSync(path.join(npmRoot, 'bin'), { recursive: true });
+  fs.writeFileSync(path.join(npmRoot, 'package.json'), '{"name":"npm"}');
+  for (const name of ['npm', 'npx']) fs.writeFileSync(path.join(npmRoot, 'bin', `${name}-cli.js`), "require('../lib/missing.js');\n");
+  fs.writeFileSync(path.join(root, 'source/bin/node'), `#!/bin/sh\nexec '${process.execPath.replaceAll("'", "'\\''")}' "$@"\n`, { mode: 0o755 });
+  assert.throws(() => copyNodeRuntimePayload(path.join(root, 'source'), path.join(root, 'target'), npmRoot),
+    /Packaged Node npm launcher failed:[\s\S]*Cannot find module/);
 });
