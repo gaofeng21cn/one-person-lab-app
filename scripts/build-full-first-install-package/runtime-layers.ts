@@ -767,7 +767,7 @@ export function buildToolchainLayer(layerRoot, sources, flowCapabilityBuildLock)
   copySingleFile(sources.temporalCliArchive, path.join(layerRoot, 'vendor', 'temporal', 'temporal_cli_darwin_arm64.tar.gz'));
   writeTemporalCliWrapper(path.join(layerRoot, 'bin', 'temporal'), commandOutput(sources.temporalCliBin, ['--version']));
   materializeFlowCapabilityBuildLock(layerRoot, sources, flowCapabilityBuildLock);
-  copyNodeRuntimePayload(path.dirname(path.dirname(sources.nodeToolchain.nodeBin)), path.join(layerRoot, 'node'));
+  copyNodeRuntimePayload(path.dirname(path.dirname(sources.nodeToolchain.nodeBin)), path.join(layerRoot, 'node'), sources.nodeToolchain.npmRoot);
   copySingleFile(sources.uvBin, path.join(layerRoot, 'uv', 'bin', 'uv'));
   copyTreeFiltered(
     sources.pythonRoot,
