@@ -49,7 +49,12 @@ test('channel settings admit exactly one provider route per renderer', () => {
   assert.equal(remoteCompanionAccess.result_schema_ref, 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result');
   assert.equal(remoteCompanionAccess.renderer_activation_policy.aionui.framework_remote_companion_host_activation_allowed, true);
   assert.equal(remoteCompanionAccess.renderer_activation_policy.aionui.framework_projected_remote_companion_access_rendering_allowed, true);
-  assert.deepEqual(remoteCompanionAccess.renderer_activation_policy.aionui, remoteCompanionAccess.renderer_activation_policy.opl_studio);
+  const studioCompanionPolicy = remoteCompanionAccess.renderer_activation_policy.opl_studio;
+  assert.equal(studioCompanionPolicy.provider_owner, 'opl_studio_native_link_companion_bridge');
+  assert.equal(studioCompanionPolicy.settings_surface, 'settings_resources_opl_link_native_host_panel');
+  assert.equal(studioCompanionPolicy.framework_remote_companion_host_activation_allowed, false);
+  assert.equal(studioCompanionPolicy.framework_projected_remote_companion_access_rendering_allowed, false);
+  assert.equal(remoteCompanionAccess.renderer_activation_policy.single_active_provider_path_per_renderer_required, true);
   assert.deepEqual(remoteCompanionAccess.secret_boundary.never_cached_logged_or_returned_by_app_action, [
     'invitation_code',
     'manual_code',
