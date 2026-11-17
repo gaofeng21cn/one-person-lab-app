@@ -81,15 +81,8 @@ export function runShellProductProfileConsumerGate(
   if (shellHead !== expectedShellSha) {
     throw new Error(`Shell consumer checkout HEAD ${shellHead} does not match expected ${expectedShellSha}.`);
   }
-  const sourceStatusBefore = commandOutput(
-    'git',
-    ['status', '--porcelain', '--untracked-files=normal'],
-    shellRoot,
-  );
-  if (sourceStatusBefore.trim()) {
-    throw new Error('Shell consumer checkout must be clean before creating the isolated profile projection.');
-  }
-
+  // The explicit commit supplies all source bytes. Local edits stay outside the
+  // isolated archive and do not need to be committed or discarded for this read.
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-shell-profile-consumer-'));
   let consumerFailure: unknown = null;
   try {
@@ -121,14 +114,6 @@ export function runShellProductProfileConsumerGate(
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
   }
 
-  const sourceStatusAfter = commandOutput(
-    'git',
-    ['status', '--porcelain', '--untracked-files=normal'],
-    shellRoot,
-  );
-  if (sourceStatusAfter !== sourceStatusBefore) {
-    throw new Error('Shell consumer checkout changed while the isolated profile gate ran.');
-  }
   if (consumerFailure) throw consumerFailure;
   return {
     schema: 'opl_shell_product_profile_consumer_gate.v1',

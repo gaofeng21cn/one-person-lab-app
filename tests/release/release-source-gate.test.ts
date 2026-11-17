@@ -92,7 +92,7 @@ test('release source gate accepts explicit isolated source checkout roots', () =
   assert.equal(parsed.frameworkRoot, '/private/tmp/release-framework');
 });
 
-test('Shell product-profile consumer uses the frozen Studio candidate validator', () => {
+test('Shell product-profile consumer uses the frozen Studio validator while preserving local edits', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-shell-consumer-command-'));
   const shellRoot = path.join(root, 'shell');
   const markerPath = path.join(root, 'studio-validator-invocation.txt');
@@ -122,24 +122,31 @@ test('Shell product-profile consumer uses the frozen Studio candidate validator'
     git('config', 'user.email', 'release-test@example.invalid');
     git('add', '.gitignore', 'package.json', 'scripts/validate-opl-studio-candidate.mjs');
     git('commit', '-qm', 'fixture');
+    const expectedShellSha = git('rev-parse', 'HEAD');
+    const localValidator = 'throw new Error("uncommitted validator must not execute");\n';
+    fs.writeFileSync(path.join(shellRoot, 'scripts', 'validate-opl-studio-candidate.mjs'), localValidator);
+    fs.writeFileSync(path.join(shellRoot, 'local-notes.txt'), 'unrelated local work\n');
+    const sourceStatus = git('status', '--porcelain', '--untracked-files=normal');
     process.env.PATH = `${fakeBin}:${previousPath ?? ''}`;
 
     const report = runShellProductProfileConsumerGate({
       shellRoot,
-      expectedShellSha: git('rev-parse', 'HEAD'),
+      expectedShellSha,
       shellId: 'opl-studio',
     });
 
     assert.equal(report.status, 'passed');
     assert.match(fs.readFileSync(markerPath, 'utf8'), /opl-shell-profile-consumer-/);
-    assert.equal(git('status', '--porcelain', '--untracked-files=normal'), '');
+    assert.equal(git('status', '--porcelain', '--untracked-files=normal'), sourceStatus);
+    assert.equal(fs.readFileSync(path.join(shellRoot, 'scripts', 'validate-opl-studio-candidate.mjs'), 'utf8'), localValidator);
+    assert.equal(fs.readFileSync(path.join(shellRoot, 'local-notes.txt'), 'utf8'), 'unrelated local work\n');
   } finally {
     process.env.PATH = previousPath;
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('Framework release CLI consumer runs direct executable specs after an isolated ignore-scripts install', () => {
+test('Framework release CLI consumer validates the exact archive while preserving local edits', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-framework-release-cli-command-'));
   const frameworkRoot = path.join(root, 'framework');
   fs.mkdirSync(path.join(frameworkRoot, 'bin'), { recursive: true });
@@ -195,14 +202,22 @@ test('Framework release CLI consumer runs direct executable specs after an isola
     `);
     git('add', '.gitignore', 'package.json', 'package-lock.json', 'bin/opl', 'scripts/prepare.mjs', 'scripts/verify-package-source-artifacts.ts');
     git('commit', '-qm', 'fixture');
+    const expectedFrameworkSha = git('rev-parse', 'HEAD');
+    const localCli = '#!/bin/sh\nexit 99\n';
+    fs.writeFileSync(path.join(frameworkRoot, 'bin', 'opl'), localCli);
+    fs.writeFileSync(path.join(frameworkRoot, 'local-notes.txt'), 'unrelated local work\n');
+    const sourceStatus = git('status', '--porcelain', '--untracked-files=normal');
 
     const report = runFrameworkReleaseCliConsumerGate({
       frameworkRoot,
       packageIds: ['fixture-root'],
-      expectedFrameworkSha: git('rev-parse', 'HEAD'),
+      expectedFrameworkSha,
     });
 
     assert.equal(report.status, 'passed');
+    assert.equal(git('status', '--porcelain', '--untracked-files=normal'), sourceStatus);
+    assert.equal(fs.readFileSync(path.join(frameworkRoot, 'bin', 'opl'), 'utf8'), localCli);
+    assert.equal(fs.readFileSync(path.join(frameworkRoot, 'local-notes.txt'), 'utf8'), 'unrelated local work\n');
     assert.equal(report.dependency_install, 'npm ci --ignore-scripts');
     assert.equal(report.command_surface_source, 'executable_command_specs');
     assert.equal(report.surface_generation, 'not_invoked');
@@ -225,7 +240,7 @@ test('Framework release CLI consumer runs direct executable specs after an isola
     });
     assert.equal(hostOnly.status, 'passed');
     assert.equal(hostOnly.package_source_preflight, null);
-    assert.equal(git('status', '--porcelain', '--untracked-files=normal'), '');
+    assert.equal(git('status', '--porcelain', '--untracked-files=normal'), sourceStatus);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

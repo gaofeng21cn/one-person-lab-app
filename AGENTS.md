@@ -10,6 +10,7 @@
 - AionCore 是只读上游依赖。不得为 OPL 建立或维护 AionCore fork、PR 或 patch，也不得单独替换 `/Applications/One Person Lab.app` 内嵌的 AionCore；升级只能由 App/Shell 合同选择官方 release，并通过完整 OPL App 构建、安装和运行时版本回读闭环。
 - 用户可见行为、页面状态、模型/引导策略或 release-ready 边界变化时，先更新 App contract、docs 和 tests，再实现 Shell；上游 fork body 默认只读。
 - 新功能先明确软件用途、主功能影响、owner 与验收。OPL Link 的主要任务是远程操作电脑上的 OPL App；手机连接器遵循 `contracts/app-remote-companion-extensions.json`，默认关闭、仅当前请求显式选择，不向普通电脑或手机远程对话注入工具/提示词。缺少可信按请求隔离时保持扩展禁用，扩展失败不得改变主功能。
+- 所有执行限制遵循 Framework 的[必要性与作用范围政策](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/engineering-boundary-policy.md)：说明具体可达故障与最小阻断范围，不能仅凭旧实现、合同或测试保留限制；可选服务和开发验证的问题局部处理，不套用发布或不可逆操作的全局门禁。
 - Package、carrier 与 executor 是独立角色。App/Shell 从动态 projection 渲染，不维护固定 Package/Agent 清单、依赖图、版本解析、lock、payload、receipt 或 currentness 镜像。
 - 普通读取使用 `opl app state --profile fast --json`；写入统一走 `opl app action execute ... --json`。未知外部 mutation 只做 owner-authoritative inspect/reconcile，不重发或猜测。
 - 迁移、合并或隐藏 GUI 入口时，验证从原入口到新入口的完整用户路径；按 fresh owner projection 覆盖普通软件、运行组件、第三方、未安装与已停用状态。安装分类不决定功能配置归属；所有插件设置通过同一贡献机制按功能进入设置，微信远程是 App 标准功能，插件化只用于开发与运维。移除旧入口前，新入口须已有真实挂载、读取和动作验证，描述符存在或安装成功不能代替可达性验收。

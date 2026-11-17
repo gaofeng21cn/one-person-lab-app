@@ -3573,7 +3573,11 @@
       ],
       "write_confirmation": "framework_preview_then_explicit_confirm",
       "overlap_policy": "skip",
-      "late_start_limit_minutes": 5
+      "late_start_limit_minutes": null,
+      "network_access": "enabled_independently_of_file_write_permissions",
+      "missed_schedule_policy": "framework_temporal_catchup_policy",
+      "timeout_minutes": "user_defined_positive_integer_within_runtime_duration_range",
+      "unchanged_once_time_on_content_edit": true
     },
     "ui_reuse": {
       "components": [

@@ -92,15 +92,8 @@ export function runFrameworkReleaseCliConsumerGate(
   if (frameworkHead !== expectedFrameworkSha) {
     throw new Error(`Framework checkout HEAD ${frameworkHead} does not match expected ${expectedFrameworkSha}.`);
   }
-  const sourceStatusBefore = commandOutput(
-    'git',
-    ['status', '--porcelain', '--untracked-files=normal'],
-    frameworkRoot,
-  );
-  if (sourceStatusBefore.trim()) {
-    throw new Error('Framework checkout must be clean before creating the isolated release CLI consumer.');
-  }
-
+  // Validation reads the named commit, not the working tree. Unrelated local
+  // edits cannot alter the archive and must not block this isolated consumer.
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-framework-release-cli-consumer-'));
   let consumerFailure: unknown = null;
   let packageSourcePreflight: Record<string, unknown> | null = null;
@@ -165,14 +158,6 @@ export function runFrameworkReleaseCliConsumerGate(
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
   }
 
-  const sourceStatusAfter = commandOutput(
-    'git',
-    ['status', '--porcelain', '--untracked-files=normal'],
-    frameworkRoot,
-  );
-  if (sourceStatusAfter !== sourceStatusBefore) {
-    throw new Error('Framework checkout changed while the isolated release CLI consumer ran.');
-  }
   if (consumerFailure) throw consumerFailure;
 
   return {

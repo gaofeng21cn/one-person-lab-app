@@ -195,7 +195,7 @@ Cordis boot/profile、插件 metadata/inventory、Client Modules、SlotRegistry 
 
 本次任务页迁移复用官方 `TaskManagerPage`/`TaskDetail` 组件及其列表、筛选、编辑与详情结构；OPL owner adapter 负责 catalog 和操作的映射，并通过有界组件扩展补入权限、超时及 Temporal run history。官方 Schedule Host 不加载，DSH Session target 不成为执行 owner。显示 Temporal 执行历史时保留 Codex status 与结果入口，不把它改名为 DSH inbox delivery receipt。该适配与 React 19 兼容改动一并进入 source manifest 和升级 replay。
 
-`/scheduled` 指向侧栏计划任务页；任务可设单次、每天、每周或固定间隔，写入明确时区、权限和超时。App 须保持运行，重叠执行及启动延迟超过五分钟的执行跳过。源码实现与实际发布、安装验收分别记录，不以合同或源码状态替代安装后的服务回读。
+`/scheduled` 指向侧栏计划任务页；任务可设单次、每天、每周或固定间隔，写入明确时区、权限和用户指定的正整数分钟超时，不设固定两小时上限。修改单次任务的标题或提示词可以保留原执行时间，新建或改变执行时刻才要求未来时间。Temporal 持有补跑与重叠策略，已获准的持久运行不因等待 App worker 超过五分钟而再次跳过；App worker 运行时执行任务。源码实现与实际发布、安装验收分别记录，不以合同或源码状态替代安装后的服务回读。
 
 ## 用户功能与工程模块的边界
 

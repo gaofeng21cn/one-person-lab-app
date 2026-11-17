@@ -27,6 +27,11 @@ test('Scheduled Tasks contracts share one fail-open fixed-Codex composition', ()
   const pageState = matrix.pages.find((page) => page.id === 'scheduled_tasks');
 
   assert.doesNotThrow(() => validateScheduledTasksProductPolicy(gui.scheduled_tasks_policy));
+  const reordered = structuredClone(gui.scheduled_tasks_policy);
+  reordered.execution_policy = Object.fromEntries(Object.entries(reordered.execution_policy).reverse());
+  assert.doesNotThrow(() => validateScheduledTasksProductPolicy(reordered));
+  reordered.execution_policy.network_access = 'disabled';
+  assert.throws(() => validateScheduledTasksProductPolicy(reordered), /execution/);
   assert.doesNotThrow(() => validateScheduledTasksPageContract(gui.pages.scheduled_tasks, gui.scheduled_tasks_policy));
   assert.doesNotThrow(() => validateScheduledTasksPageState(pageState, gui.scheduled_tasks_policy));
   assert.doesNotThrow(() => validateScheduledTasksProfileProjection(profile.companion_payloads.native_automation));

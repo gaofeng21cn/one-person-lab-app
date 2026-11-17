@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { assertStringArrayIncludes } from '../value-assertions.ts';
 
@@ -10,7 +11,7 @@ export function assertIncludesAll(actual, expected, label) {
 }
 
 export function assertDeepEqualJson(actual, expected, label) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+  if (!isDeepStrictEqual(actual, expected)) {
     throw new Error(`${label} must be ${JSON.stringify(expected)}; got ${JSON.stringify(actual)}`);
   }
 }

@@ -427,6 +427,7 @@
           "capability_id": "permissions_sandbox_approval_and_elicitation",
           "owner": "codex_app_server",
           "pending_human_request_policy": "preserve_blocking_approval_user_input_and_mcp_elicitation_while_waiting; pause_inactivity_timeout_and_block_idle_maintenance; respect_nonblocking_input_and_nullable_mcp_turn_scope",
+          "file_permission_network_policy": "read_only_and_workspace_write_allow_network_without_expanding_file_write_scope",
           "disposition": "required",
           "cutover_blocking": true
         },

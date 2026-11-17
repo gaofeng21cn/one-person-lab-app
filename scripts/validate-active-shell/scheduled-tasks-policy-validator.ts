@@ -27,7 +27,11 @@ export function validateScheduledTasksProductPolicy(policy, label = 'Scheduled T
   assertDeepEqualJson(policy.execution_policy, {
     app_must_remain_running: true, schedule_kinds: ['once', 'daily', 'weekly', 'interval'],
     timezone: 'explicit_iana_timezone_on_write', permissions: [':read-only', ':workspace'],
-    write_confirmation: 'framework_preview_then_explicit_confirm', overlap_policy: 'skip', late_start_limit_minutes: 5,
+    write_confirmation: 'framework_preview_then_explicit_confirm', overlap_policy: 'skip', late_start_limit_minutes: null,
+    missed_schedule_policy: 'framework_temporal_catchup_policy',
+    network_access: 'enabled_independently_of_file_write_permissions',
+    timeout_minutes: 'user_defined_positive_integer_within_runtime_duration_range',
+    unchanged_once_time_on_content_edit: true,
   }, `${label} execution`);
   assertDeepEqualJson(policy.ui_reuse, {
     components: [

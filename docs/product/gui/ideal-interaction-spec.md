@@ -63,7 +63,8 @@ macOS 所做的 composition 翻译；精确版本由每次 observation receipt �
 - Working-directory grouping 位于 rail；Home/new-session composer 上方保留一个独立 context bar
   选择初始 cwd；locality/branch 位于 Environment。Composer 只保留 active capability、统一 `+`
   capability palette、当前已选的紧凑上下文 chip、模型/推理和
-  permission/access mode；access mode 使用自动化与文件权限的用户语言。
+  permission/access mode；access mode 使用自动化与文件权限的用户语言。只读和工作区可写
+  约束文件写入范围，均允许联网查资料和调用服务，不隐含离线模式；服务自身授权仍由该服务核对。
 - 右上 Environment details 默认关闭；bottom panel、file tree、Terminal、Browser 和
   独立 artifact preview 也默认关闭。
 - 不显示解释性 landing、marketing hero、activity grid、continue-work dashboard、
