@@ -54,7 +54,7 @@ test('optional phone capabilities cannot change the primary mission or ordinary 
     (p: Contract) => { p.admission.invalidated_by = ['turn_end']; },
     (p: Contract) => { p.admission.offline_or_capability_failure = 'disable_remote_companion'; },
     (p: Contract) => { p.future_feature_admission.utility_alone_overrides_primary_behavior = true; },
-    (p: Contract) => { p.state = 'qualified'; },
+    (p: Contract) => { p.state = 'enabled'; },
     (p: Contract) => { p.acceptance.must_prove_before_enablement = ['paired_device_presence']; },
   ]) {
     const value = structuredClone(extensions); mutate(value);

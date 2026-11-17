@@ -203,8 +203,10 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
 
 export function validateRemoteCompanionExtensionsContract(extensions: Record<string, any>): void {
   fields(extensions, { schema: 'opl_app_remote_companion_extensions.v1', owner: 'one-person-lab-app',
-    state: 'contract_locked_not_enabled', purpose: 'optional_phone_capabilities_without_changing_remote_companion_behavior' },
+    purpose: 'optional_phone_capabilities_without_changing_remote_companion_behavior' },
     'OPL Link extension contract');
+  requireValue(['contract_locked_not_enabled', 'source_implemented_opt_in_context', 'qualified'].includes(extensions.state),
+    'OPL Link extension contract state is invalid');
   fields(extensions.primary_mission, { product: 'OPL Link',
     role: 'native_phone_companion_for_remote_operation_of_the_existing_opl_app',
     desktop_is_authority: true, extension_is_not_a_second_runtime: true }, 'OPL Link primary mission');
@@ -235,8 +237,9 @@ export function validateRemoteCompanionExtensionsContract(extensions: Record<str
   requiredSet(extensions.admission.invalidated_by, ['next_request', 'turn_end', 'background', 'disconnect', 'revocation', 'timeout', 'identity_or_lease_change'],
     'OPL Link extension invalidation');
   fields(extensions.implementation, { global_tool_registration_allowed: false, global_tools_list_change_allowed: false,
-    runtime_strategy: 'not_installed_or_registered_until_codex_request_scoped_tool_admission_is_verified',
-    current_codex_gap: 'codex_0.167.1_turn_start_and_steer_have_no_dynamic_tools_input;_current_dsh_MCP_has_no_trusted_request_origin' },
+    runtime_strategy: 'native_phone_context_injection_for_explicit_current_request;_no_global_tools_or_persistent_grants',
+    current_codex_gap: 'codex_0.167.1_turn_start_and_steer_have_no_dynamic_tools_input;_safe_context_path_does_not_require_global_tools',
+    delivered_mode: 'user_selected_native_context_appended_to_one_outgoing_message_and_cleared_after_success' },
     'OPL Link extension implementation');
   requireValue(object(extensions.planned_modules), 'OPL Link planned modules must be declared');
   closedSet(Object.keys(extensions.planned_modules), extensionModules, 'OPL Link planned modules');
@@ -248,10 +251,11 @@ export function validateRemoteCompanionExtensionsContract(extensions: Record<str
   requiredSet(extensions.future_feature_admission.required_decisions, ['user_purpose', 'primary_workflow_impact', 'canonical_owner',
     'default_behavior', 'isolation_and_failure_behavior', 'acceptance_evidence'], 'OPL Link feature decisions');
   requiredSet(extensions.acceptance.must_prove_before_enablement, ['ordinary_desktop_tool_catalog_is_unchanged',
-    'ordinary_phone_remote_tool_catalog_is_unchanged', 'explicit_current_request_receives_only_selected_and_granted_tools',
+    'ordinary_phone_remote_tool_catalog_is_unchanged', 'explicit_current_request_receives_only_selected_and_granted_context',
     'next_request_and_concurrent_other_threads_do_not_inherit_tools_or_grants',
     'permission_revocation_removes_admission_without_reconnecting', 'stale_or_mixed_source_is_rejected',
-    'extension_timeout_or_denial_does_not_break_primary_remote_companion', 'physical_iphone_permission_and_foreground_limits_are_verified'],
+    'extension_timeout_or_denial_does_not_break_primary_remote_companion', 'native_context_path_builds_with_required_apple_permissions',
+    'successful_send_clears_context_before_next_request', 'physical_iphone_permission_and_foreground_limits_are_verified'],
     'OPL Link extension acceptance');
   fields(extensions.source_refs, { product_contract: policyRef, wire_contract: wireRef, link_product_doc: 'docs/product/opl-link.md' },
     'OPL Link extension sources');

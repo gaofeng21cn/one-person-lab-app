@@ -9,7 +9,7 @@
 - DSH 插件的源码所有权与依赖方向以 [插件组合与仓库边界](docs/product/gui/plugin-composition-map.md#源码所有权与依赖方向) 及 `contracts/app-plugin-composition-taxonomy.json#source_ownership_policy` 为准。`plugins/<plugin-id>/` 是独立 DSH 包边界，但当前仍存在过渡性根目录 caller；禁止新增 `plugins/* -> ../../../src/*`、插件间 `src` 直引、根 Workbench 进入插件内部 `src`、运行时插件导入 `scripts/*`。提取 `host-contracts` 或 `host-kit` 须有当前共享职责和公开接口，不能用共享包重新聚合成大插件。
 - AionCore 是只读上游依赖。不得为 OPL 建立或维护 AionCore fork、PR 或 patch，也不得单独替换 `/Applications/One Person Lab.app` 内嵌的 AionCore；升级只能由 App/Shell 合同选择官方 release，并通过完整 OPL App 构建、安装和运行时版本回读闭环。
 - 用户可见行为、页面状态、模型/引导策略或 release-ready 边界变化时，先更新 App contract、docs 和 tests，再实现 Shell；上游 fork body 默认只读。
-- 新功能先明确软件用途、主功能影响、owner 与验收。OPL Link 的主要任务是远程操作电脑上的 OPL App；手机连接器遵循 `contracts/app-remote-companion-extensions.json`，默认关闭、仅当前请求显式选择，不向普通电脑或手机远程对话注入工具/提示词。缺少可信按请求隔离时保持扩展禁用，扩展失败不得改变主功能。
+- 新功能先明确软件用途、主功能影响、owner 与验收。OPL Link 的主要任务是远程操作电脑上的 OPL App；手机连接器遵循 `contracts/app-remote-companion-extensions.json`，默认关闭、仅当前请求显式选择，不向普通电脑或手机远程对话注入工具/提示词。缺少可信动态工具隔离时使用一次性原生上下文路径，不把手机工具全局注册；扩展失败不得改变主功能。
 - 所有执行限制遵循 Framework 的[必要性与作用范围政策](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/engineering-boundary-policy.md)：说明具体可达故障与最小阻断范围，不能仅凭旧实现、合同或测试保留限制；可选服务和开发验证的问题局部处理，不套用发布或不可逆操作的全局门禁。
 - Package、carrier 与 executor 是独立角色。App/Shell 从动态 projection 渲染，不维护固定 Package/Agent 清单、依赖图、版本解析、lock、payload、receipt 或 currentness 镜像。
 - 普通读取使用 `opl app state --profile fast --json`；写入统一走 `opl app action execute ... --json`。未知外部 mutation 只做 owner-authoritative inspect/reconcile，不重发或猜测。
