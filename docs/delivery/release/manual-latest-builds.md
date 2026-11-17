@@ -25,11 +25,24 @@ or the desktop carrier itself must change.
 
 ## Source Policy
 
-First-party inputs come from each required clean canonical checkout. With an
-`origin` remote, the resolver verifies fresh remote `main`, the fetched
-`origin/main` and local `main` HEAD agree; without one it requires local `main`.
-The source lock records the selected App, active Shell, Framework and package
-owners. Dirty, detached or noncanonical inputs stop before building.
+By default, first-party inputs come from each required clean canonical checkout.
+With an `origin` remote, the resolver verifies that fresh remote `main`, fetched
+`origin/main` and the selected checkout HEAD agree. A clean detached checkout at
+that commit is supported; without an `origin` remote, the default requires local
+`main`. The source lock records the selected App, active Shell, Framework and
+package owners.
+
+To retain an exact source input after its repository advances, repeat
+`--source-ref <repo-id>=<40-character-commit-SHA>` for each repository to pin.
+Supported IDs are `app`, `shell`, `framework`, `mas`, `mag`, `rca`, `oma`, `obf`,
+`mas-scholar-skills` and `opl-flow`. Each selected checkout must already be clean
+and have HEAD equal to that SHA. The resolver fetches and reads fresh remote
+`main`, then verifies that the selected commit is reachable from it; unmerged
+commits, unknown IDs, duplicate selections and malformed SHAs are rejected.
+An `origin` remote is required for this explicit ancestry check. This option
+does not switch the checkout. Repositories without an explicit
+selection retain the default latest-source policy. The existing source lock
+records these explicit selections, the selection policy and the actual snapshots.
 
 Temporal CLI and OfficeCLI come from their latest official stable GitHub
 Release. MinerU OpenAPI uses the highest stable
@@ -113,6 +126,9 @@ Useful options:
 - `--no-launch` installs the local App without opening it.
 - `--install-path <path.app>` changes the local App destination.
 - `--out-dir <path>` changes the managed evidence or DMG directory.
+- `--source-ref <repo-id>=<40-character-commit-SHA>` retains an explicitly selected
+  canonical source commit; repeat it for additional repositories. Prepare the
+  matching clean checkouts before running the command.
 - `--reuse-gui-vite-output` is an explicit optimization and should be used only
   when the cached Shell renderer was compiled for the same display version.
 
@@ -149,7 +165,8 @@ and SHA-256 plus both Full manifests.
 
 These lanes do not create a Release Bundle, Framework checkpoint, Git tag,
 GitHub Release, Latest mutation, updater metadata, or Homebrew mutation. Their
-receipts are not formal Stable admission or updater qualification evidence.
+receipts and explicit source selections are not formal Stable admission or
+updater qualification evidence.
 
 For protected preview publication and later cleanup, use the
 [Manual Full preview handoff](manual-full-preview-handoff.md).

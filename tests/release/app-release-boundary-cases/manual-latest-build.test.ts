@@ -23,6 +23,7 @@ import {
 import {
   assertFullDmgCodexCarrierBoundary,
   prepareManualRuntimeDependencies,
+  parseManualSourceRefs,
   resolveManualBuildDependencies,
 } from '../../../scripts/manual-latest-build.ts';
 import {
@@ -668,6 +669,60 @@ test('manual source snapshot remains valid when remote main advances after freez
   execFileSync('git', ['push', 'origin', 'main'], { cwd: publisher });
 
   assert.doesNotThrow(() => assertDevelopmentRepoSnapshotUnchanged(frozen));
+});
+
+test('explicit source refs accept a frozen canonical ancestor without moving checkout or tracking ref', (context) => {
+  const root = createDevelopmentRepo();
+  const remoteRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-manual-frozen-remote-'));
+  context.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  });
+  const bare = path.join(remoteRoot, 'origin.git');
+  const publisher = path.join(remoteRoot, 'publisher');
+  execFileSync('git', ['init', '--bare', '--initial-branch=main', bare]);
+  execFileSync('git', ['remote', 'add', 'origin', bare], { cwd: root });
+  execFileSync('git', ['push', '-u', 'origin', 'main'], { cwd: root });
+  const frozen = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  execFileSync('git', ['checkout', '--detach', frozen], { cwd: root });
+  execFileSync('git', ['clone', bare, publisher]);
+  execFileSync('git', ['config', 'user.name', 'OPL Publisher'], { cwd: publisher });
+  execFileSync('git', ['config', 'user.email', 'publisher@example.invalid'], { cwd: publisher });
+  fs.writeFileSync(path.join(publisher, 'source.txt'), 'remote advanced\n');
+  execFileSync('git', ['commit', '-am', 'advance canonical main'], { cwd: publisher });
+  execFileSync('git', ['push', 'origin', 'main'], { cwd: publisher });
+  const remote = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: publisher, encoding: 'utf8' }).trim();
+
+  assert.throws(() => snapshotDevelopmentRepo('fixture', root), /fetched origin\/main is stale/);
+  const snapshot = snapshotDevelopmentRepo('fixture', root, frozen);
+  assert.equal(snapshot.head, frozen);
+  assert.equal(snapshot.requested_ref, frozen);
+  assert.equal(snapshot.remote_main, remote);
+  assert.equal(snapshot.origin_main, frozen);
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), frozen);
+  assert.equal(execFileSync('git', ['rev-parse', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim(), frozen);
+  assert.doesNotThrow(() => assertDevelopmentRepoSnapshotUnchanged(snapshot));
+
+  assert.throws(() => snapshotDevelopmentRepo('fixture', root, remote), /source ref differs from checkout HEAD/);
+  assert.throws(() => snapshotDevelopmentRepo('fixture', root, 'f'.repeat(40)), /source ref differs from checkout HEAD/);
+  fs.writeFileSync(path.join(root, 'source.txt'), 'dirty\n');
+  assert.throws(() => snapshotDevelopmentRepo('fixture', root, frozen), /development directory is not clean/);
+  execFileSync('git', ['checkout', '--', 'source.txt'], { cwd: root });
+  fs.writeFileSync(path.join(root, 'source.txt'), 'unmerged\n');
+  execFileSync('git', ['commit', '-am', 'unmerged source'], { cwd: root });
+  const unmerged = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  assert.throws(() => snapshotDevelopmentRepo('fixture', root, unmerged), /not reachable from fresh remote origin\/main/);
+});
+
+test('manual source-ref selection rejects ambiguous identities before resolving build inputs', () => {
+  const sha = 'a'.repeat(40);
+  assert.deepEqual(parseManualSourceRefs([`framework=${sha}`, `shell=${sha}`]), { framework: sha, shell: sha });
+  assert.deepEqual(parseManualSourceRefs(), {});
+  assert.throws(() => parseManualSourceRefs([`unknown=${sha}`]), /Unknown --source-ref repository/);
+  assert.throws(() => parseManualSourceRefs([`framework=${sha}`, `framework=${sha}`]), /Duplicate --source-ref repository/);
+  for (const input of ['framework=HEAD', 'framework=abc123', `framework=${sha}=extra`, 'framework=', '=']) {
+    assert.throws(() => parseManualSourceRefs([input]), /must be <repo-id>=<full 40-character commit SHA>/);
+  }
 });
 
 test('manual latest commands and operator guide remain discoverable', () => {

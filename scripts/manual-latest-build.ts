@@ -49,6 +49,20 @@ const OWNER_REPOS = {
 
 type Mode = 'local-app' | 'full-dmg';
 
+export function parseManualSourceRefs(values: string[] = []): Record<string, string> {
+  const ids = new Set(['app', 'shell', 'framework', ...Object.keys(OWNER_REPOS)]);
+  const refs: Record<string, string> = {};
+  for (const value of values) {
+    const match = /^([^=]+)=([0-9a-f]{40})$/.exec(value);
+    if (!match) throw new Error('--source-ref must be <repo-id>=<full 40-character commit SHA>');
+    const [, id, sha] = match;
+    if (!ids.has(id!)) throw new Error(`Unknown --source-ref repository: ${id}`);
+    if (Object.hasOwn(refs, id!)) throw new Error(`Duplicate --source-ref repository: ${id}`);
+    refs[id!] = sha!;
+  }
+  return refs;
+}
+
 type ShellBuildProjectionSnapshot = Array<{
   path: string;
   existed: boolean;
@@ -248,6 +262,7 @@ function parseOptions(argv: string[]) {
       'updater-version': { type: 'string' },
       'workspace-root': { type: 'string' },
       'shell-root': { type: 'string' },
+      'source-ref': { type: 'string', multiple: true },
       'cache-root': { type: 'string' },
       'out-dir': { type: 'string' },
       'install-path': { type: 'string' },
@@ -267,6 +282,7 @@ function parseOptions(argv: string[]) {
   if (mode === 'full-dmg' && values['install-path']) {
     throw new Error('--install-path is supported only for local-app');
   }
+  const sourceRefs = parseManualSourceRefs(values['source-ref']);
   let version = values.version?.trim() || '';
   if (!version) {
     const latestStable = githubApi<{
@@ -305,6 +321,7 @@ function parseOptions(argv: string[]) {
     updaterVersion,
     workspaceRoot,
     shellRoot: values['shell-root'] ? path.resolve(values['shell-root']) : null,
+    sourceRefs,
     cacheRoot,
     outDir,
     installPath: path.resolve(values['install-path'] || '/Applications/One Person Lab.app'),
@@ -320,13 +337,14 @@ function printHelp() {
   bun run manual:full-dmg -- [options]
 
 Shared policy:
-  - self-developed App, Shell, Framework, and first-party packages come from clean fresh remote origin/main HEADs
+  - self-developed inputs use clean fresh remote origin/main HEADs unless --source-ref selects an exact reachable canonical commit
   - external companions come from an official stable Release or tagged distribution and bind a verified sha256 digest
 
 Options:
   --version <YY.M.D[-rN]>         Display version (default: latest same-day Stable, else today's r0)
   --updater-version <YY.M.DNN>    Machine version derived from the selected display revision
   --workspace-root <path>         Development repositories root
+  --source-ref <repo-id>=<SHA>    Pin a clean checkout to a full canonical commit SHA (repeatable)
   --out-dir <path>                Evidence/DMG output directory
   --install-path <path>           local-app target (default: /Applications/One Person Lab.app)
   --no-launch                     Do not relaunch local-app after replacement
@@ -343,14 +361,15 @@ function repoSnapshots(options: ReturnType<typeof parseOptions> & { help: false 
   const framework = snapshotDevelopmentRepo(
     'framework',
     path.join(options.workspaceRoot, 'one-person-lab'),
+    options.sourceRefs.framework,
   );
   const owners = Object.fromEntries(Object.entries(OWNER_REPOS).map(([packageId, repoName]) => [
     packageId,
-    snapshotDevelopmentRepo(packageId, path.join(options.workspaceRoot, repoName)),
+    snapshotDevelopmentRepo(packageId, path.join(options.workspaceRoot, repoName), options.sourceRefs[packageId]),
   ])) as Record<string, RepoSnapshot>;
   return {
-    app: snapshotDevelopmentRepo('app', appRoot),
-    shell: snapshotDevelopmentRepo('shell', shellRoot),
+    app: snapshotDevelopmentRepo('app', appRoot, options.sourceRefs.app),
+    shell: snapshotDevelopmentRepo('shell', shellRoot, options.sourceRefs.shell),
     framework,
     owners,
     shellRoot,
@@ -536,7 +555,10 @@ function main() {
       display_version: options.version,
       updater_version: options.updaterVersion,
       source_policy: {
-        self_developed: 'clean_fresh_remote_canonical_origin_main_head',
+        self_developed: Object.keys(options.sourceRefs).length
+          ? 'clean_explicit_commits_reachable_from_fresh_remote_main_otherwise_latest'
+          : 'clean_fresh_remote_canonical_origin_main_head',
+        explicit_source_refs: options.sourceRefs,
         external_companions: 'latest_official_stable_release_or_tagged_distribution_digest_verified',
         package_selection: 'actual_selected_source_commits_recorded_in_full_package_manifest',
       },

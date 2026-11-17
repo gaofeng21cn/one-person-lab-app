@@ -370,11 +370,20 @@ export type RepoSnapshot = {
   local_main: string | null;
   origin_main: string | null;
   remote_main: string | null;
+  requested_ref?: string;
 };
 
-export function snapshotDevelopmentRepo(id: string, root: string): RepoSnapshot {
+export function snapshotDevelopmentRepo(id: string, root: string, requestedRef?: string): RepoSnapshot {
   requireDirectory(root, `${id} repository`);
   const head = commandOutput('git', ['rev-parse', 'HEAD'], { cwd: root });
+  if (requestedRef !== undefined) {
+    if (!/^[0-9a-f]{40}$/.test(requestedRef)) {
+      throw new Error(`${id} source ref must be a full 40-character commit SHA`);
+    }
+    if (head !== requestedRef) {
+      throw new Error(`${id} source ref differs from checkout HEAD: requested=${requestedRef} head=${head}`);
+    }
+  }
   const branch = commandOutput('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], {
     cwd: root,
     allowFailure: true,
@@ -400,43 +409,64 @@ export function snapshotDevelopmentRepo(id: string, root: string): RepoSnapshot 
   });
   let remoteMain: string | null = null;
   if (originUrl.status === 0 && String(originUrl.stdout).trim()) {
-    const remote = commandResult('git', [
-      'ls-remote', '--heads', 'origin', 'refs/heads/main',
-    ], {
-      cwd: root,
-      capture: true,
-      allowFailure: true,
-      timeoutMs: 60_000,
-    });
-    const match = remote.status === 0
-      ? /^([0-9a-f]{40})\s+refs\/heads\/main$/m.exec(String(remote.stdout).trim())
-      : null;
-    if (!match) {
-      const detail = [remote.error?.message, remote.stderr]
-        .filter((value) => typeof value === 'string' && value.trim())
-        .join('\n')
-        .trim();
-      throw new Error(
-        `${id} cannot read fresh remote origin/main${detail ? `: ${detail}` : ''}`,
-      );
+    if (requestedRef) {
+      // Fetch the named canonical branch without moving the selected checkout
+      // or its tracking ref. FETCH_HEAD binds the ancestry proof to this read.
+      commandResult('git', ['fetch', '--no-tags', '--refmap=', 'origin', 'refs/heads/main'], {
+        cwd: root,
+        capture: true,
+        timeoutMs: 60_000,
+      });
+      remoteMain = commandOutput('git', ['rev-parse', '--verify', 'FETCH_HEAD^{commit}'], { cwd: root });
+      const reachable = commandResult('git', ['merge-base', '--is-ancestor', requestedRef, remoteMain], {
+        cwd: root,
+        capture: true,
+        allowFailure: true,
+      });
+      if (reachable.status !== 0) {
+        throw new Error(`${id} source ref is not reachable from fresh remote origin/main: requested=${requestedRef} remote=${remoteMain}`);
+      }
+    } else {
+      const remote = commandResult('git', [
+        'ls-remote', '--heads', 'origin', 'refs/heads/main',
+      ], {
+        cwd: root,
+        capture: true,
+        allowFailure: true,
+        timeoutMs: 60_000,
+      });
+      const match = remote.status === 0
+        ? /^([0-9a-f]{40})\s+refs\/heads\/main$/m.exec(String(remote.stdout).trim())
+        : null;
+      if (!match) {
+        const detail = [remote.error?.message, remote.stderr]
+          .filter((value) => typeof value === 'string' && value.trim())
+          .join('\n')
+          .trim();
+        throw new Error(
+          `${id} cannot read fresh remote origin/main${detail ? `: ${detail}` : ''}`,
+        );
+      }
+      remoteMain = match[1]!;
+      if (originMain !== remoteMain) {
+        throw new Error(
+          `${id} fetched origin/main is stale: `
+          + `origin/main=${originMain || '<missing>'} remote=${remoteMain}`,
+        );
+      }
     }
-    remoteMain = match[1]!;
-    if (originMain !== remoteMain) {
-      throw new Error(
-        `${id} fetched origin/main is stale: `
-        + `origin/main=${originMain || '<missing>'} remote=${remoteMain}`,
-      );
-    }
+  } else if (requestedRef) {
+    throw new Error(`${id} explicit source ref requires an origin remote for canonical ancestry verification`);
   }
   const status = commandOutput('git', ['status', '--porcelain'], { cwd: root });
-  if (originMain) {
+  if (!requestedRef && originMain) {
     if (head !== originMain) {
       throw new Error(
         `${id} must use the fetched canonical origin/main HEAD: `
         + `branch=${branch || '<detached>'} head=${head} origin/main=${originMain}`,
       );
     }
-  } else if (branch !== 'main' || !localMain || head !== localMain) {
+  } else if (!requestedRef && (branch !== 'main' || !localMain || head !== localMain)) {
     throw new Error(
       `${id} has no fetched origin/main and must use local main HEAD: `
       + `branch=${branch || '<detached>'} head=${head} main=${localMain || '<missing>'}`,
@@ -453,6 +483,7 @@ export function snapshotDevelopmentRepo(id: string, root: string): RepoSnapshot 
     local_main: localMain,
     origin_main: originMain,
     remote_main: remoteMain,
+    ...(requestedRef ? { requested_ref: requestedRef } : {}),
   };
 }
 
