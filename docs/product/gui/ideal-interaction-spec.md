@@ -207,6 +207,12 @@ Timeline 按时间顺序组织用户可理解的工作事实：
 - User instruction 与 assistant response 是主内容。
 - Thinking/tool/process/file/diff/receipt 作为 compact event 或 disclosure 出现。
 - 当前 turn 运行时显示 elapsed time、最近事件、stop 和必要 recovery action。
+- 本地无活动等待到期只结束调用方的等待，不表示 Codex 轮次失败或结束。保留已接受的任务、
+  输出、待答问题和停止入口，提示仍未确认结束并从 canonical thread 核对；不能恢复原指令为
+  待重发草稿、自动重发、清除 busy 或执行空闲维护。新的等待使用自己的完整观察窗口，短等待
+  不缩短其他调用方的等待。只有官方终态通知、任务回读确认终态或 App Server 实际关闭才能
+  解除运行占用；读取失败、空历史或仍在运行不能当作终态。用户停止走 `turn/interrupt`，
+  请求已接受也须继续等待终态确认。迟到的输出与终态继续更新同一任务。
 - 长任务和 OPL current-task projection 共用可 pin summary bar，固定包含 status、elapsed、
   progress、next action、stop。
 - Permission、approval、user-input 与 MCP elicitation 留在相应 turn；后台 target 的请求可在

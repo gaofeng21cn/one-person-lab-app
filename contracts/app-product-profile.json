@@ -405,6 +405,12 @@
           "feature_id": "B0-03",
           "capability_id": "conversation_streaming_stop_retry_tool_process_and_error",
           "owner": "codex_app_server",
+          "turn_wait_policy": {
+            "timeout_scope": "local_caller_inactivity_wait_only",
+            "on_wait_timeout": "preserve_active_turn_pending_requests_and_stop; reconcile_canonical_thread_without_resending",
+            "idle_maintenance": "require_canonical_terminal_state_or_actual_app_server_shutdown",
+            "cancellation": "explicit_turn_interrupt_then_confirm_canonical_terminal_state"
+          },
           "disposition": "required",
           "cutover_blocking": true
         },
