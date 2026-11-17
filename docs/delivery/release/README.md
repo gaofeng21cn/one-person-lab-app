@@ -172,6 +172,8 @@ Node payload assembly creates npm/npx launchers from the resolved npm package's
 public `bin` entries. This also repairs toolchains from an older Full install
 whose launchers were copied as plain files; their relative `require` paths are
 valid only inside the npm package, so re-copying those files breaks npm again.
+Assembly executes both copied launchers with the copied Node before caching the
+toolchain layer; an unloadable launcher rejects the build immediately.
 
 Clean-VM input preparation runs beside the macOS build: it checks the Tart source inventory and
 prefetches Codex tarballs from the frozen qualification manifest. This creates no VM and uses no
