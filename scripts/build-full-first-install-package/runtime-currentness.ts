@@ -41,11 +41,38 @@ function stringValue(value: unknown, label: string): string {
   return value;
 }
 
-function runtimeProbeEnv(runtimeRoot: string): NodeJS.ProcessEnv {
+const PACKAGED_RUNTIME_SOURCE_OVERRIDE_KEYS = [
+  "OPL_BIN",
+  "OPL_CLI_BIN",
+  "OPL_COMPANION_SOURCES_ROOT",
+  "OPL_FAMILY_WORKSPACE_ROOT",
+  "OPL_FRAMEWORK_PREVIOUS_ROOT_SOURCE",
+  "OPL_FRAMEWORK_ROOT",
+  "OPL_FULL_OPL_ROOT",
+  "OPL_MAS_SCHOLAR_SKILLS_REPO_ROOT",
+  "OPL_MODULES_ROOT",
+  "OPL_MODULE_SOURCE_MODE",
+  "OPL_RUNTIME_ROOT",
+  "OPL_RUNTIME_TOOLCHAIN_ROOT",
+  "OPL_RUNTIME_TOOLCHAIN_STAGE_ROOT",
+] as const;
+
+export function runtimeProbeEnv(runtimeRoot: string): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("OPL_FULL_") || key.startsWith("OPL_MODULE_PATH_")) {
+      delete env[key];
+    }
+  }
+  for (const key of PACKAGED_RUNTIME_SOURCE_OVERRIDE_KEYS) {
+    delete env[key];
+  }
+
   return {
-    ...process.env,
+    ...env,
     OPL_FULL_RUNTIME_HOME: runtimeRoot,
     OPL_PACKAGED_SKILLS_ROOT: path.join(runtimeRoot, "skills"),
+    OPL_MODULES_ROOT: path.join(runtimeRoot, "modules"),
     OPL_SKIP_SKILL_SYNC: "1",
     PATH: [
       path.join(runtimeRoot, "bin"),
