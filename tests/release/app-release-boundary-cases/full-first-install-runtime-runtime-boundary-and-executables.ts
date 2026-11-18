@@ -132,6 +132,42 @@ test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace r
   }
 });
 
+test("Full runtime currentness probes cannot inherit developer source overrides", async () => {
+  const runtimeRoot = path.join(os.tmpdir(), "opl-full-runtime-probe-env");
+  const keys = [
+    "OPL_FRAMEWORK_ROOT",
+    "OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS",
+    "OPL_FULL_MAS_ROOT",
+    "OPL_MODULES_ROOT",
+    "OPL_FAMILY_WORKSPACE_ROOT",
+  ];
+  const previous = new Map(keys.map((key) => [key, process.env[key]]));
+  try {
+    process.env.OPL_FRAMEWORK_ROOT = "/tmp/developer-framework";
+    process.env.OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS = "/tmp/developer-scholar-skills";
+    process.env.OPL_FULL_MAS_ROOT = "/tmp/developer-mas";
+    process.env.OPL_MODULES_ROOT = "/tmp/developer-modules";
+    process.env.OPL_FAMILY_WORKSPACE_ROOT = "/tmp/developer-workspace";
+
+    const { runtimeProbeEnv } =
+      await import("../../../scripts/build-full-first-install-package/runtime-currentness.ts");
+    const env = runtimeProbeEnv(runtimeRoot);
+
+    assert.equal(env.OPL_FRAMEWORK_ROOT, undefined);
+    assert.equal(env.OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS, undefined);
+    assert.equal(env.OPL_FULL_MAS_ROOT, undefined);
+    assert.equal(env.OPL_FAMILY_WORKSPACE_ROOT, undefined);
+    assert.equal(env.OPL_MODULES_ROOT, path.join(runtimeRoot, "modules"));
+    assert.equal(env.OPL_FULL_RUNTIME_HOME, runtimeRoot);
+    assert.equal(env.PATH?.startsWith(`${runtimeRoot}/bin${path.delimiter}`), true);
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 test("Full runtime Framework packages resolve built JavaScript instead of TypeScript under node_modules", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-package-exports-"));
   const frameworkRoot = path.join(tempRoot, "framework");
@@ -392,7 +428,7 @@ test("real Full domain and prepareRuntime builders package the current MAS Schol
     const hostStateFixture = path.join(fixture.tempRoot, "host-state");
     const probeObservationFile = path.join(fixture.tempRoot, "probe-state-roots");
     process.env.OPL_STATE_DIR = hostStateFixture;
-    process.env.OPL_FULL_PROBE_OBSERVATION_FILE = probeObservationFile;
+    process.env.TEST_FULL_PROBE_OBSERVATION_FILE = probeObservationFile;
     try {
       prepared = prepareRuntime(
         fixture.options,
@@ -407,7 +443,7 @@ test("real Full domain and prepareRuntime builders package the current MAS Schol
     } finally {
       if (hostState === undefined) delete process.env.OPL_STATE_DIR;
       else process.env.OPL_STATE_DIR = hostState;
-      delete process.env.OPL_FULL_PROBE_OBSERVATION_FILE;
+      delete process.env.TEST_FULL_PROBE_OBSERVATION_FILE;
     }
     const probeStateRoots = fs.readFileSync(probeObservationFile, "utf8").trim().split("\n");
     assert.equal(probeStateRoots.length, 2);
