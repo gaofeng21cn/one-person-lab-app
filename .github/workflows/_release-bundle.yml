@@ -321,7 +321,7 @@ jobs:
   freeze:
     if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
@@ -352,6 +352,11 @@ jobs:
           ref: ${{ inputs.app_ref }}
           path: app-source
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
 
       - name: Download and verify consumed Stable operation control
         if: ${{ inputs.channel == 'stable' }}
@@ -405,11 +410,6 @@ jobs:
           repository: gaofeng21cn/one-person-lab
           ref: ${{ inputs.framework_ref || 'main' }}
           path: framework-source
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
 
       - name: Install cold-gate dependencies
         run: |
