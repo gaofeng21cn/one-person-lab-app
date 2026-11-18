@@ -238,6 +238,58 @@ process.stdout.write(JSON.stringify(payload));
   assert.match(wrongRun.stderr, /must belong to the requested run/);
 });
 
+test('incident CLI checks runner allocation before reporting the downstream build summary', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-incident-runner-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const build = {
+    ...completedJob(10, 'standard / standard-build / Build macos-arm64'),
+    conclusion: 'cancelled',
+    runner_id: 0,
+  };
+  const summaryStep = step(2, 'Require every applicable source and artifact gate', 'failure',
+    '2026-08-22T00:20:03Z', '2026-08-22T00:20:04Z');
+  const summary = {
+    ...completedJob(11, 'standard / standard-build / Build Summary', [summaryStep]),
+    conclusion: 'failure',
+    completed_at: '2026-08-22T00:20:05Z',
+  };
+  const runFixture = run({ name: 'OPL Stable standard' });
+  fs.writeFileSync(path.join(dir, 'gh'), `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const endpoint = args.find(a => a.startsWith('repos/'));
+if (endpoint?.endsWith('/actions/jobs/11/logs')) process.exit(1);
+if (!endpoint?.includes('readback=') || !args.includes('Cache-Control: no-cache')) process.exit(91);
+let payload;
+if (endpoint.includes('/jobs?')) payload = [{ jobs: ${JSON.stringify([build, summary])} }];
+else if (endpoint.includes('/artifacts?')) payload = [{ artifacts: [] }];
+else if (endpoint.includes('/check-runs/10/annotations?')) {
+  payload = [{ annotation_level: 'notice', message: 'Due to capacity constraints, jobs may experience longer queue times.' }];
+  if (process.env.OPL_TEST_RUNNER_ACQUISITION_FAILED === '1') {
+    payload.push({ annotation_level: 'failure', message: 'The job was not acquired by Runner of type hosted even after multiple attempts' });
+  }
+} else payload = ${JSON.stringify(runFixture)};
+process.stdout.write(JSON.stringify(payload));
+`, { mode: 0o755 });
+  const cli = path.resolve(import.meta.dirname, '../../scripts/release-incident-status.ts');
+  const invoke = (confirmed: boolean) => {
+    const result = spawnSync(process.execPath, ['--experimental-strip-types', cli, '--run-id', String(runId)], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${dir}${path.delimiter}${process.env.PATH}`,
+        OPL_TEST_RUNNER_ACQUISITION_FAILED: confirmed ? '1' : '0' },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const confirmed = invoke(true);
+  assert.equal(confirmed.first_failure.job_id, '10');
+  assert.equal(confirmed.focus.step_name, null);
+  assert.equal(confirmed.next_action.code, 'stop_external_blocker');
+  assert.match(confirmed.next_action.reason, /did not acquire a hosted runner/);
+  const noticeOnly = invoke(false);
+  assert.equal(noticeOnly.first_failure.job_id, '11');
+  assert.equal(noticeOnly.next_action.code, 'inspect_first_failed_step');
+});
+
 test('heartbeat cannot hide a stalled build or create VM evidence', () => {
   const stage = { timestamp: '2026-08-22T00:04:01Z', event: 'release_stage', stage: 'build_full_shell' };
   const heartbeat = { timestamp: '2026-08-22T00:09:59Z', event: 'command_heartbeat', child_running: true, progress_claimed: false };

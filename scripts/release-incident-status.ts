@@ -32,6 +32,7 @@ export type ReleaseIncidentInput = {
   jobs: unknown;
   artifacts: unknown;
   jobLogs?: JobLogMap;
+  hostedRunnerAcquisitionFailures?: ReadonlySet<string>;
   now?: string;
 };
 
@@ -158,8 +159,12 @@ function firstFailedStep(job: JsonRecord): JsonRecord | null {
   return steps[0] ?? null;
 }
 
-function firstTerminalFailure(jobs: JsonRecord[]): { job: JsonRecord; step: JsonRecord | null } | null {
+function firstTerminalFailure(
+  jobs: JsonRecord[],
+  hostedRunnerAcquisitionFailures?: ReadonlySet<string>,
+): { job: JsonRecord; step: JsonRecord | null } | null {
   const primary = jobs.filter((job) => failedConclusions.has(jobConclusion(job) ?? '')
+    || hostedRunnerAcquisitionFailures?.has(jobId(job))
     || (jobStatus(job) === 'in_progress' && firstFailedStep(job) !== null));
   const candidates = primary.length > 0
     ? primary
@@ -448,6 +453,7 @@ function nextAction(input: {
   focusStep: JsonRecord | null;
   stalledSeconds: number | null;
   failure: { job: JsonRecord; step: JsonRecord | null } | null;
+  hostedRunnerAcquisitionFailed: boolean;
   checkpoint: ReturnType<typeof checkpointEvidence>;
 }): { code: ReleaseIncidentAction; reason: string } {
   if (input.runStatus === 'completed' && input.runConclusion === 'success') {
@@ -482,6 +488,12 @@ function nextAction(input: {
     return {
       code: 'reuse_full_built_checkpoint',
       reason: `The failed run retained a ${input.checkpoint.completed_stage} Framework checkpoint for the exact candidate.`,
+    };
+  }
+  if (input.failure && input.hostedRunnerAcquisitionFailed) {
+    return {
+      code: 'stop_external_blocker',
+      reason: `GitHub reported that ${jobName(input.failure.job)} did not acquire a hosted runner. Resume when the required runner capacity is available.`,
     };
   }
   if (input.failure) {
@@ -521,7 +533,7 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
   const nowMs = timestampMs(now);
   if (nowMs === null) throw new Error('now must be an ISO-8601 timestamp.');
 
-  const failure = firstTerminalFailure(jobs);
+  const failure = firstTerminalFailure(jobs, input.hostedRunnerAcquisitionFailures);
   const active = failure ? null : focusForActiveRun(jobs, logs, nowMs);
   const focusJob = failure?.job ?? active?.job ?? null;
   const focusStep = failure?.step ?? active?.step ?? null;
@@ -561,6 +573,7 @@ export function buildReleaseIncidentStatus(input: ReleaseIncidentInput) {
     focusStep,
     stalledSeconds,
     failure,
+    hostedRunnerAcquisitionFailed: Boolean(failure && input.hostedRunnerAcquisitionFailures?.has(jobId(failure.job))),
     checkpoint,
   });
 
@@ -654,6 +667,30 @@ function paginatedPayload(endpoint: string, key: 'jobs' | 'artifacts', readback:
   return { [key]: pages.flatMap((page) => records(page[key])) };
 }
 
+function readHostedRunnerAcquisitionFailures(repository: string, jobs: JsonRecord[], readback: string): Set<string> {
+  const failures = new Set<string>();
+  for (const job of jobs) {
+    const conclusion = jobConclusion(job) ?? '';
+    if (jobStatus(job) !== 'completed' || numberField(job, 'runner_id') !== 0 || jobSteps(job).length > 0) continue;
+    if (!cancelledConclusions.has(conclusion) && !failedConclusions.has(conclusion)) continue;
+    const id = jobId(job);
+    try {
+      const raw = runGitHubCli(
+        freshReadArgs(`repos/${repository}/check-runs/${id}/annotations`, readback),
+        `Read GitHub check-run ${id} annotations`,
+      );
+      const confirmed = records(JSON.parse(raw)).some((annotation) => (
+        annotation.annotation_level === 'failure'
+        && /^The job was not acquired by Runner of type hosted\b/i.test(stringField(annotation, 'message') ?? '')
+      ));
+      if (confirmed) failures.add(id);
+    } catch {
+      // An unavailable check-run annotation cannot establish a runner failure.
+    }
+  }
+  return failures;
+}
+
 function fetchJobLog(repository: string, job: JsonRecord): string | null {
   if (jobStatus(job) !== 'completed') return null;
   try {
@@ -721,18 +758,25 @@ function main(argv: string[]): void {
     }
     logs[values['job-id']] = readFileSync(values['job-log-file']!, 'utf8');
   }
-  const failure = firstTerminalFailure(jobs);
+  const hostedRunnerAcquisitionFailures = stringField(run, 'status') === 'completed'
+    && stringField(run, 'conclusion') !== 'success'
+    ? readHostedRunnerAcquisitionFailures(repository, jobs, readback)
+    : new Set<string>();
+  const failure = firstTerminalFailure(jobs, hostedRunnerAcquisitionFailures);
   const active = failure
     ? null
     : focusForActiveRun(jobs, logs, timestampMs(values.now ?? new Date().toISOString()) ?? Date.now());
   const focusJob = failure?.job ?? active?.job ?? null;
-  if (focusJob && logs[jobId(focusJob)] === undefined) logs[jobId(focusJob)] = fetchJobLog(repository, focusJob);
+  if (focusJob && logs[jobId(focusJob)] === undefined && !hostedRunnerAcquisitionFailures.has(jobId(focusJob))) {
+    logs[jobId(focusJob)] = fetchJobLog(repository, focusJob);
+  }
 
   const status = buildReleaseIncidentStatus({
     run,
     jobs: jobsPayload,
     artifacts: artifactsPayload,
     jobLogs: logs,
+    hostedRunnerAcquisitionFailures,
     now: values.now,
   });
   process.stdout.write(`${JSON.stringify(status, null, 2)}\n`);
