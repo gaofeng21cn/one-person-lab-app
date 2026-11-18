@@ -315,6 +315,9 @@ if [ ! -f "$OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS/.codex-plugin/plugin.json" ]; the
   printf 'MAS Scholar Skills packaged root is incomplete: %s\\n' "$OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS" >&2
   exit 4
 fi
+if [ -n "\${TEST_FULL_PROBE_OBSERVATION_FILE:-}" ]; then
+  printf '%s\\n' "\${OPL_STATE_DIR:-}" >> "$TEST_FULL_PROBE_OBSERVATION_FILE"
+fi
 case "$*" in
   "update status --json") printf '%s\\n' '${JSON.stringify(managedUpdate)}' ;;
   "app state --profile fast --json") printf '%s\\n' '${JSON.stringify(appState)}' ;;

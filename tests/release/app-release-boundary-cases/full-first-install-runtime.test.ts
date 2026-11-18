@@ -18,3 +18,14 @@ test('Full runtime probes capture JSON larger than the Node default pipe buffer'
 test('Full runtime probes retain the spawn error when no child can start', () => {
   assert.throws(() => run('/opl-nonexistent-build-probe', [], { capture: true }), /ENOENT/);
 });
+
+test('Full runtime probes stop a child that exceeds its deadline', () => {
+  assert.throws(
+    () => run(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+      capture: true,
+      timeout: 200,
+      killSignal: 'SIGKILL',
+    }),
+    /ETIMEDOUT/,
+  );
+});

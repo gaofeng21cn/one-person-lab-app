@@ -330,6 +330,8 @@ Full 可复用目标 Standard 已公开且 sealed 的 ARM64 updater ZIP。复用
 
 Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，文件系统不支持时回到 `ditto`。裁剪与边界统计共用本次操作的一份目录清点。Full 构建、恢复公证及包体复验使用准入时选择的 Mac，回执记录实际 runner。设置 `OPL_FULL_BUILD_RUNNER=macos-15-xlarge` 可显式选择已有的 GitHub 托管 ARM64 XLarge 构建能力。
 
+Full 在构建和包体验证时使用候选内的 Framework CLI 读取更新与 App 状态。两项读取在同一临时 OPL 状态目录中执行，每项最多运行 60 秒，结束后清理目录。这使自有 runner 上的日常 OPL 状态不影响候选检查。
+
 Full 在可移植性门禁前检查 Shell npm 原生代码的构建机 RPATH；只有所有真实依赖仍可由系统路径或保留的 `@loader_path` 解析时才删除冗余绝对路径，并从内向外重签修改过的文件和嵌套 App。未解析依赖继续拒绝；最终 App 签名、公证和 clean-VM 仍消费修复后的准确字节，Standard 公开资产不变。
 
 Full 不打包 `mac-media-assets` 的素材库；构建不 checkout、不 fingerprint、不复制这批媒体，也不把它计入离线 cache closure。MAC 的 required 依赖关系保持由其 owner 声明，首次启动在核心就绪后通过既有 Official Profile 安装，MAC 开始/恢复制作时再执行原生 `prepare` 检查和补齐。在线安装失败保持 Package 局部诊断；不扩大为 App 导航阻断，也不能伪报素材库已就绪。

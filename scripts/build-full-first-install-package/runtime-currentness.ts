@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { readGitHead } from "./git.ts";
@@ -11,11 +12,14 @@ import {
 import { assertMaterializedResolvedSelectedBundleDescriptor } from "./resolved-selected-bundle-descriptor.ts";
 
 const REQUIRED_MANAGED_UPDATE_COMPONENTS = readManagedUpdateLifecycleProviderMap();
+const RUNTIME_PROBE_TIMEOUT_MS = 60_000;
 
 function parseJsonCommand(command: string, args: string[], env: NodeJS.ProcessEnv): unknown {
   const result = run(command, args, {
     capture: true,
     env,
+    timeout: RUNTIME_PROBE_TIMEOUT_MS,
+    killSignal: "SIGKILL",
   });
   return JSON.parse(result.stdout);
 }
@@ -385,13 +389,20 @@ export function assertFullRuntimeCurrentness(
   } else if (options.resolvedSelectedBundleDescriptor) {
     throw new Error("Full runtime selected Bundle descriptor input was not recorded in the manifest.");
   }
-  const env = runtimeProbeEnv(runtimeRoot);
-  const managedUpdate = assertManagedUpdateProbe(
-    parseJsonCommand(command, ["update", "status", "--json"], env),
-  );
-  const appState = assertAppStateProbe(
-    parseJsonCommand(command, ["app", "state", "--profile", "fast", "--json"], env),
-  );
+  const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-currentness-"));
+  let managedUpdate: ReturnType<typeof assertManagedUpdateProbe>;
+  let appState: ReturnType<typeof assertAppStateProbe>;
+  try {
+    const env = { ...runtimeProbeEnv(runtimeRoot), OPL_STATE_DIR: stateRoot };
+    managedUpdate = assertManagedUpdateProbe(
+      parseJsonCommand(command, ["update", "status", "--json"], env),
+    );
+    appState = assertAppStateProbe(
+      parseJsonCommand(command, ["app", "state", "--profile", "fast", "--json"], env),
+    );
+  } finally {
+    fs.rmSync(stateRoot, { recursive: true, force: true });
+  }
   const runtimeSourceCarrierCount = runtimeSourceCarrierItems(appState).length;
 
   return {
