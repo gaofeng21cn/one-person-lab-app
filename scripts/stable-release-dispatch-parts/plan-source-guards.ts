@@ -380,6 +380,14 @@ export function buildStandardPlan(input: {
   const smokeHarnessSha = input.smokeHarnessSha
     ? sha(input.smokeHarnessSha, 'smoke_harness_ref')
     : undefined;
+  runRequired(
+    input.runtime,
+    process.execPath,
+    ['--experimental-strip-types', '--test', 'tests/release/release-bundle-workflow-cutover.test.ts'],
+    60_000,
+    'Stable executor workflow tests',
+    appRoot,
+  );
   const objectiveFingerprint = smokeHarnessSha
     ? `opl-desktop-stable-release:smoke-harness:${smokeHarnessSha}`
     : 'opl-desktop-stable-release';

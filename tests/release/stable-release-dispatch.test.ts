@@ -170,6 +170,7 @@ test('Stable recovery validates frozen product source in an isolated worktree wh
 
 test('Standard recovery preserves the failed source tag and binds its signed artifact run', () => {
   let repeatedSourceGate = false;
+  let testedWorkflow = false;
   const reusableSourceGate = {
     schema: 'opl_app_release_source_gate.v1',
     status: 'passed',
@@ -182,6 +183,11 @@ test('Standard recovery preserves the failed source tag and binds its signed art
     runner(command: string, args: string[]) {
       if (command === 'git' && args.join(' ') === 'rev-parse HEAD') {
         return { status: 0, stdout: `${appSha}\n`, stderr: '' };
+      }
+      if (command === process.execPath && args.includes('--test')) {
+        assert.deepEqual(args, ['--experimental-strip-types', '--test', 'tests/release/release-bundle-workflow-cutover.test.ts']);
+        testedWorkflow = true;
+        return { status: 0, stdout: '', stderr: '' };
       }
       if (command === process.execPath) {
         repeatedSourceGate = true;
@@ -234,6 +240,7 @@ test('Standard recovery preserves the failed source tag and binds its signed art
   assert.equal(plan.workflow_inputs.prior_standard_artifact_run_id, '33728918457');
   assert.equal(plan.recovery.requested_run_id, '33728918457');
   assert.equal(plan.recovery.artifact_producer_run_id, '33728918457');
+  assert.equal(testedWorkflow, true);
   assert.equal(repeatedSourceGate, true);
   assert.equal(plan.workflow_inputs.smoke_harness_ref, 'e'.repeat(40));
   assert.equal(plan.recovery.smoke_harness_ref, 'e'.repeat(40));

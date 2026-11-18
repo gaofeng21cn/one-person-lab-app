@@ -31,6 +31,8 @@
 
 云环境源码门禁保留既有代理与 CA 信任配置；GitHub CLI 的认证变量只传给只读 owner 核验，不传给依赖脚本或 Shell 测试，也不写入门禁回执。
 
+Stable controller 在签发授权前运行当前执行器的 Bundle 工作流合同测试。复用冻结产品源码的验证结果时，仍以当前执行器的同一组工作流测试核对本次执行路径。
+
 重复失败时，先读取对应 run 的首个失败步骤和诊断产物，修复其实现或调用方，再用隔离状态在本机重放受影响的真实入口。桌面交互可复用 Studio 的 `build:desktop` 和 `smoke:preview`，从首启进入 Settings、Runtime 和任务详情。容器问题用相同架构的本地镜像和空卷重放，再用原卷重启确认持久化。涉及 Profile 时，用隔离的 Codex Home 安装准确 Package，并从 App 的恢复动作回读实际写入的 `AGENTS.md`。对应本地验证通过后进入正式派发，签名、公证和普通账号 clean-VM 验收仍由正式流程执行。
 
 source gate 在 Framework CLI、Shell consumer、typecheck 和测试前，先检查本机准备情况：用冻结 carrier 的 `node_host_runtime` adapter 校验 PATH 中实际执行脚本的 Node，再用离线 `npm ls --depth=0 --include=dev` 检查已安装的 Shell 直接依赖。失败沿用 `pre_admission` blocker，先修本机环境再继续；App 不复制 Node 安全版本表，也不把直接依赖检查当作完整 lockfile 验证。依赖陈旧时按冻结 lockfile 执行 `npm ci`；Node 不合格时选择已接纳的运行时并核对 Node、npm／npx 的实际来源，不自动改全局 Node。只有 Node 二进制的工具目录不能作为完整 Full 打包工具链。
