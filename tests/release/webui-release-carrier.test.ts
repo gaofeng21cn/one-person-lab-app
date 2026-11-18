@@ -1309,6 +1309,13 @@ test('dependency consumers use frozen runtime inputs after installing the resolv
   const standard = read('_release-bundle.yml').jobs;
   const upload = standard.freeze.steps.find((step: any) => step.name === 'Upload frozen Standard qualification dependencies');
   assert.ok(upload);
+  const uploadRetry = standard.freeze.steps.find((step: any) => step.name === 'Retry frozen Standard qualification dependency upload');
+  assert.ok(uploadRetry);
+  assert.equal(upload.id, 'upload-standard-dependency-resolution');
+  assert.equal(upload['continue-on-error'], true);
+  assert.equal(uploadRetry.if, "${{ steps.upload-standard-dependency-resolution.outcome == 'failure' }}");
+  assert.equal(uploadRetry.with.name, upload.with.name);
+  assert.equal(uploadRetry.with.overwrite, true);
   assert.equal(standard['standard-build'].with.dependency_manifest_artifact, upload.with.name);
   assert.equal(standard['prepare-standard-vm-inputs'].with.dependency_manifest_artifact, upload.with.name);
   const build = read('_build-reusable.yml').jobs.build.steps;
