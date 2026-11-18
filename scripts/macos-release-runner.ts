@@ -10,7 +10,10 @@ type RunnerInventoryPage = {
   runners?: Array<{ status?: string; labels?: Array<{ name: string }> }>;
 };
 
-export function selectMacReleaseRunner(pages: RunnerInventoryPage[]) {
+export function selectMacReleaseRunner(pages: RunnerInventoryPage[] | null, configuredFallback?: string) {
+  if (pages === null) {
+    return configuredFallback === ownedMacReleaseRunner ? ownedMacReleaseRunner : hostedMacReleaseRunner;
+  }
   const requiredLabels = ['self-hosted', 'macos', 'arm64', ownedMacReleaseRunner];
   return pages.some((page) => page.runners?.some((runner) => {
     if (runner.status !== 'online') return false;
@@ -20,7 +23,7 @@ export function selectMacReleaseRunner(pages: RunnerInventoryPage[]) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  let runner = hostedMacReleaseRunner;
+  let pages: RunnerInventoryPage[] | null = null;
   const repository = process.env.GITHUB_REPOSITORY ?? 'gaofeng21cn/one-person-lab-app';
   try {
     if (repository !== 'gaofeng21cn/one-person-lab-app') throw new Error('Unexpected release repository');
@@ -28,10 +31,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       'api', '--paginate', '--slurp', '-H', 'Cache-Control: no-cache',
       `repos/${repository}/actions/runners?per_page=100`,
     ], 'Read macOS release runner inventory');
-    runner = selectMacReleaseRunner(JSON.parse(inventory));
+    const response = JSON.parse(inventory);
+    if (!Array.isArray(response) || !response.every((page) => Array.isArray(page?.runners))) {
+      throw new Error('Unexpected runner inventory');
+    }
+    pages = response;
   } catch {
-    process.stderr.write('Could not read the release runner inventory. Using the hosted macOS runner.\n');
+    process.stderr.write('Could not read the release runner inventory. Using the configured fallback.\n');
   }
+  const runner = selectMacReleaseRunner(pages, process.env.OPL_MACOS_RELEASE_RUNNER);
   console.log(`macOS release runner: ${runner}`);
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `macos_release_runner=${runner}\n`);

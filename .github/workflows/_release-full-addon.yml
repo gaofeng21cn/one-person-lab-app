@@ -964,6 +964,7 @@ jobs:
         if: ${{ steps.identity.outputs.completed_stage != 'full_qualified' }}
         env:
           GH_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN }}
+          OPL_MACOS_RELEASE_RUNNER: ${{ vars.OPL_MACOS_RELEASE_RUNNER }}
         run: node --experimental-strip-types app-source/scripts/macos-release-runner.ts
 
       - name: Persist typed checkpoint restore failure

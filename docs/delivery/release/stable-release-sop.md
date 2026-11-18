@@ -35,7 +35,7 @@ Stable controller 在签发授权前运行当前执行器的 Bundle 工作流合
 
 Standard 冻结验证同一运行的 Apple 凭据回执后，把预检结论交给构建；构建仍在 macOS 执行 Developer ID 签名、公证和 Gatekeeper 验证。没有已核验回执的构建继续执行自己的凭据预检。
 
-Standard 和 Full 分别在 Linux 准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`，清单不可用或池内无在线机器时使用 `macos-latest`。专用标签由维护者授予能执行正式签名、公证和只读包体验证的本机或 Fleet runner。验收 VM 和公开写入各走既有步骤。恢复时保留冻结源码和可用的准确产物，再由新的 operation 按实时清单选择 runner。
+Standard 和 Full 分别在 Linux 准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`。清单确认池内无在线机器时使用 `macos-latest`。清单无法读取时使用仓库变量 `OPL_MACOS_RELEASE_RUNNER` 指定的自有池，未配置时使用 `macos-latest`。专用标签由维护者授予能执行正式签名、公证和只读包体验证的本机或 Fleet runner。验收 VM 和公开写入各走既有步骤。恢复时保留冻结源码和可用的准确产物，再由新的 operation 选择 runner。
 
 重复失败时，先读取对应 run 的首个失败步骤和诊断产物，修复其实现或调用方，再用隔离状态在本机重放受影响的真实入口。桌面交互可复用 Studio 的 `build:desktop` 和 `smoke:preview`，从首启进入 Settings、Runtime 和任务详情。容器问题用相同架构的本地镜像和空卷重放，再用原卷重启确认持久化。涉及 Profile 时，用隔离的 Codex Home 安装准确 Package，并从 App 的恢复动作回读实际写入的 `AGENTS.md`。对应本地验证通过后进入正式派发，签名、公证和普通账号 clean-VM 验收仍由正式流程执行。
 

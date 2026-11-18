@@ -90,6 +90,9 @@ test('Stable macOS runner selection prefers an online release ARM64 machine acro
   assert.equal(selectMacReleaseRunner([{ runners: [offline, intel, certOnly] }]), 'macos-latest');
   assert.equal(selectMacReleaseRunner([{ runners: [offline] }, { runners: [{ status: 'online', labels }] }]), label);
   assert.equal(selectMacReleaseRunner([]), 'macos-latest');
+  assert.equal(selectMacReleaseRunner([{ runners: [offline] }], label), 'macos-latest');
+  assert.equal(selectMacReleaseRunner(null, label), label);
+  assert.equal(selectMacReleaseRunner(null, 'unregistered-runner'), 'macos-latest');
 });
 
 test('Manual Full Preview keeps its explicit self-hosted exception outside Stable/Latest', () => {
