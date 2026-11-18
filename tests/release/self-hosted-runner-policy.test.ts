@@ -185,7 +185,17 @@ test('runner policy requires protected clean-install qualification and permits d
   assert.equal(policy.routine_advisory.merge_blocking, false);
   assert.equal(policy.routine_advisory.untrusted_pull_request_execution_allowed, false);
   assert.equal(policy.routine_advisory.inventory_token_least_privilege_verified, false);
-  assert.equal(policy.publication_floor.stable_and_latest_executor, 'github_hosted');
+  assert.equal(
+    policy.publication_floor.stable_and_latest_executor,
+    'owned_release_control_pool_with_github_hosted_fallback',
+  );
+  assert.equal(policy.publication_floor.owned_release_control_runner_variable, 'OPL_RELEASE_CONTROL_RUNNER_LABELS');
+  assert.deepEqual(policy.publication_floor.owned_release_control_pool, [
+    'self-hosted',
+    'macOS',
+    'X64',
+    'opl-native-intel-macos',
+  ]);
   assert.equal(policy.publication_floor.required_self_hosted_qualification_count, 1);
   assert.equal(
     policy.publication_floor.required_self_hosted_qualification_scope,

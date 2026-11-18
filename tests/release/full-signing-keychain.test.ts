@@ -15,15 +15,17 @@ test('Full finalizers unlock the signing keychain and stop before notarization i
     for (const job of Object.values(workflow.jobs) as any[]) {
       const setup = job.steps?.find((step: any) => step.run?.includes('security create-keychain'));
       if (!setup) continue;
-      assert.match(setup.run, /security set-keychain-settings -lut 21600 build\.keychain/);
+      assert.match(setup.run, /security set-keychain-settings -lut 21600 .*opl-build\.keychain-db/);
       const finalizer = job.steps.find((step: any) => step.name.startsWith('Finalize Full Developer ID'));
       assert.ok(finalizer.env.KEYCHAIN_PASSWORD);
-      const prefix = finalizer.run.slice(0, finalizer.run.indexOf('node --experimental-strip-types'));
+      const notarizeMarker = 'node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/notarize-macos-dmg.ts"';
+      const prefix = finalizer.run.slice(0, finalizer.run.indexOf(notarizeMarker));
       for (const fail of ['0', '1']) {
         fs.writeFileSync(trace, '');
         const result = spawnSync('bash', ['-c', `${prefix}\nprintf 'notarize\\n' >> "$KEYCHAIN_TEST_TRACE"`], {
           encoding: 'utf8', env: { ...process.env, PATH: `${root}:${process.env.PATH}`, OPL_MAC_STRICT_SIGNING_CHECKS: 'true',
-            KEYCHAIN_PASSWORD: 'test-only', KEYCHAIN_TEST_TRACE: trace, KEYCHAIN_TEST_FAIL: fail },
+            KEYCHAIN_PASSWORD: 'test-only', KEYCHAIN_TEST_TRACE: trace, KEYCHAIN_TEST_FAIL: fail,
+            RUNNER_TEMP: root, RUNNER_ENVIRONMENT: 'github-hosted' },
         });
         const calls = fs.readFileSync(trace, 'utf8').trim().split('\n');
         assert.equal(result.status, fail === '1' ? 7 : 0, result.stderr);

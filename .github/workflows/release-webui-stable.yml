@@ -28,7 +28,7 @@ env:
 
 jobs:
   admission:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       actions: read
@@ -180,10 +180,6 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$canonical_sha" > executor-reachability.json
           jq -e '.status == "identical" or .status == "ahead"' executor-reachability.json >/dev/null
           mkdir -p evidence
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID" \
-            > evidence/carrier-follower-run.json
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID/jobs?filter=latest&per_page=100" \
-            > evidence/carrier-follower-jobs.json
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             > evidence/promotion-executor-run.json
 
@@ -192,31 +188,46 @@ jobs:
             stable_standard_release:.github/workflows/release-stable.yml) ;;
             *) echo '::error::Unsupported Docker source authority caller.'; exit 1 ;;
           esac
-          jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" --arg path "$SOURCE_WORKFLOW" --arg promotion_run "$GITHUB_RUN_ID" '
-            (.id | tostring) == $run
-            and .repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
-            and (.path == $path or .path == ".github/workflows/release-webui-development.yml")
-            and .event == "workflow_dispatch"
-            and .head_branch == "main"
-            and .run_attempt == $run_attempt
-            and (.head_sha == $head)
-          ' evidence/carrier-follower-run.json >/dev/null
-          jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" '
-            [
-              .jobs[]
-              | select(
-                  .name == "webui-carrier / publish-carrier"
-                  and (.run_id | tostring) == $run
-                  and .status == "completed"
-                  and .conclusion == "success"
-                  and .run_attempt == $run_attempt
-                  and .head_sha == $head
-                )
-            ]
-            | select(length == 1)
-            | .[0]
-          ' evidence/carrier-follower-jobs.json > evidence/carrier-follower-job.json
+          carrier_readback_verified=false
+          for readback_attempt in 1 2 3; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID" \
+              > evidence/carrier-follower-run.json
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID/jobs?filter=latest&per_page=100" \
+              > evidence/carrier-follower-jobs.json
+            if jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" --arg path "$SOURCE_WORKFLOW" '
+              (.id | tostring) == $run
+              and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+              and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+              and (.path == $path or .path == ".github/workflows/release-webui-development.yml")
+              and .event == "workflow_dispatch"
+              and .head_branch == "main"
+              and .run_attempt == $run_attempt
+              and (.head_sha == $head)
+            ' evidence/carrier-follower-run.json >/dev/null \
+              && jq -e --arg run "$CARRIER_FOLLOWER_RUN_ID" --arg head "$CARRIER_EXECUTOR_REF" --argjson run_attempt "$CARRIER_FOLLOWER_RUN_ATTEMPT" '
+                [
+                  .jobs[]
+                  | select(
+                      .name == "webui-carrier / publish-carrier"
+                      and (.run_id | tostring) == $run
+                      and .status == "completed"
+                      and .conclusion == "success"
+                      and .run_attempt == $run_attempt
+                      and .head_sha == $head
+                    )
+                ]
+                | select(length == 1)
+                | .[0]
+              ' evidence/carrier-follower-jobs.json > evidence/carrier-follower-job.json; then
+              carrier_readback_verified=true
+              break
+            fi
+            sleep 3
+          done
+          test "$carrier_readback_verified" = true || {
+            echo '::error::The exact WebUI carrier run was not fully visible after bounded readback retries.'
+            exit 1
+          }
           jq -e \
               --arg run "$GITHUB_RUN_ID" \
               --arg head "$GITHUB_SHA" \
@@ -397,7 +408,7 @@ jobs:
 
   promote-webui-stable:
     needs: admission
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     concurrency:
       group: opl-webui-stable-promotion-global

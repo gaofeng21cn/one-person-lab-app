@@ -5201,8 +5201,16 @@
     "runner_policy": {
       "schema": "opl_app_runner_policy.v1",
       "publication_floor": {
-        "stable_and_latest_executor": "github_hosted",
-        "scope": "github_hosted_publication_subgraph_after_protected_macos_clean_install_gate",
+        "stable_and_latest_executor": "owned_release_control_pool_with_github_hosted_fallback",
+        "scope": "owned_release_control_or_github_hosted_publication_subgraph_after_protected_macos_clean_install_gate",
+        "owned_release_control_runner_variable": "OPL_RELEASE_CONTROL_RUNNER_LABELS",
+        "owned_release_control_pool": [
+          "self-hosted",
+          "macOS",
+          "X64",
+          "opl-native-intel-macos"
+        ],
+        "owned_release_control_unavailable_effect": "fallback_to_github_hosted_without_changing_artifact_identity",
         "required_floor": [
           "source_contract_and_build_preflight",
           "signed_notarized_standard_build",
@@ -5862,6 +5870,15 @@
       "inventory_unavailable_fallback": { "repository_variable": "OPL_MACOS_RELEASE_RUNNER", "permitted_owned_pool": "opl-release-macos-arm64" },
       "opt_in_full_build_runner": { "repository_variable": "OPL_FULL_BUILD_RUNNER", "label": "macos-15-xlarge" },
       "stages": ["standard_credential_admission", "standard_build", "full_build", "full_finalizer_recovery", "full_package_qualification"]
+    },
+    "release_control_runner": {
+      "owner": "protected_stable_release_workflows",
+      "repository_variable": "OPL_RELEASE_CONTROL_RUNNER_LABELS",
+      "default_owned_labels": ["self-hosted", "macOS", "X64", "opl-native-intel-macos"],
+      "hosted_fallback_labels": ["ubuntu-latest"],
+      "workloads": ["webui_source_authority", "webui_promotion_admission", "webui_stable_promotion"],
+      "selection": "configured_owned_pool_then_github_hosted",
+      "identity_binding": "runner_labels_are_execution_capacity_only_and_never_change_frozen_release_refs"
     },
     "full_dmg_compression": {
       "default_ci_format": "ULMO",

@@ -707,6 +707,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
           brew install zstd
           mineru_root="$GITHUB_WORKSPACE/MinerU-Ecosystem/cli/mineru-open-api"
           mineru_version="$(cat "$mineru_root/VERSION")"
@@ -763,6 +765,8 @@ jobs:
           EXPECTED_ZSTD_VERSION: ${{ steps.full-build-inputs.outputs.zstd_version }}
         run: |
           set -euo pipefail
+          test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
           umask 077
           node <<'NODE'
           const crypto = require('node:crypto');
@@ -935,6 +939,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
           domain_python="$OPL_FULL_PYTHON_BIN"
           test -x "$domain_python"
           uv sync --project med-autoscience --python "$domain_python" --no-dev
@@ -954,7 +960,9 @@ jobs:
           export OPL_FRAMEWORK_ROOT="$GITHUB_WORKSPACE/one-person-lab"
           export OPL_FULL_BUN_BIN="${OPL_FULL_BUN_BIN:-$(command -v bun)}"
           export OPL_FULL_INCLUDE_BUN_RUNTIME="${OPL_FULL_INCLUDE_BUN_RUNTIME:-0}"
-          export OPL_FULL_UV_BIN="$(command -v uv)"
+          test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
+          export OPL_FULL_UV_BIN="$OPL_FULL_UV_BIN"
           export OPL_FULL_TEMPORAL_CLI_BIN="${OPL_FULL_TEMPORAL_CLI_BIN:-$(command -v temporal)}"
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
@@ -1186,7 +1194,9 @@ jobs:
           export OPL_FRAMEWORK_ROOT="$GITHUB_WORKSPACE/one-person-lab"
           export OPL_FULL_BUN_BIN="${OPL_FULL_BUN_BIN:-$(command -v bun)}"
           export OPL_FULL_INCLUDE_BUN_RUNTIME="${OPL_FULL_INCLUDE_BUN_RUNTIME:-0}"
-          export OPL_FULL_UV_BIN="$(command -v uv)"
+          test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
+          export OPL_FULL_UV_BIN="$OPL_FULL_UV_BIN"
           export OPL_FULL_TEMPORAL_CLI_BIN="${OPL_FULL_TEMPORAL_CLI_BIN:-$(command -v temporal)}"
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"

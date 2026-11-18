@@ -37,6 +37,8 @@ Standard 冻结验证同一运行的 Apple 凭据回执后，把预检结论交�
 
 Standard 和 Full 分别在 Linux 准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`。清单确认池内无在线机器时使用 `macos-latest`。清单无法读取时使用仓库变量 `OPL_MACOS_RELEASE_RUNNER` 指定的自有池，未配置时使用 `macos-latest`。专用标签由维护者授予能执行正式签名、公证和只读包体验证的本机或 Fleet runner。验收 VM 和公开写入各走既有步骤。恢复时保留冻结源码和可用的准确产物，再由新的 operation 选择 runner。
 
+发布控制面优先使用仓库变量 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner 标签 JSON。当前默认池是常驻的 `self-hosted`, `macOS`, `X64`, `opl-native-intel-macos`，承载 WebUI source authority、Stable promotion admission 和 GHCR promotion。变量缺失或明确切回托管标签时使用 `ubuntu-latest`。该池只承载控制面读回和公开写入，不改变冻结的产品、Shell、Framework、镜像或发布记录身份。GitHub hosted runner 未取得时，incident status 选择 `fallback_owned_runner`，继续使用同一冻结 operation 的自有 runner 路径。
+
 自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
 Standard 的构建工作流、Mac runner 选择和签名钥匙串脚本参与 operation 标识。修复这些执行器输入后，controller 可保留冻结产品及已通过的源码证据，用修复后的执行器签发新的 operation。

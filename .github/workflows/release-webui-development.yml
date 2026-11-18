@@ -68,7 +68,7 @@ env:
 jobs:
   source-authority:
     if: ${{ inputs.operation == 'qualify' || inputs.operation == 'publish' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       contents: read

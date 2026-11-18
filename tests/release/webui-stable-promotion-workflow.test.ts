@@ -245,6 +245,14 @@ test('Docker WebUI workflows expose one independent Stable and Preview lane with
   assert.equal(operations.concurrency, undefined);
   assert.equal(stable.concurrency, undefined);
   assert.equal(stable.jobs.admission.concurrency, undefined);
+  assert.equal(
+    stable.jobs.admission['runs-on'],
+    "${{ fromJSON(vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '[\"ubuntu-latest\"]') }}",
+  );
+  assert.equal(
+    stable.jobs['promote-webui-stable']['runs-on'],
+    "${{ fromJSON(vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '[\"ubuntu-latest\"]') }}",
+  );
   assert.deepEqual(stable.jobs['promote-webui-stable'].concurrency, {
     group: 'opl-webui-stable-promotion-global',
     'cancel-in-progress': false,

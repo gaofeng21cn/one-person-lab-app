@@ -13,6 +13,7 @@ export type ReleaseIncidentAction =
   | 'inspect_stalled_step_log'
   | 'inspect_first_failed_step'
   | 'reuse_full_built_checkpoint'
+  | 'fallback_owned_runner'
   | 'stop_external_blocker'
   | 'complete';
 
@@ -492,8 +493,8 @@ function nextAction(input: {
   }
   if (input.failure && input.hostedRunnerAcquisitionFailed) {
     return {
-      code: 'stop_external_blocker',
-      reason: `GitHub reported that ${jobName(input.failure.job)} did not acquire a hosted runner. Resume when the required runner capacity is available.`,
+      code: 'fallback_owned_runner',
+      reason: `GitHub reported that ${jobName(input.failure.job)} did not acquire a hosted runner. Re-dispatch the same frozen operation through the configured owned runner pool before considering a release blocker.`,
     };
   }
   if (input.failure) {
