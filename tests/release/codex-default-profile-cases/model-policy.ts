@@ -19,6 +19,16 @@ import {
   readModelPolicyBundle,
 } from "./fixtures.ts";
 
+test('current App default follows the latest bundled Astra model at maximum reasoning', () => {
+  const profile = readJson('contracts/app-product-profile.json');
+  assert.deepEqual(profile.codex.auto_model_policy.configured_default, {
+    model: 'gpt-6.2-astra',
+    reasoning_effort: 'max',
+  });
+  assert.equal(profile.codex.default_model, 'gpt-6.2-astra');
+  assert.equal(profile.codex.default_reasoning_effort, 'max');
+});
+
 test('GUI contract rejects Auto model policy source drift from the App product profile', () => {
   const guiContract = structuredClone(readJson('contracts/app-gui-product-contract.json'));
   guiContract.executor_policy.auto_model_policy_source_ref = 'shell-local-policy';

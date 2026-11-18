@@ -16,14 +16,15 @@ const row = (slug: string, display_name: string, visibility = 'list') => ({ slug
 test('bundled refresh adds new official models, removes stale entries and excludes hidden models', () => {
   const source = profile();
   const before = structuredClone(source);
+  const configuredDefault = before.codex.auto_model_policy.configured_default.model;
   const next = projectBundledCodexModels(source, parseBundledCodexModels({ models: [
     row('codex-future', 'Future Official'),
-    row('gpt-6-astra', 'GPT-6-Astra'),
+    row(configuredDefault, 'GPT-6.2-Astra'),
     row('internal-preview', 'Internal Preview', 'hide'),
   ] }));
-  assert.deepEqual(next.codex.auto_model_policy.frontier_model_preference_order, ['gpt-6-astra', 'codex-future']);
+  assert.deepEqual(next.codex.auto_model_policy.frontier_model_preference_order, [configuredDefault, 'codex-future']);
   assert.deepEqual(next.gui.home.codex_model_display_options.visible_models, [
-    { id: 'gpt-6-astra', label_zh: '6 Astra', label_en: '6 Astra' },
+    { id: configuredDefault, label_zh: '6.2 Astra', label_en: '6.2 Astra' },
     { id: 'codex-future', label_zh: 'Future Official', label_en: 'Future Official' },
   ]);
   assert.deepEqual(next.codex.auto_model_policy.configured_default, before.codex.auto_model_policy.configured_default);
@@ -35,7 +36,8 @@ test('bundled refresh adds new official models, removes stale entries and exclud
 });
 
 test('bundled refresh does not silently replace an App default removed or hidden upstream', () => {
-  for (const models of [[row('another', 'Another')], [row('gpt-6-astra', 'GPT-6-Astra', 'hide')]]) {
+  const configuredDefault = profile().codex.auto_model_policy.configured_default.model;
+  for (const models of [[row('another', 'Another')], [row(configuredDefault, 'GPT-6.2-Astra', 'hide')]]) {
     assert.throws(() => projectBundledCodexModels(profile(), models), /review the default policy explicitly/);
   }
 });

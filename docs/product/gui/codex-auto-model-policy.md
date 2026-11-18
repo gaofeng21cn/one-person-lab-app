@@ -21,7 +21,7 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
    “账户与模型 → 模型”页的高级折叠区明确开启后进入固定模型选择；App 不添加供应商过滤，
    也不改写本机 `model_catalog_json`、凭据和测试配置。
 3. Auto 不受高级开关影响，继续按 App policy 解析当前默认模型与推理档；当前默认是
-   `gpt-6-astra + max`。高级用户必须显式固定一个自定义模型，才离开 Auto。
+   `gpt-6.2-astra + max`。高级用户必须显式固定一个自定义模型，才离开 Auto。
 4. 完整目录明确不含 App 默认时，仅在 App 已知模型中兼容回退；没有可用的已知模型时
    Auto 显示不可用，不自动转到自定义或第三方模型。高级开关不改变这个边界。
 5. 自定义模型固定选择必须显示可能改变 OPL 标准智能体行为的提示。关闭高级开关后，
@@ -34,7 +34,7 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
 
 当前 Studio 通过 App-admitted resolver 使用外部或 Framework-managed Codex CLI；精确
 版本来自当前 qualification inputs 与实际运行回读，不在此维护第二版本表。App 将目录中可用的
-`gpt-6-astra` 解析为 Auto 默认并使用 `max`；有访问权限时，`gpt-6-sol` 随实时目录进入固定模型菜单。
+`gpt-6.2-astra` 解析为 Auto 默认并使用 `max`；有访问权限时，`gpt-6.2-sol` 随实时目录进入固定模型菜单。
 目录不可用时按 App fallback 处理。Studio 不依赖 AionCore；历史 AionUI 组合只用于
 保留的升级基线。安装包仍须经过
 完整 App 构建、安装和运行时版本回读，不能单独替换已安装 App 内的运行文件。
