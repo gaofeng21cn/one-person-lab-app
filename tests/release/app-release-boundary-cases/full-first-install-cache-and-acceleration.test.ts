@@ -114,7 +114,11 @@ test("Full workflow checks out MAS Scholar Skills and binds both runtime assembl
   );
   assert.match(
     workflow,
-    /assert-full-runtime-currentness\.ts[\s\S]*--mas-scholar-skills-root "\$GITHUB_WORKSPACE\/mas-scholar-skills"/,
+    /assert-full-runtime-currentness\.ts[\s\S]*--mas-scholar-skills-root "\$GITHUB_WORKSPACE\/mas-scholar-skills"[\s\\]*--mas-scholar-skills-ref "\$OPL_FULL_MAS_SCHOLAR_SKILLS_REF"/,
+  );
+  assert.equal(
+    workflow.match(/--mas-scholar-skills-ref "\$OPL_FULL_MAS_SCHOLAR_SKILLS_REF"/g)?.length,
+    2,
   );
 });
 

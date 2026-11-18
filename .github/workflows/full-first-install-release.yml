@@ -1324,6 +1324,7 @@ jobs:
             --framework-root "$GITHUB_WORKSPACE/one-person-lab" \
             --mas-root "$GITHUB_WORKSPACE/med-autoscience" \
             --mas-scholar-skills-root "$GITHUB_WORKSPACE/mas-scholar-skills" \
+            --mas-scholar-skills-ref "$OPL_FULL_MAS_SCHOLAR_SKILLS_REF" \
             > one-person-lab-app/dist/opl-full-release/full-runtime-currentness-probe.json
           node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/verify-full-runtime-native-trust.ts" \
             --runtime-root "$mounted_runtime_root" \
@@ -1423,6 +1424,7 @@ jobs:
             --framework-root "$GITHUB_WORKSPACE/one-person-lab" \
             --mas-root "$GITHUB_WORKSPACE/med-autoscience" \
             --mas-scholar-skills-root "$GITHUB_WORKSPACE/mas-scholar-skills" \
+            --mas-scholar-skills-ref "$OPL_FULL_MAS_SCHOLAR_SKILLS_REF" \
             > one-person-lab-app/dist/opl-full-release/full-runtime-currentness-probe.json
           if [ "${OPL_MAC_STRICT_SIGNING_CHECKS:-false}" = "true" ]; then
             codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
