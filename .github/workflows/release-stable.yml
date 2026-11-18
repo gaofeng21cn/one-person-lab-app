@@ -496,7 +496,7 @@ jobs:
 
   protected-operation-admission:
     if: ${{ inputs.entry == 'framework_release' && inputs.operation == 'standard' }}
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: release-stable
     permissions:
@@ -573,6 +573,11 @@ jobs:
           ref: ${{ github.sha }}
           path: app-executor
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
 
       - name: Require the current Latest App release to be complete
         env:
@@ -665,11 +670,6 @@ jobs:
           path: framework-source
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-
       - name: Bind one pre-issued Stable authority to this run
         id: control
         env:
@@ -731,9 +731,9 @@ jobs:
           ]));
           fs.writeFileSync(output, `${JSON.stringify(blobs, null, 2)}\n`);
           NODE
-          source_gate_digest="sha256:$(shasum -a 256 source-gate.json | awk '{print $1}')"
-          pre_nonce_guard_digest="sha256:$(shasum -a 256 pre-issued-pre-nonce-guard.json | awk '{print $1}')"
-          run_authority_reconcile_digest="sha256:$(shasum -a 256 run-authority-reconcile.json | awk '{print $1}')"
+          source_gate_digest="sha256:$(sha256sum source-gate.json | awk '{print $1}')"
+          pre_nonce_guard_digest="sha256:$(sha256sum pre-issued-pre-nonce-guard.json | awk '{print $1}')"
+          run_authority_reconcile_digest="sha256:$(sha256sum run-authority-reconcile.json | awk '{print $1}')"
           node --experimental-strip-types app-executor/scripts/stable-operation-control.ts bind \
             --authority stable-operation-authority.json \
             --authority-digest "$AUTHORITY_DIGEST" \
