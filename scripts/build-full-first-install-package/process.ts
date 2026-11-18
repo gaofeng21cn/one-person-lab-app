@@ -19,6 +19,8 @@ function runProcess(command, args, options = {}) {
     env: options.env ?? process.env,
     stdio: options.capture ? 'pipe' : 'inherit',
     maxBuffer: 16 * 1024 * 1024,
+    timeout: options.timeout,
+    killSignal: options.killSignal,
   });
   emit(result.status === 0 ? 'completed' : 'failed', {
     duration_seconds: durationSeconds(startedAt, monotonicSeconds()),

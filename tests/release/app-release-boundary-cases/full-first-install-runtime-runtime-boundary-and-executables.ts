@@ -388,16 +388,34 @@ test("real Full domain and prepareRuntime builders package the current MAS Schol
     const { prepareRuntime } =
       await import("../../../scripts/build-full-first-install-package/staging.ts");
     const flowCapabilityBuildLock = flowCapabilityBuildLockFixture(fixture.sources);
-    prepared = prepareRuntime(
-      fixture.options,
-      fixture.sources,
-      {
-        ...(selectedBundle
-          ? { resolvedSelectedBundleDescriptor: selectedBundle.descriptor }
-          : {}),
-        flowCapabilityBuildLock,
-      },
-    );
+    const hostState = process.env.OPL_STATE_DIR;
+    const hostStateFixture = path.join(fixture.tempRoot, "host-state");
+    const probeObservationFile = path.join(fixture.tempRoot, "probe-state-roots");
+    process.env.OPL_STATE_DIR = hostStateFixture;
+    process.env.OPL_FULL_PROBE_OBSERVATION_FILE = probeObservationFile;
+    try {
+      prepared = prepareRuntime(
+        fixture.options,
+        fixture.sources,
+        {
+          ...(selectedBundle
+            ? { resolvedSelectedBundleDescriptor: selectedBundle.descriptor }
+            : {}),
+          flowCapabilityBuildLock,
+        },
+      );
+    } finally {
+      if (hostState === undefined) delete process.env.OPL_STATE_DIR;
+      else process.env.OPL_STATE_DIR = hostState;
+      delete process.env.OPL_FULL_PROBE_OBSERVATION_FILE;
+    }
+    const probeStateRoots = fs.readFileSync(probeObservationFile, "utf8").trim().split("\n");
+    assert.equal(probeStateRoots.length, 2);
+    assert.ok(probeStateRoots[0]);
+    assert.equal(probeStateRoots[0], probeStateRoots[1]);
+    assert.notEqual(probeStateRoots[0], hostStateFixture);
+    assert.equal(fs.existsSync(probeStateRoots[0]), false);
+    assert.equal(fs.existsSync(hostStateFixture), false);
     const currentnessCli = runNode([
       "scripts/assert-full-runtime-currentness.ts",
       "--runtime-root",
