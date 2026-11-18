@@ -567,9 +567,32 @@ jobs:
           bun-version: "1.4.0"
 
       - name: Setup Python
+        if: runner.environment != 'self-hosted' || runner.os != 'macOS'
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+
+      - name: Use native Python 3.12 on the owned Mac
+        if: runner.environment == 'self-hosted' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python="$(command -v python3.12)" || {
+            echo "::error::Install native Python 3.12 on the release Mac and add it to the runner PATH."
+            exit 1
+          }
+          "$python" - "$(uname -m)" <<'PY'
+          import platform
+          import sys
+
+          if sys.version_info[:2] != (3, 12) or platform.machine() != sys.argv[1]:
+              sys.exit("Expected native Python 3.12")
+          PY
+          "$python" --version
+          {
+            echo "PYTHON=$python"
+            echo "NODE_GYP_FORCE_PYTHON=$python"
+          } >> "$GITHUB_ENV"
 
       # Restore Electron/Electron-Builder caches before any build-related install
       - name: Admit Electron/Bun cache
@@ -905,7 +928,7 @@ jobs:
       # Clean up any stale disk images before DMG creation (macOS only)
       # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
       - name: Clean up stale disk images (macOS only)
-        if: startsWith(matrix.platform, 'macos')
+        if: startsWith(matrix.platform, 'macos') && runner.environment == 'github-hosted'
         run: |
           echo "Cleaning up any stale disk images..."
           # Detach any mounted disk images
