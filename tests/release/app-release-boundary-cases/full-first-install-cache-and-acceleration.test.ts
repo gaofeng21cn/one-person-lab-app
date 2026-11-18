@@ -10,6 +10,7 @@ test("Full domain build links the pinned local Framework package into RedCube", 
     workflow,
     /npm install --prefix redcube-ai --no-save --package-lock=false "\$GITHUB_WORKSPACE\/one-person-lab"\s+npm run --prefix redcube-ai build/,
   );
+  assert.match(workflow, /export PATH="\$\(dirname "\$OPL_FULL_UV_BIN"\):\$HOME\/go\/bin:\$HOME\/\.local\/bin:\$PATH"/);
 });
 
 test("Full workflow may select OPL Flow without a fixed Framework package catalog", () => {

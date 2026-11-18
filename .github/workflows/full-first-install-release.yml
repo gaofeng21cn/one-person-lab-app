@@ -738,7 +738,7 @@ jobs:
           chmod +x "$officecli_bin"
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/go/bin:$HOME/.local/bin:$PATH"
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$HOME/go/bin:$HOME/.local/bin:$PATH"
           officecli --version
           mineru-open-api version
           temporal_version='${{ steps.full-build-inputs.outputs.temporal_version }}'
