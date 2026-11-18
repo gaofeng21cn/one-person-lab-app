@@ -34,6 +34,14 @@ const criticalBlobs = Object.fromEntries(
     `sha256:${'0123456789abcdef'[(index + 6) % 16]!.repeat(64)}`,
   ]),
 );
+const macRunnerPaths = [
+  '.github/workflows/_build-reusable.yml',
+  'scripts/macos-release-runner.ts',
+  'scripts/macos-release-keychain.ts',
+];
+const preMacRunnerBlobs = Object.fromEntries(
+  Object.entries(criticalBlobs).filter(([file]) => !macRunnerPaths.includes(file)),
+);
 const operationId = stableOperationIdForFrozenCohort({
   objectiveFingerprint,
   appSha,
@@ -162,7 +170,7 @@ function control(desktopAdditionalPlatforms: unknown = []) {
 test('qualification repairs change the operation while legacy authority is read-only', () => {
   const changed = { ...criticalBlobs, '.github/workflows/opl-first-run-vm.yml': `sha256:${'f'.repeat(64)}` };
   assert.notEqual(issuedAuthority({ criticalBlobs: changed }).operation_id, operationId);
-  const legacyBlobs = { ...criticalBlobs };
+  const legacyBlobs = { ...preMacRunnerBlobs };
   for (const file of Object.keys(legacyBlobs)) {
     if (
       file.startsWith('scripts/framework-release-adapter-')
@@ -182,8 +190,23 @@ test('qualification repairs change the operation while legacy authority is read-
   }), /requires all critical workflow bindings/);
 });
 
+test('Mac runner build repairs require fresh authority without changing the frozen product', () => {
+  const buildWorkflow = macRunnerPaths[0]!;
+  const repaired = issuedAuthority({ criticalBlobs: {
+    ...criticalBlobs, [buildWorkflow]: `sha256:${'f'.repeat(64)}`,
+  } });
+  assert.notEqual(repaired.operation_id, operationId);
+  assert.deepEqual(repaired.cohort, issuedAuthority().cohort);
+
+  const prior = issuedAuthority({ criticalBlobs: preMacRunnerBlobs });
+  assert.deepEqual(validateStableOperationAuthority(prior), prior);
+  assert.throws(() => validateStableOperationAuthorityExecutorBinding({
+    authority: prior, appRoot: '.', expectedActor: prior.issuer, expectedExecutorSha: appSha,
+  }), /requires all critical workflow bindings/);
+});
+
 test('pre-extraction authority remains readable while executor admission requires implementation bytes', () => {
-  const priorBlobs = Object.fromEntries(Object.entries(criticalBlobs)
+  const priorBlobs = Object.fromEntries(Object.entries(preMacRunnerBlobs)
     .filter(([file]) => (
       !file.startsWith('scripts/framework-release-adapter-')
       && !file.startsWith('scripts/stable-operation-control-parts/')
@@ -200,7 +223,7 @@ test('pre-extraction authority remains readable while executor admission require
 });
 
 test('the complete pre-leaf 21-path authority remains legacy-readable but cannot run as current', () => {
-  const priorCurrentBlobs = Object.fromEntries(Object.entries(criticalBlobs)
+  const priorCurrentBlobs = Object.fromEntries(Object.entries(preMacRunnerBlobs)
     .filter(([file]) => (
       !file.startsWith('scripts/stable-operation-control-parts/')
       && !file.startsWith('scripts/release-dispatch-guard-parts/')
@@ -218,7 +241,7 @@ test('the complete pre-leaf 21-path authority remains legacy-readable but cannot
 test('artifact transport repairs change operation identity and preserve old evidence readback', () => {
   const changed = { ...criticalBlobs, 'scripts/download-github-artifact.mjs': `sha256:${'f'.repeat(64)}` };
   assert.notEqual(stableOperationIdForFrozenCohort({ objectiveFingerprint, appSha, shellSha, frameworkSha, criticalBlobs: changed }), operationId);
-  const priorBlobs = { ...criticalBlobs };
+  const priorBlobs = { ...preMacRunnerBlobs };
   for (const file of Object.keys(priorBlobs)) {
     if (
       file.startsWith('scripts/stable-operation-control-parts/')
@@ -238,7 +261,7 @@ test('artifact transport repairs change operation identity and preserve old evid
 
 test('previous guard and dispatch authority sets stay readable but require current source-gate bytes to execute', () => {
   for (const includeDispatch of [false, true]) {
-    const priorBlobs = Object.fromEntries(Object.entries(criticalBlobs).filter(([file]) => (
+    const priorBlobs = Object.fromEntries(Object.entries(preMacRunnerBlobs).filter(([file]) => (
       !file.startsWith('scripts/validate-release-source-gate-parts/')
       && (includeDispatch || !file.startsWith('scripts/stable-release-dispatch-parts/'))
     )));

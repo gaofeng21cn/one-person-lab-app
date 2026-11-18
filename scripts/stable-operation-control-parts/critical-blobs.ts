@@ -72,10 +72,17 @@ const preDispatchExtractionCriticalBlobPaths = [
   ...extractedReleaseDispatchGuardPaths,
 ] as const;
 
-export const stableOperationCriticalBlobPaths = [
+const preMacRunnerCriticalBlobPaths = [
   ...preDispatchExtractionCriticalBlobPaths,
   ...extractedStableReleaseDispatchPaths,
   ...extractedReleaseSourceGatePaths,
+] as const;
+
+export const stableOperationCriticalBlobPaths = [
+  ...preMacRunnerCriticalBlobPaths,
+  '.github/workflows/_build-reusable.yml',
+  'scripts/macos-release-runner.ts',
+  'scripts/macos-release-keychain.ts',
 ] as const;
 
 export function normalizedCriticalBlobs(value: unknown): Record<string, string> {
@@ -94,6 +101,7 @@ export function normalizedCriticalBlobs(value: unknown): Record<string, string> 
   // Read already-issued controls so their signed artifacts and source evidence
   // remain recoverable. Current executor admission below requires the full set.
   const historicalPathSets = [
+    preMacRunnerCriticalBlobPaths,
     preDispatchExtractionCriticalBlobPaths,
     preDispatchExtractionCriticalBlobPaths.filter(file => file !== 'scripts/stable-release-dispatch.ts'),
     preDispatchExtractionCriticalBlobPaths.filter(file => file !== 'scripts/stable-release-dispatch.ts' && file !== 'scripts/download-github-artifact.mjs'),

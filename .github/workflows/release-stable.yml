@@ -708,29 +708,11 @@ jobs:
             --operation-id '${{ steps.authority.outputs.operation_id }}' \
             --source-gate-report source-gate.json \
             --output run-authority-reconcile.json
-          node - app-executor critical-blobs.json <<'NODE'
-          const crypto = require('crypto');
-          const fs = require('fs');
-          const path = require('path');
-          const [root, output] = process.argv.slice(2);
-          const files = [
-            '.github/workflows/release-stable.yml',
-            '.github/workflows/_release-bundle.yml',
-            '.github/workflows/_release-standard-publish.yml',
-            '.github/workflows/opl-first-run-vm.yml',
-            'contracts/app-release-channel.json',
-            'scripts/framework-release-adapter.ts',
-            'scripts/release-dispatch-guard.ts',
-            'scripts/stable-operation-control.ts',
-            'scripts/stable-operation-publication-record.ts',
-            'scripts/stable-release-admission-manifest.ts',
-            'scripts/validate-release-source-gate.ts',
-          ];
-          const blobs = Object.fromEntries(files.map((file) => [
-            file,
-            `sha256:${crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')}`,
-          ]));
-          fs.writeFileSync(output, `${JSON.stringify(blobs, null, 2)}\n`);
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          import { stableOperationCriticalBlobs } from './app-executor/scripts/stable-operation-control-parts/critical-blobs.ts';
+          const blobs = stableOperationCriticalBlobs('app-executor');
+          writeFileSync('critical-blobs.json', `${JSON.stringify(blobs, null, 2)}\n`);
           NODE
           source_gate_digest="sha256:$(sha256sum source-gate.json | awk '{print $1}')"
           pre_nonce_guard_digest="sha256:$(sha256sum pre-issued-pre-nonce-guard.json | awk '{print $1}')"

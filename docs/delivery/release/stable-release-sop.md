@@ -39,6 +39,8 @@ Standard 和 Full 分别在 Linux 准入阶段读取 GitHub runner 清单，优�
 
 自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
+Standard 的构建工作流、Mac runner 选择和签名钥匙串脚本参与 operation 标识。修复这些执行器输入后，controller 可保留冻结产品及已通过的源码证据，用修复后的执行器签发新的 operation。
+
 重复失败时，先读取对应 run 的首个失败步骤和诊断产物，修复其实现或调用方，再用隔离状态在本机重放受影响的真实入口。桌面交互可复用 Studio 的 `build:desktop` 和 `smoke:preview`，从首启进入 Settings、Runtime 和任务详情。容器问题用相同架构的本地镜像和空卷重放，再用原卷重启确认持久化。涉及 Profile 时，用隔离的 Codex Home 安装准确 Package，并从 App 的恢复动作回读实际写入的 `AGENTS.md`。对应本地验证通过后进入正式派发，签名、公证和普通账号 clean-VM 验收仍由正式流程执行。
 
 source gate 在 Framework CLI、Shell consumer、typecheck 和测试前，先检查本机准备情况：用冻结 carrier 的 `node_host_runtime` adapter 校验 PATH 中实际执行脚本的 Node，再用离线 `npm ls --depth=0 --include=dev` 检查已安装的 Shell 直接依赖。失败沿用 `pre_admission` blocker，先修本机环境再继续；App 不复制 Node 安全版本表，也不把直接依赖检查当作完整 lockfile 验证。依赖陈旧时按冻结 lockfile 执行 `npm ci`；Node 不合格时选择已接纳的运行时并核对 Node、npm／npx 的实际来源，不自动改全局 Node。只有 Node 二进制的工具目录不能作为完整 Full 打包工具链。
