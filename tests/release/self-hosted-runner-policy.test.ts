@@ -12,6 +12,7 @@ import {
   type OptionalCertificationExpectation,
 } from '../../scripts/validate-optional-certification-receipt.ts';
 import { writeOptionalCertificationReceipt } from '../../scripts/write-optional-certification-receipt.ts';
+import { selectMacReleaseRunner } from '../../scripts/macos-release-runner.ts';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
 const workflowRoot = path.join(appRoot, '.github', 'workflows');
@@ -26,7 +27,7 @@ function needsList(job: Record<string, any>): string[] {
   return Array.isArray(job.needs) ? job.needs.map(String) : [];
 }
 
-test('Stable and Latest allow only the exact protected Standard/Full clean-install ancestor', () => {
+test('Stable and Latest allow the protected clean-install gate without advisory jobs', () => {
   const mandatoryWorkflows = [
     'release-source-qualification.yml',
     'release-stable.yml',
@@ -42,7 +43,7 @@ test('Stable and Latest allow only the exact protected Standard/Full clean-insta
         (name === '_release-bundle.yml' && jobId === 'standard-clean-vm-qualification')
         || (name === '_release-full-addon.yml' && jobId === 'full-clean-vm-qualification');
       const runsOn = JSON.stringify(job['runs-on'] ?? '');
-      assert.doesNotMatch(runsOn, /self-hosted/i, `${name}:${jobId} must remain GitHub-hosted`);
+      assert.doesNotMatch(runsOn, /self-hosted/i, `${name}:${jobId} must use a named release runner or a hosted runner`);
       if (protectedGate) {
         assert.equal(job.uses, './.github/workflows/opl-first-run-vm.yml');
         assert.equal(job.with.diagnostic_scope, 'release_gate');
@@ -78,6 +79,17 @@ test('Stable and Latest allow only the exact protected Standard/Full clean-insta
 
   // The structured job checks above enforce executor and call boundaries.
   // Workflow paths in the immutable input manifest are data, not job calls.
+});
+
+test('Stable macOS runner selection prefers an online release ARM64 machine across inventory pages', () => {
+  const label = 'opl-release-macos-arm64';
+  const labels = ['self-hosted', 'macOS', 'ARM64', label].map((name) => ({ name }));
+  const offline = { status: 'offline', labels };
+  const intel = { status: 'online', labels: labels.map((entry) => entry.name === 'ARM64' ? { name: 'X64' } : entry) };
+  const certOnly = { status: 'online', labels: labels.slice(0, 3) };
+  assert.equal(selectMacReleaseRunner([{ runners: [offline, intel, certOnly] }]), 'macos-latest');
+  assert.equal(selectMacReleaseRunner([{ runners: [offline] }, { runners: [{ status: 'online', labels }] }]), label);
+  assert.equal(selectMacReleaseRunner([]), 'macos-latest');
 });
 
 test('Manual Full Preview keeps its explicit self-hosted exception outside Stable/Latest', () => {
@@ -142,7 +154,7 @@ test('Tart VM consumers and routine advisory jobs use distinct exact capability 
   assert.equal(advisory.workflow.jobs['mac-vmware-advisory']['continue-on-error'], true);
 });
 
-test('runner policy contract limits publication to one protected self-hosted gate per release track', () => {
+test('runner policy requires protected clean-install qualification and permits dedicated macOS release workers', () => {
   const contract = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts', 'app-release-channel.json'), 'utf8'));
   const policy = contract.release_acceleration.runner_policy;
   const pools = Object.fromEntries(policy.pools.map((pool: Record<string, any>) => [pool.id, pool]));
@@ -171,10 +183,10 @@ test('runner policy contract limits publication to one protected self-hosted gat
   assert.equal(policy.routine_advisory.untrusted_pull_request_execution_allowed, false);
   assert.equal(policy.routine_advisory.inventory_token_least_privilege_verified, false);
   assert.equal(policy.publication_floor.stable_and_latest_executor, 'github_hosted');
-  assert.equal(policy.publication_floor.self_hosted_ancestor_count, 1);
+  assert.equal(policy.publication_floor.required_self_hosted_qualification_count, 1);
   assert.equal(
-    policy.publication_floor.self_hosted_ancestor_scope,
-    'exact_profile_protected_clean_install_only',
+    policy.publication_floor.required_self_hosted_qualification_scope,
+    'exact_profile_protected_clean_install',
   );
   assert.equal(policy.publication_floor.optional_or_advisory_self_hosted_ancestor_count, 0);
   assert.deepEqual(policy.protected_macos_clean_install_gate.required_profiles, ['standard', 'full']);

@@ -89,7 +89,7 @@ test('recovery rejects a changed archive digest before downloading or extracting
 
 test('the real finalizer verifies every retained file and frozen source before consuming the handoff', () => {
   const step = action.runs.steps.find((step: any) => step.id === 'handoff');
-  for (const mutation of ['none', 'payload', 'source', 'extra']) {
+  for (const mutation of ['none', 'owned-runner', 'wrong-runner', 'payload', 'source', 'extra']) {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-recovery-'));
     try {
       const input = path.join(temp, 'opl-full-finalizer-input');
@@ -103,11 +103,11 @@ test('the real finalizer verifies every retained file and frozen source before c
         fs.mkdirSync(path.dirname(path.join(input, name)), { recursive: true });
         fs.writeFileSync(path.join(input, name), content);
       }
-      fs.writeFileSync(path.join(input, 'handoff-manifest.json'), JSON.stringify({ schema: 'opl_full_finalizer_input.v1', release_version: '26.11.13', source_runner: { label: 'macos-latest', arch: 'arm64' }, full_content_sources: refs, files: Object.entries(files).map(([name, content]) => ({ path: name, size_bytes: Buffer.byteLength(content), sha256: createHash('sha256').update(content).digest('hex') })) }));
+      fs.writeFileSync(path.join(input, 'handoff-manifest.json'), JSON.stringify({ schema: 'opl_full_finalizer_input.v1', release_version: '26.11.13', source_runner: { label: mutation === 'owned-runner' ? 'opl-release-macos-arm64' : mutation === 'wrong-runner' ? 'unknown' : 'macos-latest', arch: 'arm64' }, full_content_sources: refs, files: Object.entries(files).map(([name, content]) => ({ path: name, size_bytes: Buffer.byteLength(content), sha256: createHash('sha256').update(content).digest('hex') })) }));
       if (mutation === 'payload') fs.appendFileSync(path.join(input, Object.keys(files)[0]!), 'changed');
       if (mutation === 'extra') fs.writeFileSync(path.join(input, 'unlisted'), 'changed');
-      const result = spawnSync('bash', ['-c', step.run], { encoding: 'utf8', env: { ...process.env, RUNNER_TEMP: temp, GITHUB_WORKSPACE: temp, GITHUB_OUTPUT: path.join(temp, 'output'), EXPECTED_HANDOFF_ARTIFACT_DIGEST: `sha256:${'f'.repeat(64)}`, EXPECTED_APP_SHA: mutation === 'source' ? '0'.repeat(40) : refs.app_sha, EXPECTED_SHELL_SHA: refs.shell_sha, EXPECTED_FRAMEWORK_SHA: refs.framework_sha, EXPECTED_MAS_SCHOLAR_SKILLS_SHA: refs.mas_scholar_skills_sha, OPL_RELEASE_VERSION: '26.11.13' } });
-      if (mutation === 'none') {
+      const result = spawnSync('bash', ['-c', step.run], { encoding: 'utf8', env: { ...process.env, RUNNER_TEMP: temp, GITHUB_WORKSPACE: temp, GITHUB_OUTPUT: path.join(temp, 'output'), EXPECTED_HANDOFF_ARTIFACT_DIGEST: `sha256:${'f'.repeat(64)}`, EXPECTED_APP_SHA: mutation === 'source' ? '0'.repeat(40) : refs.app_sha, EXPECTED_SHELL_SHA: refs.shell_sha, EXPECTED_FRAMEWORK_SHA: refs.framework_sha, EXPECTED_MAS_SCHOLAR_SKILLS_SHA: refs.mas_scholar_skills_sha, OPL_RELEASE_VERSION: '26.11.13', OPL_MACOS_RUNNER_LABEL: 'opl-release-macos-arm64' } });
+      if (mutation === 'none' || mutation === 'owned-runner') {
         assert.equal(result.status, 0, result.stderr);
         assert.match(fs.readFileSync(path.join(temp, 'output'), 'utf8'), /mas_ref=eeee/);
       } else assert.notEqual(result.status, 0, `accepted ${mutation}`);

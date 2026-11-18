@@ -91,6 +91,10 @@ on:
         required: false
         default: '["linux-x64","windows-x64"]'
         type: string
+      macos_release_runner:
+        description: macOS runner selected by the protected Stable admission job.
+        type: string
+        default: ''
       prior_standard_artifact_run_id:
         description: Exact failed Standard run containing reusable signed and notarized bytes for this frozen cohort
         required: false
@@ -981,6 +985,7 @@ jobs:
       release_cohort_ref: ${{ needs.freeze.outputs.bundle_digest }}
       require_macos_gatekeeper: true
       apple_preflight_verified: ${{ needs.freeze.outputs.apple_preflight_verified == 'true' }}
+      macos_release_runner: ${{ inputs.macos_release_runner }}
       operation: ${{ inputs.operation }}
       operation_started_at: ${{ needs.freeze.outputs.operation_started_at }}
       operation_deadline_at: ${{ needs.freeze.outputs.operation_deadline_at }}

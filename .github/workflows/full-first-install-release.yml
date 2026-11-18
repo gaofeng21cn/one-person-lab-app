@@ -97,6 +97,7 @@ on:
       operation: { description: Release operation inherited from the Bundle controller, required: false, default: '', type: string }
       operation_started_at: { description: Immutable outer operation start timestamp, required: false, default: '', type: string }
       operation_deadline_at: { description: Immutable outer operation deadline; never recomputed here, required: false, default: '', type: string }
+      macos_release_runner: { description: macOS runner selected by the protected Full operation, required: false, default: '', type: string }
     secrets:
       OPL_GATEWAY_RELEASE_TEST_ACCOUNT_PASSWORD:
         required: false
@@ -133,7 +134,9 @@ jobs:
   full-first-install:
     if: ${{ inputs.finalizer_source_run_id == '' }}
     name: Build App-owned Full first-install DMG
-    runs-on: ${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}
+    runs-on: ${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || inputs.macos_release_runner || 'macos-latest' }}
+    env:
+      OPL_MACOS_RUNNER_LABEL: ${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || inputs.macos_release_runner || 'macos-latest' }}
     timeout-minutes: ${{ inputs.operation == 'append_full' && 130 || 90 }}
     continue-on-error: ${{ inputs.candidate_only }}
     environment: release-stable
@@ -1114,15 +1117,24 @@ jobs:
             exit 0
           fi
 
-          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -lut 21600 build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          rm certificate.p12
-          security find-identity -v -p codesigning build.keychain | grep -F "$IDENTITY" >/dev/null || {
+          umask 077
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" capture
+          fi
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/opl-build-certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/opl-build.keychain-db"
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" activate
+          else
+            security default-keychain -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+            security list-keychains -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+          fi
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+          security import "$RUNNER_TEMP/opl-build-certificate.p12" -k "$RUNNER_TEMP/opl-build.keychain-db" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+          rm -f "$RUNNER_TEMP/opl-build-certificate.p12"
+          security find-identity -v -p codesigning "$RUNNER_TEMP/opl-build.keychain-db" | grep -F "$IDENTITY" >/dev/null || {
             echo "::error::Configured IDENTITY does not resolve to an imported code-signing identity."
             exit 1
           }
@@ -1315,9 +1327,13 @@ jobs:
             echo "::notice::Skipping notarization for development-only non-distributable Full output."
             exit 0
           fi
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -d user -s build.keychain
-          security list-keychains -d user -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" activate
+          else
+            security default-keychain -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+            security list-keychains -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+          fi
           node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/notarize-macos-dmg.ts" \
             --dmg "dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" \
             --output dist/opl-full-release/full-apple-notarization-receipt.json \
@@ -1890,7 +1906,7 @@ jobs:
           if (!files.some((entry) => entry.path === `full-output/${dmgName}`)) throw new Error('Full finalizer input DMG is missing.');
           const payload = {
             schema: 'opl_full_finalizer_input.v1',
-            source_runner: { label: 'macos-latest', arch: process.arch },
+            source_runner: { label: process.env.OPL_MACOS_RUNNER_LABEL, arch: process.arch },
             release_version: process.env.OPL_RELEASE_VERSION,
             full_content_sources: {
               app_sha: '${{ inputs.artifact_app_sha }}',
@@ -2111,14 +2127,19 @@ jobs:
       - name: Clean up keychain
         if: ${{ always() && !inputs.cache_only }}
         run: |
-          if security list-keychains | grep -q build.keychain; then
-            security delete-keychain build.keychain
+          rm -f "$RUNNER_TEMP/opl-build-certificate.p12"
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ] && [ -f "$RUNNER_TEMP/opl-release-keychain-state.json" ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" restore
+          elif [ "$RUNNER_ENVIRONMENT" != self-hosted ] && [ -f "$RUNNER_TEMP/opl-build.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/opl-build.keychain-db"
           fi
 
   full-finalizer:
     if: ${{ !inputs.cache_only && inputs.operation == 'append_full' && inputs.upload_full_package_artifact && inputs.finalizer_source_run_id != '' }}
     name: Resume existing Full DMG on ARM
-    runs-on: macos-latest
+    runs-on: ${{ inputs.macos_release_runner || 'macos-latest' }}
+    env:
+      OPL_MACOS_RUNNER_LABEL: ${{ inputs.macos_release_runner || 'macos-latest' }}
     timeout-minutes: 60
     environment: release-stable
     permissions:
@@ -2187,6 +2208,9 @@ jobs:
       - name: Clean up ARM finalizer keychain
         if: ${{ always() }}
         run: |
-          if security list-keychains | grep -q build.keychain; then
-            security delete-keychain build.keychain
+          rm -f "$RUNNER_TEMP/opl-build-certificate.p12"
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ] && [ -f "$RUNNER_TEMP/opl-release-keychain-state.json" ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" restore
+          elif [ "$RUNNER_ENVIRONMENT" != self-hosted ] && [ -f "$RUNNER_TEMP/opl-build.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/opl-build.keychain-db"
           fi

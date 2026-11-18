@@ -510,6 +510,7 @@ jobs:
       control_digest: ${{ steps.control.outputs.control_digest }}
       authority_id: ${{ steps.authority.outputs.authority_id }}
       desktop_additional_platforms: ${{ steps.authority.outputs.desktop_additional_platforms }}
+      macos_release_runner: ${{ steps.macos-runner.outputs.macos_release_runner }}
     steps:
       - name: Reject bare or rerun Stable request before expensive work
         env:
@@ -755,6 +756,12 @@ jobs:
             echo "operation_id=$(jq -er .operation_id stable-operation-control.json)"
             echo "control_digest=$(jq -er .authority_digest stable-operation-control.json)"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Select available macOS release capacity
+        id: macos-runner
+        env:
+          GH_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN }}
+        run: node --experimental-strip-types app-executor/scripts/macos-release-runner.ts
 
       - name: Upload immutable operation control evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -1062,7 +1069,7 @@ jobs:
   stable-admission-manifest:
     if: ${{ needs.admission.outputs.operation == 'standard' }}
     needs: [admission, protected-operation-admission]
-    runs-on: macos-latest
+    runs-on: ${{ needs.protected-operation-admission.outputs.macos_release_runner }}
     timeout-minutes: 15
     environment: release-stable
     permissions:
@@ -1102,6 +1109,7 @@ jobs:
 
       - name: Verify protected Apple credentials in the Stable entry
         env:
+          OPL_MACOS_RUNNER_LABEL: ${{ needs.protected-operation-admission.outputs.macos_release_runner }}
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -1265,6 +1273,7 @@ jobs:
       stable_admission_artifact: opl-stable-admission-${{ github.run_id }}
       stable_admission_manifest_digest: ${{ needs.stable-admission-manifest.outputs.manifest_digest }}
       stable_desktop_additional_platforms: ${{ needs.protected-operation-admission.outputs.desktop_additional_platforms }}
+      macos_release_runner: ${{ needs.protected-operation-admission.outputs.macos_release_runner }}
       prior_standard_artifact_run_id: ${{ needs.admission.outputs.prior_standard_artifact_run_id }}
       skip_webui_qualification: ${{ needs.admission.outputs.completed_webui_run_id != '' }}
       smoke_harness_ref: ${{ needs.admission.outputs.smoke_harness_ref }}

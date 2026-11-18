@@ -911,7 +911,7 @@
         "public_promotion_status": "approved_pending_first_protected_follower_readback",
         "standard_updater_visible": false,
         "promotion_requires": [
-          "github_hosted_full_qualification",
+          "exact_macos_full_qualification",
           "exact_public_full_asset_and_manifest_readback",
           "protected_single_attempt_digest_bound_tap_cas",
           "exact_public_tap_commit_and_cask_readback"
@@ -5204,12 +5204,12 @@
         "stable_and_latest_executor": "github_hosted",
         "scope": "github_hosted_publication_subgraph_after_protected_macos_clean_install_gate",
         "required_floor": [
-          "github_hosted_source_contract_build_preflight",
-          "github_hosted_signed_notarized_standard_build",
+          "source_contract_and_build_preflight",
+          "signed_notarized_standard_build",
           "remote_digest_readback"
         ],
-        "self_hosted_ancestor_count": 1,
-        "self_hosted_ancestor_scope": "exact_profile_protected_clean_install_only",
+        "required_self_hosted_qualification_count": 1,
+        "required_self_hosted_qualification_scope": "exact_profile_protected_clean_install",
         "optional_or_advisory_self_hosted_ancestor_count": 0,
         "offline_or_unavailable_effect": "publication_continues_without_waiting_or_queueing",
         "optional_certification_effect": "evidence_only_does_not_change_publication_or_latest"
@@ -5853,12 +5853,14 @@
       "payload_policy": "inject_full_runtime_after_base_extraction",
       "trust_policy": "sign_final_staged_app_once_then_verify_dmg_and_complete_full_notarization_and_clean_install"
     },
-    "full_build_runner": {
-      "default": "macos-latest",
-      "repository_variable": "OPL_FULL_BUILD_RUNNER",
-      "opt_in_hosted_runner": "macos-15-xlarge",
-      "unrecognized_variable_policy": "use_default",
-      "self_hosted_build_allowed": false
+    "macos_release_runner": {
+      "owner": "protected_stable_release_workflows",
+      "resolver": "scripts/macos-release-runner.ts",
+      "owned_runner_labels": ["self-hosted", "macOS", "ARM64", "opl-release-macos-arm64"],
+      "selection": "prefer_online_owned_pool_then_github_hosted",
+      "hosted_fallback": "macos-latest",
+      "opt_in_full_build_runner": { "repository_variable": "OPL_FULL_BUILD_RUNNER", "label": "macos-15-xlarge" },
+      "stages": ["standard_credential_admission", "standard_build", "full_build", "full_finalizer_recovery", "full_package_qualification"]
     },
     "full_dmg_compression": {
       "default_ci_format": "ULMO",

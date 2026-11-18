@@ -388,7 +388,7 @@ test('append_full preserves the Standard checkpoint while binding a fresh Full c
   const hostedQualification = workflowStep(
     '_release-full-addon.yml',
     'full-qualification',
-    'Verify exact hosted Full core qualification',
+    'Verify exact Full package trust',
   );
   assert.equal(hostedQualification.env.FULL_CONTENT_APP_REF, '${{ inputs.full_content_app_ref }}');
   assert.equal(hostedQualification.env.FULL_CONTENT_SHELL_REF, '${{ inputs.full_content_shell_ref }}');
@@ -853,7 +853,7 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.match(run, /checkpoint export/);
   assert.doesNotMatch(run, /--legacy-qualification/);
   const qualification = full.jobs['full-qualification'];
-  assert.equal(qualification['runs-on'], 'macos-latest');
+  assert.equal(qualification['runs-on'], '${{ needs.restore-standard.outputs.macos_release_runner }}');
   assert.equal(qualification.uses, undefined);
   assert.deepEqual(qualification.permissions, { contents: 'read', actions: 'read' });
   const qualificationRun = qualification.steps

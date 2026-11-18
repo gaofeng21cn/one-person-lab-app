@@ -575,11 +575,13 @@ export function buildQualificationReceipt(values: AdapterOptionValues): JsonReco
     const artifactSha256 = String(hosted.subject?.sha256 ?? '');
     const requiredNames = bundle.tracks?.full?.required_asset_names;
     const verification = hosted.verification ?? {};
+    const execution = hosted.execution;
+    const trustedMacOSRunner = (execution?.execution_class === 'github_hosted' && execution.runner === 'macos-latest')
+      || (execution?.execution_class === 'self_hosted' && execution.runner === 'opl-release-macos-arm64');
     if (
       hosted.schema !== 'opl_app_hosted_full_core_qualification.v1'
       || hosted.status !== 'passed'
-      || hosted.execution?.execution_class !== 'github_hosted'
-      || hosted.execution?.runner !== 'macos-latest'
+      || !trustedMacOSRunner
       || hosted.execution?.run_attempt !== 1
       || !/^[1-9][0-9]*$/.test(String(hosted.execution?.run_id ?? ''))
       || hosted.release?.version !== bundle.release.version
@@ -601,7 +603,7 @@ export function buildQualificationReceipt(values: AdapterOptionValues): JsonReco
       || typeof hosted.evidence_ref !== 'string'
       || hosted.evidence_ref.trim() === ''
     ) {
-      throw new Error('Hosted Full core qualification does not bind the exact Full artifact and macOS trust evidence.');
+      throw new Error('Full core qualification does not bind the exact Full artifact and macOS trust evidence.');
     }
     return {
       surface_kind: 'opl_release_bundle_qualification_receipt.v1',

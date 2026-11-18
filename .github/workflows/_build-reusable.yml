@@ -63,6 +63,10 @@ on:
         description: 'The caller verified its same-run protected Stable Apple credential receipt while freezing the Bundle'
         type: boolean
         default: false
+      macos_release_runner:
+        description: macOS runner selected by the protected Stable admission job.
+        type: string
+        default: ''
       release_bundle_digest:
         description: Exact immutable Framework Bundle digest for the live release path.
         type: string
@@ -405,7 +409,7 @@ jobs:
 
   build:
     name: Build ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ inputs.operation == 'standard' && matrix.platform == 'macos-arm64' && inputs.macos_release_runner || matrix.os }}
     environment: ${{ inputs.require_macos_gatekeeper && startsWith(matrix.platform, 'macos') && 'release-stable' || null }}
     # Build isolated artifacts while source checks run; build-summary joins all gates.
     needs:
@@ -730,7 +734,14 @@ jobs:
           shell-root: ${{ needs.resolve-active-shell-ref.outputs.shell_root }}
           app-root: .
 
-      # macOS code signing certificate installation
+      - name: Checkout macOS signing lifecycle from the current release executor
+        if: runner.environment == 'self-hosted' && startsWith(matrix.platform, 'macos')
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: release-executor
+          persist-credentials: false
+
       - name: Setup macOS code signing (macOS only)
         if: startsWith(matrix.platform, 'macos')
         env:
@@ -739,24 +750,33 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
         run: |
           if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+            set -euo pipefail
+            umask 077
+            if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+              node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" capture
+            fi
             echo "Installing code signing certificate..."
 
             # Create certificate file
-            echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+            printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/opl-build-certificate.p12"
 
             # Create temporary keychain
-            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-            security set-keychain-settings -lut 21600 build.keychain
-            security default-keychain -d user -s build.keychain
-            security list-keychains -d user -s build.keychain
-            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+            security set-keychain-settings -lut 21600 "$RUNNER_TEMP/opl-build.keychain-db"
+            if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+              node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" activate
+            else
+              security default-keychain -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+              security list-keychains -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+            fi
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
 
             # Import certificate
-            security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+            security import "$RUNNER_TEMP/opl-build-certificate.p12" -k "$RUNNER_TEMP/opl-build.keychain-db" -P "$P12_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
 
             # Clean up certificate file
-            rm certificate.p12
+            rm -f "$RUNNER_TEMP/opl-build-certificate.p12"
 
             echo "Certificate imported successfully"
           else
@@ -1185,10 +1205,14 @@ jobs:
           target_arch="${{ matrix.native_arch || matrix.arch }}"
           dmg_path="${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/One-Person-Lab-${OPL_RELEASE_VERSION}-mac-${target_arch}.dmg"
           test -f "$dmg_path"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -d user -s build.keychain
-          security list-keychains -d user -s build.keychain
-          security find-identity -v -p codesigning build.keychain | grep -F "$OPL_RUNTIME_CODESIGN_IDENTITY" >/dev/null || {
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" activate
+          else
+            security default-keychain -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+            security list-keychains -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+          fi
+          security find-identity -v -p codesigning "$RUNNER_TEMP/opl-build.keychain-db" | grep -F "$OPL_RUNTIME_CODESIGN_IDENTITY" >/dev/null || {
             echo "::error::Configured Developer ID identity is not available in build.keychain."
             exit 1
           }
@@ -1331,9 +1355,11 @@ jobs:
       - name: Clean up keychain (macOS only)
         if: startsWith(matrix.platform, 'macos') && always()
         run: |
-          if security list-keychains | grep -q build.keychain; then
-            security delete-keychain build.keychain
-            echo "Temporary keychain deleted"
+          rm -f "$RUNNER_TEMP/opl-build-certificate.p12"
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ] && [ -f "$RUNNER_TEMP/opl-release-keychain-state.json" ]; then
+            node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" restore
+          elif [ "$RUNNER_ENVIRONMENT" != self-hosted ] && [ -f "$RUNNER_TEMP/opl-build.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/opl-build.keychain-db"
           fi
 
       # macOS 构建失败通知

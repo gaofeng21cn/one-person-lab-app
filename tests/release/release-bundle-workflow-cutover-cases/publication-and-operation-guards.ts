@@ -494,31 +494,34 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
   const stableWorkflow = parseWorkflow('release-stable.yml');
   assert.equal(stableWorkflow.jobs['stable-admission-manifest'].environment, 'release-stable');
+  assert.equal(stableWorkflow.jobs['stable-admission-manifest']['runs-on'], '${{ needs.protected-operation-admission.outputs.macos_release_runner }}');
+  assert.equal(stableWorkflow.jobs.standard.with.macos_release_runner, '${{ needs.protected-operation-admission.outputs.macos_release_runner }}');
   assert.equal(stableWorkflow.jobs['stable-admission-manifest'].steps.some(
     (step: Record<string, unknown>) => String(step.run ?? '').includes('stable-release-admission-manifest.ts create'),
   ), true);
   assert.equal(setupSigning.env.BUILD_CERTIFICATE_BASE64, '${{ secrets.BUILD_CERTIFICATE_BASE64 }}');
   assert.equal(setupSigning.env.P12_PASSWORD, '${{ secrets.P12_PASSWORD }}');
-  assert.match(String(setupSigning.run), /security set-keychain-settings -lut 21600 build\.keychain/);
-  assert.match(String(setupSigning.run), /security default-keychain -d user -s build\.keychain/);
-  assert.match(String(setupSigning.run), /security list-keychains -d user -s build\.keychain/);
+  assert.match(String(setupSigning.run), /security set-keychain-settings -lut 21600 "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
+  assert.match(String(setupSigning.run), /security default-keychain -d user -s "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
+  assert.match(String(setupSigning.run), /security list-keychains -d user -s "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
   assert.equal(macosBuild.env.appleId, '${{ secrets.APPLE_ID }}');
   assert.equal(macosBuild.env.appleIdPassword, '${{ secrets.APPLE_ID_PASSWORD }}');
   assert.equal(macosBuild.env.teamId, '${{ secrets.TEAM_ID }}');
   assert.equal(macosBuild.env.identity, '${{ secrets.IDENTITY }}');
   assert.equal(standardFinalizer.env.KEYCHAIN_PASSWORD, "${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}");
-  assert.match(String(standardFinalizer.run), /security unlock-keychain -p "\$KEYCHAIN_PASSWORD" build\.keychain/);
-  assert.match(String(standardFinalizer.run), /security default-keychain -d user -s build\.keychain/);
-  assert.match(String(standardFinalizer.run), /security list-keychains -d user -s build\.keychain/);
+  assert.match(String(standardFinalizer.run), /security unlock-keychain -p "\$KEYCHAIN_PASSWORD" "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
+  assert.match(String(standardFinalizer.run), /security default-keychain -d user -s "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
+  assert.match(String(standardFinalizer.run), /security list-keychains -d user -s "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
   assert.match(
     String(standardFinalizer.run),
-    /security find-identity -v -p codesigning build\.keychain \| grep -F "\$OPL_RUNTIME_CODESIGN_IDENTITY" >\/dev\/null/,
+    /security find-identity -v -p codesigning "\$RUNNER_TEMP\/opl-build\.keychain-db" \| grep -F "\$OPL_RUNTIME_CODESIGN_IDENTITY" >\/dev\/null/,
   );
   const buildSteps = reusableBuild.jobs.build.steps;
   assert.ok(buildSteps.indexOf(setupSigning) < buildSteps.indexOf(standardFinalizer));
   assert.ok(buildSteps.indexOf(standardFinalizer) < buildSteps.indexOf(cleanupSigning));
   assert.equal(cleanupSigning.if, "startsWith(matrix.platform, 'macos') && always()");
-  assert.match(String(cleanupSigning.run), /security delete-keychain build\.keychain/);
+  assert.match(String(cleanupSigning.run), /macos-release-keychain\.ts" restore/);
+  assert.match(String(cleanupSigning.run), /security delete-keychain "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
   assert.equal(fullAddon.jobs['full-build'].secrets, 'inherit');
   assert.equal(fullAddon.jobs['full-clean-vm-qualification'].secrets, 'inherit');
   assert.equal(fullAddon.jobs['full-clean-vm-qualification'].with.diagnostic_scope, 'release_gate');
@@ -533,13 +536,13 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
   assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_format.default, 'ULMO');
   assert.equal(fullBuild.on.workflow_call.inputs.full_dmg_compression_level.default, '9');
-  assert.equal(fullBuild.jobs['full-first-install']['runs-on'], "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}");
+  assert.equal(fullBuild.jobs['full-first-install']['runs-on'], "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || inputs.macos_release_runner || 'macos-latest' }}");
   assert.equal(fullBuild.jobs['full-first-install']['continue-on-error'], '${{ inputs.candidate_only }}');
   assert.equal(fullBuild.jobs['full-first-install'].environment, 'release-stable');
   assert.ok(fullBuild.jobs['full-first-install'].steps.some(
     (step: Record<string, unknown>) => step.name === 'Record candidate-only Full failure without blocking Standard',
   ));
-  assert.equal(fullBuild.jobs['full-finalizer']['runs-on'], 'macos-latest');
+  assert.equal(fullBuild.jobs['full-finalizer']['runs-on'], "${{ inputs.macos_release_runner || 'macos-latest' }}");
   assert.equal(fullBuild.jobs['full-finalizer'].needs, undefined);
   assert.match(fullBuild.jobs['full-finalizer'].if, /inputs.finalizer_source_run_id != ''/);
   assert.equal(fullBuild.jobs['full-first-install'].if, "${{ inputs.finalizer_source_run_id == '' }}");
@@ -607,7 +610,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
       < armBuilder.steps.indexOf(handoffPrepare),
   );
   assert.match(String(handoffPrepare.run), /opl_full_finalizer_input\.v1/);
-  assert.match(String(handoffPrepare.run), /source_runner: \{ label: 'macos-latest', arch: process\.arch \}/);
+  assert.match(String(handoffPrepare.run), /source_runner: \{ label: process\.env\.OPL_MACOS_RUNNER_LABEL, arch: process\.arch \}/);
   assert.ok(armBuilder.steps.indexOf(handoffUpload) < armBuilder.steps.indexOf(handoffDigestNormalization));
   assert.equal(
     handoffDigestNormalization.env.RAW_HANDOFF_ARTIFACT_DIGEST,

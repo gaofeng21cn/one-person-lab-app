@@ -229,6 +229,7 @@ jobs:
       operation_id: ${{ steps.operation.outputs.operation_id }}
       operation_started_at: ${{ steps.operation.outputs.operation_started_at }}
       operation_deadline_at: ${{ steps.operation.outputs.operation_deadline_at }}
+      macos_release_runner: ${{ steps.macos-runner.outputs.macos_release_runner }}
     steps:
       - name: Recheck one-shot deadline before checkpoint transport
         shell: bash
@@ -958,6 +959,13 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Select available macOS release capacity
+        id: macos-runner
+        if: ${{ steps.identity.outputs.completed_stage != 'full_qualified' }}
+        env:
+          GH_TOKEN: ${{ secrets.OPL_RUNNER_INVENTORY_TOKEN }}
+        run: node --experimental-strip-types app-source/scripts/macos-release-runner.ts
+
       - name: Persist typed checkpoint restore failure
         if: ${{ failure() }}
         shell: bash
@@ -993,6 +1001,7 @@ jobs:
       shell_ref: ${{ inputs.full_content_shell_ref }}
       mas_scholar_skills_ref: ${{ needs.restore-standard.outputs.mas_scholar_skills_ref }}
       upload_full_package_artifact: true
+      macos_release_runner: ${{ needs.restore-standard.outputs.macos_release_runner }}
       finalizer_source_run_id: ${{ needs.restore-standard.outputs.finalizer_source_run_id }}
       finalizer_input_digest: ${{ needs.restore-standard.outputs.finalizer_input_digest }}
       release_bundle_digest: ${{ needs.restore-standard.outputs.bundle_digest }}
@@ -1345,7 +1354,7 @@ jobs:
   full-qualification:
     if: ${{ always() && (needs.restore-standard.outputs.completed_stage == 'standard_built' || needs.restore-standard.outputs.completed_stage == 'standard_qualified' || needs.restore-standard.outputs.completed_stage == 'full_built') && (needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
     needs: [restore-standard, full-build, materialize-full-build]
-    runs-on: macos-latest
+    runs-on: ${{ needs.restore-standard.outputs.macos_release_runner }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -1357,8 +1366,9 @@ jobs:
           name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output
 
-      - name: Verify exact hosted Full core qualification
+      - name: Verify exact Full package trust
         env:
+          OPL_MACOS_RUNNER_LABEL: ${{ needs.restore-standard.outputs.macos_release_runner }}
           VERSION: ${{ needs.restore-standard.outputs.version }}
           FULL_CONTENT_APP_REF: ${{ inputs.full_content_app_ref }}
           FULL_CONTENT_SHELL_REF: ${{ inputs.full_content_shell_ref }}
@@ -1433,8 +1443,8 @@ jobs:
             schema: 'opl_app_hosted_full_core_qualification.v1',
             status: 'passed',
             execution: {
-              execution_class: 'github_hosted',
-              runner: 'macos-latest',
+              execution_class: process.env.RUNNER_ENVIRONMENT === 'self-hosted' ? 'self_hosted' : 'github_hosted',
+              runner: process.env.OPL_MACOS_RUNNER_LABEL,
               run_id: process.env.GITHUB_RUN_ID,
               run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
             },

@@ -35,6 +35,8 @@ Stable controller 在签发授权前运行当前执行器的 Bundle 工作流合
 
 Standard 冻结验证同一运行的 Apple 凭据回执后，把预检结论交给构建；构建仍在 macOS 执行 Developer ID 签名、公证和 Gatekeeper 验证。没有已核验回执的构建继续执行自己的凭据预检。
 
+Standard 和 Full 分别在 Linux 准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`，清单不可用或池内无在线机器时使用 `macos-latest`。专用标签由维护者授予能执行正式签名、公证和只读包体验证的本机或 Fleet runner。验收 VM 和公开写入各走既有步骤。恢复时保留冻结源码和可用的准确产物，再由新的 operation 按实时清单选择 runner。
+
 重复失败时，先读取对应 run 的首个失败步骤和诊断产物，修复其实现或调用方，再用隔离状态在本机重放受影响的真实入口。桌面交互可复用 Studio 的 `build:desktop` 和 `smoke:preview`，从首启进入 Settings、Runtime 和任务详情。容器问题用相同架构的本地镜像和空卷重放，再用原卷重启确认持久化。涉及 Profile 时，用隔离的 Codex Home 安装准确 Package，并从 App 的恢复动作回读实际写入的 `AGENTS.md`。对应本地验证通过后进入正式派发，签名、公证和普通账号 clean-VM 验收仍由正式流程执行。
 
 source gate 在 Framework CLI、Shell consumer、typecheck 和测试前，先检查本机准备情况：用冻结 carrier 的 `node_host_runtime` adapter 校验 PATH 中实际执行脚本的 Node，再用离线 `npm ls --depth=0 --include=dev` 检查已安装的 Shell 直接依赖。失败沿用 `pre_admission` blocker，先修本机环境再继续；App 不复制 Node 安全版本表，也不把直接依赖检查当作完整 lockfile 验证。依赖陈旧时按冻结 lockfile 执行 `npm ci`；Node 不合格时选择已接纳的运行时并核对 Node、npm／npx 的实际来源，不自动改全局 Node。只有 Node 二进制的工具目录不能作为完整 Full 打包工具链。
@@ -320,7 +322,7 @@ Full append 在只读 checkpoint 恢复后验证 Full 专用的精确 ref 和恢
 
 Full 可复用目标 Standard 已公开且 sealed 的 ARM64 updater ZIP。复用前按原 attestation 校验 Release ID、tag、target commit、Bundle digest、组件清单摘要、App/Shell/Framework SHA、机器版本及冻结源码与 executor 的产品输入；任一不匹配或资产不可用时继续常规 Shell 构建。解包后校验 App identity 和 Developer ID，随后注入 Full runtime；不能用移动的 Latest 或其他候选替代。复用时跳过 Shell 重建、Electron 原生重编译和两份仅供重建使用的中间 runtime 复制。最终 staged App 完成裁剪与 manifest 写入后只签名并深度验签一次，DMG 内验签、Full 公证、clean-VM 和公开回读继续执行。
 
-Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，文件系统不支持时回到 `ditto`。裁剪与边界统计共用本次操作的一份目录清点，不跨 operation 缓存合同。构建 job 默认 `macos-latest`；仓库变量 `OPL_FULL_BUILD_RUNNER=macos-15-xlarge` 可选择 GitHub 托管 ARM64 XLarge，其他值使用默认机器。该可选路径需要已有付费 runner 能力，本次优化不启用付费资源，也不把 clean-VM runner 改作构建机。
+Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，文件系统不支持时回到 `ditto`。裁剪与边界统计共用本次操作的一份目录清点。Full 构建、恢复公证及包体复验使用准入时选择的 Mac，回执记录实际 runner。设置 `OPL_FULL_BUILD_RUNNER=macos-15-xlarge` 可显式选择已有的 GitHub 托管 ARM64 XLarge 构建能力。
 
 Full 在可移植性门禁前检查 Shell npm 原生代码的构建机 RPATH；只有所有真实依赖仍可由系统路径或保留的 `@loader_path` 解析时才删除冗余绝对路径，并从内向外重签修改过的文件和嵌套 App。未解析依赖继续拒绝；最终 App 签名、公证和 clean-VM 仍消费修复后的准确字节，Standard 公开资产不变。
 

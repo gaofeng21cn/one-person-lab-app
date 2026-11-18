@@ -125,7 +125,10 @@ runs:
         };
         if (manifest.schema !== 'opl_full_finalizer_input.v1') throw new Error('Full finalizer handoff schema drifted.');
         if (manifest.release_version !== process.env.OPL_RELEASE_VERSION) throw new Error('Full finalizer handoff version drifted.');
-        if (JSON.stringify(manifest.source_runner) !== JSON.stringify({ label: 'macos-latest', arch: 'arm64' })) throw new Error('Full finalizer handoff source runner drifted.');
+        if (manifest.source_runner?.arch !== 'arm64'
+            || !['macos-latest', 'macos-15-xlarge', 'opl-release-macos-arm64'].includes(manifest.source_runner?.label)) {
+          throw new Error('Full finalizer handoff source runner drifted.');
+        }
         if (JSON.stringify(manifest.full_content_sources) !== JSON.stringify(exact)) throw new Error('Full finalizer handoff source refs drifted.');
         if (!Array.isArray(manifest.files) || manifest.files.length === 0) throw new Error('Full finalizer handoff file inventory is empty.');
         for (const entry of manifest.files) {
@@ -163,8 +166,8 @@ runs:
         jq -n \
           --arg artifact_digest "$EXPECTED_HANDOFF_ARTIFACT_DIGEST" \
           --arg manifest_sha256 "$(shasum -a 256 "$manifest" | awk '{print $1}')" \
-          --arg source_runner "macos-latest" \
-          --arg finalizer_runner "macos-latest" \
+          --arg source_runner "$(jq -er '.source_runner.label' "$manifest")" \
+          --arg finalizer_runner "$OPL_MACOS_RUNNER_LABEL" \
           '{schema:"opl_full_finalizer_handoff_receipt.v1",status:"passed",artifact_digest:$artifact_digest,handoff_manifest_sha256:$manifest_sha256,source_runner:$source_runner,finalizer_runner:$finalizer_runner}' \
           > "$output_dir/full-finalizer-handoff-receipt.json"
         echo "mas_ref=$(jq -er .components.mas.git_commit "$output_dir/full-package-manifest.json")" >> "$GITHUB_OUTPUT"
@@ -186,15 +189,24 @@ runs:
         for secret_name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD APPLE_ID APPLE_ID_PASSWORD TEAM_ID IDENTITY; do
           test -n "${!secret_name:-}" || { echo "::error::ARM Full finalization requires $secret_name."; exit 1; }
         done
-        printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
-        security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-        security set-keychain-settings -lut 21600 build.keychain
-        security default-keychain -d user -s build.keychain
-        security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-        security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-        rm certificate.p12
-        security find-identity -v -p codesigning build.keychain | grep -F "$IDENTITY" >/dev/null
+        umask 077
+        if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+          node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" capture
+        fi
+        printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/opl-build-certificate.p12"
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+        security set-keychain-settings -lut 21600 "$RUNNER_TEMP/opl-build.keychain-db"
+        if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+          node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" activate
+        else
+          security default-keychain -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+        fi
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+        security import "$RUNNER_TEMP/opl-build-certificate.p12" -k "$RUNNER_TEMP/opl-build.keychain-db" -P "$P12_PASSWORD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+        rm -f "$RUNNER_TEMP/opl-build-certificate.p12"
+        security find-identity -v -p codesigning "$RUNNER_TEMP/opl-build.keychain-db" | grep -F "$IDENTITY" >/dev/null
 
     - name: Finalize Full Developer ID signing and notarization on ARM
       working-directory: one-person-lab-app
@@ -208,9 +220,13 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-        security default-keychain -d user -s build.keychain
-        security list-keychains -d user -s build.keychain
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/opl-build.keychain-db"
+        if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then
+          node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/macos-release-keychain.ts" activate
+        else
+          security default-keychain -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/opl-build.keychain-db"
+        fi
         node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/notarize-macos-dmg.ts" \
           --dmg "dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" \
           --output dist/opl-full-release/full-apple-notarization-receipt.json \
@@ -393,7 +409,7 @@ runs:
               full_asset_append_allowed: true,
               standard_asset_overwrite_or_delete_allowed: false,
             },
-            release_executor: { app_sha: executorSha, notarizer_path: 'scripts/notarize-macos-dmg.ts', finalizer_runner: 'macos-latest' },
+            release_executor: { app_sha: executorSha, notarizer_path: 'scripts/notarize-macos-dmg.ts', finalizer_runner: process.env.OPL_MACOS_RUNNER_LABEL },
             finalizer_handoff: { artifact_digest: handoffDigest, receipt: readJson('full-finalizer-handoff-receipt.json') },
             full_content_sources: { role: 'observational_build_provenance_only', may_gate_install_or_runtime: false, app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
             differences: { executor_app_differs_from_full_content_app: executorSha !== appSha, full_content_app_differs_from_target_standard: appSha !== targetCommitish },

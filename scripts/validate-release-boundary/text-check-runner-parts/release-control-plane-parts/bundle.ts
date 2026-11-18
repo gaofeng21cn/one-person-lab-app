@@ -199,7 +199,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   if (
     !candidateJob
     || candidateJob['continue-on-error'] !== '${{ inputs.candidate_only }}'
-    || !["macos-latest", "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || 'macos-latest' }}"].includes(candidateJob['runs-on'])
+    || candidateJob['runs-on'] !== "${{ vars.OPL_FULL_BUILD_RUNNER == 'macos-15-xlarge' && 'macos-15-xlarge' || inputs.macos_release_runner || 'macos-latest' }}"
     || Array.isArray(candidateJob.steps) === false
   ) {
     failures += reportFailure(
@@ -428,7 +428,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     const fullQualification = fullJobs['full-qualification'];
     const qualificationRuns = jobRuns(fullQualification);
     if (
-      fullQualification['runs-on'] !== 'macos-latest'
+      fullQualification['runs-on'] !== '${{ needs.restore-standard.outputs.macos_release_runner }}'
       || fullQualification.uses !== undefined
       || !needsExactly(fullQualification, ['restore-standard', 'full-build', 'materialize-full-build'])
       || !exactObject(fullQualification.permissions, exactReadPermissions)
@@ -442,7 +442,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     ) {
       failures += reportFailure(
         id,
-        'full-qualification must be a GitHub-hosted read-only exact Full trust qualification with no VM or Tart dependency',
+        'full-qualification must perform the exact read-only Full package trust checks on the selected ARM Mac',
       );
     }
   }
