@@ -252,6 +252,11 @@ jobs:
           path: release-executor
           ref: ${{ github.sha }}
 
+      - name: Install Full release executor dependencies
+        if: ${{ inputs.operation == 'append_full' || inputs.candidate_only }}
+        working-directory: release-executor
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

@@ -227,6 +227,17 @@ test("Full domain dependency sync uses the frozen carrier Python", () => {
   assert.doesNotMatch(workflow, /uv sync --project med-auto(?:science|grant) --no-dev/);
 });
 
+test("Full release executor installs its own script dependencies before packaging", () => {
+  const workflow = fs.readFileSync(
+    path.join(appRoot, ".github/workflows/full-first-install-release.yml"),
+    "utf8",
+  );
+  assert.match(
+    workflow,
+    /name: Install Full release executor dependencies[\s\S]*working-directory: release-executor[\s\S]*npm ci --ignore-scripts --no-audit --no-fund/,
+  );
+});
+
 test("Full Shell build skips the redundant inner App notarization without weakening signing", async () => {
   const { shellBuildEnvironmentWithoutRedundantNotarization } = await import(
     "../../../scripts/build-full-first-install-package.ts"
