@@ -59,6 +59,10 @@ on:
         description: 'Fail macOS release builds unless the packaged app passes codesign and Gatekeeper assessment'
         type: boolean
         default: false
+      apple_preflight_verified:
+        description: 'The caller verified its same-run protected Stable Apple credential receipt while freezing the Bundle'
+        type: boolean
+        default: false
       release_bundle_digest:
         description: Exact immutable Framework Bundle digest for the live release path.
         type: string
@@ -351,6 +355,7 @@ jobs:
 
   macos-signing-preflight:
     name: macOS release signing preflight
+    if: ${{ !inputs.apple_preflight_verified }}
     runs-on: macos-latest
     timeout-minutes: 10
     environment: ${{ inputs.require_macos_gatekeeper && 'release-stable' || null }}

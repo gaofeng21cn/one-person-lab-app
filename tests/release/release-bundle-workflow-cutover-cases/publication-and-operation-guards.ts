@@ -400,6 +400,14 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
 
   assert.equal(bundle.jobs['standard-build'].with.require_macos_gatekeeper, true);
+  assert.equal(bundle.jobs.freeze.outputs.apple_preflight_verified, '${{ steps.identity.outputs.apple_preflight_verified }}');
+  assert.equal(
+    bundle.jobs['standard-build'].with.apple_preflight_verified,
+    "${{ needs.freeze.outputs.apple_preflight_verified == 'true' }}",
+  );
+  assert.equal(reusableBuild.on.workflow_call.inputs.apple_preflight_verified.default, false);
+  assert.equal(reusableBuild.jobs['macos-signing-preflight'].if, '${{ !inputs.apple_preflight_verified }}');
+  assert.match(String(reusableBuild.jobs.build.if), /macos-signing-preflight.*result == 'skipped'/);
   assert.equal(bundle.jobs['standard-build'].secrets, 'inherit');
   assert.equal(bundle.jobs['standard-clean-vm-qualification'].secrets, 'inherit');
   assert.equal(bundle.jobs['full-candidate'].secrets, 'inherit');

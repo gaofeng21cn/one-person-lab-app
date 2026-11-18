@@ -334,6 +334,7 @@ jobs:
       app_sha: ${{ steps.identity.outputs.app_sha }}
       shell_sha: ${{ steps.identity.outputs.shell_sha }}
       framework_sha: ${{ steps.identity.outputs.framework_sha }}
+      apple_preflight_verified: ${{ steps.identity.outputs.apple_preflight_verified }}
       bundle_digest: ${{ steps.bundle.outputs.bundle_digest }}
       operation_id: ${{ steps.bundle.outputs.operation_id }}
       operation_started_at: ${{ steps.bundle.outputs.operation_started_at }}
@@ -624,6 +625,7 @@ jobs:
           if [ "$CHANNEL" = stable ]; then
             test "$(jq -er .version "$verified_admission_identity_json")" = "$version"
             test "$(jq -er .updater_version "$verified_admission_identity_json")" = "$updater_version"
+            echo "apple_preflight_verified=true" >> "$GITHUB_OUTPUT"
           fi
           gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$previous_latest_json"
           previous_latest_tag="$(jq -er .tag_name "$previous_latest_json")"
@@ -978,6 +980,7 @@ jobs:
       release_bundle_digest: ${{ needs.freeze.outputs.bundle_digest }}
       release_cohort_ref: ${{ needs.freeze.outputs.bundle_digest }}
       require_macos_gatekeeper: true
+      apple_preflight_verified: ${{ needs.freeze.outputs.apple_preflight_verified == 'true' }}
       operation: ${{ inputs.operation }}
       operation_started_at: ${{ needs.freeze.outputs.operation_started_at }}
       operation_deadline_at: ${{ needs.freeze.outputs.operation_deadline_at }}
