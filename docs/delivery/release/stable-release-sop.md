@@ -234,8 +234,11 @@ when it already contains the verified clean-VM receipt and digest, and
 Framework reports no prior Full operation or unresolved mutation. This applies
 to both `standard_built` and `standard_qualified` checkpoints with that sidecar.
 Admission passes the exact source location and admitted Full operation to the
-downstream checkpoint job. An existing Full operation, reconciliation, or
-historical receipt recovery still exports a new portable checkpoint.
+downstream checkpoint job. A verified Full build checkpoint with the Standard
+sidecar can also flow directly to materialization and qualification when no
+mutation needs reconciliation. The downstream checkpoint job admits the
+selected operation before recording qualification. Reconciled state and
+historical receipt recovery still export a new portable checkpoint.
 
 If the failed run has an `opl-full-finalizer-input-<version>-<run-id>` artifact but
 no completed Full cohort, `append-full` can resume that exact unsubmitted handoff.

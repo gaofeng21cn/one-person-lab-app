@@ -593,9 +593,15 @@ jobs:
           source_run_id="$GITHUB_RUN_ID"
           source_artifact="opl-release-append-full-operation-checkpoint-v2-${GITHUB_RUN_ID}"
           reused_source_checkpoint=false
-          # The downstream checkpoint job admits the same Full operation on the verified source.
-          if [ -z "$imported_operation_id" ] && [ "$marker_count" -eq 0 ] &&
-             [[ "$CHECKPOINT_STAGE" = standard_built || "$CHECKPOINT_STAGE" = standard_qualified ]] &&
+          can_reuse_source=false
+          case "$CHECKPOINT_STAGE" in
+            standard_built|standard_qualified)
+              if [ -z "$imported_operation_id" ]; then can_reuse_source=true; fi
+              ;;
+            full_built) can_reuse_source=true ;;
+          esac
+          # Checkpoint-full admits the selected operation on the verified source before recording qualification.
+          if [ "$can_reuse_source" = true ] && [ "$marker_count" -eq 0 ] &&
              [ -n "$(find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.json -print)" ] &&
              [ -n "$(find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.sha256 -print)" ]; then
             source_run_id="$SOURCE_RUN_ID"

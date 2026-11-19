@@ -145,6 +145,56 @@ test('release-gate VM qualification never falls back from the exact candidate to
   assert.match(run, /exit 1/);
 });
 
+test('release-gate DMG resolution uses the downloaded Full package and checks its contents', () => {
+  const step = workflowStep('opl-first-run-vm.yml', 'clean-vm-first-run', 'Resolve release DMG');
+  const runFixture = (names: string[], downloadOutcome: 'success' | 'failure' = 'success') => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-dmg-'));
+    try {
+      const releaseDirectory = path.join(root, 'artifacts/release');
+      const output = path.join(root, 'github-output');
+      fs.mkdirSync(releaseDirectory, { recursive: true });
+      for (const name of names) fs.writeFileSync(path.join(releaseDirectory, name), '');
+      const expressions: Record<string, string> = {
+        'inputs.release_artifact_name': 'opl-full-first-install-dmg-26.11.19-mac-arm64',
+        'inputs.release_artifact_run_id || github.run_id': '42',
+        'steps.release_artifact_download_1.outcome': downloadOutcome,
+        'steps.release_artifact_download_2.outcome': 'skipped',
+        'steps.release_artifact_download_3.outcome': 'skipped',
+        'needs.validate-vm-inputs.outputs.diagnostic_scope': 'release_gate',
+        'steps.package_profile.outputs.install_mode': 'dmg',
+        'steps.package_profile.outputs.profile': 'full',
+      };
+      const script = String(step.run).replace(/\$\{\{\s*(.*?)\s*\}\}/g, (_, key: string) => expressions[key] ?? '');
+      const result = spawnSync('/bin/bash', ['-c', 'gh() { touch gh-called; return 2; }\n' + script], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_REPOSITORY: 'owner/repo' },
+        timeout: 5_000,
+      });
+      assert.equal(fs.existsSync(path.join(root, 'gh-called')), false);
+      return {
+        result,
+        output: fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : '',
+      };
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  };
+  const dmg = 'One-Person-Lab-Full-26.11.19-mac-arm64.dmg';
+  const diagnostics = Array.from({ length: 500 }, (_, index) => 'diagnostic-' + index + '.json');
+  const valid = runFixture([dmg, ...diagnostics]);
+  assert.equal(valid.result.status, 0, valid.result.stderr || valid.result.stdout);
+  assert.equal(valid.output, 'dmg_path=artifacts/release/' + dmg + '\n');
+  for (const names of [['opl-release-manifest.json'], [dmg, 'One-Person-Lab-Full-26.11.18-mac-arm64.dmg']]) {
+    const invalid = runFixture(names);
+    assert.equal(invalid.result.status, 1, invalid.result.stderr || invalid.result.stdout);
+    assert.match(invalid.result.stdout, /requires exactly one DMG artifact/);
+  }
+  const failedDownload = runFixture([dmg], 'failure');
+  assert.equal(failedDownload.result.status, 1);
+  assert.match(failedDownload.result.stdout, /release qualification must not fall back/);
+});
+
 test('first-run VM validates Studio production Runtime refresh before writing qualification evidence', () => {
   const workflow = parseWorkflow('opl-first-run-vm.yml');
   const steps = workflow.jobs['clean-vm-first-run'].steps as Array<Record<string, any>>;

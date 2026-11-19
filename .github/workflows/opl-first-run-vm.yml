@@ -1649,10 +1649,8 @@ jobs:
 
           if [ "${{ steps.package_profile.outputs.install_mode }}" = "homebrew-cask" ]; then
             echo "Using Homebrew cask install path: ${{ steps.package_profile.outputs.homebrew_cask }}"
-          elif [ -n "${{ inputs.release_artifact_name }}" ] && find artifacts/release -type f | grep -q . && [ -n "${{ inputs.release_artifact_run_id }}" ]; then
-            echo "Using source workflow run artifact: ${{ inputs.release_artifact_name }} from run ${{ inputs.release_artifact_run_id }}"
-          elif [ -n "${{ inputs.release_artifact_name }}" ] && find artifacts/release -type f | grep -q .; then
-            echo "Using same-run workflow artifact: ${{ inputs.release_artifact_name }}"
+          elif [ "$artifact_download_outcome" = success ]; then
+            echo "Using workflow artifact: ${{ inputs.release_artifact_name }} from run ${{ inputs.release_artifact_run_id || github.run_id }}"
           elif [ -n "${{ inputs.release_dmg_url }}" ]; then
             DMG_PATH="artifacts/release/One-Person-Lab-${{ steps.package_profile.outputs.profile }}.dmg"
             download_asset_with_retry "${{ inputs.release_dmg_url }}" "$DMG_PATH"

@@ -829,8 +829,9 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.match(operationRun, /A completed Full build checkpoint must contain its executor receipt/);
   assert.match(operationRun, /full_artifact_producer_run_id=\$full_artifact_producer_run_id/);
   assert.match(operationRun, /source_run_id="\$SOURCE_RUN_ID"\s+source_artifact="\$SOURCE_ARTIFACT"/);
-  assert.match(operationRun, /\[ -z "\$imported_operation_id" \] && \[ "\$marker_count" -eq 0 \]/);
-  assert.match(operationRun, /"\$CHECKPOINT_STAGE" = standard_built \|\| "\$CHECKPOINT_STAGE" = standard_qualified/);
+  assert.match(operationRun, /standard_built\|standard_qualified\)[\s\S]*?\[ -z "\$imported_operation_id" \]/);
+  assert.match(operationRun, /full_built\) can_reuse_source=true/);
+  assert.match(operationRun, /\[ "\$can_reuse_source" = true \] && \[ "\$marker_count" -eq 0 \]/);
   assert.match(String(full.jobs['full-build'].if), /standard_qualified/);
   assert.match(String(full.jobs['materialize-full-build'].if), /full_built/);
   assert.match(String(full.jobs['full-qualification'].if), /standard_qualified/);
