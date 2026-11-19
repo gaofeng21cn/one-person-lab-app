@@ -39,7 +39,7 @@ Standard 和 Full 在准入阶段读取 GitHub runner 清单，优先选择在�
 
 主线 Stable 的准入、轻量发布控制和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
 
-Standard 产物封存、检查点导出和公开资产上传，以及 Full 包恢复、检查点导出和公开资产上传，使用独立的 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。仓库变量为空时使用 `ubuntu-latest`。托管容量不足时，将变量设为已验证工具链、磁盘空间和大文件传输速度的本机或 Fleet runner 标签 JSON。Standard 和 Full 检查点导入也会优先使用该变量，未配置时沿用控制池。变更标签后从原合格检查点继续，发布截止时间仍以 operation 为准。
+Standard 产物封存、检查点导出和公开资产上传，以及 Full 包恢复、检查点导出和公开资产上传，使用独立的 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。当前配置与发布控制共用常驻的 Intel Mac 池。接入其他本机或 Fleet 节点时，先核对 Actions runner 在线、工具链可用、磁盘空间充足，以及能读取和上传实际尺寸的检查点。仓库变量为空时，大文件任务使用 `ubuntu-latest`，检查点导入优先沿用控制池。变更标签后，从原合格检查点继续同一冻结候选。
 
 平台专用步骤通过独立仓库变量接收 Actions runner 标签 JSON。Linux x64 池承载原生桌面构建、Windows WSL 宿主预备和 WebUI amd64 构建与发布。Linux arm64 池承载原生 WebUI arm64。Windows x64 池承载原生安装包。只配置已按对应工作流验证过系统、CPU、工具链和容量的在线 runner。变量为空时沿用各工作流的 GitHub 托管标签。
 
@@ -437,11 +437,12 @@ Full Homebrew 同样从公开 Standard component manifest 读取机器版本；�
 `replacement_full_only` 和 `replacement_include_full`。Full 的资格验证来源于原包清单，
 不重新解析依赖或重建签名包。Standard 和 Full 默认使用冻结 App SHA 的验收器；
 只有确需纯验收修复时才显式指定 `verification_app_ref` 并通过原有 scope proof。
-Full 的 Shell 验收器单独通过 `replacement_smoke_harness_ref` 选择纯验收修复提交；产品
-`shell_ref` 保持原 cohort。断网首启在一次性 VM 内临时拒绝 IPv4／IPv6 公网路由，保留
-SSH、本地回环和 Electron 自身沙箱；先以隔离标记核验 DMG 附票，再挂载复制 App。
-本地 Codex 就绪后撤销路由限制，重启 App 并继续登录和 Package 验收；不重启 VM 或切换
-虚拟网络，避免旧 DHCP 租约干扰重连。所有网络修改只发生在本次可丢弃的 VM。
+Full 的 Shell 验收器单独通过 `replacement_smoke_harness_ref` 选择纯验收修复提交，产品
+`shell_ref` 保持原 cohort。同一签名 DMG 在两个由同一干净基础镜像克隆的环境中分别验收。
+离线环境拒绝 IPv4／IPv6 公网路由，保留 SSH、本地回环与 Electron 沙箱，先核验隔离状态
+和 DMG 附票，再挂载安装并验证 Codex 首启与重启。随后销毁离线克隆，以新克隆验证在线
+首次启动、普通账号登录和 Framework Package 投影。这样在线首装从干净用户状态开始，
+离线重启产生的安装回执留在离线克隆内。
 
 ## 8. 发布后改进
 

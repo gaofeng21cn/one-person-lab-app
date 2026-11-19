@@ -5218,6 +5218,7 @@
           "workloads": ["standard_seal", "standard_checkpoint", "standard_publication", "full_materialize", "full_checkpoint", "full_publication"],
           "checkpoint_restore_selection": "configured_transfer_pool_then_release_control_pool_then_hosted"
         },
+        "hosted_capacity_recovery": "select_an_available_platform_eligible_owned_pool_and_resume_latest_verified_checkpoint",
         "native_runner_variables": {
           "linux_x64": "OPL_RELEASE_LINUX_X64_RUNNER_LABELS",
           "linux_arm64": "OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS",
@@ -5231,7 +5232,7 @@
         "required_self_hosted_qualification_count": 1,
         "required_self_hosted_qualification_scope": "exact_profile_protected_clean_install",
         "optional_or_advisory_self_hosted_ancestor_count": 0,
-        "offline_or_unavailable_effect": "publication_continues_without_waiting_or_queueing",
+        "optional_runner_unavailable_effect": "publication_continues_without_optional_evidence",
         "optional_certification_effect": "evidence_only_does_not_change_publication_or_latest"
       },
       "protected_macos_clean_install_gate": {
