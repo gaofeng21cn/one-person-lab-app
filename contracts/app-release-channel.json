@@ -5201,7 +5201,7 @@
     "runner_policy": {
       "schema": "opl_app_runner_policy.v1",
       "publication_floor": {
-        "stable_and_latest_executor": "owned_release_control_pool_with_github_hosted_fallback",
+        "stable_and_latest_executor": "eligible_release_control_and_payload_transfer_pools",
         "scope": "stable_admission_build_control_checkpoint_publication_and_followups",
         "owned_release_control_runner_variable": "OPL_RELEASE_CONTROL_RUNNER_LABELS",
         "owned_release_control_pool": [
@@ -5211,6 +5211,13 @@
           "opl-native-intel-macos"
         ],
         "owned_release_control_unavailable_effect": "select_an_available_eligible_pool_without_changing_artifact_identity",
+        "payload_transfer_runner": {
+          "repository_variable": "OPL_RELEASE_TRANSFER_RUNNER_LABELS",
+          "default_labels": ["ubuntu-latest"],
+          "owned_pool_requirement": "online_release_node_with_verified_artifact_transfer_capacity",
+          "workloads": ["standard_seal", "standard_checkpoint", "standard_publication", "full_materialize", "full_checkpoint", "full_publication"],
+          "checkpoint_restore_selection": "configured_transfer_pool_then_release_control_pool_then_hosted"
+        },
         "native_runner_variables": {
           "linux_x64": "OPL_RELEASE_LINUX_X64_RUNNER_LABELS",
           "linux_arm64": "OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS",

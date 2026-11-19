@@ -994,8 +994,8 @@ jobs:
   seal-standard-identity:
     if: ${{ always() && needs.freeze.result == 'success' && (inputs.prior_standard_artifact_run_id != '' || needs.standard-build.result == 'success') }}
     needs: [freeze, standard-build]
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
-    timeout-minutes: 15
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
@@ -1580,8 +1580,8 @@ jobs:
 
   checkpoint-standard:
     if: ${{ always() && needs.admission.result == 'success' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' && (inputs.channel != 'stable' || needs.standard-clean-vm-qualification.result == 'success') }}
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
-    timeout-minutes: 20
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    timeout-minutes: 35
     needs: [admission, freeze, seal-standard-identity, standard-clean-vm-qualification]
     permissions:
       contents: read

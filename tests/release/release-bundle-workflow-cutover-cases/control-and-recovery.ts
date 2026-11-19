@@ -808,6 +808,8 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
     'opl-release-append-full-operation-checkpoint-v2-${{ github.run_id }}',
   );
   assert.match(String(operationCheckpoint.with.path), /standard-identity-receipt\.json/);
+  assert.match(String(operationCheckpoint.if), /steps\.operation\.outputs\.reused_source_checkpoint != 'true'/);
+  assert.equal(operationCheckpoint.with['compression-level'], 0);
   assert.equal(
     full.jobs['restore-standard'].outputs.full_artifact_producer_run_id,
     '${{ steps.operation.outputs.full_artifact_producer_run_id }}',
@@ -826,6 +828,9 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.match(operationRun, /github-actions:" \+ \$repository \+ "\/runs\/" \+ \$run \+ "\/full-build"/);
   assert.match(operationRun, /A completed Full build checkpoint must contain its executor receipt/);
   assert.match(operationRun, /full_artifact_producer_run_id=\$full_artifact_producer_run_id/);
+  assert.match(operationRun, /source_run_id="\$SOURCE_RUN_ID"\s+source_artifact="\$SOURCE_ARTIFACT"/);
+  assert.match(operationRun, /\[ -z "\$imported_operation_id" \] && \[ "\$marker_count" -eq 0 \]/);
+  assert.match(operationRun, /"\$CHECKPOINT_STAGE" = standard_built \|\| "\$CHECKPOINT_STAGE" = standard_qualified/);
   assert.match(String(full.jobs['full-build'].if), /standard_qualified/);
   assert.match(String(full.jobs['materialize-full-build'].if), /full_built/);
   assert.match(String(full.jobs['full-qualification'].if), /standard_qualified/);

@@ -37,7 +37,9 @@ Standard 冻结验证同一运行的 Apple 凭据回执后，把预检结论交�
 
 Standard 和 Full 在准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`。清单确认池内无在线机器时使用 `macos-latest`。清单无法读取时使用 `OPL_MACOS_RELEASE_RUNNER` 指定的自有池，未配置时使用 `macos-latest`。此标签分配给具备 Developer ID 签名、公证和包体验证能力的本机或 Fleet 节点。普通账号 clean-VM 使用独立的 `opl-cert-mac-tart` 池。
 
-主线 Stable 的准入、构建控制、检查点、发布和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
+主线 Stable 的准入、轻量发布控制和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
+
+Standard 产物封存、检查点导出和公开资产上传，以及 Full 包恢复、检查点导出和公开资产上传，使用独立的 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。仓库变量为空时使用 `ubuntu-latest`。托管容量不足时，将变量设为已验证工具链、磁盘空间和大文件传输速度的本机或 Fleet runner 标签 JSON。Standard 和 Full 检查点导入也会优先使用该变量，未配置时沿用控制池。变更标签后从原合格检查点继续，发布截止时间仍以 operation 为准。
 
 平台专用步骤通过独立仓库变量接收 Actions runner 标签 JSON。Linux x64 池承载原生桌面构建、Windows WSL 宿主预备和 WebUI amd64 构建与发布。Linux arm64 池承载原生 WebUI arm64。Windows x64 池承载原生安装包。只配置已按对应工作流验证过系统、CPU、工具链和容量的在线 runner。变量为空时沿用各工作流的 GitHub 托管标签。
 
@@ -224,6 +226,14 @@ existing Full bytes; a `full_qualified` checkpoint can continue publication dire
 starts build preparation, reconcile the active owner, cancel only that unnecessary
 add-on operation, wait for terminal cancellation, and recover from the later checkpoint.
 Preserve the already public Standard and every completed independent channel.
+
+Full append can consume the checkpoint for the published Standard in place
+when it already contains the verified clean-VM receipt and digest, and
+Framework reports no prior Full operation or unresolved mutation. This applies
+to both `standard_built` and `standard_qualified` checkpoints with that sidecar.
+Admission passes the exact source location and admitted Full operation to the
+downstream checkpoint job. An existing Full operation, reconciliation, or
+historical receipt recovery still exports a new portable checkpoint.
 
 If the failed run has an `opl-full-finalizer-input-<version>-<run-id>` artifact but
 no completed Full cohort, `append-full` can resume that exact unsubmitted handoff.

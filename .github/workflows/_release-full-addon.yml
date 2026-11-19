@@ -199,7 +199,7 @@ jobs:
   restore-standard:
     if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && (vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || vars.OPL_RELEASE_CONTROL_RUNNER_LABELS) || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -372,6 +372,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUNDLE_DIGEST: ${{ steps.checkpoint.outputs.bundle_digest }}
+          CHECKPOINT_STAGE: ${{ steps.checkpoint.outputs.completed_stage }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
         shell: bash
         run: |
           set -euo pipefail
@@ -380,6 +383,7 @@ jobs:
           framework-executor/bin/opl release status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > append-operation-status-before.json
           operation_id="$(jq -r '.release_bundle_status.operation_controls.append_full.operation_id // ""' append-operation-status-before.json)"
+          imported_operation_id="$operation_id"
           operation_started_at="$(jq -r '.release_bundle_status.operation_controls.append_full.operation_started_at // ""' append-operation-status-before.json)"
           operation_deadline_at="$(jq -r '.release_bundle_status.operation_controls.append_full.operation_deadline_at // ""' append-operation-status-before.json)"
           imported_operation_deadline_at="$operation_deadline_at"
@@ -586,9 +590,22 @@ jobs:
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > append-operation-admit.json
           test "$(jq -r .release_bundle_operation_admit.operation_control.operation_id append-operation-admit.json)" = "$operation_id"
-          framework-executor/bin/opl release checkpoint export \
-            --bundle "$BUNDLE_DIGEST" --output append-full-operation-checkpoint \
-            --store "$store" --json > append-operation-checkpoint-export.json
+          source_run_id="$GITHUB_RUN_ID"
+          source_artifact="opl-release-append-full-operation-checkpoint-v2-${GITHUB_RUN_ID}"
+          reused_source_checkpoint=false
+          # The downstream checkpoint job admits the same Full operation on the verified source.
+          if [ -z "$imported_operation_id" ] && [ "$marker_count" -eq 0 ] &&
+             [[ "$CHECKPOINT_STAGE" = standard_built || "$CHECKPOINT_STAGE" = standard_qualified ]] &&
+             [ -n "$(find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.json -print)" ] &&
+             [ -n "$(find checkpoint-identity-bootstrap -type f -name standard-clean-vm-qualification-receipt.sha256 -print)" ]; then
+            source_run_id="$SOURCE_RUN_ID"
+            source_artifact="$SOURCE_ARTIFACT"
+            reused_source_checkpoint=true
+          else
+            framework-executor/bin/opl release checkpoint export \
+              --bundle "$BUNDLE_DIGEST" --output append-full-operation-checkpoint \
+              --store "$store" --json > append-operation-checkpoint-export.json
+          fi
           standard_build_receipts=()
           while IFS= read -r receipt; do
             standard_build_receipts+=("$receipt")
@@ -645,8 +662,9 @@ jobs:
               ;;
           esac
           {
-            echo "source_run_id=$GITHUB_RUN_ID"
-            echo "source_artifact=opl-release-append-full-operation-checkpoint-v2-${GITHUB_RUN_ID}"
+            echo "source_run_id=$source_run_id"
+            echo "source_artifact=$source_artifact"
+            echo "reused_source_checkpoint=$reused_source_checkpoint"
             echo "full_artifact_producer_run_id=$full_artifact_producer_run_id"
             echo "operation_id=$operation_id"
             echo "operation_started_at=$operation_started_at"
@@ -760,7 +778,7 @@ jobs:
             echo "target_standard_target_commitish=$(jq -r .object.sha target-standard-tag.json)"
             echo "completed_stage=$completed_stage"
             echo "checkpoint_transport_executor=github_actions"
-            echo "transport_run_id=$GITHUB_RUN_ID"
+            echo "transport_run_id=${{ steps.operation.outputs.source_run_id }}"
             echo "standard_run_id=$standard_run_id"
           } >> "$GITHUB_OUTPUT"
 
@@ -899,7 +917,7 @@ jobs:
           fi
 
       - name: Upload independent Full operation checkpoint
-        if: ${{ always() }}
+        if: ${{ always() && steps.operation.outputs.reused_source_checkpoint != 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-append-full-operation-checkpoint-v2-${{ github.run_id }}
@@ -921,6 +939,7 @@ jobs:
             full-resume-reconcile-result.json
           if-no-files-found: warn
           retention-days: 30
+          compression-level: 0
 
       - name: Admit executor-head Full publication target before build
         env:
@@ -1019,8 +1038,8 @@ jobs:
   materialize-full-build:
     if: ${{ needs.restore-standard.outputs.completed_stage == 'full_built' || inputs.prior_full_artifact_run_id != '' }}
     needs: [restore-standard]
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
-    timeout-minutes: 15
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
@@ -1504,8 +1523,8 @@ jobs:
 
   checkpoint-full:
     if: ${{ always() && needs.restore-standard.result == 'success' && needs.restore-standard.outputs.completed_stage != 'full_qualified' && (needs.restore-standard.outputs.completed_stage == 'full_built' || needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
-    timeout-minutes: 20
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    timeout-minutes: 35
     needs: [restore-standard, full-build, materialize-full-build, full-qualification, full-clean-vm-qualification]
     permissions:
       contents: read
@@ -1820,8 +1839,8 @@ jobs:
 
   publish-full:
     if: ${{ always() && needs.provenance.result == 'success' && needs.provenance.outputs.completed_stage == 'full_qualified' }}
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
-    timeout-minutes: 20
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    timeout-minutes: 35
     environment: release-stable
     concurrency:
       group: opl-release-bundle-global

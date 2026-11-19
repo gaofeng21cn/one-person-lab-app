@@ -132,7 +132,7 @@ jobs:
   restore:
     if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && (vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || vars.OPL_RELEASE_CONTROL_RUNNER_LABELS) || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -973,7 +973,7 @@ jobs:
 
   publish-standard-nonlatest:
     if: ${{ needs.restore.result == 'success' && needs.pre-publication-admission.result == 'success' }}
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 50
     environment: ${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}
     needs: [restore, pre-publication-admission]

@@ -98,9 +98,9 @@ test('Stable macOS runner selection prefers an online release ARM64 machine acro
 test('Stable can run release control on owned machines while keeping the protected Tart gate', () => {
   const stableJobs = {
     'release-stable.yml': ['protected-operation-admission', 'admission', 'webui-source-authority'],
-    '_release-bundle.yml': ['freeze', 'seal-standard-identity', 'checkpoint-standard'],
-    '_release-standard-publish.yml': ['restore', 'publish-standard-nonlatest', 'remote-digest-verify', 'activate-latest'],
-    '_release-full-addon.yml': ['restore-standard', 'materialize-full-build', 'checkpoint-full', 'publish-full'],
+    '_release-bundle.yml': ['freeze'],
+    '_release-standard-publish.yml': ['remote-digest-verify', 'activate-latest'],
+    '_release-full-addon.yml': ['admission', 'provenance'],
     'opl-first-run-vm.yml': ['validate-vm-inputs', 'qualification-attempt-finalizer'],
     '_release-homebrew-full-publish.yml': ['prepare-candidate', 'publish-cask', 'readback'],
     'release-stable-post-success-followups.yml': ['route', 'reconcile-full-addon', 'publish-standard-cask'],
@@ -118,6 +118,30 @@ test('Stable can run release control on owned machines while keeping the protect
   const { workflow: vm } = readWorkflow('opl-first-run-vm.yml');
   for (const id of stableJobs['opl-first-run-vm.yml']) {
     assert.match(vm.jobs[id]['runs-on'], /inputs[.]diagnostic_scope == 'release_gate'/);
+  }
+});
+
+test('Stable payload transfer can use a separately qualified pool', () => {
+  const transferJobs = {
+    '_release-bundle.yml': ['seal-standard-identity', 'checkpoint-standard'],
+    '_release-standard-publish.yml': ['publish-standard-nonlatest'],
+    '_release-full-addon.yml': ['materialize-full-build', 'checkpoint-full', 'publish-full'],
+  };
+  for (const [filename, jobs] of Object.entries(transferJobs)) {
+    const { workflow } = readWorkflow(filename);
+    for (const id of jobs) {
+      const labels = workflow.jobs[id]['runs-on'];
+      assert.match(labels, /github[.]ref == 'refs[/]heads[/]main'.*vars[.]OPL_RELEASE_TRANSFER_RUNNER_LABELS.*ubuntu-latest/, `${filename}:${id}`);
+      assert.doesNotMatch(labels, /OPL_RELEASE_CONTROL_RUNNER_LABELS/, `${filename}:${id}`);
+    }
+  }
+  for (const [filename, id] of [['_release-standard-publish.yml', 'restore'], ['_release-full-addon.yml', 'restore-standard']]) {
+    const { workflow } = readWorkflow(filename);
+    assert.match(
+      workflow.jobs[id]['runs-on'],
+      /github[.]ref == 'refs[/]heads[/]main'.*\(vars[.]OPL_RELEASE_TRANSFER_RUNNER_LABELS \|\| vars[.]OPL_RELEASE_CONTROL_RUNNER_LABELS\).*ubuntu-latest/,
+      `${filename}:${id}`,
+    );
   }
 });
 
@@ -227,9 +251,11 @@ test('runner policy requires protected clean-install qualification and permits d
   assert.equal(policy.routine_advisory.inventory_token_least_privilege_verified, false);
   assert.equal(
     policy.publication_floor.stable_and_latest_executor,
-    'owned_release_control_pool_with_github_hosted_fallback',
+    'eligible_release_control_and_payload_transfer_pools',
   );
   assert.equal(policy.publication_floor.owned_release_control_runner_variable, 'OPL_RELEASE_CONTROL_RUNNER_LABELS');
+  assert.equal(policy.publication_floor.payload_transfer_runner.repository_variable, 'OPL_RELEASE_TRANSFER_RUNNER_LABELS');
+  assert.deepEqual(policy.publication_floor.payload_transfer_runner.default_labels, ['ubuntu-latest']);
   assert.deepEqual(policy.publication_floor.owned_release_control_pool, [
     'self-hosted',
     'macOS',
