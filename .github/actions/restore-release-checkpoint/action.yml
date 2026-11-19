@@ -85,6 +85,12 @@ runs:
         SOURCE_ARTIFACT: ${{ inputs.source-artifact }}
       run: |
         set -euo pipefail
+        # Downstream steps consume this job's import at a fixed workspace path.
+        # A persistent runner may still have the previous job's tree or symlink.
+        if [ -e imported-checkpoint ] || [ -L imported-checkpoint ]; then
+          previous_dir="$(mktemp -d "$RUNNER_TEMP/opl-previous-checkpoint.XXXXXX")"
+          mv imported-checkpoint "$previous_dir/"
+        fi
         evidence_dir="$RUNNER_TEMP/opl-release-checkpoint-restore-$GITHUB_JOB"
         mkdir -p "$evidence_dir"
         touch "$evidence_dir/restore.stdout.log" "$evidence_dir/restore.stderr.log"

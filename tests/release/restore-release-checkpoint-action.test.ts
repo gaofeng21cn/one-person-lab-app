@@ -189,6 +189,51 @@ test('checkpoint bootstrap binds only the executor while source identity remains
   }
 });
 
+test('persistent runner keeps a previous local binding out of the next checkpoint import', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-persistent-runner-'));
+  try {
+    const workspace = path.join(root, 'workspace');
+    const runnerTemp = path.join(root, 'runner-temp');
+    const bootstrap = path.join(workspace, 'checkpoint-identity-bootstrap');
+    const original = path.join(bootstrap, 'full-checkpoint');
+    const downloaded = path.join(workspace, 'imported-checkpoint', 'full-checkpoint');
+    fs.mkdirSync(original, { recursive: true });
+    fs.mkdirSync(downloaded, { recursive: true });
+    fs.mkdirSync(runnerTemp);
+    fs.writeFileSync(path.join(original, 'checkpoint.json'), '{}\n');
+    fs.writeFileSync(path.join(downloaded, 'checkpoint.json'), '{}\n');
+    fs.symlinkSync(bootstrap, path.join(workspace, 'imported-checkpoint', 'local'));
+
+    const env = {
+      ...process.env,
+      RUNNER_TEMP: runnerTemp,
+      GITHUB_JOB: 'materialize-full-build',
+      GITHUB_RUN_ID: '123',
+      SOURCE_RUN_ID: '122',
+      SOURCE_ARTIFACT: 'fixture-checkpoint',
+      FRAMEWORK_EXECUTOR_REF: 'c'.repeat(40),
+      GITHUB_OUTPUT: path.join(root, 'outputs'),
+    };
+    const initialize = String(step('Initialize typed restore evidence').run);
+    const result = spawnSync('bash', ['-c', initialize], { cwd: workspace, env, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.existsSync(path.dirname(downloaded)), false);
+    assert.equal(fs.existsSync(path.join(original, 'checkpoint.json')), true);
+
+    fs.mkdirSync(downloaded, { recursive: true });
+    fs.writeFileSync(path.join(downloaded, 'checkpoint.json'), '{}\n');
+    const binding = String(step('Resolve the opaque checkpoint transport').run);
+    const evidenceDir = path.join(runnerTemp, 'opl-release-checkpoint-restore-materialize-full-build');
+    const accepted = spawnSync('bash', ['-c', binding], {
+      cwd: workspace, env: { ...env, EVIDENCE_DIR: evidenceDir }, encoding: 'utf8',
+    });
+    assert.equal(accepted.status, 0, accepted.stderr);
+    assert.match(fs.readFileSync(env.GITHUB_OUTPUT, 'utf8'), /^checkpoint=imported-checkpoint\/full-checkpoint\/checkpoint\.json$/m);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('restore action shell blocks remain syntactically valid after expression substitution', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-restore-action-shell-'));
   try {
