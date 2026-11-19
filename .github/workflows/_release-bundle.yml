@@ -958,7 +958,7 @@ jobs:
     secrets: inherit
 
   prepare-standard-vm-inputs:
-    if: ${{ inputs.channel == 'stable' }}
+    if: ${{ inputs.channel == 'stable' && inputs.prior_standard_artifact_run_id == '' }}
     needs: [freeze]
     permissions:
       contents: read
@@ -1017,19 +1017,78 @@ jobs:
           ref: ${{ needs.freeze.outputs.app_sha }}
           path: app-source
 
+      - name: Resolve recoverable Standard artifact stage
+        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        id: prior-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_RUN_ID: ${{ inputs.prior_standard_artifact_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID" | jq -e --arg run "$PRIOR_RUN_ID" '
+            (.id | tostring) == $run and .head_branch == "main" and .run_attempt == 1
+            and .repository.full_name == env.GITHUB_REPOSITORY
+            and .head_repository.full_name == env.GITHUB_REPOSITORY
+            and .path == ".github/workflows/release-stable.yml" and .event == "workflow_dispatch"
+            and .status == "completed" and (.conclusion == "failure" or .conclusion == "cancelled")
+          ' >/dev/null
+          artifacts="$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID/artifacts?per_page=100")"
+          if jq -e --arg name "opl-release-standard-bound-$PRIOR_RUN_ID" '
+            [.[].artifacts[] | select(.name == $name and .expired == false)] | length == 1
+          ' <<<"$artifacts" >/dev/null; then
+            echo "stage=sealed" >> "$GITHUB_OUTPUT"
+          else
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID/jobs?per_page=100" | jq -e '
+              [.[].jobs[]] as $jobs
+              | ([$jobs[] | select(.name == "standard / standard-build / Build macos-arm64" and .conclusion == "success")] | length == 1)
+              and ([$jobs[] | select((.name | startswith("standard / publish-standard")) and .conclusion != "skipped")] | length == 0)
+            ' >/dev/null
+            echo "stage=signed" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download the one signed Standard build
-        if: ${{ inputs.prior_standard_artifact_run_id == '' }}
+        if: ${{ inputs.prior_standard_artifact_run_id == '' || steps.prior-build.outputs.stage == 'signed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: macos-build-arm64
           path: standard-assets
+          run-id: ${{ inputs.prior_standard_artifact_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
 
       - name: Download the signed Standard build cohort
-        if: ${{ inputs.prior_standard_artifact_run_id == '' }}
+        if: ${{ inputs.prior_standard_artifact_run_id == '' || steps.prior-build.outputs.stage == 'signed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: macos-build-arm64-dmg-cohort
           path: standard-cohort
+          run-id: ${{ inputs.prior_standard_artifact_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
+
+      - name: Verify and bind the retained signed build cohort
+        if: ${{ steps.prior-build.outputs.stage == 'signed' }}
+        env:
+          PRIOR_RUN_ID: ${{ inputs.prior_standard_artifact_run_id }}
+          VERSION: ${{ needs.freeze.outputs.version }}
+          APP_SHA: ${{ needs.freeze.outputs.app_sha }}
+          SHELL_SHA: ${{ needs.freeze.outputs.shell_sha }}
+          FRAMEWORK_SHA: ${{ needs.freeze.outputs.framework_sha }}
+          BUNDLE_DIGEST: ${{ needs.freeze.outputs.bundle_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cohort=standard-cohort/opl-build-cohort.json
+          jq -e '.build.kind == "standard" and .actions.run_attempt == "1" and .actions.artifact_name == "macos-build-arm64-dmg"' "$cohort" >/dev/null
+          node --experimental-strip-types app-source/scripts/validate-build-artifact-cohort.ts \
+            --manifest "$cohort" --artifact "standard-assets/One-Person-Lab-$VERSION-mac-arm64.dmg" \
+            --app-sha "$APP_SHA" --shell-sha "$SHELL_SHA" --framework-sha "$FRAMEWORK_SHA" \
+            --version "$VERSION" --actions-run-id "$PRIOR_RUN_ID" --release-cohort-ref "$BUNDLE_DIGEST"
+          jq --arg run "$GITHUB_RUN_ID" '
+            .actions.run_id = $run | .actions.artifact_name = ("opl-release-standard-vm-bound-" + $run)
+          ' "$cohort" > standard-cohort/rebound.json
+          mv standard-cohort/rebound.json "$cohort"
 
       - name: Download the exact Linux Desktop build
         if: ${{ inputs.prior_standard_artifact_run_id == '' && inputs.channel != 'stable' }}
@@ -1039,7 +1098,7 @@ jobs:
           path: standard-assets
 
       - name: Generate the frozen universal installer asset
-        if: ${{ inputs.prior_standard_artifact_run_id == '' }}
+        if: ${{ inputs.prior_standard_artifact_run_id == '' || steps.prior-build.outputs.stage == 'signed' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -1057,7 +1116,7 @@ jobs:
           bash -n standard-assets/opl-install.sh
 
       - name: Seal one immutable Standard artifact identity
-        if: ${{ inputs.prior_standard_artifact_run_id == '' }}
+        if: ${{ inputs.prior_standard_artifact_run_id == '' || steps.prior-build.outputs.stage == 'signed' }}
         id: seal
         shell: bash
         run: |
@@ -1107,7 +1166,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Download prior sealed Standard artifact
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-standard-bound-${{ inputs.prior_standard_artifact_run_id }}
@@ -1116,7 +1175,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download prior exact-candidate Standard VM artifact
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-standard-vm-bound-${{ inputs.prior_standard_artifact_run_id }}
@@ -1125,7 +1184,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download prior Standard cohort identities
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: opl-release-standard*bound-${{ inputs.prior_standard_artifact_run_id }}-cohort
@@ -1134,7 +1193,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download prior frozen Bundle
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-release-bundle-${{ inputs.prior_standard_artifact_run_id }}
@@ -1143,14 +1202,14 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download current frozen Bundle
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.OPL_RELEASE_BUNDLE_ARTIFACT }}
           path: current-bundle
 
       - name: Download prior Standard qualification attempt
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: opl-qualification-attempt-standard-${{ inputs.prior_standard_artifact_run_id }}
@@ -1159,7 +1218,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Verify reusable signed and notarized Standard bytes
-        if: ${{ inputs.prior_standard_artifact_run_id != '' }}
+        if: ${{ steps.prior-build.outputs.stage == 'sealed' }}
         id: reuse
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1573,8 +1632,8 @@ jobs:
       smoke_harness_ref: ${{ inputs.smoke_harness_ref || needs.freeze.outputs.shell_sha }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       framework_executor_ref: ${{ needs.freeze.outputs.framework_sha }}
-      prepared_inputs_artifact: ${{ needs.prepare-standard-vm-inputs.outputs.artifact_name || (inputs.prior_standard_artifact_run_id != '' && format('opl-clean-vm-prepared-standard-{0}', inputs.prior_standard_artifact_run_id)) || '' }}
-      prepared_inputs_run_id: ${{ inputs.prior_standard_artifact_run_id || github.run_id }}
+      prepared_inputs_artifact: ${{ needs.prepare-standard-vm-inputs.outputs.artifact_name || '' }}
+      prepared_inputs_run_id: ${{ github.run_id }}
       package_profile: standard
       diagnostic_scope: release_gate
       require_macos_gatekeeper: true

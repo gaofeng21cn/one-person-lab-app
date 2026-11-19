@@ -323,7 +323,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       compositionFingerprint,
       smokeHarnessSha: values['smoke-harness-ref'],
       reusableSourceGate: (values['source-gate-run-id'] || priorStandardArtifactRunId)
-        ? readReusableStandardSourceGate(runtime, repository, runId(values['source-gate-run-id'] || priorStandardArtifactRunId!, 'source_gate_run_id'))
+        ? readReusableStandardSourceGate(runtime, repository,
+          runId(values['source-gate-run-id'] || priorStandardArtifactRunId!, 'source_gate_run_id'),
+          Boolean(priorStandardArtifactRunId && !values['source-gate-run-id']))
         : undefined,
     });
   } else if (command === 'publish-qualified-standard') {

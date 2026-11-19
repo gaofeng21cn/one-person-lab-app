@@ -552,8 +552,8 @@ test('first-run VM prefers prepared install tarballs and restores the cache only
   assert.equal(prepared['continue-on-error'], true);
   assert.ok(prepared['timeout-minutes'] <= 10);
   const release = parseWorkflow('_release-bundle.yml').jobs['standard-clean-vm-qualification'].with;
-  assert.equal(release.prepared_inputs_run_id, '${{ inputs.prior_standard_artifact_run_id || github.run_id }}');
-  assert.match(release.prepared_inputs_artifact, /inputs\.prior_standard_artifact_run_id/);
+  assert.equal(release.prepared_inputs_run_id, '${{ github.run_id }}');
+  assert.equal(release.prepared_inputs_artifact, "${{ needs.prepare-standard-vm-inputs.outputs.artifact_name || '' }}");
   assert.doesNotMatch(release.prepared_inputs_artifact, /smoke_harness_ref/);
   assert.match(String(cache.if), /inputs\.prepared_inputs_artifact == ''/);
   assert.match(String(cache.if), /steps\.prepared_install_assets\.outcome != 'success'/);

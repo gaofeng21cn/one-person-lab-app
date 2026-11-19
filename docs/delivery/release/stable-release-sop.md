@@ -55,6 +55,8 @@ Standard 产物封存、Full 包恢复、检查点导出、公开资产上传及
 
 检查点恢复在自有 runner 上使用本机 npm 缓存，省去 GitHub 缓存归档的下载和上传。`npm ci` 仍按精确 Framework 提交的 lockfile 安装依赖。GitHub 托管 runner 继续使用按 lockfile 匹配的缓存。
 
+自有 runner 的 Studio 源码与桌面构建使用本机 Bun，关闭 `setup-bun` 的远端缓存写入。已在线并通过工具链核对的 Intel Mac 可以加入同一控制池并行分担检查。
+
 Standard 的构建工作流、Mac runner 选择和签名钥匙串脚本参与 operation 标识。修复这些执行器输入后，controller 可保留冻结产品及已通过的源码证据，用修复后的执行器签发新的 operation。
 
 重复失败时，先读取对应 run 的首个失败步骤和诊断产物，修复其实现或调用方，再用隔离状态在本机重放受影响的真实入口。桌面交互可复用 Studio 的 `build:desktop` 和 `smoke:preview`，从首启进入 Settings、Runtime 和任务详情。容器问题用相同架构的本地镜像和空卷重放，再用原卷重启确认持久化。涉及 Profile 时，用隔离的 Codex Home 安装准确 Package，并从 App 的恢复动作回读实际写入的 `AGENTS.md`。对应本地验证通过后进入正式派发，签名、公证和普通账号 clean-VM 验收仍由正式流程执行。
@@ -188,6 +190,7 @@ no signed artifact was produced; do not rerun failed workflow jobs.
 | dispatch 或公开 mutation 的结果未知 | 只读核对 run、Release、checkpoint 的 owner 状态。结果明确之前不重发。 |
 | 无签名产物，只有已认证源码门禁 | 检查 `new-product-release --source-gate-run-id <failed-run>` 是否适用于准确候选；它只复用源码门禁，不复用失败验收。 |
 | Standard 已签名、公证，安装验收未通过 | 修复产品缺陷时用正确的新字节；仅 harness 缺陷且字节可复用时，通过 `--reuse-standard-run-id` 和必要的准确 `--smoke-harness-ref` 恢复，重新进行真实安装验收。 |
+| Standard 已上传签名、公证产物，封存前停止 | 修复首个实际断点后，用 `--reuse-standard-run-id` 保留原候选。核对原 macOS 构建、Bundle、DMG 摘要与 Apple 回执，继续封存和普通账号首装。 |
 | Standard 已合格，发布或 Latest 阶段失败 | 使用 `publish-qualified-standard`，保持原 tag 和合格字节。 |
 | Full 已有经 Framework 验证的 `full_built`／`full_qualified` | 由 `append-full` 选择当前匹配的检查点和 owner，继续验收或发布；不默认重建、重签、公证。 |
 | Standard 已公开，某个附加渠道失败 | 只恢复该渠道；不能取消整个发布再重建 Standard 或其他已完成渠道。 |
@@ -316,6 +319,8 @@ Studio 的共享 payload 环境必须保留控制器传入的显示版本与机�
 Full 的预备输入来自该 Full 产物的冻结 build cohort；恢复时按原 producer run 下载小型 cohort，不能消费当前依赖清单或误用 Standard 的恢复 harness。Full clean-VM job 直接恢复按摘要命名的 runner cache，并由现有 prefetch 路径按冻结 cohort 补齐缺失 tarballs；不再经过独立 self-hosted 预备 job 上传同一批输入，避免把重复传输置于 VM 资格的关键路径。runner cache 只保留两份需要的 Codex tarballs，使用独立缓存命名空间，避免重复传输 npm cache 中的副本。
 
 Standard 的预备安装包是可选加速。只有实际上传成功后才向 VM consumer 提供 artifact 名；主上传与一次重试都失败时输出为空，由现有按摘要校验的本地准备路径继续。VM 先恢复这批 prepared tarballs，复用现有 exact-artifact downloader 的并行传输与归档摘要缓存，并限制可选恢复步骤最多十分钟；只有下载没有成功时才恢复 runner cache。归档大小与摘要先由下载器校验，两条路径仍由 frozen cohort 的 tarball SHA-256 校验决定是否可用，成功下载不代表内容已验收。已验证的两份 tarball 会直接消费 frozen identity，跳过 registry metadata 与 `npm view` 查询；任一份缺失或摘要不符时回到原在线查询和下载路径。不能用一个拼接出来的名字表示资产存在，也不因此重建签名产物。
+
+使用已签名 Standard 恢复时，clean-VM 直接复用按冻结摘要校验的本机安装包缓存，缺失时下载所需文件。
 
 Linux／Windows／Homebrew 的独立恢复使用 [现有 follow-up workflow](../../../.github/workflows/release-stable-post-success-followups.yml) 的 `reconcile_desktop_platform`、`reconcile_homebrew_standard`、`reconcile_homebrew_full` 等对应 operation。执行前确认源 run、目标渠道及该渠道 owner；参数以当前 workflow 为准，不将内部 `standard` 输入搬到这个入口。`repair_additive` 只适用于其合同规定的安装器资产 CAS，不能当作任意资产替换工具。
 

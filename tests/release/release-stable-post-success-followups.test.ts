@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -312,7 +313,9 @@ function runDesktopQualityVerify(input: {
   qualificationProducerRunId?: string;
   platformShell?: string;
   canonicalShell?: string;
-}): { status: number | null; admitted: boolean } {
+  compositionFingerprint?: string;
+  sourceGateDigest?: string;
+}): { status: number | null; admitted: boolean; fingerprint?: string } {
   const app = input.app ?? 'a'.repeat(40);
   const shell = input.shell ?? 'c'.repeat(40);
   const framework = input.framework ?? 'd'.repeat(40);
@@ -344,9 +347,14 @@ function runDesktopQualityVerify(input: {
       },
     }),
   );
+  const sourceGate = JSON.stringify({
+    operation_fingerprint: input.compositionFingerprint ?? 'opl-desktop-stable-release',
+  });
+  fs.writeFileSync(path.join(checkpointRoot, 'source-gate.json'), sourceGate);
   fs.writeFileSync(
     path.join(checkpointRoot, 'stable-operation-control.json'),
     JSON.stringify({
+      source_gate_digest: input.sourceGateDigest ?? `sha256:${createHash('sha256').update(sourceGate).digest('hex')}`,
       cohort: {
         app_sha: input.controlApp ?? app,
         shell_sha: shell,
@@ -399,9 +407,10 @@ function runDesktopQualityVerify(input: {
         GITHUB_OUTPUT: output,
       },
     });
-    const admitted = fs.existsSync(output)
-      && fs.readFileSync(output, 'utf8').split('\n').includes('skip_code_quality=true');
-    return { status: result.status, admitted };
+    const lines = fs.readFileSync(output, 'utf8').split('\n');
+    const admitted = lines.includes('skip_code_quality=true');
+    const fingerprint = lines.find(line => line.startsWith('stable_composition_fingerprint='))?.split('=')[1];
+    return fingerprint ? { status: result.status, admitted, fingerprint } : { status: result.status, admitted };
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -419,6 +428,9 @@ test('Desktop add-on skip_code_quality requires the Standard checkpoint identity
 
   assert.equal(runDesktopQualityVerify({}).status, 0);
   assert.equal(runDesktopQualityVerify({}).admitted, true);
+  const fingerprint = `opl-desktop-stable-release:dsh-composition:123:${'b'.repeat(64)}`;
+  assert.deepEqual(runDesktopQualityVerify({ compositionFingerprint: fingerprint }), { status: 0, admitted: true, fingerprint });
+  assert.equal(runDesktopQualityVerify({ compositionFingerprint: fingerprint, sourceGateDigest: `sha256:${'0'.repeat(64)}` }).admitted, false);
   assert.equal(runDesktopQualityVerify({ stage: 'standard_qualified' }).admitted, true);
   assert.deepEqual(runDesktopQualityVerify({ platformShell: 'f'.repeat(40) }), { status: 0, admitted: false });
   assert.notEqual(runDesktopQualityVerify({ platformShell: 'f'.repeat(40), canonicalShell: 'e'.repeat(40) }).status, 0);

@@ -329,6 +329,7 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.4.0'
+          no-cache: ${{ runner.environment == 'self-hosted' }}
       - name: Install frozen App materializer dependencies
         working-directory: app-authority
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -356,9 +357,11 @@ jobs:
         run: |
           set -euo pipefail
           directory="$(mktemp -d "$RUNNER_TEMP/opl-dsh-guest-composition.XXXXXX")"
+          trap 'rm -rf "$directory"' EXIT
           node app-authority/scripts/stable-dsh-composition.mjs download \
             --fingerprint "$FINGERPRINT" --app-sha "$APP_SHA" --shell-sha "$SHELL_SHA" \
             --directory "$directory"
+          unset GH_TOKEN
           node studio/scripts/composition-build-input.mjs install --directory "$directory"
       - name: Build and execute Linux production Host closure
         working-directory: studio
@@ -594,6 +597,7 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: "1.4.0"
+          no-cache: ${{ runner.environment == 'self-hosted' }}
 
       - name: Setup Python
         if: runner.environment != 'self-hosted' || runner.os != 'macOS'

@@ -207,6 +207,7 @@ export function readReusableStandardSourceGate(
   runtime: Runtime,
   repository: string,
   sourceRunId: string,
+  allowCancelledSignedBuild = false,
 ): unknown {
   const source = record(JSON.parse(runRequired(
     runtime,
@@ -217,8 +218,9 @@ export function readReusableStandardSourceGate(
     appRoot,
   )), 'source run');
   if (String(source.id) !== sourceRunId || source.run_attempt !== 1 || source.event !== 'workflow_dispatch'
-    || source.path !== defaultWorkflow || source.status !== 'completed' || source.conclusion !== 'failure') {
-    throw new Error('Standard source-gate reuse requires the exact failed one-shot Standard owner.');
+    || source.path !== defaultWorkflow || source.status !== 'completed'
+    || (source.conclusion !== 'failure' && !(allowCancelledSignedBuild && source.conclusion === 'cancelled'))) {
+    throw new Error('Standard source-gate reuse requires the exact unsuccessful one-shot Standard owner.');
   }
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-standard-source-evidence-'));
   try {
