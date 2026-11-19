@@ -332,6 +332,8 @@ Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，
 
 Full 在构建和包体验证时使用候选内的 Framework CLI 读取更新与 App 状态。两项读取在同一临时 OPL 状态目录中执行，每项最多运行 60 秒，结束后清理目录。这使自有 runner 上的日常 OPL 状态不影响候选检查。
 
+Full 对运行时的原生代码做 Developer ID 验签。`esbuild/bin/esbuild` 如果是 npm 的 Node 启动脚本，由所在 App 的资源签名覆盖；实际的 ARM64 esbuild 二进制仍单独签名、验签。该路径若含原生可执行文件，也必须单独通过原生验签。
+
 Full 在可移植性门禁前检查 Shell npm 原生代码的构建机 RPATH；只有所有真实依赖仍可由系统路径或保留的 `@loader_path` 解析时才删除冗余绝对路径，并从内向外重签修改过的文件和嵌套 App。未解析依赖继续拒绝；最终 App 签名、公证和 clean-VM 仍消费修复后的准确字节，Standard 公开资产不变。
 
 Full 不打包 `mac-media-assets` 的素材库；构建不 checkout、不 fingerprint、不复制这批媒体，也不把它计入离线 cache closure。MAC 的 required 依赖关系保持由其 owner 声明，首次启动在核心就绪后通过既有 Official Profile 安装，MAC 开始/恢复制作时再执行原生 `prepare` 检查和补齐。在线安装失败保持 Package 局部诊断；不扩大为 App 导航阻断，也不能伪报素材库已就绪。

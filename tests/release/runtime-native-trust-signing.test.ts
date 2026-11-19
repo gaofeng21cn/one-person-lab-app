@@ -134,6 +134,26 @@ test('Full runtime signing includes Framework esbuild executables', () => {
   }
 });
 
+test('Full runtime signing skips the esbuild Node launcher and retains native candidates', () => {
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-esbuild-launcher-'));
+  const npmPath = path.join(runtimeRoot, 'opl/node_modules/esbuild/bin/esbuild');
+  const platformPath = path.join(runtimeRoot, 'opl/node_modules/@esbuild/darwin-arm64/bin/esbuild');
+  try {
+    writeExecutable(npmPath, '#!/usr/bin/env node\nrequire("../lib/main")\n');
+    writeExecutable(platformPath, Buffer.from('cffaedfe00000000', 'hex'));
+    assert.deepEqual(
+      listFullRuntimeNativeExecutables(runtimeRoot).map((entry) => entry.relative_path),
+      ['runtime/current/opl/node_modules/@esbuild/darwin-arm64/bin/esbuild'],
+    );
+    writeExecutable(npmPath, Buffer.from('cffaedfe00000000', 'hex'));
+    assert.equal(listFullRuntimeNativeExecutables(runtimeRoot).length, 2);
+    writeExecutable(npmPath, '#!/usr/bin/env python\n');
+    assert.equal(listFullRuntimeNativeExecutables(runtimeRoot).length, 2);
+  } finally {
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
+});
+
 test('Developer ID codesign metadata uses the leaf Authority when Signature= is absent', () => {
   const details = parseMacosCodeSignatureOutput([
     'Executable=/tmp/officecli',

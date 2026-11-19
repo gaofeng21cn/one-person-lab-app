@@ -29,6 +29,18 @@ function relativeRuntimePath(runtimeRoot, filePath) {
   return `runtime/current/${path.relative(runtimeRoot, filePath).split(path.sep).join('/')}`;
 }
 
+function isEsbuildNodeLauncher(relativePath, filePath) {
+  if (relativePath !== 'runtime/current/opl/node_modules/esbuild/bin/esbuild') return false;
+  const shebang = Buffer.from('#!/usr/bin/env node\n');
+  const prefix = Buffer.alloc(shebang.length);
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    return fs.readSync(fd, prefix) === shebang.length && prefix.equals(shebang);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 function isNativeRuntimeExecutable(relativePath, stat) {
   if (!stat.isFile()) {
     return false;
@@ -67,7 +79,7 @@ export function listFullRuntimeNativeExecutables(runtimeRoot) {
       continue;
     }
     const relativePath = relativeRuntimePath(runtimeRoot, current);
-    if (isNativeRuntimeExecutable(relativePath, stat)) {
+    if (isNativeRuntimeExecutable(relativePath, stat) && !isEsbuildNodeLauncher(relativePath, current)) {
       results.push({
         path: current,
         relative_path: relativePath,
