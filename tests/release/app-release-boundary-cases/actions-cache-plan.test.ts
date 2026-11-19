@@ -245,6 +245,55 @@ test('Actions cache receipt requires current evidence and records reuse metrics'
   );
 });
 
+test('Actions cache receipts keep local reuse separate from remote save outcomes', () => {
+  const plan = testPlan();
+  for (const localStatus of ['hit', 'miss_written']) {
+    for (const outcome of ['success', 'failure', 'skipped'] as const) {
+      const events = testRuntimeEvents(plan);
+      for (const event of events.events) {
+        event.status = localStatus;
+        event.read_archive = localStatus === 'hit';
+        event.write_archive = localStatus === 'miss_written';
+      }
+      const receipt = buildActionsCacheReceipt({
+        plan,
+        runtimeEvents: events,
+        saveOutcomes: Object.fromEntries(
+          FULL_RUNTIME_CACHE_LAYER_IDS.map((id) => [id, outcome]),
+        ) as never,
+      });
+      validateActionsCacheReceipt(receipt, plan);
+      assert.equal(receipt.metrics.hit_count, localStatus === 'hit' ? 4 : 0);
+      assert.equal(receipt.metrics.miss_count, localStatus === 'hit' ? 0 : 4);
+      assert.equal(receipt.metrics.save_attempt_count, outcome === 'skipped' ? 0 : 4);
+      assert.equal(receipt.save_outcomes.toolchain, outcome);
+    }
+  }
+});
+
+test('Actions cache receipts still reject unauthorized or unknown transport outcomes', () => {
+  for (const outcome of ['success', 'failure'] as const) {
+    const plan = testPlan({ ref: 'refs/heads/feature/read-only-cache' });
+    assert.throws(
+      () => buildActionsCacheReceipt({
+        plan,
+        runtimeEvents: testRuntimeEvents(plan),
+        saveOutcomes: { toolchain: outcome, 'domain-runtime': 'skipped', 'opl-runtime': 'skipped', skills: 'skipped' },
+      }),
+      /must be skipped when the plan is not writer eligible/,
+    );
+  }
+  const plan = testPlan();
+  assert.throws(
+    () => buildActionsCacheReceipt({
+      plan,
+      runtimeEvents: testRuntimeEvents(plan),
+      saveOutcomes: { toolchain: 'unknown', 'domain-runtime': 'skipped', 'opl-runtime': 'skipped', skills: 'skipped' } as never,
+    }),
+    /must be success, failure, or skipped/,
+  );
+});
+
 test('Actions cache plan rejects writer, aggregate, and package identity drift', () => {
   assert.throws(
     () => testPlan({

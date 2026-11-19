@@ -41,6 +41,7 @@ export type ActionsCachePlanInput = {
 
 export type ActionsCacheReceiptInput = {
   plan: JsonRecord;
+  // Local layer reuse is independent of the GitHub cache transport outcome.
   runtimeEvents: JsonRecord;
   saveOutcomes: Record<RuntimeLayerId, SaveOutcome>;
 };
@@ -240,7 +241,6 @@ export function validateActionsCachePlan(plan: JsonRecord): void {
 function assertSaveOutcome(
   layerId: RuntimeLayerId,
   outcome: unknown,
-  status: unknown,
   writerEligible: boolean,
 ): asserts outcome is SaveOutcome {
   if (!SAVE_OUTCOMES.includes(outcome as SaveOutcome)) {
@@ -249,17 +249,9 @@ function assertSaveOutcome(
   if (!writerEligible && outcome !== 'skipped') {
     throw new Error(`save outcome for ${layerId} must be skipped when the plan is not writer eligible`);
   }
-  if (writerEligible && status === 'hit' && outcome !== 'skipped') {
-    throw new Error(`save outcome for ${layerId} must be skipped after an exact cache hit`);
-  }
-  if (
-    writerEligible &&
-    status === 'miss_written' &&
-    outcome !== 'success' &&
-    outcome !== 'failure'
-  ) {
-    throw new Error(`save outcome for ${layerId} must record the save attempt after a cache miss`);
-  }
+  // A local hit may need an upload when the remote cache missed or was rebuilt.
+  // A local miss does not establish whether the remote save was attempted.
+  // The caller records that transport result; the local event proves layer reuse.
 }
 
 function buildReceiptMetrics(
@@ -348,8 +340,7 @@ export function buildActionsCacheReceipt(input: ActionsCacheReceiptInput): JsonR
   });
   const saveOutcomes = Object.fromEntries(RUNTIME_LAYER_IDS.map((layerId) => {
     const outcome = input.saveOutcomes[layerId];
-    const event = eventByLayer.get(layerId) as JsonRecord;
-    assertSaveOutcome(layerId, outcome, event.status, input.plan.writer_eligible);
+    assertSaveOutcome(layerId, outcome, input.plan.writer_eligible);
     return [layerId, outcome];
   })) as Record<RuntimeLayerId, SaveOutcome>;
   const payload = {
@@ -425,7 +416,7 @@ export function validateActionsCacheReceipt(receipt: JsonRecord, plan?: JsonReco
     }
     requireString(event.actions_key, `cache receipt actions key for ${layerId}`);
     requireDuration(event.duration_seconds, `cache receipt duration for ${layerId}`);
-    assertSaveOutcome(layerId, receipt.save_outcomes?.[layerId], event.status, receipt.writer_eligible);
+    assertSaveOutcome(layerId, receipt.save_outcomes?.[layerId], receipt.writer_eligible);
   }
   const expectedMetrics = buildReceiptMetrics(events, receipt.save_outcomes ?? {});
   if (!sameJson(receipt.metrics, expectedMetrics)) {
