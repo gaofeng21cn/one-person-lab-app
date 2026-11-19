@@ -81,6 +81,23 @@ function runOrThrow(
   return result.stdout;
 }
 
+function fetchExactCommit(
+  runner: QualificationHarnessScopeCommandRunner,
+  cwd: string,
+  label: string,
+  sha: string,
+  treesOnly = false,
+): void {
+  const args = ['fetch', '--no-tags', '--depth=1', ...(treesOnly ? ['--filter=blob:none'] : []), 'origin', sha];
+  try {
+    runOrThrow(runner, 'git', args, cwd, label);
+  } catch (error) {
+    const transient = /TLS connect error|unexpected EOF|connection reset|could not resolve host|failed to connect|RPC failed; curl (18|28|35|52|55|56|92)\b/i;
+    if (!(error instanceof Error) || !transient.test(error.message)) throw error;
+    runOrThrow(runner, 'git', ['-c', 'http.version=HTTP/1.1', ...args], cwd, label);
+  }
+}
+
 export function collectRemoteChangedPaths(
   runner: QualificationHarnessScopeCommandRunner,
   repo: string,
@@ -102,13 +119,7 @@ export function collectRemoteChangedPaths(
       `configure ${repo} scope remote`,
     );
     for (const sha of [base, head]) {
-      runOrThrow(
-        runner,
-        'git',
-        ['fetch', '--no-tags', '--depth=1', 'origin', sha],
-        root,
-        `fetch ${repo}@${sha}`,
-      );
+      fetchExactCommit(runner, root, `fetch ${repo}@${sha}`, sha, true);
       runOrThrow(runner, 'git', ['cat-file', '-e', `${sha}^{commit}`], root, `verify ${repo}@${sha}`);
     }
     const output = runOrThrow(
@@ -140,7 +151,7 @@ export function readRemoteExpectationDigests(
       root,
       'configure expectation remote',
     );
-    runOrThrow(runner, 'git', ['fetch', '--no-tags', '--depth=1', 'origin', sha], root, `fetch App@${sha}`);
+    fetchExactCommit(runner, root, `fetch App@${sha}`, sha);
     const raw = runOrThrow(
       runner,
       'git',

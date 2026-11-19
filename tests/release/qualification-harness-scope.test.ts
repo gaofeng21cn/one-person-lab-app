@@ -247,6 +247,33 @@ test('remote qualification diff disables rename detection so forbidden source pa
   assert.ok(diffCall.args.includes('--name-only'));
 });
 
+test('scope transport retries the same commit after a TLS disconnect', () => {
+  const fetches: string[][] = [];
+  const changed = collectRemoteChangedPaths((_command, args) => {
+    if (args.includes('fetch')) {
+      fetches.push(args);
+      if (fetches.length === 1) {
+        return { status: 128, stdout: '', stderr: 'fatal: TLS connect error: SSL routines::unexpected eof while reading' };
+      }
+    }
+    return { status: 0, stdout: args[0] === 'diff' ? 'scripts/desktop/qualify-clean-vm.mjs\n' : '', stderr: '' };
+  }, 'gaofeng21cn/opl-studio', artifactShellSha, verificationShellSha);
+  assert.equal(fetches.length, 3);
+  assert.equal(fetches[0].at(-1), artifactShellSha);
+  assert.ok(fetches[0].includes('--filter=blob:none'));
+  assert.deepEqual(fetches[1], ['-c', 'http.version=HTTP/1.1', ...fetches[0]]);
+  assert.equal(fetches[2].at(-1), verificationShellSha);
+  assert.deepEqual(changed, ['scripts/desktop/qualify-clean-vm.mjs']);
+
+  let missingRefFetches = 0;
+  assert.throws(() => collectRemoteChangedPaths((_command, args) => {
+    if (!args.includes('fetch')) return { status: 0, stdout: '', stderr: '' };
+    missingRefFetches += 1;
+    return { status: 128, stdout: '', stderr: 'fatal: remote error: upload-pack: not our ref' };
+  }, 'gaofeng21cn/opl-studio', artifactShellSha, verificationShellSha), /not our ref/);
+  assert.equal(missingRefFetches, 1);
+});
+
 
 test('Studio scope resolves the frozen App owner and keeps product edits out of harness recovery', () => {
   const remotes: string[] = [];
