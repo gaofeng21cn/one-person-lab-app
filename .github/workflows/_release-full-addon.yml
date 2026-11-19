@@ -1330,16 +1330,8 @@ jobs:
       - name: Upload materialized Full package artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
-          path: full-output
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload materialized Full DMG-only artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
           name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
-          path: full-output/One-Person-Lab-Full-${{ needs.restore-standard.outputs.version }}-mac-arm64.dmg
+          path: full-output
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -1364,7 +1356,7 @@ jobs:
       - name: Download exact Full package artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
+          name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output
 
       - name: Verify exact Full package trust
@@ -1539,7 +1531,7 @@ jobs:
       - name: Download Full package asset set
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
+          name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
           path: full-output
 
       - name: Download exact hosted Full core qualification

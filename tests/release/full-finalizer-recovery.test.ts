@@ -10,6 +10,7 @@ import { reusableFullFinalizerInput, readOriginalStandardCheckpoint } from '../.
 import { reconcileAppendFullTarget } from '../../scripts/stable-release-dispatch-parts/owner-run-reconciliation.ts';
 import { resolveAppendFullCohort, buildAppendFullPlan } from '../../scripts/stable-release-dispatch-parts/plan-source-guards.ts';
 import { downloadArtifact } from '../../scripts/download-github-artifact.mjs';
+import { verifyAcceptedFullDmg, verifyRetainedHandoff } from '../../scripts/restore-retained-full-finalizer.mjs';
 
 const workflow = parse(fs.readFileSync('.github/workflows/full-first-install-release.yml', 'utf8'));
 const action = parse(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8'));
@@ -112,5 +113,52 @@ test('the real finalizer verifies every retained file and frozen source before c
         assert.match(fs.readFileSync(path.join(temp, 'output'), 'utf8'), /mas_ref=eeee/);
       } else assert.notEqual(result.status, 0, `accepted ${mutation}`);
     } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+  }
+});
+
+test('same-runner recovery admits only the original notarized Full bytes and run-bound handoff', async () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-stapled-full-'));
+  try {
+    const handoffRoot = path.join(temp, 'handoff');
+    fs.mkdirSync(handoffRoot);
+    const manifestPath = path.join(handoffRoot, 'handoff-manifest.json');
+    const manifest = { schema: 'opl_full_finalizer_input.v1', release_version: '26.11.13', full_content_sources: refs };
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+    const archiveDigest = `sha256:${'a'.repeat(64)}`;
+    fs.writeFileSync(path.join(temp, 'full-finalizer-handoff-receipt.json'), JSON.stringify({
+      schema: 'opl_full_finalizer_handoff_receipt.v1',
+      status: 'passed',
+      artifact_digest: archiveDigest,
+      handoff_manifest_sha256: createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex'),
+    }));
+    const handoff = { localRoot: temp, evidenceRoot: temp, expectedArchiveDigest: archiveDigest };
+    assert.deepEqual(verifyRetainedHandoff(handoff), manifest);
+    assert.throws(() => verifyRetainedHandoff({ ...handoff, expectedArchiveDigest: `sha256:${'b'.repeat(64)}` }), /archive and manifest digests/);
+    fs.appendFileSync(manifestPath, '\n');
+    assert.throws(() => verifyRetainedHandoff(handoff), /archive and manifest digests/);
+
+    const dmgName = 'One-Person-Lab-Full-26.11.13-mac-arm64.dmg';
+    const dmgPath = path.join(temp, dmgName);
+    const receiptPath = path.join(temp, 'full-apple-notarization-receipt.json');
+    const dmgBytes = 'original staple';
+    fs.writeFileSync(dmgPath, dmgBytes);
+    const expected = { dmgPath, receiptPath, expectedName: dmgName, expectedTeamId: 'TESTTEAM01' };
+    const evidence = {
+      schema: 'opl_apple_notarized_dmg_receipt.v1',
+      artifact: dmgName,
+      status: 'passed',
+      team_identifier: expected.expectedTeamId,
+      notarization: { status: 'Accepted', id: '12345678-1234-1234-1234-123456789012' },
+      stapler_validate_status: 'passed',
+      final_stapled_dmg_size_bytes: Buffer.byteLength(dmgBytes),
+      final_stapled_dmg_sha256: createHash('sha256').update(dmgBytes).digest('hex'),
+    };
+    fs.writeFileSync(receiptPath, JSON.stringify(evidence));
+    assert.deepEqual(await verifyAcceptedFullDmg(expected), evidence);
+    await assert.rejects(verifyAcceptedFullDmg({ ...expected, expectedTeamId: 'OTHERTEAM1' }), /does not admit/);
+    fs.writeFileSync(dmgPath, 'modified staple');
+    await assert.rejects(verifyAcceptedFullDmg(expected), /differs from the prior notarization receipt/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
   }
 });

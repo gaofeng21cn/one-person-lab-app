@@ -80,8 +80,21 @@ runs:
       shell: bash
       run: node --experimental-strip-types one-person-lab-app/scripts/active-shell-build-profile.ts --app-root one-person-lab-app --github-output "$GITHUB_OUTPUT"
 
+    - name: Restore exact notarized Full output from the owned runner
+      id: retained_full
+      if: ${{ inputs.reuse_build_workspace != 'true' && runner.environment == 'self-hosted' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        OPL_ARTIFACT_RUN_ID: ${{ inputs.finalizer_source_run_id }}
+        OPL_ARTIFACT_CACHE: ${{ runner.temp }}/opl-finalizer-archive-cache
+        OPL_FULL_HANDOFF_DIGEST: ${{ inputs.finalizer_input_digest }}
+        OPL_FULL_VERSION: ${{ inputs.opl_version }}
+        OPL_FULL_EXPECTED_TEAM_ID: ${{ inputs.TEAM_ID }}
+      run: node --use-env-proxy release-executor/scripts/restore-retained-full-finalizer.mjs
+
     - name: Download immutable Full finalizer input
-      if: ${{ inputs.reuse_build_workspace != 'true' }}
+      if: ${{ inputs.reuse_build_workspace != 'true' && steps.retained_full.outputs.restored != 'true' }}
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
@@ -173,8 +186,21 @@ runs:
         echo "mas_ref=$(jq -er .components.mas.git_commit "$output_dir/full-package-manifest.json")" >> "$GITHUB_OUTPUT"
         echo "mas_scholar_skills_ref=$EXPECTED_MAS_SCHOLAR_SKILLS_SHA" >> "$GITHUB_OUTPUT"
 
+    - name: Use the verified original notarized Full DMG
+      if: ${{ steps.retained_full.outputs.restored == 'true' }}
+      shell: bash
+      env:
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+      run: |
+        set -euo pipefail
+        evidence_dir="$RUNNER_TEMP/opl-prior-full-notarization"
+        output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
+        dmg_name="One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
+        mv "$evidence_dir/$dmg_name" "$output_dir/$dmg_name"
+        cp "$evidence_dir/full-apple-notarization-receipt.json" "$output_dir/"
+
     - name: Import Developer ID identity for ARM finalization
-      if: ${{ inputs.reuse_build_workspace != 'true' }}
+      if: ${{ inputs.reuse_build_workspace != 'true' && steps.retained_full.outputs.restored != 'true' }}
       env:
         BUILD_CERTIFICATE_BASE64: ${{ inputs.BUILD_CERTIFICATE_BASE64 }}
         P12_PASSWORD: ${{ inputs.P12_PASSWORD }}
@@ -209,6 +235,7 @@ runs:
         security find-identity -v -p codesigning "$RUNNER_TEMP/opl-build.keychain-db" | grep -F "$IDENTITY" >/dev/null
 
     - name: Finalize Full Developer ID signing and notarization on ARM
+      if: ${{ steps.retained_full.outputs.restored != 'true' }}
       working-directory: one-person-lab-app
       env:
         appleId: ${{ inputs.APPLE_ID }}
@@ -486,6 +513,27 @@ runs:
           --markdown > dist/opl-full-release/full-package-size-summary.md
         cat dist/opl-full-release/full-package-size-summary.md >> "$GITHUB_STEP_SUMMARY"
 
+    - name: Retain verified Full inputs and notarized DMG on the owned runner
+      if: ${{ runner.environment == 'self-hosted' }}
+      shell: bash
+      env:
+        OPL_RELEASE_VERSION: ${{ inputs.opl_version }}
+      run: |
+        set -euo pipefail
+        umask 077
+        output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
+        retained="$HOME/Library/Caches/OPL Release Recovery/$GITHUB_RUN_ID"
+        if ! (
+          set -e
+          test ! -e "$retained" &&
+          mkdir -p "$retained/notarized" &&
+          cp -cR "$RUNNER_TEMP/opl-full-finalizer-input" "$retained/handoff" &&
+          cp -c "$output_dir/full-apple-notarization-receipt.json" "$retained/notarized/" &&
+          cp -c "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" "$retained/notarized/"
+        ); then
+          echo "::warning::Could not retain local Full recovery files. Continuing with the remote artifact."
+        fi
+
     - name: Upload ARM Full notarization terminal evidence
       if: ${{ always() }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -531,7 +579,7 @@ runs:
       if: ${{ success() }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
-        name: opl-full-first-install-${{ inputs.opl_version }}-mac-arm64
+        name: opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64
         path: |
           one-person-lab-app/dist/opl-full-release
           !one-person-lab-app/dist/opl-full-release/*.submitted-for-notarization.dmg
@@ -547,14 +595,3 @@ runs:
         path: ${{ runner.temp }}/opl-build-cohort.json
         if-no-files-found: error
         retention-days: 14
-
-    - name: Upload Full DMG-only workflow artifact
-      if: ${{ success() }}
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-      with:
-        name: opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64
-        path: one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${{ inputs.opl_version }}-mac-arm64.dmg
-        if-no-files-found: error
-        compression-level: 0
-        retention-days: 14
-

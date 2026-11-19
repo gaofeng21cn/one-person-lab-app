@@ -230,11 +230,17 @@ no completed Full cohort, `append-full` can resume that exact unsubmitted handof
 The controller preserves its original content refs and traces its source ancestry
 back to the original Standard checkpoint for fresh operation authority. The old
 unsubmitted handoff is a separate input, never an expired `full_built` operation.
-The protected workflow verifies
-the fresh archive digest and every retained file, skips assembly, then performs
-notarization, trust checks, clean-VM qualification and same-tag publication.
-An existing Apple submission recovery artifact requires submission reconciliation
-before this path can run. The handoff is not a `full_built` or qualified checkpoint.
+The protected workflow verifies the fresh archive digest and every retained
+file before finalization. If a previous attempt reached Apple Accepted and
+the owned runner retained that exact DMG, it verifies the local bytes against
+the prior run's GitHub notarization evidence and rechecks distribution trust.
+Clean-VM qualification and same-tag publication then use the same stapled
+DMG. A submission without an Accepted receipt still needs reconciliation
+before another submission. A handoff alone provides no Full qualification.
+
+For this path the Full finalizer sends one package artifact containing the
+DMG and manifest. App qualification, clean-VM and checkpoint jobs read the
+same artifact. The small cohort sidecar proves its producer and SHA-256.
 
 Fresh Full assembly and finalization share the same ARM job through
 `.github/actions/finalize-full`. The build keeps `opl-full-diagnostics-<version>`

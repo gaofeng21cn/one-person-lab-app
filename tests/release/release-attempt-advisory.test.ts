@@ -50,7 +50,7 @@ test("Full DMG artifacts carry the cohort manifest required by the VM gate", () 
   );
   assert.match(
     fullWorkflow,
-    /full-finalizer:[\s\S]*name: Upload Full DMG-only workflow artifact\n\s+if: \$\{\{ success\(\) \}\}/,
+    /name: Upload Full package workflow artifact\n\s+if: \$\{\{ success\(\) \}\}[\s\S]*?name: opl-full-first-install-dmg-\$\{\{ inputs\.opl_version \}\}-mac-arm64\b/,
   );
 });
 

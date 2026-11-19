@@ -32,7 +32,7 @@ on:
         default: ''
         type: string
       upload_full_package_artifact:
-        description: Upload the complete Full output bundle for a downstream publisher; VM uses the DMG-only artifact
+        description: Upload the Full output bundle for downstream qualification and publication
         required: false
         default: false
         type: boolean

@@ -662,7 +662,7 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     fullBuild.jobs['full-first-install'].outputs.finalizer_input_digest,
     '${{ steps.normalize_full_finalizer_input_digest.outputs.artifact_digest }}',
   );
-  assert.equal(finalizer.if, undefined);
+  assert.equal(finalizer.if, "${{ steps.retained_full.outputs.restored != 'true' }}");
   assert.match(String(finalizer.run), /\$GITHUB_WORKSPACE\/release-executor\/scripts\/notarize-macos-dmg\.ts/);
   assert.match(String(finalizer.run), /full-apple-notarization-receipt\.json/);
   assert.match(String(finalizer.run), /--submitted-candidate-output/);
@@ -731,10 +731,16 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     /Full build manifest does not bind the exact same-tag mutable Standard append target/,
   );
 
+  const packageUpload = fullFinalizer.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Upload Full package workflow artifact',
+  );
+  assert.equal(packageUpload.with.name, 'opl-full-first-install-dmg-${{ inputs.opl_version }}-mac-arm64');
+  assert.ok(!fullFinalizer.steps.some(
+    (step: Record<string, unknown>) => step.name === 'Upload Full DMG-only workflow artifact',
+  ));
   for (const name of [
     'Upload Full package workflow artifact',
     'Upload Full build artifact cohort manifest',
-    'Upload Full DMG-only workflow artifact',
   ]) {
     const upload = fullFinalizer.steps.find(
       (step: Record<string, unknown>) => step.name === name,
