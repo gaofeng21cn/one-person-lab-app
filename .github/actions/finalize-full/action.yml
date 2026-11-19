@@ -504,7 +504,10 @@ runs:
       if: ${{ always() }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
-        name: opl-full-diagnostics-${{ inputs.opl_version }}
+        name: >-
+          ${{ inputs.reuse_build_workspace == 'true'
+            && format('opl-full-finalized-diagnostics-{0}', inputs.opl_version)
+            || format('opl-full-diagnostics-{0}', inputs.opl_version) }}
         path: |
           one-person-lab-app/dist/opl-full-release/full-workflow-telemetry.json
           one-person-lab-app/dist/opl-full-release/full-package-build-timing.json

@@ -237,7 +237,10 @@ An existing Apple submission recovery artifact requires submission reconciliatio
 before this path can run. The handoff is not a `full_built` or qualified checkpoint.
 
 Fresh Full assembly and finalization share the same ARM job through
-`.github/actions/finalize-full`. The standalone finalizer job is recovery-only;
+`.github/actions/finalize-full`. The build keeps `opl-full-diagnostics-<version>`
+for recovery admission. Same-job finalization writes
+`opl-full-finalized-diagnostics-<version>` so GitHub accepts both artifacts.
+A standalone finalizer uses the regular diagnostics name in its own run. The standalone finalizer job is recovery-only;
 normal builds must not release their ARM runner and request a second one. A job
 with no runner and no steps must be diagnosed from its check-run annotations:
 GitHub capacity failures are not execution timeouts, and increasing

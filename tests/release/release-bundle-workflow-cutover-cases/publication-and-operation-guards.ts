@@ -595,6 +595,16 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   assert.equal(cacheEvidenceUpload['timeout-minutes'], 2);
   assert.equal(cacheEvidenceUpload.with['if-no-files-found'], 'warn');
   const fullFinalizer = parseYaml(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8')).runs;
+  const assemblyDiagnostics = armBuilder.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Upload Full diagnostics artifact',
+  );
+  const finalizedDiagnostics = fullFinalizer.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Upload ARM-finalized Full diagnostics artifact',
+  );
+  assert.equal(assemblyDiagnostics.with.name, 'opl-full-diagnostics-${{ env.OPL_RELEASE_VERSION }}');
+  assert.match(finalizedDiagnostics.with.name, /reuse_build_workspace == 'true'\s*&& format\('opl-full-finalized-diagnostics-/);
+  assert.match(finalizedDiagnostics.with.name, /\|\| format\('opl-full-diagnostics-/);
+
   const handoffUpload = armBuilder.steps.find(
     (step: Record<string, unknown>) => step.name === 'Upload immutable Full finalizer input',
   );
