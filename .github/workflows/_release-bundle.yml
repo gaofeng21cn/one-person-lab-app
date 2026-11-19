@@ -339,6 +339,7 @@ jobs:
       shell_sha: ${{ steps.identity.outputs.shell_sha }}
       framework_sha: ${{ steps.identity.outputs.framework_sha }}
       apple_preflight_verified: ${{ steps.identity.outputs.apple_preflight_verified }}
+      stable_composition_fingerprint: ${{ steps.identity.outputs.stable_composition_fingerprint }}
       bundle_digest: ${{ steps.bundle.outputs.bundle_digest }}
       operation_id: ${{ steps.bundle.outputs.operation_id }}
       operation_started_at: ${{ steps.bundle.outputs.operation_started_at }}
@@ -506,6 +507,10 @@ jobs:
             test "${#admission_manifests[@]}" -eq 1
             test "${#source_gates[@]}" -eq 1
             test "${#credential_receipts[@]}" -eq 1
+            fingerprint="$(jq -er .operation_fingerprint "${source_gates[0]}")"
+            if [[ "$fingerprint" == opl-desktop-stable-release:dsh-composition:* ]]; then
+              echo "stable_composition_fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+            fi
             ADMISSION_MANIFEST="${admission_manifests[0]}" \
               ADMISSION_SOURCE_GATE="${source_gates[0]}" \
               ADMISSION_CREDENTIAL_RECEIPT="${credential_receipts[0]}" \
@@ -977,6 +982,7 @@ jobs:
       release_validation_profile: stable
       dependency_manifest_artifact: opl-standard-dependency-resolution-${{ github.run_id }}
       ref: ${{ needs.freeze.outputs.app_sha }}
+      stable_composition_fingerprint: ${{ needs.freeze.outputs.stable_composition_fingerprint }}
       shell_ref: ${{ needs.freeze.outputs.shell_sha }}
       framework_ref: ${{ needs.freeze.outputs.framework_sha }}
       opl_release_version: ${{ needs.freeze.outputs.version }}

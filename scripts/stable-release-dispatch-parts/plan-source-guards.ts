@@ -371,6 +371,7 @@ export function buildStandardPlan(input: {
   desktopAdditionalPlatforms: string[];
   productChangeSummary: string;
   priorStandardArtifactRunId?: string;
+  compositionFingerprint?: string;
   smokeHarnessSha?: string;
   reusableSourceGate?: unknown;
 }): StableDispatchPlan {
@@ -388,9 +389,19 @@ export function buildStandardPlan(input: {
     'Stable executor workflow tests',
     appRoot,
   );
-  const objectiveFingerprint = smokeHarnessSha
-    ? `opl-desktop-stable-release:smoke-harness:${smokeHarnessSha}`
-    : 'opl-desktop-stable-release';
+  const previousFingerprint = input.reusableSourceGate
+    ? record(input.reusableSourceGate, 'reusable_source_gate').operation_fingerprint
+    : null;
+  const priorComposition = typeof previousFingerprint === 'string'
+    ? /^opl-desktop-stable-release:dsh-composition:[1-9][0-9]*:[0-9a-f]{64}/.exec(previousFingerprint)?.[0]
+    : undefined;
+  if (input.priorStandardArtifactRunId && input.compositionFingerprint && input.compositionFingerprint !== priorComposition) {
+    throw new Error('Signed Standard recovery must retain the original DSH plugin composition.');
+  }
+  const objective = input.compositionFingerprint
+    ?? (input.priorStandardArtifactRunId ? priorComposition : undefined)
+    ?? 'opl-desktop-stable-release';
+  const objectiveFingerprint = smokeHarnessSha ? `${objective}:smoke-harness:${smokeHarnessSha}` : objective;
   const criticalBlobs = stableOperationCriticalBlobs(appRoot);
   const operationId = stableOperationIdForFrozenCohort({
     objectiveFingerprint,

@@ -70,6 +70,7 @@ jobs:
       actions: read
     outputs:
       skip_code_quality: ${{ steps.verify.outputs.skip_code_quality }}
+      stable_composition_fingerprint: ${{ steps.verify.outputs.stable_composition_fingerprint }}
     steps:
       - name: Resolve Standard checkpoint artifact
         id: source
@@ -156,6 +157,13 @@ jobs:
           test "$(jq -er .cohort.app_sha "${controls[0]}")" = "$APP_REF"
           test "$(jq -er .cohort.shell_sha "${controls[0]}")" = "$SHELL_REF"
           test "$(jq -er .cohort.framework_sha "${controls[0]}")" = "$FRAMEWORK_REF"
+          mapfile -t source_gates < <(find standard-checkpoint -type f -name source-gate.json -print | LC_ALL=C sort)
+          test "${#source_gates[@]}" -eq 1
+          test "sha256:$(shasum -a 256 "${source_gates[0]}" | awk '{print $1}')" = "$(jq -er .source_gate_digest "${controls[0]}")"
+          fingerprint="$(jq -er .operation_fingerprint "${source_gates[0]}")"
+          if [[ "$fingerprint" == opl-desktop-stable-release:dsh-composition:* ]]; then
+            echo "stable_composition_fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+          fi
           jq -e --arg digest "$SOURCE_BUNDLE_DIGEST" \
             --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" '
               .schema == "opl_standard_release_identity_receipt.v2"
@@ -271,6 +279,7 @@ jobs:
       opl_updater_version: ${{ inputs.updater_version }}
       source_run_id: ${{ inputs.source_run_id }}
       source_bundle_digest: ${{ inputs.source_bundle_digest }}
+      stable_composition_fingerprint: ${{ needs.verify-standard-quality.outputs.stable_composition_fingerprint }}
       platform_ids: ${{ format('["{0}"]', inputs.platform_id) }}
     secrets: inherit
 

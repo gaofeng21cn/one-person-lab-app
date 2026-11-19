@@ -27,6 +27,10 @@ on:
         description: Same-run frozen macOS arm64 qualification dependency manifest.
         type: string
         default: ''
+      stable_composition_fingerprint:
+        description: DSH composition build input bound to the verified Standard source gate.
+        type: string
+        default: ''
       skip_code_quality:
         description: 'Skip code quality checks (faster builds for debugging)'
         type: boolean
@@ -338,8 +342,24 @@ jobs:
             --dependency node --dependency codex-cli --platform linux --arch x64 \
             --output windows-bootstrap-resolution
       - name: Install frozen Studio build dependencies
+        if: ${{ inputs.stable_composition_fingerprint == '' }}
         working-directory: studio
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install tested DSH composition for the Windows guest Host
+        if: ${{ inputs.stable_composition_fingerprint != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINGERPRINT: ${{ inputs.stable_composition_fingerprint }}
+          APP_SHA: ${{ inputs.ref }}
+          SHELL_SHA: ${{ inputs.shell_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          directory="$(mktemp -d "$RUNNER_TEMP/opl-dsh-guest-composition.XXXXXX")"
+          node app-authority/scripts/stable-dsh-composition.mjs download \
+            --fingerprint "$FINGERPRINT" --app-sha "$APP_SHA" --shell-sha "$SHELL_SHA" \
+            --directory "$directory"
+          node studio/scripts/composition-build-input.mjs install --directory "$directory"
       - name: Build and execute Linux production Host closure
         working-directory: studio
         env:
@@ -347,6 +367,7 @@ jobs:
           OPL_APP_REPO_ROOT: ${{ github.workspace }}/app-authority
           OPL_STANDARD_PAYLOAD_FRAMEWORK_REF: ${{ inputs.framework_ref }}
           OPL_WINDOWS_BOOTSTRAP_RESOLUTION: ${{ github.workspace }}/windows-bootstrap-resolution/dependency-resolution.json
+          OPL_DSH_REGISTRY_PLUGINS: ${{ inputs.stable_composition_fingerprint != '' && '1' || '' }}
         run: node scripts/desktop/prepare-wsl-host-payload.mjs
       - name: Upload qualified Linux guest Host
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -682,12 +703,32 @@ jobs:
           echo "bun-cache-hit=${{ steps.bun-cache.outputs.cache-hit }}"
 
       - name: Install dependencies
+        if: ${{ inputs.stable_composition_fingerprint == '' }}
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
           command: ${{ needs.resolve-active-shell-ref.outputs.package_manager == 'npm' && format('npm ci --prefix {0}', needs.resolve-active-shell-ref.outputs.shell_root) || format('bun install --cwd {0} --frozen-lockfile', needs.resolve-active-shell-ref.outputs.shell_root) }}
+
+      - name: Install the tested DSH plugin composition
+        if: ${{ inputs.stable_composition_fingerprint != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINGERPRINT: ${{ inputs.stable_composition_fingerprint }}
+          APP_SHA: ${{ inputs.ref }}
+          SHELL_SHA: ${{ inputs.shell_ref }}
+        run: |
+          set -euo pipefail
+          directory="$(mktemp -d "$RUNNER_TEMP/opl-dsh-composition.XXXXXX")"
+          trap 'rm -rf "$directory"' EXIT
+          node "$GITHUB_WORKSPACE/scripts/stable-dsh-composition.mjs" download \
+            --fingerprint "$FINGERPRINT" --app-sha "$APP_SHA" --shell-sha "$SHELL_SHA" \
+            --directory "$directory"
+          unset GH_TOKEN
+          node scripts/composition-build-input.mjs install --directory "$directory"
+          echo "OPL_DSH_REGISTRY_PLUGINS=1" >> "$GITHUB_ENV"
 
       - name: Install App release tooling dependencies
         working-directory: ${{ github.workspace }}

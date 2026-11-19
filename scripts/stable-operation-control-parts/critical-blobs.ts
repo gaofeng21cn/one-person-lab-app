@@ -78,11 +78,16 @@ const preMacRunnerCriticalBlobPaths = [
   ...extractedReleaseSourceGatePaths,
 ] as const;
 
-export const stableOperationCriticalBlobPaths = [
+const preCompositionCriticalBlobPaths = [
   ...preMacRunnerCriticalBlobPaths,
   '.github/workflows/_build-reusable.yml',
   'scripts/macos-release-runner.ts',
   'scripts/macos-release-keychain.ts',
+] as const;
+
+export const stableOperationCriticalBlobPaths = [
+  ...preCompositionCriticalBlobPaths,
+  'scripts/stable-dsh-composition.mjs',
 ] as const;
 
 export function normalizedCriticalBlobs(value: unknown): Record<string, string> {
@@ -101,6 +106,7 @@ export function normalizedCriticalBlobs(value: unknown): Record<string, string> 
   // Read already-issued controls so their signed artifacts and source evidence
   // remain recoverable. Current executor admission below requires the full set.
   const historicalPathSets = [
+    preCompositionCriticalBlobPaths,
     preMacRunnerCriticalBlobPaths,
     preDispatchExtractionCriticalBlobPaths,
     preDispatchExtractionCriticalBlobPaths.filter(file => file !== 'scripts/stable-release-dispatch.ts'),

@@ -54,6 +54,7 @@ import {
   commandDetail,
   defaultWorkflow,
   runId,
+  runRequired,
   sha,
   text,
   type Runtime,
@@ -246,7 +247,7 @@ function parsePlatforms(value: string | undefined): string[] {
 
 function usage(): never {
   process.stderr.write(`Usage:
-  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--reuse-standard-run-id <failed-run> --smoke-harness-ref <sha>] [--execute]
+  npm run release:stable-dispatch -- new-product-release --product-change-summary <summary> [--composition-run-id <tested-studio-run>] [--reuse-standard-run-id <failed-run> --smoke-harness-ref <sha>] [--execute]
   npm run release:stable-dispatch -- publish-qualified-standard --run-id <qualification-run> [--source-artifact <exact-publication-checkpoint>] [--execute]
   npm run release:stable-dispatch -- append-full --source-run-id <standard-or-full-checkpoint-run> [--source-artifact <exact-full-checkpoint>] [--smoke-harness-ref <sha>] [--verification-app-ref <sha>] [--execute]
 
@@ -268,6 +269,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       'run-id': { type: 'string' },
       'reuse-standard-run-id': { type: 'string' },
       'source-gate-run-id': { type: 'string' },
+      'composition-run-id': { type: 'string' },
       'source-run-id': { type: 'string' },
       'source-artifact': { type: 'string' },
       'completed-webui-run-id': { type: 'string' },
@@ -284,6 +286,9 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
   });
   const repository = text(values.repo, 'repo');
   const workflow = text(values.workflow, 'workflow');
+  if (values['composition-run-id'] && command !== 'new-product-release') {
+    throw new Error('--composition-run-id is only used to admit a Standard build.');
+  }
   if (values['smoke-harness-ref']) validateShellSmokeHarness(runtime, values['smoke-harness-ref']);
   const executorSha = wireSha(runtime, 'origin');
   let plan: StableDispatchPlan;
@@ -298,6 +303,14 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     const frameworkSha = values['framework-ref']
       ? sha(values['framework-ref'], 'framework_ref')
       : wireSha(runtime, frameworkRemote);
+    const compositionFingerprint = values['composition-run-id'] && runRequired(
+      runtime, process.execPath, [
+        'scripts/stable-dsh-composition.mjs', 'resolve',
+        '--run-id', runId(values['composition-run-id'], 'composition_run_id'),
+        '--app-sha', appSha, '--shell-sha', shellSha,
+      ],
+      120_000, 'Verify the Studio composition build input', appRoot,
+    ).trim().split(/\r?\n/).at(-1);
     plan = buildStandardPlan({
       runtime,
       workflow,
@@ -307,6 +320,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       desktopAdditionalPlatforms: parsePlatforms(values['desktop-additional-platforms']),
       productChangeSummary: text(values['product-change-summary'], 'product_change_summary'),
       priorStandardArtifactRunId,
+      compositionFingerprint,
       smokeHarnessSha: values['smoke-harness-ref'],
       reusableSourceGate: (values['source-gate-run-id'] || priorStandardArtifactRunId)
         ? readReusableStandardSourceGate(runtime, repository, runId(values['source-gate-run-id'] || priorStandardArtifactRunId!, 'source_gate_run_id'))

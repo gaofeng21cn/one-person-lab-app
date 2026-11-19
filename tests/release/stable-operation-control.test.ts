@@ -183,6 +183,7 @@ test('qualification repairs change the operation while legacy authority is read-
   delete legacyBlobs['.github/workflows/opl-first-run-vm.yml'];
   delete legacyBlobs['scripts/download-github-artifact.mjs'];
   delete legacyBlobs['scripts/stable-release-dispatch.ts'];
+  delete legacyBlobs['scripts/stable-dsh-composition.mjs'];
   const legacy = issuedAuthority({ criticalBlobs: legacyBlobs });
   assert.equal(validateStableOperationAuthority(legacy).authority_digest, legacy.authority_digest);
   assert.throws(() => validateStableOperationAuthorityExecutorBinding({
@@ -198,7 +199,9 @@ test('Mac runner build repairs require fresh authority without changing the froz
   assert.notEqual(repaired.operation_id, operationId);
   assert.deepEqual(repaired.cohort, issuedAuthority().cohort);
 
-  const prior = issuedAuthority({ criticalBlobs: preMacRunnerBlobs });
+  const priorMacBlobs = { ...preMacRunnerBlobs };
+  delete priorMacBlobs['scripts/stable-dsh-composition.mjs'];
+  const prior = issuedAuthority({ criticalBlobs: priorMacBlobs });
   assert.deepEqual(validateStableOperationAuthority(prior), prior);
   assert.throws(() => validateStableOperationAuthorityExecutorBinding({
     authority: prior, appRoot: '.', expectedActor: prior.issuer, expectedExecutorSha: appSha,
@@ -214,6 +217,7 @@ test('pre-extraction authority remains readable while executor admission require
       && !file.startsWith('scripts/stable-release-dispatch-parts/')
       && !file.startsWith('scripts/validate-release-source-gate-parts/')
     )));
+  delete priorBlobs['scripts/stable-dsh-composition.mjs'];
   assert.equal(Object.keys(priorBlobs).length, 13);
   const prior = issuedAuthority({ criticalBlobs: priorBlobs });
   assert.deepEqual(validateStableOperationAuthority(prior), prior);
@@ -230,6 +234,7 @@ test('the complete pre-leaf 21-path authority remains legacy-readable but cannot
       && !file.startsWith('scripts/stable-release-dispatch-parts/')
       && !file.startsWith('scripts/validate-release-source-gate-parts/')
     )));
+  delete priorCurrentBlobs['scripts/stable-dsh-composition.mjs'];
   assert.equal(Object.keys(priorCurrentBlobs).length, 21);
   const prior = issuedAuthority({ criticalBlobs: priorCurrentBlobs });
   assert.equal(validateStableOperationAuthority(prior).authority_digest, prior.authority_digest);
@@ -252,6 +257,7 @@ test('artifact transport repairs change operation identity and preserve old evid
   }
   delete priorBlobs['scripts/download-github-artifact.mjs'];
   delete priorBlobs['scripts/stable-release-dispatch.ts'];
+  delete priorBlobs['scripts/stable-dsh-composition.mjs'];
   const prior = issuedAuthority({ criticalBlobs: priorBlobs });
   assert.equal(validateStableOperationAuthority(prior).authority_digest, prior.authority_digest);
   assert.throws(() => validateStableOperationAuthorityExecutorBinding({
@@ -265,6 +271,7 @@ test('previous guard and dispatch authority sets stay readable but require curre
       !file.startsWith('scripts/validate-release-source-gate-parts/')
       && (includeDispatch || !file.startsWith('scripts/stable-release-dispatch-parts/'))
     )));
+    delete priorBlobs['scripts/stable-dsh-composition.mjs'];
     assert.equal(Object.keys(priorBlobs).length, includeDispatch ? 33 : 29);
     const prior = issuedAuthority({ criticalBlobs: priorBlobs });
     assert.deepEqual(validateStableOperationAuthority(prior), prior);

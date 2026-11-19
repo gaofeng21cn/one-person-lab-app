@@ -62,7 +62,9 @@ Steps:
    Install the packed OPL overrides into a fresh native profile, start the actual
    Superagent child CLI, read its management API, and stop it.
 4. On pass: emit a **composition receipt** — a pinned list of Host and Client `plugin@version` entries
-   plus the DSH cohort ref and App product commit used. Store it as a workflow artifact.
+   plus the DSH cohort ref and App product commit used. The same job exports the tested
+   registry tarballs, lockfile and receipt as `dsh-plugin-composition-build-input`, with the
+   GitHub artifact archive digest. Store both artifacts for 90 days.
 
 The composition receipt is evidence for a Stable release on the shell-unchanged path. It is
 not a lockfile, Bundle Profile, runtime module registry, or list of all valid combinations;
@@ -78,14 +80,20 @@ admit the candidate before signing or publishing it.
 previous Stable release bytes. A passing composition receipt from Track 2 exists.
 
 Steps:
-1. Bind the candidate's bundled baseline and registry package inputs to the composition
-   receipt's pinned versions; do not create a second runtime Bundle Profile.
-2. Bump the App version; build only the carrier bundle (no product Client plugin rebuild
+1. Pass the successful Studio composition run to
+   `release:stable-dispatch ... --composition-run-id <run>`. The App source gate records
+   the exact producer run and build-input archive digest in its operation fingerprint.
+2. Download the input, verify the producer workflow, App/Studio commits, archive digest and
+   receipt, then install the tested tarballs with the receipt lockfile. Do not create a
+   second runtime Bundle Profile.
+3. Bump the App version; build only the carrier bundle (no product Client plugin rebuild
    when the receipt already supplies its published bytes).
-3. Sign and notarize via the existing `release-stable.yml` path.
-4. The App release controller admits the candidate, then signs and publishes it. The
-   resulting App is expected to behave like a fully rebuilt release; this equivalence is
    not yet established by a successful public candidate.
+4. The same composition is installed for macOS, Linux, Windows and the Windows Guest Host
+   build. Renderer cache identity includes the registry-composition mode.
+5. Sign and notarize via the existing `release-stable.yml` path. The App release controller
+   admits the candidate, then signs, publishes and performs the existing clean-install
+   acceptance.
 
 Release duration is measured per candidate rather than asserted in advance. Published
 Host and Client plugin compilation can be reused; signing, notarization and installed
@@ -93,9 +101,9 @@ acceptance remain required. The small boot shell remains carrier-owned.
 
 #### Shell-changed path
 
-When Electron or the DSH cohort changes, the carrier build remains necessary. Reusing
-published plugin versions in the ordinary production build is a target that still needs
-to be wired into the App release controller; its current path builds from source.
+When Electron or the DSH cohort changes, the carrier build remains necessary. The same
+composition input can be used when its receipt declares the exact frozen App and Studio
+commits. A changed DSH cohort or changed client carrier requires a new composition test.
 
 ## Registry
 
@@ -263,7 +271,7 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 | Concern | Owner |
 | --- | --- |
 | Plugin source, build, and publication | `opl-studio` |
-| Composition test and composition receipt | `opl-studio` CI (`release-plugin-composition-test.yml`) |
+| Composition test, receipt and exact build input | `opl-studio` CI (`release-plugin-composition-test.yml`) |
 | DSH profile dependency resolution and locking | DSH native pnpm |
 | Stable release entry, shell signing, and notarization | `one-person-lab-app` `release-stable.yml` |
 | App version and release identity | `one-person-lab-app` |
@@ -271,8 +279,9 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 
 ## opl-studio Implementation
 
-**Status: publication, registry composition and local profile activation verified; public
-Stable acceptance remains separate.** The local source/profile lane and source UI are
+**Status: publication, registry composition, exact build-input replay and local profile
+activation verified.** The App Stable consumer is now wired to the exact build input. Public
+Stable acceptance remains separate for candidates that have not used this admission path. The local source/profile lane and source UI are
 implemented. The latest publication
 [run 44051623044](https://github.com/gaofeng21cn/opl-studio/actions/runs/44051623044)
 succeeded at Studio `a1d5c8352c1f247183ba25609c05a5e414f1ff01`. The current ten-package
@@ -336,7 +345,8 @@ Triggers on manual dispatch or on successful completion of `release-dsh-plugins.
 Resolves latest `^x.y.0` versions, installs the exact resolved registry packages into a
 clean dependency graph, runs `dsh-plugin-packages.test.mjs` and
 `dsh-child-profile-packages.test.mjs` against those bytes, and emits
-`composition_receipt.json` as a 90-day artifact. Applying the receipt first
+`composition_receipt.json` plus the exact `dsh-plugin-composition-build-input`
+archive as 90-day artifacts. Applying the receipt first
 clears only the selected plugins' old local lock records and installed paths; this
 prevents npm from retaining a same-version `file:` link. The workflow then verifies
 non-linked package directories, exact package identities, registry tarball origins,
@@ -344,7 +354,7 @@ lock integrity and shipped entrypoints before the boot test. An unpublished or
 DSH-incompatible package fails the run; the receipt never falls back to a local source
 baseline.
 
-### CI: `release-dsh-plugins-stable.yml` (Track 3)
+### CI: `release-dsh-plugins-stable.yml` (Track 3 candidate lane)
 
 Candidate build via manual dispatch or reusable workflow call; requires
 `composition_receipt_run_id` (a successful Track 2 run).
@@ -365,9 +375,11 @@ Steps:
 6. `electron-builder` packages, `qualify:desktop:distribution` validates
 7. Uploads candidate DMG/ZIP/blockmap/feed YAMLs + `plugin-stable-provenance.json`
 
-The resulting artifacts have the same structure as a full carrier candidate. They are
-not a Stable release until an App-side consumer admits the exact candidate and performs
-the existing signing, publication and final readback path.
+The resulting artifacts have the same structure as a full carrier candidate. This lane
+remains useful for inspecting a shell-unchanged candidate. The production Stable lane
+uses the App-side `--composition-run-id` admission described above so the exact tested
+tarballs are installed in every platform build before signing, publication and final
+readback.
 
 ### Local: `dsh-profile-plugins.mjs update-registry` (developer + user update)
 

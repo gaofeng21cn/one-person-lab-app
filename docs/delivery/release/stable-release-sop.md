@@ -81,10 +81,11 @@ Stable 的 Standard 首次安装、Core、Framework、Gateway 登录和 Codex �
 候选冻结后，普通文档修改或其他主线提交不要求当前发布追新。保持原候选，只在其不可构建、不可安装、不合法或必然验收失败，或用户明确改发新候选时重新选择。App／Shell／Framework 的兼容与身份检查仍由原 owner 执行。
 
 **Shell-unchanged path（插件优先发布）**：当 Electron、DSH cohort 和 AppWebEntry boot
-shell 与上次 Stable 字节一致时，目标是复用已编译的 Host/Client 插件与壳。`opl-studio` CI 已有
-composition receipt 和候选构建路径；App 正式 controller 尚未接通其消费，现阶段仍按
-正式入口构建，不得把 candidate workflow 当作可用的发布捷径。签名、公证与首装验收
-保持必需；只有真实 consumer 和准确候选验收通过后才能采用该优化。
+shell 与上次 Stable 字节一致时，使用 `opl-studio` composition test 产出的 receipt 和
+`dsh-plugin-composition-build-input`。通过 `--composition-run-id` 进入正式 controller 后，
+App 会校验 Studio/App commit、生产者 run、归档摘要、锁文件与 tarball 完整性，并让所有
+平台构建消费同一份已测试插件字节。签名、公证与首装验收保持必需。DSH cohort、Electron
+或客户端载体改变时必须重新做 composition test。
 具体条件见 [`docs/delivery/dsh-plugin-publication.md`](../dsh-plugin-publication.md#track-3--stable-release)。
 
 ## 3. 使用所选渠道的正式入口派发
@@ -96,7 +97,8 @@ composition receipt 和候选构建路径；App 正式 controller 尚未接通�
 
 ```bash
 npm run release:stable-dispatch -- new-product-release \
-  --product-change-summary '<已确认的用户可见变更>' --execute
+  --product-change-summary '<已确认的用户可见变更>' \
+  --composition-run-id '<成功的 Studio composition run>' --execute
 ```
 
 只有这个新产品入口可以申请分配 Stable 版本。`.github/workflows/release-stable.yml` 是受保护执行端，不能在 GitHub UI 手工拼入参、点部分 rerun 或另写一个 `gh workflow run` 绕过 controller。

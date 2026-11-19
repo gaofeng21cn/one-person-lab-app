@@ -53,6 +53,10 @@ on:
         required: false
         type: string
         default: ''
+      stable_composition_fingerprint:
+        description: DSH composition selected by the published Standard source gate.
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       platform:
@@ -355,6 +359,7 @@ jobs:
       shell_ref: ${{ inputs.shell_ref }}
       framework_ref: ${{ inputs.framework_ref }}
       cache_role: ${{ inputs.invocation_mode == 'stable_app_build' && 'stable_desktop_additional' || '' }}
+      stable_composition_fingerprint: ${{ inputs.stable_composition_fingerprint }}
       release_bundle_digest: ${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}
       release_cohort_ref: ${{ inputs.invocation_mode == 'stable_app_build' && inputs.source_bundle_digest || '' }}
     secrets: inherit
