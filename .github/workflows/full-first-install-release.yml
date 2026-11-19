@@ -395,7 +395,7 @@ jobs:
           fi
 
       - name: Save verified dependency archives
-        if: ${{ github.ref == 'refs/heads/main' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
         continue-on-error: true
         env:
           OPL_ACTIONS_CACHE_CLASS: dependency_download
@@ -1781,7 +1781,7 @@ jobs:
           retention-days: 30
 
       - name: Save exact desktop renderer
-        if: ${{ !inputs.cache_only && steps.standard-base.outputs.available != 'true' && (inputs.operation == 'append_full' || inputs.candidate_only) }}
+        if: ${{ !inputs.cache_only && inputs.candidate_only && steps.standard-base.outputs.available != 'true' }}
         continue-on-error: true
         uses: ./release-executor/.github/actions/desktop-renderer-cache
         with:
@@ -1791,7 +1791,7 @@ jobs:
           cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
 
       - name: Save Full Bun install cache
-        if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
         with:
@@ -1799,7 +1799,7 @@ jobs:
           key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full Electron artifacts cache
-        if: ${{ github.ref == 'refs/heads/main' && !inputs.cache_only && steps.electron-cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && !inputs.cache_only && steps.electron-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
         with:
@@ -1812,7 +1812,7 @@ jobs:
           key: electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full uv artifacts cache
-        if: ${{ github.ref == 'refs/heads/main' && steps.uv-cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && steps.uv-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
         with:
@@ -1823,7 +1823,7 @@ jobs:
 
       - name: Save Full toolchain runtime cache
         id: save-runtime-cache-toolchain
-        if: ${{ github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-toolchain.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-toolchain.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1835,7 +1835,7 @@ jobs:
 
       - name: Save Full domain runtime cache
         id: save-runtime-cache-domain
-        if: ${{ github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-domain.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-domain.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1847,7 +1847,7 @@ jobs:
 
       - name: Save Full OPL runtime cache
         id: save-runtime-cache-opl
-        if: ${{ github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-opl.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-opl.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1859,7 +1859,7 @@ jobs:
 
       - name: Save Full skills runtime cache
         id: save-runtime-cache-skills
-        if: ${{ github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-skills.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-skills.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1872,14 +1872,15 @@ jobs:
       - name: Write Actions cache receipt
         if: ${{ steps.full_package_build.outcome == 'success' }}
         continue-on-error: true
-        working-directory: one-person-lab-app
+        working-directory: release-executor
         shell: bash
         run: |
           set -euo pipefail
+          output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
           npm --silent run release:cache-plan -- receipt \
-            --output dist/opl-full-release/actions-cache-receipt.json \
-            --plan dist/opl-full-release/actions-cache-plan.json \
-            --runtime-events dist/opl-full-release/runtime-cache-events.json \
+            --output "$output_dir/actions-cache-receipt.json" \
+            --plan "$output_dir/actions-cache-plan.json" \
+            --runtime-events "$output_dir/runtime-cache-events.json" \
             --save-outcome 'toolchain=${{ steps.save-runtime-cache-toolchain.outcome || 'skipped' }}' \
             --save-outcome 'domain-runtime=${{ steps.save-runtime-cache-domain.outcome || 'skipped' }}' \
             --save-outcome 'opl-runtime=${{ steps.save-runtime-cache-opl.outcome || 'skipped' }}' \
@@ -1888,6 +1889,7 @@ jobs:
       - name: Upload Actions cache plan and receipt
         if: ${{ steps.full_package_build.outcome == 'success' }}
         continue-on-error: true
+        timeout-minutes: 2
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-actions-cache-evidence-${{ env.OPL_RELEASE_VERSION }}-${{ github.run_id }}

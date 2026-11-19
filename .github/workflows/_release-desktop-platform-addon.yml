@@ -63,7 +63,7 @@ env:
 
 jobs:
   verify-standard-quality:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -277,7 +277,7 @@ jobs:
   append-platform:
     if: ${{ always() && needs.verify-standard-quality.result == 'success' && (needs.build-platform.result == 'success' || inputs.platform_artifact_run_id != '') }}
     needs: [verify-standard-quality, build-platform]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     environment: release-stable
     concurrency:
@@ -394,7 +394,7 @@ jobs:
   receipt:
     if: ${{ always() }}
     needs: [verify-standard-quality, build-platform, append-platform]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     steps:
       - name: Write independent Desktop platform follower receipt
         env:

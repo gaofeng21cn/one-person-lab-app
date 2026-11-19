@@ -147,7 +147,7 @@ env:
 jobs:
   prepare-matrix:
     name: Prepare Build Matrix
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.invocation_mode == 'stable_app_build' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       platform_count: ${{ steps.set-matrix.outputs.platform_count }}

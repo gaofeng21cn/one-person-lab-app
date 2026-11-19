@@ -35,9 +35,19 @@ Stable controller 在签发授权前运行当前执行器的 Bundle 工作流合
 
 Standard 冻结验证同一运行的 Apple 凭据回执后，把预检结论交给构建；构建仍在 macOS 执行 Developer ID 签名、公证和 Gatekeeper 验证。没有已核验回执的构建继续执行自己的凭据预检。
 
-Standard 和 Full 分别在 Linux 准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`。清单确认池内无在线机器时使用 `macos-latest`。清单无法读取时使用仓库变量 `OPL_MACOS_RELEASE_RUNNER` 指定的自有池，未配置时使用 `macos-latest`。专用标签由维护者授予能执行正式签名、公证和只读包体验证的本机或 Fleet runner。验收 VM 和公开写入各走既有步骤。恢复时保留冻结源码和可用的准确产物，再由新的 operation 选择 runner。
+Standard 和 Full 在准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`。清单确认池内无在线机器时使用 `macos-latest`。清单无法读取时使用 `OPL_MACOS_RELEASE_RUNNER` 指定的自有池，未配置时使用 `macos-latest`。此标签分配给具备 Developer ID 签名、公证和包体验证能力的本机或 Fleet 节点。普通账号 clean-VM 使用独立的 `opl-cert-mac-tart` 池。
 
-发布控制面优先使用仓库变量 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner 标签 JSON。当前默认池是常驻的 `self-hosted`, `macOS`, `X64`, `opl-native-intel-macos`，承载 WebUI source authority、Stable promotion admission 和 GHCR promotion。变量缺失或明确切回托管标签时使用 `ubuntu-latest`。该池只承载控制面读回和公开写入，不改变冻结的产品、Shell、Framework、镜像或发布记录身份。GitHub hosted runner 未取得时，incident status 选择 `fallback_owned_runner`，继续使用同一冻结 operation 的自有 runner 路径。
+主线 Stable 的准入、构建控制、检查点、发布和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
+
+平台专用步骤通过独立仓库变量接收 Actions runner 标签 JSON。Linux x64 池承载原生桌面构建、Windows WSL 宿主预备和 WebUI amd64 构建与发布。Linux arm64 池承载原生 WebUI arm64。Windows x64 池承载原生安装包。只配置已按对应工作流验证过系统、CPU、工具链和容量的在线 runner。变量为空时沿用各工作流的 GitHub 托管标签。
+
+| 平台 | 仓库变量 |
+| --- | --- |
+| Linux x64 | `OPL_RELEASE_LINUX_X64_RUNNER_LABELS` |
+| Linux arm64 | `OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS` |
+| Windows x64 | `OPL_RELEASE_WINDOWS_X64_RUNNER_LABELS` |
+
+派发前检查 runner 在线状态和当前占用。托管 runner 取机失败时，从 `release:incident-status` 确认首个未获 runner 的步骤，选择该平台经准入的本机或 Fleet 节点，并从最新合格检查点继续同一冻结候选。已有自有池离线时，切换至另一可用的同角色池，或清除对应变量使用托管容量。保留签名、公证、普通账号 clean-VM 和公开摘要回读。GitHub 仍调度自有 runner 并承载检查点和公开资产。
 
 自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
@@ -117,7 +127,7 @@ npm run --silent release:incident-status -- --run-id <owner-run-id>
 
 读取精确 job／step、step 开始时间、最后可证变化、已完成产物和下一生产性动作。运行中 job 的业务 step 已失败时，立即定位该 step；后续上传诊断、回收 VM 或 cleanup 不表示业务验收成功。已明确容错的 step 和最终成功的 job 不自动升级为阻断失败。向用户只报告有意义的变化。请求持续跟进时沿用现有 owner；需要跨执行轮次的定时跟进则使用宿主原生自动化并复用已有任务，不另造轮询 daemon，也不擅自恢复用户已暂停的自动化。
 
-运行结束后，若失败或取消的 job 没有分配 runner，也没有执行步骤，诊断会读取对应 check run 的注释。GitHub 确认托管 runner 未领取任务时，按实际发生时间定位首个失败并报告外部阻塞。普通容量提示只说明排队可能变长。
+运行结束后，若失败或取消的 job 没有分配 runner，也没有执行步骤，诊断会读取对应 check run 的注释。GitHub 确认托管 runner 未领取任务时，按实际发生时间定位首个失败，并返回 `fallback_owned_runner`。普通容量提示只说明排队可能变长。
 
 五分钟没有可证变化时，对该 step 定点取证：读取必要日志、runner 进程或产物变化。Apple 等外部服务按其请求编号查真实状态。日志不可得、REST 旧快照、浏览器虚拟化日志或静止界面均不证明进程卡死。有已知真实断点就修复；缺少证据就明确观测缺口，不能据此取消或重建。
 

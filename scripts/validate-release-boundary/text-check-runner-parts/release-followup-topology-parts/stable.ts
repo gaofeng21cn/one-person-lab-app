@@ -14,6 +14,7 @@ import {
 import {
   exactReadPermissions,
   exactStableEntryPermissions,
+  stableReleaseControlRunner,
   stableFollowupWorkflowPath,
   stableFollowupActionPaths,
   postPublicationOptionalCertificationWorkflowPath,
@@ -109,7 +110,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
   const route = jobs.route;
   if (
     !route
-    || route['runs-on'] !== 'ubuntu-latest'
+    || route['runs-on'] !== stableReleaseControlRunner
     || route['timeout-minutes'] !== 10
     || Object.prototype.hasOwnProperty.call(route, 'needs')
     || requestsWritePermission(route.permissions)

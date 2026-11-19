@@ -22,7 +22,7 @@ env:
 
 jobs:
   prepare-candidate:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions: { contents: read, actions: read }
     outputs:
@@ -231,7 +231,7 @@ jobs:
 
   publish-cask:
     needs: [prepare-candidate]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     environment: release-stable
     permissions: { contents: read, actions: read }
@@ -362,7 +362,7 @@ jobs:
 
   readback:
     needs: [prepare-candidate, publish-cask]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     permissions: { contents: read, actions: read }
     steps:
       - name: Download publication receipt

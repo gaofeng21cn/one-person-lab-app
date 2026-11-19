@@ -420,7 +420,10 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     actions: 'read',
   });
   assert.equal(reusableBuild.permissions, undefined);
-  assert.equal(reusableBuild.jobs['macos-signing-preflight']['runs-on'], 'macos-latest');
+  assert.match(
+    reusableBuild.jobs['macos-signing-preflight']['runs-on'],
+    /inputs[.]require_macos_gatekeeper && [(]inputs[.]macos_release_runner [|][|] 'macos-latest'[)]/,
+  );
   assert.equal(reusableBuild.jobs['macos-signing-preflight']['timeout-minutes'], 10);
   assert.equal(reusableBuild.jobs['macos-signing-preflight'].environment, protectedPreflightEnvironment);
   assert.equal(reusableBuild.jobs.build.environment, protectedMacosBuildEnvironment);
@@ -575,6 +578,11 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     assert.equal(step['continue-on-error'], true, `${name} must not gate Full handoff`);
     assert.equal(step['timeout-minutes'], 5, `${name} must have a bounded cache transport wait`);
   }
+  for (const step of armBuilder.steps.filter(
+    (entry: Record<string, any>) => entry.uses?.startsWith('actions/cache/save@'),
+  )) {
+    assert.match(step.if, /inputs[.]operation != 'append_full'/, step.name);
+  }
   const cacheReceipt = armBuilder.steps.find(
     (step: Record<string, unknown>) => step.name === 'Write Actions cache receipt',
   );
@@ -582,7 +590,9 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     (step: Record<string, unknown>) => step.name === 'Upload Actions cache plan and receipt',
   );
   assert.equal(cacheReceipt['continue-on-error'], true);
+  assert.equal(cacheReceipt['working-directory'], 'release-executor');
   assert.equal(cacheEvidenceUpload['continue-on-error'], true);
+  assert.equal(cacheEvidenceUpload['timeout-minutes'], 2);
   assert.equal(cacheEvidenceUpload.with['if-no-files-found'], 'warn');
   const fullFinalizer = parseYaml(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8')).runs;
   const handoffUpload = armBuilder.steps.find(

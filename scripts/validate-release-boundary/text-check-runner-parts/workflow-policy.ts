@@ -23,6 +23,8 @@ import {
 
 export { releaseWorkflowPaths, releaseWorkflowPathsForProfile } from '../release-checks.ts';
 
+export const stableReleaseControlRunner = '${{ fromJSON(github.ref == \'refs/heads/main\' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || \'["ubuntu-latest"]\') }}';
+
 export const exactReadPermissions = { contents: 'read', actions: 'read' } as const;
 export const exactStableEntryPermissions = { contents: 'write', actions: 'read' } as const;
 export const exactWebUiCompileCeilingPermissions = {
@@ -210,7 +212,7 @@ export function isAuthorizedFullAddonFollowerWriteJob(
   job: Record<string, any>,
 ): boolean {
   if (workflowPath !== fullAddonFollowerWorkflowPath || jobId !== 'reconcile-full-addon') return false;
-  return job['runs-on'] === 'ubuntu-latest'
+  return job['runs-on'] === stableReleaseControlRunner
     && job['timeout-minutes'] === 20
     && job.environment === undefined
     && job.if === "${{ needs.route.outputs.full_addon == 'true' }}"

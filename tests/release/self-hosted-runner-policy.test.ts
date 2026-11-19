@@ -95,6 +95,46 @@ test('Stable macOS runner selection prefers an online release ARM64 machine acro
   assert.equal(selectMacReleaseRunner(null, 'unregistered-runner'), 'macos-latest');
 });
 
+test('Stable can run release control on owned machines while keeping the protected Tart gate', () => {
+  const stableJobs = {
+    'release-stable.yml': ['protected-operation-admission', 'admission', 'webui-source-authority'],
+    '_release-bundle.yml': ['freeze', 'seal-standard-identity', 'checkpoint-standard'],
+    '_release-standard-publish.yml': ['restore', 'publish-standard-nonlatest', 'remote-digest-verify', 'activate-latest'],
+    '_release-full-addon.yml': ['restore-standard', 'materialize-full-build', 'checkpoint-full', 'publish-full'],
+    'opl-first-run-vm.yml': ['validate-vm-inputs', 'qualification-attempt-finalizer'],
+    '_release-homebrew-full-publish.yml': ['prepare-candidate', 'publish-cask', 'readback'],
+    'release-stable-post-success-followups.yml': ['route', 'reconcile-full-addon', 'publish-standard-cask'],
+  };
+  for (const [filename, jobs] of Object.entries(stableJobs)) {
+    const { workflow } = readWorkflow(filename);
+    for (const id of jobs) {
+      assert.match(
+        workflow.jobs[id]['runs-on'],
+        /github[.]ref == 'refs[/]heads[/]main'.*vars[.]OPL_RELEASE_CONTROL_RUNNER_LABELS.*ubuntu-latest/,
+        `${filename}:${id}`,
+      );
+    }
+  }
+  const { workflow: vm } = readWorkflow('opl-first-run-vm.yml');
+  for (const id of stableJobs['opl-first-run-vm.yml']) {
+    assert.match(vm.jobs[id]['runs-on'], /inputs[.]diagnostic_scope == 'release_gate'/);
+  }
+});
+
+test('Native Stable build routes have independent capacity overrides and keep platform identity', () => {
+  const { workflow: webui } = readWorkflow('_release-webui-carrier.yml');
+  const qualify = webui.jobs['build-and-qualify'];
+  assert.match(qualify['runs-on'], /matrix[.]architecture == 'amd64' && vars[.]OPL_RELEASE_LINUX_X64_RUNNER_LABELS/);
+  assert.match(qualify['runs-on'], /matrix[.]architecture == 'arm64' && vars[.]OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS/);
+  assert.match(qualify.steps[0].run, /uname -s.*Linux/);
+  assert.match(qualify.steps[0].run, /uname -m.*matrix[.]native_machine/);
+  assert.match(webui.jobs['publish-carrier']['runs-on'], /OPL_RELEASE_LINUX_X64_RUNNER_LABELS/);
+  const { workflow: desktop } = readWorkflow('_build-reusable.yml');
+  assert.match(desktop.jobs['prepare-studio-wsl-host']['runs-on'], /OPL_RELEASE_LINUX_X64_RUNNER_LABELS/);
+  assert.match(desktop.jobs.build['runs-on'], /matrix[.]platform == 'windows-x64'.*OPL_RELEASE_WINDOWS_X64_RUNNER_LABELS/s);
+  assert.match(desktop.jobs.build['runs-on'], /matrix[.]platform == 'linux-x64'.*OPL_RELEASE_LINUX_X64_RUNNER_LABELS/s);
+});
+
 test('Manual Full Preview keeps its explicit self-hosted exception outside Stable/Latest', () => {
   const { workflow: manual } = readWorkflow('release-manual-full-preview.yml');
   assert.deepEqual(manual.jobs.ingress['runs-on'], ['self-hosted', 'macOS', 'ARM64', 'opl-gui-vm']);

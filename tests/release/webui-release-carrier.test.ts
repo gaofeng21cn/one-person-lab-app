@@ -879,7 +879,7 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
   assert.equal(publish.permissions, undefined);
   assert.equal(build.permissions.actions, 'read');
   assert.equal(build.permissions.packages, 'read');
-  assert.equal(build['runs-on'], '${{ matrix.runner }}');
+  assert.match(build['runs-on'], /toJSON[(]matrix[.]runner[)]/);
   assert.equal(build.strategy['fail-fast'], false);
   assert.deepEqual(build.strategy.matrix.include, [
     { architecture: 'amd64', native_machine: 'x86_64', runner: 'ubuntu-24.04' },

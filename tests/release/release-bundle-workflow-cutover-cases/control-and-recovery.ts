@@ -78,7 +78,7 @@ test('Standard notes and Bundle freeze stay independent from Full and Package au
   );
   assert.equal(workflow.jobs['full-notes-authority'], undefined);
   assert.deepEqual(workflow.jobs.freeze.needs, ['admission']);
-  assert.equal(workflow.jobs.freeze['runs-on'], 'ubuntu-latest');
+  assert.match(workflow.jobs.freeze['runs-on'], /inputs[.]channel == 'stable'.*OPL_RELEASE_CONTROL_RUNNER_LABELS.*ubuntu-latest/);
   assert.doesNotMatch(source, /prepare-release-notes-full-payload-authority|notes-full-payload-authority/);
   assert.doesNotMatch(source, /release_set_manifest|latest-stable-descriptor|base-release-set/);
   assert.match(source, /resolve-github-target-commit\.ts/);

@@ -99,7 +99,7 @@ env:
 jobs:
   resolve-active-shell-ref:
     name: Resolve immutable active Shell ref
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && (inputs.operation == 'standard' || inputs.cache_role == 'stable_desktop_additional') && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     outputs:
       shell_sha: ${{ steps.resolve.outputs.shell_sha }}
       shell_id: ${{ steps.profile.outputs.shell_id }}
@@ -139,7 +139,7 @@ jobs:
 
   workflow-lint:
     name: GitHub Actions workflow lint
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     if: ${{ !inputs.skip_code_quality }}
 
     steps:
@@ -167,7 +167,7 @@ jobs:
 
   lint-format:
     name: Lint and format
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
     defaults:
@@ -200,7 +200,7 @@ jobs:
 
   typecheck:
     name: TypeScript type check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
     defaults:
@@ -238,7 +238,7 @@ jobs:
 
   release-boundary:
     name: App release-boundary tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
 
@@ -265,7 +265,7 @@ jobs:
 
   active-shell-tests:
     name: Active shell tests (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
 
@@ -294,7 +294,7 @@ jobs:
 
   prepare-studio-wsl-host:
     name: Prepare Studio Windows guest Host
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.cache_role == 'stable_desktop_additional' && vars.OPL_RELEASE_LINUX_X64_RUNNER_LABELS || '["ubuntu-latest"]') }}
     needs: [resolve-active-shell-ref]
     if: ${{ contains(inputs.matrix, 'windows') && needs.resolve-active-shell-ref.outputs.shell_id == 'opl-studio' }}
     steps:
@@ -360,7 +360,10 @@ jobs:
   macos-signing-preflight:
     name: macOS release signing preflight
     if: ${{ !inputs.apple_preflight_verified }}
-    runs-on: macos-latest
+    runs-on: >-
+      ${{ inputs.require_macos_gatekeeper && (inputs.macos_release_runner || 'macos-latest')
+        || fromJSON(github.ref == 'refs/heads/main' && inputs.cache_role == 'stable_desktop_additional'
+        && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     environment: ${{ inputs.require_macos_gatekeeper && 'release-stable' || null }}
 
@@ -409,7 +412,12 @@ jobs:
 
   build:
     name: Build ${{ matrix.platform }}
-    runs-on: ${{ inputs.operation == 'standard' && matrix.platform == 'macos-arm64' && inputs.macos_release_runner || matrix.os }}
+    runs-on: >-
+      ${{ github.ref == 'refs/heads/main' && inputs.cache_role == 'stable_desktop_additional' && matrix.platform == 'linux-x64'
+        && fromJSON(vars.OPL_RELEASE_LINUX_X64_RUNNER_LABELS || '["ubuntu-latest"]')
+        || github.ref == 'refs/heads/main' && inputs.cache_role == 'stable_desktop_additional' && matrix.platform == 'windows-x64'
+        && fromJSON(vars.OPL_RELEASE_WINDOWS_X64_RUNNER_LABELS || '["windows-latest"]')
+        || inputs.operation == 'standard' && matrix.platform == 'macos-arm64' && inputs.macos_release_runner || matrix.os }}
     environment: ${{ inputs.require_macos_gatekeeper && startsWith(matrix.platform, 'macos') && 'release-stable' || null }}
     # Build isolated artifacts while source checks run; build-summary joins all gates.
     needs:
@@ -1529,7 +1537,7 @@ jobs:
 
   build-summary:
     name: Build Summary
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && (inputs.operation == 'standard' || inputs.cache_role == 'stable_desktop_additional') && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     needs: [workflow-lint, lint-format, typecheck, release-boundary, active-shell-tests, build]
     if: ${{ always() }}
 

@@ -13,7 +13,7 @@ export function buildLegacyAdmissionChecks(
     required: [
       "macos-signing-preflight:",
       "name: macOS release signing preflight",
-      "runs-on: macos-latest",
+      "inputs.require_macos_gatekeeper && (inputs.macos_release_runner || 'macos-latest')",
       "Import Developer ID identity and authenticate notarization",
       "scripts/verify-apple-release-credentials.ts",
       "Upload sanitized Apple credential preflight receipt",

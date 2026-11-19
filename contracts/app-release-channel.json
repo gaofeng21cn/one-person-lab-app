@@ -5202,7 +5202,7 @@
       "schema": "opl_app_runner_policy.v1",
       "publication_floor": {
         "stable_and_latest_executor": "owned_release_control_pool_with_github_hosted_fallback",
-        "scope": "owned_release_control_or_github_hosted_publication_subgraph_after_protected_macos_clean_install_gate",
+        "scope": "stable_admission_build_control_checkpoint_publication_and_followups",
         "owned_release_control_runner_variable": "OPL_RELEASE_CONTROL_RUNNER_LABELS",
         "owned_release_control_pool": [
           "self-hosted",
@@ -5210,7 +5210,12 @@
           "X64",
           "opl-native-intel-macos"
         ],
-        "owned_release_control_unavailable_effect": "fallback_to_github_hosted_without_changing_artifact_identity",
+        "owned_release_control_unavailable_effect": "select_an_available_eligible_pool_without_changing_artifact_identity",
+        "native_runner_variables": {
+          "linux_x64": "OPL_RELEASE_LINUX_X64_RUNNER_LABELS",
+          "linux_arm64": "OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS",
+          "windows_x64": "OPL_RELEASE_WINDOWS_X64_RUNNER_LABELS"
+        },
         "required_floor": [
           "source_contract_and_build_preflight",
           "signed_notarized_standard_build",
@@ -5534,6 +5539,7 @@
           "release_gate": false,
           "transport_failure_policy": "cache_save_receipt_and_evidence_upload_failures_are_non_gating",
           "save_step_timeout_minutes": 5,
+          "append_full_remote_cache_saves": false,
           "evidence_upload_failure_policy": "non_gating",
           "cache_only_warmup": {
             "workflow": ".github/workflows/full-first-install-release.yml",
@@ -6252,7 +6258,7 @@
       "workflow": ".github/workflows/release-nightly.yml"
     },
     "stable": {
-      "purpose": "publish one CAS- and attestation-protected mutable Standard after the exact candidate passes the protected macOS clean-install gate, then use the GitHub-hosted package, Homebrew, Latest, repository-setting restore, and public readback floor",
+      "purpose": "publish one CAS- and attestation-protected mutable Standard after the exact candidate passes the protected macOS clean-install gate, then complete package, Homebrew, Latest, repository-setting restore, and public readback using the configured release runners",
       "required_lanes": [
         "release_boundary_contract",
         "active_shell_quick_validation",

@@ -89,7 +89,7 @@ env:
 
 jobs:
   admission:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -199,7 +199,7 @@ jobs:
   restore-standard:
     if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -1019,7 +1019,7 @@ jobs:
   materialize-full-build:
     if: ${{ needs.restore-standard.outputs.completed_stage == 'full_built' || inputs.prior_full_artifact_run_id != '' }}
     needs: [restore-standard]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -1512,7 +1512,7 @@ jobs:
 
   checkpoint-full:
     if: ${{ always() && needs.restore-standard.result == 'success' && needs.restore-standard.outputs.completed_stage != 'full_qualified' && (needs.restore-standard.outputs.completed_stage == 'full_built' || needs.full-build.result == 'success' || needs.materialize-full-build.result == 'success') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     needs: [restore-standard, full-build, materialize-full-build, full-qualification, full-clean-vm-qualification]
     permissions:
@@ -1788,7 +1788,7 @@ jobs:
   provenance:
     if: ${{ always() && needs.restore-standard.result == 'success' && (needs.restore-standard.outputs.completed_stage == 'full_qualified' || needs.checkpoint-full.result == 'success') }}
     needs: [restore-standard, checkpoint-full]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -1828,7 +1828,7 @@ jobs:
 
   publish-full:
     if: ${{ always() && needs.provenance.result == 'success' && needs.provenance.outputs.completed_stage == 'full_qualified' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     environment: release-stable
     concurrency:

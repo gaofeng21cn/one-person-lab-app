@@ -86,7 +86,11 @@ jobs:
   build-and-qualify:
     if: ${{ inputs.mode == 'execute' || inputs.mode == 'qualify' || inputs.mode == 'qualify-only' }}
     continue-on-error: ${{ inputs.mode == 'qualify-only' }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: >-
+      ${{ github.ref == 'refs/heads/main' && fromJSON(
+        matrix.architecture == 'amd64' && vars.OPL_RELEASE_LINUX_X64_RUNNER_LABELS
+        || matrix.architecture == 'arm64' && vars.OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS
+        || toJSON(matrix.runner)) || matrix.runner }}
     timeout-minutes: 75
     strategy:
       fail-fast: false
@@ -107,6 +111,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(uname -s)" = Linux
           test "$(uname -m)" = '${{ matrix.native_machine }}'
 
       - name: Checkout canonical Docker executor
@@ -649,7 +654,7 @@ jobs:
   qualify-receipt:
     if: ${{ always() && inputs.mode == 'qualify-only' }}
     needs: [build-and-qualify]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       actions: read
@@ -702,7 +707,7 @@ jobs:
   publish-carrier:
     if: ${{ always() && ((inputs.mode == 'execute' && needs.build-and-qualify.result == 'success') || (inputs.mode == 'publish-prequalified' && inputs.qualified_artifact_run_id != '')) }}
     needs: [build-and-qualify]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_LINUX_X64_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     concurrency:
       group: opl-webui-independent-publication-global

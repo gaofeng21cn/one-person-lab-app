@@ -93,7 +93,7 @@ env:
 
 jobs:
   route:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     outputs:
       source_run_id: ${{ steps.route.outputs.source_run_id }}
@@ -147,7 +147,7 @@ jobs:
   observe:
     if: ${{ needs.route.outputs.observe == 'true' }}
     needs: [route]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -166,7 +166,7 @@ jobs:
   reconcile-full-addon:
     if: ${{ needs.route.outputs.full_addon == 'true' }}
     needs: [route]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     concurrency:
       group: opl-stable-full-addon-${{ needs.route.outputs.source_run_id }}
@@ -194,7 +194,7 @@ jobs:
   publish-standard-cask:
     if: ${{ needs.route.outputs.homebrew_standard == 'true' }}
     needs: [route]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     environment: release-stable
     concurrency:
@@ -219,7 +219,7 @@ jobs:
   resolve-homebrew-full:
     if: ${{ needs.route.outputs.homebrew_full == 'true' }}
     needs: [route]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -256,7 +256,7 @@ jobs:
   admit:
     if: ${{ needs.route.outputs.desktop_platforms == 'true' }}
     needs: [route]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     outputs:
       source_run_id: ${{ steps.source.outputs.source_run_id }}
@@ -435,7 +435,7 @@ jobs:
   receipt:
     if: ${{ always() && needs.admit.result == 'success' }}
     needs: [admit, reconcile-desktop-platforms]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     steps:
       - name: Write thin Desktop follower receipt
         env:
@@ -460,7 +460,7 @@ jobs:
   repair-admit:
     if: ${{ needs.route.outputs.repair_additive == 'true' }}
     needs: [route]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -618,7 +618,7 @@ jobs:
   repair-additive:
     if: ${{ needs.repair-admit.result == 'success' }}
     needs: [repair-admit]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     environment: release-stable
     concurrency:

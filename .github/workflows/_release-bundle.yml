@@ -147,7 +147,7 @@ env:
 jobs:
   resolve-platform-matrix:
     if: ${{ inputs.prior_standard_artifact_run_id == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -180,7 +180,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
   admission:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -325,7 +325,7 @@ jobs:
   freeze:
     if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -862,7 +862,7 @@ jobs:
   webui-source-authority:
     if: ${{ inputs.channel == 'stable' && !inputs.skip_webui_qualification && needs.freeze.result == 'success' }}
     needs: [freeze]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -994,7 +994,7 @@ jobs:
   seal-standard-identity:
     if: ${{ always() && needs.freeze.result == 'success' && (inputs.prior_standard_artifact_run_id != '' || needs.standard-build.result == 'success') }}
     needs: [freeze, standard-build]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -1247,8 +1247,8 @@ jobs:
           dmg_sha256="sha256:$(shasum -a 256 "$standard_dmg" | awk '{print $1}')"
           vm_dmg_sha256="sha256:$(shasum -a 256 "$vm_dmg" | awk '{print $1}')"
           test "$dmg_sha256" = "$vm_dmg_sha256"
-          dmg_size="$(stat -c %s "$standard_dmg")"
-          test "$dmg_size" = "$(stat -c %s "$vm_dmg")"
+          dmg_size="$(node -p 'require("node:fs").statSync(process.argv[1]).size' "$standard_dmg")"
+          test "$dmg_size" = "$(node -p 'require("node:fs").statSync(process.argv[1]).size' "$vm_dmg")"
 
           notarization_receipt=bound-standard/assets/standard-apple-notarization-receipt.json
           gatekeeper_policy=bound-standard/assets/standard-gatekeeper-launch-policy.json
@@ -1580,7 +1580,7 @@ jobs:
 
   checkpoint-standard:
     if: ${{ always() && needs.admission.result == 'success' && needs.freeze.result == 'success' && needs.seal-standard-identity.result == 'success' && (inputs.channel != 'stable' || needs.standard-clean-vm-qualification.result == 'success') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     needs: [admission, freeze, seal-standard-identity, standard-clean-vm-qualification]
     permissions:

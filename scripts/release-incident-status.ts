@@ -494,7 +494,7 @@ function nextAction(input: {
   if (input.failure && input.hostedRunnerAcquisitionFailed) {
     return {
       code: 'fallback_owned_runner',
-      reason: `GitHub reported that ${jobName(input.failure.job)} did not acquire a hosted runner. Re-dispatch the same frozen operation through the configured owned runner pool before considering a release blocker.`,
+      reason: `GitHub reported that ${jobName(input.failure.job)} did not acquire a hosted runner. Check the configured owned runner pool for this job’s platform. Resume the frozen candidate from its latest verified checkpoint on an admitted runner.`,
     };
   }
   if (input.failure) {

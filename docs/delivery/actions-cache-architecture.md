@@ -94,9 +94,11 @@ The default-on Full flow uses one inspectable chain:
    assembled runtime archives.
 6. Materialize misses through the normal builder, combine hit and built layers,
    and run the Full currentness probe. A missing cache is not a release failure.
-7. Save validated misses only from `main`; exact hits and non-writer refs skip
-   saves. Each large-layer save has a five-minute step budget and is
-   `continue-on-error` because the cache service is an acceleration dependency.
+7. Save validated misses from `main` in cache warmup and candidate builds.
+   Full append uses verified restored layers and the owned runner's local runtime
+   cache. It skips remote cache saves and forwards the immutable package to
+   qualification. Large-layer saves in the cache-producing paths have a
+   five-minute step budget and use `continue-on-error`.
 8. Write `opl_actions_cache_receipt.v2`. Receipt creation still fails closed
    when it runs, unless currentness passed and runtime keys, key inputs, package
    set, durations, and save dispositions match the plan. A receipt-generation

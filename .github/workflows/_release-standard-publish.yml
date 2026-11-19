@@ -72,7 +72,7 @@ env:
 
 jobs:
   admission:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -132,7 +132,7 @@ jobs:
   restore:
     if: ${{ needs.admission.result == 'success' }}
     needs: [admission]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -947,7 +947,7 @@ jobs:
 
   pre-publication-admission:
     if: ${{ needs.restore.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     needs: [restore]
     permissions:
@@ -973,7 +973,7 @@ jobs:
 
   publish-standard-nonlatest:
     if: ${{ needs.restore.result == 'success' && needs.pre-publication-admission.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 50
     environment: ${{ needs.restore.outputs.channel == 'stable' && 'release-stable' || 'release-preview' }}
     needs: [restore, pre-publication-admission]
@@ -1937,7 +1937,7 @@ jobs:
 
   remote-digest-verify:
     if: ${{ needs.restore.result == 'success' && needs.publish-standard-nonlatest.result == 'success' && needs.restore.outputs.channel != 'stable' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     needs: [restore, publish-standard-nonlatest]
     permissions:
@@ -2189,7 +2189,7 @@ jobs:
 
   activate-latest:
     if: ${{ needs.restore.result == 'success' && needs.remote-digest-verify.result == 'success' && needs.restore.outputs.channel != 'stable' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.publication_channel == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     environment: release-preview-latest
     needs: [restore, remote-digest-verify]

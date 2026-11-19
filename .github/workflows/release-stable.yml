@@ -496,7 +496,7 @@ jobs:
 
   protected-operation-admission:
     if: ${{ inputs.entry == 'framework_release' && inputs.operation == 'standard' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     environment: release-stable
     permissions:
@@ -764,7 +764,7 @@ jobs:
   admission:
     needs: [protected-operation-admission]
     if: ${{ always() && inputs.entry == 'framework_release' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -1277,7 +1277,7 @@ jobs:
   reconcile-completed-webui:
     if: ${{ always() && !cancelled() && needs.admission.outputs.completed_webui_run_id != '' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}
     needs: [admission, protected-operation-admission, stable-admission-manifest, standard, resume-standard]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     permissions:
       contents: read
       actions: read
@@ -1313,7 +1313,7 @@ jobs:
   webui-source-authority:
     if: ${{ always() && !cancelled() && needs.admission.outputs.completed_webui_run_id == '' && needs.admission.result == 'success' && ((inputs.operation == 'standard' && needs.standard.result == 'success') || (inputs.operation == 'resume_standard' && needs.resume-standard.result == 'success')) }}
     needs: [admission, stable-admission-manifest, standard, resume-standard]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     permissions:
       actions: read
