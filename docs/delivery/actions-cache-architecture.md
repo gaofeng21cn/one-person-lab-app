@@ -95,13 +95,17 @@ The default-on Full flow uses one inspectable chain:
 6. Materialize misses through the normal builder, combine hit and built layers,
    and run the Full currentness probe. A missing cache is not a release failure.
 7. Save validated misses only from `main`; exact hits and non-writer refs skip
-   saves.
-8. Write `opl_actions_cache_receipt.v2`. Receipt creation fails closed unless
-   currentness passed and runtime keys, key inputs, package set, durations, and
-   save dispositions match the plan.
+   saves. Each large-layer save has a five-minute step budget and is
+   `continue-on-error` because the cache service is an acceleration dependency.
+8. Write `opl_actions_cache_receipt.v2`. Receipt creation still fails closed
+   when it runs, unless currentness passed and runtime keys, key inputs, package
+   set, durations, and save dispositions match the plan. A receipt-generation
+   or evidence-upload failure is retained in the job result and does not block
+   the immutable Full handoff.
 9. Use receipt metrics (`hit_count`, `miss_count`, `hit_ratio`, total layer time,
    and save failures) for acceleration tuning. Continue artifact qualification
-   and promotion from their own evidence; the receipt is not an admission gate.
+   and promotion from their own evidence. The receipt and its artifact upload
+   are not admission gates.
 
 ## Development Rules
 

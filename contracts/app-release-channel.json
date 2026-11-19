@@ -5531,6 +5531,10 @@
           ],
           "restore_policy": "exact_only",
           "writer_ref": "refs/heads/main",
+          "release_gate": false,
+          "transport_failure_policy": "cache_save_receipt_and_evidence_upload_failures_are_non_gating",
+          "save_step_timeout_minutes": 5,
+          "evidence_upload_failure_policy": "non_gating",
           "cache_only_warmup": {
             "workflow": ".github/workflows/full-first-install-release.yml",
             "workflow_input": {

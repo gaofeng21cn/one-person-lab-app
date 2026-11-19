@@ -565,6 +565,25 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   assert.match(String(credentialGate.run), /exit 1/);
 
   const armBuilder = fullBuild.jobs['full-first-install'];
+  for (const name of [
+    'Save Full toolchain runtime cache',
+    'Save Full domain runtime cache',
+    'Save Full OPL runtime cache',
+    'Save Full skills runtime cache',
+  ]) {
+    const step = armBuilder.steps.find((entry: Record<string, unknown>) => entry.name === name);
+    assert.equal(step['continue-on-error'], true, `${name} must not gate Full handoff`);
+    assert.equal(step['timeout-minutes'], 5, `${name} must have a bounded cache transport wait`);
+  }
+  const cacheReceipt = armBuilder.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Write Actions cache receipt',
+  );
+  const cacheEvidenceUpload = armBuilder.steps.find(
+    (step: Record<string, unknown>) => step.name === 'Upload Actions cache plan and receipt',
+  );
+  assert.equal(cacheReceipt['continue-on-error'], true);
+  assert.equal(cacheEvidenceUpload['continue-on-error'], true);
+  assert.equal(cacheEvidenceUpload.with['if-no-files-found'], 'warn');
   const fullFinalizer = parseYaml(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8')).runs;
   const handoffUpload = armBuilder.steps.find(
     (step: Record<string, unknown>) => step.name === 'Upload immutable Full finalizer input',

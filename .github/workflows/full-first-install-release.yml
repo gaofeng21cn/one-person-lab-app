@@ -1828,6 +1828,7 @@ jobs:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: ${{ steps.runtime-cache-keys.outputs.toolchain_cache_dir }}
           key: ${{ steps.runtime-cache-keys.outputs.toolchain_cache_key }}
@@ -1839,6 +1840,7 @@ jobs:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: ${{ steps.runtime-cache-keys.outputs.domain_runtime_cache_dir }}
           key: ${{ steps.runtime-cache-keys.outputs.domain_runtime_cache_key }}
@@ -1850,6 +1852,7 @@ jobs:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: ${{ steps.runtime-cache-keys.outputs.opl_runtime_cache_dir }}
           key: ${{ steps.runtime-cache-keys.outputs.opl_runtime_cache_key }}
@@ -1861,12 +1864,14 @@ jobs:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: ${{ steps.runtime-cache-keys.outputs.skills_cache_dir }}
           key: ${{ steps.runtime-cache-keys.outputs.skills_cache_key }}
 
       - name: Write Actions cache receipt
         if: ${{ steps.full_package_build.outcome == 'success' }}
+        continue-on-error: true
         working-directory: one-person-lab-app
         shell: bash
         run: |
@@ -1882,6 +1887,7 @@ jobs:
 
       - name: Upload Actions cache plan and receipt
         if: ${{ steps.full_package_build.outcome == 'success' }}
+        continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-actions-cache-evidence-${{ env.OPL_RELEASE_VERSION }}-${{ github.run_id }}
@@ -1891,7 +1897,7 @@ jobs:
             one-person-lab-app/dist/opl-full-release/runtime-cache-events.json
             one-person-lab-app/dist/opl-full-release/full-runtime-currentness-probe.json
             one-person-lab-app/dist/opl-full-release/full-runtime-native-trust.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Prepare immutable Full finalizer input
