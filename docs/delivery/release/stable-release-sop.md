@@ -39,7 +39,7 @@ Standard 和 Full 在准入阶段读取 GitHub runner 清单，优先选择在�
 
 主线 Stable 的准入、轻量发布控制和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
 
-Standard 产物封存、检查点导出和公开资产上传，以及 Full 包恢复、检查点导出和公开资产上传，使用独立的 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。当前配置与发布控制共用常驻的 Intel Mac 池。接入其他本机或 Fleet 节点时，先核对 Actions runner 在线、工具链可用、磁盘空间充足，以及能读取和上传实际尺寸的检查点。仓库变量为空时，大文件任务使用 `ubuntu-latest`，检查点导入优先沿用控制池。变更标签后，从原合格检查点继续同一冻结候选。
+Standard 产物封存、Full 包恢复、检查点导出、公开资产上传及 clean-VM 源码交接使用 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。仓库变量为空时，这些传输使用 `ubuntu-latest`，检查点导入优先沿用控制池。常驻 Intel Mac 池可接管大文件传输，选择它之前用实际尺寸的归档估算读写时间，并核对 job 时限和操作的剩余时长。其他本机或 Fleet 节点还需核对工具链、磁盘空间和 Actions runner 在线状态。切换后从原合格检查点继续同一冻结候选。
 
 平台专用步骤通过独立仓库变量接收 Actions runner 标签 JSON。Linux x64 池承载原生桌面构建、Windows WSL 宿主预备和 WebUI amd64 构建与发布。Linux arm64 池承载原生 WebUI arm64。Windows x64 池承载原生安装包。只配置已按对应工作流验证过系统、CPU、工具链和容量的在线 runner。变量为空时沿用各工作流的 GitHub 托管标签。
 

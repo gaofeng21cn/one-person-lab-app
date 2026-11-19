@@ -101,7 +101,7 @@ test('Stable can run release control on owned machines while keeping the protect
     '_release-bundle.yml': ['freeze'],
     '_release-standard-publish.yml': ['remote-digest-verify', 'activate-latest'],
     '_release-full-addon.yml': ['admission', 'provenance'],
-    'opl-first-run-vm.yml': ['validate-vm-inputs', 'qualification-attempt-finalizer'],
+    'opl-first-run-vm.yml': ['qualification-attempt-finalizer'],
     '_release-homebrew-full-publish.yml': ['prepare-candidate', 'publish-cask', 'readback'],
     'release-stable-post-success-followups.yml': ['route', 'reconcile-full-addon', 'publish-standard-cask'],
   };
@@ -126,6 +126,7 @@ test('Stable payload transfer can use a separately qualified pool', () => {
     '_release-bundle.yml': ['seal-standard-identity', 'checkpoint-standard'],
     '_release-standard-publish.yml': ['publish-standard-nonlatest'],
     '_release-full-addon.yml': ['materialize-full-build', 'checkpoint-full', 'publish-full'],
+    'opl-first-run-vm.yml': ['validate-vm-inputs'],
   };
   for (const [filename, jobs] of Object.entries(transferJobs)) {
     const { workflow } = readWorkflow(filename);

@@ -1387,11 +1387,24 @@ jobs:
       contents: read
       actions: read
     steps:
-      - name: Download exact Full package artifact
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - name: Checkout the exact artifact downloader
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          name: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
-          path: full-output
+          ref: ${{ github.sha }}
+          path: app-source
+          sparse-checkout: scripts/download-github-artifact.mjs
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Download exact Full package artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPL_ARTIFACT_RUN_ID: ${{ github.run_id }}
+          OPL_ARTIFACT_NAME: opl-full-first-install-dmg-${{ needs.restore-standard.outputs.version }}-mac-arm64
+          OPL_ARTIFACT_DEST: full-output
+          OPL_ARTIFACT_CACHE: ${{ runner.tool_cache }}/opl-exact-artifact-downloads
+        run: node --use-env-proxy app-source/scripts/download-github-artifact.mjs
 
       - name: Verify exact Full package trust
         env:

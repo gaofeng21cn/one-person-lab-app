@@ -238,7 +238,7 @@ env:
 jobs:
   validate-vm-inputs:
     name: Validate VM harness inputs
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.diagnostic_scope == 'release_gate' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.diagnostic_scope == 'release_gate' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
     permissions:
       contents: read
       actions: read

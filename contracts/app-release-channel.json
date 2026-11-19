@@ -5215,7 +5215,7 @@
           "repository_variable": "OPL_RELEASE_TRANSFER_RUNNER_LABELS",
           "default_labels": ["ubuntu-latest"],
           "owned_pool_requirement": "online_release_node_with_verified_artifact_transfer_capacity",
-          "workloads": ["standard_seal", "standard_checkpoint", "standard_publication", "full_materialize", "full_checkpoint", "full_publication"],
+          "workloads": ["standard_seal", "standard_checkpoint", "standard_publication", "full_materialize", "full_checkpoint", "full_publication", "vm_source_handoff"],
           "checkpoint_restore_selection": "configured_transfer_pool_then_release_control_pool_then_hosted"
         },
         "hosted_capacity_recovery": "select_an_available_platform_eligible_owned_pool_and_resume_latest_verified_checkpoint",
