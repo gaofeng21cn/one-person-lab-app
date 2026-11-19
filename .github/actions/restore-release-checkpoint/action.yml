@@ -183,6 +183,7 @@ runs:
         node-version: '24'
         cache: npm
         cache-dependency-path: framework-executor/package-lock.json
+        package-manager-cache: ${{ runner.environment != 'self-hosted' }}
 
     - name: Install Framework runtime dependencies
       shell: bash

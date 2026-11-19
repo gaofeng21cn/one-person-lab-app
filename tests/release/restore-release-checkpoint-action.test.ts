@@ -83,6 +83,9 @@ test('restore action executes with the caller-bound Framework SHA while preservi
 
   const install = String(step('Install Framework runtime dependencies').run);
   assert.match(install, /npm --prefix framework-executor ci --ignore-scripts/);
+  const setupNode = step('Setup Framework runtime');
+  assert.equal(setupNode.with.cache, 'npm');
+  assert.equal(setupNode.with['package-manager-cache'], "${{ runner.environment != 'self-hosted' }}");
   assert.doesNotMatch(source, /cli:surface:generate/);
 
   const restore = String(step('Verify and import portable checkpoint').run);
