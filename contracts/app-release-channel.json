@@ -5173,6 +5173,15 @@
         "new_receipt_or_asset_allowed": false,
         "reuses_existing_public_repair_receipt": true,
         "canonical_main_executor_required": true
+      },
+      "existing_desktop_verification": {
+        "trigger": "workflow_dispatch",
+        "operation": "verify_existing_desktop",
+        "required_inputs": ["source_run_id", "followup_run_id", "verification_source_commit"],
+        "standard_publication_evidence": "successful_standard_publication_job",
+        "platform": "linux-x64",
+        "reuses_existing_public_assets": true,
+        "public_mutation_allowed": false
       }
     },
     "rule": "Optional clean-machine certification consumes the exact already-published artifact and produces a separate immutable receipt. It never rebuilds, mutates or resigns the component manifest, blocks publication or Latest, or masquerades as publication success."

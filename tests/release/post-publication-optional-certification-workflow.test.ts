@@ -31,7 +31,7 @@ test('Desktop artifact certification follows the one Stable follow-up hub', () =
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs), [
     'operation', 'source_run_id', 'followup_run_id', 'verification_source_commit', 'operator_confirmation',
   ]);
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs.operation.options, ['verify_existing_repair']);
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.operation.options, ['verify_existing_repair', 'verify_existing_desktop']);
   assert.match(source, /VERIFY EXISTING ADDITIVE REPAIR/);
   assert.match(source, /existing_repair_verification/);
   assert.match(source, /current-main\.json/);
@@ -57,7 +57,7 @@ test('non-Desktop Stable operations complete certification as not applicable', (
   assert.doesNotMatch(source, /display_title \| startswith\("OPL Stable standard/);
   assert.match(
     source,
-    /status:\(if \$applicable != "true" then "not_applicable" elif \$kind == "repair_additive" and \$linux != "success" then "failed" else "complete" end\)/,
+    /status:\(if \$applicable != "true" then "not_applicable" elif \$linux != "success" then "failed" else "complete" end\)/,
   );
 
   for (const stepName of [
@@ -90,6 +90,30 @@ test('certification downloads receipts from the resolved writer run, including i
   assert.match(source, /FOLLOWUP_RUN_ID="\$source_run_id"\s+followup_run_id="\$source_run_id"/);
 });
 
+test('Desktop recovery consumes a completed Linux follow-up and the successful Standard publication job', () => {
+  const { workflow } = readWorkflow();
+  const release = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-release-channel.json'), 'utf8'));
+  const recovery = release.post_publication_optional_certification.producer.existing_desktop_verification;
+  assert.equal(recovery.operation, 'verify_existing_desktop');
+  assert.equal(recovery.platform, 'linux-x64');
+  assert.equal(recovery.standard_publication_evidence, 'successful_standard_publication_job');
+  assert.equal(recovery.public_mutation_allowed, false);
+  assert.deepEqual(
+    Object.keys(workflow.on.workflow_dispatch.inputs).filter(
+      name => name !== 'operation' && workflow.on.workflow_dispatch.inputs[name].required,
+    ),
+    recovery.required_inputs,
+  );
+  const authority = workflow.jobs['resolve-app-release'].steps.find((step: Record<string, unknown>) => step.id === 'authority');
+  assert.match(authority.run, /test "\$INPUT_OPERATION" = verify_existing_desktop/);
+  assert.match(authority.run, /[.]event == "workflow_dispatch" and [.]conclusion == "success"\s+and [.]display_title == \("Desktop linux-x64 reconcile for Stable run " \+ \$source\)/);
+  assert.match(authority.run, /if \[ "\$standard_published" = false \] && \[ "\$certification_kind" = desktop_artifacts \]/);
+  assert.match(authority.run, /resume-standard \/ publish-standard-nonlatest"\)\s+and [.]status == "completed" and [.]conclusion == "success"\s+\)\] \| length == 1/);
+  assert.match(authority.run, /startswith\("Desktop "\).*then\s+certify_macos=false/);
+  const receiptGate = workflow.jobs.receipt.steps.find((step: Record<string, unknown>) => step.name === 'Require the selected Linux certification');
+  assert.equal(receiptGate.if, "${{ needs.resolve-app-release.outputs.applicable == 'true' }}");
+});
+
 test('Linux certification consumes the exact public same-tag Desktop assets', () => {
   const { source, workflow } = readWorkflow();
   const resolve = workflow.jobs['resolve-app-release'];
@@ -101,6 +125,7 @@ test('Linux certification consumes the exact public same-tag Desktop assets', ()
   assert.match(resolve.outputs.linux_artifact_name, /steps\.repair_identity\.outputs\.linux_artifact_name/);
   assert.match(resolve.outputs.linux_artifact_digest, /steps\.repair_identity\.outputs\.linux_artifact_digest/);
   assert.match(source, /opl-desktop-platforms-manifest\.json/);
+  assert.match(source, /[.]platforms \| index\("linux-x64"\) != null/);
   assert.match(source, /releases\/download\/\$\{RELEASE_TAG\}/);
   assert.match(source, /opl_app_linux_same_tag_desktop_install\.v1/);
   assert.match(source, /linux-x64-same-tag-install\.json/);
@@ -138,7 +163,7 @@ test('additive repair certification binds public receipt and old/new installer d
   assert.match(source, /\.replacement\.previous\.digest != \.replacement\.next\.digest/);
   assert.match(source, /installer_digest_chain/);
   assert.match(source, /then \["linux_clean_install"\] else \[\] end/);
-  assert.match(source, /Require clean Linux certification for additive installer repair/);
+  assert.match(source, /Require the selected Linux certification/);
   assert.equal(
     workflow.jobs['admit-macos-vm'].if,
     "${{ needs.resolve-app-release.outputs.applicable == 'true' && needs.resolve-app-release.outputs.certify_macos == 'true' }}",

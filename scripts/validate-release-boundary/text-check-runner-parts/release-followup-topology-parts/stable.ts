@@ -327,7 +327,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
       JSON.stringify(['OPL Stable Follow-ups'])
     || JSON.stringify(certificationTriggers.workflow_run?.types) !== JSON.stringify(['completed'])
     || JSON.stringify(certificationTriggers.workflow_dispatch?.inputs?.operation?.options) !==
-      JSON.stringify(['verify_existing_repair'])
+      JSON.stringify(['verify_existing_repair', 'verify_existing_desktop'])
     || !exactObject(optionalCertification.workflow.permissions, exactReadPermissions)
     || optionalCertification.workflow.concurrency?.group !==
       'opl-desktop-artifact-certification-${{ github.event_name == \'workflow_dispatch\' && inputs.followup_run_id || github.event.workflow_run.id }}'

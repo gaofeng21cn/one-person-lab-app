@@ -1,5 +1,5 @@
 name: OPL Stable Desktop artifact Certification
-run-name: ${{ github.event_name == 'workflow_dispatch' && format('Existing additive repair verification for follow-up {0}', inputs.followup_run_id) || format('Desktop artifact certification for follow-up {0}', github.event.workflow_run.id) }}
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Existing {0} verification for follow-up {1}', inputs.operation == 'verify_existing_repair' && 'additive repair' || 'Desktop artifact', inputs.followup_run_id) || format('Desktop artifact certification for follow-up {0}', github.event.workflow_run.id) }}
 
 on:
   workflow_run:
@@ -10,17 +10,18 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Protected read-only verification of an already-published additive repair.
+        description: Read-only verification of an already-published Desktop artifact or additive repair.
         required: true
         type: choice
         options:
           - verify_existing_repair
+          - verify_existing_desktop
       source_run_id:
-        description: Exact successful Stable source run that published the original App release.
+        description: Exact Stable source run that published the original App release.
         required: true
         type: string
       followup_run_id:
-        description: Exact successful additive repair follow-up run whose public receipt is consumed.
+        description: Exact successful Desktop reconcile or additive repair run whose public receipt is consumed.
         required: true
         type: string
       verification_source_commit:
@@ -28,8 +29,8 @@ on:
         required: true
         type: string
       operator_confirmation:
-        description: Type VERIFY EXISTING ADDITIVE REPAIR to authorize read-only certification.
-        required: true
+        description: For verify_existing_repair, type VERIFY EXISTING ADDITIVE REPAIR.
+        required: false
         type: string
 
 permissions:
@@ -45,7 +46,7 @@ concurrency:
 
 jobs:
   resolve-app-release:
-    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main') || (github.event_name == 'workflow_dispatch' && inputs.operation == 'verify_existing_repair') }}
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -88,8 +89,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$INPUT_OPERATION" = verify_existing_repair
-            test "$OPERATOR_CONFIRMATION" = 'VERIFY EXISTING ADDITIVE REPAIR'
+            test "$GITHUB_REF" = refs/heads/main
             SOURCE_RUN_ID="$INPUT_SOURCE_RUN_ID"
             FOLLOWUP_RUN_ID="$INPUT_FOLLOWUP_RUN_ID"
             [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
@@ -98,6 +98,9 @@ jobs:
             test "$(git rev-parse HEAD)" = "$VERIFICATION_SOURCE_COMMIT"
             gh api "repos/$GITHUB_REPOSITORY/branches/main" > current-main.json
             test "$(jq -er .commit.sha current-main.json)" = "$VERIFICATION_SOURCE_COMMIT"
+          fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$INPUT_OPERATION" = verify_existing_repair ]; then
+            test "$OPERATOR_CONFIRMATION" = 'VERIFY EXISTING ADDITIVE REPAIR'
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
             jq -e --arg run "$SOURCE_RUN_ID" '
               (.id | tostring) == $run
@@ -170,6 +173,14 @@ jobs:
             source_run_id="$(jq -er '.display_title | capture("Stable run (?<run>[1-9][0-9]*)$").run' followup-run.json)"
             certification_kind=desktop_artifacts
           fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$INPUT_OPERATION" = verify_existing_desktop
+            test "$source_run_id" = "$INPUT_SOURCE_RUN_ID"
+            jq -e --arg source "$source_run_id" '
+              .event == "workflow_dispatch" and .conclusion == "success"
+              and .display_title == ("Desktop linux-x64 reconcile for Stable run " + $source)
+            ' followup-run.json >/dev/null
+          fi
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run_id" > source-run.json
           jq -e --arg run "$source_run_id" '
             (.id | tostring) == $run
@@ -181,7 +192,19 @@ jobs:
             and .run_attempt == 1
             and .status == "completed"
           ' source-run.json >/dev/null
-          if [ "$(jq -er .conclusion source-run.json)" != success ]; then
+          standard_published="$(jq -r '.conclusion == "success"' source-run.json)"
+          if [ "$standard_published" = false ] && [ "$certification_kind" = desktop_artifacts ]; then
+            gh api --paginate --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$source_run_id/jobs?per_page=100" > source-jobs.json
+            standard_published="$(jq -r '
+              [.[].jobs[] | select(
+                (.name == "standard / publish-standard / publish-standard-nonlatest"
+                  or .name == "resume-standard / publish-standard-nonlatest")
+                and .status == "completed" and .conclusion == "success"
+              )] | length == 1
+            ' source-jobs.json)"
+          fi
+          if [ "$standard_published" = false ]; then
             {
               echo "applicable=false"
               echo "reason_code=source_run_not_successful"
@@ -193,14 +216,19 @@ jobs:
             --name "opl-stable-followup-route-$source_run_id" --dir followup-route
           mapfile -t routes < <(find followup-route -type f -name stable-followup-route.json -print | LC_ALL=C sort)
           test "${#routes[@]}" = 1
-          jq -e '.schema == "opl_app_stable_followup_route.v1"' "${routes[0]}" >/dev/null
+          jq -e --arg source "$source_run_id" '
+            .schema == "opl_app_stable_followup_route.v1" and .source_run_id == $source
+          ' "${routes[0]}" >/dev/null
           source_operation="$(jq -er '.source_operation | strings' "${routes[0]}")"
-          case "$source_operation" in
-            standard|resume_standard) ;;
-            append_full) reason_code=source_operation_append_full ;;
+          route_trigger="$(jq -er '.trigger | strings' "${routes[0]}")"
+          # A manual follow-up routes before it has inspected the original operation.
+          reason_code=''
+          case "$source_operation:$route_trigger" in
+            standard:*|resume_standard:*|unknown:workflow_dispatch) ;;
+            append_full:*) reason_code=source_operation_append_full ;;
             *) reason_code=source_operation_not_desktop_artifacts ;;
           esac
-          if [ "$source_operation" != standard ] && [ "$source_operation" != resume_standard ]; then
+          if [ -n "$reason_code" ]; then
             {
               echo "applicable=false"
               echo "reason_code=$reason_code"
@@ -217,10 +245,12 @@ jobs:
           mapfile -t admissions < <(find source-operation-admission -type f -name release-operation-admission.json -print | LC_ALL=C sort)
           test "${#admissions[@]}" = 1
           operation_kind="$(jq -er '.operation | strings' "${admissions[0]}")"
-          test "$operation_kind" = "$source_operation"
+          if [ "$source_operation" != unknown ]; then
+            test "$operation_kind" = "$source_operation"
+          fi
           # Automatic completion now observes the same-run additive lanes. Keep
           # manual reconcile/repair receipts bound to their own follow-up run.
-          if [ "$(jq -r '.trigger' "${routes[0]}")" = workflow_run ] \
+          if [ "$route_trigger" = workflow_run ] \
             && [ "$(jq -r '.lanes.desktop_platforms' "${routes[0]}")" = false ]; then
             FOLLOWUP_RUN_ID="$source_run_id"
             followup_run_id="$source_run_id"
@@ -291,11 +321,15 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          certify_macos=true
+          if jq -e '.display_title | startswith("Desktop ")' followup-run.json >/dev/null; then
+            certify_macos=false
+          fi
           {
             echo "applicable=true"
             echo "reason_code=desktop_artifacts_followup"
             echo "certification_kind=desktop_artifacts"
-            echo "certify_macos=true"
+            echo "certify_macos=$certify_macos"
             echo "source_run_id=$source_run_id"
             echo "followup_run_id=$followup_run_id"
             echo "operation_kind=$operation_kind"
@@ -392,7 +426,7 @@ jobs:
             .schema == "opl_app_desktop_artifact_manifest.v1"
             and .source.run_id == $source
             and .cohort == {app_sha:$app,shell_sha:$shell,framework_sha:$framework}
-            and .platforms == ["linux-x64","windows-x64"]
+            and (.platforms | index("linux-x64") != null)
             and ([.assets[].name] | length == (unique | length))
           ' desktop-manifest.json >/dev/null
           desktop_manifest_digest="sha256:$(sha256sum desktop-manifest.json | awk '{print $1}')"
@@ -552,6 +586,7 @@ jobs:
     steps:
       - name: Download and install exact same-tag Linux Desktop
         env:
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.resolve-app-release.outputs.tag }}
           ARTIFACT_NAME: ${{ needs.resolve-app-release.outputs.linux_artifact_name }}
           ARTIFACT_DIGEST: ${{ needs.resolve-app-release.outputs.linux_artifact_digest }}
@@ -663,7 +698,7 @@ jobs:
             --arg linux '${{ needs.certify-linux-x64.result }}' \
             --arg admission '${{ needs.admit-macos-vm.outputs.reason_code }}' \
             --arg standard '${{ needs.certify-standard-vm.result }}' \
-            '{schema:"opl_app_desktop_artifacts_certification.v1",status:(if $applicable != "true" then "not_applicable" elif $kind == "repair_additive" and $linux != "success" then "failed" else "complete" end),applicable:($applicable == "true"),reason_code:$reason,certification_kind:$kind,release_tag:$tag,source_run_id:$source,installer_digest_chain:(if $kind == "repair_additive" then {previous:$old_installer,current:$new_installer} else null end),linux_x64:$linux,macos_vm_admission:$admission,macos_standard:$standard,required_for_publication:false,remaining:(if $kind == "repair_additive" and $linux != "success" then ["linux_clean_install"] else [] end)}' \
+            '{schema:"opl_app_desktop_artifacts_certification.v1",status:(if $applicable != "true" then "not_applicable" elif $linux != "success" then "failed" else "complete" end),applicable:($applicable == "true"),reason_code:$reason,certification_kind:$kind,release_tag:$tag,source_run_id:$source,installer_digest_chain:(if $kind == "repair_additive" then {previous:$old_installer,current:$new_installer} else null end),linux_x64:$linux,macos_vm_admission:$admission,macos_standard:$standard,required_for_publication:false,remaining:(if $applicable == "true" and $linux != "success" then ["linux_clean_install"] else [] end)}' \
             > desktop-artifact-certification.json
       - name: Upload Desktop artifact certification receipt
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -672,7 +707,7 @@ jobs:
           path: desktop-artifact-certification.json
           if-no-files-found: error
           retention-days: 30
-      - name: Require clean Linux certification for additive installer repair
-        if: ${{ needs.resolve-app-release.outputs.certification_kind == 'repair_additive' }}
+      - name: Require the selected Linux certification
+        if: ${{ needs.resolve-app-release.outputs.applicable == 'true' }}
         shell: bash
         run: test '${{ needs.certify-linux-x64.result }}' = success

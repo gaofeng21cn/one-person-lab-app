@@ -53,6 +53,8 @@ Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用
 
 派发前检查 runner 在线状态和当前占用。托管 runner 未领取工作，或其平台依赖源确认不可达时，从 `release:incident-status` 确认首个断点，选择具备不同可用网络路径的同平台本机或 Fleet 节点，设置对应平台 runner 变量，并通过原 owner 的恢复入口消费最新合格检查点。不得在已证实的网络断点上重复派发给同一托管环境。已有自有池离线时，切换至另一可用的同角色池，或在网络可达时清除对应变量使用托管容量。保留签名、公证、普通账号 clean-VM 和公开摘要回读。GitHub 仍调度自有 runner 并承载检查点和公开资产。
 
+Linux x64 桌面构建已在本机隔离的 Ubuntu 24.04 `linux/amd64` 容器中跑通。先实测依赖安装和解包，再用独立标签注册一次性 runner。目标 job 领取后恢复原 runner 变量，job 完成后清理容器。其他平台仍使用各自验证过的同平台环境。
+
 自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
 检查点恢复在自有 runner 上使用本机 npm 缓存，省去 GitHub 缓存归档的下载和上传。`npm ci` 仍按精确 Framework 提交的 lockfile 安装依赖。GitHub 托管 runner 继续使用按 lockfile 匹配的缓存。
@@ -331,6 +333,8 @@ Standard 的预备安装包是可选加速。只有实际上传成功后才向 V
 使用已签名 Standard 恢复时，clean-VM 直接复用按冻结摘要校验的本机安装包缓存，缺失时下载所需文件。
 
 Linux／Windows／Homebrew 的独立恢复使用 [现有 follow-up workflow](../../../.github/workflows/release-stable-post-success-followups.yml) 的 `reconcile_desktop_platform`、`reconcile_homebrew_standard`、`reconcile_homebrew_full` 等对应 operation。执行前确认源 run、目标渠道及该渠道 owner；参数以当前 workflow 为准，不将内部 `standard` 输入搬到这个入口。`repair_additive` 只适用于其合同规定的安装器资产 CAS，不能当作任意资产替换工具。
+
+Linux 已公开而独立安装验收缺失时，用 [Desktop artifact certification](../../../.github/workflows/release-post-publication-certification.yml) 的 `verify_existing_desktop`，传入发布 Standard 的源 run、成功的 Linux 恢复 run 和当前主线提交。验收按 Standard 发布 job、Linux 追加回执及公开摘要核对同一版本，安装后回读 DEB 版本和架构。
 
 已公开的可变 Stable Release 若需修复产品字节，先通过现有 `build-manual.yml` 的
 `replacement_tag` 构建 macOS arm64 签名候选，绑定准确 Shell／Framework SHA。
