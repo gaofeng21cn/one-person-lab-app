@@ -190,7 +190,10 @@ test('one configured default projects across every active App model-policy contr
   assert.equal(projected.productProfile.default_session_profile.reasoning_effort, 'future-deep');
   assert.equal(home.codex_model_display_options.auto_option.catalog_unavailable_fallback_model, 'gpt-future');
   assert.equal(projected.guiProductContract.executor_policy.default_reasoning_effort, 'future-deep');
+  assert.equal(projected.guiProductContract.pages.guid_home.model_status.display_value, 'GPT future');
+  assert.ok(projected.guiProductContract.pages.guid_home.must_show.includes('Codex model selector defaults to GPT future'));
   assert.equal(guidHome.home_view_model.codex_default_model, 'gpt-future');
+  assert.ok(guidHome.must_show.includes('Codex model selector defaulting to GPT future'));
   assert.equal(
     projected.productProfile.codex.auto_model_policy.known_model_reasoning_effort_overrides['gpt-future'],
     'future-deep',

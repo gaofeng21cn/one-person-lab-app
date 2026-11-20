@@ -177,9 +177,10 @@ function validateGuidHomeRouteCompatibility(homeViewModel) {
 }
 
 function validateGuidHomeVisibleSignals(guidHomePage) {
+  const defaultDisplayLabel = guidHomePage.home_view_model.codex_default_model_display_value;
   assertIncludesAll(guidHomePage.must_show, [
     'Codex CLI fixed executor experience',
-    'Codex model selector defaulting to 5.6 Sol',
+    `Codex model selector defaulting to ${defaultDisplayLabel}`,
     'reasoning effort configurable inside the Codex model menu',
     'conversation pending elapsed seconds while Codex is working',
     'all visible professional-agent shortcuts remain selectable while launch readiness is enforced on send with typed guidance',

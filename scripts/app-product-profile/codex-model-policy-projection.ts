@@ -92,6 +92,17 @@ export function projectCodexModelPolicyContracts(
   );
   guiProductContract.first_launch_readiness_policy.default_model = model;
   guiProductContract.first_launch_readiness_policy.default_reasoning_effort = reasoningEffort;
+  const guiHome = guiProductContract.pages?.guid_home;
+  if (guiHome?.model_status) {
+    guiHome.model_status.display_value = displayLabelZh;
+  }
+  if (Array.isArray(guiHome?.must_show)) {
+    guiHome.must_show = guiHome.must_show.map((entry: unknown) =>
+      typeof entry === 'string' && entry.startsWith('Codex model selector defaults to ')
+        ? `Codex model selector defaults to ${displayLabelZh}`
+        : entry,
+    );
+  }
 
   const guidHome = pageStateMatrix.pages.find((page: JsonObject) => page.id === 'guid_home');
   if (!guidHome?.home_view_model) {
@@ -101,6 +112,16 @@ export function projectCodexModelPolicyContracts(
   guidHome.home_view_model.codex_default_reasoning_effort = reasoningEffort;
   guidHome.home_view_model.codex_default_display_label = displayLabelZh;
   guidHome.home_view_model.codex_default_model_display_value = displayLabelZh;
+  if (guidHome.model_status) {
+    guidHome.model_status.display_value = displayLabelZh;
+  }
+  if (Array.isArray(guidHome.must_show)) {
+    guidHome.must_show = guidHome.must_show.map((entry: unknown) =>
+      typeof entry === 'string' && entry.startsWith('Codex model selector defaulting to ')
+        ? `Codex model selector defaulting to ${displayLabelZh}`
+        : entry,
+    );
+  }
 
   return bundle;
 }

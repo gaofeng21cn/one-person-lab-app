@@ -115,7 +115,7 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
     guiContract.interaction_baseline?.home?.home_composer_state_contract,
     'App product profile Home composer state projection',
   );
-  if (pages.guid_home.model_status?.display_value !== '5.6 Sol') {
+  if (pages.guid_home.model_status?.display_value !== productProfile.gui.home.codex_home_model_status_label) {
     throw new Error('App GUI home model selector must keep the friendly default model without repeating reasoning');
   }
   if (

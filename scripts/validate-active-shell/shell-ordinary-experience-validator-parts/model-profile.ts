@@ -49,6 +49,7 @@ const productProfileDefaultsExpected = [
   '"home_and_conversation_share_menu_component": true',
   '"reasoning_effort_options_source": "acp_codex_config_options_enum"',
   '"label_zh": "自动（推荐）"',
+  '"label_zh": "6.2 Astra"',
   '"description_zh": "跟随 Codex CLI 当前默认模型与 App 推理策略"',
   '"label_zh": "5.6 Sol"',
   '"label_zh": "5.6 Terra"',

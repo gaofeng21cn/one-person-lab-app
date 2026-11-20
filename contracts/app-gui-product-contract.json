@@ -6686,7 +6686,7 @@
       "hero_prompt_policy": "modest_dynamic_prompt_in_composer_reading_lane",
       "model_status": {
         "value_source": "default_session_profile.model on Home; normalized active ACP model_info in conversation",
-        "display_value": "5.6 Sol",
+        "display_value": "6.2 Astra",
         "placement": "inside the Home and ordinary Codex conversation model selector buttons only",
         "standalone_home_subtitle_visible": false,
         "selector_visible": true
@@ -6698,7 +6698,7 @@
       },
       "must_show": [
         "Codex CLI fixed executor experience",
-        "Codex model selector defaults to 5.6 Sol",
+        "Codex model selector defaults to 6.2 Astra",
         "reasoning effort configurable inside the Codex model menu",
         "conversation pending elapsed seconds while Codex is working",
         "all user-visible configured OPL starters in stable order without silent truncation",
