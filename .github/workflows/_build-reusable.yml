@@ -1275,6 +1275,7 @@ jobs:
           appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
           teamId: ${{ secrets.TEAM_ID }}
           OPL_RUNTIME_CODESIGN_IDENTITY: ${{ secrets.IDENTITY }}
+          OPL_NOTARYTOOL_KEYCHAIN_PROFILE: opl-release-notary
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
         run: |
           set -euo pipefail
@@ -1292,6 +1293,12 @@ jobs:
             echo "::error::Configured Developer ID identity is not available in build.keychain."
             exit 1
           }
+          printf '%s\n' "$appleIdPassword" | xcrun notarytool store-credentials "$OPL_NOTARYTOOL_KEYCHAIN_PROFILE" \
+            --apple-id "$appleId" \
+            --team-id "$teamId" \
+            --keychain "$RUNNER_TEMP/opl-build.keychain-db" \
+            --no-validate
+          unset appleId appleIdPassword
           node --experimental-strip-types scripts/notarize-macos-dmg.ts \
             --dmg "$dmg_path" \
             --output ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json

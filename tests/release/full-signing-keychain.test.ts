@@ -49,6 +49,21 @@ test('candidate and normal Full paths verify embedded signatures and outer Gatek
   }
 });
 
+test('Standard notarization stores credentials in the temporary build keychain before waiting', () => {
+  const workflow = parse(fs.readFileSync('.github/workflows/_build-reusable.yml', 'utf8'));
+  const finalizer = (workflow.jobs.build.steps as any[]).find(
+    (step) => step.name === 'Finalize Standard Developer ID signing and notarization',
+  );
+  assert.equal(finalizer.env.OPL_NOTARYTOOL_KEYCHAIN_PROFILE, 'opl-release-notary');
+  assert.match(finalizer.run, /printf '%s\\n' "\$appleIdPassword" \\| xcrun notarytool store-credentials/);
+  assert.match(finalizer.run, /xcrun notarytool store-credentials "\$OPL_NOTARYTOOL_KEYCHAIN_PROFILE"/);
+  assert.match(finalizer.run, /--keychain "\$RUNNER_TEMP\/opl-build\.keychain-db"/);
+  assert.match(finalizer.run, /--no-validate/);
+  assert.doesNotMatch(finalizer.run, /--password "\$appleIdPassword"/);
+  assert.match(finalizer.run, /unset appleId appleIdPassword/);
+  assert.match(finalizer.run, /node --experimental-strip-types scripts\/notarize-macos-dmg\.ts/);
+});
+
 test('verified Full carriers survive diagnostic failures and signed candidates need no local authorization attachment', () => {
   const workflow = parse(fs.readFileSync('.github/workflows/full-first-install-release.yml', 'utf8'));
   const steps = workflow.jobs['full-first-install'].steps;
