@@ -60,14 +60,14 @@ jobs:
             exit 1
           }
           mkdir -p evidence intake/durable-publication-record
-          registry_config="$(mktemp "$RUNNER_TEMP/opl-webui-public-registry.XXXXXX")"
-          trap 'unlink "$registry_config"' EXIT
-          printf '{}\n' > "$registry_config"
-          oras manifest fetch --registry-config "$registry_config" --descriptor "$PUBLICATION_RECORD_REF" \
+          OPL_WEBUI_ORAS_CONFIG="$(mktemp "$RUNNER_TEMP/opl-webui-public-registry.XXXXXX")"
+          printf '{}\n' > "$OPL_WEBUI_ORAS_CONFIG"
+          echo "OPL_WEBUI_ORAS_CONFIG=$OPL_WEBUI_ORAS_CONFIG" >> "$GITHUB_ENV"
+          oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "$PUBLICATION_RECORD_REF" \
             > evidence/publication-record-sidecar-descriptor.json
-          oras manifest fetch --registry-config "$registry_config" "$PUBLICATION_RECORD_REF" \
+          oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" "$PUBLICATION_RECORD_REF" \
             > evidence/publication-record-sidecar-manifest.json
-          oras pull --registry-config "$registry_config" --output intake/durable-publication-record "$PUBLICATION_RECORD_REF" \
+          oras pull --registry-config "$OPL_WEBUI_ORAS_CONFIG" --output intake/durable-publication-record "$PUBLICATION_RECORD_REF" \
             > evidence/publication-record-sidecar-pull.txt
           records=()
           while IFS= read -r record; do records+=("$record"); done < <(
@@ -305,7 +305,7 @@ jobs:
             local ref="$1" output="$2"
             local repository="${ref%@*}" descriptor='' error='' status=unknown observed=null
             if [ "$repository" = "$ref" ]; then repository="${ref%:*}"; fi
-            if descriptor="$(oras manifest fetch --descriptor "$ref" 2>"${output}.stderr")"; then
+            if descriptor="$(oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "$ref" 2>"${output}.stderr")"; then
               observed="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' <<<"$descriptor")" || observed=null
               if [ "$observed" != null ]; then status=present; fi
             else
@@ -314,7 +314,7 @@ jobs:
                 status=absent
                 if [[ "$ref" == *:stable || "$ref" == *:latest ]]; then
                   tag="${ref##*:}"
-                  if ! oras repo tags "$repository" > "${output}.tags" 2>"${output}.tags.stderr"; then
+                  if ! oras repo tags --registry-config "$OPL_WEBUI_ORAS_CONFIG"  "$repository" > "${output}.tags" 2>"${output}.tags.stderr"; then
                     status=unknown
                   elif grep -Fx "$tag" "${output}.tags" >/dev/null; then
                     status=unknown
@@ -337,7 +337,7 @@ jobs:
           version_ref="${repository}:${version}"
           observe_descriptor "$version_ref" evidence/version-readback.json
           test "$(jq -er .status evidence/version-readback.json)" = present
-          oras manifest fetch --output evidence/version-manifest.json "$version_ref"
+          oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --output evidence/version-manifest.json "$version_ref"
           version_manifest_digest="sha256:$(shasum -a 256 evidence/version-manifest.json | awk '{print $1}')"
           test "$version_manifest_digest" = "$(jq -er .digest evidence/version-readback.json)"
           expected_platforms="$(jq -c '.carrier.platforms | map({os,architecture,digest})' evidence/carrier-receipt.json)"
@@ -447,6 +447,14 @@ jobs:
       - name: Setup ORAS for one bounded CAS
         uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63 # v2.0.3
 
+      - name: Prepare an isolated ORAS credential file
+        shell: bash
+        run: |
+          set -euo pipefail
+          registry_config="$(mktemp "$RUNNER_TEMP/opl-webui-promotion-registry.XXXXXX")"
+          printf '{}\n' > "$registry_config"
+          echo "OPL_WEBUI_ORAS_CONFIG=$registry_config" >> "$GITHUB_ENV"
+
       - name: Re-read Stable and Latest prestate and derive CAS decision
         id: decision
         shell: bash
@@ -463,11 +471,11 @@ jobs:
           repository="${stable_ref%:*}"
           observe_tag() {
             local ref="$1" tag="$2" output="$3" status=unknown observed=null
-            if descriptor="$(oras manifest fetch --descriptor "$ref" 2> "${output}.stderr")"; then
+            if descriptor="$(oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "$ref" 2> "${output}.stderr")"; then
               observed="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' <<<"$descriptor")" || observed=null
               if [ "$observed" != null ]; then status=present; fi
             elif grep -Eqi 'manifest unknown|name unknown|not found|404' "${output}.stderr"; then
-              if oras repo tags "$repository" > "${output}.tags" 2> "${output}.tags.stderr" \
+              if oras repo tags --registry-config "$OPL_WEBUI_ORAS_CONFIG"  "$repository" > "${output}.tags" 2> "${output}.tags.stderr" \
                 && ! grep -Fx "$tag" "${output}.tags" >/dev/null; then
                 status=absent
               fi
@@ -528,10 +536,10 @@ jobs:
           login_performed=false
           logout_before_readback=true
           if [ "$CAS_DECISION" = write_once ]; then
-            if printf '%s' "$GHCR_TOKEN" | oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin; then
+            if printf '%s' "$GHCR_TOKEN" | oras login --registry-config "$OPL_WEBUI_ORAS_CONFIG" ghcr.io -u "$GITHUB_ACTOR" --password-stdin; then
               login_performed=true
               set +e
-              oras tag "$target_ref" "${promotion_tags[@]}" > terminal/tag.stdout 2> terminal/tag.stderr
+              oras tag --registry-config "$OPL_WEBUI_ORAS_CONFIG" "$target_ref" "${promotion_tags[@]}" > terminal/tag.stdout 2> terminal/tag.stderr
               tag_status=$?
               set -e
               mutation_status=accepted
@@ -563,15 +571,15 @@ jobs:
             fi
           fi
           if [ "$login_performed" = true ]; then
-            if ! oras logout ghcr.io; then logout_before_readback=false; fi
+            if ! oras logout --registry-config "$OPL_WEBUI_ORAS_CONFIG" ghcr.io; then logout_before_readback=false; fi
           fi
           observe_tag() {
             local ref="$1" tag="$2" output="$3" status=unknown observed=null
-            if descriptor="$(oras manifest fetch --descriptor "$ref" 2>"${output}.stderr")"; then
+            if descriptor="$(oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "$ref" 2>"${output}.stderr")"; then
               observed="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' <<<"$descriptor")" || observed=null
               if [ "$observed" != null ]; then status=present; fi
             elif grep -Eqi 'manifest unknown|name unknown|not found|404' "${output}.stderr"; then
-              if oras repo tags "$repository" > "${output}.tags" 2>"${output}.tags.stderr" \
+              if oras repo tags --registry-config "$OPL_WEBUI_ORAS_CONFIG"  "$repository" > "${output}.tags" 2>"${output}.tags.stderr" \
                 && ! grep -Fx "$tag" "${output}.tags" >/dev/null; then
                 status=absent
               fi
@@ -639,8 +647,8 @@ jobs:
           mkdir -p terminal/public-oci/blobs terminal/public-oci/children
           read_manifest() {
             local ref="$1" name="$2" expected_digest="$3"
-            oras manifest fetch --descriptor "$ref" > "terminal/public-oci/${name}-descriptor.json"
-            oras manifest fetch --output "terminal/public-oci/${name}.json" "$ref"
+            oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "$ref" > "terminal/public-oci/${name}-descriptor.json"
+            oras manifest fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --output "terminal/public-oci/${name}.json" "$ref"
             local actual_digest actual_size
             actual_digest="sha256:$(sha256sum "terminal/public-oci/${name}.json" | awk '{print $1}')"
             actual_size="$(wc -c < "terminal/public-oci/${name}.json" | tr -d ' ')"
@@ -702,7 +710,7 @@ jobs:
             local digest size
             digest="$(jq -er .digest <<<"$descriptor")"
             size="$(jq -er .size <<<"$descriptor")"
-            oras blob fetch --descriptor "${repository}@${digest}" \
+            oras blob fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "${repository}@${digest}" \
               > "terminal/public-oci/blobs/${name}.json"
             jq -e --arg digest "$digest" --argjson size "$size" '
               .digest == $digest and .size == $size
@@ -832,3 +840,8 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Remove the isolated ORAS credential file
+        if: ${{ always() && env.OPL_WEBUI_ORAS_CONFIG != '' }}
+        shell: bash
+        run: unlink "$OPL_WEBUI_ORAS_CONFIG"
