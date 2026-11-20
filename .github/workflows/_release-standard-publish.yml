@@ -716,6 +716,7 @@ jobs:
             resume-reconcile-result.json
             homebrew-resume-observation.json
             stable-operation-control
+          compression-level: 0
           if-no-files-found: warn
           retention-days: 30
 
