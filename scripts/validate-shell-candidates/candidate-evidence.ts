@@ -378,7 +378,7 @@ function validateOPLStudioImplementationEvidence(
   );
 
   if (
-    evidence.webui_transport?.renderer !== 'src/workbench/App.tsx'
+    evidence.webui_transport?.renderer !== 'plugins/opl-studio-client/src/client/workbench/App.tsx'
     || evidence.webui_transport?.host_core !== 'plugins/opl-host-core/src/service.mjs'
     || evidence.webui_transport?.native_host !== 'desktop/main.mjs'
     || evidence.webui_transport?.native_transport !== 'desktop/preload.cjs#window.oplStudio'
@@ -446,8 +446,8 @@ function validateOPLStudioImplementationEvidence(
   const reusedModules = evidence.reused_oss_module_policy;
   if (
     reusedModules?.policy !== 'pinned_deepseek_harness_application_host_and_gui_source_reuse_other_gui_sources_reference_only'
-    || reusedModules?.vendored_source_root !== 'src/vendor/deepseek-harness'
-    || reusedModules?.source_manifest !== 'src/composition/deepseekHarnessSourceManifest.json'
+    || reusedModules?.vendored_source_root !== 'vendor/deepseek-harness'
+    || reusedModules?.source_manifest !== 'packages/dsh-adapters/deepseekHarnessSourceManifest.json'
     || reusedModules?.byte_identical !== false
     || reusedModules?.byte_identical_to_pinned_ref !== false
     || reusedModules?.slot_renderer_source !== 'packages/client/ui-renderer/src/client/scoped-slots.tsx#createSlotRenderer'
@@ -485,7 +485,7 @@ function validateOPLStudioImplementationEvidence(
   if (
     evidence.webui_parity?.shared_renderer !== true
     || evidence.webui_parity?.bridge_shape !== 'window.oplStudio'
-    || evidence.webui_parity?.product_profile !== 'src/generated/oplProductProfile.generated.json'
+    || evidence.webui_parity?.product_profile !== 'plugins/opl-studio-client/src/client/generated/oplProductProfile.generated.json'
     || evidence.webui_parity?.desktop_and_webui_default_home !== 'chat_first_default_collapsed'
   ) {
     throw new Error(`${candidate.id} evidence must prove WebUI and Electron desktop use the same renderer, bridge shape, product profile, and default home semantics`);
@@ -624,7 +624,7 @@ export function validateDeepSeekHarnessCompositionEvidence(
     || style?.reference_version !== deepSeekHarnessApplicationHostRef
     || style?.reference_date !== '2026-08-22'
     || style?.scope !== 'eleven_pinned_gui_package_source_trees_with_opl_slot_adapters'
-    || style?.token_source !== 'src/vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css'
+    || style?.token_source !== 'vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css'
     || style?.font_asset_policy !== 'system_font_stack_no_foreign_font_binary_redistribution'
   ) {
     throw new Error(`${candidateId} evidence must bind visual style to the pinned DeepSeek Harness theme source`);

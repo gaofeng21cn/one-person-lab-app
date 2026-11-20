@@ -318,7 +318,7 @@
       "standard_bootstrap_resource_root": "resources/opl-framework-bootstrap",
       "standard_bootstrap_installer": "resources/opl-framework-bootstrap/opl-install.sh",
       "standard_bootstrap_manifest": "resources/opl-framework-bootstrap/manifest.json",
-      "product_profile_target": "src/generated/oplProductProfile.generated.json",
+      "product_profile_target": "plugins/opl-studio-client/src/client/generated/oplProductProfile.generated.json",
       "packaged_runtime_root": "packaged-runtimes/opl-studio-full-runtime",
       "packaged_runtime_validator": "scripts/validate-desktop-package.mjs",
       "release_prepare_script": "scripts/prepare-release-assets.sh",

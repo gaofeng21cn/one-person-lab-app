@@ -26,34 +26,25 @@ node scripts/plugin-composition-inventory.mjs \
 
 ## 源码所有权与依赖方向
 
-运行时插件化已经成立，源码物理归属仍处于收敛阶段。`plugins/<plugin-id>/` 是 DSH/npm
-交付边界，但当前 Studio 仍有插件入口引用根目录的 `src/host`、`src/bridge`、
-`src/composition`，也有根目录 Workbench 进入插件内部源码的过渡调用。这些调用解释了
-当前构建为何能产出独立包，却不构成长期源码 API。
+Studio 按 DSH/npm 包维护客户端与 Host 实现。源码职责和依赖方向由合同的
+`source_ownership_policy` 定义。
 
-目标区域和当前状态以合同的 `source_ownership_policy` 为准：
-
-| 区域 | 长期职责 | 当前状态 |
+| 位置 | 源码职责 | 公开边界 |
 | --- | --- | --- |
-| `apps/` | Electron、preload、受限资源桥、AppWebEntry 启动壳和 profile 组合 | 仍分布在 `desktop/`、`src/main.tsx`、`src/host/dsh/`，尚未整体搬迁 |
-| `plugins/` | 可独立发布的 DSH Host/Client 包及其源码与生成 `lib/` | 包边界已成立，部分源码仍依赖过渡性根目录模块 |
-| `packages/` | 纯合同、Host 基础能力和 DSH 适配器 | `host-contracts` 已持有共享纯类型；`host-kit` 已持有原生 profile 更新服务；`dsh-adapters` 仅在真实共享调用出现后提取 |
-| `vendor/` | 固定版本的 DSH/Superagent 上游源码 | 已有部分 `src/vendor` 与 `vendor`，后续按真实调用者收敛 |
+| `desktop/`、`src/main.tsx`、`src/bridge/webTransport.ts`、`src/host/` | Electron、preload、AppWebEntry、传输适配与 DSH profile 组合 | Cordis 服务、插件和共享包的公开入口 |
+| `plugins/<plugin-id>/` | 各 DSH Host/Client 实现；`opl-studio-client` 持有 Workbench、客户端组合和 slots | npm `exports`、Cordis 服务和 `dsh.client` |
+| `packages/host-contracts/` | Bridge 类型、事件、MCP Apps 协议与跨包错误 ABI | 类型及协议子路径 |
+| `packages/host-kit/` | 原生 profile 更新、Host 协议、传输辅助与 channel binding | 被插件和载体实际复用的公开入口 |
+| `packages/dsh-adapters/` | DSH 视觉源码清单及 Studio Client 与 MCP Apps 共用的文件预览 | `./visual-source`、`./workspace-preview` |
+| `vendor/` | 固定版本的 DSH、Superagent 与 DSH Remote 上游源码 | 由对应适配包或插件消费 |
 
-依赖方向固定为 `apps -> plugins/packages`、`plugins -> packages/官方 DSH`、
-`packages -> 基础库/官方 DSH`；插件不能依赖 `../../../src`、其他插件的 `src` 或运行时
-脚本，根 Workbench 不能进入插件内部源码。跨边界必须通过 package `exports`、纯类型/ABI
-合同或显式适配器。`lib/` 是构建生成物，不是手写源码，也不成为新的运行时发现机制。
+载体消费插件公开入口或 Cordis 服务，插件消费共享包、官方 DSH 和对应的 vendored 源码。
+Host Core 通过 Cordis 获取 Codex、Framework 和 MCP Apps 服务。更新 CLI 和 Host 服务
+共享 `host-kit` 的原生 profile 更新逻辑，构建与打包命令由 `scripts/` 持有。
 
-这是迁移目标和开发约束，不代表目录已经搬迁完成。每次迁移先提取真实共享调用者，再切换
-公开 exports，最后删除旧内部 caller；没有当前共享职责时，不创建通用 `host-kit`，也
-不把多个插件重新聚合成一个大插件。
-
-已落地的源码边界包括共享 bridge、MCP Apps、线程、Team 和 Superagent 纯类型归入
-`host-contracts`；Host Core 消费既有 Cordis 服务，删除兄弟插件内部 service 导入；
-profile 检查与更新服务归入 `host-kit`，运行时不再加载构建脚本。产品客户端策略随
-`opl-studio-client` factory 构建，静态 HTML 不再持有模型、默认置顶和贡献策略。
-客户端组合、Workbench、其余 Host 辅助代码和上游源码物理位置仍按真实调用者逐步收拢。
+插件运行时产物由各包的 `files` 字段从生成的 `lib/` 选取。Studio 的
+`npm run test:dsh-plugins` 检查源码依赖方向，并在仓库外启动实际打包的插件。
+兼容的插件可独立更新，共享输入变化时重新构建受影响的包。
 
 ## 用户入口规则
 

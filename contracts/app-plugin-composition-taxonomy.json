@@ -145,29 +145,29 @@
     ]
   },
   "source_ownership_policy": {
-    "status": "target_recorded_current_source_layout_is_transitional",
+    "status": "plugin_source_boundaries_implemented",
     "purpose": "Make each independently published DSH package understandable and buildable from its own public exports without creating a second plugin ABI or loader.",
     "target_regions": {
       "apps": {
         "responsibility": "Electron carrier, preload, restricted resource bridge, AppWebEntry boot shell and DSH profile composition",
-        "current_location": "opl-studio/desktop plus opl-studio/src/main.tsx and src/host/dsh",
-        "migration_status": "target_only_do_not_claim_moved"
+        "current_location": "opl-studio/desktop, src/main.tsx, src/bridge/webTransport.ts and src/host",
+        "migration_status": "carrier_paths_retained"
       },
       "plugins": {
         "responsibility": "Independently published DSH Host and Client npm packages, including package-local source and generated lib output",
         "current_location": "opl-studio/plugins/<plugin-id>",
-        "migration_status": "package_boundaries_exist_but_some_sources_still_import_transitional_root_modules"
+        "migration_status": "host_and_client_features_owned_by_their_plugins"
       },
       "packages": {
         "responsibility": "Small shared contracts, Host primitives and DSH compatibility adapters justified by current callers and a stable public interface",
         "target_units": ["host-contracts", "host-kit", "dsh-adapters"],
-        "current_location": "opl-studio/packages/host-contracts and packages/host-kit; dsh-adapters remains a target justified only by actual shared callers",
-        "migration_status": "shared_type_sources_and_native_profile_update_service_extracted_other_root_sources_remain_transitional"
+        "current_location": "opl-studio/packages/host-contracts, packages/host-kit and packages/dsh-adapters",
+        "migration_status": "shared_implementations_consumed_through_public_entrypoints"
       },
       "vendor": {
         "responsibility": "Pinned upstream DSH and Superagent source kept separate from OPL-owned source",
-        "current_location": "opl-studio/src/vendor and opl-studio/vendor",
-        "migration_status": "partial_existing_vendor_boundary"
+        "current_location": "opl-studio/vendor",
+        "migration_status": "upstream_sources_owned_by_vendor"
       }
     },
     "dependency_direction": {
@@ -201,7 +201,9 @@
         "shared_bridge_MCP_Apps_thread_Team_and_Superagent_types_owned_by_host_contracts",
         "Host_Core_consumes_Cordis_injected_services_without_sibling_internal_service_imports",
         "native_profile_update_runtime_owned_by_host_kit_with_CLI_build_and_pack_kept_in_scripts",
-        "product_client_policy_shipped_in_the_client_factory_instead_of_static_HTML"
+        "Studio_Client_owns_the_Workbench_client_composition_and_slot_adapters",
+        "product_client_policy_shipped_in_the_client_factory_instead_of_static_HTML",
+        "shared_DSH_workspace_preview_reused_by_Studio_Client_and_MCP_Apps"
       ],
       "do_not_claim_complete_until": [
         "all production imports obey dependency_direction",

@@ -67,9 +67,9 @@ DSH Host/Client 插件（`opl-studio/plugins/<plugin-id>/`）通过独立 CI 发
 
 | 需求 | 入口（opl-studio CI） | 说明 |
 | --- | --- | --- |
-| 单个或批量插件发布 | `release-dsh-plugins.yml`，自动检测改动或传 `package_id` | 构建 → 测试 → 发布到 `@gaofeng21cn` GitHub Packages；不改 `app.asar` 或签名 |
+| 单个或批量插件发布 | `release-dsh-plugins.yml`，自动检测改动或传 `packages` | 构建、测试和发布到 `@gaofeng21cn` GitHub Packages |
 | 插件组合兼容性测试 | `release-plugin-composition-test.yml` | 解析最新兼容版本、安装干净 DSH profile、验证 Cordis 服务和 Framework bridge；产出 composition receipt |
-| Shell 未变的 Stable 候选 | `release-dsh-plugins-stable.yml`（opl-studio CI） | 以 composition receipt run ID 为输入：严格校验 receipt → 刷新 lockfile → 通过 registry prepare 模式执行 `npm ci` 拉预编译 Host/Client 插件 → `build:desktop:receipt` 只生成 carrier boot shell/未公开 engine → electron-builder 打包 → 产出候选 DMG/ZIP/blockmap/feed；当前仍需 App 侧正式 consumer 才能签名发布 |
+| 复用插件组合的 Stable | App controller 的 `new-product-release --composition-run-id <run>` | 从 Studio 的成功组合 run 获取验证过的 tarballs 和 lockfile，进入正式打包、签名、公证、首装验收和公开流程 |
 
 插件版本和 App 版本相互独立。`opl-studio-client` 是 DSH Client Plugin，随其它
 Host/Client 插件走此通道；只有 Electron、AppWebEntry boot shell 或上游 DSH cohort
@@ -77,14 +77,10 @@ Host/Client 插件走此通道；只有 Electron、AppWebEntry boot shell 或上
 
 ### Shell-unchanged 发布入口（插件层变化，Electron/renderer/cohort 不变）
 
-当且仅当 Electron、DSH cohort 和 AppWebEntry boot shell 与上次 Stable 字节一致时：
-
-1. 在 `opl-studio` 仓库手动触发 `release-plugin-composition-test.yml` 并记录其 run ID
-2. 在 `opl-studio` 仓库手动触发 `release-dsh-plugins-stable.yml`，输入该 run ID
-3. 下载产物（DMG、ZIP、blockmap、feed YAMLs、`plugin-stable-provenance.json`）
-4. 由 App 正式 controller 接纳准确候选，再进入签名、公证和公开发布。该 consumer 尚未接通；`studio_full_append` 是既有 Full 追加路径，不能消费这里的 Standard 候选。
-
-当前 workflow 使用 Preview carrier 配置，证明候选构建；它不分配 Stable 版本、不签名发布，也不能当作已完成的正式发布入口。
+Studio 组合测试成功后，把与冻结 App、Studio 提交匹配的 run ID 交给 App controller。
+App 校验组合归档的摘要和来源，并使用测试时的插件字节。参数和验收顺序见
+[Stable SOP](stable-release-sop.md#3-使用所选渠道的正式入口派发)。
+Studio 的 `release-dsh-plugins-stable.yml` 提供独立的 Preview 候选打包验证。
 
 Windows 源码修复可在单平台恢复入口指定 `desktop_shell_ref`，绑定准确的 Studio canonical
 main SHA；平台包记录自己的构建来源，重新执行源码质量检查，Standard 字节与来源保持独立。

@@ -17,7 +17,7 @@ export function validateStudioImplementation(shellPaths): void {
   for (const name of ['typecheck', 'test:node-suite', 'test:bun-suites', 'validate:candidate', 'build-mac:arm64']) {
     if (typeof scripts[name] !== 'string' || !scripts[name].trim()) throw new Error(`Studio source gate requires ${name}.`);
   }
-  for (const relative of ['desktop/main.mjs', 'desktop/preload.cjs', 'desktop/updater.mjs', 'plugins/opl-host-core/src/service.mjs', 'src/host/app-server-transport.mjs']) {
+  for (const relative of ['desktop/main.mjs', 'desktop/preload.cjs', 'desktop/updater.mjs', 'plugins/opl-host-core/src/service.mjs', 'plugins/opl-codex-native/src/app-server-transport.mjs']) {
     const result = spawnSync(process.execPath, ['--check', path.join(shellPaths.shellRoot, relative)], { encoding: 'utf8' });
     if (result.status !== 0) throw new Error(`Studio JavaScript syntax check failed for ${relative}: ${result.stderr}`);
   }
@@ -27,15 +27,15 @@ export function validateStudioImplementation(shellPaths): void {
     'extractSecondInstanceDeepLinkPayload', 'createDeepLinkDelivery', 'takePending()',
   ], 'Studio App-owned deep-link parser and validated delivery');
   assertShellTextIncludesAll(shellPaths, 'desktop/main.mjs', ['deepLinks.acceptArgv(process.argv)', 'deepLinks.acceptUrl(url)', 'deepLinks.acceptSecondInstance(argv, additionalData)', 'deepLinks.takePending()'], 'Studio shared deep-link entry paths');
-  assertShellTextIncludesAll(shellPaths, 'src/workbench/deepLinkNavigation.ts', ['validateDeepLinkPayload(value, policy)', 'resolveDeepLinkDestination'], 'Studio renderer deep-link revalidation');
+  assertShellTextIncludesAll(shellPaths, 'plugins/opl-studio-client/src/client/workbench/deepLinkNavigation.ts', ['validateDeepLinkPayload(value, policy)', 'resolveDeepLinkDestination'], 'Studio renderer deep-link revalidation');
   assertShellTextIncludesAll(shellPaths, 'electron-builder.stable.yml', ['protocols:', '      - opl'], 'Studio packaged branded protocol');
   assertShellTextIncludesAll(shellPaths, 'desktop/main.mjs', ['electron-updater', 'createDesktopUpdater', 'runWhenIdle'], 'Studio idle updater handoff');
   assertShellTextIncludesAll(shellPaths, 'desktop/updater.mjs', ['beforeRestart', 'quitAndInstall', 'app_server_busy'], 'Studio guarded updater installation');
-  assertShellTextIncludesAll(shellPaths, 'src/host/opl-passthrough.mjs', ['state', 'action', 'execute'], 'Framework-owned state/action bridge');
+  assertShellTextIncludesAll(shellPaths, 'plugins/opl-framework-bridge/src/opl-passthrough.mjs', ['state', 'action', 'execute'], 'Framework-owned state/action bridge');
 }
 
 export function validateStudioThreadCoordination(shellPaths): void {
-  assertShellTextIncludesAll(shellPaths, 'src/host/app-server-transport.mjs', [
+  assertShellTextIncludesAll(shellPaths, 'plugins/opl-codex-native/src/app-server-transport.mjs', [
     'thread/list', 'thread/read', 'thread/start', 'thread/resume', 'thread/fork',
     'thread/archive', 'thread/unarchive', 'turn/start', 'turn/steer',
   ], 'Studio canonical Codex thread and turn transport');

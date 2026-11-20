@@ -389,9 +389,9 @@ export function validateGuiDesignSystemSourceAndReference({
     sourceShellAdoption.active_shell !== 'opl-studio' ||
     sourceShellAdoption.reuse_mode !== 'bounded_vendored_visual_source_with_opl_adapters' ||
     sourceShellAdoption.required_source_manifest !==
-      'src/composition/deepseekHarnessSourceManifest.json' ||
+      'packages/dsh-adapters/deepseekHarnessSourceManifest.json' ||
     sourceShellAdoption.required_license_notice !==
-      'src/vendor/deepseek-harness/LICENSE' ||
+      'vendor/deepseek-harness/LICENSE' ||
     sourceShellAdoption.provider_component !== 'StudioFrame' ||
     sourceShellAdoption.icon_adapter_component !== 'DSH icon sprite and upstream icon components' ||
     JSON.stringify(sourceShellAdoption.allowed_vendor_normalizations) !==

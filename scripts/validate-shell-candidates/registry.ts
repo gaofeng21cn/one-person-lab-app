@@ -481,7 +481,7 @@ function validateDesignReferences(registry: ShellCandidateRegistry): void {
     'use-sync-external-store': '1.7.0',
   }, 'DeepSeek Harness adopted_packages');
   assertDeepEqualJson(deepseekHarness.adopted_source, {
-    "root": "src/vendor/deepseek-harness",
+    "root": "vendor/deepseek-harness",
     "ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
     "path_policy": "preserve_upstream_package_relative_paths",
     "byte_policy": "pinned_upstream_plus_manifest_bound_reviewed_compatibility_patches",

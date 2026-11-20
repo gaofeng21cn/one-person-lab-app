@@ -423,7 +423,7 @@
         "use-sync-external-store": "1.7.0"
       },
       "adopted_source": {
-        "root": "src/vendor/deepseek-harness",
+        "root": "vendor/deepseek-harness",
         "ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
         "path_policy": "preserve_upstream_package_relative_paths",
         "byte_policy": "pinned_upstream_plus_manifest_bound_reviewed_compatibility_patches",
@@ -638,7 +638,7 @@
         "entries": {
           "electron_desktop": {
             "source_refs": [
-              "src/workbench/App.tsx",
+              "plugins/opl-studio-client/src/client/workbench/App.tsx",
               "plugins/opl-host-core/src/service.mjs",
               "desktop/main.mjs",
               "desktop/preload.cjs",
@@ -670,7 +670,7 @@
           },
           "standalone_headless_webui": {
             "source_refs": [
-              "src/workbench/App.tsx",
+              "plugins/opl-studio-client/src/client/workbench/App.tsx",
               "plugins/opl-host-core/src/service.mjs",
               "scripts/headless/run.mjs",
               "scripts/headless/server.mjs",
@@ -705,15 +705,15 @@
           },
           "docker_webui": {
             "source_refs": [
-              "src/workbench/App.tsx",
+              "plugins/opl-studio-client/src/client/workbench/App.tsx",
               "plugins/opl-host-core/src/service.mjs",
               "Dockerfile",
               "docker-compose.distribution.yaml",
               "scripts/oci/manage.mjs",
               "scripts/oci/build-plan.mjs",
               "scripts/oci/handoff.mjs",
-              "src/host/webui-auth.mjs",
-              "src/host/staged-inputs.mjs",
+              "packages/host-kit/webui-auth.mjs",
+              "packages/host-kit/staged-inputs.mjs",
               ".github/workflows/studio-webui-preview.yml"
             ],
             "package_artifact_kind": "local_oci_smoke_receipt",

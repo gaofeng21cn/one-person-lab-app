@@ -91,7 +91,7 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
   entries: {
     electron_desktop: {
       source_refs: [
-        'src/workbench/App.tsx',
+        'plugins/opl-studio-client/src/client/workbench/App.tsx',
         'plugins/opl-host-core/src/service.mjs',
         'desktop/main.mjs',
         'desktop/preload.cjs',
@@ -117,7 +117,7 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
     },
     standalone_headless_webui: {
       source_refs: [
-        'src/workbench/App.tsx',
+        'plugins/opl-studio-client/src/client/workbench/App.tsx',
         'plugins/opl-host-core/src/service.mjs',
         'scripts/headless/run.mjs',
         'scripts/headless/server.mjs',
@@ -139,15 +139,15 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
     },
     docker_webui: {
       source_refs: [
-        'src/workbench/App.tsx',
+        'plugins/opl-studio-client/src/client/workbench/App.tsx',
         'plugins/opl-host-core/src/service.mjs',
         'Dockerfile',
         'docker-compose.distribution.yaml',
         'scripts/oci/manage.mjs',
         'scripts/oci/build-plan.mjs',
         'scripts/oci/handoff.mjs',
-        'src/host/webui-auth.mjs',
-        'src/host/staged-inputs.mjs',
+        'packages/host-kit/webui-auth.mjs',
+        'packages/host-kit/staged-inputs.mjs',
         '.github/workflows/studio-webui-preview.yml',
       ],
       package_artifact_kind: 'local_oci_smoke_receipt',
@@ -345,41 +345,41 @@ export function validateOPLStudioCandidateContract(candidate: ShellCandidate): v
 }
 
 export function validateCandidateImplementationFiles(candidate: ShellCandidate): void {
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-layout/src/client/AppFrame.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-layout/src/client/AppFrame.tsx', [
     'export function AppFrame',
     "renderSlot('sidebar'",
     "renderSlot('conversation'",
     "renderSlot('details'",
   ], 'vendored DeepSeek Harness AppFrame');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-sidebar/src/client/SidebarRoot.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-sidebar/src/client/SidebarRoot.tsx', [
     'export function SidebarRoot',
     "renderSlot('sidebar.workspaces'",
   ], 'vendored DeepSeek Harness SidebarRoot');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.tsx', [
     'export function ConversationRoot',
   ], 'vendored DeepSeek Harness ConversationRoot');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx', [
     'export function InputBar',
   ], 'vendored DeepSeek Harness InputBar');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-settings-general/src/client/SettingsRoot.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-settings-general/src/client/SettingsRoot.tsx', [
     'export function SettingsRoot',
     "renderSlot('settings.section'",
   ], 'vendored DeepSeek Harness SettingsRoot');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css', [
     '--dsw-static-deepseek-450',
     '--dsw-specific-sidebar-fill',
   ], 'vendored DeepSeek Harness UI theme');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-primitives/src/index.ts', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-primitives/src/index.ts', [
     "export { Button } from './Button.tsx'",
     "export { Menu } from './Menu.tsx'",
     "export { RiskConfirmation } from './RiskConfirmation.tsx'",
     "export * from './icons/index.tsx'",
   ], 'vendored DeepSeek Harness UI primitives');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-primitives/src/Button.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-primitives/src/Button.tsx', [
     "import css from './Button.module.css'",
     'export function Button',
   ], 'vendored DeepSeek Harness Button primitive');
-  assertCandidateFileContains(candidate, 'src/vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx', [
+  assertCandidateFileContains(candidate, 'vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx', [
     'export function createSlotRenderer',
     'SlotAssemblyError',
     'useSyncExternalStore',
@@ -389,7 +389,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'src/integrations/deepseek-harness/uiPrimitives.tsx',
     'the handwritten DeepSeek Harness primitives replacement',
   );
-  assertCandidateFileContains(candidate, 'src/composition/dshSlotHost.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/composition/dshSlotHost.tsx', [
     'SlotCore',
     'createSlotRenderer',
     'ui-renderer/src/client/scoped-slots.tsx',
@@ -413,13 +413,13 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'this.renderer.renderRoot(this.host, { contributions })',
     'return slotHost.renderRoot(contributions)',
   ], 'DeepSeek Harness slot host and rendered GUI composition');
-  assertCandidateFileContains(candidate, 'src/composition/oplStudioClientPlugin.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/composition/oplStudioClientPlugin.tsx', [
     'provideOplStudioClientContributions(ctx)',
     'ctx.provide("uiRenderer"',
     'root.render(renderOplStudioRoot(contributions))',
     'ctx.plugin(oplStudioClientPlugin)',
   ], 'Cordis client plugin and renderer composition');
-  assertCandidateFileContains(candidate, 'src/integrations/deepseek-harness/runtimeShim.ts', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/integrations/deepseek-harness/runtimeShim.ts', [
     'export function abbreviateHomePath',
     'isWindowsStylePath',
     'path.startsWith(`${root}/`)',
@@ -431,7 +431,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'mountOplStudioClient(rootElement)',
     'new AppWebEntry(rootElement).run()',
   ], 'DeepSeek Harness composition entrypoint');
-  assertCandidateFileContains(candidate, 'src/workbench/App.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/workbench/App.tsx', [
     'renderShell',
     'data-testid="opl-context-tabs"',
     'data-testid="opl-runtime-status-panel"',
@@ -445,7 +445,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'renderContributionSlot?.("runtime.detail"',
     'data-testid="opl-web-transport"',
   ], 'OPL Studio surface producer and contextual content');
-  assertCandidateFileExcludes(candidate, 'src/workbench/App.tsx', [
+  assertCandidateFileExcludes(candidate, 'plugins/opl-studio-client/src/client/workbench/App.tsx', [
     'data-testid="opl-workspace-rail"',
     'data-testid="opl-session-list"',
     'data-testid="opl-skills-panel"',
@@ -454,19 +454,19 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'data-testid="opl-always-on-panel"',
     'branding/opl-app-logo.png',
   ], 'OPL Studio product layout');
-  assertCandidateFileContains(candidate, 'src/workbench/settings/useSettingsPageContext.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/workbench/settings/useSettingsPageContext.tsx', [
     'data-testid="opl-locale-toggle"',
     'onSettingChange("locale", "zh")',
     'onSettingChange("locale", "en")',
   ], 'OPL Studio settings locale control');
-  assertCandidateFileContains(candidate, 'src/bridge/oplBridge.ts', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/bridge/oplBridge.ts', [
     'opl app state --profile fast --json',
     'opl app state --profile full --json',
     'opl app contribution read',
     'opl app action execute --action',
     'readContribution',
   ], 'OPL App state/action bridge');
-  assertCandidateFileContains(candidate, 'src/workbench/workbenchModel.ts', [
+  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/workbench/workbenchModel.ts', [
     'results',
     'deliverables',
     'receipts',
@@ -474,7 +474,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
   ], 'results and delivery workbench model');
   assertCandidateFileContains(candidate, 'scripts/validate-opl-studio-candidate.mjs', [
     'src/candidateContractEvidence.json',
-    'src/vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx',
+    'vendor/deepseek-harness/packages/client/ui-renderer/src/client/scoped-slots.tsx',
     // The Studio self-validator derives the pinned cohort from its own manifest:
     // asserting a version literal here would re-freeze the value in the App.
     'scripts/dsh-upstream.mjs',

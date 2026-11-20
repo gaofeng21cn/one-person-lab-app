@@ -49,8 +49,8 @@
   "shell_adoption": {
     "active_shell": "opl-studio",
     "reuse_mode": "bounded_vendored_visual_source_with_opl_adapters",
-    "required_source_manifest": "src/composition/deepseekHarnessSourceManifest.json",
-    "required_license_notice": "src/vendor/deepseek-harness/LICENSE",
+    "required_source_manifest": "packages/dsh-adapters/deepseekHarnessSourceManifest.json",
+    "required_license_notice": "vendor/deepseek-harness/LICENSE",
     "provider_component": "StudioFrame",
     "icon_adapter_component": "DSH icon sprite and upstream icon components",
     "existing_control_library": "DSH ui-primitives for shared controls",

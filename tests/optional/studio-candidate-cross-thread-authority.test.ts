@@ -152,9 +152,9 @@ test('OPL Studio candidate machine contract removes retired private capabilities
 test('OPL Studio candidate mounts the shared renderer through the RC2 Cordis client plugin', () => {
   const studioRoot = resolveCandidateRoot('shells/opl-studio');
   const main = fs.readFileSync(path.join(studioRoot, 'src/main.tsx'), 'utf8');
-  const slotHost = fs.readFileSync(path.join(studioRoot, 'src/composition/dshSlotHost.tsx'), 'utf8');
+  const slotHost = fs.readFileSync(path.join(studioRoot, 'plugins/opl-studio-client/src/client/composition/dshSlotHost.tsx'), 'utf8');
   const clientPlugin = fs.readFileSync(
-    path.join(studioRoot, 'src/composition/oplStudioClientPlugin.tsx'),
+    path.join(studioRoot, 'plugins/opl-studio-client/src/client/composition/oplStudioClientPlugin.tsx'),
     'utf8',
   );
 
@@ -278,7 +278,7 @@ test('OPL Studio candidate evidence binds layout and interaction semantics to pi
         reference_version: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
         reference_date: '2026-08-22',
         scope: 'eleven_pinned_gui_package_source_trees_with_opl_slot_adapters',
-        token_source: 'src/vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css',
+        token_source: 'vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css',
         font_asset_policy: 'system_font_stack_no_foreign_font_binary_redistribution',
       },
     }),

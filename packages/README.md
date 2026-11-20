@@ -17,7 +17,7 @@ Other plugin implementations live with their owning component:
 | --- | --- | --- |
 | Studio Host/Client plugins | `opl-studio/plugins/<plugin-id>/`; implementation in each package src/ | Published independently through the DSH plugin channel; resolved by the active profile and official `dsh.client` graph |
 | AppWebEntry boot shell | `opl-studio/src/main.tsx` and carrier files | Built into the App/Shell release |
-| DSH UI dependencies | Studio npm dependencies and pinned official vendor sources under `shells/opl-studio/src/vendor/deepseek-harness/` | Built into the App/Shell release |
+| DSH UI dependencies | Studio npm dependencies and pinned official vendor sources under `shells/opl-studio/vendor/deepseek-harness/` | Built into the App/Shell release |
 | Framework services | `one-person-lab/src/host/` and `one-person-lab/packages/` | Framework runtime |
 | Domain Agent/capability Packages | The corresponding domain repository and its declared plugin source subtree | The configured native Package carrier |
 

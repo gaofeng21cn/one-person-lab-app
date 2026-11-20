@@ -182,7 +182,7 @@ test('DeepSeek Harness Application Host and visual source reuse stay Studio-only
   assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.2.2-rc.2');
   assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-web-react'], undefined);
   assert.equal(reference?.adopted_packages['use-sync-external-store'], '1.7.0');
-  assert.equal(reference?.adopted_source?.root, 'src/vendor/deepseek-harness');
+  assert.equal(reference?.adopted_source?.root, 'vendor/deepseek-harness');
   assert.equal(reference?.adopted_source?.path_policy, 'preserve_upstream_package_relative_paths');
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-layout/src/client/AppFrame.tsx'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-sidebar/src/client/SidebarRoot.tsx'));

@@ -24,7 +24,7 @@ Applies to **Layer 2** (DSH Host and Client plugins in `opl-studio/plugins/`).
 ### Track 1 — Per-plugin publish
 
 **Trigger**: push to `opl-studio` main branch modifying a plugin or its declared shared
-source/build inputs (`plugins/`, `packages/`, transitional `src/`, and selected build files).
+source/build inputs (`plugins/`, `packages/`, `vendor/`, and selected carrier and build files).
 
 **CI**: `release-dsh-plugins.yml` in `opl-studio`.
 
@@ -86,14 +86,12 @@ Steps:
 2. Download the input, verify the producer workflow, App/Studio commits, archive digest and
    receipt, then install the tested tarballs with the receipt lockfile. Do not create a
    second runtime Bundle Profile.
-3. Bump the App version; build only the carrier bundle (no product Client plugin rebuild
-   when the receipt already supplies its published bytes).
-   not yet established by a successful public candidate.
+3. Build the versioned carrier bundle using the published Host and Client plugin bytes.
+   Build the boot shell and private Superagent engine as carrier inputs.
 4. The same composition is installed for macOS, Linux, Windows and the Windows Guest Host
    build. Renderer cache identity includes the registry-composition mode.
-5. Sign and notarize via the existing `release-stable.yml` path. The App release controller
-   admits the candidate, then signs, publishes and performs the existing clean-install
-   acceptance.
+5. Sign and notarize via the existing `release-stable.yml` path. Standard clean-install
+   acceptance applies to the exact signed package before publication.
 
 Release duration is measured per candidate rather than asserted in advance. Published
 Host and Client plugin compilation can be reused; signing, notarization and installed

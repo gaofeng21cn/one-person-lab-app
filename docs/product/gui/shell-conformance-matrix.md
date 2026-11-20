@@ -66,8 +66,8 @@ Codex delegated execution 与 AionUI Team 是不同产品面。检查现有 adap
 Active/Done、详情/结果与打开线程的处理。未知 metadata 应回退到真实 generic tool row；
 打开失败保持当前 conversation 并给出重试。执行与线程 authority 仍归 Codex。
 
-检查当前 source 时包含 Studio 的 `src/host/thread-adapter.mjs`、
-`src/workbench/workbenchModel.ts` / `featureModel.ts` 及实际 renderer caller 和 focused tests。
+检查当前 source 时包含 Studio 的 `plugins/opl-codex-native/src/thread-adapter.mjs`、
+`plugins/opl-studio-client/src/client/workbench/workbenchModel.ts` / `featureModel.ts` 及实际 renderer caller 和 focused tests。
 历史 AionUI 的 `normalizeToolCall.ts` 与 `MessageToolGroupSummary.tsx` 只用于对应固定基线。
 不从 App Server schema 存在推导 UI 完成，不为此新建第二 client、Team store、
 scheduler、execution authority 或额外 direct-control 层。Pixel、Install、Release 单独取证。
