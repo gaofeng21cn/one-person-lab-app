@@ -492,6 +492,11 @@ function uploadAsset(
   ]);
   assertRelease(mutation.release, { releaseId, tag, target });
   assertTagTarget(repository, tag, target);
+  if (mutation.result.status !== 0 && !mutation.release.assets.some(({ name }) => name === asset.name)) {
+    const exit = mutation.result.error?.code ?? mutation.result.status ?? mutation.result.signal ?? 'unknown';
+    const reason = (mutation.result.stderr ?? '').match(/HTTP [45]\d{2}|timed out|connection reset|unexpected EOF|broken pipe/i)?.[0];
+    fail(`Upload ${asset.name} failed (gh ${exit}${reason ? `, ${reason}` : ''}); the asset is absent in the Release readback.`);
+  }
   const observed = assertExactAsset(mutation.release, asset, `Upload ${asset.name}`);
   return { release: mutation.release, asset: observed };
 }

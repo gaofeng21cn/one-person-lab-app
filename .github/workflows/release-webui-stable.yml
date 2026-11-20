@@ -228,6 +228,8 @@ jobs:
             echo '::error::The exact WebUI carrier run was not fully visible after bounded readback retries.'
             exit 1
           }
+          # The enclosing Stable run can report queued while other jobs await
+          # capacity. This executing job already proves the attempt is live.
           jq -e \
               --arg run "$GITHUB_RUN_ID" \
               --arg head "$GITHUB_SHA" \
@@ -239,9 +241,11 @@ jobs:
             and .event == "workflow_dispatch"
             and .head_branch == "main"
             and .run_attempt == 1
-            and (.status == "in_progress" or .status == "completed")
             and .head_sha == $head
-          ' evidence/promotion-executor-run.json >/dev/null
+          ' evidence/promotion-executor-run.json >/dev/null || {
+            echo '::error::The WebUI promotion executor does not match this canonical workflow attempt.'
+            exit 1
+          }
           {
             echo "authority_mode=$AUTHORITY_MODE"
             echo "carrier_follower_run_id=$CARRIER_FOLLOWER_RUN_ID"

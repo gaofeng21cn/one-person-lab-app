@@ -248,6 +248,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PRODUCER_RUN_ID: ${{ inputs.platform_artifact_run_id }}
+          PLATFORM_ID: ${{ inputs.platform_id }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           BUILD_SHELL_REF: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
@@ -257,15 +258,21 @@ jobs:
         run: |
           set -euo pipefail
           cd "$STAGE_DIR"
-          test '${{ inputs.platform_id }}' = windows-x64
+          case "$PLATFORM_ID" in linux-x64|windows-x64) ;; *) exit 1 ;; esac
           [[ "$PRODUCER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRODUCER_RUN_ID" > producer-run.json
-          jq -e '.status == "completed" and .run_attempt == 1 and .event == "workflow_dispatch" and .head_branch == "main" and .path == ".github/workflows/release-stable-post-success-followups.yml" and .repository.full_name == "gaofeng21cn/one-person-lab-app"' producer-run.json >/dev/null
+          jq -e --arg source "$SOURCE_RUN_ID" '
+            .status == "completed" and .run_attempt == 1 and .event == "workflow_dispatch"
+            and .head_branch == "main" and .repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and .head_repository.full_name == "gaofeng21cn/one-person-lab-app"
+            and (.path == ".github/workflows/release-stable-post-success-followups.yml"
+              or ((.id | tostring) == $source and .path == ".github/workflows/release-stable.yml"))
+          ' producer-run.json >/dev/null
           gh run download "$PRODUCER_RUN_ID" -R "$GITHUB_REPOSITORY" \
-            --name "opl-stable-desktop-platform-followup-${SOURCE_RUN_ID}-windows-x64" --dir producer-receipt
-          jq -e --arg source "$SOURCE_RUN_ID" --arg tag "$RELEASE_TAG" '.schema == "opl_app_stable_desktop_platform_followup.v1" and .source_run_id == $source and .release_tag == $tag and .platform == "windows-x64" and .build == "success"' producer-receipt/*.json >/dev/null
+            --name "opl-stable-desktop-platform-followup-${SOURCE_RUN_ID}-${PLATFORM_ID}" --dir producer-receipt
+          jq -e --arg source "$SOURCE_RUN_ID" --arg tag "$RELEASE_TAG" --arg platform "$PLATFORM_ID" '.schema == "opl_app_stable_desktop_platform_followup.v1" and .source_run_id == $source and .release_tag == $tag and .platform == $platform and .build == "success"' producer-receipt/*.json >/dev/null
           gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$PRODUCER_RUN_ID/jobs?per_page=100" > producer-jobs.json
-          job_id="$(jq -er '[.[].jobs[] | select(.name | endswith("/ Build windows-x64"))] | select(length == 1) | .[0] | select(.status == "completed" and .conclusion == "success") | .id' producer-jobs.json)"
+          job_id="$(jq -er --arg job "Build $PLATFORM_ID" '[.[].jobs[] | select(.name | endswith("/ " + $job))] | select(length == 1) | .[0] | select(.status == "completed" and .conclusion == "success") | .id' producer-jobs.json)"
           [[ "$job_id" =~ ^[1-9][0-9]*$ ]]
 
   build-platform:
@@ -293,7 +300,7 @@ jobs:
   append-platform:
     if: ${{ always() && needs.verify-standard-quality.result == 'success' && (needs.build-platform.result == 'success' || inputs.platform_artifact_run_id != '') }}
     needs: [verify-standard-quality, build-platform]
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     environment: release-stable
     concurrency:

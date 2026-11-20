@@ -713,7 +713,7 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ steps.full-build-inputs.outputs.go_version }}
-          cache: true
+          cache: ${{ runner.environment != 'self-hosted' }}
           cache-dependency-path: MinerU-Ecosystem/cli/mineru-open-api/go.sum
 
       - name: Install zstd, Temporal CLI, OfficeCLI, and MinerU
