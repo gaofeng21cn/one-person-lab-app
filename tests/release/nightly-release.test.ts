@@ -1009,6 +1009,17 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
     },
   ]);
   const publishSteps = release.jobs['qualify-and-publish'].steps;
+  const publication = publishSteps.find(
+    (step: any) => step.name === 'Publish one immutable non-Latest prerelease',
+  );
+  assert.equal(
+    publication?.env?.OPL_GITHUB_RELEASE_ADMIN_TOKEN,
+    '${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}',
+    'tag reservation and immutable Release creation must use the protected publisher credential',
+  );
+  assert.match(String(publication?.run ?? ''), /test -n "\$OPL_GITHUB_RELEASE_ADMIN_TOKEN"/);
+  assert.match(String(publication?.run ?? ''), /export GH_TOKEN="\$OPL_GITHUB_RELEASE_ADMIN_TOKEN"/);
+  assert.notEqual(publication?.env?.GH_TOKEN, '${{ github.token }}');
   assert.equal(
     publishSteps.find((step: any) => step.name === 'Download Linux Desktop build assets')?.with?.name,
     undefined,

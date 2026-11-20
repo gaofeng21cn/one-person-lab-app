@@ -331,11 +331,16 @@ jobs:
 
       - name: Publish one immutable non-Latest prerelease
         env:
-          GH_TOKEN: ${{ github.token }}
+          OPL_GITHUB_RELEASE_ADMIN_TOKEN: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_RUN_ATTEMPT" = 1
+          test -n "$OPL_GITHUB_RELEASE_ADMIN_TOKEN" || {
+            echo "::error::Protected GitHub Release credential is unavailable."
+            exit 1
+          }
+          export GH_TOKEN="$OPL_GITHUB_RELEASE_ADMIN_TOKEN"
           node --experimental-strip-types scripts/nightly-release-publisher.ts \
             --request nightly-request/opl-nightly-request.json \
             --qualification nightly-qualification.json \
