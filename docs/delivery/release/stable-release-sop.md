@@ -51,7 +51,7 @@ Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用
 | Linux arm64 | `OPL_RELEASE_LINUX_ARM64_RUNNER_LABELS` |
 | Windows x64 | `OPL_RELEASE_WINDOWS_X64_RUNNER_LABELS` |
 
-派发前检查 runner 在线状态和当前占用。托管 runner 取机失败时，从 `release:incident-status` 确认首个未获 runner 的步骤，选择该平台经准入的本机或 Fleet 节点，并从最新合格检查点继续同一冻结候选。已有自有池离线时，切换至另一可用的同角色池，或清除对应变量使用托管容量。保留签名、公证、普通账号 clean-VM 和公开摘要回读。GitHub 仍调度自有 runner 并承载检查点和公开资产。
+派发前检查 runner 在线状态和当前占用。托管 runner 未领取工作，或其平台依赖源确认不可达时，从 `release:incident-status` 确认首个断点，选择具备不同可用网络路径的同平台本机或 Fleet 节点，设置对应平台 runner 变量，并通过原 owner 的恢复入口消费最新合格检查点。不得在已证实的网络断点上重复派发给同一托管环境。已有自有池离线时，切换至另一可用的同角色池，或在网络可达时清除对应变量使用托管容量。保留签名、公证、普通账号 clean-VM 和公开摘要回读。GitHub 仍调度自有 runner 并承载检查点和公开资产。
 
 自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
