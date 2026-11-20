@@ -60,11 +60,14 @@ jobs:
             exit 1
           }
           mkdir -p evidence intake/durable-publication-record
-          oras manifest fetch --descriptor "$PUBLICATION_RECORD_REF" \
+          registry_config="$(mktemp "$RUNNER_TEMP/opl-webui-public-registry.XXXXXX")"
+          trap 'unlink "$registry_config"' EXIT
+          printf '{}\n' > "$registry_config"
+          oras manifest fetch --registry-config "$registry_config" --descriptor "$PUBLICATION_RECORD_REF" \
             > evidence/publication-record-sidecar-descriptor.json
-          oras manifest fetch "$PUBLICATION_RECORD_REF" \
+          oras manifest fetch --registry-config "$registry_config" "$PUBLICATION_RECORD_REF" \
             > evidence/publication-record-sidecar-manifest.json
-          oras pull --output intake/durable-publication-record "$PUBLICATION_RECORD_REF" \
+          oras pull --registry-config "$registry_config" --output intake/durable-publication-record "$PUBLICATION_RECORD_REF" \
             > evidence/publication-record-sidecar-pull.txt
           records=()
           while IFS= read -r record; do records+=("$record"); done < <(
