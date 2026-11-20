@@ -160,7 +160,9 @@ Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产�
 
 先核对当前机器是否就是执行 runner；若是，直接读取该 job 的 wrapper 日志和产物变化。否则使用已授权的 runner 入口或 GitHub 当前 step 日志。`child_running: true` 只证明子进程存活；压缩进展、签名产物、公证请求编号、VM marker 才分别证明对应阶段。确认日志来源后复用 incident CLI 的 `--job-id`／`--job-log-file`，不另造状态控制器。
 
-Full deep／strict 签名验证保留必要诊断，避免逐个嵌套对象的 verbose 输出耗尽子进程捕获缓冲。Linux 系统依赖通过 HTTPS 镜像获取 Ubuntu 签名归档，保留 apt 签名验证并使用有界重试与超时；失败只恢复该平台。
+Full deep／strict 签名验证保留必要诊断，避免逐个嵌套对象的 verbose 输出耗尽子进程捕获缓冲。
+
+Linux x64 桌面构建在遇到 Ubuntu 托管 runner 的镜像配置时，先从 HTTPS 镜像下载签名归档，索引更新或下载失败时在同一 job 切到 Ubuntu 官方归档。两条路径沿用发行版套件和签名 keyring，在临时配置中执行，包下载齐后才安装。其他 runner 沿用自己的源。两条可用路径都失败时，只恢复该平台。 [Linux 依赖安装入口](../../../scripts/install-linux-desktop-build-dependencies.sh)
 
 macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 并回读；不足时在打包前明确失败。签名器加载前用现有 `graceful-fs.gracefulify` 为构建进程启用文件句柄排队，并用现有 `p-limit` 将签名器实际解析到的 `isbinaryfile` 探测限制为 32 个并发，避免整棵依赖树同时等待句柄；不修改依赖源码或跳过签名文件。上游扫描提供并发限制后移除此构建适配。
 
@@ -203,6 +205,8 @@ no signed artifact was produced; do not rerun failed workflow jobs.
 | 缺少可用凭据、授权、runner 或外部服务能力 | 明确缺少什么、解除条件和可独立继续的渠道；不能伪造成功或替换高权限账号。 |
 
 Standard 发布恢复：
+
+新 Standard 的只读准入重新导入同一 run 的合格检查点并核对发布控制。Framework 返回幂等准入且检查点内没有待对账记录时，发布 job 直接消费已封存的原检查点。跨 run 恢复继续输出本轮操作检查点，供后续同版本操作回读。
 
 首装已通过但 Standard 检查点导出失败时，controller 可选择原 run 的 sealed bound artifact，
 从同一 run 的 Bundle、签名身份、已通过的 VM 回执和已消费的发布授权恢复检查点。
@@ -387,6 +391,8 @@ Full 可复用目标 Standard 已公开且 sealed 的 ARM64 updater ZIP。复用
 
 Full staging 优先使用保留权限、symlink 与扩展属性的 APFS clone，文件系统不支持时回到 `ditto`。裁剪与边界统计共用本次操作的一份目录清点。Full 构建、恢复公证及包体复验使用准入时选择的 Mac，回执记录实际 runner。设置 `OPL_FULL_BUILD_RUNNER=macos-15-xlarge` 可显式选择已有的 GitHub 托管 ARM64 XLarge 构建能力。
 
+复用的 renderer 已由封存 ZIP 绑定其冻结 GUI 合同。执行器同期的 GUI 合同编辑可与该包并存。Full 核对 App 产品 profile、Shell adapter 和随包 Official Profile helper 的一致性。显式更换 App、Shell 或 Framework 产品提交时，原 ZIP 须重新匹配所选 cohort。
+
 Full 在构建和包体验证时使用候选内的 Framework CLI 读取更新与 App 状态。两项读取在同一临时 OPL 状态目录中执行，每项最多运行 60 秒，结束后清理目录。这使自有 runner 上的日常 OPL 状态不影响候选检查。
 
 Full 对运行时的原生代码做 Developer ID 验签。`esbuild/bin/esbuild` 如果是 npm 的 Node 启动脚本，由所在 App 的资源签名覆盖；实际的 ARM64 esbuild 二进制仍单独签名、验签。该路径若含原生可执行文件，也必须单独通过原生验签。
@@ -419,7 +425,7 @@ Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同
 
 在现有完成记录中保留：首次正式尝试时间、Standard 公开时间、每个要求渠道的完成时间、最后一次成功单轮、失败／恢复区间，以及能回查的 run／产物链接。无必需未完成项才报告全部完成；存在阻塞时报告已完成面、缺口与解除条件，不把未知状态填成成功。
 
-耗时比较保持相同口径。参考 [2026-10-08 复盘](incidents/2026-10-08-release-efficiency.md)、[2026-09-22 复盘](incidents/2026-09-22-release-efficiency.md)及 [2026-09-15 复盘](incidents/2026-09-15-release-efficiency.md)中的失败模式与证据，不把旧 run ID、版本、摘要或估算节省时间当作下一次发布参数或保证。
+用 `npm run release:actions-timing -- --run-id <id>` 采集各 run 的 job 和 step 耗时。比较新版本时，分别记录首次派发到标准版公开、首次派发到全渠道完成、失败执行和人工恢复间隔。Full 的签名和制作 DMG、Apple 公证、clean-VM 和公开回读分别取实际步骤或阶段日志时间。并行渠道按最晚完成时间计入整批耗时。 [2026-11-20 复盘](incidents/2026-11-20-release-efficiency.md) · [2026-11-11 复盘](incidents/2026-11-11-release-efficiency.md)
 
 ## 维护和安装
 

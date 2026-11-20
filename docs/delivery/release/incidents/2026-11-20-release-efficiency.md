@@ -23,3 +23,11 @@
 ## 发布回读
 
 Latest 指向 `v26.11.20-r1`。macOS Standard 和 Full 具备签名、公证与干净环境首启证据。Linux 与 Windows 安装包、Homebrew Standard 和 Full cask、Docker 版本与移动标签均完成公开回读。Windows 的 Authenticode 状态为 `unsigned`。[公开 Release](https://github.com/gaofeng21cn/one-person-lab-app/releases/tag/v26.11.20-r1) · [Docker 发布](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/44695849627)
+
+## 下一轮比较基线
+
+首次派发后 **49 分 24 秒** 已封存通过 clean-VM 验收的 Standard 检查点。前两次发布均在 `Upload reconciled operation checkpoint` 等到 restore job 约 25 分钟后取消。第一次取消到第二次派发相隔 **1 小时 29 分 08 秒**。现在，新 Standard 在 Framework 确认操作控制保持原样后直接复用本轮检查点。 [首次 restore](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/44678971646/job/136115417679) · [第二次 restore](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/44698112059/job/136160102123)
+
+成功的 Full 构建 job 用了 **49 分 16 秒**，其中 Full 组装 **8 分 53 秒**，ARM 签名和公证收尾 **25 分 40 秒**，本机 npm 缓存归档上传 **7 分 13 秒**。之后 clean-VM 首启 job 独立用时 **11 分 50 秒**。下一轮分别比较这些阶段，并记录原始派发至全渠道完成的耗时。 [Full 构建](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/44704631673/job/136183291751) · [Full clean-VM](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/44704631673/job/136206669505)
+
+这轮 Full 在 `Resolve reusable public Standard App` 中发现执行器上的 GUI 合同标签变化，因而重新编译了 Shell。复用路径直接使用 Standard ZIP 内已经构建的 renderer，今后按封存产物的冻结 cohort 验证其身份，执行器只比较复用所需的产品输入。 [Full 构建日志](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/44704631673/job/136183291751) · [GUI 合同提交](https://github.com/gaofeng21cn/one-person-lab-app/commit/942e18e72)

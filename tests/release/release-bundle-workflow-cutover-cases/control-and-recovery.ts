@@ -472,7 +472,11 @@ test('resume admission preserves Standard identity and rotates only an expired e
   assert.match(reconcileRun, /operation_started_at='\$\{\{ inputs\.operation_started_at \}\}'/);
   assert.match(reconcileRun, /operation_deadline_at='\$\{\{ inputs\.operation_deadline_at \}\}'/);
   assert.match(reconcileRun, /operation-status-after-admit\.json/);
-  assert.match(reconcileRun, /operation-admit-result\.json[^]*checkpoint export/);
+  const exportCheckpoint = workflowStep('_release-standard-publish.yml', 'restore', 'Export reconciled operation checkpoint');
+  assert.match(reconcileRun, /release operation admit[^]*operation-admit-result\.json/);
+  assert.ok(restore.steps.findIndex((step: any) => step.id === 'operation')
+    < restore.steps.findIndex((step: any) => step.name === 'Export reconciled operation checkpoint'));
+  assert.match(String(exportCheckpoint.run), /release checkpoint export/);
   assert.match(reconcileRun, /echo "release_operation=\$release_operation"/);
   assert.match(reconcileRun, /echo "operation_started_at=\$operation_started_at"/);
   assert.match(reconcileRun, /echo "operation_deadline_at=\$operation_deadline_at"/);

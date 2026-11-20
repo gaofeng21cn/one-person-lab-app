@@ -37,6 +37,58 @@ test('parallel artifact build cannot turn failed, skipped, missing or cancelled 
   assert.equal(runGate({ build: 'failure' }, true).status, 1);
 });
 
+test('fresh Standard forwards its same-run checkpoint only after unchanged Framework admission', () => {
+  const steps = read('.github/workflows/_release-standard-publish.yml').jobs.restore.steps;
+  const operation = steps.find((step: any) => step.id === 'operation');
+  const selection = operation.run.slice(operation.run.indexOf('reuse_source_checkpoint=false'));
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-standard-checkpoint-test-'));
+  const output = path.join(workspace, 'outputs');
+  const cases = [
+    { reuse: true },
+    { operation: 'resume_standard' },
+    { channel: 'preview' },
+    { sourceRun: '89' },
+    { sourceArtifact: 'opl-release-standard-bound-42' },
+    { markers: '1' },
+    { admission: 'complete' },
+  ];
+  try {
+    for (const {
+      reuse = false, operation: requested = 'standard', channel = 'stable', sourceRun = '42',
+      sourceArtifact = `opl-release-standard-checkpoint-${sourceRun}`, markers = '0', admission = 'idempotent',
+    } of cases) {
+      fs.writeFileSync(path.join(workspace, 'operation-admit-result.json'), JSON.stringify({
+        release_bundle_operation_admit: { status: admission },
+      }));
+      fs.writeFileSync(output, '');
+      const result = spawnSync('bash', [
+        '-eu', '-c',
+        'requested_operation=$1; marker_count=$2; operation_id=frozen; release_operation=$1; '
+          + 'operation_started_at=2026-11-20T05:08:04Z; operation_deadline_at=2026-11-20T06:38:04Z\n'
+          + selection.replace('${{ inputs.publication_channel }}', channel),
+        '--', requested, markers,
+      ], {
+        cwd: workspace, encoding: 'utf8', env: {
+          ...process.env, GITHUB_RUN_ID: '42', GITHUB_OUTPUT: output,
+          SOURCE_RUN_ID: sourceRun, SOURCE_ARTIFACT: sourceArtifact,
+        },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const outputs = Object.fromEntries(fs.readFileSync(output, 'utf8').trim().split('\n').map(line => line.split('=')));
+      assert.equal(outputs.reuse_source_checkpoint, String(reuse));
+      assert.equal(outputs.source_run_id, '42');
+      assert.equal(outputs.source_artifact, reuse ? sourceArtifact : 'opl-release-standard-operation-checkpoint-42');
+      assert.equal(outputs.operation_id, 'frozen');
+    }
+  } finally {
+    fs.rmSync(workspace, { recursive: true, force: true });
+  }
+  for (const name of ['Export reconciled operation checkpoint', 'Upload reconciled operation checkpoint']) {
+    assert.equal(steps.find((step: any) => step.name === name).if,
+      "${{ steps.operation.outputs.reuse_source_checkpoint == 'false' }}");
+  }
+});
+
 test('Full qualification starts from verified build and publication still joins both independent gates', () => {
   const jobs = read('.github/workflows/_release-full-addon.yml').jobs;
   const vm = jobs['full-clean-vm-qualification'];

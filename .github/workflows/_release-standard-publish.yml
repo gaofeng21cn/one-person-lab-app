@@ -518,6 +518,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUNDLE_DIGEST: ${{ steps.checkpoint.outputs.bundle_digest }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_ARTIFACT: ${{ inputs.source_artifact }}
         shell: bash
         run: |
           set -euo pipefail
@@ -636,9 +638,41 @@ jobs:
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > operation-status-after-admit.json
           test "$(jq -r .release_bundle_status.operation_controls.standard.operation_started_at operation-status-after-admit.json)" = "$operation_started_at"
           test "$(jq -r .release_bundle_status.operation_controls.standard.operation_deadline_at operation-status-after-admit.json)" = "$operation_deadline_at"
+
+          reuse_source_checkpoint=false
+          source_run_id="$GITHUB_RUN_ID"
+          source_artifact="opl-release-standard-operation-checkpoint-$GITHUB_RUN_ID"
+          if [ "$requested_operation" = standard ] \
+            && [ '${{ inputs.publication_channel }}' = stable ] \
+            && [ "$SOURCE_RUN_ID" = "$GITHUB_RUN_ID" ] \
+            && [ "$SOURCE_ARTIFACT" = "opl-release-standard-checkpoint-$GITHUB_RUN_ID" ] \
+            && [ "$marker_count" -eq 0 ] \
+            && jq -e '.release_bundle_operation_admit.status == "idempotent"' operation-admit-result.json >/dev/null; then
+            reuse_source_checkpoint=true
+            source_run_id="$SOURCE_RUN_ID"
+            source_artifact="$SOURCE_ARTIFACT"
+          fi
+          {
+            echo "reuse_source_checkpoint=$reuse_source_checkpoint"
+            echo "source_run_id=$source_run_id"
+            echo "source_artifact=$source_artifact"
+            echo "operation_id=$operation_id"
+            echo "release_operation=$release_operation"
+            echo "operation_started_at=$operation_started_at"
+            echo "operation_deadline_at=$operation_deadline_at"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Export reconciled operation checkpoint
+        if: ${{ steps.operation.outputs.reuse_source_checkpoint == 'false' }}
+        env:
+          BUNDLE_DIGEST: ${{ steps.checkpoint.outputs.bundle_digest }}
+          STORE: ${{ steps.checkpoint.outputs.store_dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
           framework-executor/bin/opl release checkpoint export \
             --bundle "$BUNDLE_DIGEST" --output standard-operation-checkpoint \
-            --store "$store" --json > operation-checkpoint-export.json
+            --store "$STORE" --json > operation-checkpoint-export.json
           standard_build_receipts=()
           while IFS= read -r receipt; do
             standard_build_receipts+=("$receipt")
@@ -686,17 +720,9 @@ jobs:
           }
           cp "${standard_qualification_receipts[0]}" standard-clean-vm-qualification-receipt.json
           cp "${standard_qualification_digests[0]}" standard-clean-vm-qualification-receipt.sha256
-          {
-            echo "source_run_id=$GITHUB_RUN_ID"
-            echo "source_artifact=opl-release-standard-operation-checkpoint-${GITHUB_RUN_ID}"
-            echo "operation_id=$operation_id"
-            echo "release_operation=$release_operation"
-            echo "operation_started_at=$operation_started_at"
-            echo "operation_deadline_at=$operation_deadline_at"
-          } >> "$GITHUB_OUTPUT"
 
       - name: Upload reconciled operation checkpoint
-        if: ${{ always() }}
+        if: ${{ steps.operation.outputs.reuse_source_checkpoint == 'false' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opl-release-standard-operation-checkpoint-${{ github.run_id }}

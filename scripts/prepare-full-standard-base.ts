@@ -20,8 +20,9 @@ function command(cmd: string, args: string[]) {
 }
 export function assertStandardBaseProductInputs(frozenAppRoot: string, packagingAppRoot: string) {
   if (!frozenAppRoot) throw new Error('Standard base requires the frozen App product inputs.');
+  // The sealed ZIP already carries the renderer built from the frozen GUI contract.
   for (const relative of [
-    'contracts/app-product-profile.json', 'contracts/app-gui-product-contract.json',
+    'contracts/app-product-profile.json',
     'contracts/app-shell-adapter.json', 'scripts/official-profile-package-apply.ts',
   ]) {
     if (sha256File(path.join(frozenAppRoot, relative)) !== sha256File(path.join(packagingAppRoot, relative))) {

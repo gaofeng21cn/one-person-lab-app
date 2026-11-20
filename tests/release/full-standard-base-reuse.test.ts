@@ -62,13 +62,15 @@ test('Full reuses only the exact sealed Standard cohort and machine version', ()
 
 test('Full refuses Standard reuse when the executor would inject different product resources', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-standard-product-inputs-'));
-  const files = ['contracts/app-product-profile.json', 'contracts/app-gui-product-contract.json',
+  const files = ['contracts/app-product-profile.json',
     'contracts/app-shell-adapter.json', 'scripts/official-profile-package-apply.ts'];
   try {
     for (const folder of ['frozen', 'executor']) for (const file of files) {
       const target = path.join(root, folder, file);
       fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, file);
     }
+    fs.writeFileSync(path.join(root, 'frozen/contracts/app-gui-product-contract.json'), JSON.stringify({ display_value: '5.6 Sol' }));
+    fs.writeFileSync(path.join(root, 'executor/contracts/app-gui-product-contract.json'), JSON.stringify({ display_value: '6.2 Astra' }));
     assert.doesNotThrow(() => assertStandardBaseProductInputs(path.join(root, 'frozen'), path.join(root, 'executor')));
     for (const file of files) {
       const target = path.join(root, 'executor', file); fs.appendFileSync(target, 'changed');
