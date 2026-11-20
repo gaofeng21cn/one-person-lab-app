@@ -403,6 +403,7 @@ function runDesktopQualityVerify(input: {
         SHELL_REF: shell,
         FRAMEWORK_REF: framework,
         PLATFORM_SHELL_REF: input.platformShell ?? '',
+        STAGE_DIR: root,
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
         GITHUB_OUTPUT: output,
       },

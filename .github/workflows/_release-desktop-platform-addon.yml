@@ -81,6 +81,9 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          stage_dir="$(mktemp -d "$RUNNER_TEMP/opl-desktop-platform-quality.XXXXXX")"
+          echo "stage_dir=$stage_dir" >> "$GITHUB_OUTPUT"
+          cd "$stage_dir"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > source-run.json
           jq -e --arg run "$SOURCE_RUN_ID" '
             (.id | tostring) == $run
@@ -112,7 +115,7 @@ jobs:
           name: ${{ steps.source.outputs.source_artifact }}
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ github.token }}
-          path: standard-checkpoint
+          path: ${{ steps.source.outputs.stage_dir }}/standard-checkpoint
 
       - name: Verify exact Standard cohort identity
         id: verify
@@ -126,9 +129,11 @@ jobs:
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
           PLATFORM_SHELL_REF: ${{ inputs.platform_shell_ref }}
           PLATFORM_ARTIFACT_RUN_ID: ${{ inputs.platform_artifact_run_id }}
+          STAGE_DIR: ${{ steps.source.outputs.stage_dir }}
         shell: bash
         run: |
           set -euo pipefail
+          cd "$STAGE_DIR"
           skip_code_quality=false
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$SOURCE_BUNDLE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
@@ -247,9 +252,11 @@ jobs:
           BUILD_SHELL_REF: ${{ inputs.platform_shell_ref || inputs.shell_ref }}
           FRAMEWORK_REF: ${{ inputs.framework_ref }}
           RELEASE_TAG: ${{ inputs.release_tag }}
+          STAGE_DIR: ${{ steps.source.outputs.stage_dir }}
         shell: bash
         run: |
           set -euo pipefail
+          cd "$STAGE_DIR"
           test '${{ inputs.platform_id }}' = windows-x64
           [[ "$PRODUCER_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRODUCER_RUN_ID" > producer-run.json
