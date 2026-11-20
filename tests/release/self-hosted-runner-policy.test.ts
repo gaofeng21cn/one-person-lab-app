@@ -146,6 +146,16 @@ test('Stable payload transfer can use a separately qualified pool', () => {
   }
 });
 
+test('Full uses the local npm cache on self-hosted builders', () => {
+  const { workflow } = readWorkflow('full-first-install-release.yml');
+  const setupNode = Object.values(workflow.jobs)
+    .flatMap((job: any) => job.steps ?? [])
+    .find((step) => step.id === 'node-cache');
+
+  assert.equal(setupNode.with.cache, "${{ runner.environment == 'github-hosted' && 'npm' || '' }}");
+  assert.equal(setupNode.with['package-manager-cache'], "${{ runner.environment == 'github-hosted' }}");
+});
+
 test('Native Stable build routes have independent capacity overrides and keep platform identity', () => {
   const { workflow: webui } = readWorkflow('_release-webui-carrier.yml');
   const qualify = webui.jobs['build-and-qualify'];

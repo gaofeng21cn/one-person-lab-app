@@ -57,7 +57,7 @@ Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用
 
 检查点恢复在自有 runner 上使用本机 npm 缓存，省去 GitHub 缓存归档的下载和上传。`npm ci` 仍按精确 Framework 提交的 lockfile 安装依赖。GitHub 托管 runner 继续使用按 lockfile 匹配的缓存。
 
-自有 runner 的 Studio 源码与桌面构建使用本机 Bun，关闭 `setup-bun` 的远端缓存写入。已在线并通过工具链核对的 Intel Mac 可以加入同一控制池并行分担检查。
+自有 runner 的 Studio 源码与桌面构建使用本机 Bun，关闭 `setup-bun` 的远端缓存写入。Full 构建在自有 Mac 使用本机 npm 缓存，`setup-node` 的远端 npm 缓存仅用于托管 runner。已在线并通过工具链核对的 Intel Mac 可以加入同一控制池并行分担检查。
 
 Standard 的构建工作流、Mac runner 选择和签名钥匙串脚本参与 operation 标识。修复这些执行器输入后，controller 可保留冻结产品及已通过的源码证据，用修复后的执行器签发新的 operation。
 

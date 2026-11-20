@@ -595,7 +595,8 @@ jobs:
         with:
           node-version: '24'
           check-latest: true
-          cache: npm
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
+          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
           cache-dependency-path: |
             one-person-lab/package-lock.json
             redcube-ai/package-lock.json
