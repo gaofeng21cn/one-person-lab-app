@@ -49,6 +49,7 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 | 追加或恢复 Full | controller 的 `append-full`；自动 follower 的 `reconcile_full_addon` | `_release-full-addon.yml`；随后 `_release-homebrew-full-publish.yml` |
 | Linux / Windows 附加发布 | `release-stable-post-success-followups.yml` | 每个平台独立执行 `_release-desktop-platform-addon.yml` → `build-manual.yml`，然后同 tag 追加 |
 | 单个平台恢复 | 同一 follow-up workflow，`operation=reconcile_desktop_platform` | `source_run_id` 加准确 `desktop_platform`；已存在的不同字节必须走替换，不能当作追加覆盖 |
+| 已公开的 Linux 包补安装验收 | `release-post-publication-certification.yml`，`verify_existing_desktop` | 使用原 Standard 发布 run、Linux 恢复 run 和当前主线提交验收同一 DEB [恢复与回执](stable-release-sop.md#5-修复首个断点并最小恢复) |
 | Standard / Full Homebrew 恢复 | 同一 follow-up workflow，`reconcile_homebrew_standard` / `reconcile_homebrew_full` | 读取真实公开 manifest；Standard 支持同 tag 的机器版本修复；Full 保持自己的合格来源 |
 | Docker 自动附加 | Stable workflow 的 WebUI source/carrier/promotion jobs | 双架构原生资格、不可变 OCI 版本、durable publication record、版本与移动标签回读 |
 | Docker 单独验收、发布或修复 | `release-webui-development.yml`，`qualify` / `publish` / `promote` | 可用 `qualified_artifact_run_id` 复用合格镜像；Stable `publish` 已接续 promotion，成功后不重复 promote |

@@ -53,7 +53,7 @@ Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用
 
 派发前检查 runner 在线状态和当前占用。托管 runner 未领取工作，或其平台依赖源确认不可达时，从 `release:incident-status` 确认首个断点，选择具备不同可用网络路径的同平台本机或 Fleet 节点，设置对应平台 runner 变量，并通过原 owner 的恢复入口消费最新合格检查点。不得在已证实的网络断点上重复派发给同一托管环境。已有自有池离线时，切换至另一可用的同角色池，或在网络可达时清除对应变量使用托管容量。保留签名、公证、普通账号 clean-VM 和公开摘要回读。GitHub 仍调度自有 runner 并承载检查点和公开资产。
 
-Linux x64 桌面构建已在本机隔离的 Ubuntu 24.04 `linux/amd64` 容器中跑通。先实测依赖安装和解包，再用独立标签注册一次性 runner。目标 job 领取后恢复原 runner 变量，job 完成后清理容器。其他平台仍使用各自验证过的同平台环境。
+Linux x64 桌面构建已在本机隔离的 Ubuntu 24.04 `linux/amd64` 容器中跑通。注册前用目标容器实测 APT 更新与安装、runner 归档解包以及 runner 启动，确认备用环境能处理原失败步骤。用独立标签注册一次性 runner，回读目标 job 已分配到该 runner 后恢复原仓库变量，job 完成后清理容器。其他平台使用各自验证过的同平台环境。
 
 自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
@@ -138,6 +138,8 @@ npm run --silent release:incident-status -- --run-id <owner-run-id>
 ```
 
 读取精确 job／step、step 开始时间、最后可证变化、已完成产物和下一生产性动作。运行中 job 的业务 step 已失败时，立即定位该 step；后续上传诊断、回收 VM 或 cleanup 不表示业务验收成功。已明确容错的 step 和最终成功的 job 不自动升级为阻断失败。向用户只报告有意义的变化。请求持续跟进时沿用现有 owner；需要跨执行轮次的定时跟进则使用宿主原生自动化并复用已有任务，不另造轮询 daemon，也不擅自恢复用户已暂停的自动化。
+
+失败 job 已结束而父 run 仍在运行时，先按 job ID 从 Actions Jobs API 的 `/logs` 读取该 job 的日志。需要绑定诊断时，将日志保存到本地临时文件，再传给 `release:incident-status`。
 
 运行结束后，若失败或取消的 job 没有分配 runner，也没有执行步骤，诊断会读取对应 check run 的注释。GitHub 确认托管 runner 未领取任务时，按实际发生时间定位首个失败，并返回 `fallback_owned_runner`。普通容量提示只说明排队可能变长。
 
@@ -334,7 +336,9 @@ Standard 的预备安装包是可选加速。只有实际上传成功后才向 V
 
 Linux／Windows／Homebrew 的独立恢复使用 [现有 follow-up workflow](../../../.github/workflows/release-stable-post-success-followups.yml) 的 `reconcile_desktop_platform`、`reconcile_homebrew_standard`、`reconcile_homebrew_full` 等对应 operation。执行前确认源 run、目标渠道及该渠道 owner；参数以当前 workflow 为准，不将内部 `standard` 输入搬到这个入口。`repair_additive` 只适用于其合同规定的安装器资产 CAS，不能当作任意资产替换工具。
 
-Linux 已公开而独立安装验收缺失时，用 [Desktop artifact certification](../../../.github/workflows/release-post-publication-certification.yml) 的 `verify_existing_desktop`，传入发布 Standard 的源 run、成功的 Linux 恢复 run 和当前主线提交。验收按 Standard 发布 job、Linux 追加回执及公开摘要核对同一版本，安装后回读 DEB 版本和架构。
+Linux 已公开而独立安装验收缺失时，使用 `verify_existing_desktop`，传入发布 Standard 的源 run、成功的 Linux 恢复 run 和当前主线提交。验收按 Standard 发布 job、Linux 追加回执及公开摘要核对同一版本。最终核对 `certify-linux-x64` 成功，以及 `linux-x64-same-tag-install.json` 中的 `passed`、DEB 摘要、机器版本和架构。[Desktop artifact certification](../../../.github/workflows/release-post-publication-certification.yml)
+
+同 tag 安装时，若 GitHub Release API 返回 HTTP 403 且 `X-RateLimit-Remaining: 0`，认证 job 通过只读 `github.token` 使用安装器现有的 `gh` 回退入口。安装器继续从公开地址下载资产并校验摘要。
 
 已公开的可变 Stable Release 若需修复产品字节，先通过现有 `build-manual.yml` 的
 `replacement_tag` 构建 macOS arm64 签名候选，绑定准确 Shell／Framework SHA。
@@ -465,7 +469,7 @@ Full 的 Shell 验收器单独通过 `replacement_smoke_harness_ref` 选择纯�
 
 ## 8. 发布后改进
 
-只固化有证据的真实断点和恢复路径：先修 caller，再用对应失败样例或边界用例验证；通用操作写入本 SOP，入口提示写入发布 Skill，具体版本、run、时间和未知原因放入事故复盘；最近见 [26.11.11 复盘](incidents/2026-11-11-release-efficiency.md)、[26.10.26 复盘](incidents/2026-10-26-release-efficiency.md)和 [26.10.9 复盘](incidents/2026-10-09-release-efficiency.md)，此前记录保留各自历史证据。不为经验沉淀重复发布或运行已通过的产品门禁。
+只固化有证据的真实断点和恢复路径。先修调用方，再用对应失败样例或边界用例验证。通用操作写入本 SOP，入口提示写入发布 Skill。具体版本、run、时间和未知原因放入事故复盘。复盘复用原发布和已通过门禁的证据。近期记录见 [26.11.20-r1 复盘](incidents/2026-11-20-release-efficiency.md)、[26.11.11 复盘](incidents/2026-11-11-release-efficiency.md)及 [26.10.26 复盘](incidents/2026-10-26-release-efficiency.md)。
 
 一次未保留 owner 原因的 Gateway 失败，只能记录最深已证断点；后续同字节成功不能倒推出当次根因。持续失败时读取已脱敏的 machine reason code 和 owner 只读投影，再决定修哪一层。进度只在阶段变化、出现真实失败或需要用户动作时汇报；没有变化的轮询不产生新验收证据。
 
