@@ -192,7 +192,7 @@ jobs:
             *) echo '::error::Unsupported Docker source authority caller.'; exit 1 ;;
           esac
           carrier_readback_verified=false
-          for readback_attempt in 1 2 3; do
+          for _ in 1 2 3; do
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID" \
               > evidence/carrier-follower-run.json
             gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CARRIER_FOLLOWER_RUN_ID/jobs?filter=latest&per_page=100" \
@@ -707,11 +707,23 @@ jobs:
           ' terminal/public-oci/version-index.json > terminal/public-oci/platform-descriptors.json
           verify_blob_descriptor() {
             local descriptor="$1" name="$2"
-            local digest size
+            local digest size attempt error_file
             digest="$(jq -er .digest <<<"$descriptor")"
             size="$(jq -er .size <<<"$descriptor")"
-            oras blob fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "${repository}@${digest}" \
-              > "terminal/public-oci/blobs/${name}.json"
+            error_file="$(mktemp "$RUNNER_TEMP/opl-webui-oci-blob.XXXXXX")"
+            for attempt in 1 2 3; do
+              if oras blob fetch --registry-config "$OPL_WEBUI_ORAS_CONFIG" --descriptor "${repository}@${digest}" \
+                > "terminal/public-oci/blobs/${name}.json" 2> "$error_file"; then
+                break
+              fi
+              if [ "$attempt" = 3 ] || ! grep -Eqi 'EOF|connection reset|timed out|503|502' "$error_file"; then
+                rm -f "$error_file"
+                echo "::error::Public OCI blob read failed for ${name} (${digest}) after ${attempt} attempt(s)." >&2
+                return 1
+              fi
+              sleep "$attempt"
+            done
+            rm -f "$error_file"
             jq -e --arg digest "$digest" --argjson size "$size" '
               .digest == $digest and .size == $size
             ' "terminal/public-oci/blobs/${name}.json" >/dev/null

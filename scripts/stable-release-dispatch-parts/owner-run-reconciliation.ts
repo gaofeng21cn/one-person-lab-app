@@ -163,29 +163,44 @@ export function reconcileAppendFullTarget(input: {
     );
   }
 
-  for (const owner of [...owners].sort((left, right) => right.id - left.id)) {
-    if (owner.status !== 'completed' || owner.conclusion === 'success') continue;
-    const ownerArtifacts = [...(input.artifactsByRunId[String(owner.id)] ?? [])];
-    const checkpoint = selectReusableFullCheckpointArtifact(
-      ownerArtifacts,
-      String(owner.id),
-    );
-    if (checkpoint) {
-      const fullBuildCohorts = reusableFullBuildCohorts(ownerArtifacts);
-      if (fullBuildCohorts.length > 1) {
-        throw new Error(
-          `Run ${owner.id} must expose at most one reusable Full build cohort; found ${fullBuildCohorts.length}.`,
-        );
-      }
-      if (fullBuildCohorts.length === 0 && !reusableFullFinalizerInput(ownerArtifacts, String(owner.id))) continue;
+  const sortedOwners = [...owners].sort((left, right) => right.id - left.id);
+  let retainedBuild: string | undefined;
+  let finalizerSource: { runId: string; checkpoint: string } | undefined;
+  for (const owner of sortedOwners) {
+    if (owner.status !== 'completed' || !['failure', 'cancelled'].includes(owner.conclusion ?? '')) continue;
+    const ownerId = String(owner.id);
+    const ownerArtifacts = [...(input.artifactsByRunId[ownerId] ?? [])];
+    const cohorts = reusableFullBuildCohorts(ownerArtifacts);
+    if (cohorts.length > 1) {
+      throw new Error(`Run ${ownerId} must expose at most one reusable Full build cohort; found ${cohorts.length}.`);
+    }
+    const checkpoint = selectReusableFullCheckpointArtifact(ownerArtifacts, ownerId);
+    if (checkpoint && cohorts.length === 1) {
       return {
         state: 'dispatch_required',
         root_source_run_id: root,
         owner_run_id: null,
-        source_run_id: String(owner.id),
+        source_run_id: ownerId,
         source_artifact: checkpoint,
       };
     }
+    const signedPackage = cohorts[0]?.name.replace(/-cohort$/, '');
+    if (signedPackage && ownerArtifacts.some(artifact => !artifact.expired && artifact.name === signedPackage)) {
+      retainedBuild ??= ownerId;
+    }
+    if (!retainedBuild && !finalizerSource && checkpoint && reusableFullFinalizerInput(ownerArtifacts, ownerId)) {
+      finalizerSource = { runId: ownerId, checkpoint };
+    }
+  }
+
+  if (!retainedBuild && finalizerSource) {
+    return {
+      state: 'dispatch_required',
+      root_source_run_id: root,
+      owner_run_id: null,
+      source_run_id: finalizerSource.runId,
+      source_artifact: finalizerSource.checkpoint,
+    };
   }
 
   const rootArtifacts = [...(input.artifactsByRunId[root] ?? [])];
@@ -195,6 +210,7 @@ export function reconcileAppendFullTarget(input: {
     owner_run_id: null,
     source_run_id: root,
     source_artifact: selectCheckpointArtifact(rootArtifacts, root),
+    ...(retainedBuild ? { prior_full_artifact_run_id: retainedBuild } : {}),
   };
 }
 

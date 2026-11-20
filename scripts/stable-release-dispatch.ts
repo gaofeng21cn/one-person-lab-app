@@ -57,6 +57,7 @@ import {
   runRequired,
   sha,
   text,
+  type AppendFullTargetState,
   type Runtime,
   type StableDispatchPlan,
   type WorkflowArtifact,
@@ -363,7 +364,7 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
     const requestedSourceArtifact = values['source-artifact']
       ? text(values['source-artifact'], 'source_artifact')
       : null;
-    let target = requestedSourceArtifact
+    let target: AppendFullTargetState = requestedSourceArtifact
       ? (() => {
           if (!isFullCheckpointArtifact(requestedSourceArtifact, rootSourceRunId)) {
             throw new Error(
@@ -417,13 +418,19 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       });
       return;
     }
-    const checkpointCohort = isFullCheckpointArtifact(target.source_artifact, target.source_run_id)
-      ? readFullCheckpointCohort(runtime, repository, target.source_run_id, artifactsByRunId[target.source_run_id] ?? [])
+    const retainedBuildRunId = target.prior_full_artifact_run_id;
+    const cohortRunId = retainedBuildRunId
+      ?? (isFullCheckpointArtifact(target.source_artifact, target.source_run_id) ? target.source_run_id : undefined);
+    const checkpointCohort = cohortRunId
+      ? readFullCheckpointCohort(runtime, repository, cohortRunId, artifactsByRunId[cohortRunId] ?? [])
       : undefined;
     const { appSha, shellSha, frameworkSha } = resolveAppendFullCohort(checkpointCohort, {
       appSha: values['app-ref'], shellSha: values['shell-ref'], frameworkSha: values['framework-ref'],
     }, (key) => key === 'appSha' ? executorSha : wireSha(runtime, key === 'shellSha' ? shellRemote : frameworkRemote));
-    if (checkpointCohort !== undefined) {
+    if (retainedBuildRunId && !fullCheckpointMatchesRequestedCohort(checkpointCohort, { appSha, shellSha, frameworkSha })) {
+      throw new Error('Recovering a retained signed Full build requires its original source cohort.');
+    }
+    if (checkpointCohort !== undefined && !retainedBuildRunId) {
       target = reconcileAppendFullCheckpointCohort({
         target, rootArtifacts: artifactsByRunId[rootSourceRunId] ?? [], checkpointCohort,
         exactArtifactRequested: Boolean(requestedSourceArtifact),
@@ -454,10 +461,10 @@ async function main(argv: string[], runtime: Runtime = defaultRuntime): Promise<
       priorFullFinalizerRunId,
       priorFullArtifactRunId: isFullRecovery
         ? undefined
-        : selectPriorFullCandidateRunId(artifactsByRunId[rootSourceRunId] ?? [], rootSourceRunId),
+        : retainedBuildRunId ?? selectPriorFullCandidateRunId(artifactsByRunId[rootSourceRunId] ?? [], rootSourceRunId),
       smokeHarnessSha: values['smoke-harness-ref'],
       verificationAppSha: values['verification-app-ref'],
-      recoveryRunId: isFullRecovery ? sourceRunId : rootSourceRunId,
+      recoveryRunId: retainedBuildRunId ?? (isFullRecovery ? sourceRunId : rootSourceRunId),
       frameworkExecutorSha: values['framework-executor-ref']
         ? sha(values['framework-executor-ref'], 'framework_executor_ref')
         : wireSha(runtime, frameworkRemote),

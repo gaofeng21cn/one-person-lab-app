@@ -278,6 +278,9 @@ test('Docker WebUI workflows expose one independent Stable and Preview lane with
   assert.match(publicReadback, /opl_app_webui_public_oci_readback\.v2/);
   assert.match(publicReadback, /children:\$children/);
   assert.doesNotMatch(publicReadback, /child:\{/);
+  assert.match(publicReadback, /for attempt in 1 2 3/);
+  assert.match(publicReadback, /EOF\|connection reset\|timed out\|503\|502/);
+  assert.match(publicReadback, /return 1/);
   assert.equal(fs.existsSync(path.join(appRoot, '.github/workflows/release-webui-follower.yml')), false);
 });
 

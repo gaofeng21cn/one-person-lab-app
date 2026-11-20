@@ -1088,11 +1088,28 @@ jobs:
           cp "$source/One-Person-Lab-Full-${{ needs.restore-standard.outputs.version }}-mac-arm64.dmg" full-output/
           cp "$source/opl-release-manifest.json" full-output/
 
+      - name: Resolve the prior Full package artifact
+        id: prior-full-package
+        if: ${{ inputs.prior_full_artifact_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
+          VERSION: ${{ needs.restore-standard.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID/artifacts?per_page=100" |
+            jq -er --arg current "opl-full-first-install-dmg-$VERSION-mac-arm64" --arg legacy "opl-full-first-install-$VERSION-mac-arm64" '
+              [.[].artifacts[] | select(.expired == false and (.name == $current or .name == $legacy))]
+              | select(length == 1) | .[0].name
+            ')"
+          echo "name=$package" >> "$GITHUB_OUTPUT"
+
       - name: Download reusable Full package from the exact failed run
         if: ${{ inputs.prior_full_artifact_run_id != '' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: opl-full-first-install-${{ needs.restore-standard.outputs.version }}-mac-arm64
+          name: ${{ steps.prior-full-package.outputs.name }}
           run-id: ${{ inputs.prior_full_artifact_run_id }}
           github-token: ${{ github.token }}
           path: full-output
@@ -1121,6 +1138,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PRIOR_RUN_ID: ${{ inputs.prior_full_artifact_run_id }}
+          STANDARD_RUN_ID: ${{ inputs.source_run_id }}
           VERSION: ${{ needs.restore-standard.outputs.version }}
           BUNDLE_DIGEST: ${{ needs.restore-standard.outputs.bundle_digest }}
           APP_REF: ${{ inputs.full_content_app_ref }}
@@ -1177,9 +1195,31 @@ jobs:
                 and .path == ".github/workflows/release-stable.yml"
                 and .repository.full_name == $repository
               ' <<<"$run_json" >/dev/null
-            for file in "$dmg" "$manifest" "$cohort" "$qualification" "$notarization"; do
+            for file in "$dmg" "$manifest" "$cohort" "$notarization"; do
               test -f "$file" && test ! -L "$file"
             done
+            if [ ! -e "$qualification" ] && [ ! -L "$qualification" ]; then
+              # A cancellation after finalization can leave qualification unscheduled.
+              jq -e --arg prior "$PRIOR_RUN_ID" --arg source "$STANDARD_RUN_ID" '
+                .head_repository.full_name == .repository.full_name
+                and .display_title == ("OPL Stable append_full source:" + $source + " run:" + $prior)
+              ' <<<"$run_json" >/dev/null
+              gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN_ID/jobs?per_page=100" |
+                jq -e '
+                  [.[].jobs[]] as $jobs
+                  | [$jobs[] | select(.name | test("^append-full / (full-clean-vm-qualification|full-qualification)( / |$)"))] as $qualification_jobs
+                  | any($jobs[]; (.name | startswith("append-full / full-build / "))
+                      and any(.steps[]; .name == "Finalize Full on the current ARM runner" and .conclusion == "success"))
+                  and ($qualification_jobs | any(.name == "append-full / full-qualification"))
+                  and all($qualification_jobs[];
+                      (.conclusion == "skipped" or .conclusion == "cancelled")
+                      and .runner_id == null and ((.steps // []) | length == 0))
+                ' >/dev/null
+              test "$(jq -er .actions.run_id "$cohort")" = "$PRIOR_RUN_ID"
+              qualification=""
+            else
+              test -f "$qualification" && test ! -L "$qualification"
+            fi
           fi
           dmg_sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
           dmg_size="$(wc -c < "$dmg" | tr -d ' ')"

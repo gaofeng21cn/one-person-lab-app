@@ -28,6 +28,7 @@ export type AppendFullTargetState =
     owner_run_id: null;
     source_run_id: string;
     source_artifact: string;
+    prior_full_artifact_run_id?: string;
   };
 
 export type StableDispatchPlan = {

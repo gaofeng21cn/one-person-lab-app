@@ -234,6 +234,12 @@ starts build preparation, reconcile the active owner, cancel only that unnecessa
 add-on operation, wait for terminal cancellation, and recover from the later checkpoint.
 Preserve the already public Standard and every completed independent channel.
 
+When the builder finalized and uploaded the notarized Full DMG and its cohort,
+but the run ended before either qualification job obtained a runner, the
+controller pairs that build with the original Standard checkpoint. The recovery
+verifies the original run, DMG, cohort and notarization receipt before continuing
+into Full qualification. The Full build and Apple submission are skipped.
+
 Full append can consume the checkpoint for the published Standard in place
 when it already contains the verified clean-VM receipt and digest, and
 Framework reports no prior Full operation or unresolved mutation. This applies

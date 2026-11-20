@@ -541,6 +541,29 @@ test('Full target-state reconciliation follows checkpoint retries back to one St
     source_artifact: 'opl-release-standard-checkpoint-100',
   });
 
+  assert.deepEqual(reconcileAppendFullTarget({
+    runs: [
+      owner(101, 100, 'completed', 'cancelled'),
+      owner(102, 101, 'completed', 'cancelled'),
+    ],
+    rootSourceRunId: '100',
+    artifactsByRunId: {
+      100: [{ id: 1, name: 'opl-release-standard-operation-checkpoint-100', expired: false }],
+      101: [
+        { id: 3, name: 'opl-full-first-install-dmg-26.11.20-mac-arm64', expired: false },
+        { id: 4, name: 'opl-full-first-install-dmg-26.11.20-mac-arm64-cohort', expired: false },
+      ],
+      102: [{ id: 5, name: 'opl-release-append-full-operation-checkpoint-v2-102', expired: false }],
+    },
+  }), {
+    state: 'dispatch_required',
+    root_source_run_id: '100',
+    owner_run_id: null,
+    source_run_id: '100',
+    source_artifact: 'opl-release-standard-operation-checkpoint-100',
+    prior_full_artifact_run_id: '101',
+  });
+
   const active = owner(103, 102, 'in_progress', null);
   assert.equal(reconcileAppendFullTarget({
     runs: [...runs, active],
