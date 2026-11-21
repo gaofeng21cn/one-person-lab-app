@@ -27,6 +27,7 @@ jobs:
     name: Freeze exact Nightly request
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: ${{ github.ref == 'refs/heads/main' && 'release-nightly' || null }}
     permissions:
       contents: read
       actions: read
@@ -125,6 +126,16 @@ jobs:
             --operator-confirmation "$OPERATOR_CONFIRMATION" \
             --output opl-nightly-request.json \
             --github-output "$GITHUB_OUTPUT"
+
+      - name: Check Nightly publication credential availability
+        env:
+          NIGHTLY_PUBLISHER_CONFIGURED: ${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN != '' }}
+        shell: bash
+        run: |
+          test "$NIGHTLY_PUBLISHER_CONFIGURED" = true || {
+            echo "::error::Configure OPL_GITHUB_RELEASE_ADMIN_TOKEN in the release-nightly environment before building Nightly."
+            exit 1
+          }
 
       - name: Resolve required Nightly platform matrix
         id: platforms
