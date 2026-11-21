@@ -39,6 +39,8 @@ Standard 和 Full 在准入阶段读取 GitHub runner 清单，优先选择在�
 
 主线 Stable 的准入、轻量发布控制和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
 
+App 工作流 lint、Shell 源码检查、TypeScript 类型检查、发布边界测试和 Shell 测试使用公开仓库的标准托管 `ubuntu-latest`。
+
 Standard 产物封存、Full 包恢复、检查点导出、公开资产上传及 clean-VM 源码交接使用 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。仓库变量为空时，这些传输使用 `ubuntu-latest`，检查点导入优先沿用控制池。常驻 Intel Mac 池可接管大文件传输，选择它之前用实际尺寸的归档估算读写时间，并核对 job 时限和操作的剩余时长。其他本机或 Fleet 节点还需核对工具链、磁盘空间和 Actions runner 在线状态。切换后从原合格检查点继续同一冻结候选。
 
 Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用零压缩。控制池的上传中断或吞吐不足时，给传输变量指定同规模归档已实测通过的在线自有节点，以原检查点恢复发布。

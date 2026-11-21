@@ -143,7 +143,7 @@ jobs:
 
   workflow-lint:
     name: GitHub Actions workflow lint
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     if: ${{ !inputs.skip_code_quality }}
 
     steps:
@@ -171,7 +171,7 @@ jobs:
 
   lint-format:
     name: Lint and format
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
     defaults:
@@ -204,7 +204,7 @@ jobs:
 
   typecheck:
     name: TypeScript type check
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
     defaults:
@@ -242,7 +242,7 @@ jobs:
 
   release-boundary:
     name: App release-boundary tests
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
 
@@ -269,7 +269,7 @@ jobs:
 
   active-shell-tests:
     name: Active shell tests (${{ matrix.project }})
-    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && inputs.release_validation_profile == 'stable' && vars.OPL_RELEASE_CONTROL_RUNNER_LABELS || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     needs: [resolve-active-shell-ref]
     if: ${{ !inputs.skip_code_quality }}
 
