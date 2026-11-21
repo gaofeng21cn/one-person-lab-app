@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -994,6 +995,23 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(admissionRun, /--invocation-mode "\$invocation_mode"/);
   assert.match(admissionRun, /--event "\$GITHUB_EVENT_NAME"/);
   assert.match(admissionRun, /--authority-source "\$authority_source"/);
+  const admissionSteps = release.jobs.admission.steps;
+  const credentialCheck = admissionSteps.findIndex(
+    (step: any) => step.name === 'Check Nightly publication credential availability',
+  );
+  assert.ok(credentialCheck > admissionSteps.findIndex((step: any) => step.id === 'request'));
+  assert.ok(credentialCheck < admissionSteps.findIndex((step: any) => step.id === 'platforms'));
+  const preflight = admissionSteps[credentialCheck].run;
+  const missing = spawnSync('bash', ['-e', '-c', preflight], {
+    env: { ...process.env, NIGHTLY_PUBLISHER_CONFIGURED: 'false' },
+    encoding: 'utf8',
+  });
+  assert.equal(missing.status, 1);
+  assert.match(missing.stdout, /release-nightly environment before building Nightly/);
+  const configured = spawnSync('bash', ['-e', '-c', preflight], {
+    env: { ...process.env, NIGHTLY_PUBLISHER_CONFIGURED: 'true' },
+  });
+  assert.equal(configured.status, 0);
   assert.equal(release.jobs['standard-build'].uses, './.github/workflows/_build-reusable.yml');
   assert.equal(release.jobs['standard-build'].with.require_macos_gatekeeper, false);
   assert.equal(release.jobs['standard-build'].with.release_validation_profile, 'stable');

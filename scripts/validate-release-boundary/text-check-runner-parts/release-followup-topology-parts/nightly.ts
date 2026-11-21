@@ -60,9 +60,14 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   const admission = releaseJobs.admission;
   const build = releaseJobs['standard-build'];
   const publish = releaseJobs['qualify-and-publish'];
+  const preflight = admission?.steps?.find(
+    (step: Record<string, any>) => step.name === 'Check Nightly publication credential availability',
+  );
   if (
     !admission
+    || admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-nightly' || null }}"
     || !exactObject(admission.permissions, exactReadPermissions)
+    || preflight?.env?.NIGHTLY_PUBLISHER_CONFIGURED !== "${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN != '' }}"
     || !build
     || build.uses !== './.github/workflows/_build-reusable.yml'
     || !needsExactly(build, ['admission'])
@@ -77,7 +82,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     || publish.environment !== 'release-nightly'
     || !exactObject(publish.permissions, exactNightlyPublishPermissions)
   ) {
-    failures += reportFailure(id, 'Nightly must reuse the physical build without Stable Bundle authority and protect only its thin publisher');
+    failures += reportFailure(id, 'Nightly admission must check its publisher credential before the shared build while the thin publisher retains write authority');
   }
   for (const required of [
     'test "$GITHUB_RUN_ATTEMPT" = 1',
