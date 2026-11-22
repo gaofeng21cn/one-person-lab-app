@@ -119,6 +119,15 @@ test('custom model access stays a default-off advanced Models setting', () => {
   assert.ok(modelsPage.required_dom.always.includes('settings-models-advanced'));
 });
 
+test('Billion Context is an explicit host preference applied after restart', () => {
+  const modelsPage = readJson('contracts/app-settings-control-plane.json').experience_contract.page_contracts.models;
+  assert.equal(modelsPage.billion_context.default_enabled, false);
+  assert.equal(modelsPage.billion_context.visibility, 'collapsed_advanced_only');
+  assert.equal(modelsPage.billion_context.owner, 'studio_codex_host');
+  assert.equal(modelsPage.billion_context.applies_after, 'host_restart');
+  assert.ok(modelsPage.surface_inventory.configuration.some(({ id }) => id === 'billion_context'));
+});
+
 test('Auto display contract keeps runtime resolution out of the static App profile', () => {
   const productProfile = structuredClone(readJson('contracts/app-product-profile.json'));
   const auto = productProfile.gui.home.codex_model_display_options.auto_option;

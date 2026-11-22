@@ -3390,6 +3390,7 @@
           "selected and default model, with Auto showing its resolved friendly model",
           "persistent default model and reasoning effort for new conversations",
           "advanced custom-model access as an explicit fixed-selection option without changing Auto",
+          "optional Billion Context compression for Codex conversations in advanced model options",
           "active Codex CLI readiness as the model execution prerequisite; its version and update policy belong to Runtime & Maintenance",
           "one visible route to Account & Access when credentials need attention"
         ],
@@ -3406,6 +3407,10 @@
             },
             {
               "id": "preferred_reasoning_effort",
+              "owner": "models"
+            },
+            {
+              "id": "billion_context",
               "owner": "models"
             },
             {
@@ -3466,6 +3471,15 @@
           "storage": "existing_app_local_settings",
           "technical_details_required": false
         },
+        "billion_context": {
+          "default_enabled": false,
+          "visibility": "collapsed_advanced_only",
+          "owner": "studio_codex_host",
+          "applies_after": "host_restart",
+          "startup_failure": "use_native_codex_and_report_error",
+          "model_request_path": "local_billion_context_proxy",
+          "history": "codex_owns_threads_and_billion_context_owns_compression_archive"
+        },
         "required_anchors": [
           "provider-source",
           "model",
@@ -3476,6 +3490,7 @@
           "models.provider_source",
           "models.model",
           "models.custom_model_access",
+          "models.billion_context",
           "models.codex_cli"
         ]
       },
@@ -5049,6 +5064,15 @@
             "advanced",
             "standard agents"
           ]
+        },
+        {
+          "id": "models.billion_context",
+          "page_id": "models",
+          "anchor": "advanced-model-options",
+          "label_zh": "Billion Context",
+          "label_en": "Billion Context",
+          "keywords_zh": ["上下文", "压缩", "长对话"],
+          "keywords_en": ["ACP", "context compression"]
         },
         {
           "id": "models.codex_cli",

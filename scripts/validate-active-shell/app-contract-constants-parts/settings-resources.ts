@@ -99,7 +99,7 @@ export const appOwnedSettingsPageSearchEntryIds = {
     "overview.gateway",
   ],
   gateway: ["gateway.connection", "gateway.account", "gateway.usage", "gateway.access"],
-  models: ["models.provider_source", "models.model", "models.custom_model_access", "models.codex_cli"],
+  models: ["models.provider_source", "models.model", "models.custom_model_access", "models.billion_context", "models.codex_cli"],
   workspace: [
     "workspace.current",
     "workspace.permissions",
