@@ -174,7 +174,7 @@ jobs:
           echo "OPL_RELEASE_DEPENDENCY_MANIFEST=$GITHUB_WORKSPACE/webui-carrier/dependency-resolution/qualification-input-manifest.json" >> "$GITHUB_ENV"
 
       - name: Setup ORAS for exact external build inputs
-        uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63 # v2.0.3
+        uses: oras-project/setup-oras@ac735097e22fe643015b0d19645f7c9a69942128 # v2.0.4
 
       - name: Download exact independent WebUI source authority
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -724,7 +724,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Setup ORAS for durable carrier receipt sidecar
-        uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63 # v2.0.3
+        uses: oras-project/setup-oras@ac735097e22fe643015b0d19645f7c9a69942128 # v2.0.4
 
       - name: Reject rebuild during prequalified publication
         if: ${{ inputs.mode == 'publish-prequalified' }}
