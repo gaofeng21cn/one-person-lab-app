@@ -146,10 +146,11 @@ OPL Studio 当前由 `cordis.yml` 与 Web 层 `web.patch.yml` 加载 DSH 服务�
 
 主 profile 不加载 `dsh-base`。普通对话仍归 Codex；按需启动的协作工作台完整加载官方 base/web 应用，复用官方会话内的 Team 开关、成员树、任务板及 Agent Preset/Creator 交互，由 OPL LLM adapter 复用同一个持久 Codex App Server。Superagent 独立 profile 加载官方 base/web bundle，复用 App 的 Codex 模型与登录，单独配置仓库账号、来源及授权策略；工作台由顶层页面完成官方认证。完整对象边界见 [Team、Bot 与 Superagent](team-bot-and-superagent.md)。
 
-在「设置 → 模型与执行 → 高级模型选项」可为 Codex 对话开启 Billion Context，默认关闭。
-设置由 Studio Host 保存，下次启动 Host 时生效。启用后模型请求经过本机 Billion Context
-代理，插件在本机保存用于恢复的压缩内容，Codex 继续持有会话和审批。启动代理失败时，
-Studio 使用原生 Codex 并在该设置项显示状态。 [Billion Context](https://github.com/ranxianglei/billion-context)
+在「软件中心 → 其他来源 → DSH 插件」从上游 npm 安装、检查更新和卸载 Billion Context。
+安装后默认关闭。在软件详情或「设置 → 模型与执行 → 高级模型选项」修改同一个 DSH
+profile 的启用状态，重启 Studio Host 后生效。Studio 复用插件的 Codex 启动器，
+由 Codex 继续持有会话和审批，由本机代理保存可恢复的压缩内容。代理启动失败时，
+Studio 回到原生 Codex，并在设置中显示状态。 [Billion Context](https://github.com/ranxianglei/billion-context)
 
 ## 2. 官方插件：优先吸收，冲突才排除
 

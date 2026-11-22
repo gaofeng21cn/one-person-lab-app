@@ -3474,7 +3474,9 @@
         "billion_context": {
           "default_enabled": false,
           "visibility": "collapsed_advanced_only",
-          "owner": "studio_codex_host",
+          "owner": "dsh_native_profile",
+          "software_center": "other_sources_dsh_plugins",
+          "distribution": "upstream_npm",
           "applies_after": "host_restart",
           "startup_failure": "use_native_codex_and_report_error",
           "model_request_path": "local_billion_context_proxy",

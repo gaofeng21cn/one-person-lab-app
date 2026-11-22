@@ -123,7 +123,8 @@ test('Billion Context is an explicit host preference applied after restart', () 
   const modelsPage = readJson('contracts/app-settings-control-plane.json').experience_contract.page_contracts.models;
   assert.equal(modelsPage.billion_context.default_enabled, false);
   assert.equal(modelsPage.billion_context.visibility, 'collapsed_advanced_only');
-  assert.equal(modelsPage.billion_context.owner, 'studio_codex_host');
+  assert.equal(modelsPage.billion_context.owner, 'dsh_native_profile');
+  assert.equal(modelsPage.billion_context.software_center, 'other_sources_dsh_plugins');
   assert.equal(modelsPage.billion_context.applies_after, 'host_restart');
   assert.ok(modelsPage.surface_inventory.configuration.some(({ id }) => id === 'billion_context'));
 });
