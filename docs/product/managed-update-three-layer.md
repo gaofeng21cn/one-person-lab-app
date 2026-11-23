@@ -55,11 +55,16 @@ official `client-modules` service scans the active Host profile's `dsh.client`
 declarations and composes the browser graph; App/Shell only transport and mount
 that graph on Electron.
 
-#### Public plugin channel (current implementation and remaining cutover)
+#### Public plugin channel
 
 OPL DSH Host and Client plugins (`opl-studio/plugins/<plugin-id>/`) are published independently to
-GitHub Packages under `@gaofeng21cn` scope. Each plugin carries its own semver version
-and an `engines.dsh` field that declares which DSH cohort range it is compatible with.
+both GitHub Packages under `@gaofeng21cn` and the zero-token public GitHub Release feed
+(`dsh-plugins-latest` / `dsh-plugin-index.json`). The Stable installer acts as a convenient
+bundled snapshot for first install; after installation, OPL App stays current by updating
+compatible DSH plugins, Framework runtime, and installed Packages in place whenever Electron,
+the pinned DSH cohort, and the small `AppWebEntry` boot shell have not changed. Each plugin
+carries its own semver version and an `engines.dsh` field declaring its compatible DSH cohort
+range.
 
 There are two independent resolution contexts:
 
@@ -67,14 +72,12 @@ There are two independent resolution contexts:
   baked into the signed `app.asar`. `cordis.yml` lists plugin names only — no version
   fields. This layer is fixed without a carrier rebuild.
 - **Native profile override**: `DSH_HOME/profiles/opl-studio/package.json`, managed by
-  DSH's native pnpm outside the signed App. When `update-registry` installs a package
-  here, DSH's `createRuntimeResolution` picks it over the bundle version. The installed
-  version is an exact resolved version; the caret range is only used during the registry
-  query to find the latest compatible release.
-
-Running `npm run dsh:plugins:update` (or `update-registry`) queries the registry for
-the latest `^x.y.0`-compatible version of each plugin, installs it into the native
-profile, and surfaces "restart required". No carrier rebuild, re-sign, or bundle change.
+  the App's bundled `pnpm` outside the signed App. When background maintenance or the user
+  triggers an update, the resolver checks the zero-token public release index first (falling
+  back to GitHub Packages when a token is configured), verifies `.tgz` SHA-512 integrity,
+  installs the exact latest `^x.y.0`-compatible version here, and surfaces `dshPluginRestartRequired`
+  until the next restart activates it via DSH's `createRuntimeResolution` without changing
+  `app.asar` or desktop code signing.
 
 A **composition compatibility test** (`release-plugin-composition-test.yml` in `opl-studio`)
 verifies that the latest published Host and Client plugin combination works together against
@@ -82,16 +85,7 @@ the pinned DSH cohort and produces a **composition receipt** — a pinned list o
 `plugin@version` entries that is evidence for a Stable release on the shell-unchanged path.
 The receipt does not replace DSH runtime graph discovery.
 
-When Electron, DSH cohort, and the small `AppWebEntry` boot shell are unchanged from the
-previous Stable release, the candidate path is composition receipt + registry plugin
-install + carrier packaging. Integration with the existing App Stable signing,
-qualification and publication controller remains pending; the candidate workflow
-does not publish a Stable release.
-The candidate preserves published Host and Client plugin bytes, while the small boot shell
-remains carrier-owned. End-to-end duration is measured per candidate rather than asserted
-in advance.
-
-Design, registry details, auth, and version strategy:
+Design, public feed format, registry fallback, and version strategy:
 [`docs/delivery/dsh-plugin-publication.md`](../delivery/dsh-plugin-publication.md).
 
 #### Local operator lane (development and debugging)
@@ -256,17 +250,26 @@ generation; paths captured before activation are not sufficient evidence. Runnin
 processes keep their loaded generation until exit. Activation failures remain
 visible with their owner recovery action and cannot be reported as an up-to-date
 installation.
-The App updater checks every six hours and retries failures at thirty-minute
-intervals up to three times. Resume checks run only when due. No background
-update forces a running App to restart. Managed maintenance retains failure,
-retry, and restart guidance across renderer reloads and resumes due checks when
-the network returns or the window becomes visible.
+Background maintenance runs `checkAppUpdate`, updates Framework and eligible installed
+Packages across all maintenance origins (`opl` and remote/managed `external` sources alike),
+and syncs compatible DSH plugins (`syncDshPlugins`) under idle leases without prompting on
+origin differences. Local developer checkouts (`local_or_user_managed_source`), disabled
+packages (`user_disabled_package`), and packages lacking usable sources or healthy carriers
+remain excluded from silent overwrite. No background update forces a running App to restart;
+when plugin updates are staged (`dshPluginRestartRequired`), or when a user explicitly clicks
+restart for plugins, Billion Context, or Framework activation, `performDesktopRestart` closes
+the Host cleanly and relaunches the Desktop App.
+
+Managed maintenance retains failure, retry, and restart guidance across renderer reloads and
+resumes due checks when the network returns or the window becomes visible. Any native action
+outcome maps directly to accurate UI state and localized feedback (never displaying success on
+error or rejected operations).
 
 Package update success requires fresh native presence and required entrypoint
 readback. A successful install command followed by unavailable or uncallable
 readback remains a failure, isolated from unrelated Packages.
 
-- Update only Packages that are currently installed.
+- Update only Packages that are currently installed, regardless of whether `catalog_origin` is `opl` or `external` (only objective carrier/source/checkout/disable constraints gate auto-apply).
 - Never install an Official Profile root merely because it is absent.
 - For a root the user explicitly selects for install, update, or repair, locally
   ensure only that root's required presence closure. Ordinary Profile/background
@@ -278,7 +281,7 @@ readback remains a failure, isolated from unrelated Packages.
 - Require fresh native installed/callable readback before reporting success.
 - Enumerate installed Packages from carrier readback, not from the selected
   executor or Codex plugin inventory.
-- Resolve each Package version from its own owner `latest-stable`.
+- Resolve each Package version from its own owner target (`latest-stable` or declared channel).
 - Verify Plugin/config/cache and complete Package runtime after restart.
 - Keep failure local and continue unrelated Package maintenance.
 

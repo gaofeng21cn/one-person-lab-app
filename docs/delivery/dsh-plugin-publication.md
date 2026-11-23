@@ -34,11 +34,15 @@ Steps:
 2. Build changed plugin(s) via `build:plugins` targeting only those packages.
 3. Run the plugin's own unit/integration tests.
 4. Publish to GitHub Packages under `@gaofeng21cn` scope, with provenance attestation.
-5. Record the published version and `engines.dsh` range as workflow output.
+5. Publish a zero-token public GitHub Release feed (`dsh-plugins-latest`) containing
+   `dsh-plugin-index.json` (schema `opl_dsh_plugin_public_feed.v1`) and `.tgz` assets with
+   SHA-512 integrity via `scripts/publish-dsh-plugin-feed.mjs` using `GITHUB_TOKEN`.
+6. Record the published version and `engines.dsh` range as workflow output.
 
-Result: a new `@gaofeng21cn/<plugin-id>@x.y.z` is live on the registry.
-The installed App picks it up on next `update-registry` run (or `dsh:plugins:update`),
-which installs the new version into the native profile and surfaces "restart required".
+Result: a new `@gaofeng21cn/<plugin-id>@x.y.z` is live on both GitHub Packages and the
+public release feed. Ordinary user Apps check the public feed anonymously (falling back to
+GitHub Packages when a token is configured), install the new compatible version into the
+native profile using the bundled `pnpm`, and surface "restart required".
 No `app.asar`, desktop signature, Framework Package state, or business data is modified.
 
 Client packages, including `@gaofeng21cn/opl-studio-client`, are included in Track 1.
@@ -103,12 +107,19 @@ When Electron or the DSH cohort changes, the carrier build remains necessary. Th
 composition input can be used when its receipt declares the exact frozen App and Studio
 commits. A changed DSH cohort or changed client carrier requires a new composition test.
 
-## Registry
+## Registry and Public Feed
 
-**Location**: GitHub Packages npm registry, `@gaofeng21cn` scope.
-**URL**: `https://npm.pkg.github.com`  
-**Read access**: requires a GitHub personal access token with `read:packages` scope, or a `GITHUB_TOKEN` available in CI/App context.  
-**Write access**: `packages:write` permission on `gaofeng21cn/opl-studio` (provided by `GITHUB_TOKEN` in CI). Each plugin's npm `repository` field binds the package to this repository.
+**Public end-user feed (zero-token default)**:
+- **Location**: `opl-studio` GitHub Release tag `dsh-plugins-latest`
+- **Index URL**: `https://github.com/gaofeng21cn/opl-studio/releases/download/dsh-plugins-latest/dsh-plugin-index.json` (`opl_dsh_plugin_public_feed.v1`, overridable via `OPL_DSH_PLUGIN_FEED_URL`)
+- **Verification**: every downloaded `.tgz` URL must come from trusted GitHub release/HTTPS hosts (or explicit loopback HTTP in automated tests) and pass SHA-512/SHA-256 `integrity` verification before native `pnpm` installation.
+- **Bundled `pnpm`**: `resolveBundledPnpm` locates the App's packaged `node_modules/pnpm/bin/pnpm.mjs` (or falls back to `pnpm` on `PATH`), so packaged Desktop users do not need a global `pnpm` binary.
+
+**Developer / CI npm registry (fallback and provenance archive)**:
+- **Location**: GitHub Packages npm registry, `@gaofeng21cn` scope.
+- **URL**: `https://npm.pkg.github.com`
+- **Read access**: requires a GitHub personal access token with `read:packages` scope, or a `GITHUB_TOKEN` available in CI/developer `.npmrc`.
+- **Write access**: `packages:write` permission on `gaofeng21cn/opl-studio` (provided by `GITHUB_TOKEN` in CI), paired with `contents: write` to update the `dsh-plugins-latest` release assets. Each plugin's npm `repository` field binds the package to this repository.
 
 The package scope matches the repository's GitHub owner. The former
 `@one-person-lab` scope names a separate GitHub account, so the Studio Actions token
@@ -116,28 +127,26 @@ cannot publish there. Studio uses the same `@gaofeng21cn/*` package identity in
 manifests, native profile entries, `dsh.client.inject` and client factories. This
 keeps discovery and activation within DSH's standard package metadata.
 
-The registry is a distribution channel for pre-built plugin packages. It is not a Plugin
-identity authority (that belongs to the DSH npm metadata and Studio profile), a
-compatibility matrix, or a lockfile replacement. The DSH profile resolution and pnpm
-remain the sole runtime arbiters of what is actually installed.
+The registry and public release feed are distribution channels for pre-built plugin packages.
+They are not a Plugin identity authority (that belongs to the DSH npm metadata and Studio
+profile), a compatibility matrix, or a lockfile replacement. The DSH profile resolution and
+pnpm remain the sole runtime arbiters of what is actually installed.
 
-### Registry authentication
+### Registry and feed authentication
 
-**In CI**: `GITHUB_TOKEN` is passed via `options.env` to `runPluginCommand`, which
-merges it on top of `scrubbedParentEnv()` (which otherwise strips all `*TOKEN*` names).
+**In CI**: `GITHUB_TOKEN` is passed via `options.env` to `runPluginCommand` (for npm
+publish) and to `publish-dsh-plugin-feed.mjs` (for GitHub Release upload), without adding
+extra repository secrets.
 
-**On developer machines**: pass via `--token` flag or set `GITHUB_TOKEN` in the shell.
-The `update-registry` operation writes the token to `.npmrc` in the profile directory
-(mode 0600) under `//npm.pkg.github.com/:_authToken=<token>`. Subsequent installs by
-DSH's native pnpm reuse the `.npmrc` without needing the env var again.
+**On ordinary end-user machines**: default plugin checks and updates read the public
+`dsh-plugins-latest` index and `.tgz` assets with **no GitHub token required**.
 
-**On end-user machines**: at first use, the user runs `update-registry --token <tok>` once
-to configure the profile `.npmrc`. After that, `dsh:plugins:update` works without
-re-supplying the token (it persists in the profile `.npmrc`). This is a one-time setup
-analogous to `npm login`.
-
-If no token is provided and no `.npmrc` token exists, `pnpm view` and `pnpm add` will
-fail to authenticate; the operation reports per-package failures and exits non-zero.
+**On developer machines (authenticated registry lane)**: optionally pass `--token` or set
+`GITHUB_TOKEN` in the shell to query `npm.pkg.github.com` directly when testing unpublished
+feed transitions or pre-releases. `update-registry` writes that token to the profile `.npmrc`
+(mode 0600) under `//npm.pkg.github.com/:_authToken=<token>`. If neither a reachable public
+feed nor a `.npmrc`/environment token exists, per-package lookups report structured reasons
+such as `feed_unavailable` or `auth_required`.
 
 ## Version Strategy
 
@@ -194,13 +203,15 @@ than what is bundled in the running App.
 
 ## Incremental Update in the App UI
 
-The source App Updates surface renders DSH plugin freshness alongside Framework Package
-freshness. Studio's `OplSoftwareUpdates.tsx` reads `readDshPluginUpdates`, invokes
-`updateDshPlugins` for available updates, preserves per-plugin check/update failures,
-and offers restart after a successful profile change. The CLI remains available for
-operators with a checkout and registry credentials. Native profile installation and
-restart activation are verified on the local candidate recorded below; the in-App
-update-button workflow has not yet had a separate end-to-end interaction readback.
+The App Updates surface renders DSH plugin freshness alongside Framework Package and
+third-party extension freshness under one unified flow. Studio's `OplSoftwareUpdates.tsx`
+reads `readDshPluginUpdates`, invokes `updateDshPlugins` for available updates (either
+manually or from background `managed-update-maintenance`), translates failures into
+localized actionable messages with a one-click re-check, and invokes `restartNativeApp`.
+
+When only plugins or Framework runtime changed (no downloaded Electron shell DMG),
+`desktop/relaunch.mjs` performs a safe idle-leased `hostCore.close()` followed by
+`app.relaunch()` and `app.quit()` instead of rejecting with `downloaded_update_required`.
 
 | State | Meaning |
 | --- | --- |
@@ -208,13 +219,13 @@ update-button workflow has not yet had a separate end-to-end interaction readbac
 | Updates available | One or more compatible plugin updates are published. |
 | Updating | DSH native profile is installing the update. |
 | Restart needed | Update installed; App restart required to load the new version. |
-| Unavailable | A package lookup or compatibility check could not complete; its failure remains visible. |
+| Unavailable | A package lookup or compatibility check could not complete; humanized failure and retry remain visible. |
 
 The resolver selects the latest version compatible with the running DSH cohort. The
 current UI does not separately list incompatible newer releases.
 
-"Update now" for the plugin layer delegates entirely to the DSH native profile package
-manager. The App state machine does not manage per-plugin update lifecycle.
+"Update all extensions" for the plugin layer delegates entirely to the DSH native profile
+package manager. The App state machine does not manage per-plugin update lifecycle.
 
 The projection source for plugin layer freshness: DSH native profile installed version
 vs. latest compatible published version on the registry. This can be read from the DSH
@@ -329,13 +340,11 @@ current boundary is recorded in [plugin composition and source ownership](../pro
 
 Triggers on push to main modifying plugin or shared build inputs, or manual dispatch
 with `packages` / `force_all` inputs. Each run binds plugin builds to a selected App
-product commit. Per-plugin matrix: build via `buildDshPlugins([name])`,
-run the Host/Client and independent child-profile boot tests, then enter the package
-directory and run `npm publish --provenance` to GitHub Packages. An already-published
-version is skipped only when its tarball digest matches the selected built package;
-the same version with different bytes fails publication. The package directory is
-required because a positional `npm publish plugins/<name>` is parsed as a GitHub package
-spec.
+product commit. Per-plugin matrix builds via `buildDshPlugins([name])`, runs Host/Client
+and independent child-profile boot tests, and publishes to GitHub Packages under
+`@gaofeng21cn`. Then the workflow runs `scripts/publish-dsh-plugin-feed.mjs` to pack
+all publishable plugins, merge historical compatible versions into `dsh-plugin-index.json`,
+and publish the `.tgz` assets plus index to the public `dsh-plugins-latest` release.
 
 ### CI: `release-plugin-composition-test.yml` (Track 2)
 
@@ -396,10 +405,12 @@ npm run manual:plugins -- update-registry --package opl-superagent --token ghp_.
 Token is written to the profile `.npmrc` (mode 0600) on first use. Subsequent runs
 reuse the stored token automatically.
 
-The local operator lane, public publication, registry composition, local profile
-installation and restart activation are verified at the commits and candidate above.
-Receipt-backed Stable production, ordinary-account clean-VM acceptance, and the in-App
-update-button workflow still need their own end-to-end readback. The product Client graph
-is loaded through official DSH client modules; `engines.dsh` is declared in all publishable
-plugin manifests, `cordis.yml` lists Host plugin names only, and DSH resolves active
-Host/Client package versions at runtime.
+The local operator lane, GitHub Packages publication, registry composition, local
+profile installation and restart activation are verified at the commits above. The public
+zero-token feed resolver (`dsh-plugin-index.json`), SHA-512 tarball verification, bundled
+pnpm discovery, background DSH sync, and non-downloaded Desktop relaunch have unit/workbench
+coverage; live CI public-feed upload and installed clean-VM end-to-end acceptance remain to
+be verified on the next Track 1 / Stable run. The product Client graph is loaded through
+official DSH client modules; `engines.dsh` is declared in all publishable plugin manifests,
+`cordis.yml` lists Host plugin names only, and DSH resolves active Host/Client package
+versions at runtime.
