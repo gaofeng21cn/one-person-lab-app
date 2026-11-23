@@ -35,7 +35,7 @@ import {
   summarizeFullSizeBudget,
   summarizeRuntimeCacheEvents,
   warningsFromFullSizeBudget,
-} from './summarize-release-readiness-parts/full-package-profile.ts';
+} from './release-readiness-full-profile.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

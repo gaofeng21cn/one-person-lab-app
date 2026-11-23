@@ -7,12 +7,12 @@ import {
   needsExactly,
   parseWorkflow,
   reportFailure,
-} from '../report.ts';
+} from './report.ts';
 import {
   exactReadPermissions,
   studioFullReleaseWorkflowPath,
-} from '../workflow-policy.ts';
-import { workflowMutationCommandPattern } from '../mutation-policy.ts';
+} from './workflow-policy.ts';
+import { workflowMutationCommandPattern } from './mutation-policy.ts';
 
 export function validateStudioFullAppendTopology(
   appRoot: string,

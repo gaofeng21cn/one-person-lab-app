@@ -9,13 +9,13 @@ import {
   needsExactly,
   parseWorkflow,
   reportFailure,
-} from '../report.ts';
+} from './report.ts';
 import {
   exactReadPermissions,
   exactNightlyPublishPermissions,
   nightlyReleaseWorkflowPath,
   nightlyFollowupWorkflowPath,
-} from '../workflow-policy.ts';
+} from './workflow-policy.ts';
 
 export function validateNightlyReleaseTopology(appRoot: string): number {
   const id = 'nightly_release_topology';

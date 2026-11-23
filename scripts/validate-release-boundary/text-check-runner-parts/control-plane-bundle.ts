@@ -7,9 +7,9 @@ import {
   needsExactly,
   parseWorkflow,
   reportFailure,
-} from '../report.ts';
-import { exactReadPermissions } from '../workflow-policy.ts';
-import { retiredLiveAuthorityPattern, standardUpdaterOrLatest } from '../mutation-policy.ts';
+} from './report.ts';
+import { exactReadPermissions } from './workflow-policy.ts';
+import { retiredLiveAuthorityPattern, standardUpdaterOrLatest } from './mutation-policy.ts';
 
 function validateReusableCall(
   id: string,

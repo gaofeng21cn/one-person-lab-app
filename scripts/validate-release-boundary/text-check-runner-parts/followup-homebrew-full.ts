@@ -7,8 +7,8 @@ import {
   needsExactly,
   parseWorkflow,
   reportFailure,
-} from '../report.ts';
-import { exactReadPermissions, homebrewFullPublisherWorkflowPath } from '../workflow-policy.ts';
+} from './report.ts';
+import { exactReadPermissions, homebrewFullPublisherWorkflowPath } from './workflow-policy.ts';
 
 export function validateHomebrewFullPromotionTopology(appRoot: string): number {
   const id = 'homebrew_full_promotion_topology';

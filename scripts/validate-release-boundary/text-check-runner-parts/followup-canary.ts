@@ -5,9 +5,9 @@ import {
   workflowJobs,
   parseWorkflow,
   reportFailure,
-} from '../report.ts';
-import { exactReadPermissions, validateExactActionPins } from '../workflow-policy.ts';
-import { workflowMutationCommandPattern } from '../mutation-policy.ts';
+} from './report.ts';
+import { exactReadPermissions, validateExactActionPins } from './workflow-policy.ts';
+import { workflowMutationCommandPattern } from './mutation-policy.ts';
 
 export function validateReleaseBundleCanaryTopology(appRoot: string): number {
   const id = 'release_bundle_canary_topology';

@@ -11,6 +11,7 @@
 - 用户可见行为、页面状态、模型/引导策略或 release-ready 边界变化时，先更新 App contract、docs 和 tests，再实现 Shell；上游 fork body 默认只读。
 - 新功能先明确软件用途、主功能影响、owner 与验收。OPL Link 的主要任务是远程操作电脑上的 OPL App；手机连接器遵循 `contracts/app-remote-companion-extensions.json`，默认关闭、仅当前请求显式选择，不向普通电脑或手机远程对话注入工具/提示词。缺少可信动态工具隔离时使用一次性原生上下文路径，不把手机工具全局注册；扩展失败不得改变主功能。
 - 所有执行限制遵循 Framework 的[必要性与作用范围政策](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/engineering-boundary-policy.md)：说明具体可达故障与最小阻断范围，不能仅凭旧实现、合同或测试保留限制；可选服务和开发验证的问题局部处理，不套用发布或不可逆操作的全局门禁。
+- 模块拆分以职责内聚和调用清晰为准，在日常开发与 PR 阶段维护，不靠机械行数阈值或周期拆文件脚本：既避免把不相关职责堆成巨石文件，也禁止制造嵌套 `*-parts/*-parts`、过薄胶水切片或大段回调参数转运；重构优先消除重复与化简调用链，来源不明或储备能力默认保留（无静态调用者只作调查信号）。
 - Package、carrier 与 executor 是独立角色。App/Shell 从动态 projection 渲染，不维护固定 Package/Agent 清单、依赖图、版本解析、lock、payload、receipt 或 currentness 镜像。
 - 普通读取使用 `opl app state --profile fast --json`；写入统一走 `opl app action execute ... --json`。未知外部 mutation 只做 owner-authoritative inspect/reconcile，不重发或猜测。
 - 迁移、合并或隐藏 GUI 入口时，验证从原入口到新入口的完整用户路径；按 fresh owner projection 覆盖普通软件、运行组件、第三方、未安装与已停用状态。安装分类不决定功能配置归属；所有插件设置通过同一贡献机制按功能进入设置，微信远程是 App 标准功能，插件化只用于开发与运维。移除旧入口前，新入口须已有真实挂载、读取和动作验证，描述符存在或安装成功不能代替可达性验收。

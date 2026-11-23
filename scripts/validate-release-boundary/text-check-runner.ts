@@ -1,14 +1,10 @@
 import { runReleaseBoundaryTextChecks } from './text-check-runner-parts/mutation-policy.ts';
-import {
-  validateStableReleaseControlPlane,
-  validateReleaseBundleTopology,
-} from './text-check-runner-parts/release-control-plane.ts';
-import {
-  validateStableFollowupTopology,
-  validateHomebrewFullPromotionTopology,
-  validateNightlyReleaseTopology,
-  validateReleaseBundleCanaryTopology,
-} from './text-check-runner-parts/release-followup-topology.ts';
+import { validateStableReleaseControlPlane } from './text-check-runner-parts/control-plane-stable.ts';
+import { validateReleaseBundleTopology } from './text-check-runner-parts/control-plane-bundle.ts';
+import { validateStableFollowupTopology } from './text-check-runner-parts/followup-stable.ts';
+import { validateHomebrewFullPromotionTopology } from './text-check-runner-parts/followup-homebrew-full.ts';
+import { validateNightlyReleaseTopology } from './text-check-runner-parts/followup-nightly.ts';
+import { validateReleaseBundleCanaryTopology } from './text-check-runner-parts/followup-canary.ts';
 import {
   validatePreviewLatestPointerTopology,
   validateManualFullPreviewControlPlane,

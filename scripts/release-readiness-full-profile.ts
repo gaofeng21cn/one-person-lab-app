@@ -1,11 +1,11 @@
-import { budgetStatus, percent } from '../release-size-reporting.ts';
+import { budgetStatus, percent } from './release-size-reporting.ts';
 import {
   arrayField,
   numberField,
   objectField,
   recordOrNull,
   stringField,
-} from '../release-json-helpers.ts';
+} from './release-json-helpers.ts';
 
 type GateFieldsSource = {
   fields?: Record<string, unknown> | null;

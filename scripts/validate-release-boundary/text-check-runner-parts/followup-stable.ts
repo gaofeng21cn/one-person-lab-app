@@ -10,7 +10,7 @@ import {
   needsExactly,
   parseWorkflow,
   reportFailure,
-} from '../report.ts';
+} from './report.ts';
 import {
   exactReadPermissions,
   exactStableEntryPermissions,
@@ -22,7 +22,7 @@ import {
   isAuthorizedFullAddonFollowerWriteJob,
   isAuthorizedStableDesktopFollowupWriteJob,
   validateExactActionPins,
-} from '../workflow-policy.ts';
+} from './workflow-policy.ts';
 
 export function validateStableFollowupTopology(appRoot: string): number {
   const id = 'stable_followup_topology';
