@@ -97,6 +97,7 @@ test('branded deep links keep navigation inside the exact App-owned route regist
   assert.deepStrictEqual(policy.route_registry.allowed_section_routes, [
     '/apps?section=applications',
     '/apps?section=updates',
+    '/apps?section=activity',
     '/apps?section=resources',
     '/apps?section=sources',
     '/settings/environment?section=updates',
