@@ -120,12 +120,14 @@ shared platform externals, restart activation and installed readback move togeth
 Installed freshness is the latest verified compatible running combination from the
 selected App, Base and enabled plugin/Package channels. Each cold launch resolves
 that combination through its native owners and activates it before starting the
-Host, Codex App Server and official DSH client module graph. A merely compatible
-older runtime does not bypass this check or become an optional retention mode.
-App version alone cannot describe the effective combination.
-A saved profile update reports restart required until the restarted Host's native
-resolution/inventory and functional readback establish activation. Do not report every
-package's unqualified `latest` as compatible.
+Host, Codex App Server and official DSH client module graph. If a native DSH profile
+override crashes Host boot, automatic boot quarantine (`opl_dsh_profile_recovery.v1`)
+falls back cleanly to the signed bundled baseline without leaving the user on a white screen.
+A saved profile update reports restart required across both Software Center and a
+compact top-bar restart trigger until restarted Host inventory establishes activation.
+While DSH core tracks prerelease `0.2.2-rc.*` builds, plugin `engines.dsh` remains
+exact-pinned to the verified cohort; once DSH reaches stable `0.2.x` GA, plugins
+transition to `^0.2.x` caret ranges verified against Track 2 composition gates.
 
 Shell-specific maintenance scheduling and activation are implemented against
 the same Framework update interface. The

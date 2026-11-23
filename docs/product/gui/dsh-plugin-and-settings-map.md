@@ -4,7 +4,7 @@ Owner: `one-person-lab-app`
 State: `active`
 Scope: DeepSeek Harness `dsh-v0.2.2-rc.3@38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（`0.2.2-rc.3` package cohort）与 OPL Studio 适配。GUI 源码与 npm cohort 均绑定同一官方 release tag。
 
-这份文档说明插件的源码和安装位置、开发归口、DSH 官方插件在 OPL 中的状态，以及设置归属。统一分类和仓库决策以 [插件组合与仓库边界](plugin-composition-map.md) 及 [插件组合分类合同](../../../contracts/app-plugin-composition-taxonomy.json) 为准；当前源码组成用 `scripts/plugin-composition-inventory.mjs` 动态读取。默认策略是吸收 DSH 的有价值能力；已有 OPL owner 时复用 DSH 的 UI、协议和交互，再接入现有 owner。只有明确与 OPL 设计冲突、会制造第二份 authority 或无法满足安全/数据边界的部分才排除。
+这份文档说明插件的源码和安装位置、开发归口、DSH 官方插件在 OPL 中的状态，以及设置归属。统一分类和仓库决策以 [插件组合与仓库边界](plugin-composition-map.md) 及 [插件组合分类合同](../../../contracts/app-plugin-composition-taxonomy.json) 为准；插件 UI/设置的四统一理想标准、三级接入规范与通用表单/槽位演进详见新 SSOT [插件 UI、设置接入与全插件理想态标准](plugin-ui-and-settings-standard.md)。当前源码组成用 `scripts/plugin-composition-inventory.mjs` 动态读取。默认策略是吸收 DSH 的有价值能力；已有 OPL owner 时复用 DSH 的 UI、协议和交互，再接入现有 owner。只有明确与 OPL 设计冲突、会制造第二份 authority 或无法满足安全/数据边界的部分才排除。
 
 ## 工程原则与升级边界
 
@@ -247,7 +247,7 @@ DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础�
 5. 为搜索、deep link、权限/确认、错误状态和 readback 增加一条窄 contract test；设置写入只以 owner 回读成功为准。
 6. 上游升级时只重新执行 intake 和薄适配器检查；不改用户层级、不复制上游设置清单。
 
-这样用户能设置所有已被 OPL 承诺的能力，并能在每一项旁边看到“它影响什么、由谁保存、何时生效、失败后去哪里处理”。官方插件新增功能默认进入候选能力目录；完成 owner 和 action/readback 合同后进入可执行设置。尚未完成适配的能力仍显示来源、缺失条件和安装/配置下一步，避免“有功能但用户看不见”。
+这样用户能设置所有已被 OPL 承诺的能力，并能在每一项旁边看到“它影响什么、由谁保存、何时生效、失败后去哪里处理”。官方插件新增功能默认进入候选能力目录；完成 owner 和 action/readback 合同后进入可执行设置。尚未完成适配的能力仍显示来源、缺失条件和安装/配置下一步，避免“有功能但用户看不见”。后续新增插件配置必须优先遵循 [三级 UI 与设置接入规范](plugin-ui-and-settings-standard.md#2-插件-ui-与设置三级接入规范)，禁止继续在宿主设置页（如 `ModelsSettingsPage`）编写特定插件的硬编码分支。
 
 ## 5. 后续复用与迁移条件
 

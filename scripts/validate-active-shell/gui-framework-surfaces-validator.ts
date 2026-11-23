@@ -21,6 +21,15 @@ const appContributionViewTypes = [
   'service_status',
   'channel_access',
   'remote_companion_access',
+  'settings_form',
+];
+const appContributionSettingsDestinations = [
+  'models',
+  'resources',
+  'workspace',
+  'capabilities',
+  'services',
+  'preferences',
 ];
 const appContributionSchemaPath = path.join(root, 'contracts', 'opl-app-contributions.schema.json');
 
@@ -68,6 +77,11 @@ export function validatePackageAppContributionsProductContract(contract) {
     schema.$defs?.view?.properties?.view_type?.enum,
     appContributionViewTypes,
     'App contributions schema view types',
+  );
+  assertDeepEqualJson(
+    schema.$defs?.view?.properties?.settings_destination?.enum,
+    appContributionSettingsDestinations,
+    'App contributions schema settings destinations',
   );
   const channelAccess = schema.$defs?.channel_access_result;
   if (
@@ -155,6 +169,32 @@ export function validatePackageAppContributionsProductContract(contract) {
     || schema.$defs?.service_status_value?.oneOf?.length !== 6
   ) {
     throw new Error('App contributions schema service_status result must stay closed, bounded, versioned, and generic');
+  }
+  const settingsForm = schema.$defs?.settings_form_result;
+  const settingsFormField = schema.$defs?.settings_form_field;
+  const settingsFormSubmitInput = schema.$defs?.settings_form_submit_input;
+  if (
+    settingsForm?.additionalProperties !== false
+    || settingsForm?.properties?.schema_version?.const !== 'opl-app-settings-form.v1'
+    || settingsForm?.properties?.fields?.maxItems !== 64
+    || settingsFormField?.additionalProperties !== false
+    || JSON.stringify(settingsFormField?.properties?.field_type?.enum) !== JSON.stringify([
+      'boolean',
+      'enum',
+      'string',
+      'number',
+      'directory',
+      'secret_ref',
+    ])
+    || JSON.stringify(settingsFormField?.properties?.effect_timing?.enum) !== JSON.stringify([
+      'immediate',
+      'next_task',
+      'restart_required',
+    ])
+    || settingsFormSubmitInput?.additionalProperties !== false
+    || JSON.stringify(settingsFormSubmitInput?.required) !== JSON.stringify(['values'])
+  ) {
+    throw new Error('App contributions schema settings_form result must stay closed, bounded, and versioned');
   }
   assertDeepEqualJson(
     schema.$defs?.remote_companion_access_secret_boundary,
@@ -367,6 +407,25 @@ export function validatePackageAppContributionsProductContract(contract) {
     'App GUI service_status standard view contract',
   );
   assertDeepEqualJson(
+    contract.standard_view_contracts?.settings_form,
+    {
+      result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/settings_form_result',
+      placement: 'settings.section',
+      trust_tier: 'declarative',
+      owner: 'one-person-lab-app',
+      data_truth_owner: 'declaring_installed_package',
+      projection_owner: 'one-person-lab-framework',
+      allowed_settings_destinations: appContributionSettingsDestinations,
+      supported_field_types: ['boolean', 'enum', 'string', 'number', 'directory', 'secret_ref'],
+      effect_timings: ['immediate', 'next_task', 'restart_required'],
+      secret_readback_policy: 'secret_ref_fields_report_configured_state_only_and_never_return_plaintext_secrets_in_app_state_or_form_readback',
+      command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_validated_values_payload',
+      post_action_readback: 'fresh_contribution_read_required_after_action_success_without_optimistic_success_fabrication',
+      arbitrary_renderer_code_allowed: false,
+    },
+    'App GUI settings_form standard view contract',
+  );
+  assertDeepEqualJson(
     contract.stable_id_fields,
     ['navigation_id', 'view_id', 'command_id', 'badge_id', 'contribution_id'],
     'App GUI Package contribution stable ids',
@@ -440,6 +499,12 @@ export function validatePackageAppContributionsProductContract(contract) {
         },
         service_status: {
           destination: 'settings.environment.services.plugin_sections',
+          app_admission_required: true,
+          admission_basis: ['current_user_task', 'app_placement_policy'],
+        },
+        settings_form: {
+          destination: 'declared_view_settings_destination_within_existing_functional_pages',
+          allowed_destinations: appContributionSettingsDestinations,
           app_admission_required: true,
           admission_basis: ['current_user_task', 'app_placement_policy'],
         },

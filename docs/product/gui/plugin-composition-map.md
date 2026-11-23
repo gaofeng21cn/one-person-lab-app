@@ -32,10 +32,10 @@ Studio 按 DSH/npm 包维护客户端与 Host 实现。源码职责和依赖方�
 | 位置 | 源码职责 | 公开边界 |
 | --- | --- | --- |
 | `desktop/`、`src/main.tsx`、`src/bridge/webTransport.ts`、`src/host/` | Electron、preload、AppWebEntry、传输适配与 DSH profile 组合 | Cordis 服务、插件和共享包的公开入口 |
-| `plugins/<plugin-id>/` | 各 DSH Host/Client 实现；`opl-studio-client` 持有 Workbench、客户端组合和 slots | npm `exports`、Cordis 服务和 `dsh.client` |
+| `plugins/<plugin-id>/` | 各 DSH Host/Client 实现；`opl-studio-client` 持有 Workbench、客户端组合、slots 与 `oplStudioShell` 共享快照服务；`opl-runtime-status` 持有运行状态一级工作面；`opl-materials-space` 持有已注册智能体项目交付物浏览服务与一级工作面 | npm `exports`、Cordis 服务和 `dsh.client` |
 | `packages/host-contracts/` | Bridge 类型、事件、MCP Apps 协议与跨包错误 ABI | 类型及协议子路径 |
-| `packages/host-kit/` | 原生 profile 更新、Host 协议、传输辅助与 channel binding | 被插件和载体实际复用的公开入口 |
-| `packages/dsh-adapters/` | DSH 视觉源码清单及 Studio Client 与 MCP Apps 共用的文件预览 | `./visual-source`、`./workspace-preview` |
+| `packages/host-kit/` | 原生 profile 更新、Host 协议、传输辅助、`workspace-fs` 受限工作区访问与 channel binding | 被插件和载体实际复用的公开入口 |
+| `packages/dsh-adapters/` | DSH 视觉源码清单、`ui-kit`（含 `oplStudioShell` 消费 hook）及通用的 `workspace-preview`（`WorkspaceFilePreview`） | `./visual-source`、`./ui-kit`、`./workspace-preview` |
 | `vendor/` | 固定版本的 DSH、Superagent 与 DSH Remote 上游源码 | 由对应适配包或插件消费 |
 
 载体消费插件公开入口或 Cordis 服务，插件消费共享包、官方 DSH 和对应的 vendored 源码。
@@ -52,11 +52,13 @@ Host Core 通过 Cordis 获取 Codex、Framework 和 MCP Apps 服务。更新 CL
 | --- | --- | --- |
 | 安装、更新、启停、卸载 | 软件中心 | Studio Host、App Package、领域 Package、原生应用 |
 | 连接、权限、持久配置、服务就绪 | 设置 | DSH Client、Framework projection、App-owned Package |
+| 智能体、项目运行总览与阶段进度 | 运行状态（`opl-runtime-status`） | Framework `work_item_projection_v2`、Tier 2 DSH 插件、`opl-mcp-apps` 详情抽屉 |
+| 已注册智能体项目交付材料预览 | 资料空间（`opl-materials-space`） | `@gaofeng21cn/opl-materials-space` Host 服务与 Client、Framework 项目目录索引、`workspace-preview` |
 | 收件箱、审阅、制作、发布、设备操作 | 应用工作台或专用 MCP App | Framework Package contribution、MCP App、Studio client |
 | 当前任务的阶段、产物、证据 | 任务详情 | Framework runtime view、Package contribution、MCP App |
 | 底层 provider、carrier、诊断 | 运行与维护 | Framework projection、Studio host adapter |
 
-Package、插件和 repo 不创建新的顶层设置树。功能界面按用户任务进入既有 Settings、Workspace、Task Detail 和 MCP App host。
+Package、插件和 repo 不创建新的顶层设置树。功能界面按用户任务进入既有 Settings、Workspace、Task Detail 和 MCP App host；插件界面集成规范与共享 UI Kit 演进见 [插件 UI、设置接入与全插件理想态标准](plugin-ui-and-settings-standard.md)。
 
 ## 仓库决策
 

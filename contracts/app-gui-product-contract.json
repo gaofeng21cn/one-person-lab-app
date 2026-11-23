@@ -1987,7 +1987,8 @@
         "activity_log",
         "service_status",
         "channel_access",
-        "remote_companion_access"
+        "remote_companion_access",
+        "settings_form"
       ],
       "standard_view_contracts": {
         "list_detail": {
@@ -2114,6 +2115,39 @@
           "command_resolution": "resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input",
           "post_action_readback": "fresh_contribution_read_required_after_action_success",
           "provider_absent_policy": "project_unavailable_without_fabricated_service_or_node_state_and_keep_the_desktop_workbench_usable",
+          "arbitrary_renderer_code_allowed": false
+        },
+        "settings_form": {
+          "result_schema_ref": "contracts/opl-app-contributions.schema.json#/$defs/settings_form_result",
+          "placement": "settings.section",
+          "trust_tier": "declarative",
+          "owner": "one-person-lab-app",
+          "data_truth_owner": "declaring_installed_package",
+          "projection_owner": "one-person-lab-framework",
+          "allowed_settings_destinations": [
+            "models",
+            "resources",
+            "workspace",
+            "capabilities",
+            "services",
+            "preferences"
+          ],
+          "supported_field_types": [
+            "boolean",
+            "enum",
+            "string",
+            "number",
+            "directory",
+            "secret_ref"
+          ],
+          "effect_timings": [
+            "immediate",
+            "next_task",
+            "restart_required"
+          ],
+          "secret_readback_policy": "secret_ref_fields_report_configured_state_only_and_never_return_plaintext_secrets_in_app_state_or_form_readback",
+          "command_resolution": "resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_validated_values_payload",
+          "post_action_readback": "fresh_contribution_read_required_after_action_success_without_optimistic_success_fabrication",
           "arbitrary_renderer_code_allowed": false
         }
       },
@@ -2363,6 +2397,22 @@
           },
           "service_status": {
             "destination": "settings.environment.services.plugin_sections",
+            "app_admission_required": true,
+            "admission_basis": [
+              "current_user_task",
+              "app_placement_policy"
+            ]
+          },
+          "settings_form": {
+            "destination": "declared_view_settings_destination_within_existing_functional_pages",
+            "allowed_destinations": [
+              "models",
+              "resources",
+              "workspace",
+              "capabilities",
+              "services",
+              "preferences"
+            ],
             "app_admission_required": true,
             "admission_basis": [
               "current_user_task",
@@ -3717,6 +3767,7 @@
         "default_pinned_panel_ids": [
           "applications",
           "runtime",
+          "materials",
           "workspace"
         ],
         "default_unpinned_panel_ids": [

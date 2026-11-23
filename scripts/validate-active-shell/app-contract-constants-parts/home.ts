@@ -48,6 +48,7 @@ export const appOwnedActiveStudioPrimaryNavigation = {
     "default_pinned_panel_ids": [
       "applications",
       "runtime",
+      "materials",
       "workspace"
     ],
     "default_unpinned_panel_ids": [

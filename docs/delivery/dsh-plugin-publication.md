@@ -243,10 +243,17 @@ A plugin that fails these checks is published with a pre-release suffix (`-rc.N`
 its `^x.y.0` range will not resolve to it. Pre-release versions require an explicit native DSH package operation for local testing;
 the current `update-registry` command accepts package names and resolves stable ranges.
 
-## Rollback
+## Rollback and Boot Quarantine
 
 DSH's native profile mechanism: removing the profile override restores the bundled
 baseline version on next App start. No App-level rollback state machine needed.
+
+On cold desktop/host startup (`bootOplStudioHost`), if native `@gaofeng21cn/*` profile
+overrides cause Host boot or `core.start()` to fail, OPL automatically quarantines those
+overrides into `package.json.quarantined.<timestamp>`, records a structured recovery
+marker (`opl_dsh_profile_recovery.v1`), retries boot once against the signed bundled
+baseline, and surfaces a clear notice + re-check trigger in Software Center Updates until a
+healthy update succeeds.
 
 ```bash
 npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
@@ -342,9 +349,13 @@ Triggers on push to main modifying plugin or shared build inputs, or manual disp
 with `packages` / `force_all` inputs. Each run binds plugin builds to a selected App
 product commit. Per-plugin matrix builds via `buildDshPlugins([name])`, runs Host/Client
 and independent child-profile boot tests, and publishes to GitHub Packages under
-`@gaofeng21cn`. Then the workflow runs `scripts/publish-dsh-plugin-feed.mjs` to pack
-all publishable plugins, merge historical compatible versions into `dsh-plugin-index.json`,
-and publish the `.tgz` assets plus index to the public `dsh-plugins-latest` release.
+`@gaofeng21cn`. Because GitHub Packages releases are immutable per `name@version`,
+changing shared workspace inputs (`packages/`, `vendor/`, `scripts/`) or plugin source
+requires bumping the affected plugin `package.json` version(s) so `check-plugin-publication.mjs`
+does not fail on byte-changed already-published versions. Then the workflow runs
+`scripts/publish-dsh-plugin-feed.mjs` to pack all publishable plugins, merge historical
+compatible versions into `dsh-plugin-index.json`, and publish the `.tgz` assets plus index
+to the public `dsh-plugins-latest` release.
 
 ### CI: `release-plugin-composition-test.yml` (Track 2)
 
