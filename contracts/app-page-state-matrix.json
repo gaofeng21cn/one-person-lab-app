@@ -133,7 +133,7 @@
     ],
     "state_rules": {
       "unavailable": "show_existing_opl_account_sign_in_or_managed_service_recovery_inside_app",
-      "unpaired": "enable_phone_access_in_app_then_scan_or_paste_pairing_link",
+      "unpaired": "sign_in_to_the_same_opl_gateway_account_to_discover_enabled_computers; manual_pairing_available",
       "qr_ready": "transient_120_second_code_and_computer_fingerprint; no_network_URL_input",
       "active": "authorized_device_canonical_conversations_and_pending_requests; reconnect_preserves_draft_and_unknown_operation",
       "revoking": "durable_local_invalidation_then_relay_revoke; phone_receives_local_ACK_first",

@@ -7,13 +7,28 @@
   "service_origin": "https://link.medopl.com",
   "gateway_identity_origin": "https://gateway.medopl.com",
   "user_flow": [
-    "sign_in_to_existing_opl_account_in_desktop_app_if_needed",
-    "enable_phone_access_in_desktop_app",
-    "scan_desktop_pairing_code_in_link",
-    "confirm_computer_identity_and_continue_the_same_conversation"
+    "sign_in_to_the_same_opl_gateway_account_in_app_and_link",
+    "discover_computers_with_phone_access_enabled",
+    "connect_automatically_to_the_only_online_computer_or_choose_from_the_list",
+    "continue_the_same_conversation"
   ],
   "external_network_app_or_configuration_required": false,
-  "phone_account_password_required": false,
+  "account_access": {
+    "decision_date": "2026-11-23",
+    "desktop_default": "enabled_with_active_opl_gateway_account",
+    "desktop_explicit_off_survives_restart_upgrade_and_sign_in": true,
+    "desktop_registration": "in_background_when_signed_in_and_host_is_ready; failure_does_not_block_app_startup",
+    "desktop_account_lifecycle": "disable_and_close_previous_account_connections_on_sign_out_or_account_change",
+    "discovery": "gateway_verified_immutable_account_id_with_enabled_registered_hosts_only",
+    "host_choice": "autoconnect_only_when_exactly_one_online_host_is_available; otherwise_show_same_account_hosts_and_presence",
+    "phone_account_session_store": "keychain_when_unlocked_this_device_only",
+    "phone_account_sign_out": "close_live_account_connections_clear_session_and_hide_previous_account_data",
+    "account_access_bearer_usage": "exchange_only_with_fixed_link_service_over_system_trusted_https",
+    "host_public_key_source": "same_account_registered_host_directory; reject_silent_change_to_existing_pin",
+    "account_business_claim": "pinned_noise_peer_and_exact_active_relay_host_client_grant",
+    "revoked_device_auto_enrollment_allowed": false,
+    "existing_unrevoked_pairings_remain_compatible": true
+  },
   "transport": {
     "upstream": "https://github.com/liguobao/ds-harness-remote",
     "source_revision": "f214c5abb39434d0e8358956bfca8d4529981fee",
@@ -81,6 +96,39 @@
       "authentication": "gateway_account_access_token",
       "body": "upstream_device_registration_request_host_role_only",
       "response": "upstream_device_credentials_plus_serverUrl_and_accountScope"
+    },
+    "account_hosts": {
+      "method": "GET",
+      "path": "/api/v1/link/account/hosts",
+      "authentication": "gateway_account_access_token",
+      "response": ["accountScope", "items"],
+      "host_fields": ["deviceId", "name", "identityKey", "online", "lastSeenAt"]
+    },
+    "account_enroll": {
+      "method": "POST",
+      "path": "/api/v1/link/account/enroll",
+      "authentication": "gateway_account_access_token",
+      "body": ["hostDeviceId", "device"],
+      "response": "upstream_device_credentials_plus_serverUrl_accountScope_hostDeviceId"
+    },
+    "account_host": {
+      "method": "PUT",
+      "path": "/api/v1/link/account/host",
+      "authentication": "scoped_host_bearer",
+      "body": { "enabled": "boolean" },
+      "response": { "enabled": "boolean" }
+    },
+    "account_grant": {
+      "method": "GET",
+      "path": "/api/v1/link/account/grants/:clientId",
+      "authentication": "scoped_host_bearer_for_exact_active_host_client_grant",
+      "response": { "authorized": true, "identityKey": "registered_client_public_key" }
+    },
+    "account_session_sign_out": {
+      "method": "DELETE",
+      "path": "/api/v1/link/account/session/:clientId",
+      "authentication": "scoped_client_bearer_for_exact_self_account_grant",
+      "effect": "deactivate_grant_and_invalidate_transport_credentials_without_explicit_device_revocation"
     },
     "refresh": {
       "method": "POST",
@@ -152,7 +200,8 @@
     }
   },
   "pairing": {
-    "existing_desktop_initiated_single_use_claim_remains_authoritative": true,
+    "role": "compatibility_for_legacy_builds_manual_pairing_and_advanced_direct_access",
+    "legacy_pairing_without_phone_account_sign_in": true,
     "ttl_seconds": 120,
     "relay_enrollment_is_not_conversation_authorization": true,
     "local_claim_code_sent_only_inside_pinned_noise_channel": true,
@@ -259,6 +308,18 @@
       "external_host_registration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43732882055",
       "native_turn_qualification_case": "external-host-managed-upload-be442af-d4b9",
       "native_turn_qualification_evidence_ref": "docs/product/gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md"
+    },
+    "account_access_qualification": {
+      "status": "qualification_pending",
+      "required": [
+        "same_account_ios_discovery_to_canonical_conversation",
+        "cross_account_directory_and_enrollment_isolation",
+        "default_on_and_explicit_off_survives_upgrade",
+        "old_pairing_compatibility",
+        "desktop_sign_out_or_account_change_closes_previous_connections",
+        "device_revocation_blocks_existing_and_future_connections",
+        "deployed_service_and_compatible_installed_desktop_and_iphone"
+      ]
     },
     "source_read_permissions": [
       "contents:read",

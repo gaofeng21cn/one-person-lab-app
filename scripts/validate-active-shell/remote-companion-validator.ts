@@ -6,6 +6,7 @@ const wireRef = 'contracts/app-remote-companion-wire.json';
 const protocol = 'opl_link_studio_wire.v2';
 const transportMode = 'authenticated_https_json_sse_or_dsh_noise_adaptive_loopback';
 const internetRef = 'contracts/app-remote-companion-internet.json';
+const accountAccessRef = `${internetRef}#account_access`;
 export const remoteCompanionStates = ['unavailable', 'unpaired', 'qr_ready', 'active', 'revoking', 'attention'];
 export const remoteCompanionMethods = [
   'listThreads', 'readThread', 'startTurn', 'steerTurn', 'interruptTurn',
@@ -51,7 +52,8 @@ export function validateRemoteCompanionWireContract(wire: Record<string, any>, p
 
   const hostAuth = { 'POST /pair': 'desktop_session_and_csrf', 'POST /claim': 'single_use_pair_code',
     'GET /devices': 'desktop_session', 'DELETE /devices/:id': 'desktop_session_and_csrf' };
-  const clientAuth = { 'GET /bootstrap': 'device_bearer', 'POST /invoke': 'device_bearer', 'GET /events': 'device_bearer',
+  const clientAuth = { 'POST /account/claim': 'pinned_noise_peer_and_exact_active_account_grant',
+    'GET /bootstrap': 'device_bearer', 'POST /invoke': 'device_bearer', 'GET /events': 'device_bearer',
     'POST /download': 'device_bearer', 'POST /disconnect': 'device_bearer',
     'POST /uploads': 'device_bearer', 'PUT /uploads/:id': 'device_bearer', 'GET /uploads/:id': 'device_bearer',
     'DELETE /uploads/:id': 'device_bearer', 'GET /download': 'device_bearer' };
@@ -64,6 +66,9 @@ export function validateRemoteCompanionWireContract(wire: Record<string, any>, p
   closedSet(wire.host_routes['POST /pair'].output, ['schema', 'serverUrl', 'accountScope', 'hostDeviceId', 'hostIdentityKey', 'enrollmentToken', 'code', 'expiresAt', 'hostFingerprint', 'pairingURL'], 'OPL Link pairing response');
   closedSet(wire.host_routes['POST /claim'].input, ['code', 'deviceName'], 'OPL Link claim input');
   closedSet(wire.host_routes['POST /claim'].output, ['schema', 'token', 'expiresAt', 'device', 'host'], 'OPL Link claim response');
+  const accountClaim = wire.client_routes['POST /account/claim'];
+  closedSet(accountClaim.input, ['deviceName'], 'OPL Link account claim input');
+  closedSet(accountClaim.output, wire.host_routes['POST /claim'].output, 'OPL Link account claim response');
   fields(wire.host_routes['GET /devices'].output, { devices: 'paired_device_metadata_without_tokens' }, 'OPL Link device listing');
   fields(wire.host_routes['DELETE /devices/:id'], { effect: 'revoke_device_and_close_its_streams' }, 'OPL Link device revoke');
   closedSet(wire.client_routes['GET /bootstrap'].output, ['schema', 'host', 'device', 'capabilities'], 'OPL Link bootstrap response');
@@ -84,19 +89,60 @@ export function validateRemoteCompanionWireContract(wire: Record<string, any>, p
   }, 'OPL Link recovery');
   requiredSet(wire.security, ['bearer_scoped_to_companion_routes', 'hash_device_credentials_at_rest',
     'single_use_expiring_pair_codes', 'reject_cross_origin_redirects', 'revoke_closes_live_streams',
-    'workspace_realpath_and_symlink_bounds', 'no_offline_command_queue', 'no_model_credentials_on_phone'], 'OPL Link wire security');
+    'workspace_realpath_and_symlink_bounds', 'no_offline_command_queue', 'no_model_credentials_on_phone',
+    'gateway_sign_in_only_admits_account_discovery_and_device_enrollment',
+    'account_claim_checks_actual_noise_peer_against_exact_active_host_client_grant'], 'OPL Link wire security');
   if (policy) {
     requireValue(policy.transport?.protocol === wire.schema && policy.transport?.mode === wire.transport
       && policy.transport?.public_api_prefix === wire.base_path, 'OPL Link product and wire transport must agree');
     requireValue(policy.pairing?.ttl_seconds === wire.pairing_ttl_seconds
       && policy.pairing?.device_credential_ttl_days === wire.credential_ttl_days, 'OPL Link product and wire credential lifetimes must agree');
+    closedSet(policy.desktop_connector_boundary?.desktop_bridge_methods, Object.keys(wire.desktop_bridge_methods),
+      'OPL Link product and wire desktop methods');
   }
 }
 
 export function validateRemoteCompanionInternetContract(internet: Record<string, any>): void {
   fields(internet, { schema: 'opl_link_internet.v1', owner: 'one-person-lab-app', service_owner: 'opl-link/service',
     deployment_owner: 'opl-instance-medopl', service_origin: 'https://link.medopl.com',
-    external_network_app_or_configuration_required: false, phone_account_password_required: false }, 'OPL Link internet');
+    gateway_identity_origin: 'https://gateway.medopl.com',
+    external_network_app_or_configuration_required: false }, 'OPL Link internet');
+  fields(internet.account_access, {
+    desktop_default: 'enabled_with_active_opl_gateway_account',
+    desktop_explicit_off_survives_restart_upgrade_and_sign_in: true,
+    desktop_registration: 'in_background_when_signed_in_and_host_is_ready; failure_does_not_block_app_startup',
+    desktop_account_lifecycle: 'disable_and_close_previous_account_connections_on_sign_out_or_account_change',
+    discovery: 'gateway_verified_immutable_account_id_with_enabled_registered_hosts_only',
+    host_choice: 'autoconnect_only_when_exactly_one_online_host_is_available; otherwise_show_same_account_hosts_and_presence',
+    phone_account_session_store: 'keychain_when_unlocked_this_device_only',
+    phone_account_sign_out: 'close_live_account_connections_clear_session_and_hide_previous_account_data',
+    account_access_bearer_usage: 'exchange_only_with_fixed_link_service_over_system_trusted_https',
+    host_public_key_source: 'same_account_registered_host_directory; reject_silent_change_to_existing_pin',
+    account_business_claim: 'pinned_noise_peer_and_exact_active_relay_host_client_grant',
+    revoked_device_auto_enrollment_allowed: false,
+    existing_unrevoked_pairings_remain_compatible: true,
+  }, 'OPL Link account access');
+  const api = internet.service_api;
+  fields(api?.account_hosts, { method: 'GET', path: '/api/v1/link/account/hosts',
+    authentication: 'gateway_account_access_token' }, 'OPL Link account host discovery');
+  closedSet(api.account_hosts.response, ['accountScope', 'items'], 'OPL Link host discovery response');
+  closedSet(api.account_hosts.host_fields, ['deviceId', 'name', 'identityKey', 'online', 'lastSeenAt'],
+    'OPL Link host discovery fields');
+  fields(api.account_enroll, { method: 'POST', path: '/api/v1/link/account/enroll',
+    authentication: 'gateway_account_access_token', response: api.enroll.response }, 'OPL Link account enrollment');
+  closedSet(api.account_enroll.body, ['hostDeviceId', 'device'], 'OPL Link account enrollment input');
+  fields(api.account_host, { method: 'PUT', path: '/api/v1/link/account/host',
+    authentication: 'scoped_host_bearer' }, 'OPL Link account host policy');
+  fields(api.account_host.body, { enabled: 'boolean' }, 'OPL Link account host policy input');
+  fields(api.account_host.response, { enabled: 'boolean' }, 'OPL Link account host policy response');
+  fields(api.account_grant, { method: 'GET', path: '/api/v1/link/account/grants/:clientId',
+    authentication: 'scoped_host_bearer_for_exact_active_host_client_grant' }, 'OPL Link account grant verification');
+  fields(api.account_grant.response, { authorized: true, identityKey: 'registered_client_public_key' },
+    'OPL Link account grant response');
+  fields(api.account_session_sign_out, { method: 'DELETE', path: '/api/v1/link/account/session/:clientId',
+    authentication: 'scoped_client_bearer_for_exact_self_account_grant',
+    effect: 'deactivate_grant_and_invalidate_transport_credentials_without_explicit_device_revocation' },
+    'OPL Link account device sign-out');
   fields(internet.transport, { source_revision: 'f214c5abb39434d0e8358956bfca8d4529981fee',
     encryption: 'Noise_IK_25519_ChaChaPoly_SHA256', business_protocol: protocol,
     virtual_target_origin: 'http://127.0.0.1:43177', general_loopback_proxy_allowed: false,
@@ -121,6 +167,7 @@ export function validateRemoteCompanionInternetContract(internet: Record<string,
     relay_stores_gateway_password_or_model_key: false, relay_stores_conversation_or_plaintext_business_payload: false,
   }, 'OPL Link account isolation');
   fields(internet.pairing, { ttl_seconds: 120, relay_enrollment_is_not_conversation_authorization: true,
+    legacy_pairing_without_phone_account_sign_in: true,
     local_claim_code_sent_only_inside_pinned_noise_channel: true,
     transport_identity_keychain_scope: 'server_origin|accountScope|hostDeviceId', host_public_key_pinned_from_desktop_qr: true }, 'OPL Link internet pairing');
   closedSet(internet.pairing.qr_transport_fields, ['serverUrl', 'accountScope', 'hostDeviceId', 'hostIdentityKey', 'enrollmentToken'], 'OPL Link QR transport');
@@ -160,10 +207,13 @@ export function validateRemoteCompanionContract(policy: Record<string, any>, wir
     application_layer_relay_e2ee_claim_allowed: true,
     debug_loopback_http: 'explicit_debug_only_and_loopback_origin_and_peer; never_plain_lan_http' }, 'OPL Link transport');
   fields(policy.pairing, { initiator: 'authenticated_desktop_user', single_use: true,
+    role: 'manual_compatibility_path',
     account_or_invitation_service_required: true, relay_enrollment_is_not_business_authorization: true, ios_credential_store: 'keychain_when_unlocked_this_device_only',
     desktop_credential_store: 'hashed_device_tokens_and_metadata_only',
     revoke: 'deny_future_calls_and_close_existing_device_event_streams',
     endpoint_change: 'explicit_new_pairing_no_silent_origin_change' }, 'OPL Link pairing');
+  fields(policy.interaction_policy, { onboarding: 'same_opl_gateway_account_sign_in_and_host_discovery',
+    account_access_ref: accountAccessRef, manual_pairing: 'scan_or_paste_one_time_pairing_link' }, 'OPL Link onboarding');
   for (const key of ['system_trusted_https_required', 'companion_bearer_cannot_call_general_app_api', 'single_use_pairing', 'device_revocation',
     'no_cross_origin_redirects', 'no_arbitrary_method_dispatch', 'no_unbounded_file_access', 'workspace_realpath_and_symlink_bounds',
     'no_plaintext_token_storage', 'no_offline_command_queue', 'no_automatic_unknown_mutation_replay', 'no_remote_approval_policy_escalation']) {

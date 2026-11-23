@@ -80,6 +80,8 @@
     "generic_remote_companion_access_contribution_is_link_runtime": false,
     "desktop_bridge_methods": [
       "readLinkDevices",
+      "enableLinkInternet",
+      "disableLinkInternet",
       "createLinkPairing",
       "revokeLinkDevice"
     ]
@@ -107,6 +109,7 @@
     "automatic_transport_reconnect": true
   },
   "pairing": {
+    "role": "manual_compatibility_path",
     "initiator": "authenticated_desktop_user",
     "method": "scan_or_paste_one_time_pairing_link",
     "account_or_invitation_service_required": true,
@@ -119,7 +122,7 @@
     "qr_material": "transient_not_logged_or_saved_in_normal_settings",
     "endpoint_change": "explicit_new_pairing_no_silent_origin_change",
     "relay_enrollment_is_not_business_authorization": true,
-    "account_owner": "existing_desktop_opl_gateway_account; no_phone_password"
+    "account_owner": "existing_desktop_opl_gateway_account"
   },
   "surface_boundary": {
     "conversation_model": {
@@ -165,7 +168,9 @@
     ]
   },
   "interaction_policy": {
-    "onboarding": "one_primary_scan_action_with_paste_link_alternative",
+    "onboarding": "same_opl_gateway_account_sign_in_and_host_discovery",
+    "account_access_ref": "contracts/app-remote-companion-internet.json#account_access",
+    "manual_pairing": "scan_or_paste_one_time_pairing_link",
     "execution_context": "selected_device_and_project_are_visible",
     "process": "collapsed_by_default_pending_decisions_remain_visible",
     "approval": "show_reason_scope_and_object_keep_actions_reachable; forward_only_supported_pending_request_responses",

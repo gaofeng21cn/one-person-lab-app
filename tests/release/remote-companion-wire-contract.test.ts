@@ -18,6 +18,8 @@ test('Studio wire exposes a closed companion route family with separate desktop 
     rejects(w => { w.host_routes[route].auth = 'device_bearer'; }, /auth/);
   }
   rejects(w => { w.host_routes['POST /claim'].auth = 'anonymous'; }, /auth/);
+  rejects(w => { w.client_routes['POST /account/claim'].auth = 'gateway_account_access_token'; }, /auth/);
+  rejects(w => { w.client_routes['POST /account/claim'].input = ['deviceName', 'clientId']; }, /account claim input/);
   rejects(w => { w.client_routes['POST /invoke'].auth = 'desktop_session'; }, /auth/);
   rejects(w => { w.client_routes['POST /execute-action'] = { auth: 'device_bearer' }; }, /supported values/);
   rejects(w => { w.host_routes['DELETE /devices/:id'].effect = 'keep_existing_streams'; }, /effect/);

@@ -56,6 +56,11 @@
     }
   },
   "client_routes": {
+    "POST /account/claim": {
+      "auth": "pinned_noise_peer_and_exact_active_account_grant",
+      "input": ["deviceName"],
+      "output": ["schema", "token", "expiresAt", "device", "host"]
+    },
     "GET /bootstrap": {
       "auth": "device_bearer",
       "output": [
@@ -191,7 +196,9 @@
     "relay_enrollment_is_not_business_authorization",
     "pinned_noise_channel_binds_device_bearer_to_remote_peer",
     "management_routes_not_exposed_over_loopback",
-    "relay_tokens_and_identity_scoped_per_origin_account_and_host"
+    "relay_tokens_and_identity_scoped_per_origin_account_and_host",
+    "gateway_sign_in_only_admits_account_discovery_and_device_enrollment",
+    "account_claim_checks_actual_noise_peer_against_exact_active_host_client_grant"
   ],
   "error": {
     "error": {
@@ -202,6 +209,8 @@
   },
   "desktop_bridge_methods": {
     "readLinkDevices": "desktop_context_only_paired_device_metadata_without_tokens",
+    "enableLinkInternet": "desktop_context_only_enable_account_bound_remote_access",
+    "disableLinkInternet": "desktop_context_only_persist_explicit_off_and_close_remote_access",
     "createLinkPairing": "desktop_context_only_expiring_single_use_qr_material",
     "revokeLinkDevice": "desktop_context_only_revoke_and_disconnect_device"
   },
