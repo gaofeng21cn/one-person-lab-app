@@ -274,6 +274,7 @@ test('any Package role may project one closed standard App contribution block', 
     'service_status',
     'channel_access',
     'remote_companion_access',
+    'settings_form',
   ];
   const shellWriteActionBridge = {
     action_id: 'package_contribution_execute',
