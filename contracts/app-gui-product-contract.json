@@ -2436,7 +2436,7 @@
         "delegation_policy": "Framework_action_bridge_may_delegate_to_the_descriptor_neutral_contribution_execute_broker_after_fresh_descriptor_carrier_readiness_ref_and_confirmation_revalidation"
       },
       "broker_response_contract": {
-        "framework_source_ref": "one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution",
+        "framework_source_ref": "one-person-lab/src/read-models/operator/app-contribution-broker.ts#runAppContribution",
         "cli_envelope_path": "opl_app_contribution",
         "cli_surface_kind": "opl_app_package_contribution.v1",
         "package_response_schema": "opl-package-app-contribution-response.v1",
@@ -7116,7 +7116,7 @@
       "official_ui_reuse": {
         "page_identity": "软件中心",
         "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
-        "upstream_ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+        "upstream_ref": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
         "reused_interaction_and_visuals": [
           "grouped plugin cards and compact metadata",
           "official artwork and state dots",

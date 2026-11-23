@@ -6,7 +6,7 @@
   "machine_boundary": "Pins the DSH shell components, theme, icons and primitives reused by Studio. OPL adapters supply product data and actions; DSH gains no Codex, Framework, credential or release authority.",
   "upstream": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
-    "commit": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+    "commit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
     "default_branch_at_review": "master",
     "license": "MIT",
     "license_source_path": "LICENSE",

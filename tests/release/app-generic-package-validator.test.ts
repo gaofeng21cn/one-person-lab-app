@@ -287,7 +287,7 @@ test('any Package role may project one closed standard App contribution block', 
     delegation_policy: 'Framework_action_bridge_may_delegate_to_the_descriptor_neutral_contribution_execute_broker_after_fresh_descriptor_carrier_readiness_ref_and_confirmation_revalidation',
   };
   const shellBrokerResponseContract = {
-    framework_source_ref: 'one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution',
+    framework_source_ref: 'one-person-lab/src/read-models/operator/app-contribution-broker.ts#runAppContribution',
     cli_envelope_path: 'opl_app_contribution',
     cli_surface_kind: 'opl_app_package_contribution.v1',
     package_response_schema: 'opl-package-app-contribution-response.v1',

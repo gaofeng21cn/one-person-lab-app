@@ -155,8 +155,8 @@
   "application_host": {
     "role": "deepseek_harness_cordis_application_host",
     "implementation_status": "source_implemented_release_admission_separate",
-    "upstream_version": "0.2.2-rc.2",
-    "upstream_ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+    "upstream_version": "0.2.2-rc.3",
+    "upstream_ref": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
     "profile": "opl-studio",
     "profile_source": "src/host/dsh/cordis.yml",
     "web_overlay": "src/host/dsh/web.patch.yml",
@@ -467,7 +467,7 @@
         "unavailable_policy": "hide_or_disable_commands_and_preserve_read_only_contribution_views_until_the_current_action_catalog_exposes_the_exact_action"
       },
       "broker_response_contract": {
-        "framework_source_ref": "one-person-lab/src/modules/console/app-contribution-broker.ts#runAppContribution",
+        "framework_source_ref": "one-person-lab/src/read-models/operator/app-contribution-broker.ts#runAppContribution",
         "cli_envelope_path": "opl_app_contribution",
         "cli_surface_kind": "opl_app_package_contribution.v1",
         "package_response_schema": "opl-package-app-contribution-response.v1",

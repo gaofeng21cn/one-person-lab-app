@@ -96,7 +96,7 @@ export function validateAppSettingsPages(matrix, guiContract) {
   const officialUiReuse = applicationManagementContract.official_ui_reuse;
   if (
     officialUiReuse?.page_identity !== '软件中心' ||
-    officialUiReuse?.upstream_ref !== 'e8f7b93a344964de3dca1ace9e72b6e4d6de87cb' ||
+    officialUiReuse?.upstream_ref !== '38a6a5c965aa99ab525161efb7cc5cf1fe62fced' ||
     officialUiReuse?.upstream_page !== 'deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx' ||
     !officialUiReuse?.opl_adapter_boundary?.includes('Framework package projection') ||
     !officialUiReuse?.opl_adapter_boundary?.includes('fresh readback') ||
