@@ -73,6 +73,8 @@ test('managed internet preserves account isolation, pinned pairing and bounded b
     (p: Contract) => { p.account_isolation.strategy = 'shared_unscoped_gateway'; },
     (p: Contract) => { p.account_access.desktop_explicit_off_survives_restart_upgrade_and_sign_in = false; },
     (p: Contract) => { p.account_access.revoked_device_auto_enrollment_allowed = true; },
+    (p: Contract) => { p.account_access.phone_host_sessions = 'one_shared_session'; },
+    (p: Contract) => { p.account_access.phone_action_routing = 'current_filter_host'; },
     (p: Contract) => { p.account_access.host_public_key_source = 'replace_pin_from_latest_directory'; },
     (p: Contract) => { p.service_api.account_hosts.authentication = 'account_scope_header_only'; },
     (p: Contract) => { p.service_api.account_enroll.body = ['accountScope', 'hostDeviceId', 'device']; },
