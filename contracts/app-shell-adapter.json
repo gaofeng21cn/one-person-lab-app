@@ -305,8 +305,7 @@
       "required_evidence": [
         "SettingsHost renders ordinary routes from the hydrated App settings registry",
         "SettingsShellAdapterSlot mounts App-owned route slots without shell-owned product IA",
-        "legacy route redirects and extension anchor remaps are resolved before shell rendering",
-        "AionUI upstream settings intake is classified as accepted/adapt/redirect/reject before registry or slot changes"
+        "legacy route redirects and extension anchor remaps are resolved before shell rendering"
       ]
     },
     "branded_deep_link_surface": {

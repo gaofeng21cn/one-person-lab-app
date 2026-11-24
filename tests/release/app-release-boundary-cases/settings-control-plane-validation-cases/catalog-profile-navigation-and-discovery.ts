@@ -23,8 +23,8 @@ test("Settings product profile mirrors the control-plane page adapter claims", (
     values.controlPlane.page_adapter_policy,
   );
 
-  values.productProfile.settings.control_plane.page_adapter_policy.required_pages.gateway.renderer_entry =
-    "packages/desktop/src/renderer/pages/settings/sections/GatewaySettings.tsx";
+  values.productProfile.settings.control_plane.page_adapter_policy.required_pages.gateway.state_source =
+    "mutated";
   assert.throws(
     () => validate(values),
     /Product profile Settings page adapter policy projection/,
@@ -249,19 +249,6 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
       (group) => group.id === "runtime_maintenance",
     )?.destination_ids,
     ["runtime_services", "updates_repairs", "logs_diagnostics"],
-  );
-  assert.deepStrictEqual(
-    values.controlPlane.aionui_custom_assistant_boundary,
-    {
-      opl_app_product_surface: false,
-      ordinary_navigation_entry_allowed: false,
-      entry_may_be_hidden: true,
-      legacy_assistants_target: "capabilities#third-party",
-      underlying_user_data_owner: "aionui",
-      underlying_user_data_deletion_policy:
-        "forbidden_without_explicit_app_contract_and_migration_or_deletion_evidence",
-      route_or_entry_removal_proves_data_migration: false,
-    },
   );
 
   const tenVisibleGroups = contracts();

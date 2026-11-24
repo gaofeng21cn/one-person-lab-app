@@ -23,7 +23,6 @@ export function validateCanonicalConversationContinuityPolicy(runtimeBridge) {
     direct_cross_shell_private_store_access_allowed: false,
     duplicate_thread_store_allowed: false,
     simultaneous_same_thread_write_safety_claimed: false,
-    historical_aionui_status: 'retired_historical_provenance_only',
     opl_studio_status: 'canonical_codex_app_server_thread_directory_and_resume',
     pin_role: 'shell_ui_metadata_only',
     local_reset_role: 'studio_local_metadata_reset_without_codex_app_server_history_reset',

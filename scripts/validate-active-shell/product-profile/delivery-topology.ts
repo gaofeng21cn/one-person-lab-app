@@ -256,21 +256,6 @@ export function validateDeliveryTopology(profile) {
     'Product profile successor product policy',
   );
   assertDeepEqualJson(
-    topology.aionui_reference,
-    {
-      role: 'retired_historical_provenance_only',
-      target_renderer_owner: false,
-      target_feature_inventory_owner: false,
-      target_runtime_dependency: false,
-      aioncore_target_runtime_dependency: false,
-      source_reuse_requires_separate_decision: true,
-      source_reuse_policy: 'historical_provenance_only_no_runtime_build_or_conformance_dependency',
-      source_reuse_cohort_ref: null,
-      active_release_shell_source_ref: null,
-    },
-    'Product profile AionUI reference boundary',
-  );
-  assertDeepEqualJson(
     (({ feature_inventory_ref, functional_baseline_scope, evidence_axes, features, startup_history_continuity, ...legacyMinimumProduct }) => legacyMinimumProduct)(topology.minimum_complete_product),
     {
       schema: 'opl_app_successor_minimum_complete_product.v3',

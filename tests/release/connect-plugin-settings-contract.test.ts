@@ -19,8 +19,6 @@ test('channel settings admit exactly one provider route per renderer', () => {
     'dynamic_framework_host_projection_only_no_fixed_package_or_brand_allowlist',
   );
   assert.equal(contract.top_level_settings_navigation_allowed, false);
-  assert.match(contract.renderer_admission.aionui, /aioncore_builtin_weixin_only_for_channel_access/);
-  assert.match(contract.renderer_admission.aionui, /without_starting_a_second_channel_provider_path/);
   assert.match(contract.renderer_admission.opl_studio, /dynamic_framework_host_projection/);
   assert.match(contract.page_model, /app_owned_standard_renderer/);
   assert.match(contract.visible_disconnected_state, /show_the_connector/);
@@ -32,12 +30,6 @@ test('channel settings admit exactly one provider route per renderer', () => {
   assert.equal(weixin.connector_kind, 'message_channel_connector');
   assert.equal(weixin.classification_role, 'product_documentation_example_not_runtime_membership');
   assert.deepEqual(channelAccess.renderer_activation_policy, {
-    aionui: {
-      provider_owner: 'aioncore_builtin_weixin',
-      settings_surface: 'aioncore_channel_settings',
-      framework_channel_provider_host_activation_allowed: false,
-      framework_projected_channel_access_rendering_allowed: false,
-    },
     opl_studio: {
       provider_owner: 'installed_channel_provider_package',
       settings_surface: 'app_standard_channel_access',
@@ -47,8 +39,6 @@ test('channel settings admit exactly one provider route per renderer', () => {
     single_active_provider_path_per_renderer_required: true,
   });
   assert.equal(remoteCompanionAccess.result_schema_ref, 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result');
-  assert.equal(remoteCompanionAccess.renderer_activation_policy.aionui.framework_remote_companion_host_activation_allowed, true);
-  assert.equal(remoteCompanionAccess.renderer_activation_policy.aionui.framework_projected_remote_companion_access_rendering_allowed, true);
   const studioCompanionPolicy = remoteCompanionAccess.renderer_activation_policy.opl_studio;
   assert.equal(studioCompanionPolicy.provider_owner, 'opl_studio_native_link_companion_bridge');
   assert.equal(studioCompanionPolicy.settings_surface, 'settings_resources_opl_link_native_host_panel');
@@ -63,7 +53,6 @@ test('channel settings admit exactly one provider route per renderer', () => {
     'claim_material',
   ]);
   assert.deepEqual(weixinManifest.authority_boundary.activation_route_by_renderer, {
-    aionui: 'aioncore_builtin_weixin_only_package_provider_activation_forbidden',
     opl_studio: 'installed_provider_through_one_person_lab_framework_generic_channel_host',
   });
   assert.equal(weixinManifest.authority_boundary.second_channel_provider_path_allowed, false);

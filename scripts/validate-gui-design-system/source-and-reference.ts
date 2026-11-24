@@ -204,10 +204,7 @@ export function validateGuiDesignSystemSourceAndReference({
   const maintenancePolicy = record(guiContract.gui_maintenance_policy);
   const maintenanceGoal = record(maintenancePolicy.goal);
   const referencePromotion = record(maintenancePolicy.visual_source_promotion);
-  const upstreamFollowing = record(maintenancePolicy.historical_aionui_upstream_provenance);
-  const classificationMeanings = record(upstreamFollowing.classification_meanings);
   const maintenanceBudgets = record(maintenancePolicy.maintenance_budgets);
-  const auditBaseline = record(maintenanceBudgets.audit_baseline);
   const codexOverlayBudget = record(maintenanceBudgets.codex_overlay);
   const visualComparison = record(maintenancePolicy.visual_comparison_protocol);
   const cohortReference = record(visualReferenceCohort.reference);
@@ -256,42 +253,12 @@ export function validateGuiDesignSystemSourceAndReference({
     referencePromotion.supersession_policy !==
       'prior_dsh_cohort_and_codex_visual_observations_remain_historical_provenance_only' ||
     referencePromotion.release_independence !== true ||
-    referencePromotion.external_artifact_download_install_or_launch_required !== false
+    referencePromotion.external_artifact_download_install_or_launch_required !== false ||
+    maintenancePolicy.historical_aionui_upstream_provenance_retired !== true
   ) {
     issues.add('GUI maintenance policy must version the pinned DSH visual source without implying release completion');
   }
   if (
-    upstreamFollowing.channel !== 'stable_tags_only' ||
-    !sameStrings(upstreamFollowing.required_release_metadata, [
-      'tag',
-      'commit',
-      'published_at',
-      'draft',
-      'prerelease',
-    ]) ||
-    upstreamFollowing.draft_or_prerelease_policy !== 'reject_as_intake_target' ||
-    !sameStrings(upstreamFollowing.classifications, ['accept', 'adapt', 'redirect', 'reject']) ||
-    classificationMeanings.accept !== 'reuse_without_changing_app_product_authority' ||
-    classificationMeanings.adapt !== 'reuse_through_app_contract_profile_bridge_or_overlay' ||
-    classificationMeanings.redirect !== 'preserve_compatibility_but_route_to_app_owned_surface' ||
-    classificationMeanings.reject !== 'do_not_expose_or_absorb_into_ordinary_app_behavior' ||
-    upstreamFollowing.intake_gate !==
-      'read_release_metadata_then_measure_divergence_and_overlap_then_classify_then_run_focused_and_active_shell_gates' ||
-    upstreamFollowing.broad_history_merge_as_default !== false ||
-    upstreamFollowing.reviewed_does_not_mean_absorbed !== true
-  ) {
-    issues.add('GUI maintenance policy must follow stable AionUI tags through classified selective intake');
-  }
-  if (
-    auditBaseline.shell_ref !== '772dd1ef7226fd028bd2c9768a2e66c5e83d3f89' ||
-    auditBaseline.upstream_tag !== 'v2.1.34' ||
-    auditBaseline.upstream_ref !== '0fea1eb82634f3746b9ccf68507277c347fa08a3' ||
-    auditBaseline.merge_base !== '70974c59a275e565e8fc2bd7ecaf2dcac74227f0' ||
-    auditBaseline.upstream_only_commits !== 184 ||
-    auditBaseline.shell_only_commits !== 5516 ||
-    auditBaseline.shell_changed_files !== 802 ||
-    auditBaseline.overlap_files !== 342 ||
-    auditBaseline.renderer_overlap_files !== 223 ||
     maintenanceBudgets.overlap_growth_policy !== 'fail_until_intentionally_reviewed_and_rebaselined' ||
     maintenanceBudgets.maximum_overlap_file_growth !== 0 ||
     maintenanceBudgets.maximum_renderer_overlap_file_growth !== 0 ||
@@ -299,7 +266,7 @@ export function validateGuiDesignSystemSourceAndReference({
     codexOverlayBudget.selector_blocks !== 52 ||
     codexOverlayBudget.growth_policy !== 'no_growth_without_app_authorized_exception'
   ) {
-    issues.add('GUI maintenance policy must bind measured upstream overlap and non-growing Codex overlay budgets');
+    issues.add('GUI maintenance policy must preserve non-growing overlap and Codex overlay budgets');
   }
   if (
     visualComparison.schema !== 'opl_app_gui_visual_comparison.v1' ||
@@ -453,7 +420,7 @@ export function validateGuiDesignSystemSourceAndReference({
     cohortCandidate.shell_source_ref !== 'contracts/app-shell-adapter.json#shell_source' ||
     cohortCandidate.comparison_tool !== 'app-owned-scene-comparison'
   ) {
-    issues.add('visual reference cohort must bind a reachable pending-or-approved App-owned pixel baseline and thin AionUI candidate route');
+    issues.add('visual reference cohort must bind a reachable pending-or-approved App-owned pixel baseline and thin Studio candidate route');
   }
   if (
     cohortPrimitiveContract.authority !== 'one-person-lab-app' ||

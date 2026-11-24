@@ -318,17 +318,17 @@ test('GUI design-system validator rejects a fixed Home shortcut limit', () => {
   );
 });
 
-test('GUI design-system validator rejects prerelease upstream intake and unscoped parity claims', () => {
+test('GUI design-system validator rejects unretired historical upstream provenance and unscoped parity claims', () => {
   const root = createFixture();
   const contractPath = path.join(root, 'contracts/app-gui-product-contract.json');
   const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
-  contract.gui_maintenance_policy.historical_aionui_upstream_provenance.channel = 'latest_tag_including_prerelease';
+  contract.gui_maintenance_policy.historical_aionui_upstream_provenance_retired = false;
   contract.gui_maintenance_policy.goal.one_to_one_claim_policy = 'product_wide_one_to_one';
   writeJson(root, 'contracts/app-gui-product-contract.json', contract);
 
   assert.throws(
     () => validateGuiDesignSystem(root),
-    /GUI maintenance policy must version the pinned DSH visual source|GUI maintenance policy must follow stable AionUI tags/,
+    /GUI maintenance policy must version the pinned DSH visual source/,
   );
 });
 

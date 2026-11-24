@@ -45,9 +45,9 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
   }
   if (
     pages.settings_capabilities.local_capability_configuration_source !==
-      'AionUI local configuration#MCP servers + image generation + voice input' ||
+      'Shell local configuration#MCP servers + image generation + voice input' ||
     !pages.settings_capabilities.must_show?.includes(
-      'AionUI-native Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow',
+      'Shell-local Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow',
     ) ||
     !pages.settings_capabilities.must_not_show?.includes('voice input configuration on Preferences or Advanced') ||
     !pages.settings_theme.must_not_show?.includes('voice input provider configuration')
@@ -88,7 +88,7 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
       'each canonical thread ID rendered as at most one conversation row regardless of title',
       'canonical App Server thread overview overrides Codex ACP cache rows while preserving non-Codex local rows',
       'non-managed-scratch canonical recorded cwd auto-loads a directory group and new-session cwd shortcut without creating explicit project affinity or mutating registered workspaces',
-      'active AionUI primary navigation shows 运行状态 after New task and before Scheduled tasks in expanded, collapsed, and narrow drawer modes',
+      'active Studio primary navigation shows 运行状态 after New task and before Scheduled tasks in expanded, collapsed, and narrow drawer modes',
     ],
     'App GUI Home session-first identity signals',
   );

@@ -1732,39 +1732,8 @@
       "release_independence": true,
       "external_artifact_download_install_or_launch_required": false
     },
-    "historical_aionui_upstream_provenance": {
-      "channel": "stable_tags_only",
-      "required_release_metadata": [
-        "tag",
-        "commit",
-        "published_at",
-        "draft",
-        "prerelease"
-      ],
-      "draft_or_prerelease_policy": "reject_as_intake_target",
-      "classifications": ["accept", "adapt", "redirect", "reject"],
-      "classification_meanings": {
-        "accept": "reuse_without_changing_app_product_authority",
-        "adapt": "reuse_through_app_contract_profile_bridge_or_overlay",
-        "redirect": "preserve_compatibility_but_route_to_app_owned_surface",
-        "reject": "do_not_expose_or_absorb_into_ordinary_app_behavior"
-      },
-      "intake_gate": "read_release_metadata_then_measure_divergence_and_overlap_then_classify_then_run_focused_and_active_shell_gates",
-      "broad_history_merge_as_default": false,
-      "reviewed_does_not_mean_absorbed": true
-    },
+    "historical_aionui_upstream_provenance_retired": true,
     "maintenance_budgets": {
-      "audit_baseline": {
-        "shell_ref": "772dd1ef7226fd028bd2c9768a2e66c5e83d3f89",
-        "upstream_tag": "v2.1.34",
-        "upstream_ref": "0fea1eb82634f3746b9ccf68507277c347fa08a3",
-        "merge_base": "70974c59a275e565e8fc2bd7ecaf2dcac74227f0",
-        "upstream_only_commits": 184,
-        "shell_only_commits": 5516,
-        "shell_changed_files": 802,
-        "overlap_files": 342,
-        "renderer_overlap_files": 223
-      },
       "overlap_growth_policy": "fail_until_intentionally_reviewed_and_rebaselined",
       "maximum_overlap_file_growth": 0,
       "maximum_renderer_overlap_file_growth": 0,
@@ -1889,7 +1858,7 @@
       ],
       "shell_repo_controls": [
         "renderer implementation details",
-        "upstream AionUI intake patches",
+        "pinned upstream DSH compatibility deltas",
         "shell-local tests proving App contract implementation"
       ],
       "fork_delta_budget": {
@@ -1924,9 +1893,9 @@
           "deep rewrites of upstream shell core without App contract and adoption gate",
           "copying external UI source into shell without license and candidate decision"
         ],
-        "replacement_rule": "a candidate shell should implement the same App contracts by swapping adapters/profile consumers, not by inheriting AionUI-specific product logic"
+        "replacement_rule": "a candidate shell should implement the same App contracts by swapping adapters/profile consumers, not by inheriting shell-specific product logic"
       },
-      "upgrade_rule": "follow upstream AionUI only after checking the delta against App-owned contracts; upstream defaults can be implementation material but never product authority",
+      "upgrade_rule": "apply upstream shell updates only after checking the delta against App-owned contracts; upstream defaults can be implementation material but never product authority",
       "replacement_rule": "new shells remain candidate implementations until App-owned contracts, page-state matrix, first-run matrix, active-shell validation, and package compile pass"
     },
     "product_positioning": "purpose_first_codex_app_wrapper",
@@ -2031,12 +2000,6 @@
           "data_truth_owner": "installed_transport_provider_or_native_carrier",
           "projection_owner": "one-person-lab-framework",
           "renderer_activation_policy": {
-            "aionui": {
-              "provider_owner": "aioncore_builtin_weixin",
-              "settings_surface": "aioncore_channel_settings",
-              "framework_channel_provider_host_activation_allowed": false,
-              "framework_projected_channel_access_rendering_allowed": false
-            },
             "opl_studio": {
               "provider_owner": "installed_channel_provider_package",
               "settings_surface": "app_standard_channel_access",
@@ -2045,13 +2008,13 @@
             },
             "single_active_provider_path_per_renderer_required": true
           },
-          "migration_state": "renderer_specific_activation_selected_aionui_keeps_aioncore_and_successor_uses_app_owned_provider_package",
-          "runtime_status": "aionui_builtin_source_path_present_successor_package_source_and_host_path_present_each_requires_its_own_installed_live_e2e",
+          "migration_state": "studio_uses_app_owned_provider_package",
+          "runtime_status": "studio_package_source_and_host_path_present_requires_installed_live_e2e",
           "command_input_source": "validated_channel_access_result_entity_actions",
           "command_resolution": "resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_entity_input",
           "post_action_readback": "fresh_contribution_read_required_after_action_success_and_while_refresh_after_ms_is_projected",
           "qr_payload_policy": "ephemeral_login_challenge_render_only_never_persist_log_or_copy_into_shell_state",
-          "provider_absent_policy": "no_contribution_entry_is_a_normal_unavailable_state_for_the_successor_and_must_not_block_the_aionui_mainline",
+          "provider_absent_policy": "no_contribution_entry_is_a_normal_unavailable_state_for_studio",
           "arbitrary_renderer_code_allowed": false
         },
         "remote_companion_access": {
@@ -2062,12 +2025,6 @@
           "data_truth_owner": "declaring_remote_companion_provider",
           "projection_owner": "one-person-lab-framework",
           "renderer_activation_policy": {
-            "aionui": {
-              "provider_owner": "declaring_remote_companion_provider",
-              "settings_surface": "app_standard_remote_companion_access",
-              "framework_remote_companion_host_activation_allowed": true,
-              "framework_projected_remote_companion_access_rendering_allowed": true
-            },
             "opl_studio": {
               "provider_owner": "opl_studio_native_link_companion_bridge",
               "settings_surface": "settings_resources_opl_link_native_host_panel",
@@ -2255,7 +2212,6 @@
         "runtime_membership_source": "app_state.ui_contributions.slots.settings.section",
         "runtime_membership_policy": "dynamic_framework_host_projection_only_no_fixed_package_or_brand_allowlist",
         "renderer_admission": {
-          "aionui": "admit_remote_companion_access_from_dynamic_framework_host_projection; keep_aioncore_builtin_weixin_only_for_channel_access_without_starting_a_second_channel_provider_path",
           "opl_studio": "admit_remote_companion_access_and_channel_access_from_dynamic_framework_host_projection_without_a_fixed_package_or_brand_allowlist"
         },
         "visibility_requirements": [
@@ -2448,7 +2404,6 @@
         "lifecycle_policy": "register_from_current_projection_and_remove_immediately_when_package_is_app_disabled_carrier_disabled_or_uninstalled",
         "shell_implementation_policy": "consume_the_host_derived_client_graph_through_renderer_native_extension_surfaces_without_independent_package_discovery_or_plugin_manager",
         "native_candidate_host": "host_derived_Client_Cordis_via_DeepSeek_Harness_SlotCore_createSlotRenderer_and_ui_primitives",
-        "active_aionui_host": "host_derived_Client_Cordis_via_thin_OPL_owned_adapter_over_existing_AionUI_components",
         "independent_host_truth_allowed": false,
         "second_package_registry_allowed": false,
         "second_currentness_authority_allowed": false,
@@ -2629,8 +2584,7 @@
         "task",
         "package"
       ],
-      "aion_display_contract": "active AionUI shell renders the map as a thin App-state consumer",
-      "workbench_display_contract": "OPL Studio candidate must render the same map without introducing runtime or package truth",
+      "workbench_display_contract": "OPL Studio renders the same map without introducing runtime or package truth",
       "fallback_claim_policy": "fallback projections may keep older payloads usable but cannot claim currentness, readiness, domain truth, or mutation authority"
     },
     "advanced_full_drilldown": {
@@ -2772,7 +2726,7 @@
       ],
       "typed_issue_policy": "typed_issues_are_refs_or_issue_summaries_not_owner_receipts_or_domain_verdicts",
       "drawer_surface": "right_context_inspector.artifacts.provenance_drawer",
-      "drawer_route_policy": "may_open_aionui_refs_only_drawer_or_AI_readback_from_refs_only_projection_no_artifact_body_no_domain_verdict",
+      "drawer_route_policy": "may_open_refs_only_drawer_or_AI_readback_from_refs_only_projection_no_artifact_body_no_domain_verdict",
       "refs_only": true,
       "artifact_body_access": false,
       "memory_body_access": false,
@@ -6771,7 +6725,7 @@
         "exactly one Home root, composer shell, and footer account or Settings entry at every viewport",
         "permission and access mode in user language",
         "workspace/session rail visible on wide desktop and drawer on narrow windows",
-        "active AionUI primary navigation shows 运行状态 after New task and before Scheduled tasks in expanded, collapsed, and narrow drawer modes",
+        "active Studio primary navigation shows 运行状态 after New task and before Scheduled tasks in expanded, collapsed, and narrow drawer modes",
         "each canonical thread ID rendered as at most one conversation row regardless of title",
         "canonical App Server thread overview overrides Codex ACP cache rows while preserving non-Codex local rows",
         "managed user Documents Codex and user .codex/worktrees workspaces preserve recorded cwd while rendering as projectless without leaf-directory Project groups",
@@ -8310,7 +8264,7 @@
       ],
       "must_show": [
         "browser access to this computer with port, account, and password management entry",
-        "renderer-owned channel account, pairing, and authorized-user management through AionCore in AionUI or the standard channel_access contribution in the successor",
+        "standard channel_access contribution projected through the active Studio host",
         "Only completed, admitted connector contributions; OPL Link is excluded from bundled installation until product completion",
         "remote connection details close back to Resources & Connections, and Settings retains an explicit return-to-app action",
         "Docker WebUI deployment and access entry",
@@ -8365,12 +8319,10 @@
       "remote_companion_access": {
         "source": "framework_projected_remote_companion_connector_route",
         "source_by_renderer": {
-          "aionui": "app_state.ui_contributions.slots.settings.section",
           "opl_studio": "app_state.ui_contributions.slots.settings.section"
         },
         "standard_view_type": "remote_companion_access",
         "standard_view_contract_ref": "framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access",
-        "framework_remote_companion_host_activation_in_aionui_allowed": true,
         "single_active_provider_path_per_renderer_required": true,
         "transport_binding_projection_ref": "contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection",
         "provider_absent_policy": "project_unavailable_without_fabricated_pair_or_device_state_and_keep_the_desktop_workbench_usable",
@@ -8546,7 +8498,7 @@
       "group_policy": {
         "opl_flow_managed": "derive membership from the OPL Base typed Flow dependency catalog and keep reconciliation owned by OPL Packages",
         "opl_managed_companion": "show OPL-owned default companions from Framework managed companion projection; install, register, enable, repair, and permission actions remain owner-projected",
-        "manual_and_third_party": "show local built-in, user-managed, third-party, and AionUI-native capabilities with detected owner and product-profile display names; mutate only after explicit user action"
+        "manual_and_third_party": "show local built-in, user-managed, third-party, and shell-local capabilities with detected owner and product-profile display names; mutate only after explicit user action"
       },
       "group_labels": {
         "opl_flow_managed": {
@@ -8575,7 +8527,7 @@
       },
       "third_party_projection_policy": {
         "display_name_policy": "use_product_profile_display_names_and_never_raw_provider_ids_as_primary_labels",
-        "aionui_native_policy": "keep_AionUI_native_skills_tools_assistants_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed",
+        "local_native_policy": "keep_local_skills_tools_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed",
         "manual_skill_inventory_semantics": "the_count_and_empty_state_describe_only_user_imports_under_the_shell_manual_skill_directory_never_total_OPL_or_OPL_Flow_capability_readiness"
       },
       "ordinary_layout_policy": "tabs_then_unframed_groups_with_flat_rows; MCP image generation and voice input use one aligned settings list without nested gray cards",
@@ -8589,7 +8541,7 @@
           "confirmation"
         ]
       },
-      "local_capability_configuration_source": "AionUI local configuration#MCP servers + image generation + voice input",
+      "local_capability_configuration_source": "Shell local configuration#MCP servers + image generation + voice input",
       "task_awareness_refs_source": "contracts/app-runtime-bridge.json#task_awareness_projection.settings_capabilities_surface",
       "task_awareness_ref_fields": [
         "capability_health_refs",
@@ -8601,7 +8553,7 @@
       "task_awareness_ref_policy": "thin_renderer_refs_only_no_skill_body_no_artifact_body_no_domain_verdict",
       "export_bundle_action_policy": "show_export_bundle_action_ref_and_dry_run_receipt_without_claiming_domain_export_readiness",
       "builtin_skill_catalog_policy": {
-        "source": "AionUI shell builtin skill catalog classified through the App product profile and capability owner projection",
+        "source": "Shell builtin skill catalog classified through the App product profile and capability owner projection",
         "display_role": "local_or_third_party_capability_inventory_never_implicit_OPL_Flow_membership",
         "raw_provider_id_as_primary_label_allowed": false,
         "scope_model": {
@@ -8614,12 +8566,6 @@
             "owner": "MAS_MAG_RCA_or_other_domain_owner",
             "materialization": ".agents/skills_or_explicit_project_projection",
             "workspace_injection": "explicit_owner_action_only"
-          },
-          "aionui_builtin_cache": {
-            "owner": "AionUI_internal_runtime",
-            "materialization": "private_cache_only",
-            "workspace_injection": "forbidden",
-            "ordinary_user_scope": "hidden"
           }
         }
       },
@@ -8670,7 +8616,7 @@
         "OPL Flow managed and recommended Skills and Plugins from package dependency closure",
         "OPL-managed default companions with installed, registered, enabled, permission, ready, version, and owner-projected action status",
         "manual and third-party Skills and Plugins from Codex and shell registries",
-        "AionUI-native Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow",
+        "Shell-local Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow",
         "product-profile display names instead of raw provider ids as primary labels",
         "a non-empty OPL Flow managed group whenever the canonical Flow dependency catalog contains entries",
         "source, owner, version, currentness, and available explicit actions",
@@ -8681,7 +8627,7 @@
         "Agent Home visibility, shortcut order, source selection, or Developer Mode controls",
         "an empty OPL Flow managed group while the canonical Flow dependency catalog contains entries",
         "raw provider ids as primary capability labels",
-        "AionUI-native capabilities reclassified as OPL Flow managed",
+        "Shell-local capabilities reclassified as OPL Flow managed",
         "a second OPL Flow updater or scheduler",
         "KimiCU classified as a manual or third-party capability",
         "silent mutation of manual or third-party Skills and Plugins",
@@ -8888,7 +8834,6 @@
         "runtime_source_surface": "app_state.runtime_source_carriers.items[]",
         "source_semantics_policy": "directory entries own package discovery plus installed, activated, installability, coarse readiness, orthogonal exposure, and lifecycle actions; status_index contributes canonical diagnostics but cannot override directory lifecycle or action availability",
         "shell_consumers": [
-          "aionui",
           "opl_studio"
         ],
         "action_ref_source": "app_state.actions",

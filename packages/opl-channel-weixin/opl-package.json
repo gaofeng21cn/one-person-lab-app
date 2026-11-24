@@ -145,7 +145,6 @@
   "authority_boundary": {
     "package_transport_owner": "opl-channel-weixin",
     "activation_route_by_renderer": {
-      "aionui": "aioncore_builtin_weixin_only_package_provider_activation_forbidden",
       "opl_studio": "installed_provider_through_one_person_lab_framework_generic_channel_host"
     },
     "single_active_provider_path_per_renderer_required": true,

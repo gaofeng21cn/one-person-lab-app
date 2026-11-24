@@ -387,7 +387,6 @@ export type ShellAdapterContract = {
     upstream_override_allowed: boolean;
     upstream_family_role: string;
     upstream_must_not_override_app_truth?: boolean;
-    aionui_upstream_must_not_override_app_truth?: boolean;
   };
   state_surface_contract: {
     primary_read_command: string;

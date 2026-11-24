@@ -255,16 +255,16 @@ test('Framework transport binding projection and renderer-specific Weixin routes
 
   assert.equal(
     gui.framework_surfaces.package_app_contributions.standard_view_contracts.channel_access.runtime_status,
-    'aionui_builtin_source_path_present_successor_package_source_and_host_path_present_each_requires_its_own_installed_live_e2e',
+    'studio_package_source_and_host_path_present_requires_installed_live_e2e',
   );
   assert.equal(
     gui.framework_surfaces.package_app_contributions.standard_view_contracts.channel_access.migration_state,
-    'renderer_specific_activation_selected_aionui_keeps_aioncore_and_successor_uses_app_owned_provider_package',
+    'studio_uses_app_owned_provider_package',
   );
   assert.equal(
-    gui.framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access.renderer_activation_policy.aionui
+    gui.framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access.renderer_activation_policy.opl_studio
       .framework_projected_remote_companion_access_rendering_allowed,
-    true,
+    false,
   );
   assert.ok(profile.client_renderer_compatibility.standard_view_types.includes('channel_access'));
   assert.ok(profile.client_renderer_compatibility.standard_view_types.includes('remote_companion_access'));

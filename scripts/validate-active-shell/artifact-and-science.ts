@@ -376,10 +376,10 @@ export function validateArtifactNativeDrilldownFixture(projection, label) {
   }
   if (
     projection.provenance_drawer?.shell_implementation_status !==
-    "aionui_refs_only_drawer_implemented"
+    "opl_studio_refs_only_drawer_implemented"
   ) {
     throw new Error(
-      `${label} provenance_drawer must declare AionUI refs-only drawer implementation`,
+      `${label} provenance_drawer must declare Studio refs-only drawer implementation`,
     );
   }
   if (projection.artifact_body_access !== false) {
@@ -449,13 +449,13 @@ export function validateArtifactProvenanceBundleProjectionContract(projection, l
       "typed_issues_are_refs_or_issue_summaries_not_owner_receipts_or_domain_verdicts",
     drawer_surface: "right_context_inspector.artifacts.provenance_drawer",
     drawer_route_policy:
-      "may_open_aionui_refs_only_drawer_or_AI_readback_from_refs_only_projection_no_artifact_body_no_domain_verdict",
+      "may_open_refs_only_drawer_or_AI_readback_from_refs_only_projection_no_artifact_body_no_domain_verdict",
     card_surface: "right_context_inspector.artifacts.provenance_card",
     card_route_policy: "shows_refs_only_summary_and_opens_refs_only_drawer_no_body_read",
     drawer_or_card_policy:
       "drawer_and_card_are_refs_only_projection_surfaces_not_artifact_body_or_quality_verdict_surfaces",
     app_role: "display_only_artifact_provenance_bundle_refs_consumer",
-    shell_implementation_status: "aionui_refs_only_drawer_implemented",
+    shell_implementation_status: "opl_studio_refs_only_drawer_implemented",
   })) {
     if (projection[field] !== expected) {
       throw new Error(`${label} ${field} must be ${expected}`);

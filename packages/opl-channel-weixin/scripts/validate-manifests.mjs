@@ -81,7 +81,6 @@ assert.equal(oplPackage.authority_boundary.second_app_server_allowed, false);
 assert.equal(oplPackage.authority_boundary.unrestricted_json_rpc_allowed, false);
 assert.equal(oplPackage.authority_boundary.package_transport_owner, 'opl-channel-weixin');
 assert.deepEqual(oplPackage.authority_boundary.activation_route_by_renderer, {
-  aionui: 'aioncore_builtin_weixin_only_package_provider_activation_forbidden',
   opl_studio: 'installed_provider_through_one_person_lab_framework_generic_channel_host',
 });
 assert.equal(oplPackage.authority_boundary.single_active_provider_path_per_renderer_required, true);

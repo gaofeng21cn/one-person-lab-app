@@ -41,7 +41,6 @@ import {
   appOwnedSettingsTechnicalDetailsDefault,
   appOwnedSettingsTopLevelEntryIds,
   appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
   appOwnedSettingsTaskEntryIds,
   appOwnedSettingsVisualQaTargets,
   appOwnedSettingsVisualSystem,
@@ -50,7 +49,7 @@ import {
 import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
 
 import {
-  expectedPageAdapterEntries,
+  expectedRequiredSettingsPageIds,
 } from "./constants.ts";
 import {
   validateSettingsAccessResourceBoundary,
@@ -147,12 +146,10 @@ export function validateSettingsPageAdapterPolicy(controlPlane, productProfile) 
   const requiredPages = policy.required_pages ?? {};
   assertDeepEqualJson(
     Object.keys(requiredPages).sort(),
-    Object.keys(expectedPageAdapterEntries).sort(),
+    [...expectedRequiredSettingsPageIds].sort(),
     "Settings page adapter required pages",
   );
-  for (const [routeId, adapterEntry] of Object.entries(
-    expectedPageAdapterEntries,
-  )) {
+  for (const routeId of expectedRequiredSettingsPageIds) {
     const page = requiredPages[routeId];
     if (!page) {
       throw new Error(`Settings page adapter policy is missing ${routeId}`);
@@ -160,20 +157,6 @@ export function validateSettingsPageAdapterPolicy(controlPlane, productProfile) 
     if (page.route_id !== routeId) {
       throw new Error(
         `Settings page adapter policy ${routeId} must keep route_id ${routeId}`,
-      );
-    }
-    if (page.adapter_entry !== adapterEntry) {
-      throw new Error(
-        `Settings page adapter policy ${routeId} must use ${adapterEntry}`,
-      );
-    }
-    if (
-      !String(page.renderer_entry ?? "").startsWith(
-        "packages/desktop/src/renderer/",
-      )
-    ) {
-      throw new Error(
-        `Settings page adapter policy ${routeId} must declare a Settings renderer entry`,
       );
     }
     if (
@@ -213,9 +196,9 @@ export function validateSettingsPageAdapterPolicy(controlPlane, productProfile) 
   );
   if (
     requiredPages.capabilities?.local_configuration_source !==
-      "AionUI local configuration#MCP servers + image generation + voice input" ||
-    requiredPages.capabilities?.third_party_projection_policy?.aionui_native_policy !==
-      "keep_AionUI_native_skills_tools_assistants_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed" ||
+      "Shell local configuration#MCP servers + image generation + voice input" ||
+    requiredPages.capabilities?.third_party_projection_policy?.local_native_policy !==
+      "keep_local_skills_tools_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed" ||
     !requiredPages.capabilities?.forbidden_sources?.includes("Preferences-owned voice input configuration")
   ) {
     throw new Error("Settings Capabilities adapter must own local MCP, image, and voice configuration");

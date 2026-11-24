@@ -102,7 +102,6 @@ export function validateSharedGuiRuntimeResolutionPolicy(runtimeBridge) {
     parity_admission_basis: 'compatible_runtime_capability_and_versioned_schema_range',
     exact_runtime_identity_equality_may_gate_install_or_runtime: false,
     host_path_only_resolution_can_prove_parity: false,
-    historical_aionui_status: 'retired_historical_provenance_only',
     opl_studio_status: 'opl_codex_native_managed_app_server_is_the_only_current_runtime',
     same_physical_runtime_currently_claimed: false,
     implementation_status: 'active_studio_native_codex_runtime',

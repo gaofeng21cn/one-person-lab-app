@@ -41,7 +41,6 @@ import {
   appOwnedSettingsTechnicalDetailsDefault,
   appOwnedSettingsTopLevelEntryIds,
   appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
   appOwnedSettingsTaskEntryIds,
   appOwnedSettingsVisualQaTargets,
   appOwnedSettingsVisualSystem,
@@ -180,24 +179,21 @@ const expectedSettingsAdapterEvidence = [
   "SettingsHost renders ordinary routes from the hydrated App settings registry",
   "SettingsShellAdapterSlot mounts App-owned route slots without shell-owned product IA",
   "legacy route redirects and extension anchor remaps are resolved before shell rendering",
-  "AionUI upstream settings intake is classified as accepted/adapt/redirect/reject before registry or slot changes",
 ];
 
-const expectedPageAdapterEntries = {
-  general: "packages/desktop/src/renderer/pages/settings/sections/OverviewSettings.tsx",
-  gateway: "packages/desktop/src/renderer/pages/settings/accessProjection.ts",
-  access: "packages/desktop/src/renderer/pages/settings/accessProjection.ts",
-  workspace: "packages/desktop/src/renderer/pages/settings/sections/WorkspaceSettings.tsx",
-  agents: "packages/desktop/src/renderer/pages/settings/agentPackagesProjection.ts",
-  capabilities:
-    "packages/desktop/src/renderer/pages/settings/capabilitiesProjection.ts",
-  resources: "packages/desktop/src/renderer/pages/settings/sections/ResourcesSettings.tsx",
-  environment:
-    "packages/desktop/src/renderer/pages/settings/RuntimeSettings/runtimeSettingsViewModel.ts",
-  storage: "packages/desktop/src/renderer/pages/settings/storageProjection.ts",
-  appearance: "packages/desktop/src/renderer/pages/settings/sections/AppearanceSettings.tsx",
-  about: "packages/desktop/src/renderer/components/settings/SettingsModal/contents/AboutModalContent.tsx",
-};
+const expectedRequiredSettingsPageIds = [
+  "general",
+  "gateway",
+  "access",
+  "workspace",
+  "agents",
+  "capabilities",
+  "resources",
+  "environment",
+  "storage",
+  "appearance",
+  "about",
+];
 
 const expectedVisualQaRoutes = [
   "/settings/general",
@@ -300,7 +296,7 @@ export {
   expectedIaGroupByMatrixPageId,
   expectedLegacyRedirects,
   expectedOptionalResourceProjectionPolicy,
-  expectedPageAdapterEntries,
+  expectedRequiredSettingsPageIds,
   expectedSettingsAdapterEvidence,
   expectedSlotKeys,
   expectedStartupPerformancePolicy,

@@ -20,7 +20,7 @@ export type AppRuntimeForm =
 
 export type AppReleaseRoles = {
   current: {
-    shell: 'aionui' | 'opl-studio';
+    shell: 'opl-studio';
     adapter_ref: string;
     release_channel_ref: string;
     admitted_product_platforms: string[];
@@ -228,17 +228,6 @@ export type AppDeliveryTopology = {
     release_adoption_requires_separate_qualification: true;
     candidate_policy_ref: string;
   };
-  aionui_reference: {
-    role: 'current_release_shell_and_bounded_requirements_evidence_only';
-    target_renderer_owner: false;
-    target_feature_inventory_owner: false;
-    target_runtime_dependency: false;
-    aioncore_target_runtime_dependency: false;
-    source_reuse_requires_separate_decision: false;
-    source_reuse_policy: string;
-    source_reuse_cohort_ref: string;
-    active_release_shell_source_ref: string;
-  };
   minimum_complete_product: {
     schema: 'opl_app_successor_minimum_complete_product.v3';
     implementation_id: 'opl-studio';
@@ -320,11 +309,12 @@ export type AppDeliveryTopology = {
     };
     explicit_non_goals: string[];
     cutover_policy: {
-      strategy: 'establish_then_replace';
+      strategy: 'studio_active_aionui_retired';
       ordered_gates: string[];
-      aionui_remains_only_mainline_until_cutover: true;
-      aionui_retirement_before_studio_qualification_allowed: false;
-      source_or_local_candidate_evidence_may_trigger_cutover: false;
+      aionui_mainline_retired: true;
+      aionui_source_or_runtime_required: false;
+      historical_aionui_data_auto_discovery_or_import_allowed: false;
+      source_or_local_candidate_evidence_implies_release_ready: false;
     };
   };
 };

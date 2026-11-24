@@ -317,23 +317,6 @@ export function assertEveryRouteHasSlot(controlPlane) {
   }
 }
 
-export function validateCustomAssistantDataBoundary(controlPlane) {
-  assertDeepEqualJson(
-    controlPlane.aionui_custom_assistant_boundary,
-    {
-      opl_app_product_surface: false,
-      ordinary_navigation_entry_allowed: false,
-      entry_may_be_hidden: true,
-      legacy_assistants_target: "capabilities#third-party",
-      underlying_user_data_owner: "aionui",
-      underlying_user_data_deletion_policy:
-        "forbidden_without_explicit_app_contract_and_migration_or_deletion_evidence",
-      route_or_entry_removal_proves_data_migration: false,
-    },
-    "Settings AionUI custom-assistant product and data boundary",
-  );
-}
-
 export function validateSettingsUserNavigationProjection(projection, settingsIa) {
   if (
     projection?.schema !== "opl_app_settings_user_navigation.v2" ||

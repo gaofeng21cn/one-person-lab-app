@@ -42,11 +42,9 @@ test('OPL Link projects a projectless canonical conversation binding without She
 
   assert.equal(remoteCompanionAccess.source, 'framework_projected_remote_companion_connector_route');
   assert.deepEqual(remoteCompanionAccess.source_by_renderer, {
-    aionui: 'app_state.ui_contributions.slots.settings.section',
     opl_studio: 'app_state.ui_contributions.slots.settings.section',
   });
   assert.equal(remoteCompanionAccess.standard_view_type, 'remote_companion_access');
-  assert.equal(remoteCompanionAccess.framework_remote_companion_host_activation_in_aionui_allowed, true);
   assert.equal(remoteCompanionAccess.single_active_provider_path_per_renderer_required, true);
   assert.equal(
     remoteCompanionAccess.provider_absent_policy,

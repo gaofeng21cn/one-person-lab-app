@@ -212,7 +212,7 @@ function validateCapabilitiesPage(matrix, guiContract) {
     capabilitiesPage.ownership_ref !== 'contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities' ||
     !capabilitiesPage.must_show?.includes('OPL Flow managed and recommended Skills and Plugins from package dependency closure') ||
     !capabilitiesPage.must_show?.includes(
-      'AionUI-native Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow',
+      'Shell-local Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow',
     ) ||
     !capabilitiesPage.must_show?.includes(
       'OPL-managed default companions with installed, registered, enabled, permission, ready, version, and owner-projected action status',
@@ -367,7 +367,7 @@ function validateCapabilitiesPage(matrix, guiContract) {
   );
   if (
     capabilitiesPage.local_capability_configuration_source !==
-      'AionUI local configuration#MCP servers + image generation + voice input' ||
+      'Shell local configuration#MCP servers + image generation + voice input' ||
     !capabilitiesPage.required_dom?.conditional?.some((entry) => entry.testid === 'settings-capabilities-voice-input' && entry.when === 'image_voice_tab_active') ||
     !guiCapabilitiesPage?.entity_kinds?.includes('voice_input')
   ) {
@@ -409,17 +409,15 @@ function validateCapabilitiesPage(matrix, guiContract) {
   if (
     skillScopeModel?.global_user?.materialization !== '$CODEX_HOME/skills' ||
     skillScopeModel?.global_user?.workspace_injection !== 'forbidden' ||
-    skillScopeModel?.domain_project?.workspace_injection !== 'explicit_owner_action_only' ||
-    skillScopeModel?.aionui_builtin_cache?.workspace_injection !== 'forbidden' ||
-    skillScopeModel?.aionui_builtin_cache?.ordinary_user_scope !== 'hidden'
+    skillScopeModel?.domain_project?.workspace_injection !== 'explicit_owner_action_only'
   ) {
-    throw new Error('Skill scope model must keep global user and explicit domain/project ownership separate from the AionUI cache');
+    throw new Error('Skill scope model must keep global user and explicit domain/project ownership separate');
   }
   if (
     capabilitiesPage.auto_injected_skills_policy?.workspace_materialization !== 'forbidden' ||
     capabilitiesPage.auto_injected_skills_policy?.ordinary_ui !== 'hidden'
   ) {
-    throw new Error('AionUI auto-injected Skills must remain hidden diagnostics and cannot materialize into workspaces');
+    throw new Error('Shell auto-injected Skills must remain hidden diagnostics and cannot materialize into workspaces');
   }
   assertDeepEqualJson(
     capabilitiesPage.capability_detail_presentation_policy,
@@ -486,12 +484,10 @@ function validateResourcesPage(matrix, guiContract) {
   const remoteCompanionAccess = {
     source: 'framework_projected_remote_companion_connector_route',
     source_by_renderer: {
-      aionui: 'app_state.ui_contributions.slots.settings.section',
       opl_studio: 'app_state.ui_contributions.slots.settings.section',
     },
     standard_view_type: 'remote_companion_access',
     standard_view_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result',
-    framework_remote_companion_host_activation_in_aionui_allowed: true,
     single_active_provider_path_per_renderer_required: true,
     transport_binding_projection_ref:
       'contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection',
@@ -555,13 +551,11 @@ function validateResourcesPage(matrix, guiContract) {
     {
       source: 'framework_projected_remote_companion_connector_route',
       source_by_renderer: {
-        aionui: 'app_state.ui_contributions.slots.settings.section',
         opl_studio: 'app_state.ui_contributions.slots.settings.section',
       },
       standard_view_type: 'remote_companion_access',
       standard_view_contract_ref:
         'framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access',
-      framework_remote_companion_host_activation_in_aionui_allowed: true,
       single_active_provider_path_per_renderer_required: true,
       transport_binding_projection_ref:
         'contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection',

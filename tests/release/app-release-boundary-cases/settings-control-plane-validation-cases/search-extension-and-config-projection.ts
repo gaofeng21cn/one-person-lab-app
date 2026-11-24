@@ -120,14 +120,6 @@ test("Settings validator rejects secondary-page and compatibility-route regressi
     () => validate(assistantsRegression),
     /legacy redirects|legacy assistants/,
   );
-
-  const destructiveAssistantCleanup = contracts();
-  destructiveAssistantCleanup.controlPlane.aionui_custom_assistant_boundary.underlying_user_data_deletion_policy =
-    "delete_when_entry_hidden";
-  assert.throws(
-    () => validate(destructiveAssistantCleanup),
-    /custom-assistant product and data boundary/,
-  );
 });
 
 test("Settings hides unclassified extension entries without deleting extension data", () => {

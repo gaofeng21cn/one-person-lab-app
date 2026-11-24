@@ -553,7 +553,7 @@
         "exactly one Home root, composer shell, and footer account or Settings entry at every viewport",
         "permission and access mode in user language",
         "workspace/session rail visible on wide desktop and drawer on narrow windows",
-        "active AionUI primary navigation shows 运行状态 after New task and before Scheduled tasks in expanded, collapsed, and narrow drawer modes",
+        "active Studio primary navigation shows 运行状态 after New task and before Scheduled tasks in expanded, collapsed, and narrow drawer modes",
         "history search as one accessible icon at the trailing edge of the conversation-history heading",
         "each canonical thread ID rendered as at most one conversation row regardless of title",
         "canonical App Server thread overview overrides Codex ACP cache rows while preserving non-Codex local rows",
@@ -4327,7 +4327,7 @@
     {
       "id": "settings_resources",
       "expected_source": "OPL App state resource-source, renderer-specific channel access, transport binding where applicable, and Docker WebUI action projection",
-      "machine_source": "AionUI AionCore channel IPC plus /api/channel/weixin/login, or successor opl app state --profile fast --json#ui_contributions.slots.settings.section + transport_bindings; shared resource sources remain settings_control_center.app_settings_read_model.resource_sources + settings_control_center.app_settings_read_model.connections.authorization + docker_webui",
+      "machine_source": "opl app state --profile fast --json#ui_contributions.slots.settings.section + transport_bindings; shared resource sources remain settings_control_center.app_settings_read_model.resource_sources + settings_control_center.app_settings_read_model.connections.authorization + docker_webui",
       "refresh_source": "opl app state --profile fast --json",
       "page_contract": "settings_resources",
       "sections": [
@@ -4365,7 +4365,7 @@
         "channel_access and remote_companion_access configuration is reachable regardless of software or host_component catalog scope",
         "Weixin owner authorization QR and current-challenge phone PIN submission, retry, cancellation and expiry states",
         "browser access to this computer with port, account, and password management entry",
-        "renderer-owned channel account, pairing, and authorized-user management through AionCore in AionUI or the standard channel_access contribution in the successor",
+        "standard channel_access contribution projected through the active Studio host",
         "Only completed, admitted connector contributions; OPL Link is excluded from bundled installation until product completion",
         "remote connection details close back to Resources & Connections, and Settings retains an explicit return-to-app action",
         "Docker WebUI deployment and access entry",
@@ -4410,12 +4410,10 @@
       "remote_companion_access": {
         "source": "framework_projected_remote_companion_connector_route",
         "source_by_renderer": {
-          "aionui": "app_state.ui_contributions.slots.settings.section",
           "opl_studio": "app_state.ui_contributions.slots.settings.section"
         },
         "standard_view_type": "remote_companion_access",
         "standard_view_schema_ref": "contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result",
-        "framework_remote_companion_host_activation_in_aionui_allowed": true,
         "single_active_provider_path_per_renderer_required": true,
         "transport_binding_projection_ref": "contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection",
         "provider_absent_policy": "project_unavailable_without_fabricated_pair_or_device_state_and_keep_the_desktop_workbench_usable",
@@ -4655,7 +4653,7 @@
         "shell_local_mcp_image_voice_configuration",
         "operator.workbench.task_drilldowns"
       ],
-      "local_capability_configuration_source": "AionUI local configuration#MCP servers + image generation + voice input",
+      "local_capability_configuration_source": "Shell local configuration#MCP servers + image generation + voice input",
       "ownership_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities",
       "ia_group": "agents_capabilities",
       "user_navigation_destination_id": "capabilities",
@@ -4668,7 +4666,7 @@
         "OPL Flow managed and recommended Skills and Plugins from package dependency closure",
         "OPL-managed default companions with installed, registered, enabled, permission, ready, version, and owner-projected action status",
         "manual and third-party Skills and Plugins from Codex and shell registries",
-        "AionUI-native Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow",
+        "Shell-local Skills, Plugins, MCP helpers, image generation, and voice input inside local or third-party ownership instead of OPL Flow",
         "product-profile display names instead of raw provider ids as primary labels",
         "a non-empty OPL Flow managed group whenever the canonical Flow dependency catalog contains entries",
         "source, owner, version, currentness, and available explicit actions",
@@ -4681,7 +4679,7 @@
         "Agent Home visibility, shortcut order, source selection, or Developer Mode controls",
         "an empty OPL Flow managed group while the canonical Flow dependency catalog contains entries",
         "raw provider ids as primary capability labels",
-        "AionUI-native capabilities reclassified as OPL Flow managed",
+        "Shell-local capabilities reclassified as OPL Flow managed",
         "a second OPL Flow updater or scheduler",
         "KimiCU classified as a manual or third-party capability",
         "silent mutation of manual or third-party Skills and Plugins",
@@ -4762,7 +4760,7 @@
         "workflow_body_access": false
       },
       "builtin_skill_catalog_policy": {
-        "source": "AionUI shell builtin skill catalog classified through the App product profile and capability owner projection",
+        "source": "Shell builtin skill catalog classified through the App product profile and capability owner projection",
         "display_role": "local_or_third_party_capability_inventory_never_implicit_OPL_Flow_membership",
         "raw_provider_id_as_primary_label_allowed": false,
         "scope_model": {
@@ -4775,12 +4773,6 @@
             "owner": "MAS_MAG_RCA_or_other_domain_owner",
             "materialization": ".agents/skills_or_explicit_project_projection",
             "workspace_injection": "explicit_owner_action_only"
-          },
-          "aionui_builtin_cache": {
-            "owner": "AionUI_internal_runtime",
-            "materialization": "private_cache_only",
-            "workspace_injection": "forbidden",
-            "ordinary_user_scope": "hidden"
           }
         }
       },

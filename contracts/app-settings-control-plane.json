@@ -237,10 +237,10 @@
         "manual_and_third_party": {
           "label_zh": "手工添加",
           "label_en": "Manually added",
-          "source": "codex_and_shell_skill_plugin_registries_plus_aionui_mcp_image_voice_configuration",
+          "source": "codex_and_shell_skill_plugin_registries_plus_local_mcp_image_voice_configuration",
           "membership_policy": "show_user_managed_and_third_party_skills_plugins_MCP_image_and_voice_controls_without_reclassifying_them_as_opl_flow_managed; manual skill counts and empty states describe only the shell import directory",
           "display_name_policy": "use_product_profile_display_names_and_never_raw_provider_ids_as_primary_labels",
-          "aionui_native_policy": "keep_AionUI_native_skills_tools_assistants_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed",
+          "local_native_policy": "keep_local_skills_tools_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed",
           "lifecycle_owner": "detected_install_source_or_user",
           "mutation_policy": "explicit_user_action_only"
         }
@@ -766,7 +766,7 @@
         "stable_id": "settings.configuration.remote_access",
         "configuration_id": "remote_access",
         "owner_class": "credential_connection",
-        "truth_owner": "aionui_remote_access_adapter",
+        "truth_owner": "opl_studio_remote_access_adapter",
         "page_id": "resources",
         "anchor": "web-access",
         "lifecycle": "persistent_local_access_configuration",
@@ -1335,15 +1335,6 @@
     "webui": "resources",
     "pet": "appearance"
   },
-  "aionui_custom_assistant_boundary": {
-    "opl_app_product_surface": false,
-    "ordinary_navigation_entry_allowed": false,
-    "entry_may_be_hidden": true,
-    "legacy_assistants_target": "capabilities#third-party",
-    "underlying_user_data_owner": "aionui",
-    "underlying_user_data_deletion_policy": "forbidden_without_explicit_app_contract_and_migration_or_deletion_evidence",
-    "route_or_entry_removal_proves_data_migration": false
-  },
   "extension_tab_policy": {
     "default_visibility": "hidden_until_app_classified",
     "mount_allowlist": [],
@@ -1543,8 +1534,6 @@
     "required_pages": {
       "gateway": {
         "route_id": "gateway",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/accessProjection.ts",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/AccessSettings.tsx",
         "state_source": "dedicated cached Gateway projection followed by app_action_execution.result.gateway_account",
         "forbidden_sources": [
           "secret bodies in App state or generic action payloads",
@@ -1558,8 +1547,6 @@
       },
       "access": {
         "route_id": "access",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/accessProjection.ts",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/AccessSettings.tsx",
         "state_source": "opl app state --profile fast --json#app_state.core.codex.model_access_ready + app_state.core.codex.model_access_source + app_state.core.codex.model + app_state.access.api_key_present",
         "normal_state_presentation": {
           "user_facing_groups": [
@@ -1608,8 +1595,6 @@
       },
       "environment": {
         "route_id": "environment",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/RuntimeSettings/runtimeSettingsViewModel.ts",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/RuntimeSettings.tsx",
         "state_source": "opl app state --profile fast --json + application.systemInfo.logDir when the carrier exposes systemInfo",
         "forbidden_sources": [
           "raw runtime projection as layout source",
@@ -1757,8 +1742,6 @@
       },
       "storage": {
         "route_id": "storage",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/storageProjection.ts",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/StorageSettings/index.tsx",
         "state_source": "active shell local data lifecycle service + Framework and carrier-host owner projections from opl app state --profile fast --json + contracts/app-release-channel.json#local_data_lifecycle",
         "forbidden_sources": [
           "silent user artifact deletion",
@@ -1852,8 +1835,6 @@
       },
       "capabilities": {
         "route_id": "capabilities",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/capabilitiesProjection.ts",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/CapabilitiesSettings.tsx",
         "state_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + owner capability projections",
         "ownership_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.capabilities",
         "groups": [
@@ -1872,7 +1853,7 @@
           "image_generation",
           "voice_input"
         ],
-        "local_configuration_source": "AionUI local configuration#MCP servers + image generation + voice input",
+        "local_configuration_source": "Shell local configuration#MCP servers + image generation + voice input",
         "flow_projection_policy": {
           "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies",
           "nonempty_policy": "when_flow_dependencies_contains_entries_the_opl_flow_managed_group_must_project_at_least_one_row",
@@ -1880,7 +1861,7 @@
         },
         "third_party_projection_policy": {
           "display_name_policy": "use_product_profile_display_names_and_never_raw_provider_ids_as_primary_labels",
-          "aionui_native_policy": "keep_AionUI_native_skills_tools_assistants_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed"
+          "local_native_policy": "keep_local_skills_tools_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed"
         },
         "task_awareness_surface": {
           "surface": "settings_capabilities",
@@ -1910,8 +1891,6 @@
       },
       "agents": {
         "route_id": "agents",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/agentPackagesProjection.ts",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/AgentPackagesSettings.tsx",
         "state_source": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index + app_state.runtime_source_carriers.items[]",
         "ownership_ref": "contracts/app-settings-control-plane.json#agents_capabilities_ownership.agents",
         "directory_projection_surface": {
@@ -1994,8 +1973,6 @@
       },
       "general": {
         "route_id": "general",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/sections/OverviewSettings.tsx",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/OverviewSettings.tsx",
         "state_source": "persisted narrow fast-state snapshot + background opl app state --profile fast --json",
         "forbidden_sources": [
           "full App state before first paint",
@@ -2004,8 +1981,6 @@
       },
       "workspace": {
         "route_id": "workspace",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/sections/WorkspaceSettings.tsx",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/WorkspaceSettings.tsx",
         "state_source": "opl app state --profile fast --json#app_state.paths + app_state.codex_personalization",
         "forbidden_sources": [
           "App log directory controls owned by Logs & Diagnostics",
@@ -2033,8 +2008,6 @@
       },
       "resources": {
         "route_id": "resources",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/sections/ResourcesSettings.tsx",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/ResourcesSettings.tsx",
         "state_source": "opl app state --profile fast --json#app_state.settings_control_center.app_settings_read_model.connections",
         "forbidden_sources": [
           "built-in Gateway account duplication",
@@ -2043,8 +2016,6 @@
       },
       "appearance": {
         "route_id": "appearance",
-        "adapter_entry": "packages/desktop/src/renderer/pages/settings/sections/AppearanceSettings.tsx",
-        "renderer_entry": "packages/desktop/src/renderer/pages/settings/sections/AppearanceSettings.tsx",
         "state_source": "desktop App preference store + cached UI defaults",
         "forbidden_sources": [
           "Codex personalization editors",
@@ -2053,8 +2024,6 @@
       },
       "about": {
         "route_id": "about",
-        "adapter_entry": "packages/desktop/src/renderer/components/settings/SettingsModal/contents/AboutModalContent.tsx",
-        "renderer_entry": "packages/desktop/src/renderer/components/settings/SettingsModal/contents/AboutModalContent.tsx",
         "state_source": "desktop main-process app metadata + single shared updater state store",
         "app_update_state_policy_ref": "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.app_update_state_policy",
         "forbidden_sources": [
@@ -2158,163 +2127,6 @@
       "theme->appearance#themes",
       "local-services->environment#services",
       "personalization->workspace#personalization"
-    ]
-  },
-  "upstream_intake_classification": {
-    "accepted": [
-      "layout styling fixes",
-      "settings accessibility fixes",
-      "extension tab rendering fixes",
-      "i18n plumbing fixes"
-    ],
-    "adapt": [
-      "skills or tools settings",
-      "assistant settings",
-      "provider or model setup",
-      "remote access setup",
-      "settings route changes"
-    ],
-    "redirect": [
-      "Butler setup shortcuts",
-      "Docker WebUI advanced deployment setup",
-      "raw provider configuration"
-    ],
-    "reject": [
-      "AionUI Team ordinary surface",
-      "shell-owned product IA",
-      "shell-owned runtime truth",
-      "backend/provider raw selector as ordinary App setup"
-    ]
-  },
-  "upstream_intake_checklist": {
-    "policy": "classify_aionui_settings_upstream_before_registry_or_slot_changes",
-    "allowed_classifications": [
-      "accepted",
-      "adapt",
-      "redirect",
-      "reject"
-    ],
-    "required_steps": [
-      "record the upstream Settings surface and user-visible behavior",
-      "classify as accepted/adapt/redirect/reject before changing registry or slots",
-      "bind accepted/adapt entries to SettingsHost or SettingsShellAdapterSlot evidence",
-      "route redirect/reject entries through legacy redirects, extension anchor remap, or forbidden probes",
-      "hide unclassified extension tabs until the App owner records accepted/adapt/redirect/reject",
-      "measure changed upstream Settings choke points and keep the OPL integration inside the declared overlay budget",
-      "keep runtime truth, domain truth, provider implementation, owner receipts, and release readiness outside the shell adapter"
-    ],
-    "overlay_budget": {
-      "goal": "OPL Settings product pages live in additive overlay files and consume stable host slots",
-      "preferred_upstream_choke_points": [
-        "SettingsModal/index.tsx",
-        "SettingsHost.tsx",
-        "SettingsShellAdapterSlot.tsx",
-        "settingsRegistry.tsx"
-      ],
-      "direct_fork_body_page_modification_policy": "avoid_unless_an_accepted_upstream_capability_cannot_be_adapted_through_a_slot_or_wrapper",
-      "new_direct_fork_body_file_budget": 4,
-      "budget_exception_requires": [
-        "app_owner_rationale",
-        "upstream_diff_classification",
-        "focused_merge_conflict_test",
-        "documented_retirement_or_upstreaming_plan"
-      ],
-      "generated_profile_and_locales": "generated_or_app_owned_inputs_do_not_count_as_product_authority_but_remain_merge_hotspots_and_require_sync_checks"
-    },
-    "records": [
-      {
-        "id": "team-ordinary-surface-disabled",
-        "upstream_surface": "AionUI Team settings ordinary surface",
-        "classification": "reject",
-        "app_contract_ref": "contracts/app-settings-control-plane.json#page_adapter_policy.required_pages.capabilities.forbidden_sources",
-        "route_or_slot_impact": {
-          "forbidden_probe": "Team MCP ordinary surface",
-          "route_id": "capabilities"
-        },
-        "required_evidence": [
-          "capabilities adapter forbidden_sources includes Team MCP ordinary surface",
-          "Team surface does not become an ordinary Settings route or slot"
-        ],
-        "decision_owner": "one-person-lab-app",
-        "last_reviewed_at": "2026-06-30",
-        "status": "active"
-      },
-      {
-        "id": "skills-tools-settings-routed-to-capabilities",
-        "upstream_surface": "AionUI skills and tools settings",
-        "classification": "adapt",
-        "app_contract_ref": "contracts/app-settings-control-plane.json#slot_registry.settings_capabilities.legacy_subroutes",
-        "route_or_slot_impact": {
-          "route_id": "capabilities",
-          "slot_id": "settings_capabilities",
-          "adapter_slot": "SettingsShellAdapterSlot",
-          "legacy_redirects": [
-            "skills-hub",
-            "tools"
-          ]
-        },
-        "required_evidence": [
-          "legacy skills-hub and tools routes redirect to capabilities subroutes",
-          "SettingsShellAdapterSlot mounts settings_capabilities from the hydrated App registry"
-        ],
-        "decision_owner": "one-person-lab-app",
-        "last_reviewed_at": "2026-06-30",
-        "status": "active"
-      },
-      {
-        "id": "provider-model-setup-routed-to-access-and-environment",
-        "upstream_surface": "AionUI provider and model setup",
-        "classification": "adapt",
-        "app_contract_ref": "contracts/app-settings-control-plane.json#model_reasoning_policy_source",
-        "route_or_slot_impact": {
-          "route_id": "access",
-          "slot_id": "settings_access",
-          "host_component": "SettingsHost",
-          "secondary_route": "environment"
-        },
-        "required_evidence": [
-          "Auto resolution, UI, persistence, and fallback stay App-owned while installed Flow recommendation is consumed from Framework App state",
-          "provider implementation and model access readiness truth stay outside shell-owned ordinary UI"
-        ],
-        "decision_owner": "one-person-lab-app",
-        "last_reviewed_at": "2026-06-30",
-        "status": "active"
-      },
-      {
-        "id": "layout-accessibility-i18n-settings-fixes",
-        "upstream_surface": "AionUI settings layout, accessibility, and i18n plumbing fixes",
-        "classification": "accepted",
-        "app_contract_ref": "contracts/app-settings-control-plane.json#shell_adapter_slot",
-        "route_or_slot_impact": {
-          "host_component": "SettingsHost",
-          "adapter_slot": "SettingsShellAdapterSlot"
-        },
-        "required_evidence": [
-          "SettingsHost renders ordinary routes from the hydrated App settings registry",
-          "SettingsShellAdapterSlot preserves App-owned tab order and slots"
-        ],
-        "decision_owner": "one-person-lab-app",
-        "last_reviewed_at": "2026-06-30",
-        "status": "active"
-      },
-      {
-        "id": "webui-advanced-deployment-routed-to-resources",
-        "upstream_surface": "AionUI Docker WebUI advanced deployment setup",
-        "classification": "redirect",
-        "app_contract_ref": "contracts/app-settings-control-plane.json#legacy_route_redirects.webui",
-        "route_or_slot_impact": {
-          "legacy_redirect": "webui",
-          "anchor_remap": "webui",
-          "route_id": "resources"
-        },
-        "required_evidence": [
-          "webui legacy route redirects to resources",
-          "webui extension anchor remaps to resources"
-        ],
-        "decision_owner": "one-person-lab-app",
-        "last_reviewed_at": "2026-06-30",
-        "status": "active"
-      }
     ]
   },
   "product_system_checklist": {
@@ -2471,11 +2283,11 @@
       {
         "id": "capabilities_experience",
         "track": "user_task_ux",
-        "goal": "Capabilities separates availability, source, and Home visibility while keeping AionUI custom assistants outside the OPL product surface.",
+        "goal": "Capabilities separates availability, source, and Home visibility while keeping legacy custom assistants outside the OPL product surface.",
         "evidence_required": [
           "required anchors cover availability/source/home visibility",
           "legacy assistants resolves to the OPL capability directory",
-          "AionUI AssistantSettings is not mounted from Settings Capabilities",
+          "legacy AssistantSettings is not mounted from Settings Capabilities",
           "package diagnostics remain collapsed"
         ]
       },
@@ -3815,7 +3627,7 @@
           "one list within each projected maintenance scope; product type filters and dependency relationships in details",
           "runtime source and authorized repository maintenance collapsed as advanced configuration by default",
           "external plugins and independent skills use Other sources and their native manager; compatibility routes share the same projection",
-          "AionUI custom assistants excluded from the OPL product surface"
+          "legacy custom assistants excluded from the OPL product surface"
         ],
         "management_discoverability": {
           "primary_row_controls": ["recommended_action", "manage"],

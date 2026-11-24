@@ -19,7 +19,7 @@ export function validateGuiProductAuthority(productAuthority) {
     shellUpgradePolicy.shell_repo_controls,
     [
       'renderer implementation details',
-      'upstream AionUI intake patches',
+      'pinned upstream DSH compatibility deltas',
       'shell-local tests proving App contract implementation',
     ],
     'App GUI shell upgrade policy shell repo controls',
@@ -76,13 +76,13 @@ export function validateGuiProductAuthority(productAuthority) {
   );
   if (
     forkDeltaBudget.replacement_rule !==
-    'a candidate shell should implement the same App contracts by swapping adapters/profile consumers, not by inheriting AionUI-specific product logic'
+    'a candidate shell should implement the same App contracts by swapping adapters/profile consumers, not by inheriting shell-specific product logic'
   ) {
     throw new Error('App GUI fork delta budget must keep shell replacement adapter/profile driven');
   }
   if (
     shellUpgradePolicy.upgrade_rule !==
-    'follow upstream AionUI only after checking the delta against App-owned contracts; upstream defaults can be implementation material but never product authority'
+    'apply upstream shell updates only after checking the delta against App-owned contracts; upstream defaults can be implementation material but never product authority'
   ) {
     throw new Error('App GUI shell upgrade policy must keep upstream defaults out of product authority');
   }

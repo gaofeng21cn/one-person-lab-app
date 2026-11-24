@@ -82,8 +82,6 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
   assert.equal(gui.successor_delivery_policy.topology_authority, false);
   assert.equal(gui.successor_delivery_policy.carrier_and_bridge_shape_source, 'contracts/app-product-profile.json#delivery_topology');
   assert.equal(gui.successor_delivery_policy.swift_appkit_wkwebview_product_host_allowed, false);
-  assert.equal(profile.delivery_topology.aionui_reference.target_renderer_owner, false);
-  assert.equal(profile.delivery_topology.aionui_reference.target_feature_inventory_owner, false);
   assert.deepEqual(profile.delivery_topology.minimum_complete_product.composition_model.package_contribution_slots, [
     'settings.section',
     'runtime.detail',
@@ -245,10 +243,6 @@ test('delivery topology validator rejects runtime duplication, host drift, or pr
     {
       error: /successor product policy/,
       mutate: (profile) => { profile.delivery_topology.successor_product.product_development_required = false; },
-    },
-    {
-      error: /AionUI reference boundary/,
-      mutate: (profile) => { profile.delivery_topology.aionui_reference.target_renderer_owner = true; },
     },
   ];
 

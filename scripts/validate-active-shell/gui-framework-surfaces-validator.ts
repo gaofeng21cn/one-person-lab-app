@@ -321,12 +321,6 @@ export function validatePackageAppContributionsProductContract(contract) {
       data_truth_owner: 'installed_transport_provider_or_native_carrier',
       projection_owner: 'one-person-lab-framework',
       renderer_activation_policy: {
-        aionui: {
-          provider_owner: 'aioncore_builtin_weixin',
-          settings_surface: 'aioncore_channel_settings',
-          framework_channel_provider_host_activation_allowed: false,
-          framework_projected_channel_access_rendering_allowed: false,
-        },
         opl_studio: {
           provider_owner: 'installed_channel_provider_package',
           settings_surface: 'app_standard_channel_access',
@@ -335,13 +329,13 @@ export function validatePackageAppContributionsProductContract(contract) {
         },
         single_active_provider_path_per_renderer_required: true,
       },
-      migration_state: 'renderer_specific_activation_selected_aionui_keeps_aioncore_and_successor_uses_app_owned_provider_package',
-      runtime_status: 'aionui_builtin_source_path_present_successor_package_source_and_host_path_present_each_requires_its_own_installed_live_e2e',
+      migration_state: 'studio_uses_app_owned_provider_package',
+      runtime_status: 'studio_package_source_and_host_path_present_requires_installed_live_e2e',
       command_input_source: 'validated_channel_access_result_entity_actions',
       command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_entity_input',
       post_action_readback: 'fresh_contribution_read_required_after_action_success_and_while_refresh_after_ms_is_projected',
       qr_payload_policy: 'ephemeral_login_challenge_render_only_never_persist_log_or_copy_into_shell_state',
-      provider_absent_policy: 'no_contribution_entry_is_a_normal_unavailable_state_for_the_successor_and_must_not_block_the_aionui_mainline',
+      provider_absent_policy: 'no_contribution_entry_is_a_normal_unavailable_state_for_studio',
       arbitrary_renderer_code_allowed: false,
     },
     'App GUI channel_access standard view contract',
@@ -356,12 +350,6 @@ export function validatePackageAppContributionsProductContract(contract) {
       data_truth_owner: 'declaring_remote_companion_provider',
       projection_owner: 'one-person-lab-framework',
       renderer_activation_policy: {
-        aionui: {
-          provider_owner: 'declaring_remote_companion_provider',
-          settings_surface: 'app_standard_remote_companion_access',
-          framework_remote_companion_host_activation_allowed: true,
-          framework_projected_remote_companion_access_rendering_allowed: true,
-        },
         opl_studio: {
           provider_owner: 'opl_studio_native_link_companion_bridge',
           settings_surface: 'settings_resources_opl_link_native_host_panel',
@@ -534,7 +522,6 @@ export function validatePackageAppContributionsProductContract(contract) {
       lifecycle_policy: 'register_from_current_projection_and_remove_immediately_when_package_is_app_disabled_carrier_disabled_or_uninstalled',
       shell_implementation_policy: 'consume_the_host_derived_client_graph_through_renderer_native_extension_surfaces_without_independent_package_discovery_or_plugin_manager',
       native_candidate_host: 'host_derived_Client_Cordis_via_DeepSeek_Harness_SlotCore_createSlotRenderer_and_ui_primitives',
-      active_aionui_host: 'host_derived_Client_Cordis_via_thin_OPL_owned_adapter_over_existing_AionUI_components',
       independent_host_truth_allowed: false,
       second_package_registry_allowed: false,
       second_currentness_authority_allowed: false,

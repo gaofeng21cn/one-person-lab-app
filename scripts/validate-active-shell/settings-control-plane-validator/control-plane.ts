@@ -41,7 +41,6 @@ import {
   appOwnedSettingsTechnicalDetailsDefault,
   appOwnedSettingsTopLevelEntryIds,
   appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
   appOwnedSettingsTaskEntryIds,
   appOwnedSettingsVisualQaTargets,
   appOwnedSettingsVisualSystem,
@@ -79,7 +78,6 @@ import {
 import {
   assertEveryRouteHasSlot,
   validateCrossContractConsistency,
-  validateCustomAssistantDataBoundary,
   validateSettingsUserNavigationProjection,
 } from "./routes.ts";
 import {
@@ -88,7 +86,6 @@ import {
 import {
   validateSettingsProductSystemChecklist,
   validateSettingsShellAdapterSlot,
-  validateSettingsUpstreamIntake,
   validateSettingsVisualQaPolicy,
 } from "./visual-system.ts";
 
@@ -367,7 +364,6 @@ export function validateSettingsControlPlane(
     "Settings control plane slot registry keys",
   );
   assertEveryRouteHasSlot(controlPlane);
-  validateCustomAssistantDataBoundary(controlPlane);
   validateHydratedSettingsRegistry(controlPlane);
   validateSettingsShellAdapterSlotContract(controlPlane);
   validateSettingsModelReasoningPolicy(
@@ -385,7 +381,6 @@ export function validateSettingsControlPlane(
   validateSettingsPageAdapterPolicy(controlPlane, productProfile);
   validateSettingsVisualQaPolicy(controlPlane);
   validateSettingsProductSystemChecklist(controlPlane);
-  validateSettingsUpstreamIntake(controlPlane);
   if (controlPlane.default_route !== "/settings/general") {
     throw new Error(
       "Settings control plane default route must be /settings/general",
@@ -440,13 +435,13 @@ export function validateSettingsControlPlane(
       "owner_projected_action_route_with_explicit_permission_action_when_system_tcc_is_required" ||
     capabilityOwnership?.groups?.opl_managed_companion?.manual_and_third_party_policy_applies !== false ||
     capabilityOwnership?.groups?.manual_and_third_party?.source !==
-      "codex_and_shell_skill_plugin_registries_plus_aionui_mcp_image_voice_configuration" ||
+      "codex_and_shell_skill_plugin_registries_plus_local_mcp_image_voice_configuration" ||
     capabilityOwnership?.groups?.manual_and_third_party?.label_zh !== "手工添加" ||
     capabilityOwnership?.groups?.manual_and_third_party?.label_en !== "Manually added" ||
     capabilityOwnership?.groups?.manual_and_third_party?.membership_policy !==
       "show_user_managed_and_third_party_skills_plugins_MCP_image_and_voice_controls_without_reclassifying_them_as_opl_flow_managed; manual skill counts and empty states describe only the shell import directory" ||
-    capabilityOwnership?.groups?.manual_and_third_party?.aionui_native_policy !==
-      "keep_AionUI_native_skills_tools_assistants_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed" ||
+    capabilityOwnership?.groups?.manual_and_third_party?.local_native_policy !==
+      "keep_local_skills_tools_MCP_helpers_image_controls_and_voice_input_controls_in_local_or_third_party_ownership_never_OPL_Flow_managed" ||
     capabilityOwnership?.groups?.manual_and_third_party?.mutation_policy !== "explicit_user_action_only"
   ) {
     throw new Error("Settings Capabilities must separate OPL Flow, OPL-managed companions, and manual/third-party capabilities");
