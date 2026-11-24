@@ -87,9 +87,9 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 
 | 阶段 | 核心交付 | 状态（SSOT 实时同步） |
 | --- | --- | --- |
-| **M0 · SSOT 文档体系** | 确立理想态四统一宪法、三级插件 UI/设置规范与分阶段路线文档 | 本文件建立（持续同步实际验证状态） |
-| **M1 · 自动更新闭环与熔断** | 启动异常自动隔离回退（`opl_dsh_profile_recovery.v1`）、更新页「一键更新全部」、主界面顶栏轻量「更新就绪 · 重启生效」入口、CI 发布版本规范修复 | 源码与自动化单测落地中；线上 CI 资产上传与干净机器端到端实测将随后续验证补充 |
-| **M2 · 三级 UI/设置统一** | `settings_form` Schema + Framework/Studio 贯通、`@gaofeng21cn/opl-dsh-adapters` 共享 UI Kit、受控设置子槽位、`PluginErrorBoundary`、Billion Context 与一等插件迁移 | 待 M1 完成后实施 |
-| **M3 · 通用插件生命与软件中心统一** | 通用 DSH 插件生命周期服务废除单点特例、统一目录与安装记录流、意图型筛选与权限透明呈现 | 待 M2 完成后实施 |
-| **M4 · 前端真插件化** | 清零插件对 `vendor/` 相对路径直连、拆分 `opl-studio-client` 单体入口、支持纯前端更新免冷重启轻刷新 | 待 M3 完成后实施 |
-| **M5 · 生态门禁与目录演化** | Plugin DevKit 三级模板、CI 自动化插件合规门禁测试、结构化公开插件目录 | 待 M4 完成后实施 |
+| **M0 · SSOT 文档体系** | 确立理想态四统一宪法、三级插件 UI/设置规范与分阶段路线文档 | 已并入三仓 `main`（`one-person-lab`、`opl-studio`、`one-person-lab-app`）并与三仓契约/验证对齐 |
+| **M1 · 自动更新闭环与熔断** | 启动异常自动隔离回退（`opl_dsh_profile_recovery.v1`）、更新页「一键更新全部」、主界面顶栏轻量「更新就绪 · 重启生效」入口 | 已并入 `main` 并通过本地单测/集成门禁；仍需在发布阶段完成 GitHub Packages 发布与 clean-VM 端到端实测 |
+| **M2 · 三级 UI/设置统一** | `settings_form` Schema + Framework/Studio 贯通、`@gaofeng21cn/opl-dsh-adapters` 共享 UI Kit、受控设置子槽位（`settings.group.<dest>`）、`PluginErrorBoundary`、Billion Context 与一等插件迁移、MCP App 字体缩放/主题变量与授权闭环 | 已并入三仓 `main` 并通过三仓契约校验与 React/happy-dom 自动化测试 |
+| **M3 · 通用插件生命与软件中心统一** | 通用 DSH 插件生命周期目录服务（`dsh-plugin-catalog`）、安装/切换历史活动流（`opl-dsh-plugin-activity.v1`）、运行期单次重启切换暂存、意图型筛选与权限摘要透明呈现 | 已并入 `main` 并通过宿主机单测与软件中心集成回归 |
+| **M4 · 前端真插件化** | 清零插件客户端相对 `vendor/` 路径直连、拆出 `SettingsSurface`/`SoftwareCenterSurface`、支持 `reloadRenderer` / 诚实 `reloadMode` 分流（仅当全部已更新包为纯前端 `@gaofeng21cn/opl-studio-client`、当前已解析在 `dshProfileDir/node_modules` 内且 `clientModules.rebuilt()` 成功刷新时走 `renderer_reload`「刷新界面立即生效」；首次从宿主 carrier 覆盖至 profile 或宿主/运行期插件仍诚实走 `restart_required`） | 已并入 `main` 并通过 AST 边界测试、类型检查与 `reloadMode` 单测 |
+| **M5 · 生态门禁与目录演化** | 三级 Plugin DevKit 参考模板（`templates/plugin-devkit/`）、自动化插件合规门禁（`plugin-conformance-gate.test.tsx`）、变更插件补丁版本升级 | 代码、模板、门禁测试、插件版本升级与三仓 `main` 校验已通过；远端 GitHub Packages 插件发布与发布后干净机器验收随发布流程执行 |
