@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { buildFallbackReleaseNotes } from './release-notes-ai-writer-parts/fallback-chain.ts';
+import { buildFallbackReleaseNotes } from './release-notes-ai-writer/fallback-chain.ts';
 import type { ReleaseNotesEvidence } from './release-notes/types.ts';
 import { writeNightlySummary } from './nightly-release-note-writer.ts';
 

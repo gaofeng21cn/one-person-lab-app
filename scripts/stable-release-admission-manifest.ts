@@ -17,18 +17,18 @@ import {
   runId,
   sha256Bytes,
   stableAdmissionManifestDigest,
-} from './stable-release-admission-manifest-parts/policy.ts';
+} from './stable-release-admission-manifest/policy.ts';
 import {
   collectObservation,
   parseActiveReleaseRunLookups,
   parseGitHubJsonLookup,
   parseGitHubReleaseNamespacePages,
-} from './stable-release-admission-manifest-parts/observation.ts';
+} from './stable-release-admission-manifest/observation.ts';
 import type {
   StableAdmissionFailureReceipt,
   StableAdmissionInput,
   StableAdmissionManifest,
-} from './stable-release-admission-manifest-parts/types.ts';
+} from './stable-release-admission-manifest/types.ts';
 
 export {
   buildStableAdmissionFailureReceipt,
@@ -47,7 +47,7 @@ export type {
   StableAdmissionManifest,
   WorkflowBlob,
   ActiveReleaseRun,
-} from './stable-release-admission-manifest-parts/types.ts';
+} from './stable-release-admission-manifest/types.ts';
 
 // Keep the release-boundary text contract anchored at this public owner facade;
 // implementations live in the policy and observation leaves.

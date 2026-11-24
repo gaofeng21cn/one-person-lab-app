@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import YAML from 'yaml';
-import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator-parts/identity-authority.ts';
+import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator/identity-authority.ts';
 
 const appRoot = process.cwd();
 const cliPath = path.join(appRoot, 'scripts', 'release-webui-carrier.ts');

@@ -161,10 +161,7 @@ owns that user experience.
 
 Studio uses native Codex App Server and has no AionCore dependency. Its carrier
 composition is maintained by [Studio](product/gui/opl-studio-plan.md) and the
-[Studio implementation](https://github.com/gaofeng21cn/opl-studio/blob/main/docs/architecture.md).
-The [historical AionUI carrier](architecture/aioncore-codex-only-carrier.md)
-explains the old unmodified AionCore/Node export and independently selected
-Codex bytes for retained upgrade baselines. All
+[Studio implementation](https://github.com/gaofeng21cn/opl-studio/blob/main/docs/architecture.md). All
 installed upgrades require full App build/install/readback; no embedded binary
 hot replacement is supported.
 

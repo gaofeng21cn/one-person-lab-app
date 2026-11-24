@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runAiReleaseNotesCli } from './release-notes-ai-writer-parts/cli.ts';
+import { runAiReleaseNotesCli } from './release-notes-ai-writer/cli.ts';
 
-export { buildAiReleaseNotesDocument } from './release-notes-ai-writer-parts/provider-transport.ts';
-export { validateAiReleaseNotes } from './release-notes-ai-writer-parts/validation.ts';
+export { buildAiReleaseNotesDocument } from './release-notes-ai-writer/provider-transport.ts';
+export { validateAiReleaseNotes } from './release-notes-ai-writer/validation.ts';
 
 /*
  * Release-boundary validation anchors. Implementations live in the parts modules:

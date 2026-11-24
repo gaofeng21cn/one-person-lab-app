@@ -1,25 +1,25 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
-import type { ReleaseBoundaryCheck } from './release-checks-parts/types.ts';
+import type { ReleaseBoundaryCheck } from './release-checks/types.ts';
 import {
   activeShellReleaseValidationProfile,
   filterReleaseBoundaryChecksForProfile,
   releaseValidationProfile,
   releaseWorkflowPaths,
   releaseWorkflowPathsForProfile,
-} from './release-checks-parts/profile.ts';
-import { buildLegacyAdmissionChecks } from './release-checks-parts/legacy-admission.ts';
-import { legacyDistributionChecks } from './release-checks-parts/legacy-distribution.ts';
-import { buildLegacyFoundationChecks } from './release-checks-parts/legacy-foundation.ts';
+} from './release-checks/profile.ts';
+import { buildLegacyAdmissionChecks } from './release-checks/legacy-admission.ts';
+import { legacyDistributionChecks } from './release-checks/legacy-distribution.ts';
+import { buildLegacyFoundationChecks } from './release-checks/legacy-foundation.ts';
 import {
   buildStudioBoundaryChecks,
   studioCarrierChecks,
-} from './release-checks-parts/studio-carrier.ts';
-import { studioBundleChecks } from './release-checks-parts/studio-bundle.ts';
-import { studioFollowupChecks } from './release-checks-parts/studio-followups.ts';
+} from './release-checks/studio-carrier.ts';
+import { studioBundleChecks } from './release-checks/studio-bundle.ts';
+import { studioFollowupChecks } from './release-checks/studio-followups.ts';
 
-export type { ReleaseBoundaryCheck, ReleaseValidationProfile } from './release-checks-parts/types.ts';
+export type { ReleaseBoundaryCheck, ReleaseValidationProfile } from './release-checks/types.ts';
 export {
   activeShellReleaseValidationProfile,
   releaseValidationProfile,

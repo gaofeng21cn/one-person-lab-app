@@ -4,28 +4,28 @@ import { installExposurePolicyPath } from './validation-config.ts';
 import {
   validateProductProfileIdentity,
   validateProductProfileContractRefs,
-} from './product-profile-parts/identity.ts';
-import { validateDeliveryTopology } from './product-profile-parts/delivery-topology.ts';
+} from './product-profile/identity.ts';
+import { validateDeliveryTopology } from './product-profile/delivery-topology.ts';
 import {
   validateClientRendererCompatibility,
   validateProductProfileCodexDefaults,
   validateUiLocalePolicy,
   validateHomeAssistantDefaults,
-} from './product-profile-parts/client-home.ts';
+} from './product-profile/client-home.ts';
 import {
   validateAgentPackageRegistryProjection,
   validateProductProfileSettings,
   validateProductProfileCodexSkills,
   validateInstallUpdateTaxonomy,
   validateOrdinaryCapabilitySelectorPolicy,
-} from './product-profile-parts/package-settings.ts';
+} from './product-profile/package-settings.ts';
 import {
   validateFullFirstInstallCoreReadyPolicy,
   validateOfficialProfileFirstInstallPolicy,
   validateReadyToLaunchGate,
   validateFirstConversationPolicy,
   validateFullFirstInstallBackgroundPolicy,
-} from './product-profile-parts/first-run.ts';
+} from './product-profile/first-run.ts';
 import {
   validateFirstRunProgressModel,
   validateStandardPackagePolicy,
@@ -33,7 +33,7 @@ import {
   validateStandardUpdatePolicy,
   validateCompanionPayloadAuthority,
   validateProductProfileBoundary,
-} from './product-profile-parts/standard-boundary.ts';
+} from './product-profile/standard-boundary.ts';
 
 export function validateProductProfile(
   profile,

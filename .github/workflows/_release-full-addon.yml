@@ -305,7 +305,7 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" --paginate --slurp > finalizer-artifacts.json
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import { reusableFullFinalizerInput } from './app-source/scripts/stable-release-dispatch-parts/artifact-retrieval.ts';
+          import { reusableFullFinalizerInput } from './app-source/scripts/stable-release-dispatch/artifact-retrieval.ts';
           const artifacts = JSON.parse(fs.readFileSync('finalizer-artifacts.json', 'utf8')).flatMap(page => page.artifacts);
           const selected = reusableFullFinalizerInput(artifacts, process.env.SOURCE_RUN_ID);
           if (!selected && process.env.PRIOR_FINALIZER_RUN_ID) throw new Error('Requested Full finalizer input is unavailable; rebuilding is not authorized');

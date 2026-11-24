@@ -465,10 +465,6 @@
       "runtime_page_allowed": false
     },
     "shells": {
-      "aionui": {
-        "role": "legacy_migration_reference_only",
-        "implementation_carrier": "opl-aion-shell"
-      },
       "opl_studio": {
         "role": "active_release_shell_thin_display_consumer",
         "implementation_carrier": "opl-studio"

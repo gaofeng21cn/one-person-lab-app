@@ -13,7 +13,6 @@
   "description": "One Person Lab App product repository.",
   "license": "Apache-2.0",
   "scripts": {
-    "postinstall": "node --experimental-strip-types scripts/validate-active-shell.ts --quick",
     "verify": "scripts/verify.sh",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "typecheck:release": "tsc --noEmit -p tsconfig.release.json",

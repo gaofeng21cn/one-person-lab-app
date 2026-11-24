@@ -5,14 +5,6 @@ import {
   validateAppGuiProductContract,
   validatePrimaryInteractionPages,
   validateProductProfile,
-  assertCanonicalThreadDirectoryGroupingSources,
-  assertCanonicalThreadDirectoryTimeoutBoundarySources,
-  assertCanonicalThreadAffinityConvergenceSources,
-  assertCurrentGuidHomeSelectionSources,
-  assertProjectlessGuidFileAccessSources,
-  assertRuntimePageSourceBoundary,
-  assertSkillsHubScopeSource,
-  validateShellVisualTokenBindings,
   assertCodexModelPolicyProjection,
   projectCodexModelPolicyContracts,
   readJson,
@@ -20,7 +12,7 @@ import {
 } from "./fixtures.ts";
 import { appOwnedOplStandardAgentMembershipPolicy } from "../../../scripts/validate-active-shell/app-contract-constants.ts";
 import { validateAppSettingsPages } from "../../../scripts/validate-active-shell/page-state-app-settings-validator.ts";
-import { assertAgentPackageRegistryProjection } from "../../../scripts/app-product-profile/profile-contract-parts/packages.ts";
+import { assertAgentPackageRegistryProjection } from "../../../scripts/app-product-profile/profile-contract/packages.ts";
 
 test('Codex interaction surfaces stay aligned across the App profile and contracts', () => {
   assert.doesNotThrow(() => assertCodexModelPolicyProjection(readModelPolicyBundle()));
@@ -111,69 +103,6 @@ test('Codex interaction surfaces stay aligned across the App profile and contrac
       installExposure,
     ),
     /navigation rail shell token binding/,
-  );
-});
-
-test('active-shell visual token gate protects the rail and semantic text bridges', () => {
-  const validSources = {
-    layout: `<ArcoLayout.Sider
-      className={classNames('layout-sider', { collapsed })}
-    >
-      <ArcoLayout.Header />`,
-    productBaseline: `
-      :root {
-        --opl-sidebar-bg: var(--dsw-specific-sidebar-fill);
-        --opl-main-bg: var(--dsw-alias-bg-base);
-        --opl-focus-ring: var(--dsw-alias-state-business-primary);
-        --text-primary: var(--dsw-alias-label-primary);
-      }
-      body { color: var(--text-primary); }
-      .layout-sider.arco-layout-sider { background: var(--opl-sidebar-bg); }
-    `,
-    unoConfig: `
-      't-primary': 'var(--text-primary)',
-      't-tertiary': 'var(--color-text-3)',
-    `,
-  };
-  assert.doesNotThrow(() => validateShellVisualTokenBindings(validSources));
-
-  const legacySources = {
-    ...validSources,
-    productBaseline: `
-      :root {
-        --opl-sidebar-bg: #fcfcfc;
-        --text-primary: var(--color-text-1);
-      }
-      body[data-theme='dark'] { --opl-sidebar-bg: #1b1c1e; }
-      body { color: var(--text-primary); }
-      .layout-sider.arco-layout-sider { background: var(--opl-sidebar-bg); }
-    `,
-  };
-  assert.doesNotThrow(() => validateShellVisualTokenBindings(legacySources, false));
-
-  assert.throws(
-    () => validateShellVisualTokenBindings({
-      ...validSources,
-      layout: validSources.layout.replace("'layout-sider'", "'!bg-2 layout-sider'"),
-    }),
-    /background utility/,
-  );
-  assert.throws(
-    () => validateShellVisualTokenBindings({
-      ...validSources,
-      unoConfig: validSources.unoConfig.replace('var(--color-text-3)', 'var(--bg-6)'),
-    }),
-    /Uno semantic text colors/,
-  );
-  assert.throws(
-    () => validateShellVisualTokenBindings({
-      ...validSources,
-      productBaseline: validSources.productBaseline.replace(
-        '--text-primary: var(--dsw-alias-label-primary);',
-        '--text-primary: #202124;',
-      ),
-    }),
-    /--text-primary: var\(--dsw-alias-label-primary\)/,
   );
 });
 

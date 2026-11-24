@@ -10,12 +10,12 @@ import {
   exactSha,
   objectiveFingerprint,
   operationId,
-} from './stable-operation-control-parts/schema.ts';
+} from './stable-operation-control/schema.ts';
 import {
   stableOperationCriticalBlobPaths,
   stableOperationCriticalBlobs,
   stableOperationIdForFrozenCohort,
-} from './stable-operation-control-parts/critical-blobs.ts';
+} from './stable-operation-control/critical-blobs.ts';
 import {
   bindStableOperationAuthority,
   createStableOperationAuthority,
@@ -28,11 +28,11 @@ import {
   validateStableOperationAuthorityRuntimeBinding,
   validateStableOperationControl,
   validateStableOperationRuntimeBinding,
-} from './stable-operation-control-parts/authority.ts';
+} from './stable-operation-control/authority.ts';
 import {
   consumeStableOperationControl,
   validateStableOperationConsumption,
-} from './stable-operation-control-parts/consumption.ts';
+} from './stable-operation-control/consumption.ts';
 
 export {
   bindStableOperationAuthority,
@@ -58,7 +58,7 @@ export type {
   StableOperationAuthority,
   StableOperationConsumption,
   StableOperationControl,
-} from './stable-operation-control-parts/schema.ts';
+} from './stable-operation-control/schema.ts';
 
 function readJson(filePath: string): unknown {
   const resolved = path.resolve(filePath);

@@ -1,4 +1,4 @@
-import { mechanicalNotesMarker } from './release-notes-ai-writer-parts/mechanical.ts';
+import { mechanicalNotesMarker } from './release-notes-ai-writer/mechanical.ts';
 import { readActiveShellBuildProfile } from './active-shell-build-profile.ts';
 import { collectCommitSubjects, gitRefExists } from './release-notes/command.ts';
 import { appendAgentChangeSummary, normalizedSubject, summarizeChanges } from './release-notes/changes.ts';
@@ -28,7 +28,7 @@ import {
   extractLocalizedReleaseNotes,
   stripVisibleReleaseTitle,
   stripLocalizedReleaseNotes,
-} from './release-notes-ai-writer-parts/markdown-normalization.ts';
+} from './release-notes-ai-writer/markdown-normalization.ts';
 import { renderReleaseNotesDocument } from './release-notes/document.ts';
 import type { ReleaseNoteOptions, ReleaseNotesEvidence } from './release-notes/types.ts';
 

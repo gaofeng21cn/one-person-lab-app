@@ -1,4 +1,4 @@
-import { mechanicalNotesMarker } from './release-notes-ai-writer-parts/mechanical.ts';
+import { mechanicalNotesMarker } from './release-notes-ai-writer/mechanical.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';

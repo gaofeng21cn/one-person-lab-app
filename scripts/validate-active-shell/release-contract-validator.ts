@@ -6,15 +6,15 @@ import {
   validateProviderConfigurationBoundary,
   validateReleaseCalendarGuard,
   validateSuccessorProtectedReleaseAdmission,
-} from './release-contract-validator-parts/channel-policy.ts';
-import { validateLocalDataLifecycle } from './release-contract-validator-parts/data-lifecycle-policy.ts';
-import { validateDistributionSemantics, validateWebuiGhcrImage } from './release-contract-validator-parts/distribution-policy.ts';
-import { validateReleaseExecutionPolicy } from './release-contract-validator-parts/execution-policy.ts';
-import { validateManagedUpdatePlane } from './release-contract-validator-parts/managed-plane-policy.ts';
-import { validateStandardUpdater } from './release-contract-validator-parts/updater-policy.ts';
+} from './release-contract-validator/channel-policy.ts';
+import { validateLocalDataLifecycle } from './release-contract-validator/data-lifecycle-policy.ts';
+import { validateDistributionSemantics, validateWebuiGhcrImage } from './release-contract-validator/distribution-policy.ts';
+import { validateReleaseExecutionPolicy } from './release-contract-validator/execution-policy.ts';
+import { validateManagedUpdatePlane } from './release-contract-validator/managed-plane-policy.ts';
+import { validateStandardUpdater } from './release-contract-validator/updater-policy.ts';
 import type { ReleaseValidationProfile } from '../validate-release-boundary/release-checks.ts';
 
-export { assertManagedRuntimeRootBridgeSemantics } from './release-contract-validator-parts/data-lifecycle-policy.ts';
+export { assertManagedRuntimeRootBridgeSemantics } from './release-contract-validator/data-lifecycle-policy.ts';
 
 export function validateReleaseChannelContract(
   releaseChannel,

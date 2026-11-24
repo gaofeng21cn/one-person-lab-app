@@ -4,11 +4,11 @@ import { assertAppProductProfileIdentity } from '../app-product-profile-identity
 import { assertOfficialProfileShape } from '../app-product-profile-shared-validators.ts';
 import { appProductProfilePath } from './paths.ts';
 import type { AppProductProfile } from './types.ts';
-import { assertAgentPackageRegistryProjection } from './profile-contract-parts/packages.ts';
-import { assertSettingsProfileShape } from './profile-contract-parts/settings.ts';
-import { assertCompanionPayloadProfileShape } from './profile-contract-parts/companion.ts';
-import { assertFirstRunProfileShape } from './profile-contract-parts/first-run.ts';
-import { assertCodexOplFlowContext } from './profile-contract-parts/flow.ts';
+import { assertAgentPackageRegistryProjection } from './profile-contract/packages.ts';
+import { assertSettingsProfileShape } from './profile-contract/settings.ts';
+import { assertCompanionPayloadProfileShape } from './profile-contract/companion.ts';
+import { assertFirstRunProfileShape } from './profile-contract/first-run.ts';
+import { assertCodexOplFlowContext } from './profile-contract/flow.ts';
 import {
   assertHomeActivityCenterPolicy,
   assertHomeCodexProfileShape,
@@ -16,9 +16,9 @@ import {
   assertHomeShortcutCompatibilityMetadata,
   assertNoFixedAgentHomePresentation,
   assertUiLocalePolicy,
-} from './profile-contract-parts/home.ts';
-import { assertOrdinaryCapabilitySelectorPolicy } from './profile-contract-parts/capabilities.ts';
-import { assertStringArray } from './profile-contract-parts/support.ts';
+} from './profile-contract/home.ts';
+import { assertOrdinaryCapabilitySelectorPolicy } from './profile-contract/capabilities.ts';
+import { assertStringArray } from './profile-contract/support.ts';
 
 function assertProfileShape(profile: AppProductProfile): void {
   assertAppProductProfileIdentity(profile);

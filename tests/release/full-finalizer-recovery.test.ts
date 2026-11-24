@@ -6,9 +6,9 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parse } from 'yaml';
-import { reusableFullFinalizerInput, readOriginalStandardCheckpoint } from '../../scripts/stable-release-dispatch-parts/artifact-retrieval.ts';
-import { reconcileAppendFullTarget } from '../../scripts/stable-release-dispatch-parts/owner-run-reconciliation.ts';
-import { resolveAppendFullCohort, buildAppendFullPlan } from '../../scripts/stable-release-dispatch-parts/plan-source-guards.ts';
+import { reusableFullFinalizerInput, readOriginalStandardCheckpoint } from '../../scripts/stable-release-dispatch/artifact-retrieval.ts';
+import { reconcileAppendFullTarget } from '../../scripts/stable-release-dispatch/owner-run-reconciliation.ts';
+import { resolveAppendFullCohort, buildAppendFullPlan } from '../../scripts/stable-release-dispatch/plan-source-guards.ts';
 import { downloadArtifact } from '../../scripts/download-github-artifact.mjs';
 import { verifyAcceptedFullDmg, verifyRetainedHandoff } from '../../scripts/restore-retained-full-finalizer.mjs';
 

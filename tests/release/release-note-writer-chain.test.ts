@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { buildFallbackReleaseNotes, validatePreparedReleaseNotes } from '../../scripts/release-notes-ai-writer-parts/fallback-chain.ts';
-import { extractLocalizedReleaseNotes, stripLocalizedReleaseNotes } from '../../scripts/release-notes-ai-writer-parts/markdown-normalization.ts';
+import { buildFallbackReleaseNotes, validatePreparedReleaseNotes } from '../../scripts/release-notes-ai-writer/fallback-chain.ts';
+import { extractLocalizedReleaseNotes, stripLocalizedReleaseNotes } from '../../scripts/release-notes-ai-writer/markdown-normalization.ts';
 import { validStandardAiReleaseNotes, stableInstallCommand } from './app-release-boundary-cases/release-notes-fixtures.ts';
 import type { ReleaseNotesEvidence } from '../../scripts/release-notes/types.ts';
 

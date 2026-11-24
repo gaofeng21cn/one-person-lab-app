@@ -710,7 +710,7 @@ jobs:
             --output run-authority-reconcile.json
           node --experimental-strip-types --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
-          import { stableOperationCriticalBlobs } from './app-executor/scripts/stable-operation-control-parts/critical-blobs.ts';
+          import { stableOperationCriticalBlobs } from './app-executor/scripts/stable-operation-control/critical-blobs.ts';
           const blobs = stableOperationCriticalBlobs('app-executor');
           writeFileSync('critical-blobs.json', `${JSON.stringify(blobs, null, 2)}\n`);
           NODE

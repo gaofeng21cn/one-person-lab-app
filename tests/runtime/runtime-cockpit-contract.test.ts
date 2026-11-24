@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { validateRuntimeProgressPageDisplayPolicy } from '../../scripts/validate-active-shell/runtime-bridge-validator.ts';
 import { validateCoreRuntimeRoute } from '../../scripts/validate-active-shell/runtime-route-validator.ts';
-import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator-parts/identity-authority.ts';
+import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator/identity-authority.ts';
 import {
   validateAgentAvailabilityProjectionContract,
   validateUserTaskStatusProjectionContract,

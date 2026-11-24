@@ -5,16 +5,6 @@ import { validateAppGuiProductContract } from '../../../scripts/validate-active-
 import { validatePrimaryInteractionPages } from '../../../scripts/validate-active-shell/page-state-primary-interaction-validator.ts';
 import { validateProductProfile } from '../../../scripts/validate-active-shell/product-profile-validator.ts';
 import {
-  assertCanonicalThreadDirectoryGroupingSources,
-  assertCanonicalThreadDirectoryTimeoutBoundarySources,
-  assertCanonicalThreadAffinityConvergenceSources,
-  assertCurrentGuidHomeSelectionSources,
-  assertProjectlessGuidFileAccessSources,
-  assertRuntimePageSourceBoundary,
-  assertSkillsHubScopeSource,
-} from '../../../scripts/validate-active-shell/shell-ordinary-experience-validator.ts';
-import { validateShellVisualTokenBindings } from '../../../scripts/validate-active-shell/shell-implementation-validator.ts';
-import {
   assertCodexModelPolicyProjection,
   projectCodexModelPolicyContracts,
 } from '../../../scripts/app-product-profile/codex-model-policy-projection.ts';
@@ -34,14 +24,6 @@ export {
   validateAppGuiProductContract,
   validatePrimaryInteractionPages,
   validateProductProfile,
-  assertCanonicalThreadDirectoryGroupingSources,
-  assertCanonicalThreadDirectoryTimeoutBoundarySources,
-  assertCanonicalThreadAffinityConvergenceSources,
-  assertCurrentGuidHomeSelectionSources,
-  assertProjectlessGuidFileAccessSources,
-  assertRuntimePageSourceBoundary,
-  assertSkillsHubScopeSource,
-  validateShellVisualTokenBindings,
   assertCodexModelPolicyProjection,
   projectCodexModelPolicyContracts,
   readJson,

@@ -17,7 +17,7 @@ import {
 import type {
   ActiveSurfaceState,
   GuiDesignSystemValidation,
-} from './validate-gui-design-system-parts/contract.ts';
+} from './validate-gui-design-system/contract.ts';
 import {
   expectedDeferredVisualSurfaces,
   expectedPhaseOneBehaviorInvariants,
@@ -35,15 +35,15 @@ import {
   visualSourceCohortPath,
   visualSourceCommit,
   visualSourceUsage,
-} from './validate-gui-design-system-parts/contract.ts';
+} from './validate-gui-design-system/contract.ts';
 import {
   conformanceStatus,
   readJson,
   record,
   sameStrings,
-} from './validate-gui-design-system-parts/shared.ts';
-import { validateGuiDesignSystemSourceAndReference } from './validate-gui-design-system-parts/source-and-reference.ts';
-import { validateGuiDesignSystemInteractionBaseline } from './validate-gui-design-system-parts/interaction-baseline.ts';
+} from './validate-gui-design-system/shared.ts';
+import { validateGuiDesignSystemSourceAndReference } from './validate-gui-design-system/source-and-reference.ts';
+import { validateGuiDesignSystemInteractionBaseline } from './validate-gui-design-system/interaction-baseline.ts';
 
 const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -448,9 +448,7 @@ export function validateGuiDesignSystem(root = defaultRoot): GuiDesignSystemVali
     evidence_scope: 'design_system_governance_consistency_only',
     visual_evidence: {
       current_studio_manifest: null,
-      historical_aionui_manifest: 'docs/product/gui/evidence/aionui-41301/manifest.json',
       current_studio_entries_verified: 0,
-      historical_entry_count: 8,
       packaged_command: false,
     },
     visual_reference_cohort: {

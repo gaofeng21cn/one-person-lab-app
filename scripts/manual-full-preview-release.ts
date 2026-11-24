@@ -13,22 +13,22 @@ import {
   type PreviewRemote,
   type ValidatedCleanupHandoff,
   type ValidatedPublishHandoff,
-} from './manual-full-preview-release-parts/contract.ts';
+} from './manual-full-preview-release/contract.ts';
 import {
   copyValidatedHandoff,
   resolveIngressDirectory,
   validateHandoffDirectory,
-} from './manual-full-preview-release-parts/handoff.ts';
+} from './manual-full-preview-release/handoff.ts';
 import {
   GhPreviewRemote,
-} from './manual-full-preview-release-parts/github.ts';
-import { verifyArtifactTransport } from './manual-full-preview-release-parts/artifact-transport.ts';
+} from './manual-full-preview-release/github.ts';
+import { verifyArtifactTransport } from './manual-full-preview-release/artifact-transport.ts';
 
 export {
   MANUAL_FULL_PREVIEW_RELEASE_NOTES,
   derivePreviewTag,
   fileSha256,
-} from './manual-full-preview-release-parts/contract.ts';
+} from './manual-full-preview-release/contract.ts';
 export type {
   AssetIdentity,
   PreviewRelease,
@@ -36,17 +36,17 @@ export type {
   ValidatedCleanupHandoff,
   ValidatedHandoff,
   ValidatedPublishHandoff,
-} from './manual-full-preview-release-parts/contract.ts';
+} from './manual-full-preview-release/contract.ts';
 export {
   copyValidatedHandoff,
   resolveIngressDirectory,
   validateHandoffDirectory,
-} from './manual-full-preview-release-parts/handoff.ts';
+} from './manual-full-preview-release/handoff.ts';
 export {
   GhPreviewRemote,
   releaseAssetUploadUrl,
-} from './manual-full-preview-release-parts/github.ts';
-export { verifyArtifactTransport } from './manual-full-preview-release-parts/artifact-transport.ts';
+} from './manual-full-preview-release/github.ts';
+export { verifyArtifactTransport } from './manual-full-preview-release/artifact-transport.ts';
 
 function assertReleaseIdentity(release: PreviewRelease, handoff: ValidatedPublishHandoff): void {
   if (

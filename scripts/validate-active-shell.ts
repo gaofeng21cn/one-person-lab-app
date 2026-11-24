@@ -7,8 +7,10 @@ import { readJson } from './validate-active-shell/assertions.ts';
 import { validateContractShape } from './validate-active-shell/active-shell-contract.ts';
 import { runCommand } from './validate-active-shell/command-runner.ts';
 import { validateDistributionInstallSsot } from './validate-active-shell/distribution-install-ssot-validator.ts';
-import { validateActiveShellImplementation } from './validate-active-shell/shell-implementation-validator.ts';
-import { validateShellThreadCoordination } from './validate-active-shell/shell-thread-coordination-validator.ts';
+import {
+  validateStudioImplementation,
+  validateStudioThreadCoordination,
+} from './validate-active-shell/studio-implementation-validator.ts';
 import { validateAppGuiProductContract } from './validate-active-shell/gui-product-contract-validator.ts';
 import { validateFirstRunMatrix } from './validate-active-shell/first-run-matrix-validator.ts';
 import { validateFirstRunCompiledExpectations } from './validate-active-shell/first-run-expectation-contract-validator.ts';
@@ -87,8 +89,8 @@ validateReleaseChannelContract(
   releaseValidationProfile,
 );
 validateReleaseEvidenceBundle(releaseChannel, firstRunMatrix);
-validateActiveShellImplementation(shellPaths);
-validateShellThreadCoordination(shellPaths);
+validateStudioImplementation(shellPaths);
+validateStudioThreadCoordination(shellPaths);
 validateLiveOplConformance(runtimeBridge);
 
 if (args.quick) {

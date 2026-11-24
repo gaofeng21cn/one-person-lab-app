@@ -1,5 +1,5 @@
 import type { ShellCandidate } from './types.ts';
-import type { CandidateValidationPolicy } from './candidate-contract-parts/host-and-bridge.ts';
+import type { CandidateValidationPolicy } from './candidate-contract/host-and-bridge.ts';
 import {
   candidateValidationPolicyFromRegistry,
   readCandidateAdapterContract,
@@ -7,7 +7,7 @@ import {
   validateCandidateRegistryEntry,
   validateNativeP1BaselineBridge,
   validateNativeThreadAdapterBoundary,
-} from './candidate-contract-parts/host-and-bridge.ts';
+} from './candidate-contract/host-and-bridge.ts';
 import {
   appProductProfile,
   validateCandidateAuthorityBoundaries,
@@ -19,15 +19,15 @@ import {
   validateCandidateTargetProductShape,
   validateCandidateValidationCommands,
   validateMinimumCompleteProductContract,
-} from './candidate-contract-parts/product-and-acceptance.ts';
+} from './candidate-contract/product-and-acceptance.ts';
 import {
   requiredDSHSourceReuseSurfaces,
   validateCandidateCarrierEvidenceContract,
   validateCandidateImplementationBasis,
   validateCandidateImplementationFiles,
   validateOPLStudioCandidateContract,
-} from './candidate-contract-parts/source-and-implementation.ts';
-import { validateCandidateChatTarget, validateCandidateWebUiTransport } from './candidate-contract-parts/transport.ts';
+} from './candidate-contract/source-and-implementation.ts';
+import { validateCandidateChatTarget, validateCandidateWebUiTransport } from './candidate-contract/transport.ts';
 
 export { requiredDSHSourceReuseSurfaces };
 export { validateMinimumCompleteProductContract };

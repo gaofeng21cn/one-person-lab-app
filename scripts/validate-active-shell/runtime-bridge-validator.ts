@@ -1,12 +1,12 @@
-import { validateOplGatewayAccountContract } from './runtime-bridge-validator-parts/gateway-account.ts';
-import { validateConnectionAuthorizationApprovalBridge } from './runtime-bridge-validator-parts/connection-authorization.ts';
+import { validateOplGatewayAccountContract } from './runtime-bridge-validator/gateway-account.ts';
+import { validateConnectionAuthorizationApprovalBridge } from './runtime-bridge-validator/connection-authorization.ts';
 import {
   validateLiveOplConformance,
   validateLiveConformanceContract,
   validateOplAppStateFastAgentPackageDirectoryFixture,
-} from './runtime-bridge-validator-parts/app-state.ts';
-import { validateCanonicalConversationContinuityPolicy } from './runtime-bridge-validator-parts/continuity.ts';
-import { validateCodexParityAdapterPolicies } from './runtime-bridge-validator-parts/codex-parity.ts';
+} from './runtime-bridge-validator/app-state.ts';
+import { validateCanonicalConversationContinuityPolicy } from './runtime-bridge-validator/continuity.ts';
+import { validateCodexParityAdapterPolicies } from './runtime-bridge-validator/codex-parity.ts';
 import {
   validateRuntimeBridgeIdentity,
   validateRuntimeBridgeDeclaredSurfaces,
@@ -18,16 +18,16 @@ import {
   validateRuntimeBridgeAuthorityBoundary,
   validateRuntimeBridgeReplacementPolicy,
   validateRuntimeBridgeForbiddenTruthSources,
-} from './runtime-bridge-validator-parts/identity-authority.ts';
-import { validateRuntimeProgressPageDisplayPolicy } from './runtime-bridge-validator-parts/progress-display.ts';
+} from './runtime-bridge-validator/identity-authority.ts';
+import { validateRuntimeProgressPageDisplayPolicy } from './runtime-bridge-validator/progress-display.ts';
 import {
   validateRuntimeBridgeCommandResolutionPolicy,
   validateSharedGuiRuntimeResolutionPolicy,
-} from './runtime-bridge-validator-parts/command-routing.ts';
+} from './runtime-bridge-validator/command-routing.ts';
 import {
   validateRuntimeBridgeProjectionContracts,
   validatePackageReadinessProjection,
-} from './runtime-bridge-validator-parts/projection-readiness.ts';
+} from './runtime-bridge-validator/projection-readiness.ts';
 
 export function validateRuntimeBridgeContract(runtimeBridge, contract) {
   validateRuntimeBridgeIdentity(runtimeBridge, contract);

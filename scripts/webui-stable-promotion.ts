@@ -9,11 +9,11 @@ import {
   record,
   type AuthorityMode,
   type JsonRecord,
-} from './webui-stable-promotion-parts/admission.ts';
+} from './webui-stable-promotion/admission.ts';
 import {
   decideWebuiStablePromotion,
   writeWebuiStablePromotionReceipt,
-} from './webui-stable-promotion-parts/reconcile.ts';
+} from './webui-stable-promotion/reconcile.ts';
 
 function readJson(filePath: string, label: string): JsonRecord {
   const resolved = path.resolve(filePath);
@@ -29,7 +29,7 @@ export {
   decideWebuiStablePromotion,
   writeWebuiStablePromotionReceipt,
 };
-export type { WebuiStableAdmissionInput } from './webui-stable-promotion-parts/admission.ts';
+export type { WebuiStableAdmissionInput } from './webui-stable-promotion/admission.ts';
 
 function required(value: string | undefined, flag: string): string {
   if (!value?.trim()) throw new Error(`Missing --${flag}.`);

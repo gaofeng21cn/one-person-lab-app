@@ -38,8 +38,6 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 | 模型选择 | [Codex Auto](codex-auto-model-policy.md) | App profile 与 Shell consumer |
 | Computer Use | [Computer Use](computer-use.md) | 对应 release qualification |
 | OPL Link | [OPL Link](../opl-link.md) | 原生 iOS 伴侣、Studio 接入与跨端验收 |
-| 历史 AionCore / Codex 包装 | [Codex-only carrier](../../architecture/aioncore-codex-only-carrier.md) | 旧版升级来源与原始 artifact evidence |
-| AionUI 退役与维护出处 | [Fork maintenance](../../architecture/opl-aionui-fork-maintenance-strategy.md) | 历史说明；不授权新生产构建或 upstream intake |
 | Studio | [Studio plan](opl-studio-plan.md) | Studio owner，采用权仍归 App |
 | DeepSeek Harness 复用 | [Composition plan](deepseek-harness-composition-plan.md) | App/Shell 各自合同与源码 |
 | 插件位置与开发归口 | [插件组织与设置归属](dsh-plugin-and-settings-map.md) · [分层更新](../managed-update-three-layer.md) | 兼容 DSH Host/Client 包可独立更新；Electron、DSH cohort 与 AppWebEntry boot shell 走 App 更新，领域 Package 走原生 carrier |

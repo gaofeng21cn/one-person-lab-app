@@ -5,38 +5,11 @@ import {
   validateAppGuiProductContract,
   validatePrimaryInteractionPages,
   validateProductProfile,
-  assertCanonicalThreadDirectoryGroupingSources,
-  assertCanonicalThreadDirectoryTimeoutBoundarySources,
-  assertCanonicalThreadAffinityConvergenceSources,
-  assertCurrentGuidHomeSelectionSources,
-  assertProjectlessGuidFileAccessSources,
-  assertRuntimePageSourceBoundary,
-  assertSkillsHubScopeSource,
-  validateShellVisualTokenBindings,
   assertCodexModelPolicyProjection,
   projectCodexModelPolicyContracts,
   readJson,
   readModelPolicyBundle,
 } from "./fixtures.ts";
-
-test('Skills Hub exposes global and projected Skill scopes without upstream auto-injected UI', () => {
-  const current = [
-    'const skills = await ipcBridge.fs.listAvailableSkills.invoke();',
-    'setAvailableSkills(skills);',
-    "flowManagedSkillIds === undefined ? 'my-skills-section' : 'manual-and-third-party-capabilities'",
-    "t('settings.skillsHub.mySkillsTitle', { defaultValue: 'Global User Skills' })",
-    "t('settings.skillsHub.globalUserSkillsPath', { path: skillPaths.user_skills_dir })",
-  ].join('\n');
-  assert.doesNotThrow(() => assertSkillsHubScopeSource(current));
-  assert.throws(
-    () => assertSkillsHubScopeSource(`${current}\nipcBridge.fs.listBuiltinAutoSkills.invoke();`),
-    /auto-injected Skill scope/,
-  );
-  assert.throws(
-    () => assertSkillsHubScopeSource(current.replace('Global User Skills', 'My Skills')),
-    /Global User Skills/,
-  );
-});
 
 test('conversation history and managed scratch keep identity, cwd, and Project affinity distinct', () => {
   const guiProductContract = readJson('contracts/app-gui-product-contract.json');
@@ -244,26 +217,4 @@ test('conversation history and managed scratch keep identity, cwd, and Project a
     visible_id_consumers: ['default_rail', 'archived', 'pinned', 'workspace_groups', 'timeline'],
     fixed_count_acceptance_allowed: false,
   });
-});
-
-test('active-shell Runtime source gate allows canonical action refs but rejects legacy fallback reconstruction', () => {
-  const canonicalActionRefs = [
-    "actionId: 'work_item_visibility_set'",
-    'payload.expected_generation = selectedItem.visibility.generation',
-    'const refreshedItem = findReadbackWorkItem(refreshedPayload, selectedItem)',
-    'const workflow_id = canonicalWorkItem.workflowId',
-  ].join('\n');
-
-  assert.doesNotThrow(() => assertRuntimePageSourceBoundary(canonicalActionRefs));
-  for (const legacyFallback of [
-    'normalizeRuntimeProjection(appState)',
-    'dedupeTaskItems(items)',
-    'runtimeTaskItem(task, controlStates)',
-    'appStateToRuntimeProjection(appState)',
-    'compactCurrentControlState(state)',
-    'controlStateFallbackForTask(task, controlStates)',
-    'record(controlState?.provider_run)',
-  ]) {
-    assert.throws(() => assertRuntimePageSourceBoundary(`${canonicalActionRefs}\n${legacyFallback}`));
-  }
 });

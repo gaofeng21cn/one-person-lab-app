@@ -2,8 +2,42 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { resolveDesktopReleaseCarrier } from '../desktop-release-carrier.ts';
-import { validateBrandedDeepLinkProbeContract } from './shell-settings-and-team-validator.ts';
 import { assertShellTextIncludesAll } from './shell-implementation-helpers.ts';
+
+const brandedDeepLinkProbeIds = [
+  'opl_scheme_only',
+  'navigate_schema_and_secret_rejection',
+  'app_owned_exact_route_registry',
+  'shared_cold_warm_second_instance_parser',
+  'invalid_link_fail_open_and_redacted',
+];
+
+export function validateBrandedDeepLinkProbeContract(adapterContract) {
+  const surface = adapterContract?.implementation_probes?.branded_deep_link_surface;
+  if (
+    surface?.source !== 'app_branded_deep_link_policy' ||
+    surface?.source_ref !== 'contracts/app-gui-product-contract.json#branded_deep_link_policy' ||
+    surface?.policy !== 'behavior_tests_plus_narrow_source_guards'
+  ) {
+    throw new Error('Active shell branded deep-link probe must consume the App-owned policy');
+  }
+  const probes = Array.isArray(surface.probes) ? surface.probes : [];
+  const ids = probes.map((probe) => probe?.id);
+  if (JSON.stringify(ids) !== JSON.stringify(brandedDeepLinkProbeIds)) {
+    throw new Error('Active shell branded deep-link probe ids must match the App-owned policy');
+  }
+  if (
+    probes.some(
+      (probe) =>
+        probe?.required !== true ||
+        !Array.isArray(probe.required_evidence) ||
+        probe.required_evidence.length < 2 ||
+        probe.required_evidence.some((entry) => typeof entry !== 'string' || !entry.trim()),
+    )
+  ) {
+    throw new Error('Active shell branded deep-link probes must require concrete evidence');
+  }
+}
 
 // Source conformance only. Signing, migration, installed data continuity, and
 // release readiness are proved by the separate exact-artifact VM gates.

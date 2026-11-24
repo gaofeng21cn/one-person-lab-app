@@ -11,23 +11,23 @@ import {
   assertShellReplacementPolicy,
   validateChannelThreadBindingBoundary,
   validateCodexExecutableContract,
-} from './app-shell-adapter-parts/runtime-validator.ts';
+} from './app-shell-adapter/runtime-validator.ts';
 import {
   assertStateSurfaceContract,
   assertValidationCommandPaths,
-} from './app-shell-adapter-parts/command-state.ts';
+} from './app-shell-adapter/command-state.ts';
 import {
   isExplicitAdapterOverride,
   readJson,
   resolveAdapterContractPath,
   resolveClientRendererAdmission as resolveClientRendererAdmissionFromReader,
   resolveShellAdapterIdentity,
-} from './app-shell-adapter-parts/reader.ts';
+} from './app-shell-adapter/reader.ts';
 import type {
   ActiveShellPaths,
   ChannelThreadBindingBoundary,
   ShellAdapterContract,
-} from './app-shell-adapter-parts/types.ts';
+} from './app-shell-adapter/types.ts';
 
 export type {
   ActiveShellPaths,
@@ -40,7 +40,7 @@ export type {
   ShellAdapterContract,
   ShellPathContract,
   ValidationCommand,
-} from './app-shell-adapter-parts/types.ts';
+} from './app-shell-adapter/types.ts';
 export {
   DEFAULT_RELEASE_SHELL_OWNED_SURFACE,
   FORBIDDEN_GUI_TRUTH_SOURCES,
@@ -49,15 +49,15 @@ export {
   REQUIRED_GUI_AUTHORITY_PRODUCT_CONTRACTS,
   STATE_SURFACE_CONTRACT_EXPECTATIONS,
   assertShellReplacementAdoptionGates,
-} from './app-shell-adapter-parts/types.ts';
+} from './app-shell-adapter/types.ts';
 export {
   resolveClientRendererAdmission,
   resolveShellAdapterIdentity,
-} from './app-shell-adapter-parts/reader.ts';
+} from './app-shell-adapter/reader.ts';
 export {
   validateChannelThreadBindingBoundary,
   validateCodexExecutableContract,
-} from './app-shell-adapter-parts/runtime-validator.ts';
+} from './app-shell-adapter/runtime-validator.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

@@ -122,17 +122,3 @@ test('both shell adapters persist exact bindings without owning thread or turn t
     }
   }
 });
-
-test('active shell validation follows the canonical provider account session key', () => {
-  const validator = fs.readFileSync(
-    'scripts/validate-active-shell/shell-ordinary-experience-validator.ts',
-    'utf8',
-  );
-
-  assert.match(
-    validator,
-    /binding\.providerId\}:\$\{binding\.accountId\}:\$\{binding\.channelSessionId/,
-  );
-  assert.match(validator, /new Set\(bindingIdentities\)\.size !== bindingIdentities\.length/);
-  assert.doesNotMatch(validator, /current && current !== target/);
-});

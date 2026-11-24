@@ -397,7 +397,7 @@ jobs:
           import { execFileSync } from 'node:child_process';
           const docker = (...args) => execFileSync('docker', args, { encoding: 'utf8' }).trim();
           const bridge = JSON.parse(fs.readFileSync('frozen-app-source/contracts/app-runtime-bridge.json', 'utf8'));
-          const { validateWebuiDeploymentContract } = await import('./scripts/validate-active-shell/runtime-bridge-validator-parts/identity-authority.ts');
+          const { validateWebuiDeploymentContract } = await import('./scripts/validate-active-shell/runtime-bridge-validator/identity-authority.ts');
           validateWebuiDeploymentContract(bridge);
           const template = bridge.webui_deployment.cloud.application_revision_template;
           fs.writeFileSync('webui-carrier/cloud-application-revision-template.json', JSON.stringify(template) + '\n');

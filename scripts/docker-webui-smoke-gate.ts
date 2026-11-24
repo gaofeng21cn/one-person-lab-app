@@ -15,8 +15,8 @@ import {
   type GateResult,
   type ImageIdentity,
   type OrdinaryUserStatus,
-} from './docker-webui-smoke-gate-parts/contract.ts';
-import { validateDockerWebuiSmokeGateResult } from './docker-webui-smoke-gate-parts/result-validator.ts';
+} from './docker-webui-smoke-gate/contract.ts';
+import { validateDockerWebuiSmokeGateResult } from './docker-webui-smoke-gate/result-validator.ts';
 import {
   fileStatus,
   isObject,
@@ -24,10 +24,10 @@ import {
   readKeyValue,
   scanDirectoryForSecretMarkers,
   writeJson,
-} from './docker-webui-smoke-gate-parts/support.ts';
-import { importWindowsEvidenceGate } from './docker-webui-smoke-gate-parts/windows-evidence.ts';
+} from './docker-webui-smoke-gate/support.ts';
+import { importWindowsEvidenceGate } from './docker-webui-smoke-gate/windows-evidence.ts';
 
-export { validateDockerWebuiSmokeGateResult } from './docker-webui-smoke-gate-parts/result-validator.ts';
+export { validateDockerWebuiSmokeGateResult } from './docker-webui-smoke-gate/result-validator.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const apiKeyFlowRequestTimeoutMs = 10_000;

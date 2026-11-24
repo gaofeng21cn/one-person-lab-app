@@ -184,23 +184,3 @@ test('ordinary Desktop install docs use Latest URLs instead of fixed release ver
     );
   }
 });
-
-test('legacy AionUI packaged installation-integrity recovery remains bounded and readback-based', () => {
-  const adapter = JSON.parse(
-    fs.readFileSync(path.join(appRoot, 'contracts/shell-adapters/aionui.json'), 'utf8'),
-  );
-  const recovery = adapter.startup_installation_integrity_recovery;
-
-  assert.equal(recovery.trigger, 'packaged_backend_incomplete_installation');
-  assert.equal(recovery.blocking_surface, true);
-  assert.deepEqual(recovery.required_actions, [
-    'restart_and_recheck_same_installation',
-    'copy_redacted_diagnostic_summary',
-    'open_local_app_log_directory',
-    'open_prefilled_support_issue',
-    'open_official_release_download',
-  ]);
-  assert.ok(recovery.diagnostic_copy_forbidden.includes('absolute_user_paths'));
-  assert.equal(recovery.self_heal_or_reinstall_success_claim_without_fresh_readback_allowed, false);
-  assert.equal(recovery.smartscreen_or_security_software_bypass_allowed, false);
-});

@@ -14,7 +14,6 @@ package scripts, validation output, and candidate package artifacts.
 | --- | --- | --- | --- | --- |
 | Active App GUI | `opl-studio` | `shells/opl-studio` or `OPL_APP_SHELL_ROOT` | `contracts/app-shell-adapter.json` | App Stable, Nightly and default launcher |
 | Isolated Studio Preview | `opl-studio` | `shells/opl-studio` or `../opl-studio` | `contracts/shell-adapters/opl-studio.json` | Explicit Preview launch/build and candidate evidence; independent identity/feed |
-| Historical upgrade source | `aionui` | Archived `opl-aion-shell` and fixed fixtures | `contracts/shell-adapters/aionui.json` | Original source and migration evidence only |
 
 The active adapter selects Studio. The candidate registry retains an explicit
 Studio Preview path; a shared implementation id does not merge the two bundle
@@ -40,8 +39,7 @@ Repository 与 adoption 责任见 [Studio 产品边界](opl-studio-plan.md)，Ho
 
 Codex executable 通过 `OPL_CODEX_BIN` 进入 Studio 既有 App Server adapter。当前 carrier
 组合与 readback 由 [Studio 分发参考](https://github.com/gaofeng21cn/opl-studio/blob/main/docs/delivery/desktop-distribution.md)
-维护。历史 AionUI 的 `opl_aioncore_managed_resources_projection.v1` 仅解释旧版构成，见
-[历史 Codex carrier](../../architecture/aioncore-codex-only-carrier.md)；Studio 不依赖 AionCore。
+维护；Studio 不依赖 AionCore。
 
 显式 launcher、直接打开 bundle 与 installed process 分别验证 executable resolution。
 同一产品名、两个窗口或一次顺序切换均不证明相同物理 runtime 或并发写安全。

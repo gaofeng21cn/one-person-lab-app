@@ -5,8 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import type { JsonRecord } from './docker-webui-native-windows-smoke-parts/receipt.ts';
-import type { CommandResult } from './docker-webui-native-windows-smoke-parts/probes.ts';
+import type { JsonRecord } from './docker-webui-native-windows-smoke/receipt.ts';
+import type { CommandResult } from './docker-webui-native-windows-smoke/probes.ts';
 import {
   buildComposeYaml,
   digestFile,
@@ -25,15 +25,15 @@ import {
   validateLabels,
   validateNativeWindowsSmokeReceipt,
   verifyPriorExactPullEvidence,
-} from './docker-webui-native-windows-smoke-parts/receipt.ts';
+} from './docker-webui-native-windows-smoke/receipt.ts';
 import {
   cleanupEvidence,
   commandRunner,
   parseJsonOutput,
   probeWebui,
   renderWindowsUi,
-} from './docker-webui-native-windows-smoke-parts/probes.ts';
-import { collectBaseline, planDocument, writeJson } from './docker-webui-native-windows-smoke-parts/artifacts.ts';
+} from './docker-webui-native-windows-smoke/probes.ts';
+import { collectBaseline, planDocument, writeJson } from './docker-webui-native-windows-smoke/artifacts.ts';
 
 export {
   buildComposeYaml,

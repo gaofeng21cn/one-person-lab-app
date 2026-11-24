@@ -16,10 +16,10 @@ import {
   extractLocalizedReleaseNotes,
   publicMarkdownBeforeTechnicalDetails,
   stripLocalizedReleaseNotes,
-} from '../../scripts/release-notes-ai-writer-parts/markdown-normalization.ts';
+} from '../../scripts/release-notes-ai-writer/markdown-normalization.ts';
 import { finalizePreviewReleaseNotesDocument } from '../../scripts/release-notes.ts';
-import { extractOpenAICompatibleText } from '../../scripts/release-notes-ai-writer-parts/provider-transport.ts';
-import { validateAiReleaseNotes } from '../../scripts/release-notes-ai-writer-parts/validation.ts';
+import { extractOpenAICompatibleText } from '../../scripts/release-notes-ai-writer/provider-transport.ts';
+import { validateAiReleaseNotes } from '../../scripts/release-notes-ai-writer/validation.ts';
 
 function runNode(args, options = {}) {
   return spawnSync(process.execPath, ['--experimental-strip-types', ...args], {

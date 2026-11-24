@@ -12,8 +12,8 @@ import {
   writeCompletionManifest,
   writeJson,
   writeMarkdownAtomic,
-} from './closeout-release-run-parts/output-generation.ts';
-import type { ArtifactProfile, Options } from './closeout-release-run-parts/types.ts';
+} from './closeout-release-run/output-generation.ts';
+import type { ArtifactProfile, Options } from './closeout-release-run/types.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultRepo = 'gaofeng21cn/one-person-lab-app';

@@ -89,11 +89,6 @@ scheduler、execution authority 或额外 direct-control 层。Pixel、Install�
 
 ## 历史证据与更新
 
-[eight-scene manifest](evidence/aionui-41301/manifest.json) 与
-[nine-scene manifest](evidence/aionui-41301-parity-20260714/manifest.json) 是历史 package-bound
-像素记录，只证明各自 route/layout。它们不是 current source、安装、完整 parity 或发布证据。
-保持原始 manifest/PNG 字节，不在当前矩阵中把它们记成 `pixel_verified`。
-
 新的功能审计或发布结果写入该 operation 的报告与 exact-cohort manifest，绑定 source、
 contract、环境、验证命令和结果；本文只在证据 owner、入口或判断规则变化时更新。
 产品目标改变先改 owner contract，source 改变重新判断受影响 source，图片或 package 改变

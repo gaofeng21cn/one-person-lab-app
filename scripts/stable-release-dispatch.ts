@@ -20,7 +20,7 @@ import {
   normalizedOwnerRun,
   reachableAppendFullRuns,
   reconcileAppendFullTarget,
-} from './stable-release-dispatch-parts/owner-run-reconciliation.ts';
+} from './stable-release-dispatch/owner-run-reconciliation.ts';
 import {
   downloadExactWorkflowArtifact,
   downloadStableSourceEvidence,
@@ -34,7 +34,7 @@ import {
   selectReusableFullCheckpointArtifact,
   selectReusableStandardCheckpointArtifact,
   workflowArtifacts,
-} from './stable-release-dispatch-parts/artifact-retrieval.ts';
+} from './stable-release-dispatch/artifact-retrieval.ts';
 import {
   assertLatestStandardReleaseComplete,
   attemptId,
@@ -49,7 +49,7 @@ import {
   validateShellSmokeHarness,
   wireSha,
   workflowDispatchArgs,
-} from './stable-release-dispatch-parts/plan-source-guards.ts';
+} from './stable-release-dispatch/plan-source-guards.ts';
 import {
   commandDetail,
   defaultWorkflow,
@@ -61,7 +61,7 @@ import {
   type Runtime,
   type StableDispatchPlan,
   type WorkflowArtifact,
-} from './stable-release-dispatch-parts/types.ts';
+} from './stable-release-dispatch/types.ts';
 
 export {
   activeStableRunIds,
@@ -102,7 +102,7 @@ export type {
   StableDispatchOperation,
   StableDispatchPlan,
   WorkflowArtifact,
-} from './stable-release-dispatch-parts/types.ts';
+} from './stable-release-dispatch/types.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const activeShellBuild = readActiveShellBuildProfile(appRoot);

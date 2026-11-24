@@ -1,23 +1,23 @@
 import { validateInstallExposureRuntimeAndDistribution } from './install-exposure-runtime-distribution-validator.ts';
-import { validateComponentInteroperability } from './install-exposure-policy-validator-parts/compatibility.ts';
+import { validateComponentInteroperability } from './install-exposure-policy-validator/compatibility.ts';
 import {
   validateInstallExposureHeader,
   validateCapabilityGovernance,
   validateCanonicalMetadataSources,
   validatePublicAbi,
   validateExposureClasses,
-} from './install-exposure-policy-validator-parts/governance.ts';
-import { validateInstallerSurfaces } from './install-exposure-policy-validator-parts/installer.ts';
+} from './install-exposure-policy-validator/governance.ts';
+import { validateInstallerSurfaces } from './install-exposure-policy-validator/installer.ts';
 import {
   validateFirstRunUserPresentation,
   validateSetupFlowContract,
-} from './install-exposure-policy-validator-parts/first-run.ts';
+} from './install-exposure-policy-validator/first-run.ts';
 
 export {
   componentInteroperabilityRef,
   componentCompatibilityRequirementsSha256,
   validateComponentCompatibilityReceipt,
-} from './install-exposure-policy-validator-parts/compatibility.ts';
+} from './install-exposure-policy-validator/compatibility.ts';
 
 export function validateInstallExposurePolicy(policy) {
   validateInstallExposureHeader(policy);

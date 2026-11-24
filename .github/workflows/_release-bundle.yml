@@ -732,7 +732,7 @@ jobs:
               node --experimental-strip-types --input-type=module <<'NODE'
           import fs from 'node:fs';
           import { finalizePreviewReleaseNotesDocument } from '../app-executor/scripts/release-notes.ts';
-          import { validatePreparedReleaseNotes } from '../app-executor/scripts/release-notes-ai-writer-parts/fallback-chain.ts';
+          import { validatePreparedReleaseNotes } from '../app-executor/scripts/release-notes-ai-writer/fallback-chain.ts';
           const evidence = JSON.parse(fs.readFileSync(process.env.EVIDENCE_PATH, 'utf8'));
           const prepared = fs.readFileSync(process.env.NOTES_PATH, 'utf8');
           const finalized = finalizePreviewReleaseNotesDocument(prepared, evidence);

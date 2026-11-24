@@ -13,8 +13,8 @@ const defaultRepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 import {
   createGithubOwnerReleaseNamespaceEvidence,
   validateGithubOwnerReleaseNamespaceEvidence,
-} from './validate-release-source-gate-parts/namespace-evidence.ts';
-import { buildCommandEnvironment, releaseEnvironmentProblems } from './validate-release-source-gate-parts/environment.ts';
+} from './validate-release-source-gate/namespace-evidence.ts';
+import { buildCommandEnvironment, releaseEnvironmentProblems } from './validate-release-source-gate/environment.ts';
 import {
   canonicalGithubRepository,
   canonicalPath,
@@ -25,13 +25,13 @@ import {
   resolveGitRef,
   sameSha,
   statusTextWithoutDeclaredFrameworkCheckout,
-} from './validate-release-source-gate-parts/git-ref-status.ts';
+} from './validate-release-source-gate/git-ref-status.ts';
 import {
   canonicalAppOwner,
   canonicalAppRepository,
   ownerReleaseNamespacePageLimit,
   ownerReleaseNamespacePageSize,
-} from './validate-release-source-gate-parts/types.ts';
+} from './validate-release-source-gate/types.ts';
 import type {
   Check,
   CommandOptions,
@@ -41,11 +41,11 @@ import type {
   ReleaseSourceGateEnvironment,
   ReleaseSourceGateOptions,
   ReleaseSourceGateReport,
-} from './validate-release-source-gate-parts/types.ts';
+} from './validate-release-source-gate/types.ts';
 export {
   createGithubOwnerReleaseNamespaceEvidence,
   validateGithubOwnerReleaseNamespaceEvidence,
-} from './validate-release-source-gate-parts/namespace-evidence.ts';
+} from './validate-release-source-gate/namespace-evidence.ts';
 export type {
   CommandRunner,
   GithubOwnerReleaseAsset,
@@ -54,7 +54,7 @@ export type {
   ReleaseSourceGateOptions,
   ReleaseSourceGateEnvironment,
   ReleaseSourceGateReport,
-} from './validate-release-source-gate-parts/types.ts';
+} from './validate-release-source-gate/types.ts';
 
 function usage(): void {
   process.stdout.write(`Usage:

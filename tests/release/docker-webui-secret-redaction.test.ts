@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { scanDirectoryForSecretMarkers } from '../../scripts/docker-webui-smoke-gate-parts/support.ts';
+import { scanDirectoryForSecretMarkers } from '../../scripts/docker-webui-smoke-gate/support.ts';
 
 test('Docker/WebUI secret scan reports detector IDs without matched bytes', () => {
   const evidenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-secret-redaction-'));

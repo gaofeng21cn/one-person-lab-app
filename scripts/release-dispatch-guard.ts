@@ -9,13 +9,13 @@ import {
   buildPostDispatchReconcile,
   buildPreNonceDispatchGuard,
   verifyPreDispatchAuthorityEvidence,
-} from './release-dispatch-guard-parts/nonce-guards.ts';
+} from './release-dispatch-guard/nonce-guards.ts';
 
 export {
   defaultIdentityWindowMs,
   createdAtClockSkewMs,
   ownerRunParser,
-} from './release-dispatch-guard-parts/types.ts';
+} from './release-dispatch-guard/types.ts';
 export type {
   BoundedReadResult,
   CommandResult,
@@ -29,23 +29,23 @@ export type {
   ReadFailureKind,
   UniqueOwnerRunResult,
   WireRefResult,
-} from './release-dispatch-guard-parts/types.ts';
+} from './release-dispatch-guard/types.ts';
 export {
   classifyReadFailure,
   readOwnerWorkflowRuns,
   runBoundedReadOnly,
-} from './release-dispatch-guard-parts/owner-reads.ts';
+} from './release-dispatch-guard/owner-reads.ts';
 export {
   extractUniqueOwnerWorkflowRun,
   resolveGitWireRef,
-} from './release-dispatch-guard-parts/wire-refs.ts';
+} from './release-dispatch-guard/wire-refs.ts';
 export {
   buildPostDispatchReconcile,
   buildPreNonceDispatchGuard,
   evaluateFailureFingerprintGuard,
   verifyPreDispatchAuthorityEvidence,
-} from './release-dispatch-guard-parts/nonce-guards.ts';
-export type { FailureFingerprintGuard } from './release-dispatch-guard-parts/nonce-guards.ts';
+} from './release-dispatch-guard/nonce-guards.ts';
+export type { FailureFingerprintGuard } from './release-dispatch-guard/nonce-guards.ts';
 
 
 function requiredOption(value: unknown, name: string): string {

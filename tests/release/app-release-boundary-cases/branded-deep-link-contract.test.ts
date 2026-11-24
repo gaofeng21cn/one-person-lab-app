@@ -1,6 +1,6 @@
 import { appRoot, assert, fs, path, test } from './helpers.ts';
 import { validateBrandedDeepLinkPolicy } from '../../../scripts/validate-active-shell/gui-product-contract-validator.ts';
-import { validateBrandedDeepLinkProbeContract } from '../../../scripts/validate-active-shell/shell-settings-and-team-validator.ts';
+import { validateBrandedDeepLinkProbeContract } from '../../../scripts/validate-active-shell/studio-implementation-validator.ts';
 
 function readPolicy() {
   const contract = JSON.parse(

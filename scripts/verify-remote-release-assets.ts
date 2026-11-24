@@ -13,13 +13,13 @@ import {
   normalizeDigest,
   readReleaseView,
   requiredAssetNames,
-} from "./verify-remote-release-assets-parts/release-assets.ts";
+} from "./verify-remote-release-assets/release-assets.ts";
 import {
   assertStandardDistributionTrust,
   assertStandardMetadata,
   assertStandardUpdaterAppBundleTrust,
-} from "./verify-remote-release-assets-parts/standard-trust.ts";
-import { assertFullAssets } from "./verify-remote-release-assets-parts/full-trust.ts";
+} from "./verify-remote-release-assets/standard-trust.ts";
+import { assertFullAssets } from "./verify-remote-release-assets/full-trust.ts";
 
 export function parseArgs(argv) {
   const parsed = {

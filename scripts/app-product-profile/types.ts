@@ -2,19 +2,19 @@ import type {
   AppDeliveryTopology,
   AppReleaseRoles,
   AppRuntimeForm,
-} from './types-parts/architecture.ts';
-import type { AppGuiCapabilitiesProfile } from './types-parts/gui-capabilities.ts';
-import type { AppGuiConversationProfile } from './types-parts/gui-conversation.ts';
-import type { AppGuiHomeProfile } from './types-parts/gui-home.ts';
-import type { AppCodexProfile } from './types-parts/codex.ts';
-import type { AppFirstRunProfile } from './types-parts/first-run.ts';
+} from './types/architecture.ts';
+import type { AppGuiCapabilitiesProfile } from './types/gui-capabilities.ts';
+import type { AppGuiConversationProfile } from './types/gui-conversation.ts';
+import type { AppGuiHomeProfile } from './types/gui-home.ts';
+import type { AppCodexProfile } from './types/codex.ts';
+import type { AppFirstRunProfile } from './types/first-run.ts';
 
 export type {
   AppDeliveryTopology,
   AppReleaseRoles,
   AppRuntimeForm,
   OplStandardAgentMembershipPolicy,
-} from './types-parts/architecture.ts';
+} from './types/architecture.ts';
 
 export type AppProductProfile = {
   schema_version: 2;

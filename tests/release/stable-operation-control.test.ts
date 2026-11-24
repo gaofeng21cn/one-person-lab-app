@@ -174,10 +174,10 @@ test('qualification repairs change the operation while legacy authority is read-
   for (const file of Object.keys(legacyBlobs)) {
     if (
       file.startsWith('scripts/framework-release-adapter-')
-      || file.startsWith('scripts/stable-operation-control-parts/')
-      || file.startsWith('scripts/release-dispatch-guard-parts/')
-      || file.startsWith('scripts/stable-release-dispatch-parts/')
-      || file.startsWith('scripts/validate-release-source-gate-parts/')
+      || file.startsWith('scripts/stable-operation-control/')
+      || file.startsWith('scripts/release-dispatch-guard/')
+      || file.startsWith('scripts/stable-release-dispatch/')
+      || file.startsWith('scripts/validate-release-source-gate/')
     ) delete legacyBlobs[file];
   }
   delete legacyBlobs['.github/workflows/opl-first-run-vm.yml'];
@@ -212,10 +212,10 @@ test('pre-extraction authority remains readable while executor admission require
   const priorBlobs = Object.fromEntries(Object.entries(preMacRunnerBlobs)
     .filter(([file]) => (
       !file.startsWith('scripts/framework-release-adapter-')
-      && !file.startsWith('scripts/stable-operation-control-parts/')
-      && !file.startsWith('scripts/release-dispatch-guard-parts/')
-      && !file.startsWith('scripts/stable-release-dispatch-parts/')
-      && !file.startsWith('scripts/validate-release-source-gate-parts/')
+      && !file.startsWith('scripts/stable-operation-control/')
+      && !file.startsWith('scripts/release-dispatch-guard/')
+      && !file.startsWith('scripts/stable-release-dispatch/')
+      && !file.startsWith('scripts/validate-release-source-gate/')
     )));
   delete priorBlobs['scripts/stable-dsh-composition.mjs'];
   assert.equal(Object.keys(priorBlobs).length, 13);
@@ -229,10 +229,10 @@ test('pre-extraction authority remains readable while executor admission require
 test('the complete pre-leaf 21-path authority remains legacy-readable but cannot run as current', () => {
   const priorCurrentBlobs = Object.fromEntries(Object.entries(preMacRunnerBlobs)
     .filter(([file]) => (
-      !file.startsWith('scripts/stable-operation-control-parts/')
-      && !file.startsWith('scripts/release-dispatch-guard-parts/')
-      && !file.startsWith('scripts/stable-release-dispatch-parts/')
-      && !file.startsWith('scripts/validate-release-source-gate-parts/')
+      !file.startsWith('scripts/stable-operation-control/')
+      && !file.startsWith('scripts/release-dispatch-guard/')
+      && !file.startsWith('scripts/stable-release-dispatch/')
+      && !file.startsWith('scripts/validate-release-source-gate/')
     )));
   delete priorCurrentBlobs['scripts/stable-dsh-composition.mjs'];
   assert.equal(Object.keys(priorCurrentBlobs).length, 21);
@@ -249,10 +249,10 @@ test('artifact transport repairs change operation identity and preserve old evid
   const priorBlobs = { ...preMacRunnerBlobs };
   for (const file of Object.keys(priorBlobs)) {
     if (
-      file.startsWith('scripts/stable-operation-control-parts/')
-      || file.startsWith('scripts/release-dispatch-guard-parts/')
-      || file.startsWith('scripts/stable-release-dispatch-parts/')
-      || file.startsWith('scripts/validate-release-source-gate-parts/')
+      file.startsWith('scripts/stable-operation-control/')
+      || file.startsWith('scripts/release-dispatch-guard/')
+      || file.startsWith('scripts/stable-release-dispatch/')
+      || file.startsWith('scripts/validate-release-source-gate/')
     ) delete priorBlobs[file];
   }
   delete priorBlobs['scripts/download-github-artifact.mjs'];
@@ -268,8 +268,8 @@ test('artifact transport repairs change operation identity and preserve old evid
 test('previous guard and dispatch authority sets stay readable but require current source-gate bytes to execute', () => {
   for (const includeDispatch of [false, true]) {
     const priorBlobs = Object.fromEntries(Object.entries(preMacRunnerBlobs).filter(([file]) => (
-      !file.startsWith('scripts/validate-release-source-gate-parts/')
-      && (includeDispatch || !file.startsWith('scripts/stable-release-dispatch-parts/'))
+      !file.startsWith('scripts/validate-release-source-gate/')
+      && (includeDispatch || !file.startsWith('scripts/stable-release-dispatch/'))
     )));
     delete priorBlobs['scripts/stable-dsh-composition.mjs'];
     assert.equal(Object.keys(priorBlobs).length, includeDispatch ? 33 : 29);
@@ -466,10 +466,10 @@ test('Stable executor may advance on unrelated main bytes while the frozen autho
       'scripts/framework-release-adapter-publication-github.ts',
       'scripts/framework-release-adapter-publication-latest.ts',
       'scripts/framework-release-adapter-publication-standard.ts',
-      ...criticalBlobPaths.filter((file) => file.startsWith('scripts/stable-operation-control-parts/')
-        || file.startsWith('scripts/release-dispatch-guard-parts/')
-        || file.startsWith('scripts/stable-release-dispatch-parts/')
-        || file.startsWith('scripts/validate-release-source-gate-parts/')),
+      ...criticalBlobPaths.filter((file) => file.startsWith('scripts/stable-operation-control/')
+        || file.startsWith('scripts/release-dispatch-guard/')
+        || file.startsWith('scripts/stable-release-dispatch/')
+        || file.startsWith('scripts/validate-release-source-gate/')),
     ]) {
       const file = path.join(root, relativePath);
       fs.writeFileSync(file, 'drifted implementation\n');

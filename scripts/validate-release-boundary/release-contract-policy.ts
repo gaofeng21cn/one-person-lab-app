@@ -11,20 +11,20 @@ import {
   validateStandardUpdaterCompressionPolicy,
   validateStandardUpdaterCandidateSelection,
   validateStandardUpdaterMetadataMigration,
-} from './release-contract-policy-parts/assets-updater.ts';
+} from './release-contract-policy/assets-updater.ts';
 import {
   validateReleasePreflightContract,
   validateOptionalCertificationPolicy,
   validatePhysicalVmOptionalCertificationPolicy,
   validateSourceMaterialRouteContract,
-} from './release-contract-policy-parts/admission-preflight.ts';
+} from './release-contract-policy/admission-preflight.ts';
 import {
   validateHomebrewVmGateStaticPolicy,
   validateWebuiPackagePolicy,
   validateReleaseAccelerationPolicy,
-} from './release-contract-policy-parts/acceleration.ts';
-import { validateReleasePlatformMatrix } from './release-contract-policy-parts/platform.ts';
-import { validateGithubApplyCallerParity } from './release-contract-policy-parts/github-callers.ts';
+} from './release-contract-policy/acceleration.ts';
+import { validateReleasePlatformMatrix } from './release-contract-policy/platform.ts';
+import { validateGithubApplyCallerParity } from './release-contract-policy/github-callers.ts';
 
 function readJson(appRoot: string, relativePath: string): any {
   return JSON.parse(fs.readFileSync(path.join(appRoot, relativePath), 'utf8'));
@@ -34,10 +34,10 @@ export { validateGithubApplyCallerParity };
 export {
   evaluateReleaseBrokerAuthorityReadiness,
   validateReleaseAccelerationPolicy,
-} from './release-contract-policy-parts/acceleration.ts';
+} from './release-contract-policy/acceleration.ts';
 export type {
   ReleaseBrokerAuthorityReadiness,
-} from './release-contract-policy-parts/acceleration.ts';
+} from './release-contract-policy/acceleration.ts';
 export { validateReleasePlatformMatrix };
 
 export function validateReleaseContractPolicies(
