@@ -51,8 +51,7 @@ exact-byte evidence、Temporal durability、领域回执、偏好与配置原子
 
 Package owner publication、App Stable/latest 和 Docker WebUI promotion 是各自
 独立的发布动作，其 public evidence 不由本计划或本地测试代替。当前操作见
-[release guide](../delivery/release/README.md)。旧 Durable proposal 的拒绝理由见
-[历史评审](../history/process/2026-07-23-opl-package-durable-design-review.md)。
+[release guide](../delivery/release/README.md)。
 
 当本表的 App 集成与所需实际验收均闭环，将持久约束折回 architecture/产品参考，
 删除本计划。不要追加历史阶段、授权记录、任务交接指令或工程日估算。

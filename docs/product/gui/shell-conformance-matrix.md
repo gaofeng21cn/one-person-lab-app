@@ -11,8 +11,8 @@ active/candidate source、repo-native validators 和 exact-cohort evidence。
 功能定义在 [功能目录](feature-inventory.md)，交互与实现分别在
 [交互细则](ideal-interaction-spec.md) 和 [实现指南](shell-implementation-guide.md)。
 本文不复制逐功能完成度、候选测试计数或旧 Native demo 缺口。需要评估某项能力时，
-从下表定位唯一 owner，再对本次明确的 scope 生成一次完整的证据结论。Studio 是当前实现；
-AionUI 只在旧版迁移或固定历史夹具需要时纳入评估。
+从下表定位唯一 owner，再对本次明确的 scope 生成一次完整的证据结论。Studio 是当前唯一有效实现；
+AionUI 已退役，历史实现通过 Git 追溯。
 
 ## 五轴证据
 
@@ -35,8 +35,8 @@ typed slots/actions、RPC/events 与 state semantics。通过它只允许选择�
 ## R1 / U1 必要功能实现矩阵
 
 本节维护证据映射；功能数量与语义只由功能目录和 machine contract 决定，不维护固定
-“12 项”清单。每次审计按请求范围填写上述五轴，为所评估的 Studio carrier 或历史 AionUI
-基线分别保留 source 和后续 evidence；App-owned contract 可以共享，carrier 结论不能共享。
+“12 项”清单。每次审计按请求范围填写上述五轴，为所评估的 Studio carrier
+保留 source 和后续 evidence；App-owned contract 可以共享，carrier 结论不能共享。
 
 | Scope | App owner | 实现与验证 owner |
 | --- | --- | --- |
@@ -61,14 +61,13 @@ tests 或 mock evidence 升格；后续五轴结论仍按当前 source/package �
 
 ## B0-11 Codex Subagent 证据
 
-Codex delegated execution 与 AionUI Team 是不同产品面。检查现有 adapter 对
+Codex delegated execution 与已退役的 Team 编排是不同产品面。检查现有 adapter 对
 `_meta.codex.collaboration` / `_meta.codex.subagent`、canonical child thread、
 Active/Done、详情/结果与打开线程的处理。未知 metadata 应回退到真实 generic tool row；
 打开失败保持当前 conversation 并给出重试。执行与线程 authority 仍归 Codex。
 
 检查当前 source 时包含 Studio 的 `plugins/opl-codex-native/src/thread-adapter.mjs`、
 `plugins/opl-studio-client/src/client/workbench/workbenchModel.ts` / `featureModel.ts` 及实际 renderer caller 和 focused tests。
-历史 AionUI 的 `normalizeToolCall.ts` 与 `MessageToolGroupSummary.tsx` 只用于对应固定基线。
 不从 App Server schema 存在推导 UI 完成，不为此新建第二 client、Team store、
 scheduler、execution authority 或额外 direct-control 层。Pixel、Install、Release 单独取证。
 

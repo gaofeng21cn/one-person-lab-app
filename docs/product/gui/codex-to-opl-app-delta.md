@@ -29,7 +29,7 @@ source/tests 与对应 owner；外部观察不拥有产品或发布 authority。
 | Composer | 底部中央，add/access、model/reasoning、voice、send/stop | 在同一决策点绑定 App policy |
 | Environment | 按需显示 changes、local、branch、commit/push、compare、subagents、sources | 用真实 owner refs 扩展 |
 
-其中 subagents 指 Codex runtime 的 delegated execution，与被拒绝的 AionUI Team 不同。
+其中 subagents 指 Codex runtime 的 delegated execution，与被拒绝的私有 Team 编排不同。
 OPL 使用现有 App Server/ACP adapter 显示活动、完成详情、结果与 canonical child thread；
 source、pixel、install 和 release 状态分别验证，不从观察或协议字段推断完成度。
 
@@ -77,7 +77,7 @@ capability invocation 不触发 Package lifecycle。
 ## 能力保留边界
 
 B0、R1、U1 的用户结果由 App contracts 保护；当前 Runtime 属 U1 核心能力。
-位置调整必须同时保留可见、键盘可达的入口。默认继承官方 AionUI/AionCore 能力，
+位置调整必须同时保留可见、键盘可达的入口。默认继承 Codex 与已采用宿主的基础能力，
 App 清单未列出某能力不是禁用理由。配置的用户/第三方 MCP 经明确 Team/internal negative
 policy 后继续保留；不为展示创建固定 Package/Skill/MCP registry。
 

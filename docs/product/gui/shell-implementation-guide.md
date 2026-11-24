@@ -25,7 +25,7 @@ validators、source/tests 与 evidence 拥有。
   database；本机 launch selection 与正式 release-shell adoption 是两条独立路径。
 
 “不降级”只保护已进入 OPL App contracts、ordinary routes 或正式用户路径的能力。
-AionUI Team 和 provider/backend marketplace 按明确 product policy 处理；用户/第三方
+私有 Team 编排和 provider/backend marketplace 按明确 product policy 处理；用户/第三方
 Skills/MCP 从 owner/native discovery 继承，仅受用户可见性偏好与明确 Team/internal negative
 policy 约束。缺少 App 清单项本身不是删除能力的授权。
 
@@ -345,7 +345,7 @@ command 和可见状态 anchor。
 
 - 在 shell 中复制模型 allowlist、Settings IA、purpose list 或 page-state rules。
 - 让 upstream route、Team、多 backend/provider controls 或 raw permission-mode terminology 回到 ordinary UI；App-owned user-language permission/access control 必须保留在 composer。
-- 为保留 AionUI 未采纳功能而扩大 ordinary IA，或把 Settings capability management 重新挂回 rail。
+- 为保留未采纳的上游或历史功能而扩大 ordinary IA，或把 Settings capability management 重新挂回 rail。
 - 从 module health、Git dirt、active id、缓存或 DOM 推断 runtime/domain readiness。
 - 直接执行 domain CLI、写 artifact body、memory body、owner receipt 或 release truth。
 - 为兼容一个 carrier 新建 App-wide wrapper/factory 或第二 bridge protocol。

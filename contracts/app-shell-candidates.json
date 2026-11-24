@@ -243,7 +243,6 @@
     {
       "id": "stitch_one_lab_assistant",
       "source_url": "https://stitch.withgoogle.com/projects/11170501787352919788",
-      "local_artifact": "/Users/gaofeng/Downloads/stitch_one_lab_assistant.zip",
       "evaluated_at": "2026-06-02",
       "source_usage": "visual_reference_only",
       "reference_value": [

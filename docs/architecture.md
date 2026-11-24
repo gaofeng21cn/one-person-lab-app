@@ -16,9 +16,6 @@ Package capabilities and declarative App contributions
   -> Framework Host: runtime, Package graph, App state/action projection
     -> App product profile, Client/GUI ABI and release policy
       -> Studio: Desktop, standalone WebUI and Docker on the DSH Application Host
-
-Historical upgrade inputs
-  -> archived AionUI source, releases and fixed migration fixtures
 ```
 
 App owns product semantics, first-run behavior, GUI contracts, accessibility,
@@ -146,7 +143,7 @@ Codex thread operations reuse one existing App Server adapter. GUI persistence
 is limited to drafts, preferences and rebuildable cache. Recorded cwd is runtime
 context; explicit project affinity is a separate presentation relation. No second
 coordination host, model-tool API, scheduler or task ledger is permitted. Codex
-subagent metadata is independent of the rejected AionUI Team surface. Rationale
+subagent metadata is independent of retired Team orchestration surfaces. Rationale
 and reconsideration conditions live in
 [thread operations](architecture/codex-cross-thread-orchestration.md).
 

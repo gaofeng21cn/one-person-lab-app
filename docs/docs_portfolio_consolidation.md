@@ -33,7 +33,6 @@ A directory index routes readers and does not repeat its children's requirements
 | `guides/`, `whitepapers/` | Canonical public-document sources. |
 | `publishing/` | Reusable rendering templates and build configuration. |
 | `site/` | Site assembly; `site/latest/` is ignored generated output. |
-| `history/` | Frozen evidence with a concrete future diagnostic or decision use. Git retains retired procedures. |
 
 ## Change lifecycle
 
@@ -56,11 +55,11 @@ pages for retired modules, APIs or tests. A still-executed legacy implementation
 is an explicit deletion gap in the owning plan, never an endorsed alternative and
 never falsely reported as removed.
 
-Keep a historical record only when it binds immutable artifact evidence, explains
-a material incident, or prevents a plausible reintroduction mistake. Mark that
-record historical and keep it out of ordinary setup and operating navigation.
-Do not rewrite frozen receipts to make them current. Dated check counts, local
-paths, task branches and closed checklists normally belong in Git or run artifacts.
+Keep an immutable audit or release record only when it binds artifact or security
+evidence (such as `security/audits/` or `delivery/release/records/`); keep it out
+of ordinary setup and operating navigation. Do not rewrite frozen receipts to make
+them current. Retired procedures, dated check counts, local paths, task branches
+and closed checklists belong in Git history or run artifacts.
 
 ## Verification
 

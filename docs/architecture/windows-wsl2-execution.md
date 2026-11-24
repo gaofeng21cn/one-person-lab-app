@@ -28,9 +28,8 @@ The execution port accepts logical programs declared by the contract,
 structured arguments and bounded stdin. It calls the guest bootstrap inspect,
 execute and control entrypoints. It does not provide an unrestricted guest
 command channel. Missing or unhealthy WSL enters provisioning or repair; it
-cannot select native Windows Codex or Framework as a fallback. Studio does not
-launch AionCore. The archived AionUI provisioner and early receipts explain
-historical baselines only; they are not the current production implementation.
+cannot select native Windows Codex or Framework as a fallback. Studio executes
+directly inside the Linux guest without AionCore.
 
 The packaged Guest Host closure includes a digest-bound archive. Studio verifies
 the installed payload, extracts this archive into the owned guest's Linux
@@ -119,5 +118,4 @@ The [Windows platform validation index](../delivery/validation/windows-platform/
 routes VM infrastructure and updater qualification. The
 [V6 validation index](../delivery/validation/windows-wsl2/README.md) covers a
 separate frozen diagnostic candidate, whose result cannot qualify the current
-desktop product. [Early experiment receipts](../history/windows-wsl2/README.md)
-retain their original cohort and partial outcomes for diagnosis.
+desktop product.

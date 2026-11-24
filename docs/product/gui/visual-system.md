@@ -13,13 +13,9 @@ shell source 承接；机器可读产品状态、模型策略、page-state 和 r
 
 普通图标、theme token 和 visual primitive geometry 的 active source 是
 [`contracts/app-gui-visual-source-cohort.json`](../../../contracts/app-gui-visual-source-cohort.json)
-固定的 DeepSeek Harness commit。历史 AionUI 只 vendor 该合同列出的最小闭包，并通过
-`OplVisualProvider` / `OplIcon` 适配现有 theme state、handlers 与 Arco controls；DSH runtime、
-session、router、provider、connection、完整 renderer 和 Client Cordis 均不进入 AionUI。
-
-当前 Studio 复用完整 DSH/Cordis Application Host 与 renderer，其 exact upstream、vendor
+固定的 DeepSeek Harness commit。当前 Studio 复用完整 DSH/Cordis Application Host 与 renderer，其 exact upstream、vendor
 和 overlay 由 Studio source manifest 持有，见 [Application Host composition](deepseek-harness-composition-plan.md)。
-历史 AionUI 的受限源码借用规则不覆盖 Studio 的已采用架构；两者都不能改写 App 产品与像素验收 authority。
+历史已退役 Shell 的受限源码借用规则不适用于 Studio，也不能改写 App 产品与像素验收 authority。
 
 ChatGPT Codex macOS 只保留历史工作流和空间关系参考。每次 observation 可以记录官方来源、
 精确版本/build 和日期，但不再拥有字体、颜色、图标、token 或 primitive 的 active visual
@@ -195,7 +191,7 @@ hairline divider。只有独立重复实体、确认或明确 bounded tool 才�
   `13/18` muted 文案。不得回退到 Arco 默认的大号插画、彩色 empty illustration、边框卡片
   或占据 rail 主体的装饰性图形。
 - 全局标题栏帮助/反馈入口使用 `OplIcon` 的 DSH 单色帮助图标，保留 tooltip、
-  accessible name 和既有 GitHub issue 路由；不再使用 AionUI 的对话气泡图标。
+  accessible name 和既有 GitHub issue 路由。
 - 已连接账户在 rail footer 使用绿色圆形 identity avatar。非中文姓名显示前两个词的首字母，
   连续中文姓名只显示第一个汉字；无姓名时回退到邮箱 local part 的前两个字符，再回退到 `OP`。
 - Model/reasoning 紧凑控件直接显示模型与推理档位文字和 disclosure，不显示大脑图标。

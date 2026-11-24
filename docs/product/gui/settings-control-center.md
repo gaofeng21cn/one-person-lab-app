@@ -16,7 +16,7 @@ Page-state contract: `contracts/app-page-state-matrix.json#pages`
 
 Settings is the App-owned OPL Control Center. The active shell is an
 implementation carrier. It must not infer navigation, page ownership, search,
-readiness, or update behavior from upstream AionUI defaults.
+readiness, or update behavior from upstream or legacy shell defaults.
 
 The root design rule is **one user question, one owner page**:
 
@@ -136,63 +136,40 @@ installer; other installations require their own adapter evidence.
 
 ### Software catalog
 
-The product interaction standard is [软件管理](software-management.md). Its default
-scope is OPL-maintained software, with external sources and runtime dependencies
-separate. Product type is a filter over one compact list. Maintenance origin is
-projected by Framework; publisher text and carrier paths cannot establish it.
-Optional Codex extensions such as PDF remain external extensions even when they
-are bundled with the host.
+The canonical catalog, filter, icon provenance, and cross-platform lifecycle standard
+is defined in [软件管理](software-management.md). Within `/apps` and its Settings
+compatibility routes (`/settings/agents`, `/settings/capabilities`, `/settings/environment?section=updates`):
 
-The ordinary list shows software identity, type, installed version, available
-version, concise status and a contextual action. Installation modes, multiple
-copies, lifecycle owners, source revisions and release references belong in
-details. Development access counts as installed and never implies preview
-maturity. The Settings compatibility routes consume the same policy, source
-projections and owner actions as Application Management.
+- default scope separates OPL-maintained software, external/third-party plugins & skills,
+  and runtime dependencies (including optional bundled Codex extensions such as PDF);
+- maintenance origin is projected by Framework rather than publisher strings or carrier paths;
+- development access counts as installed without implying preview maturity;
+- public Package, authorized private, and Homebrew channels share one OPL catalog and
+  owner-action model without displacing native package roots, Obsidian vaults, or credentials.
 
-Public Package, authorized private and Homebrew channels supply one OPL catalog.
-External plugins and independent skills retain their native managers and
-separate discovery scope. A missing carrier receipt is not machine-wide absence;
-unknown versions and unsupported installation adapters remain explicit. Native
-installation roots, developer workspaces, Obsidian content and credentials keep
-their existing owners and locations.
+### DSH-derived Studio Settings
 
-### DSH-derived successor application
+Studio reuses the pinned DSH Settings shell, layout, theme tokens, and selected controls as
+source without importing DSH connection, credential, model-provider, session, or
+plugin-runtime authority. `One Person Lab` is the sole user-visible product name;
+`OPL Studio` remains an internal implementation codename.
 
-The App successor reuses the pinned DSH Settings shell, layout, theme tokens and selected controls as
-source. It does not imitate those pixels in a second OPL Settings implementation, and it does not import
-DSH connection, credential, model-provider, session or plugin-runtime authority. `One Person Lab` is the only
-user-visible product name; `OPL Studio` remains an internal implementation codename.
+DSH General, Models, Plugins, and Agent Presets supply presentation primitives, mapped to
+OPL owner routes without matching legacy shell route counts:
 
-DSH General, Models, Plugins and Agent Presets provide the presentation baseline. OPL maps those concepts to
-its existing owner model and adds only current product needs: Gateway account/access, working directory and
-storage, Agents and Capabilities, App/Base/Packages updates, service diagnostics and About/notices. The active
-AionUI route count is an adapter compatibility surface, not a successor feature-count target.
+- a local preference completes only after persistence and immediate renderer readback;
+- an App/Framework/Package action completes only after owner execution and fresh readback;
+- a dynamic Package setting renders via `settings.section` and disappears with its scope;
+- a status without an action stays read-only and links its owner route (never inert toggles or optimistic success).
 
-Successor Settings completion is action-based:
-
-- a local preference is complete only after persistence and immediate renderer readback;
-- an App/Framework/Package action is complete only after owner execution and fresh state readback;
-- a dynamic Package setting appears through `settings.section` and disappears with its registration scope;
-- a status without an available action remains read-only and names its owner route; it never becomes an inert
-  toggle, optimistic success or shell-owned fallback.
-
-An API key write and the live Codex refresh have separate results. Once the
-Framework confirms the write, a deferred or failed refresh cannot turn that
-receipt into a save failure. A failed state refresh reports that the key was
-written and model access still needs a recheck. If the bridge returns no write
-receipt, the write remains unconfirmed; the UI does not claim that it was absent.
-
-Studio implementation and adoption are tracked through its current adapter and
-[product boundary](opl-studio-plan.md); this page does not maintain a second candidate work plan.
+An API key write and live Codex refresh report independent results: once Framework confirms
+a write, a deferred or failed refresh reports that the key was saved and model access still
+needs recheck rather than turning the write receipt into a failure. Studio adoption details
+stay in [Studio product boundary](opl-studio-plan.md).
 
 ### 大包下载与后台安装
 
-Package 安装、更新和修复通过 Framework 的同一个后台操作入口执行。确认前显示发布方选定版本、下载量、已有缓存、安装位置和可用磁盘空间；旧制品没有解压大小时明确显示待下载后核实，不推算成精确空间需求。下载后从归档头读取实际大小并检查解压与暂存空间。
-
-软件中心展示准备、下载、校验、解压、安装和检查结果。只有下载阶段使用真实字节进度、速度和剩余时间；其他阶段显示名称，不生成虚假的总百分比。操作离开页面和刷新后仍可回读。取消请求只在安全阶段执行，已下载内容保留供显式重试；原生注册开始后说明正在完成安装，不能把关闭对话框视为取消。
-
-Framework 的 digest 缓存只复用传输字节，不持有版本选择或安装真相。私有包每次仍经过既有授权；最终成功以原生 carrier 回读为准。DSH 官方插件安装进度管理其自身 npm 插件，OPL Package 从既有公开 App action 接口投影，二者不共享安装 registry。
+Package 安装、更新和修复通过 Framework 后台入口执行。确认前显示发布方版本、下载量、已有缓存、安装位置与可用磁盘空间（旧制品缺解压大小时标明待下载后核实）；只有下载阶段展示真实字节进度与剩余时间，其余阶段只展示阶段名称。取消仅在安全阶段生效并保留已下载缓存；Framework digest cache 仅复用传输字节，成功仍以原生 carrier 回读为准，且不与 DSH 官方 npm 插件共享安装 registry。
 
 ## Startup Performance Boundary
 
@@ -225,12 +202,20 @@ persistence target, and verification route. Framework values come from
 `app_state.settings_control_center.configuration_catalog.items` and typed
 host-owned metadata comes from
 `app_state.settings_control_center.configuration_catalog.host_owned_configuration_surfaces`;
-user-managed
-connections come from
-`app_state.settings_control_center.connection_registry`.
+user-managed connections come from
+`app_state.settings_control_center.connection_registry`. External custom assistant
+catalogs remain outside the OPL product catalog; hiding legacy assistant routes
+does not delete existing data.
 
-AionUI custom assistants remain outside the OPL product catalog. Hiding their
-entry does not authorize deletion of AionUI-owned data.
+### Startup Loading And Recovery
+
+Settings distinguishes loading, refresh failure, and empty confirmed configuration.
+Framework timeouts or exit failures must never render as signed-out or zero agents,
+or overwrite the last successful readback (keep cached state with a stale marker and
+inline retry). Each runtime-backed page exposes one quiet trailing refresh button
+beside its heading; Preferences requires no global Framework loading/error gate.
+Refreshing page state is scoped to display readback and never logs in, updates
+packages, refreshes billing usage, or rescans storage.
 
 ## Canonical Information Architecture
 
@@ -428,11 +413,13 @@ next useful action is. Its normal first viewport contains:
 - one next useful action.
 
 When all required background components are ready, Overview shows one quiet
-available row. An unready, unknown, or stale chain contributes one root-cause
-item to the attention queue and links to Service Status. Downstream components
-show that they are waiting for their named prerequisite instead of adding
-duplicate generic-attention items. Service, worker, schedule, and supervisor
-details never expand on Overview.
+available row; explicit service/worker readiness overrides aggregate status. An
+unready, unknown, or stale chain contributes one root-cause item to the attention
+queue (deduplicating matching `family_runtime_provider` and fast-projection
+background-task errors into one entry) and links to Service Status. Incomplete
+startup self-check data renders as incomplete results rather than synthetic false or
+`0/0`. Downstream components show waiting state instead of generic duplicates.
+Service, worker, schedule, and supervisor details never expand on Overview.
 
 It does not show the full Gateway account card, total historical usage or cost,
 managed Key detail, login or connection-management controls, workspace path, a
@@ -446,8 +433,8 @@ Account & Access is the single owner for:
 
 - account login and the manual API-key path;
 - full public account identity and localized connection state;
-- balance, compact token usage, actual cost, managed Key name/status, and local
-  freshness time;
+- balance and today's usage as primary metrics (cumulative totals disclosed on request),
+  managed Key name/status, and local freshness time;
 - refresh, connection completion or repair when required, and disconnect.
 
 The account card appears only for an account connection. Manual-Key-only and
@@ -479,6 +466,10 @@ searchable in both languages; a search result opens the disclosure and focuses
 the switch. It is independent of Technical details and only expands explicit
 fixed-model choices. Auto keeps the App default (`gpt-6.2-astra + max` currently)
 and App-admitted compatibility fallbacks; it never adopts a custom catalog row.
+The page presents a readable Auto-reasoning policy summary alongside manual model
+selection and exposes the effective agent permission preference shared with the
+composer (keeping legacy `confirmBeforeExecute` compatibility data hidden rather
+than rendering an unimplemented toggle).
 The switch explains that other models may change standard-Agent behavior. A
 custom fixed selection shows the same notice near the composer. Disabling access
 preserves that selection as unavailable and blocks subsequent sends until the
@@ -517,8 +508,11 @@ Agents is a compact installed/discoverable list for Agent and workflow Packages.
 It renders Framework entries projected as `standard_agent` or
 `workflow_profile`; it does not parse registry entries, manifests, checkouts,
 locks, payloads, receipts, physical paths, LKG, or rollback state to create rows.
-Standard Agents and Agent workflows are separate catalog sections. Skills,
-Plugins, connection applications, managed companions, and capability Packages
+Standard Agents and Agent workflows are separate catalog sections; supporting
+Packages stay under Capabilities. Uninstalled or intentionally disabled optional Agents
+must not enter the attention queue for lacking a Home shortcut; a callable Agent without
+a Home entry explains that an Agent update provides the entry instead of prompting repair.
+Skills, Plugins, connection applications, managed companions, and capability Packages
 remain visible under Capabilities rather than being mixed into this list.
 
 The App Official Profile owns the desired first-install roots. Its current root
@@ -620,16 +614,33 @@ Resources & Connections.
   capability authority.
 - Selecting a capability links to its owning Package; it does not create a
   duplicate install/update action.
+- Capabilities organize by user purpose (desktop operation, skills/plugins,
+  connections, image and voice) with type filters (`All`, `Packages`, `Skills`,
+  `Plugins`, `Connected apps`) composing with search and a single `Clear filters`
+  empty-state action; counts cover actual source records and keep upstream adoption
+  notes collapsed below the catalog.
+- Managed desktop operation surfaces one state-appropriate next action (remaining
+  projected actions live under More).
 - MCP, image generation, and voice configuration remain in their owner group;
   Preferences does not duplicate them.
 
-AionUI custom assistants remain outside the OPL Package surface; the legacy
-`assistants` route redirects without deleting upstream data.
+Legacy assistant routes redirect without deleting user data, and external custom
+assistant catalogs remain outside the OPL Package surface.
 
 ### Connections & Deployment > Resources & Connections
 
-Resources shows current local browser access and WebUI plus user-managed external
-connections when projected. Hosted OPL Workspace/cloud is X0-03; SSH/HPC, Fabric,
+Resources & Connections hosts Libraries & Connections (knowledge vaults, business
+accounts, per-software grants), remote messaging channels (including the standard
+Weixin capability via `channel_access`), OPL Link, and standalone/Docker WebUI setup
+guidance and read-only diagnostics. The section remains visible when no provider is
+ready; ready `channel_access` and `remote_companion_access` projections render from
+Framework Host regardless of catalog filters, while Software Center retains install,
+update, and removal and links here for configuration. QR-code login polls on each
+completed status read, translates reason codes into actionable states, and distinguishes
+QR generation from scan confirmation and message delivery. WebUI deployment runs via
+Studio's installer or OCI lifecycle manager—Framework initialization, key writes, and
+startup maintenance are never framed as WebUI deployment, and unreachable/configured
+vs HTTP-reachable stay distinct. Hosted OPL Workspace/cloud is X0-03; SSH/HPC, Fabric,
 and Console-managed refs are X0-04. Those conditional rows appear only when a real
 backend and owner projection exist, and ordinary Settings must not maintain
 placeholder status, scheduling, billing, credential, or execution truth. The
@@ -660,6 +671,14 @@ three destinations into one long “Services & Maintenance” page.
    details.
    Overview consumes these same component fields but renders only one persistent
    **Background tasks** summary. It never duplicates Temporal topology.
+   Scheduled tasks belong in the main workbench (compact searchable list, status/time
+   metadata, on-demand detail/history, Framework/Temporal execution); Settings only
+   reports background-task readiness and links to Service Status or the workbench.
+   `opl system initialize` normal/event reads skip network Codex latest-version lookups,
+   and bundled wrappers preserve explicit `OPL_TEMPORAL_NAMESPACE` or let Framework
+   resolve a live matching worker namespace.
+   Memory remains a workbench service reached contextually from Instructions & Context
+   rather than a top-level Settings tab.
 2. **Updates & Repair** (`environment#updates`) answers what is outdated or
    damaged and what the safest next action is. It owns the update channel,
    Base/App currentness, Desktop App update state, Check, Apply, progressive
@@ -750,10 +769,13 @@ Docker prune, or volume-rewire control.
 
 ### Preferences
 
-Preferences owns application behavior, notifications, performance and waiting,
-display, fonts, and themes. Theme remains an anchor rather than an independent
-page. User instructions and new-conversation additions reuse the Workspace carrier
-route but appear only under Instructions & Context in the visible hierarchy.
+Preferences owns appearance, language, live font preview, notifications, and
+application behavior first, followed by a collapsed searchable **Performance**
+disclosure (configuration, not diagnostics). Local controls display saving/saved/error
+feedback and distinguish unsaved editor text from persisted values. Theme remains
+an anchor rather than an independent page. User instructions (`$CODEX_HOME/AGENTS.md`)
+and new-conversation context reuse the Workspace carrier route under Instructions &
+Context, keeping a contextual link to Memory.
 
 ### About
 
@@ -786,9 +808,11 @@ remain on their owner pages.
 ## Search, Visual, And DOM Contract
 
 Settings exposes exactly one bilingual item-level search input,
-`settings-search-input`. Results use `{page_label} > {entry_label}`, navigate to
-the owner carrier route, and focus the declared anchor. Duplicate Settings
-search inputs are forbidden.
+`settings-search-input`. Results use `{page_label} > {entry_label}` (including
+Instructions under Agents & Capabilities), support Arrow/Enter/Escape keyboard
+navigation, navigate to the owner carrier route, expand any containing disclosure,
+and focus and briefly highlight the target anchor. Duplicate Settings search inputs
+are forbidden.
 
 Settings preserves OPL IA inside the current App visual baseline:
 
@@ -796,7 +820,9 @@ Settings preserves OPL IA inside the current App visual baseline:
 - no nested cards, page-wide list wall, or floating dashboard sections;
 - two to four first-viewport groups where the page density supports them;
 - a single desktop reading lane and mobile stack;
-- pinned DSH monochrome icons and primitive geometry, compact type, and 0 letter spacing;
+- pinned DSH monochrome icons and primitive geometry, DSH theme tokens (`14px/22px`
+  body, `16px/24px` medium headings), subtle separators, `0` letter spacing, and no
+  outlined tab pills or standalone full-width refresh bars;
 - normal, warning, error, and action use muted, orange, red, and brand
   semantics;
 - one selected sidebar item and at most one page primary action;
@@ -823,27 +849,17 @@ confirmations remain disabled while a read, precheck, mutation, doctor, or
 recovery operation is active. Results stay bound to the operation that produced
 them.
 
-## AionUI Adapter Boundary
-
-OPL Settings is an App-owned overlay, not an AionUI fork-body redesign.
-
-- App contracts own routes, placement, labels, surface classification, and
-  acceptance; Framework catalogs own Framework values and actions.
-- Shell integration stays concentrated in Settings host, adapter slot,
-  registry, generated profile, locale, and OPL overlay files.
-- New upstream Settings or extension entries remain hidden until App intake
-  classifies them as accepted, adapted, redirected, or rejected.
-- Hiding an entry never deletes extension-owned data.
-- Generated profile and locale checks prove they project App truth; they do not
-  become a second authority.
-
 ## Verification Boundary
 
 Cross-page details are not duplicated here. The shared
 `contracts/app-gui-product-contract.json#ui_experience_contract` owns truthful startup
 stages, the single-action First Run completion, composer-first Home, and the context
 action sheet. The latter keeps every action scroll-reachable at `400x600` using
-`100dvh`, safe-area, and virtual-keyboard constraints.
+`100dvh`, safe-area, and virtual-keyboard constraints. “Not yet configured” is valid
+only for implemented features with a real configuration flow, kept distinct from
+unknown, unsupported-platform, or unimplemented states; verification must cover entry,
+save, re-read/restart, and real action execution without substituting mocks for
+external account checks.
 
 Contract and focused tests prove only their App-owned slices. Shell acceptance
 also requires:
@@ -854,12 +870,14 @@ also requires:
 - owner-localized Agent descriptions, invariant brand names and Developer Mode effective-state
   readback;
 - truthful dynamic capability projection including its empty state, third-party naming, and
-  AionUI-native ownership routing;
+  native/local capability ownership routing;
 - visible managed Codex/Temporal currentness and external-install guidance;
 - persisted Storage snapshot, freshness, background event, manual refresh, and
-  unknown-not-zero behavior;
+  unknown-not-zero behavior (never authorizing cleanup from failed inventory or guessing
+  unknown storage deltas);
 - one startup update check, one shared desktop updater state across About,
-  Maintenance, and footer, WebUI managed fallback, and no consumer mount check;
+  Maintenance, and footer, WebUI managed fallback, local build update-disabled clarity,
+  and no consumer mount check;
 - complete App updater states, independent runtime/App-update attention,
   current-only Repair availability, and `real_path`-first dependency identity;
 - all required DOM, anchors, search behavior, responsive layout, and fresh
@@ -867,141 +885,3 @@ also requires:
 
 These checks do not prove package installation, runtime currentness, release
 promotion, or owner acceptance. Those remain separate release-owner gates.
-
-## Settings usability refinement
-
-Search results use the visible primary group and destination, including Instructions under Agents &
-Capabilities, while keeping existing carrier routes and anchors. Arrow keys select a result, Enter
-opens it, and Escape clears the query. The destination reveals any containing disclosure and focuses
-and briefly highlights the setting.
-
-Agents lists only standard Agents and workflows. Supporting Packages remain manageable under
-Capabilities. Capabilities is organized by user purpose (desktop operation, skills/plugins,
-connections, image and voice); installation source remains metadata and never changes lifecycle
-ownership. Managed desktop operation shows one state-appropriate projected next action; other
-projected actions remain available under More.
-
-Preferences puts appearance, language and live font preview first, then application behavior and
-notifications. Performance is a named configuration disclosure, collapsed until opened or reached
-from search; it is not diagnostics. Automatic model reasoning is a readable policy summary with an
-explicit manual-model entry. Local controls show saving/saved/error feedback; text editors distinguish
-unsaved changes from persisted values.
-
-Overview shows a background exception once and names destination actions. Account balance and today's
-usage are primary; cumulative statistics are disclosed on request. Page titles retain a distinct
-readable hierarchy. Maintenance retains confirmation, progress and owner readback.
-
-### 启动读取与恢复
-
-设置页区分正在读取、读取失败与成功后的空配置。Framework 超时或退出失败不能显示为未登录或零个智能体，也不能覆盖已成功读取的状态；已有状态保留并标注待刷新。依赖运行状态的页面在标题同行提供轻量刷新入口，首次尚未读到配置时显示加载或重试提示。本机偏好仍可独立设置。
-
-
-## Settings needs, capability organization, and DSH presentation
-
-The following is the Studio settings design, grounded in user tasks. Preserve stable destination IDs,
-search links, existing persistence and action handlers. DSH provides the modal, navigation, typography,
-spacing and theme primitives; OPL adds product-specific settings without introducing a second credential,
-model, package or execution state store.
-
-| User need | Destination | Display and interaction | DSH baseline / OPL addition |
-| --- | --- | --- | --- |
-| Can I start working? | Overview | Readiness and actionable exceptions with links to the relevant setting | OPL runtime summary |
-| How do I access models? | Account / Models | Account or key, usage and access status; model and reasoning choices | DSH Models presentation; OPL Gateway and Codex policy |
-| What can I connect? | Resources | Connections, access and their available actions | DSH connection patterns; OPL resources |
-| Where is my work saved? | Workspace / Storage | Working directory; measured storage and explicit cleanup with confirmation | OPL workspace and storage lifecycle |
-| What can help me work? | Agents / Capabilities / Instructions | Agents and workflows; installed skills, plugins and apps; editable instructions and context | DSH Plugins and Presets presentation; OPL package lifecycle |
-| How do I keep it working? | Services / Updates / Diagnostics | Current service state, updates/repair, then optional technical diagnostics | OPL runtime maintenance |
-| How should the app feel? | Preferences | Appearance, language, font size, notifications and confirmation preferences | DSH General controls |
-| Which app am I using? | About | Version and support links | DSH version/support pattern |
-
-Each page has one group heading (or its destination when the group is singular) and one short task description. For a multi-destination group,
-the group title is the H1 and the selected tab names the tabpanel. A single
-destination uses one destination H1. State refresh is a quiet trailing icon beside the heading, with a localized
-accessible name. Preferences has no global refresh or Framework loading/error barrier.
-Refreshing state is not logging in, updating packages, refreshing account usage, or measuring storage:
-those retain their explicit, scoped actions. Failed reads retain prior state and offer inline retry.
-
-Capability counts cover actual directory entries. Capability type filters (All, Packages, Skills, Plugins,
-Connected apps) compose with text search; empty results offer a single Clear filters action. Upstream adoption notes are collapsed reference
-information after the real catalog, not configurable features or additions to the installed count.
-Use DSH theme tokens, 14px/22px body text, 16px/24px medium titles, subtle separators and hover/selected
-fills; avoid outlined tab pills, duplicate card systems and full-width standalone refresh rows.
-
-
-### User-facing settings refinement (2026-09-26)
-
-Instructions prioritizes the editable AGENTS and new-conversation instructions. Memory remains a
-separately owned surface reached from the Instructions context link; it is not an ordinary Settings
-navigation destination. Scheduled tasks remain a workbench surface reached from contextual links, while
-Settings only reports the background-task condition and links to Service Status when needed. Diagnostics
-owns technical source details. Overview lists concrete exceptions with their impact and destination,
-followed by a compact normal-state summary. Explicit service/worker readiness overrides aggregate status.
-
-Agent callability and a selectable launch route are different facts. A missing route remains visible
-and never becomes an unexplained repair recommendation. Capability counts refer to source records,
-not a sum of independent functions. Product modules appear first; Skills, Plugins and Connected apps
-remain searchable and reachable. An installed connection plugin does not imply an authenticated channel.
-
-Use one contextual refresh per page, with named account usage and inventory actions where needed.
-Retain successful readbacks after refresh failure, explain stale data, and do not permit cleanup from
-failed inventory. Unknown storage totals remain unknown in post-cleanup estimates.
-
-Expose the effective agent permission preference shared with the composer. Retain the legacy
-confirmBeforeExecute value for compatibility but do not display an unimplemented safety toggle.
-Model and reasoning controls explain their scope and automatic/manual relationship. Local builds
-show their identity and disabled updater policy; official release update actions require native support.
-Support links are separate rows. Destructive actions remain behind their real preview and confirmation.
-
-### 配置能力与验收
-
-“尚未配置”只用于已经实现、且提供真实配置路径的能力。未知状态、当前平台不支持和待开发必须分别说明。验收包含入口、保存、重新读取或重启，以及实际操作；模拟外部服务的测试不能证明真实账户认证完成。
-
-网页端通过 Studio 独立安装器或 OCI 生命周期管理器部署，设置提供部署指南及只读诊断。Framework 初始化、密钥写入和启动维护都不是 Docker 部署，不能包装成“一键安装网页端”。诊断没有发现告警也不能证明 WebUI 已运行；Docker 可达、地址已配置与 HTTP 可访问是不同事实。WebUI 存储统计依赖部署环境的数据目录，桌面端不能承诺自动看到另一部署的用量。
-
-未安装或主动停用的可选智能体不应因为没有首页入口出现在故障列表。已可调用但没有首页入口时，说明需要智能体更新提供入口，而不是要求用户反复修复安装。
-
-启动自检缺少 readiness 或检查计数时显示“结果不完整”，不把缺失值补成 false 或 0/0。读取失败、未知结果、已证实阻断分别呈现，并提供“重新检查”。真实阻断和用户需处理的维护项同时进入概览问题列表，显示具体检查项、原因和对应设置入口；概览不能一边声称无问题一边要求处理。
-
-同一后台任务问题同时来自启动自检的 `family_runtime_provider` 和 fast runtime projection 时，概览合并为一项，并保留影响说明与服务状态入口。`opl system initialize` 的普通与事件读取均跳过联网查询 Codex 最新版本，版本查询归更新维护。随包 wrapper 保留显式 `OPL_TEMPORAL_NAMESPACE`；未设置时由 Framework 根据仍存活且地址匹配的 worker 状态解析命名空间，找不到时使用 Framework 默认值。验收须经过生成的随包 wrapper，覆盖未设置命名空间和显式覆盖，终端直调 Framework 的健康读数不能替代 App 环境验证。
-
-计划任务参考官方 DSH RC2 `ui-schedule/TaskManagerPage` 与 `TaskDetail`：紧凑的可搜索任务列表、状态与时间元信息、按需展开任务详情和执行历史。复用官方 Button、Input、StateDot，使用 DSH 字体、颜色、分隔线与间距。任务配置和执行继续走 Framework/Temporal，保留 OPL 所需创建表单与执行确认；长路径、完整提示词和技术执行信息不占据列表主体。
-
-扫码连接按每次完成的状态读取安排下一次刷新，不能只因 channel ID 与刷新周期未变化而停止。连接失败须将已有 reason code 翻译为可操作的原因与重试指引；未连接、连接中、待扫码、已连接和失败使用不同状态。获取二维码不是登录完成，扫码确认和消息实际交付需分别验证。
-
-## 设置与工作台的模块边界
-
-计划任务属于主工作台，支持创建、编辑、暂停、运行和历史；设置不注册计划任务普通目的地，只保留后台运行条件及跳转。记忆由 Framework 工作台服务维护，从“指令与上下文”提供上下文入口，不进入扩展导航。模型与执行统一承载模型、权限、审阅和时间上下文。界面偏好承载语言、主题、字号、快捷键和语音输入。能力目录先按用户用途展示，再按技术类型筛选，并跳转到唯一配置入口。安装、启用、连接和可调用分别表达，源码接入不代表本机就绪。
-
-Studio 设置按领域组织，共享 DSH 外壳和控件；生产 Host 位于 `src/host`，脚本只负责启动、构建和验证。Framework 工作台服务仍是一个插件，记忆和存储分别维护。OPL Link Desktop Connector 完整交付前不进入默认安装与内置曝光，既有数据保留。
-
-本轮实现位置与验证边界见 [设置模块化验收](evidence/settings-modularization-acceptance-2026-09-27.md)。
-
-知识资料库、业务账户连接与逐软件授权统一放在“设置 → 资料与连接”。同一设置容器的远程访问分组保留消息通道、OPL Link 和独立 WebUI；软件中心仅显示可用性与缺失授权并导航到设置。
-
-
-### Remote connection settings
-
-Remote channels, including the standard Weixin capability, and third-party
-remote companion contributions are configured under **Settings → Connections &
-Deployment → Remote connections & web access**. The section remains visible
-with setup guidance when no provider is ready. Ready `channel_access` and
-`remote_companion_access` contributions render from the current Framework Host
-projection, including Packages classified as runtime components. Catalog scope
-controls installation browsing; it must not control whether a feature can be
-configured. Software Center retains installation, update and removal, and its
-remote-capability details link to this Settings destination.
-
-
-### Plugin management and user settings
-
-Software Center owns plugin installation, updates, enablement and removal.
-Settings uses one App-owned route over current `settings.section` contributions:
-channels and remote companions go to Connections & Deployment; service status goes to Runtime & Maintenance → Service Status. Technical diagnostics
-use the same page when technical details are enabled. Operational lists, reviews,
-boards and artifacts open in the existing application workspace, including legacy
-contributions declared on `settings.section`.
-Software Center links to the same Settings destination instead of hosting a
-second configuration form. The Weixin remote capability is part of the standard
-OPL App product; its separately managed Package is an engineering delivery unit.
-Its provider still owns protocol and credentials, while App owns discoverability,
-binding interactions and the unavailable/setup state.

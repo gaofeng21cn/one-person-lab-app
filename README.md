@@ -105,8 +105,8 @@ and update feed; Studio Preview keeps its own identity until a signed terminal
 handoff installs its declared Stable target. Qualification is specific to that
 source and target version. All current carrier source paths, including Docker WebUI,
 use Studio. The Docker release is qualified independently on native amd64 and arm64
-runners. AionUI is retained for legacy upgrade checks and source history; Studio
-has no AionCore dependency.
+runners. Studio has no AionCore dependency (legacy AionUI is retired; historical
+source remains in Git).
 
 The [App whitepaper](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)
 explains the product rationale. Maintainers start at the

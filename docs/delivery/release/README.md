@@ -14,11 +14,9 @@ Full still starts after Standard publication. See the
 [cache architecture](../actions-cache-architecture.md) for input binding and
 rebuild rules. Full build logs expose separate assembly stages and preserve
 partial timing on failure. Public Full DMG compression remains size-first ULMO.
-The [26.11.11 timing review](incidents/2026-11-11-release-efficiency.md) separates
-observed durations from the next-release planning ranges.
 
-The existing App feed delivers the replacement to AionUI-based installations.
-Studio Preview requires its identity-preserving terminal bridge release before
+The existing App feed delivers Studio Stable updates and supported legacy
+transitions. Studio Preview requires its identity-preserving terminal bridge release before
 it hands off to the Stable feed. Both source populations must be qualified with
 actual packaged update installation and data continuity; clean installation or
 source checks do not prove migration. macOS signed distribution validation runs
@@ -120,7 +118,6 @@ log viewer virtualizes its visible range. Feed captured runner/current-job logs 
 Bind the file to that run's job, inspect the latest actual stage and prefer the newer of
 step state and log timestamps. A heartbeat is not progress. Cancel or recover only after
 establishing a real failure, the current owner state and the smallest recovery scope.
-See the [v26.9.15 timing and recovery retrospective](incidents/2026-09-15-release-efficiency.md).
 
 For a complete release request, use `npm run release:actions-timing` with the Standard,
 recovery, platform, Docker, and follow-up run IDs. The report separates first-dispatch-to-final
@@ -311,12 +308,7 @@ The former may still be `standard_qualified`; explicitly selecting it can rebuil
 Read fresh artifacts, use the admitted stage, and prefer the controller's later matching
 Full checkpoint. Same-byte requalification uses `materialize-full-build` and skips
 `full-build`; an already `full_qualified` checkpoint can continue publication directly.
-The [v26.10.2 retrospective](incidents/2026-10-02-stable-release-recovery.md) records the
-observed selection error, transport repairs and complete public closeout.
-The [v26.10.8 efficiency review](incidents/2026-10-08-release-efficiency.md) records the
-release-executor typecheck, prepared-tarball preference, and verified offline preflight path.
-The [v26.11.11 efficiency review](incidents/2026-11-11-release-efficiency.md) records the
-end-to-end timing, failed-run tax, and the Full seed admission guard.
+(Historical release timing and incident retrospectives are preserved in Git history.)
 
 The three Framework-backed workflow mutation operations remain exactly:
 

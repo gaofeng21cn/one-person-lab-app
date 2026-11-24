@@ -38,17 +38,16 @@ tests 与 evidence。
 ## 功能来源分类
 
 `B0 / R1 / U1 / X0` 回答“功能从哪里来、OPL 是否必须自维护”；`P0 / P1 / P2`
-回答“先做什么”。两条轴不得互相替代。AionUI active 与 OPL Studio candidate 是同一
-`B0 + R1 + U1` 产品定义的两种 carrier，不是两层产品：AionUI 能复用就复用并保持薄适配，
-Native 将来需要独立实现同一用户结果。视觉 1:1 是独立的 pixel 目标，不改变功能来源分类。
+回答“先做什么”。两条轴不得互相替代。OPL Studio 是当前唯一的
+`B0 + R1 + U1` 产品实现 carrier；未来若接纳新候选，须独立实现同一用户结果。视觉 1:1 是独立的 pixel 目标，不改变功能来源分类。
 
 ### B0 Codex 必要 Baseline
 
 | ID | 必要基线 | 为什么必要 | 当前产品边界 |
 | --- | --- | --- | --- |
-| `B0-01` | App shell、窗口、rail、响应式导航、键盘历史 | 没有稳定的桌面骨架就不是可持续使用的 Codex 工作台。 | AionUI 优先复用；Native 自行实现。视觉参考不复制 Codex 品牌或 authority。 |
+| `B0-01` | App shell、窗口、rail、响应式导航、键盘历史 | 没有稳定的桌面骨架就不是可持续使用的 Codex 工作台。 | Studio 复用 DSH Application Host 骨架；新候选自行实现。视觉参考不复制 Codex 品牌或 authority。 |
 | `B0-02` | Home/New task、session/thread 目录与历史管理 | 新建、恢复、搜索、pin、rename、archive/restore/delete 是日常入口。 | Session 是身份单位；Project affinity 为零或一。新 session 可 projectless；未归口 session 可一次性进入一个目录组，已绑定 session 不任意换组。删除直接由 Codex App Server owner 执行并在 canonical directory 回读后从列表移除。 |
-| `B0-03` | Conversation timeline、streaming、stop/retry、tool/process 与错误 | 这是 AI 工作闭环，不应被 OPL 管理面取代。 | 复用 Codex/AionUI conversation adapter；conversation 创建、initial send 或会话内 send 失败时恢复 prompt 与附件，并与发送后新增输入合并而不覆盖。 |
+| `B0-03` | Conversation timeline、streaming、stop/retry、tool/process 与错误 | 这是 AI 工作闭环，不应被 OPL 管理面取代。 | 复用 Codex conversation / App Server adapter；conversation 创建、initial send 或会话内 send 失败时恢复 prompt 与附件，并与发送后新增输入合并而不覆盖。 |
 | `B0-04` | Composer、文本、附件、paste/drop、显式 file/directory input | 用户必须能直接把本地上下文交给 Agent。 | 输入只进入当前 send，不做隐式 workspace preload。 |
 | `B0-05` | Model/reasoning 与 Auto/fixed 偏好 | 用户需要在发送点控制质量、速度和成本。 | 交互属于 B0；模型 entitlement、余额和默认目录 owner 归 `R1-02`。 |
 | `B0-06` | Access/permission、sandbox、approval、补充输入 | 本地 Agent 必须让权限与不可逆动作透明。 | 安全边界 fail closed；单个 OPL package 故障不得改变普通 Codex 权限流。 |
@@ -56,7 +55,7 @@ Native 将来需要独立实现同一用户结果。视觉 1:1 是独立的 pixe
 | `B0-08` | Git 工具与可选工作台插件 | 编码流程保留 canonical Git 工具与外部客户端；独立 GUI 不阻塞首次切换。 | 优先评估 DSH 官方及社区 Git 插件，不自研完整工作台；插件接入仍须验证真实工作目录与动作结果。 |
 | `B0-09` | Terminal、Browser、Environment details | Agent 工作经常需要按需查看运行与环境。 | 作为次级工具按需打开，不做默认第三栏或 OPL dashboard。 |
 | `B0-10` | Workspace 初始 cwd、Project adoption 与本地 Worktree 工作模式 | 本地任务需要明确主要目录、隔离目录和执行上下文。 | Composer 只设置新 session 初始 cwd；projectless session 允许一次性 adoption。已绑定 session 不任意重绑，Shell 不自造 managed handoff；未来 Worktree 能力先由 App contract 准入并复用真实 owner。 |
-| `B0-11` | Codex Subagents / 并行子任务 | 复杂任务需要并行探索、验证与汇总。 | Portable core 是 read-only Active/Done lists、completed detail/result、open subagent thread，以及既有 App Server/ACP owner-supported controls。AionUI Team 继续关闭；不新增第二 App Server client、Team store、scheduler、执行 authority 或 bespoke direct-control buttons。 |
+| `B0-11` | Codex Subagents / 并行子任务 | 复杂任务需要并行探索、验证与汇总。 | Portable core 是 read-only Active/Done lists、completed detail/result、open subagent thread，以及既有 App Server/ACP owner-supported controls。私有 Team 编排保持关闭；不新增第二 App Server client、Team store、scheduler、执行 authority 或 bespoke direct-control buttons。 |
 | `B0-12` | Scheduled tasks/Cron、后台继续与通知 | 长任务和周期任务需要离开前台后继续。 | Framework 现有 Temporal 持有计划与历史；侧栏计划任务使用 canonical Codex App Server 执行，明确 App 须运行；发布和安装验收独立于源码实现。 |
 | `B0-13` | Memory、personalization、instructions | 稳定偏好和项目指令决定长期易用性。 | 复用 owner-correct profile/refs，不新建独立 memory 平台。 |
 | `B0-14` | 通用 Settings 容器、search/back/redirect、a11y、theme、i18n | 所有配置与长期使用能力需要一致容器。 | 容器行为属于 B0；OPL 栏目、owner route 与数据语义归 `R1-05`。 |
@@ -70,12 +69,12 @@ negative policy 和用户可见性偏好影响展示。Local Git、Terminal、Br
 本地 checkout 属 B0；SSH/HPC 可作为 Resources refs 接入，但托管远程 Workspace、资源调度和
 跨主机 handoff 仍归 `X0-04/X0-05`。`B0-10` 也不授权 Shell 自建 managed Worktree/Handoff。
 
-B0 与 OPL 自维护的 R1/U1 分别评估。AionUI 已有的基线不为追求理论完整度重写；Native
-候选最终必须自行补齐。当前 carrier 实现程度见
+B0 与 OPL 自维护的 R1/U1 分别评估。已采用的基线不为追求理论完整度重写；新候选
+最终必须自行补齐。当前 carrier 实现程度见
 [`shell-conformance-matrix.md`](shell-conformance-matrix.md)，未 fresh 核对的能力一律
 `source_not_assessed`。
 
-`B0-11` 必须与 AionUI Team 分轴读取：关闭 Team 只移除 upstream shell-local Team
+`B0-11` 必须与私有 Team 编排分轴读取：关闭 Team 只移除 upstream shell-local Team
 产品面，不表示 Codex subagent 缺失。当前状态按 contract、Codex runtime/execution、App Server
 adapter、ordinary activity UI、pixel、install 和 release 分账，见
 [`shell-conformance-matrix.md#b0-11-codex-subagent-证据`](shell-conformance-matrix.md#b0-11-codex-subagent-证据)。
@@ -114,13 +113,13 @@ R1 与 U1 的当前实现程度按 carrier 分开维护在
 | ID | 条件能力 | 当前处理 |
 | --- | --- | --- |
 | `X0-02` | 完整 Evidence/Provenance/receipt/route-ref 平台 | 只保留 owner-required refs、confirmation 与 receipt；完整 cockpit 条件推进。 |
-| `X0-03` | Hosted Workspace / cloud-continuous execution | `optional_owner_projected_resource_refs`：App contract 与 AionUI Resources & Connections 已实现 owner projection 条件启用、独立分组和空投影无占位；不再维护 hosted promise copy。 |
+| `X0-03` | Hosted Workspace / cloud-continuous execution | `optional_owner_projected_resource_refs`：App contract 与 Studio Resources & Connections 已实现 owner projection 条件启用、独立分组和空投影无占位；不再维护 hosted promise copy。 |
 | `X0-04` | Fabric/HPC/远程资源控制面 | `optional_owner_projected_resource_refs`：真实 owner/backend projection 存在时才提供 refs/owner route；空投影不挂载 group/anchor。完整调度仍归 domain/runtime 产品。 |
 | `X0-05` | 跨主机 handoff、carrier 自建 managed remote Worktree 或第二协调面 | 当前明确不自造；只有稳定 upstream 能力与真实需求同时成立才重评。 |
 | `X0-06` | Raw runtime/operator diagnostics 与完整 repair cockpit | 仅留 Settings > Maintenance diagnostics 和 release tooling；Advanced 只重定向，ordinary UI 不展示 raw protocol。 |
 
 本文的“现有功能不降级”只保护已经进入 OPL App contracts、ordinary routes 或正式用户路径的
-能力，并以 AionUI/AionCore 官方基础能力默认继承为起点。Team 是明确 reject；fixed Codex
+能力，并以 Codex / Studio 官方基础能力默认继承为起点。Team 是明确 reject；fixed Codex
 executor 可隐藏 provider/backend marketplace。Skill/Tool/Plugin/MCP 默认从 owner动态发现；
 App 不以 allowlist 删除 capability，只应用窄 Team/internal negative policy。其它上游
 能力若无 App contract 授权，不得仅因 OPL ordinary UI 未单列入口而被禁用。
@@ -146,7 +145,7 @@ App 不以 allowlist 删除 capability，只应用窄 Team/internal negative pol
 | New conversation | 在所选目录初始化 cwd，或不选 Project 直接开始 projectless Codex session；底层仍有 runtime cwd，projectless 仅表示无用户选择的 Project affinity。 | GUI contract、conversation page state、Codex bridge。 |
 | Resume conversation | 按 canonical thread ID 找回 recent conversation，保留 transcript/turn history/title/task state、Project-affinity 分组和 recorded runtime cwd 展示。 | Conversation state/bridge；shell 只持有 affinity/UI metadata 与实现所需 session refs。 |
 | Conversation management | Search、pin、rename、archive、restore、delete、reset conversation，并在独立 Archived surface 管理归档。 | GUI contract、conversation state/bridge。 |
-| User-triggered thread operations | 从现有 conversation directory/actions 读取、创建、恢复、fork、归档、恢复归档或删除线程；删除需要明确确认并在 canonical directory 回读后完成。普通对话继续走 AionUI ACP，不增加独立 coordination 页面或模型工具。 | 一个 Codex App Server adapter；Shell 只持有 UI metadata 与可重建 cache。 |
+| User-triggered thread operations | 从现有 conversation directory/actions 读取、创建、恢复、fork、归档、恢复归档或删除线程；删除需要明确确认并在 canonical directory 回读后完成。普通对话继续走 Codex App Server / ACP，不增加独立 coordination 页面或模型工具。 | 一个 Codex App Server adapter；Shell 只持有 UI metadata 与可重建 cache。 |
 | Session Project affinity / working directory | Home/new-session composer 上方独立 context bar 只设置新任务初始 cwd，working directory 不进入 `+` palette。projectless session 可由用户从 rail 一次性归入一个目录；归属以 exact canonical thread ID 为键写入版本化 Studio UI metadata，不伪造 App Server `projectId`，也不要求当前协议不存在的 `thread/read.projectId` 回读。失败保持 projectless 且对话可继续；已有显式 affinity 的 session 不提供 A→B 改绑、无真实 adapter 的 Local/Worktree 切换或 managed Worktree。Recorded cwd、turn cwd、shell `pwd`、显式文件/目录输入与 writable roots 均独立。 | Codex Core/App Server 持有 canonical thread ID 与 recorded cwd；Studio 持有可重建的版本化 affinity/UI metadata。Project 是单一目录 affinity、后续默认 cwd hint、展示与分组 metadata，不是 thread identity 或授权域。 |
 | Text instruction | 向固定 Codex executor 发送多行任务说明。 | Product profile、ordinary conversation contract。 |
 | Streaming assistant output | 持续看到 assistant response，不需要查看 raw protocol。 | Codex/App bridge 与 conversation page state。 |
@@ -160,7 +159,7 @@ App 不以 allowlist 删除 capability，只应用窄 Team/internal negative pol
 | Purpose selection | Home shortcuts、new-session `+` palette 与显式 `@` Agent selector 在首次发送前同步同一 active Package；完整 installed Agent 目录不由 Home 快捷方式截断。既有会话可为当前 turn 调用 Agent/capability，不重绑 thread。 | Dynamic Agent Package descriptors、user shortcut preference、GUI contract。 |
 | Agent-scoped capabilities | 只显示当前 Package声明且实际 present/callable 的 required/optional capabilities。 | Package/native discovery；App无 packaged-skill profile或 allowlist。 |
 | Package conversation availability | Installed/enabled/callable Agent 可选择；missing required identity 或 entrypoint 只局部阻止所选 Agent。Version、ABI、lock、payload、receipt、digest 不成为发送门。 | Framework minimum Package status projection。 |
-| User-input and permission prompt | 当前 conversation 需要 command/file/permission approval、补充信息或 MCP elicitation 时，沿用 AionUI ACP 的现有可见流程；拒绝、取消或协议错误保持真实失败。 | AionUI ACP 与 Codex permission/request flow。 |
+| User-input and permission prompt | 当前 conversation 需要 command/file/permission approval、补充信息或 MCP elicitation 时，沿用 Codex App Server / ACP 的现有可见流程；拒绝、取消或协议错误保持真实失败。 | Codex App Server 与 permission/request flow。 |
 | Turn receipt | 用户可查看本轮 route、action、result 和恢复 refs，不默认暴露 raw JSON。 | App/domain/runtime receipt refs；GUI 不拥有 receipt authority。 |
 
 ## OPL Purpose 与 Agent Packages

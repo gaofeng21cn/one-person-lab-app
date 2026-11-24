@@ -148,8 +148,6 @@ App 持有唯一视觉 source cohort 与生成入口；三个自有 MiniApp 嵌�
 因此独立打开时也采用相同 DSH 风格。Studio 通过标准 MCP Apps `hostContext.styles.variables`
 传入当前生效字体和主题变量；主题或字体变化同步到 iframe，不新增通信协议。
 
-详细来源、升级规则和本轮验证见[2026-11-13 UI 与字体对照](evidence/dsh-ui-typography-comparison-2026-11-13.md)。
-
 ## 参考模型
 
 - [Codex App Server](https://learn.chatgpt.com/docs/app-server#api-overview)：
@@ -198,9 +196,4 @@ OPL 采用这些模型的共同点：Package/插件负责安装和生命周期�
 - Runtime 任务详情能直接打开精确 item/view，并能返回 Runtime；
 - Composer 中没有交互 App 选择项；软件中心仍可从工作台进入；
 - 目录读取失败、资源失效和权限撤销只影响对应 App，其他会话和应用保持可用。
-
-本次目录数量、视觉优化和源码验收记录见
-[2026-11-13 连续操作与本机验收](evidence/miniapp-management-acceptance-2026-11-13.md)；
-[2026-11-12 安装记录](evidence/miniapp-management-acceptance-2026-11-12.md) 和
-[2026-11-11 记录](evidence/miniapp-management-acceptance-2026-11-11.md) 保留为历史观察。
 

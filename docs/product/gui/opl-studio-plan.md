@@ -23,9 +23,8 @@ macOS Stable 从 26.9.25 起采用 Studio，保留原 App bundle identity 和更
 Studio Preview 保留独立身份，终结桥通过经过签名验证的目标包交接到正式 App。
 迁移身份、允许导入的数据、验收路线与删除条件只维护在
 [分发与安装参考](../../delivery/distribution-and-install-ssot.md) 和 App release contract。
-原始切换的公开发布、Preview 交接、旧版连续升级与各平台验收记录保留在
-[9 月切换证据](../../history/studio-cutover-2026-09.md)，不自动证明后续版本。
-Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史 Aion 仓库。
+原始切换的公开发布、Preview 交接与各平台验收记录保留在 Git 历史与发布收据中，
+不自动证明后续版本。Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固定选择历史仓库。
 
 ## Repository Relationship
 
@@ -34,7 +33,6 @@ Nightly 与发布说明也必须读取 App 的 active-shell 合同，不得固�
 | `one-person-lab-app` | One Person Lab App 产品定义、GUI ABI、Client profile、page state、active-shell、版本组合、carrier evidence contract、迁移与 release |
 | `opl-studio` | DSH profile/plugin lifecycle、`opl-codex-native`、DSH tool MCP、Framework bridge、renderer、Desktop/WebUI/OCI carrier source 与 focused validation |
 | `one-person-lab` | Framework runtime、installed Package discovery/graph/currentness、App projection、state/action/authentication/channel callback contracts |
-| `opl-aion-shell` | 历史 AionUI 实现与旧版升级基线；生产构建已全部迁出；归档保留 tags、releases 和固定测试夹具的只读可达性 |
 
 App repo 不复制 Studio source，Studio 也不复制 App product truth。App wrapper 通过
 `contracts/shell-adapters/opl-studio.json` 选择 Studio checkout，校验 App-owned compatibility，
@@ -149,9 +147,8 @@ Codex 原生线程、Framework runtime/Package/credentials、Workspace source �
 写成尚未采用。反过来，active adapter 和已公开版本也不证明每条历史路线或后续版本
 已经验收；精确 publication/installation/qualification 仍读取 owner 的产物与 receipts。
 
-`opl-aion-shell` 已归档，全部生产构建入口已迁出；历史源码、tags、Release 与固定迁移
-夹具继续保留，不继续 upstream intake。旧 AionUI 连续升级和 Preview 固定目标的验收
-范围见保留记录；当前 Windows 真实旧版升级认证仍不得由资产存在或旧 macOS 证据代替。
+`opl-aion-shell` 已归档，历史源码保留在 Git 历史；当前生产构建与发布入口统一由 Studio 承接。
+旧版升级与 Preview 过渡目标的验收仍以发布收据与实际回读为准，Windows 真实旧版升级认证不得由资产存在或旧 macOS 证据代替。
 
 ## Canonical References
 

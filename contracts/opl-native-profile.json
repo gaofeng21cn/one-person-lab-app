@@ -70,8 +70,7 @@
   "taxonomy_dirs": [
     "docs/active",
     "docs/product",
-    "docs/delivery",
-    "docs/history"
+    "docs/delivery"
   ],
   "verification_commands": [
     "scripts/verify.sh",

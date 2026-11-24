@@ -89,7 +89,7 @@ open -a "One Person Lab"
 身份和更新源；Studio Preview 在签名过渡版安装其声明的 Stable 目标前保持独立身份。
 迁移验收绑定具体来源和目标版本。包括 Docker WebUI
 在内的当前构建入口统一使用 Studio；Docker 在原生 amd64、arm64 runner 上独立验收发布。
-AionUI 保留为旧版升级检查和源码历史，Studio 不依赖 AionCore。
+Studio 不依赖 AionCore（旧版 AionUI 已退役，历史源码保留在 Git 历史中）。
 
 [App 白皮书](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/opl-app-whitepaper.html)
 解释产品设计。维护者从[文档入口](docs/README.md)进入

@@ -308,6 +308,23 @@ function trimLineEndings(text: string) {
     .join('\n');
 }
 
+function rewriteGeneratedMarkdownAssets(
+  manifest: GuideManifest,
+  qmd: string,
+  generatedMarkdownPath: string,
+) {
+  const sourceAssetsDir = screenshotAssetsDir(manifest);
+  const markdownDir = path.dirname(generatedMarkdownPath);
+  return qmd.replace(
+    /!\[([^\]]*)\]\((?:assets|screenshots)\/([^)]+)\)/g,
+    (_match, alt: string, asset: string) => {
+      const relativePath = path.relative(markdownDir, path.join(sourceAssetsDir, asset));
+      const encodedPath = relativePath.split(path.sep).map(encodeURIComponent).join('/');
+      return `![${alt}](${encodedPath})`;
+    },
+  );
+}
+
 function writeProject(manifest: GuideManifest) {
   const screenshotManifest = loadScreenshotManifest(manifest);
   const sourceAssetsDir = screenshotAssetsDir(manifest);
@@ -469,9 +486,10 @@ function main() {
     'utf8',
   );
   fs.copyFileSync(path.join(outputDir, renderedPdf), pdfOutputPath);
+  const generatedMarkdown = rewriteGeneratedMarkdownAssets(manifest, qmd, generatedMarkdownPath);
   fs.writeFileSync(
     generatedMarkdownPath,
-    withGeneratedLifecycleFrontMatter(qmd, generatedLifecycleFrontMatter(manifest)),
+    withGeneratedLifecycleFrontMatter(generatedMarkdown, generatedLifecycleFrontMatter(manifest)),
     'utf8',
   );
 

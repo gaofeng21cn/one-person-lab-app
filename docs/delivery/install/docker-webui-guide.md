@@ -35,10 +35,11 @@ Markdown, or smoke gate runbook.
   [`../../guides/docker-webui-install/guide.qmd`](../../guides/docker-webui-install/guide.qmd)
 - Delivery manifest, generated-output lifecycle, and verification:
   [`../user-guides/docker-webui-install/README.md`](../user-guides/docker-webui-install/README.md)
-- Latest HTML:
-  [`../../site/latest/docker-webui-install/docker-webui-install.html`](../../site/latest/docker-webui-install/docker-webui-install.html)
-- Latest detailed PDF:
-  [`../../site/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf`](../../site/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf)
+- Published HTML:
+  [`https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html`](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html)
+- Published detailed PDF:
+  [`https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf`](https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf)
+- Local generated output (ignored by Git): `docs/site/latest/docker-webui-install/`
 
 ## Operator Boundary
 

@@ -43,7 +43,6 @@ App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；
 | 插件位置与开发归口 | [插件组织与设置归属](dsh-plugin-and-settings-map.md) · [分层更新](../managed-update-three-layer.md) | 兼容 DSH Host/Client 包可独立更新；Electron、DSH cohort 与 AppWebEntry boot shell 走 App 更新，领域 Package 走原生 carrier |
 | 插件 UI 与设置标准（新 SSOT） | [插件 UI 与设置接入规范](plugin-ui-and-settings-standard.md) | 理想态四统一宪法、Tier 1/2/3 插件 UI 与设置接入标准、M1–M5 演进路线 |
 | 插件组合与仓库边界 | [插件组合与仓库边界](plugin-composition-map.md) | 区分 DSH 插件、Framework Package、MCP App 与用户入口 |
-| DSH 升级与 UI 复用 | [DSH 升级与 OPL UI 复用审计](dsh-upgrade-and-ui-parity-20261110.md) · [最新 UI 与字体对照](evidence/dsh-ui-typography-comparison-2026-11-13.md) | 上游官方能力、私有实现替代关系与视觉分叉理由 |
 | Console 观察投影 | [OpenScience Console projection](openscience-console-projection.md) | Runtime owner；`app-runtime-bridge.json` 字段与 Framework 投影 |
 
 ## 变更与证据
@@ -57,7 +56,6 @@ Typed domain views 是局部可选增强；缺失 view 不阻断核心列表。�
 Runtime 专题及 `app-runtime-bridge.json`。
 
 Contract、Source、Pixel、Install、Release 分别回答不同问题。旧像素与安装 evidence 只证明
-它们记录的 cohort，不通过改 SHA、文案或时间变成当前证据。历史观察保留在
-[`evidence/`](evidence/)，当前视觉基线以
-[`app-gui-visual-reference-cohort.json`](../../../contracts/app-gui-visual-reference-cohort.json) 为准。
+它们记录的 cohort，不通过改 SHA、文案或时间变成当前证据（历史记录留存于 Git 历史）。
+当前视觉基线以 [`app-gui-visual-reference-cohort.json`](../../../contracts/app-gui-visual-reference-cohort.json) 为准。
 维护生命周期见 [文档治理](../../docs_portfolio_consolidation.md)。

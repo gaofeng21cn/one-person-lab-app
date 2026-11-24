@@ -35,7 +35,7 @@ remaining user need and owner boundary.
 
 ## Delegated Activity
 
-Codex subagents are separate from AionUI Team. The App may render canonical
+Codex subagents are separate from retired Team orchestration surfaces. The App may render canonical
 delegated activity, completion and open-thread navigation through existing
 metadata and owner-supported actions. This is a thin display/interaction surface,
 not permission to create a scheduler or private execution store. Exact source

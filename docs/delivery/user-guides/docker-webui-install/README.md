@@ -32,10 +32,10 @@ Delivery and generated files:
   Validation receipts and sanitized screenshots live under
   [`../../validation/windows-docker-webui/`](../../validation/windows-docker-webui/).
 
-Generated reading artifacts:
+Published reading targets (local `docs/site/latest/docker-webui-install/` output is ignored by Git):
 
-- [Docker/WebUI install HTML guide](../../../site/latest/docker-webui-install/docker-webui-install.html)
-- [Docker/WebUI install detailed PDF](../../../site/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf)
+- `https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install.html`
+- `https://gaofeng21cn.github.io/one-person-lab-app/latest/docker-webui-install/docker-webui-install-detailed-guide.pdf`
 
 Update flow:
 

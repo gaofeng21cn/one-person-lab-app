@@ -107,20 +107,15 @@ seed。KimiCU 只负责视觉桌面操作，或在结构化路径无法表达任
 | CU1 SSOT 与 build lock | `canonical_source_complete` | App + Framework | App qualification identity 与 Framework 操作冻结解析结果唯一绑定 KimiCU |
 | CU2 Materializer | `canonical_source_complete` | Framework | Standard 下载、Full seed、SHA/Bundle/Team/version/arch/codesign/Gatekeeper 校验、`ditto` staged replace 和 service install 已进入 Framework `main` |
 | CU3 MCP/state bridge | `canonical_source_complete` | Framework | 复用现有 Codex registry 唯一 writer；已实现 service/XPC/`doctor`/MCP tools 健康检查、`managed_companions[]` 和 owner actions |
-| CU4 默认启动 | `canonical_source_complete` | Framework + AionUI Shell | Desktop 初始化自动调用 `opl system startup-maintenance --json`；失败只降级 Computer Use，不阻塞普通 OPL/Codex |
-| CU4 Capabilities/TCC UX | `canonical_source_complete` | App + AionUI Shell | 专用状态行只消费 `managed_companions[]`，授权/复查/修复/重装按钮只调用 Framework projection actions，并在动作后执行 full readback |
+| CU4 默认启动 | `canonical_source_complete` | Framework + Studio Shell | Desktop 初始化自动调用 `opl system startup-maintenance --json`；失败只降级 Computer Use，不阻塞普通 OPL/Codex |
+| CU4 Capabilities/TCC UX | `canonical_source_complete` | App + Studio Shell | 专用状态行只消费 `managed_companions[]`，授权/复查/修复/重装按钮只调用 Framework projection actions，并在动作后执行 full readback |
 | CU5 Desktop qualification | `current_source_linked_host_complete_packaged_qualification_pending` | App + Framework + Release owner | 当前 source-linked 宿主已回读 KimiCU identity、service/XPC、TCC granted、MCP 10/10 tools，并真实执行 `list_apps` 与 Finder `get_app_state`；Standard/Full clean VM 与 release evidence 仍缺 |
 | CU6 Browser | `current_source_linked_host_complete_packaged_qualification_pending` | App + Framework + Shell | Codex registry 已从临时 worktree 切到 canonical Framework dependency；MCP 24/24 tools、system Chrome `browser_navigate`/`browser_snapshot` 和 Desktop 默认启动 `already_ready` 已通过；packaged Standard/Full qualification 仍缺 |
 | CU7 Next Stable release qualification | `pending_next_stable_release` | App Release owner | 下一次 Stable candidate 必须执行：Standard 在 Standard Stable 资产发布前完成联网 clean-VM 首装；Full 在 `append_full` 资产发布前完成离线 seed clean-VM 首装；两者须绑定同一 Stable cohort，并完成 KimiCU、Playwright、GUI 和公开资产回读 |
 
 当前 canonical source 已完成 App contracts、Full 离线 seed、Framework
-materializer/MCP/state/actions，以及 AionUI desktop 默认 startup caller 和专用
-Capabilities/TCC projection UX。2026-08-11 的当前 source-linked 宿主回读进一步
-历史证据曾证明 KimiCU 已安装到 `/Applications`，service/XPC 与两项 TCC 权限正常；当前版本以 Framework 实际解析和运行时回读为准，
-MCP 10/10 tools 精确匹配，并通过 KimiCU MCP 真实读取 app list 和 Finder state；
-Playwright registry 已绑定 canonical Framework dependency，24/24 tools、真实 Google
-Chrome `151.0.7922.77` 导航和 snapshot 均通过。带 Desktop host hint 的产品默认
-`startup-maintenance` 同时将两项投影为 `already_ready`，无 attention 或 blocking。
+materializer/MCP/state/actions，以及桌面默认 startup caller 和专用
+Capabilities/TCC projection UX；实际已安装宿主状态以当前运行环境回读为准。历史 source-linked 宿主回读曾验证过 KimiCU 与 Playwright 的安装、TCC 与 MCP 链路，但不能替代 Standard/Full clean-VM 发布验收。
 
 这些证据只证明当前 source-linked 宿主已经有效可用，不证明 Standard/Full packaged
 install、clean-VM 首启、两种 carrier parity 或 public release readiness；剩余工作是

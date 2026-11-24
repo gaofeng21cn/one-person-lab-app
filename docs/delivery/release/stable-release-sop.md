@@ -82,7 +82,7 @@ Standard 的 Framework CLI consumer 只验证宿主所需命令与合同，不�
 
 影响 Shell 身份、迁移或更新协议时，覆盖受影响的 Studio Stable 与 Preview 路径、数据延续和后续更新源；历史版本仅使用可追溯的原发布资产，不恢复已退役 Shell 的构建或启动路径。普通后续发布不重复全部历史切换验收。macOS 校验签名、公证和实际替换；Windows 保留 NSIS 身份并复用既有 WSL runtime；Linux 保留 Debian 包名并发布绑定准确 DEB 的 updater metadata。新装成功不能代替升级证明。
 
-Stable 的 Standard 首次安装、Core、Framework、Gateway 登录和 Codex 真实就绪读回，必须在该准确候选公开前通过。默认 Official Profile 在后台安装，其 pending、failed、missing 状态如实保留为诊断，不阻断 Standard 宿主发布；不得把宿主通过写成全部 Package 已安装。Full 额外承诺 offline seed，所选 roots 的完整交付和准确安装仍为其发布前提。AionUI Stable 到 Studio Stable、Studio Preview 到 Stable 的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
+Stable 的 Standard 首次安装、Core、Framework、Gateway 登录和 Codex 真实就绪读回，必须在该准确候选公开前通过。默认 Official Profile 在后台安装，其 pending、failed、missing 状态如实保留为诊断，不阻断 Standard 宿主发布；不得把宿主通过写成全部 Package 已安装。Full 额外承诺 offline seed，所选 roots 的完整交付和准确安装仍为其发布前提。Studio Preview 到 Stable（以及适用的历史基线升级）的迁移路径在 Stable 公开后使用同一公开字节执行独立验收；迁移验收失败不得回写为首版发布成功，也不得阻止首版 Stable 先出现，修复后可在同一 tag 的可变资产替换流程中交付。
 
 在 macOS 临时工作区执行冻结源码 CLI 时，controller 先解析临时目录的真实路径，再构造脚本 argv，避免 `/var` 别名导致主模块判断跳过执行。
 
@@ -427,7 +427,7 @@ Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同
 
 在现有完成记录中保留：首次正式尝试时间、Standard 公开时间、每个要求渠道的完成时间、最后一次成功单轮、失败／恢复区间，以及能回查的 run／产物链接。无必需未完成项才报告全部完成；存在阻塞时报告已完成面、缺口与解除条件，不把未知状态填成成功。
 
-用 `npm run release:actions-timing -- --run-id <id>` 采集各 run 的 job 和 step 耗时。比较新版本时，分别记录首次派发到标准版公开、首次派发到全渠道完成、失败执行和人工恢复间隔。Full 的签名和制作 DMG、Apple 公证、clean-VM 和公开回读分别取实际步骤或阶段日志时间。并行渠道按最晚完成时间计入整批耗时。 [2026-11-20 复盘](incidents/2026-11-20-release-efficiency.md) · [2026-11-11 复盘](incidents/2026-11-11-release-efficiency.md)
+用 `npm run release:actions-timing -- --run-id <id>` 采集各 run 的 job 和 step 耗时。比较新版本时，分别记录首次派发到标准版公开、首次派发到全渠道完成、失败执行和人工恢复间隔。Full 的签名和制作 DMG、Apple 公证、clean-VM 和公开回读分别取实际步骤或阶段日志时间。并行渠道按最晚完成时间计入整批耗时。
 
 ## 维护和安装
 
@@ -477,7 +477,7 @@ Full 的 Shell 验收器单独通过 `replacement_smoke_harness_ref` 选择纯�
 
 ## 8. 发布后改进
 
-只固化有证据的真实断点和恢复路径。先修调用方，再用对应失败样例或边界用例验证。通用操作写入本 SOP，入口提示写入发布 Skill。具体版本、run、时间和未知原因放入事故复盘。复盘复用原发布和已通过门禁的证据。近期记录见 [26.11.20-r1 复盘](incidents/2026-11-20-release-efficiency.md)、[26.11.11 复盘](incidents/2026-11-11-release-efficiency.md)及 [26.10.26 复盘](incidents/2026-10-26-release-efficiency.md)。
+只固化有证据的真实断点和恢复路径。先修调用方，再用对应失败样例或边界用例验证。通用操作写入本 SOP，入口提示写入发布 Skill。具体版本、run、时间和未知原因保留在 Git 历史事故复盘与 `incidents/*.json` / `records/*.json`。
 
 一次未保留 owner 原因的 Gateway 失败，只能记录最深已证断点；后续同字节成功不能倒推出当次根因。持续失败时读取已脱敏的 machine reason code 和 owner 只读投影，再决定修哪一层。进度只在阶段变化、出现真实失败或需要用户动作时汇报；没有变化的轮询不产生新验收证据。
 
@@ -491,6 +491,4 @@ must not be repeated. Preserve the first receipt and recovery projection, and st
 require fresh Gateway model access, real Codex protocol readiness and Runtime refresh.
 Record actual Official Profile background status for Standard; require selected-root
 convergence for Full. A later successful run does not establish the original
-service's underlying cause or prove the retry branch was exercised. See the
-[v26.10.2 retrospective](incidents/2026-10-02-stable-release-recovery.md) for observed
-failures, the mistaken checkpoint selection, and final public evidence.
+service's underlying cause or prove the retry branch was exercised.

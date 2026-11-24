@@ -35,14 +35,13 @@ One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到�
 当前 Studio 通过 App-admitted resolver 使用外部或 Framework-managed Codex CLI；精确
 版本来自当前 qualification inputs 与实际运行回读，不在此维护第二版本表。App 将目录中可用的
 `gpt-6.2-astra` 解析为 Auto 默认并使用 `max`；有访问权限时，`gpt-6.2-sol` 随实时目录进入固定模型菜单。
-目录不可用时按 App fallback 处理。Studio 不依赖 AionCore；历史 AionUI 组合只用于
-保留的升级基线。安装包仍须经过
+目录不可用时按 App fallback 处理。Studio 不依赖 AionCore。安装包仍须经过
 完整 App 构建、安装和运行时版本回读，不能单独替换已安装 App 内的运行文件。
 
 ## 已知列表的角色
 
 Desktop 首页及管理目录刷新通过既有 canonical Codex app-server adapter 读取完整
-`model/list`，不以 AionCore 持久化的历史握手记录判断当前可用模型。这个只读操作不创建
+`model/list`，不以历史持久化握手记录判断当前可用模型。这个只读操作不创建
 会话，不改写后台 registry；CLI 读取失败时按 App 的目录不可用策略回退，不重新采用旧握手。
 用户固定的模型与推理档独立保存，目录刷新和 App 升级不覆盖它们。
 
@@ -122,8 +121,7 @@ npm run validate:candidate
 ```
 
 `scripts/app-product-profile.ts` 处理当前 adapter 对应的 App profile projection；Studio 在
-build/validation 时直接读取指定 App checkout 的 profile，不维护独立产品副本。
-历史 AionUI 的 generated profile 不再是当前维护入口。Framework 的安装默认值来自 Flow 策略，只提交生成器产出的
+build/validation 时直接读取指定 App checkout 的 profile，不维护独立产品副本。Framework 的安装默认值来自 Flow 策略，只提交生成器产出的
 `contracts/opl-framework/codex-default-profile.json`；App 默认优先于 Flow 推荐；Flow 自身的工作负载策略保持其 owner 管理。
 
 若新推理档只是 Codex CLI 未来新增的非空字符串，消费者不得扩展本地 enum/allowlist；

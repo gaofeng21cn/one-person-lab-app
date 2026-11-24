@@ -13,9 +13,6 @@ user-facing guide and shareable PDF/PPTX live under
 `docs/site/latest/macos-app-install/`. Do not hand-edit generated guide outputs or
 copy their content here as a second source of truth.
 
-Shell-specific source screenshots used by tests may remain under
-`shells/aionui/tests/` or the test artifact output directories.
-
 Release evidence screenshots are recorded by the release evidence bundle rather
 than treated as guide screenshots or runtime truth. The always-required bundle
 screenshot paths are:

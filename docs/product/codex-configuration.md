@@ -30,7 +30,7 @@ configured carrier. Domain-project Skills are explicitly projected by their
 domain owner. App renders those owner projections and never materializes a
 global helper into an arbitrary project or resumed conversation.
 
-AionUI's internal builtin cache is not a third public scope. Scheduled Tasks
+Legacy shell internal caches are not a third public scope. Scheduled Tasks
 owns scheduling; `cron` is not a Skill payload. Existing user instructions remain
 user-owned, and App does not write `AGENTS.md` or `TASTE.md`.
 

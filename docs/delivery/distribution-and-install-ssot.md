@@ -15,7 +15,7 @@ Desktop GitHub Release 的附加资产。Stable 自动以同一 App/Framework co
 
 正式界面统一使用 One Person Lab App；发布渠道单独显示，不把“预览版”写入固定产品名称。
 帮助和反馈指向 App 的公开教程与问题入口。安装教程的文字、按钮路径和截图必须对应当前
-Studio 界面，历史 AionUI 截图只保留在历史记录中。恢复提示说明受影响功能、保留状态和
+Studio 界面，历史 AionUI 截图保留在 Git 历史中。恢复提示说明受影响功能、保留状态和
 用户可执行的下一步，不要求普通用户操作内部更新源。
 
 Codex CLI 以官方 npm `latest` 的稳定版本为升级来源。每次升级同时更新 App 验收清单中的

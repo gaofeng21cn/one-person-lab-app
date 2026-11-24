@@ -13,12 +13,9 @@ API keys, complete runtime state, or raw logs.
 
 ## Receipts
 
-- [`2026-07-24-r1-and-r2-validation.md`](2026-07-24-r1-and-r2-validation.md)
-  records the canonical public `r3` Windows install, update, persistence,
-  scheduled-update and UI evidence; the remaining fresh-login race; and the
-  exact Shell source repair awaiting a successor public digest.
 - [`screenshots.manifest.json`](screenshots.manifest.json) binds the four
   sanitized `r1` UI captures to exact bytes and expected visible behavior.
+  (Earlier `r1`/`r2`/`r3` dated validation notes belong to Git history.)
 
 ## Fixtures
 

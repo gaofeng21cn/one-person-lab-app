@@ -14,15 +14,15 @@ OPL App 同时维持三条独立轨道：
 
 1. Studio 的 DSH Application Host、renderer、plugins 与 overlay 按 exact upstream cohort
    维护；唯一操作入口是 [Studio 上游维护](https://github.com/gaofeng21cn/opl-studio/blob/main/README.md#dsh-upstream-maintenance)。
-2. App 持有视觉目标、reference cohort 和像素验收；历史 AionUI 的受限 DSH 视觉借用
-   与 stable-tag intake 仅保留为 provenance，不继续生产维护。
+2. App 持有视觉目标、reference cohort 和像素验收；旧版 AionUI 上游追踪机制已正式退役
+   （`historical_aionui_upstream_provenance_retired=true`），历史来源保留在 Git 历史中。
 3. ChatGPT Codex 只保留历史工作流/空间关系参考；OPL 自有 baseline 承担像素回归。
 
 三条轨道不能互相冒充。看到新 DSH commit 或 Codex
 截图不等于自动替换产品合同；App 合同、Shell source、像素证据、package、安装与 release 继续分别
 给出结论。
 
-视觉来源与验收分轴：历史 AionUI 的 DSH 视觉 cohort 只拥有普通 icon、theme token 和 visual primitive geometry；
+视觉来源与验收分轴：固定 DSH 视觉 cohort 只拥有普通 icon、theme token 和 visual primitive geometry；
 Codex observation 只用于 workflow、placement 和 interaction 审查；OPL App 自有 baseline 绑定
 16-scene PNG SHA、审批 receipt 和人工 verdict，用于正式像素回归。任何外部 build 都不是
 下载、安装、Pixel、Release 或 Stable 前置条件。
@@ -42,63 +42,32 @@ Codex observation 只用于 workflow、placement 和 interaction 审查；OPL Ap
 - ChatGPT Codex 只提供历史 workflow、composition 与交互位置参考，不提供 active visual source、
   代码、品牌、账户或产品 authority。
 - 上游 surface 是否进入 ordinary product 由 App contract 准入；OPL allowlist 不得被
-  解释为禁用无关上游能力的通用授权。历史 AionUI/AionCore 规则不自动变成 Studio parity 要求。
+  解释为禁用无关上游能力的通用授权。
 - 上游没有且 B0/R1/U1 不要求的复杂功能默认不私有实现；只存在于 rejected、retired 或
   private legacy surface 的问题不进入主线修复。
 
-## Historical AionUI Visual Source Promotion
+## DSH Visual Source Promotion
 
-本节保留旧 AionUI 视觉来源准入的说明，不控制当前 Studio Host/renderer 的 DSH 升级。
-Studio 的精确源码和 plugin compatibility 按其 source manifest 与公开维护入口推进。
-
-Active visual source policy 由
-`contracts/app-gui-product-contract.json#interaction_baseline.visual_source` 指定；精确上游、许可、
-运行时 vendor、adapter reference、延后 surface 和首批迁移范围只在
-`contracts/app-gui-visual-source-cohort.json` 定义。一次 cohort 推进必须同时具备：
+DSH 视觉来源准入由 `contracts/app-gui-product-contract.json#gui_maintenance_policy.visual_source_promotion`
+与 `interaction_baseline.visual_source` 指定；精确上游、许可、运行时 vendor、adapter reference、
+延后 surface 和迁移范围由 `contracts/app-gui-visual-source-cohort.json` 定义。一次 cohort 推进必须同时具备：
 
 1. 上游 repository、exact commit、MIT license 与 notice inventory 回读；
 2. 每个 vendored file 的 upstream path、SHA-256 和 import normalization 记录；
-3. runtime import 与 adapter-only reference 分类，确认不引入 DSH runtime/Client Cordis；
+3. runtime import 与 adapter-only reference 分类；
 4. Titlebar、rail、Home、composer、Settings navigation 的功能和 protected surface 非降级复核；
 5. desktop/narrow、light/dark、zh-CN/en-US 比较 manifest；
 6. keyboard、tooltip、focus、accessible name 与 App/Shell validators 通过。
 
 Codex 新 observation 不会自动改变视觉 source 或 OPL pixel baseline，只能形成历史交互 delta。
-旧 DSH cohort、Codex observation、OPL baseline、Shell source、package、安装与 release 各自独立取证。
+DSH cohort、Codex observation、OPL baseline、Shell source、package、安装与 release 各自独立取证。
 
-## Historical AionUI Stable Intake
+## Retired Legacy Upstream Intake
 
-`opl-aion-shell` 已归档；下述流程仅用于解释原始 receipts 与维护预算，不能继续 intake、
-构建或发布。当前生产维护归 Studio。
-
-每轮 upstream 检查只接受 GitHub 正式 release：tag 必须符合 `vMAJOR.MINOR.PATCH`，且
-`draft=false`、`prerelease=false`。固定顺序为：
-
-1. 读取 release metadata 与 tag commit；
-2. 计算 merge base、双方 commits、双方 changed files、overlap 和 renderer overlap；
-3. 对新增 upstream surface 分类；
-4. 只在 `accept` 或 `adapt` 有明确价值时建立窄 patch；
-5. 运行 focused gates，再由集成 owner 运行 authoritative active-shell/release gates；
-6. 回写 reviewed、absorbed、deferred 或 rejected 的精确 ref 和证据。
-
-分类含义：
-
-| 分类 | 处理 |
-| --- | --- |
-| `accept` | 直接复用，但不得改变 App authority。 |
-| `adapt` | 通过 App contract/profile/bridge/overlay 复用。 |
-| `redirect` | 仅保留历史重定向入口，转到 App-owned surface。 |
-| `reject` | 不进入 ordinary App 行为。 |
-
-历史 AionUI cohort 来自归档 Shell 中的
-`contracts/aionui-upstream-intake.json`。旧 App 校验曾只读消费该 receipt，校验 schema、official stable
-metadata、Shell package pin、implementation ancestry，以及 AionCore source/archive、managed
-manifest、ACP lock 和 Codex binary 的 exact digest/source-lock/qualification 绑定。新 stable 只进入
-`review_required`，网络或 API 不确定一律 fail closed，不自动 merge 或触发 release mutation。
-
-`app-gui-product-contract.json#gui_maintenance_policy.maintenance_budgets` 中的
-`v2.1.34@0fea1eb82634f3746b9ccf68507277c347fa08a3` 继续作为历史 GUI overlap 测量与维护预算基线；
-它不是 stable currentness 指针，也不随 Shell receipt advance 而重写。
+`opl-aion-shell` 与历史 `historical_aionui_upstream_provenance` 已按 `gui_maintenance_policy`
+完全退役（`historical_aionui_upstream_provenance_retired=true`），不再存在活跃 upstream intake
+或旧 overlap 基线。历史记录保留在 Git 历史；当前 Studio Host 与 renderer 的 DSH 升级均通过
+[Studio 上游维护](https://github.com/gaofeng21cn/opl-studio/blob/main/README.md#dsh-upstream-maintenance)推进。
 
 ## Maintenance Budgets
 

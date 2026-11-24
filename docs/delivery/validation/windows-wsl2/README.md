@@ -10,7 +10,6 @@ State: maintained validation fixture; separate from current product acceptance.
 | What does this diagnostic candidate prove? | [V6 validation scope](validation-scope.md) |
 | How is an exact V6 run executed and closed? | [Execution runbook](windows-wsl2-v6-execution-runbook.md) |
 | Where are VM admission and platform tools defined? | [Windows platform validation](../windows-platform/README.md) |
-| What did the original V0-V3 experiments observe? | [Frozen experiment receipts](../../../history/windows-wsl2/README.md) |
 
 ## Executable Evidence Owners
 

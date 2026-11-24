@@ -37,12 +37,12 @@ Delivery and generated files:
   `verification/macos-app-install-slides-verification.json`: generated
   verification records.
 
-Generated reading artifacts:
+Published reading targets (local `docs/site/latest/macos-app-install/` output is ignored by Git):
 
-- [macOS App install guide](../../../site/latest/macos-app-install/macos-app-install.html)
-- [macOS App install detailed PDF](../../../site/latest/macos-app-install/macos-app-install-detailed-guide.pdf)
-- [macOS App install slides PDF](../../../site/latest/macos-app-install/macos-app-install-slides.pdf)
-- [macOS App install slides PPTX](../../../site/latest/macos-app-install/macos-app-install-slides.pptx)
+- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install.html`
+- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-detailed-guide.pdf`
+- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pdf`
+- `https://gaofeng21cn.github.io/one-person-lab-app/latest/macos-app-install/macos-app-install-slides.pptx`
 
 Update flow:
 

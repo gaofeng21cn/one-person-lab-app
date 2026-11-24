@@ -310,7 +310,7 @@
       "turn_configuration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43730587059",
       "external_host_registration_run": "https://github.com/gaofeng21cn/opl-instance-medopl/actions/runs/43732882055",
       "native_turn_qualification_case": "external-host-managed-upload-be442af-d4b9",
-      "native_turn_qualification_evidence_ref": "docs/product/gui/evidence/opl-link-direct-first-acceptance-2026-11-15.md"
+      "native_turn_qualification_evidence_ref": "docs/product/opl-link.md"
     },
     "account_access_qualification": {
       "status": "qualification_pending",

@@ -161,6 +161,4 @@ OPL 公共 Package 源、授权私有源和 Homebrew tap 是同一个 OPL 软件
 
 运行组件复用 `managed_update` 的 `dependency_catalog`，展示实际版本、安装位置、维护方和所属产品。Codex CLI、Temporal、Python、uv 等仅在 owner 已声明依赖并回读时出现；不扫描或接管全机开发环境。系统命令行工具与 OPL 托管运行时分组展示，保留各自的版本、安装位置和维护方。Temporal SDK 随 OPL 基座更新，系统 Temporal CLI 由其原安装器维护。版本检查待完成或组件缺失时，直接显示对应状态。
 
-本轮交互与构建验收见[统一体验验收](evidence/software-center-experience-acceptance-2026-11-13.md)。
-
 设置由 App 静态定义目的地。资源 owner 或插件声明设置能力、标准 view type、读取与动作引用；Framework 验证并投影，Studio 在统一 App 设置容器中渲染。插件不创建顶层导航，也不复制凭据存储或绕过 App action bridge。知识来源继续由 Framework 的 Profile/Workspace owner 提供，接入不要求另外创建插件。

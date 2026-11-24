@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -8,7 +9,11 @@ import {
 import { readAppProductProfile } from './app-product-profile/profile-contract.ts';
 import { resolveFullCarrierProfile, formatCarrierTemplate } from './build-full-first-install-package/carrier-profile.ts';
 
-export const FULL_FIRST_INSTALL_OUTPUT_DIR = '/Users/gaofeng/Downloads/One-Person-Lab-Full-First-Install';
+export const FULL_FIRST_INSTALL_OUTPUT_DIR = path.join(
+  os.homedir(),
+  'Downloads',
+  'One-Person-Lab-Full-First-Install',
+);
 export const FULL_RELEASE_OUTPUT_DIR = 'dist/opl-full-release';
 export const FULL_RUNTIME_RESOURCE_DIR = 'opl-full-runtime';
 export const FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS = [

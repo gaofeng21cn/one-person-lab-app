@@ -296,52 +296,19 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 ## opl-studio Implementation
 
 **Status: publication, registry composition, exact build-input replay and local profile
-activation verified.** The App Stable consumer is now wired to the exact build input. Public
-Stable acceptance remains separate for candidates that have not used this admission path. The local source/profile lane and source UI are
-implemented. The latest publication
-[run 44051623044](https://github.com/gaofeng21cn/opl-studio/actions/runs/44051623044)
-succeeded at Studio `a1d5c8352c1f247183ba25609c05a5e414f1ff01`. The current ten-package
-combination contains `opl-studio-client` `0.1.3`; `opl-codex-agents`, `opl-host-core`,
-`opl-superagent` and `opl-team-bots` `0.1.2`; and the remaining five packages `0.1.1`.
+activation verified in source/CI.** Public Stable publication and ordinary-account
+clean-VM acceptance remain separate owner gates.
 
-The native add command relies on scoped registry metadata, so public dependencies keep
-their normal registry rather than being routed globally to GitHub Packages. The Codex
-adapter and workbench entrypoints declare their pinned official DSH peers; the native
-resolver reuses the carrier cohort when a profile-installed OPL package is linked into
-the Superagent child profile. The private Superagent engine remains carrier-owned and
-is an optional package-manager peer. The clean child-profile gate does not install a
-second DSH runtime: it reuses the carrier cohort and engine.
-
-The latest composition
-[run 44052012220](https://github.com/gaofeng21cn/opl-studio/actions/runs/44052012220)
-succeeded at the same Studio commit, with App product
-`47187f01da29793dbd747d456170881b3ee54d1d` and DSH `0.2.2-rc.3`. Its receipt installs
-the exact ten published versions, verifies registry origins, integrity and shipped
-entrypoints, and passes the Host/Client and independent Superagent child-profile boot
-tests outside the checkout. The child test uses only packed registry overrides and the
-carrier-provided DSH cohort and engine.
-
-The final local carrier verification on 2026-11-17 used App source
-`b5f89a5e6c96b891ee9980e0f84295be8ee7400c` and Studio source
-`fc3a2f2274fda2be5ae25ef01b15e107ddfe009e`.
-The final `opl-studio` profile contains all ten exact registry overrides. The native
-package manager removed and reinstalled those overrides in 6,434 ms, clearing the
-experimental `dsh-llm` dependency closure; ordinary DSH dependencies required by the
-published plugins remain profile-managed. Restart activated the official client graph
-at revision `e93c66833b62` with five entries, including MCP Apps, Team and Superagent.
-The carrier was `26.11.1791` (display
-`26.11.17`, `local.srcbe99a0818922`); `app.asar` SHA-256 was
-`3b95aa0e4a3075f1467517cacf91b3815e0046f15cb9f51c7e3c1e1c96464fdf` both before and
-after the profile update. The App UI started Superagent and read its management API
-with `state=running`, `executor=codex`, `error=null`, `teamDependency=false` and HTTP
-200; `setup.problem=repositoryUnset` was the expected unconfigured-repository state.
-The UI then stopped it with `state=stopped`, `error=null` and no workbench URL. The
-installed Codex history readback returned 63 active threads without a next cursor.
-
-Public Stable publication and ordinary-account clean-VM acceptance remain unverified.
-Registry authentication uses the profile `.npmrc` with mode `0600`. Source ownership also
-remains transitional outside the extracted shared contracts and Host update service; its
-current boundary is recorded in [plugin composition and source ownership](../product/gui/plugin-composition-map.md#源码所有权与依赖方向).
+- The active `opl-studio` cohort bundles the ten published OPL plugins on `DSH 0.2.2-rc.3`
+  (with `opl-studio-client`, `opl-codex-agents`, `opl-host-core`, `opl-superagent`,
+  `opl-team-bots`, and the remaining five companion plugins).
+- The native `add` command relies on scoped registry metadata so public dependencies keep
+  their normal npm registry rather than routing globally to GitHub Packages; the Superagent
+  child profile reuses the carrier DSH cohort and private Superagent engine rather than
+  installing a second runtime.
+- Registry authentication uses the profile `.npmrc` with mode `0600`. Source ownership
+  remains transitional outside extracted shared contracts and the Host update service; see
+  [plugin composition and source ownership](../product/gui/plugin-composition-map.md#源码所有权与依赖方向).
 
 ### CI: `release-dsh-plugins.yml` (Track 1)
 

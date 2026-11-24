@@ -94,8 +94,7 @@ npm run gui -- --shell opl-studio --allow-actions
 已运行进程不会接收新的环境变量。Launcher 从 candidate registry 读取目标与 build/open
 规则，缺失 checkout/bundle 时 fail closed，并输出 exact Runtime identity 与
 `release_adoption_changed=false`。正式 Studio 的开发模式使用
-`npm run gui -- --mode dev`。注册表中保留的 AionUI selector 是历史兼容字段，不能据此
-恢复归档仓库的生产构建或 upstream intake。
+`npm run gui -- --mode dev`。已归档历史 Shell 不参与当前启动选择或生产构建。
 
 ### Validation and packaging
 

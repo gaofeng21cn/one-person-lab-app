@@ -196,7 +196,7 @@ does not reinstall or rename Packages and does not discard Settings/Home
 preference, business Work Items, required-capability presence, or typed views.
 For a route the user has actually configured or a Package has explicitly
 declared, a missing adapter makes only that route unavailable. Unconfigured
-Claude Code or Hermes routes are not projected and are not readiness or
+optional carrier routes are not projected and are not readiness or
 completion gates. If the carrier holding the only physical Package bytes is
 removed, fresh aggregate readback must report `physical_unavailable`; cached App
 metadata cannot preserve a false installed state.
