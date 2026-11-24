@@ -25,7 +25,7 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
    - 软件目录与更新页覆盖全部来源，所有安装/更新/卸载动作尽量收敛到同一预检确认、实时进度、「安装记录」台账与失败重试链路；前置明示软件声明的权限范围与运行方式。
 4. **自动更新与演进统一**
    - 安装包只负责首次便捷安装；日常兼容插件、Framework runtime 与软件包均可在后台免令牌自动更新。
-   - 更新页提供统一「检查全部更新」与「更新全部」；主界面顶栏提供不遮挡内容的轻量「更新就绪 · 重启生效」入口；启动期若更新后扩展异常，自动熔断隔离并回退到随壳内置基线；纯前端客户端插件演进为细粒度独立包并支持无感轻刷新。
+   - 更新页提供统一单列表、单入口「检查全部更新」与「更新全部」（覆盖 OPL Base、桌面客户端、全部 DSH 官方与外部扩展及批量软件包队列）；主界面顶栏按生效方式提供不遮挡内容的轻量「更新就绪 · 重启生效」或纯前端「界面更新就绪 · 刷新生效」入口；启动期若更新后扩展异常，自动熔断隔离并回退到随壳内置基线；纯前端客户端插件演进为细粒度独立包并支持无感轻刷新。
 
 ---
 
@@ -36,7 +36,7 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 | 层级 | 适用场景 | 核心契约 / 扩展点 | 运行时承载与安全边界 | 典型例子 |
 | --- | --- | --- | --- | --- |
 | **Tier 1 · 声明式 Schema（首选）** | 通道接入、服务状态、开关/参数配置页 | [`opl-app-contributions.schema.json`](../../../contracts/opl-app-contributions.schema.json) (`app_contributions`, slot `settings.section` / `runtime.detail` / `composer.palette`) | App 固定白名单原语渲染；动作走 `opl app contribution execute`；零自定义前端 JS | `channel_access`（微信远程）、`service_status`、`settings_form` |
-| **Tier 2 · 类型化 DSH Client Slot + 共享 UI Kit** | 需丰富本地交互的一级工作面、原生设置组卡片 | DSH `dsh.client` + 强类型 `OplSlotRegistry` + `@gaofeng21cn/opl-dsh-adapters` UI Kit (`settings.group.<dest>`, `main`, `sidebar.panellist`) | 独立 CJS client bundle 由 DSH `client-modules` 装载；外层包裹 `PluginErrorBoundary`；禁止相对路径直连 `vendor/` | `opl-runtime-status`（运行状态）、`opl-materials-space`（资料空间）、`opl-team-bots`、`opl-superagent`、独立客户端设置卡片 |
+| **Tier 2 · 类型化 DSH Client Slot + 共享 UI Kit** | 需丰富本地交互的一级工作面、原生设置组卡片 | DSH `dsh.client` + 强类型 `OplSlotRegistry` + 公开包 `@gaofeng21cn/opl-plugin-ui-kit`（仓内经 `@gaofeng21cn/opl-dsh-adapters/ui-kit` 透传兼容） | 独立 CJS client bundle 由 DSH `client-modules` 装载；外层包裹 `PluginErrorBoundary`；禁止相对路径直连 `vendor/` 或私有宿主机包 | `opl-runtime-status`（运行状态）、`opl-materials-space`（资料空间）、`opl-team-bots`、`opl-superagent`、第三方 DSH 客户端设置卡片 |
 | **Tier 3 · 沙箱 MCP App** | 领域独立工作台、审阅看板、多步骤生产力应用 | MCP Apps SDK `AppBridge` ＋ `@gaofeng21cn/opl-mcp-apps` | 独立沙箱 iframe；透传主题/字号/语言 token；复用当前 Codex 线程、权限与审批 | 科研助手工作台、领域专用 MiniApp |
 
 ### 2.1 Tier 1 声明式设置表单规范（`settings_form`）
@@ -50,7 +50,7 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 
 ### 2.2 Tier 2 共享 UI Kit 与设置子槽位规范
 
-- **公开边界**：共用界面原语（`SettingRow`、`SettingsGroup`、`StatusPill`、`EmptyState`、`PluginErrorBoundary`、`DeclarativeSettingsForm`）与 hooks（`useOplLocale`、`useOplSettingsNavigation`、`OPL_STUDIO_SHELL_SERVICE`、`useOplStudioShellSnapshot`）以及通用本地工作区预览组件（`WorkspaceFilePreview`）由 `@gaofeng21cn/opl-dsh-adapters`（`ui-kit` 与 `workspace-preview` 子路径）提供；受限目录与只读工作区文件访问原语由 `@gaofeng21cn/opl-host-kit/workspace-fs` 提供。
+- **公开边界**：共用界面原语（`SettingRow`、`SettingsGroup`、`StatusPill`、`EmptyState`、`PluginErrorBoundary`、受选 DSH 基础组件）与槽位/状态 hooks（`registerOplSettingsGroup`、`readOplSettingsGroupMeta`、`useOplLocale`、`useOplSettingsNavigation`、`OPL_STUDIO_SHELL_SERVICE`、`useOplStudioShellSnapshot`）由公开发布的 `@gaofeng21cn/opl-plugin-ui-kit`（GitHub Packages，带 provenance）统一提供（仓内 `@gaofeng21cn/opl-dsh-adapters/ui-kit` 仅作薄透传以兼容内部一等插件）；声明式表单渲染器（`DeclarativeSettingsForm`）与通用本地工作区预览组件（`WorkspaceFilePreview`）归壳侧与 `@gaofeng21cn/opl-dsh-adapters/workspace-preview` 提供；受限目录与只读工作区文件访问原语由 `@gaofeng21cn/opl-host-kit/workspace-fs` 提供。
 - **App 级一等扩展插件（Tier 2）**：
   - `@gaofeng21cn/opl-runtime-status`（侧栏 `id: "runtime"`, `order: 20`）：消费 `oplStudioShell` Cordis 服务与 Framework `work_item_projection_v2` 投影，提供自动刷新、运行焦点条（Active Runs Spotlight）、可视化阶段进度条与 Popover、本地任务详情抽屉、按代次并发校验的归档/恢复确认，以及向资料空间的一键跳转。
   - `@gaofeng21cn/opl-materials-space`（侧栏 `id: "materials"`, `order: 25`）：由 Host 服务（基于已注册智能体项目目录发现、自动跳过 `runtime/`、`control/`、`controller/` 等内部状态目录）与 Client UI 组成，提供跨智能体多项目目录的「交付物」与「全部文件」双模式浏览与富文本/表格/沙箱 HTML/PDF/媒体预览。
@@ -76,10 +76,10 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 
 ## 3. 软件中心与通用插件生命周期模型
 
-1. **统一目录与任务投影**：前端不再硬编码拼接 6 路特例数据结构，也不为单个第三方包在 Host/Bridge/UI 写死名字与分支。通过 Host 侧统一投影将 Agent Package、原生应用、通用 DSH 插件与核心底座映射到统一的展示、搜索与后台「安装记录」模型（各底层依然保留原 owner 真相：Framework / DSH pnpm / Homebrew / Codex）。
-2. **通用 DSH 插件生命周期服务**：以 `opl-host-core` / 通用 DSH 插件管理器结合 DSH 原生 `dsh-plugin-manager` 与公开/配置源清单，支持兼容检查、安装、启用/停用、版本更新与卸载；对运行中的插件支持「暂存目标版本/卸载标记 + 一次重启完成切换」，避免用户先停用重启再操作重启的两段式割裂。
-3. **可选能力与核心底座清晰分层**：`opl-team-bots`、`opl-superagent` 等可独立开关的一级产品插件声明中文名称与用途说明，进入统一目录供按需启停；`opl-host-core`、`opl-codex-native` 等核心必需底座仅作为「运行环境 · 自动维护」透明呈现，不混淆日常软件选择。
-4. **面向用户意图的分类与权限透明**：软件中心以「智能体 / 应用 / 效率扩展 / 连接通道」筛选，将 Codex / DSH / npm / Homebrew 等载体信息收敛进软件详情；安装前与详情页统一明示所需目录、网络代理、外部账号与运行方式权限摘要。
+1. **统一目录与任务投影**：前端不再硬编码拼接 6 路特例数据结构，也不为单个第三方包在 Host/Bridge/UI 写死名字与分支（Host 通过通用 `externalPluginAdapters` 抽象路由外部适配）。通过 Host 侧统一投影将 Agent Package、原生应用、通用/社区 npm DSH 插件与核心底座映射到统一的展示、搜索与后台「安装记录」模型（各底层依然保留原 owner 真相：Framework / DSH pnpm / Homebrew / Codex）。
+2. **通用与开放社区 DSH 插件生命周期服务**：以 `opl-host-core` / 通用 DSH 插件管理器结合 DSH 原生 `dsh-plugin-manager` 与公开/配置源清单，支持官方内置与开放 npm 社区 DSH 插件（`opl-external-dsh-plugins.json`，严格包名校验、全程 `--ignore-scripts` 禁用安装脚本、启动期自动对账 `reconcileUserExternalPluginsOnBoot`）的兼容检查、安装、启用/停用、版本更新与卸载；对运行中的插件支持「暂存目标版本/卸载标记 + 一次重启完成切换」，避免用户先停用重启再操作重启的两段式割裂。
+3. **可选能力与核心底座清晰分层**：`opl-team-bots`、`opl-superagent`、`opl-runtime-status`、`opl-materials-space` 等可独立开关的一级产品插件声明中文名称与用途说明，进入统一目录供按需启停；`opl-host-core`、`opl-codex-native` 等核心必需底座仅作为「运行环境 · 自动维护」透明呈现，不混淆日常软件选择。
+4. **面向用户意图的分类与权限透明**：软件中心以「智能体 / 应用 / 效率扩展 / 连接通道」筛选，「其他来源」视图统一呈现「第三方软件与插件」而不按 DSH / Codex / 独立 Skills 拆堆实现术语，将载体信息收敛进软件详情；安装、更新与卸载前通过统一确认弹窗明示包名、来源、目标版本、权限范围与重启/刷新方式。
 
 ---
 
@@ -88,8 +88,8 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 | 阶段 | 核心交付 | 状态（SSOT 实时同步） |
 | --- | --- | --- |
 | **M0 · SSOT 文档体系** | 确立理想态四统一宪法、三级插件 UI/设置规范与分阶段路线文档 | 已并入三仓 `main`（`one-person-lab`、`opl-studio`、`one-person-lab-app`）并与三仓契约/验证对齐 |
-| **M1 · 自动更新闭环与熔断** | 启动异常自动隔离回退（`opl_dsh_profile_recovery.v1`）、更新页「一键更新全部」、主界面顶栏轻量「更新就绪 · 重启生效」入口 | 已并入 `main` 并通过本地单测/集成门禁；仍需在发布阶段完成 GitHub Packages 发布与 clean-VM 端到端实测 |
-| **M2 · 三级 UI/设置统一** | `settings_form` Schema + Framework/Studio 贯通、`@gaofeng21cn/opl-dsh-adapters` 共享 UI Kit、受控设置子槽位（`settings.group.<dest>`）、`PluginErrorBoundary`、Billion Context 与一等插件迁移、MCP App 字体缩放/主题变量与授权闭环 | 已并入三仓 `main` 并通过三仓契约校验与 React/happy-dom 自动化测试 |
-| **M3 · 通用插件生命与软件中心统一** | 通用 DSH 插件生命周期目录服务（`dsh-plugin-catalog`）、安装/切换历史活动流（`opl-dsh-plugin-activity.v1`）、运行期单次重启切换暂存、意图型筛选与权限摘要透明呈现 | 已并入 `main` 并通过宿主机单测与软件中心集成回归 |
-| **M4 · 前端真插件化** | 清零插件客户端相对 `vendor/` 路径直连、拆出 `SettingsSurface`/`SoftwareCenterSurface`、支持 `reloadRenderer` / 诚实 `reloadMode` 分流（仅当全部已更新包为纯前端 `@gaofeng21cn/opl-studio-client`、当前已解析在 `dshProfileDir/node_modules` 内且 `clientModules.rebuilt()` 成功刷新时走 `renderer_reload`「刷新界面立即生效」；首次从宿主 carrier 覆盖至 profile 或宿主/运行期插件仍诚实走 `restart_required`） | 已并入 `main` 并通过 AST 边界测试、类型检查与 `reloadMode` 单测 |
-| **M5 · 生态门禁与目录演化** | 三级 Plugin DevKit 参考模板（`templates/plugin-devkit/`）、自动化插件合规门禁（`plugin-conformance-gate.test.tsx`）、变更插件补丁版本升级 | 代码、模板、门禁测试、插件版本升级与三仓 `main` 校验已通过；远端 GitHub Packages 插件发布与发布后干净机器验收随发布流程执行 |
+| **M1 · 自动更新闭环与熔断** | 启动异常自动隔离回退（`opl_dsh_profile_recovery.v1`）、更新页单列表统一「一键更新全部」（含 OPL Base、桌面、DSH 官方与外部扩展及批量软件包队列）、主界面顶栏轻量「更新就绪 · 重启生效」与「界面更新就绪 · 刷新生效」入口、后台定时自动检查与同步（`syncAllDshPluginUpdates`） | 已并入 `main` 并完成 GitHub Packages 与 `dsh-plugins-latest` 公开 feed 线上发布（`Publish DSH Host Plugins` Run `45359521454` `success`）；clean-VM 端到端实测随标准产品发布流执行 |
+| **M2 · 三级 UI/设置统一** | `settings_form` Schema + Framework/Studio 真 CLI 端到端试点（`contribution-cli.mjs` 实进程读写/校验/持久化/搜索索引）、公开发布的 `@gaofeng21cn/opl-plugin-ui-kit@0.1.0` SDK、受控设置子槽位（`settings.group.<dest>`）、`PluginErrorBoundary`、Billion Context 与一等插件迁移、MCP App 字体缩放/主题变量与授权闭环 | 已并入三仓 `main`，通过三仓契约校验、Framework CLI Broker 端到端单测与 Studio React/happy-dom 自动化测试，`@gaofeng21cn/opl-plugin-ui-kit@0.1.0` 已上线 GitHub Packages |
+| **M3 · 通用插件生命与软件中心统一** | 通用 DSH 插件生命周期目录服务（`dsh-plugin-catalog`）、开放社区 npm DSH 插件安装/更新/卸载/启动对账与 `externalPluginAdapters` 去特例化、安装/切换历史活动流（`opl-dsh-plugin-activity.v1`）、运行期单次重启切换暂存、零术语「第三方软件与插件」筛选与操作前权限确认弹窗 | 已并入 `main` 并通过宿主机单测与软件中心集成回归 |
+| **M4 · 前端真插件化** | 清零插件客户端相对 `vendor/` 与根 `package.json` 路径直连、拆出 `SettingsSurface`/`SoftwareCenterSurface`、支持 `reloadRenderer` / 诚实 `reloadMode` 分流（纯前端 `@gaofeng21cn/opl-studio-client` 与 `@gaofeng21cn/opl-runtime-status` 在 profile 覆盖就绪且 `clientModules.rebuilt()` 成功刷新时走 `renderer_reload`「刷新界面立即生效」并联动顶栏轻刷新胶囊；首次覆盖或宿主/运行期插件仍诚实走 `restart_required`） | 已并入 `main` 并通过 AST 边界测试、打包外部启动测试、类型检查与 `reloadMode` 单测 |
+| **M5 · 生态门禁与目录演化** | 三级 Plugin DevKit 参考模板（`templates/plugin-devkit/`，含可直接运行的 Tier 1 `contribution-cli.mjs` 与直接消费公开 `@gaofeng21cn/opl-plugin-ui-kit` 的 Tier 2 模板）、自动化插件合规门禁（`plugin-conformance-gate.test.tsx`）与公开 SDK 打包断言、全部 12 个 DSH 插件与 UI Kit SDK 线上发布 | 三仓代码、模板、门禁测试、12 个插件（`dsh-plugins-latest`）及 `@gaofeng21cn/opl-plugin-ui-kit@0.1.0` 均已合入 `main` 并完成线上 CI 发布回读（Run `45359521454`） |
