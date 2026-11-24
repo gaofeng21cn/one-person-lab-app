@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import net from 'node:net';
 import vm from 'node:vm';
 import { stringify } from 'yaml';
 import {
-  validateCandidate, updaterExpression, assertPreserved, wslIdentityExpression,
+  connectInspector, validateCandidate, updaterExpression, assertPreserved, wslIdentityExpression,
 } from '../../tools/vm/windows-updater-driver.mjs';
 
 const sha = (data, alg = 'sha256', encoding = 'hex') => createHash(alg).update(data).digest(encoding);
@@ -80,4 +82,30 @@ test('WSL probe validates saved receipt and requires live WSL2 readback', async 
   assert.equal((await vm.runInNewContext(wslIdentityExpression('C:\\OPL\\One Person Lab.exe'), context)).guestInstallId, 'real-id');
   wsl2 = false;
   await assert.rejects(() => vm.runInNewContext(wslIdentityExpression('C:\\OPL\\One Person Lab.exe'), context), /WSL runtime mismatch/);
+});
+
+test('connectInspector drives a real V8 inspector target via chrome-remote-interface', async t => {
+  const server = net.createServer();
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+  const port = (server.address() as net.AddressInfo).port;
+  await new Promise(resolve => server.close(resolve));
+
+  const child = spawn(process.execPath, [`--inspect=127.0.0.1:${port}`, '-e', 'setInterval(() => {}, 1000)'], {
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+  t.after(() => { if (child.exitCode === null) child.kill(); });
+
+  const inspector = await connectInspector({ port, label: 'test-v8', timeoutMs: 10000 });
+  t.after(() => inspector.close());
+
+  assert.deepEqual(
+    await inspector.evaluate('Promise.resolve({ sum: 20 + 22, ok: true })'),
+    { sum: 42, ok: true },
+  );
+  await assert.rejects(() => inspector.evaluate('throw new Error("boom-cdp")'), /boom-cdp/);
+  await assert.rejects(() => inspector.evaluate('new Promise(() => {})', 150), /Inspector evaluation timed out/);
+
+  const pending = inspector.evaluate('new Promise(() => {})', 10000);
+  child.kill();
+  await assert.rejects(() => pending, /Inspector disconnected/);
 });

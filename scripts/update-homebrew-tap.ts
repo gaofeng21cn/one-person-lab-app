@@ -6,6 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs as parseNodeArgs } from 'node:util';
+import {
+  CASK_CONFLICT_MAP,
+  renderAppHomebrewCask,
+  renderHomebrewDownloadUrl,
+  renderHomebrewVersion,
+} from './homebrew-cask-renderer.mjs';
 import { readAppComponentManifestIdentity } from './read-opl-app-component-manifest-identity.ts';
 import {
   assertReleaseVersionNotFuture,
@@ -65,11 +71,7 @@ const standardAppCaskTargets = new Set([
   'Casks/one-person-lab-nightly.rb',
 ]);
 const fullFirstInstallCaskTarget = 'Casks/one-person-lab-full.rb';
-const caskConflictMap: Record<string, string[]> = {
-  'one-person-lab': ['one-person-lab-full', 'one-person-lab-nightly'],
-  'one-person-lab-nightly': ['one-person-lab', 'one-person-lab-full'],
-  'one-person-lab-full': ['one-person-lab', 'one-person-lab-nightly'],
-};
+const caskConflictMap: Record<string, readonly string[]> = CASK_CONFLICT_MAP;
 
 function parseArgs(argv: string[]): Options {
   const { values, tokens } = parseNodeArgs({
@@ -296,135 +298,23 @@ function validateOptions(options: Options): ResolvedOptions {
   return { ...options, packageKind, expectedCurrentCaskSha256 };
 }
 
-function boundaryBlock(options: ResolvedOptions): string {
-  const fullFirstInstall = options.packageKind === 'app_full_first_install';
-  const lines = [
-    '# OPL_HOMEBREW_BOUNDARY_START',
-    `# channel: ${options.channel}`,
-    `# package_kind: ${options.packageKind}`,
-    `# version: ${options.version}`,
-    `# display_version: ${options.version}`,
-    `# updater_version: ${options.updaterVersion}`,
-    `# manifest: ${options.manifestUrl}`,
-    `# checksum: sha256:${options.checksumSha256}`,
-    `# full_first_install_allowed: ${fullFirstInstall ? 'true' : 'false'}`,
-    '# stable_promotion_from_nightly_allowed: false',
-    '# publishes_or_pushes_remote: false',
-  ];
-  lines.push(
-    `# cohort: ${fullFirstInstall ? 'full_first_install_homebrew_distribution' : 'standard_desktop_homebrew_distribution'}`,
-    `# standard_updater_visible: ${fullFirstInstall ? 'false' : 'true'}`,
-    `# bundled_full_runtime_payload_allowed: ${fullFirstInstall ? 'true' : 'false'}`,
-    `# formula_dependency_required: ${fullFirstInstall ? 'false' : 'true'}`,
-    `# framework_carrier: ${fullFirstInstall ? 'full_dmg_embedded_opl_base' : 'homebrew_formula_opl'}`,
-    '# active_framework_count_target: 1',
-    '# homebrew_allowed_software_objects: opl_base,opl_app',
-    '# opl_packages_lifecycle_owned_by_homebrew: false',
-    '# opl_packages_lifecycle_owner: one-person-lab',
-    '# opl_packages_lifecycle_command: opl packages',
-    '# package_specific_formula_allowed: false',
-    '# package_specific_cask_allowed: false',
-    '# forbidden_package_formulae: mas,mag,rca,oma,obf,mas-scholar-skills,opl-flow',
-    '# forbidden_package_casks: mas,mag,rca,oma,obf,mas-scholar-skills,opl-flow',
-    '# must_not_write_user_codex_state: true',
-    '# must_not_define_agent_semantics: true',
-  );
-  lines.push('# OPL_HOMEBREW_BOUNDARY_END');
-  return lines.join('\n');
-}
-
-function renderHomebrewVersion(options: ResolvedOptions): string {
-  return options.updaterVersion === options.version
-    ? options.updaterVersion
-    : `${options.updaterVersion},${options.version}`;
-}
-
-function renderHomebrewDownloadUrl(targetPath: string, options: ResolvedOptions): string {
-  void targetPath;
-  if (options.updaterVersion === options.version) return options.downloadUrl;
-  if (!options.downloadUrl.includes(options.version)) {
-    throw new Error('Homebrew download URL must include display_version when updater_version differs.');
-  }
-  return options.downloadUrl.replaceAll(options.version, '#{version.csv.second}');
-}
-
-function skeletonContent(targetPath: string, options: ResolvedOptions): string {
-  const token = path.basename(targetPath, '.rb');
-  const fullFirstInstall = options.packageKind === 'app_full_first_install';
-  const conflicts = caskConflictMap[token] ?? [];
+function updateContent(content: string, targetPath: string, options: ResolvedOptions): string {
+  void content;
   if (classifyTarget(targetPath) === 'formula') {
     throw new Error('Homebrew tap updates are App cask-only; OPL Packages are Framework-managed, not Homebrew formulae.');
   }
-  return [
-    `cask "${token}" do`,
-    `  version "${renderHomebrewVersion(options)}"`,
-    `  sha256 "${options.checksumSha256}"`,
-    '',
-    `  url "${renderHomebrewDownloadUrl(targetPath, options)}"`,
-    `  name "${fullFirstInstall ? 'One Person Lab Full' : 'One Person Lab'}"`,
-    `  desc "${fullFirstInstall ? 'Complete first-install package for One Person Lab' : 'AI-first desktop research and agent orchestration app'}"`,
-    '  homepage "https://github.com/gaofeng21cn/one-person-lab-app"',
-    '',
-    '  livecheck do',
-    `    skip "${options.channel === 'nightly'
-      ? 'Nightly casks track prerelease cohorts through App release automation'
-      : 'Stable casks pair display tags with monotonic updater versions'}"`,
-    '  end',
-    '',
-    ...(fullFirstInstall ? [] : ['  auto_updates true']),
-    ...(conflicts.length > 0
-      ? [
-          `  conflicts_with cask: ${conflicts.length === 1
-            ? `"${conflicts[0]}"`
-            : `[${conflicts.map((conflict) => `"${conflict}"`).join(', ')}]`}`,
-        ]
-      : []),
-    '  depends_on arch: :arm64',
-    ...(fullFirstInstall ? [] : ['  depends_on formula: "opl"']),
-    '  depends_on macos: :ventura',
-    '',
-    `  ${boundaryBlock(options).split('\n').join('\n  ')}`,
-    '',
-    '  app "One Person Lab.app"',
-    ...(fullFirstInstall
-      ? [
-          '',
-          '  caveats <<~EOS',
-          '    This cask installs the complete first-install package. After launch,',
-          '    One Person Lab manages runtime, Packages, and Agent exposure through',
-          '    the App/CLI; Full assets stay outside standard updater metadata.',
-          '  EOS',
-        ]
-      : []),
-    'end',
-    '',
-  ].join('\n');
-}
-
-function reconcileFormulaDependency(content: string, options: ResolvedOptions): string {
-  const formulaDependency = /^[ \t]*depends_on formula: ["'](?:gaofeng21cn\/one-person-lab\/)?opl["'][ \t]*\n?/gm;
-  if (options.packageKind === 'app_full_first_install') {
-    return content.replace(formulaDependency, '');
-  }
-  if (formulaDependency.test(content)) {
-    return content;
-  }
-  const macosDependency = /^([ \t]*depends_on macos:)/m;
-  if (macosDependency.test(content)) {
-    return content.replace(macosDependency, '  depends_on formula: "opl"\n$1');
-  }
-  return content.replace(/\nend\s*\n?$/, '\n  depends_on formula: "opl"\nend\n');
-}
-
-function updateContent(content: string, targetPath: string, options: ResolvedOptions): string {
-  void content;
-  let next = skeletonContent(targetPath, options);
-  next = next.replace(/(version\s+)["'][^"']+["']/, `$1"${renderHomebrewVersion(options)}"`);
-  next = next.replace(/(sha256\s+)["'][^"']+["']/, `$1"${options.checksumSha256}"`);
-  next = next.replace(/(url\s+)["'][^"']+["']/, `$1"${renderHomebrewDownloadUrl(targetPath, options)}"`);
-  next = reconcileFormulaDependency(next, options);
-  if (!next.endsWith('\n')) next += '\n';
-  return next;
+  const token = path.basename(targetPath, '.rb');
+  return renderAppHomebrewCask({
+    token,
+    channel: options.channel,
+    packageKind: options.packageKind,
+    version: options.version,
+    updaterVersion: options.updaterVersion,
+    checksumSha256: options.checksumSha256,
+    manifestUrl: options.manifestUrl,
+    downloadUrl: options.downloadUrl,
+    dependsOnOplFormula: options.packageKind !== 'app_full_first_install',
+  });
 }
 
 function validateUpdatedContent(target: TapUpdateTarget, options: ResolvedOptions): void {
@@ -458,7 +348,11 @@ function validateUpdatedContent(target: TapUpdateTarget, options: ResolvedOption
   if (!target.content.includes(options.manifestUrl)) {
     throw new Error(`${target.path} must reference the release manifest URL.`);
   }
-  const expectedDownloadUrl = renderHomebrewDownloadUrl(target.path, options);
+  const expectedDownloadUrl = renderHomebrewDownloadUrl({
+    version: options.version,
+    updaterVersion: options.updaterVersion,
+    downloadUrl: options.downloadUrl,
+  });
   if (!target.content.includes(expectedDownloadUrl)) {
     throw new Error(`${target.path} must reference the release download URL.`);
   }
@@ -467,6 +361,9 @@ function validateUpdatedContent(target: TapUpdateTarget, options: ResolvedOption
   }
   if (!target.content.includes('stable_promotion_from_nightly_allowed: false')) {
     throw new Error(`${target.path} must declare that stable promotion is not automatic from nightly.`);
+  }
+  if (!target.content.includes('publishes_or_pushes_remote: false')) {
+    throw new Error(`${target.path} must declare that cask rendering does not publish or push remotely.`);
   }
   if (options.packageKind === 'app_full_first_install') {
     for (const required of [
