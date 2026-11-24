@@ -23,15 +23,16 @@ Applies to **Layer 2** (DSH Host and Client plugins in `opl-studio/plugins/`).
 
 ### Track 1 — Per-plugin publish
 
-**Trigger**: push to `opl-studio` main branch modifying a plugin or its declared shared
-source/build inputs (`plugins/`, `packages/`, `vendor/`, and selected carrier and build files).
+**Trigger**: a push to `opl-studio` main that adds a publishable package or changes
+its version in `plugins/*/package.json` or `packages/*/package.json`. Source changes
+and shared build inputs run the source validation workflow.
 
 **CI**: `release-dsh-plugins.yml` in `opl-studio`.
 
 Steps:
-1. Detect changed plugin packages (or accept explicit `packages` / `force_all` input).
-   Shared source or build-input changes select all publishable packages.
-2. Build changed plugin(s) via `build:plugins` targeting only those packages.
+1. Compare publishable package identities and versions with the prior main revision,
+   or accept explicit `packages` / `force_all` input.
+2. Prepare the plugin build for the selected source revision.
 3. Run the plugin's own unit/integration tests.
 4. Publish to GitHub Packages under `@gaofeng21cn` scope, with provenance attestation.
 5. Publish a zero-token public GitHub Release feed (`dsh-plugins-latest`) containing
@@ -312,17 +313,16 @@ clean-VM acceptance remain separate owner gates.
 
 ### CI: `release-dsh-plugins.yml` (Track 1)
 
-Triggers on push to main modifying plugin or shared build inputs, or manual dispatch
-with `packages` / `force_all` inputs. Each run binds plugin builds to a selected App
-product commit. Per-plugin matrix builds via `buildDshPlugins([name])`, runs Host/Client
-and independent child-profile boot tests, and publishes to GitHub Packages under
-`@gaofeng21cn`. Because GitHub Packages releases are immutable per `name@version`,
-changing shared workspace inputs (`packages/`, `vendor/`, `scripts/`) or plugin source
-requires bumping the affected plugin `package.json` version(s) so `check-plugin-publication.mjs`
-does not fail on byte-changed already-published versions. Then the workflow runs
-`scripts/publish-dsh-plugin-feed.mjs` to pack all publishable plugins, merge historical
-compatible versions into `dsh-plugin-index.json`, and publish the `.tgz` assets plus index
-to the public `dsh-plugins-latest` release.
+Automatic publication selects new package identities and version changes. Bump the
+affected package version when shared inputs or plugin source should ship. Source
+validation still runs on those source changes. Manual dispatch accepts `packages` or
+`force_all` to select an existing version for recovery.
+
+The workflow binds the build to an App product commit, runs plugin tests, and checks
+the selected version before publishing with provenance. The same-version digest
+check protects immutable versions in GitHub Packages. The public feed downloads
+the selected registry tarballs, verifies their integrity, and merges them into
+`dsh-plugin-index.json` in the `dsh-plugins-latest` release.
 
 ### CI: `release-plugin-composition-test.yml` (Track 2)
 
