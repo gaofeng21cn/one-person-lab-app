@@ -435,9 +435,47 @@ fi
 exit 1
 `,
   );
-  writeExecutable(
-    path.join(fakeBin, "plutil"),
-    `#!${process.execPath}
+  const hasNativeMacPlutil = process.platform === "darwin" && fs.existsSync("/usr/bin/plutil");
+  const hasPython3 = !hasNativeMacPlutil && spawnSync("python3", ["--version"], {
+    env: { PATH: "/usr/bin:/bin" },
+    stdio: "ignore",
+  }).status === 0;
+  if (!hasNativeMacPlutil) {
+    writeExecutable(
+      path.join(fakeBin, "plutil"),
+      hasPython3
+        ? `#!/usr/bin/env python3
+import json
+import sys
+
+args = sys.argv[1:]
+if len(args) < 6 or args[0] != "-extract" or args[2] not in ("raw", "json") or args[3] != "-o" or args[4] != "-":
+    sys.exit(2)
+with open(args[5], "r", encoding="utf-8") as fh:
+    value = json.load(fh)
+for part in args[1].split("."):
+    if isinstance(value, list):
+        if not part.isdigit():
+            sys.exit(1)
+        index = int(part)
+        if index < 0 or index >= len(value):
+            sys.exit(1)
+        value = value[index]
+    elif isinstance(value, dict) and part in value:
+        value = value[part]
+    else:
+        sys.exit(1)
+# macOS plutil raw exits nonzero for JSON null instead of printing "null".
+if args[2] == "raw" and value is None:
+    sys.exit(1)
+if args[2] == "json":
+    sys.stdout.write(json.dumps(value, separators=(",", ":")))
+elif isinstance(value, bool):
+    sys.stdout.write("true" if value else "false")
+else:
+    sys.stdout.write(str(value))
+`
+        : `#!${process.execPath}
 const fs = require("node:fs");
 const args = process.argv.slice(2);
 if (args[0] !== "-extract" || !["raw", "json"].includes(args[2]) || args[3] !== "-o" || args[4] !== "-") process.exit(2);
@@ -450,7 +488,8 @@ for (const part of args[1].split(".")) {
 if (args[2] === "raw" && value === null) process.exit(1);
 process.stdout.write(args[2] === "json" ? JSON.stringify(value) : String(value));
 `,
-  );
+    );
+  }
   writeExecutable(
     path.join(fakeBin, "hdiutil"),
     `#!/bin/sh
