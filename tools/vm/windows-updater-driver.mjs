@@ -6,6 +6,7 @@ import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import CDP from 'chrome-remote-interface';
 import { parse as parseYaml } from 'yaml';
 
 const digest = (file, algorithm = 'sha256', encoding = 'hex') =>
@@ -125,39 +126,12 @@ export function studioRuntimeExpression(executable) {
     })()\`);`);
 }
 
-class Inspector {
-  constructor(socket) {
-    this.socket = socket;
-    this.id = 0;
-    this.pending = new Map();
-    socket.addEventListener('message', event => {
-      const message = JSON.parse(String(event.data));
-      const pending = this.pending.get(message.id);
-      if (!pending) return;
-      this.pending.delete(message.id);
-      clearTimeout(pending.timer);
-      if (message.error) pending.reject(new Error(message.error.message));
-      else pending.resolve(message.result);
-    });
-    socket.addEventListener('close', () => {
-      for (const pending of this.pending.values()) {
-        clearTimeout(pending.timer);
-        pending.reject(new Error('Inspector disconnected'));
-      }
-      this.pending.clear();
-    });
-  }
-  async evaluate(expression, timeoutMs = 30000) {
-    const id = ++this.id;
-    const result = await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('Inspector evaluation timed out')); }, timeoutMs);
-      this.pending.set(id, { resolve, reject, timer });
-      this.socket.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression, returnByValue: true, awaitPromise: true } }));
-    });
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
-    return result.result?.value;
-  }
-  close() { this.socket.close(); }
+function withTimeout(promise, timeoutMs, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 async function waitFor(probe, timeoutMs, label) {
@@ -168,6 +142,54 @@ async function waitFor(probe, timeoutMs, label) {
     await delay(500);
   }
   throw new Error(`${label} timed out${failure ? `: ${failure.message}` : ''}`);
+}
+
+export async function connectInspector({
+  host = '127.0.0.1',
+  port,
+  label = 'app',
+  timeoutMs = 90000,
+  connectTimeoutMs = 10000,
+} = {}) {
+  const target = await waitFor(async () => {
+    const targets = await withTimeout(CDP.List({ host, port }), 1000, `${label} inspector list timed out`);
+    return targets.find(item => typeof item?.webSocketDebuggerUrl === 'string')?.webSocketDebuggerUrl;
+  }, timeoutMs, `${label} inspector`);
+  let timedOut = false;
+  const connectPromise = CDP({ host, port, target, local: true }).then(client => {
+    if (timedOut) client.close().catch(() => {});
+    return client;
+  });
+  const client = await withTimeout(connectPromise, connectTimeoutMs, 'Inspector socket timed out').catch(error => {
+    timedOut = true;
+    throw error;
+  });
+  let disconnected = false;
+  client.once('disconnect', () => { disconnected = true; });
+  return {
+    async evaluate(expression, evalTimeoutMs = 30000) {
+      if (disconnected) throw new Error('Inspector disconnected');
+      const result = await withTimeout(
+        client.Runtime.evaluate({ expression, returnByValue: true, awaitPromise: true }),
+        evalTimeoutMs,
+        'Inspector evaluation timed out',
+      ).catch(error => {
+        if (disconnected || /WebSocket connection closed/i.test(error?.message ?? '')) {
+          throw new Error('Inspector disconnected');
+        }
+        throw error;
+      });
+      if (result?.exceptionDetails) {
+        throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
+      }
+      return result?.result?.value;
+    },
+    close() {
+      if (disconnected) return Promise.resolve();
+      disconnected = true;
+      return client.close().catch(() => {});
+    },
+  };
 }
 
 async function freePort() {
@@ -190,17 +212,7 @@ async function startApp(input, feedUrl, label) {
   child.on('error', () => {});
   let inspector;
   try {
-    const url = await waitFor(async () => {
-      const response = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(1000) });
-      return (await response.json()).find(item => item.webSocketDebuggerUrl)?.webSocketDebuggerUrl;
-    }, 90000, `${label} inspector`);
-    const socket = new WebSocket(url);
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { socket.close(); reject(new Error('Inspector socket timed out')); }, 10000);
-      socket.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true });
-      socket.addEventListener('error', () => { clearTimeout(timer); reject(new Error('Inspector socket failed')); }, { once: true });
-    });
-    inspector = new Inspector(socket);
+    inspector = await connectInspector({ port, label });
     await waitFor(async () => {
       const identity = await inspector.evaluate(identityExpression(input.appExecutable));
       return identity.visible && identity;
