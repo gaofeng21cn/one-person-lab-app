@@ -371,6 +371,7 @@ function skeletonContent(targetPath: string, options: ResolvedOptions): string {
       : 'Stable casks pair display tags with monotonic updater versions'}"`,
     '  end',
     '',
+    ...(fullFirstInstall ? [] : ['  auto_updates true']),
     ...(conflicts.length > 0
       ? [
           `  conflicts_with cask: ${conflicts.length === 1

@@ -280,6 +280,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   assert.equal(JSON.parse(stableRefresh.stdout).cas.decision, 'write_once');
   assert.equal(JSON.parse(stableRefresh.stdout).cas.write_performed, true);
   const stableRefreshedCask = fs.readFileSync(path.join(tapRoot, 'Casks', 'one-person-lab.rb'), 'utf8');
+  assert.match(stableRefreshedCask, /\n  auto_updates true\n/);
   assert.match(stableRefreshedCask, /\n  # OPL_HOMEBREW_BOUNDARY_START\n  # channel: stable/);
 
   const revisionResult = runTap({
@@ -336,6 +337,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
     path.join(tapRoot, 'Casks', 'one-person-lab-nightly.rb'),
     'utf8',
   );
+  assert.match(nightlyCask, /\n  auto_updates true\n/);
   assert.match(nightlyCask, /# channel: nightly/);
   assert.match(nightlyCask, /# package_kind: app_standard/);
   assert.match(nightlyCask, /# full_first_install_allowed: false/);
