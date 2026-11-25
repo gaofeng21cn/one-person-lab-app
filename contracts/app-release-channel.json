@@ -3452,6 +3452,10 @@
     "new_version_allocation_allowed": true,
     "historical_tag_and_receipt_parsing_allowed": true,
     "workflow": ".github/workflows/release-nightly.yml",
+    "github_release_credential": {
+      "environment": "release-stable",
+      "secret": "OPL_GITHUB_RELEASE_ADMIN_TOKEN"
+    },
     "followup_workflow": ".github/workflows/release-nightly-followups.yml",
     "followup_operations": [
       "reconcile_homebrew",

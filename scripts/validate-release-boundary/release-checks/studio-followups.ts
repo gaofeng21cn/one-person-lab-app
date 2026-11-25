@@ -54,7 +54,7 @@ export const studioFollowupChecks: ReleaseBoundaryCheck[] = [
       "nightly-notes-baseline.json",
       "nightly-notes-evidence.json",
       "nightly-release-publisher.ts",
-      "environment: release-nightly",
+      "environment: release-stable",
     ],
     forbidden: [
       "opl-release-bundle-global",

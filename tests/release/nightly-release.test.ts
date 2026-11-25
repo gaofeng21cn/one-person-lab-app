@@ -1007,7 +1007,7 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
     encoding: 'utf8',
   });
   assert.equal(missing.status, 1);
-  assert.match(missing.stdout, /release-nightly environment before building Nightly/);
+  assert.match(missing.stdout, /shared App Release credential OPL_GITHUB_RELEASE_ADMIN_TOKEN in release-stable/);
   const configured = spawnSync('bash', ['-e', '-c', preflight], {
     env: { ...process.env, NIGHTLY_PUBLISHER_CONFIGURED: 'true' },
   });
@@ -1058,7 +1058,26 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(qualificationRun, /--app-sha '\$\{\{ needs\.admission\.outputs\.app_ref \}\}'/);
   assert.match(qualificationRun, /--shell-sha '\$\{\{ needs\.admission\.outputs\.shell_ref \}\}'/);
   assert.match(qualificationRun, /--framework-sha '\$\{\{ needs\.admission\.outputs\.framework_ref \}\}'/);
-  assert.equal(release.jobs['qualify-and-publish'].environment, 'release-nightly');
+  const publisher = release.jobs['qualify-and-publish'];
+  const { github_release_credential: credential } = JSON.parse(
+    fs.readFileSync('contracts/app-release-channel.json', 'utf8'),
+  ).nightly_standard;
+  assert.equal(credential.environment, 'release-stable');
+  assert.equal(credential.secret, 'OPL_GITHUB_RELEASE_ADMIN_TOKEN');
+  assert.equal(
+    release.jobs.admission.environment,
+    `\${{ github.ref == 'refs/heads/main' && '${credential.environment}' || null }}`,
+  );
+  assert.deepEqual(admissionSteps[credentialCheck].env, {
+    NIGHTLY_PUBLISHER_CONFIGURED: `\${{ secrets.${credential.secret} != '' }}`,
+  });
+  assert.equal(publisher.environment, credential.environment);
+  assert.equal(publisher.permissions.contents, 'read');
+  assert.deepEqual(publishSteps.filter((step: any) => JSON.stringify(step).includes(credential.secret)), [
+    publication,
+  ]);
+  assert.deepEqual(release.jobs['standard-build'].needs, ['admission']);
+  assert.equal(release.jobs['standard-build'].environment, undefined);
   assert.equal(followups.name, 'OPL Nightly Follow-ups');
   assert.equal(followups.on.workflow_dispatch.inputs.framework_executor_ref.required, false);
   assert.equal(followups.jobs['sampled-standard-vm'].with.framework_executor_ref,

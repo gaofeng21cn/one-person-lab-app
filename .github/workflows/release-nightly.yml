@@ -27,7 +27,7 @@ jobs:
     name: Freeze exact Nightly request
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: ${{ github.ref == 'refs/heads/main' && 'release-nightly' || null }}
+    environment: ${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}
     permissions:
       contents: read
       actions: read
@@ -133,7 +133,7 @@ jobs:
         shell: bash
         run: |
           test "$NIGHTLY_PUBLISHER_CONFIGURED" = true || {
-            echo "::error::Configure OPL_GITHUB_RELEASE_ADMIN_TOKEN in the release-nightly environment before building Nightly."
+            echo "::error::Nightly requires the shared App Release credential OPL_GITHUB_RELEASE_ADMIN_TOKEN in release-stable."
             exit 1
           }
 
@@ -177,9 +177,9 @@ jobs:
     needs: [admission, standard-build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: release-nightly
+    environment: release-stable
     permissions:
-      contents: write
+      contents: read
       actions: read
       copilot-requests: write
     steps:

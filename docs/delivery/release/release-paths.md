@@ -58,8 +58,9 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 | Nightly 附加恢复 | `release-nightly-followups.yml` | `reconcile_homebrew` 或 `run_sampled_vm`；消费准确成功的 Nightly publication handoff |
 | Manual Standard Preview / Latest 选择 | `release-manual-preview.yml` | `preview` / `resume_preview` / `move_latest_pointer`；需要明确的 Preview 或指针操作范围 |
 
-Nightly 在构建前检查 `release-nightly` 环境是否已配置 `OPL_GITHUB_RELEASE_ADMIN_TOKEN`。
-发布步骤使用该凭据创建 tag 和 immutable prerelease，其他查询使用 `github.token`。
+Nightly 复用仅允许 `main` 的 `release-stable` 环境中的 App 发布凭据 `OPL_GITHUB_RELEASE_ADMIN_TOKEN`。
+构建前只检查凭据是否存在。最终 GitHub 发布步骤用该凭据为冻结的 App 提交创建 tag、上传资产并发布非 Latest 的 prerelease。
+常规 GitHub 查询使用只读的 `github.token`。Homebrew 附加作业使用 `release-nightly` 环境内的 Tap 部署密钥。
 
 附加发布失败只恢复自身。已公开 Standard 不应被 Full、Docker、Windows 或 Homebrew 的失败
 回写成”从未发布”；要求完整矩阵的任务也不能因为 Standard 成功就结束。

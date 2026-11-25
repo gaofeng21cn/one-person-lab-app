@@ -33,7 +33,7 @@ export const exactWebUiCompileCeilingPermissions = {
   packages: 'write',
 } as const;
 export const exactStableStandardPermissions = { contents: 'write', actions: 'read' } as const;
-export const exactNightlyPublishPermissions = { ...exactStableStandardPermissions, 'copilot-requests': 'write' } as const;
+export const exactNightlyPublishPermissions = { ...exactReadPermissions, 'copilot-requests': 'write' } as const;
 export const exactStableStandardBundlePermissions = {
   contents: 'write',
   actions: 'read',
@@ -591,7 +591,7 @@ export function validateWorkflowDispatchWriteAuthorityForWorkflows(appRoot: stri
       if (
         workflowPath === nightlyReleaseWorkflowPath
         && jobId === 'qualify-and-publish'
-        && job.environment === 'release-nightly'
+        && job.environment === 'release-stable'
         && needsExactly(job, ['admission', 'standard-build'])
         && exactObject(job.permissions, exactNightlyPublishPermissions)
       ) {

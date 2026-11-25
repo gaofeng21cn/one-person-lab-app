@@ -24,6 +24,7 @@
 ## Release Execution Discipline
 
 - 发布、跟进与恢复统一从 `docs/delivery/release/stable-release-sop.md` 进入；专用 Skill 源位于 `skills/opl-app-release`。Skill 只路由，不能建立第二套发布规则或扩大用户授权。普通流程优化不触发产品发布。
+- 新增或轮转发布凭据前，先核对实际写入入口、目标仓库、所需权限和现有发布身份。优先复用能在现有授权范围内完成写入的凭据。构建前只检查凭据是否可用，凭据值只传给实际写入步骤。只有已证实的权限或隔离缺口无法通过现有身份解决时，才申请或轮转凭据。Nightly 的 App tag 和 GitHub Release 写入使用 [发布路径](docs/delivery/release/release-paths.md#正式入口和附加发布) 记录的共享 App 发布凭据。
 
 - 直接发布任务以 90 分钟内到达公开终态为默认执行预算。预算不是跳过签名、公证、clean-VM 或公开回读的理由；超过预算时必须指出当前精确 job/step、已证根因和不可替代的外部阻塞，不能用继续测试、审计、整理证据或搜索历史维持 `ACTIVE`。
 - 根因或最深断点一旦明确，先修改真实 owner 持有的实现、配置或 workflow caller。修复后只运行能证明该断点关闭的 focused check，以及 release contract 明确要求的一次 aggregate/source gate；测试、计划、authority、nonce、digest 和 receipt 都不能替代实际 dispatch、publication 或 clean-install acceptance。

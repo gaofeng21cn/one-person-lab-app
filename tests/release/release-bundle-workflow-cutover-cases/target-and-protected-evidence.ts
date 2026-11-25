@@ -159,7 +159,7 @@ test('Stable and protected Manual Preview are isolated from daily-default Nightl
   });
   assert.equal(nightly.jobs['standard-build'].uses, './.github/workflows/_build-reusable.yml');
   assert.equal(nightly.jobs['standard-build'].with.require_macos_gatekeeper, false);
-  assert.equal(nightly.jobs['qualify-and-publish'].environment, 'release-nightly');
+  assert.equal(nightly.jobs['qualify-and-publish'].environment, 'release-stable');
   assert.equal(stable.jobs.standard.uses, './.github/workflows/_release-bundle.yml');
   assert.equal(stable.jobs['resume-standard'].uses, './.github/workflows/_release-standard-publish.yml');
   assert.equal(stable.jobs['append-full'].uses, './.github/workflows/_release-full-addon.yml');

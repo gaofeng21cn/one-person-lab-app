@@ -65,7 +65,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   );
   if (
     !admission
-    || admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-nightly' || null }}"
+    || admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}"
     || !exactObject(admission.permissions, exactReadPermissions)
     || preflight?.env?.NIGHTLY_PUBLISHER_CONFIGURED !== "${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN != '' }}"
     || !build
@@ -79,10 +79,10 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
     || Object.prototype.hasOwnProperty.call(build.with ?? {}, 'operation')
     || !publish
     || !needsExactly(publish, ['admission', 'standard-build'])
-    || publish.environment !== 'release-nightly'
+    || publish.environment !== 'release-stable'
     || !exactObject(publish.permissions, exactNightlyPublishPermissions)
   ) {
-    failures += reportFailure(id, 'Nightly admission must check its publisher credential before the shared build while the thin publisher retains write authority');
+    failures += reportFailure(id, 'Nightly must check the shared App Release credential before building and use it for publication');
   }
   for (const required of [
     'test "$GITHUB_RUN_ATTEMPT" = 1',
