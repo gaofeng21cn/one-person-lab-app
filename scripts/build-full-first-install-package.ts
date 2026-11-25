@@ -181,6 +181,7 @@ export function shellBuildEnvironmentWithoutRedundantNotarization(env = process.
     'appleIdPassword',
     'teamId',
     'OPL_NOTARYTOOL_KEYCHAIN_PROFILE',
+    'OPL_NOTARYTOOL_KEYCHAIN',
     'OPL_MAC_STRICT_SIGNING_CHECKS',
     'OPL_REQUIRE_MACOS_GATEKEEPER',
   ]) {

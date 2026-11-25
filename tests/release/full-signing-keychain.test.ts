@@ -55,6 +55,7 @@ test('Standard notarization stores credentials in the temporary build keychain b
     (step) => step.name === 'Finalize Standard Developer ID signing and notarization',
   );
   assert.equal(finalizer.env.OPL_NOTARYTOOL_KEYCHAIN_PROFILE, 'opl-release-notary');
+  assert.equal(finalizer.env.OPL_NOTARYTOOL_KEYCHAIN, '${{ runner.temp }}/opl-build.keychain-db');
   assert.match(finalizer.run, /printf '%s\\n' "\$appleIdPassword" \\| xcrun notarytool store-credentials/);
   assert.match(finalizer.run, /xcrun notarytool store-credentials "\$OPL_NOTARYTOOL_KEYCHAIN_PROFILE"/);
   assert.match(finalizer.run, /--keychain "\$RUNNER_TEMP\/opl-build\.keychain-db"/);

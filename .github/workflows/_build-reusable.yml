@@ -1282,6 +1282,7 @@ jobs:
           teamId: ${{ secrets.TEAM_ID }}
           OPL_RUNTIME_CODESIGN_IDENTITY: ${{ secrets.IDENTITY }}
           OPL_NOTARYTOOL_KEYCHAIN_PROFILE: opl-release-notary
+          OPL_NOTARYTOOL_KEYCHAIN: ${{ runner.temp }}/opl-build.keychain-db
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
         run: |
           set -euo pipefail
