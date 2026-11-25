@@ -39,6 +39,7 @@ function fixture(
     | 'timeout-all'
     | 'fail' = 'success',
   notaryInfoStatuses: Array<'Accepted' | 'In Progress' | 'Rejected' | 'Invalid' | 'unknown'> = [waitStatus],
+  extraEnv: Record<string, string> = {},
 ) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-notarize-dmg-test-'));
   const binaryRoot = path.join(root, 'bin');
@@ -210,6 +211,7 @@ exit 0
       appleId: 'release-owner@example.invalid',
       appleIdPassword: 'test-app-password',
       teamId,
+      ...extraEnv,
     },
   });
 
@@ -548,6 +550,26 @@ test('a permanent notarization rejection fails closed without polling or staplin
     const logged = failures[0];
     assert.equal(logged.failure.code, 'notarization_submission_rejected');
     assert.equal(logged.notarization.status, 'Rejected');
+  } finally {
+    fs.rmSync(value.root, { recursive: true, force: true });
+  }
+});
+
+test('keychain profile notarization passes explicit OPL_NOTARYTOOL_KEYCHAIN to submit, wait, and info', () => {
+  const keychainPath = '/tmp/opl-build.keychain-db';
+  const value = fixture('In Progress', 'success', ['Accepted'], {
+    appleId: '',
+    appleIdPassword: '',
+    OPL_NOTARYTOOL_KEYCHAIN_PROFILE: 'opl-release-notary',
+    OPL_NOTARYTOOL_KEYCHAIN: keychainPath,
+  });
+  try {
+    assert.equal(value.result.status, 0, value.result.stderr);
+    assert.equal(value.receipt.status, 'passed');
+    assert.equal(value.receipt.credential_mode, 'keychain_profile');
+    assert.match(value.commands, new RegExp(`notarytool submit .*--keychain-profile opl-release-notary --keychain ${keychainPath}`));
+    assert.match(value.commands, new RegExp(`notarytool wait .*--keychain-profile opl-release-notary --keychain ${keychainPath}`));
+    assert.match(value.commands, new RegExp(`notarytool info .*--keychain-profile opl-release-notary --keychain ${keychainPath}`));
   } finally {
     fs.rmSync(value.root, { recursive: true, force: true });
   }

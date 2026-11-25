@@ -331,9 +331,14 @@ function submitForNotarization(target: string, credentials: {
   password: string;
   teamId: string;
   keychainProfile: string;
+  keychainPath?: string;
 }, operationDeadlineAt: string, persist: (state: NotarizationState) => void) {
   const credentialArgs = credentials.keychainProfile
-    ? ['--keychain-profile', credentials.keychainProfile]
+    ? [
+        '--keychain-profile',
+        credentials.keychainProfile,
+        ...(credentials.keychainPath ? ['--keychain', credentials.keychainPath] : []),
+      ]
     : [
         '--apple-id',
         credentials.appleId,
@@ -552,6 +557,7 @@ export function finalizeNotarizedDmg() {
     const identity = requiredEnv('OPL_RUNTIME_CODESIGN_IDENTITY');
     const teamId = requiredEnv('teamId');
     const keychainProfile = process.env.OPL_NOTARYTOOL_KEYCHAIN_PROFILE?.trim() || '';
+    const keychainPath = process.env.OPL_NOTARYTOOL_KEYCHAIN?.trim() || '';
     const appleId = process.env.appleId?.trim() || '';
     const appleIdPassword = process.env.appleIdPassword?.trim() || '';
     if (!keychainProfile && (!appleId || !appleIdPassword)) {
@@ -661,6 +667,7 @@ export function finalizeNotarizedDmg() {
       password: appleIdPassword,
       teamId,
       keychainProfile,
+      keychainPath,
     }, options.operationDeadlineAt, (notarizationState) => {
       evidence.notarization = { ...notarizationState };
       console.error(JSON.stringify({ timestamp: new Date().toISOString(), event: 'apple_notarization_observation', stage, submission_id: notarizationState.id, status: notarizationState.status }));
