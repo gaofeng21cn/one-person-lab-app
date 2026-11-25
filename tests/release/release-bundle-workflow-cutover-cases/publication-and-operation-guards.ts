@@ -286,7 +286,7 @@ test('the remote Canary is a thin read-only contract check with no reusable rele
     (step: Record<string, any>) => step.name === 'Prove checkpoint roundtrip, no rebuild, and expired deadline rejection',
   );
   assert.ok(workspaceBuildIndex >= 0);
-  assert.equal(frameworkCheckpointSteps[workspaceBuildIndex].run, 'npm run build:packages');
+  assert.equal(frameworkCheckpointSteps[workspaceBuildIndex].run, 'npm run build');
   assert.ok(workspaceBuildIndex < checkpointTestIndex);
   const contractRun = canary.jobs.contract.steps.find(
     (step: Record<string, unknown>) => step.name === 'Verify release workflow contracts without starting release jobs',
