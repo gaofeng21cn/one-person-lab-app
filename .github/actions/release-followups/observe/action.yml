@@ -15,10 +15,33 @@ runs:
       run: |
         set -euo pipefail
         [[ "$STABLE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-        gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_RUN_ID" > stable-run.json
-        gh api --paginate --slurp \
-          "repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_RUN_ID/jobs?per_page=100" \
-          | jq '{jobs: [.[].jobs[]]}' > stable-jobs.json
+
+        read_actions_api() {
+          local output=$1 attempt error status
+          shift
+          for attempt in 1 2 3; do
+            if error=$(gh api "$@" 2>&1 > "$output"); then
+              return 0
+            else
+              status=$?
+            fi
+            printf '%s\n' "$error" >&2
+            if [[ "$attempt" == 3 || ! "$error" =~ HTTP\ (502|503|504) ]]; then
+              return "$status"
+            fi
+            sleep "$attempt"
+          done
+        }
+
+        endpoint="repos/$GITHUB_REPOSITORY/actions/runs/$STABLE_RUN_ID"
+        read_actions_api stable-run.json "$endpoint"
+        read_actions_api stable-job-pages.json --paginate --slurp "$endpoint/jobs?per_page=100"
+        jq -e '
+          if type == "array" and length > 0 and all(.[]; (.jobs | type) == "array")
+          then {jobs: [.[].jobs[]]}
+          else error("Expected a jobs array on each Actions API page")
+          end
+        ' stable-job-pages.json > stable-jobs.json
 
     - name: Write one non-authoritative first-terminal observation
       shell: bash
