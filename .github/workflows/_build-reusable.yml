@@ -292,6 +292,10 @@ jobs:
           shell-ref: ${{ needs.resolve-active-shell-ref.outputs.shell_sha }}
           fetch-depth: '0'
 
+      - name: Install App validation dependencies without lifecycle scripts
+        working-directory: .
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Run active shell test project
         working-directory: .
         run: node --experimental-strip-types scripts/run-active-shell-tests.ts --project ${{ matrix.project }} --max-workers 2
