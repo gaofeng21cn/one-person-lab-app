@@ -44,7 +44,7 @@ jobs:
 
       - name: Build Framework runtime workspaces
         working-directory: framework
-        run: npm run build:packages
+        run: npm run build
 
       - name: Prove checkpoint roundtrip, no rebuild, and expired deadline rejection
         working-directory: framework
