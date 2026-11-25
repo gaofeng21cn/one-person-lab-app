@@ -300,7 +300,7 @@ npm run manual:plugins -- remove --package @gaofeng21cn/opl-superagent
 activation verified in source/CI.** Public Stable publication and ordinary-account
 clean-VM acceptance remain separate owner gates.
 
-- The active `opl-studio` cohort bundles the ten published OPL plugins on `DSH 0.2.2-rc.3`
+- The active `opl-studio` cohort bundles the published OPL plugins on `DSH 0.2.3-alpha.2`
   (with `opl-studio-client`, `opl-codex-agents`, `opl-host-core`, `opl-superagent`,
   `opl-team-bots`, and the remaining five companion plugins).
 - The native `add` command relies on scoped registry metadata so public dependencies keep

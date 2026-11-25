@@ -475,7 +475,8 @@ elif isinstance(value, bool):
 else:
     sys.stdout.write(str(value))
 `
-        : `#!${process.execPath}
+        : `#!/bin/sh
+exec '${process.execPath.replaceAll("'", "'\\''")}' --input-type=commonjs - "$@" <<'__OPL_TEST_NODE_EOF__'
 const fs = require("node:fs");
 const args = process.argv.slice(2);
 if (args[0] !== "-extract" || !["raw", "json"].includes(args[2]) || args[3] !== "-o" || args[4] !== "-") process.exit(2);
@@ -487,6 +488,7 @@ for (const part of args[1].split(".")) {
 // macOS plutil raw exits nonzero for JSON null instead of printing "null".
 if (args[2] === "raw" && value === null) process.exit(1);
 process.stdout.write(args[2] === "json" ? JSON.stringify(value) : String(value));
+__OPL_TEST_NODE_EOF__
 `,
     );
   }

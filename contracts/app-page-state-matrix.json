@@ -65,27 +65,31 @@
     "contract_ref": "contracts/app-gui-product-contract.json#computer_use_policy",
     "settings_surface": "capabilities",
     "ownership_group": "opl_managed_companion",
-    "provider_id": "kimi-cu",
+    "provider_id": "dsh-cua",
+    "source": "studio_dsh_native_computer_use_bridge",
     "default_state": {
-      "installed": true,
-      "registered": true,
-      "enabled": true
+      "enabled": true,
+      "consentMode": "elicit"
     },
+    "consent_modes": [
+      "elicit",
+      "allow"
+    ],
     "required_projection_fields": [
-      "provider_id",
-      "version",
-      "installed",
-      "registered",
+      "available",
       "enabled",
-      "permission",
-      "ready",
-      "available_actions",
-      "health_ref"
+      "consentMode",
+      "restartPending",
+      "permissions",
+      "allowedApps",
+      "blockedApps",
+      "helperPath",
+      "cliEntryPath"
     ],
     "state_rules": {
-      "permission_required": "show_one_system_permission_action_without_reclassifying_the_provider_as_uninstalled_or_disabled",
+      "permission_required": "show_system_permission_request_and_settings_actions_without_blocking_plain_codex",
       "ready": "show_current_without_a_success_banner",
-      "failed": "show_owner_projected_repair_or_reinstall_action",
+      "elicit_default": "prompt_per_app_before_desktop_control_unless_user_selects_allow",
       "unsupported": "show_platform_requirement_and_keep_the_rest_of_the_App_usable"
     },
     "standard_full_readback_parity_required": true,
@@ -1717,7 +1721,7 @@
       "official_ui_reuse": {
         "page_identity": "软件中心",
         "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
-        "upstream_ref": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "upstream_ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
         "reused_interaction_and_visuals": [
           "grouped plugin cards and compact metadata",
           "official artwork and state dots",
@@ -4681,7 +4685,7 @@
         "raw provider ids as primary capability labels",
         "Shell-local capabilities reclassified as OPL Flow managed",
         "a second OPL Flow updater or scheduler",
-        "KimiCU classified as a manual or third-party capability",
+        "Studio native Computer Use classified as a manual or third-party capability",
         "silent mutation of manual or third-party Skills and Plugins",
         "voice input configuration on Preferences or Advanced",
         "the manual skill directory labeled as total local or OPL capability readiness",

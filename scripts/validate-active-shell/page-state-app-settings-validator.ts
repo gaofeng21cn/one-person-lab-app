@@ -96,7 +96,7 @@ export function validateAppSettingsPages(matrix, guiContract) {
   const officialUiReuse = applicationManagementContract.official_ui_reuse;
   if (
     officialUiReuse?.page_identity !== '软件中心' ||
-    officialUiReuse?.upstream_ref !== '38a6a5c965aa99ab525161efb7cc5cf1fe62fced' ||
+    officialUiReuse?.upstream_ref !== '4b399c39a6d1479cd84ca591b4d7c88e24d38a96' ||
     officialUiReuse?.upstream_page !== 'deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx' ||
     !officialUiReuse?.opl_adapter_boundary?.includes('Framework package projection') ||
     !officialUiReuse?.opl_adapter_boundary?.includes('fresh readback') ||
@@ -217,7 +217,7 @@ function validateCapabilitiesPage(matrix, guiContract) {
     !capabilitiesPage.must_show?.includes(
       'OPL-managed default companions with installed, registered, enabled, permission, ready, version, and owner-projected action status',
     ) ||
-    !capabilitiesPage.must_not_show?.includes('KimiCU classified as a manual or third-party capability') ||
+    !capabilitiesPage.must_not_show?.includes('Studio native Computer Use classified as a manual or third-party capability') ||
     !capabilitiesPage.must_not_show?.includes('silent mutation of manual or third-party Skills and Plugins') ||
     !capabilitiesPage.must_not_show?.includes('voice input configuration on Preferences or Advanced')
   ) {

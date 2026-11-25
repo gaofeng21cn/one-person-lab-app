@@ -54,7 +54,7 @@ its official `checksums.txt`. Local installed copies are never used as build
 authority.
 
 The manual entry also uses the Framework dependency resolver to select the
-official Node distribution, KimiCU offline seed and Codex qualification input once before freezing. It stores
+official Node distribution and Codex qualification input once before freezing. It stores
 the resolved identities and qualification manifest digest in the source lock, then passes that manifest
 to the Full builder through `OPL_RELEASE_DEPENDENCY_MANIFEST`. The builder rejects
 an unresolved identity before downloading; it does not resolve a new version

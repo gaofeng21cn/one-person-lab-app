@@ -28,13 +28,6 @@
       "repository": "opendatalab/MinerU-Ecosystem",
       "dependency_id": "mineru-open-api",
       "selection_policy": "latest_stable_at_operation_start"
-    },
-    "kimi_cu": {
-      "product": "KimiCU",
-      "license_spdx": "MIT",
-      "distribution_role": "offline_seed_for_the_same_managed_dependency_used_by_standard",
-      "dependency_id": "kimi-cu",
-      "selection_policy": "latest_stable_at_operation_start"
     }
   },
   "toolchain": {
@@ -77,13 +70,6 @@
     "officecli": {
       "dependency_id": "officecli",
       "selection_policy": "latest_stable_at_operation_start"
-    },
-    "kimi_cu": {
-      "qualification_input_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
-      "materialization_role": "full_offline_seed_only",
-      "target_install_path": "/Applications/KimiCU.app",
-      "dependency_id": "kimi-cu",
-      "selection_policy": "latest_stable_at_operation_start"
     }
   },
   "authority_boundary": {
@@ -92,8 +78,6 @@
     "full_toolchain_observation_receipt_required": true,
     "manifest_is_dependency_authority": false,
     "source_versions_are_default_selection_hints": false,
-    "kimi_cu_is_the_same_managed_dependency_as_standard": true,
-    "kimi_cu_full_seed_may_define_second_provider_or_behavior": false,
     "credential_values_may_be_bundled": false,
     "unknown_user_or_third_party_mcp_may_be_removed": false,
     "permanent_version_pins_allowed": false,

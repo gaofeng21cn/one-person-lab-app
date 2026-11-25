@@ -9,115 +9,56 @@
     "schema": "opl_first_run_computer_use_qualification.v1",
     "product_policy_ref": "contracts/app-gui-product-contract.json#computer_use_policy",
     "distribution_ref": "contracts/app-release-channel.json#computer_use_distribution",
-    "provider_identity_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
-    "provider_id": "kimi-cu",
+    "provider_id": "dsh-cua",
     "applies_to": [
       "standard",
       "full"
     ],
     "default_expectation": {
-      "installed": true,
-      "registered": true,
-      "enabled": true
+      "enabled": true,
+      "consent_mode": "elicit"
     },
     "materialization": {
-      "standard": "download_and_verify_exact_archive",
-      "full": "materialize_and_verify_exact_bundled_seed"
+      "standard": "bundled_in_studio_app_payload",
+      "full": "bundled_in_studio_app_payload"
     },
-    "required_identity_readback": [
-      "version=operation_resolved_version",
-      "bundle_id=ai.kimi.cu",
-      "team_id=2J9472RW75",
-      "target_path=/Applications/KimiCU.app"
+    "required_payload_markers": [
+      "package=@deepseek-ai/dsh-cua-macos",
+      "package=@deepseek-ai/dsh-cua-mcp",
+      "mac_sign_ignore=dsh-cua-macos/native/bin"
     ],
     "required_runtime_readback": [
-      "service-status",
-      "xpc-ping",
-      "doctor",
-      "initialize",
-      "tools/list",
-      "tools/call:list_apps"
+      "permissionStatus",
+      "cua-mcp:tools/list",
+      "codex-app-server:mcpServerStatus/list(elicit)",
+      "codex-app-server:mcpServerStatus/list(allow)"
     ],
     "required_permission_states": [
-      "installed_registered_enabled_permission_required_not_ready",
-      "installed_registered_enabled_permission_granted_ready"
+      "enabled_permission_required_plain_codex_unblocked",
+      "enabled_permission_granted_ready"
     ],
     "standard_full_parity_fields": [
       "provider_id",
-      "version",
-      "bundle_id",
-      "team_id",
-      "target_path",
-      "mcp_command",
-      "mcp_args",
+      "native_helper_package",
+      "mcp_package",
+      "codex_injection",
+      "default_consent_mode",
+      "consent_modes",
       "enabled",
       "required_tools",
       "permission",
       "ready"
     ],
-    "local_agent_backend_acceptance": {
-      "agent_id": "codex",
-      "source": "app_bundled_codex_cli",
-      "registration_before_kimi_cu_panel_launch": true,
-      "control_panel_no_supported_agent_state_allowed": false
-    },
     "stable_release_acceptance": {
       "accessibility": "granted",
       "screen_recording": "granted",
       "ready": true,
-      "mcp_functional_probe": "tools/call:list_apps=passed",
-      "codex_backend_detected": true
-    },
-    "current_source_linked_host_evidence": {
-      "status": "passed",
-      "evidence_class": "current_source_linked_host_only",
-      "observed_at": "2026-08-11",
-      "runtime_source": "globally_linked_canonical_framework_checkout",
-      "installed_identity": {
-        "version": "operation_resolved_version",
-        "bundle_id": "ai.kimi.cu",
-        "team_id": "2J9472RW75",
-        "target_path": "/Applications/KimiCU.app",
-        "architecture": "arm64",
-        "signature_and_notarization": "passed"
-      },
-      "service_and_permission_readback": {
-        "service_registered": true,
-        "xpc_ping": "passed",
-        "accessibility": "granted",
-        "screen_recording": "granted"
-      },
-      "mcp_readback": {
-        "initialize": "passed",
-        "observed_tools_count": 10,
-        "tools_exact": true,
-        "live_read_operations": [
-          "list_apps",
-          "get_app_state(com.apple.finder)"
-        ]
-      },
-      "desktop_startup_readback": {
-        "status": "completed",
-        "target_status": "ready",
-        "reason": "already_ready",
-        "attention_required_targets_count": 0,
-        "blocking_targets_count": 0
-      },
-      "proves": [
-        "current_source_linked_host_installed_identity_service_permissions_and_mcp_readiness",
-        "current_source_linked_host_live_desktop_read_path",
-        "current_source_linked_host_default_desktop_startup_readiness"
-      ],
-      "does_not_prove": [
-        "standard_packaged_install",
-        "full_packaged_install",
-        "standard_full_clean_vm_parity",
-        "public_release_qualification"
-      ]
+      "mcp_functional_probe": "cua-mcp:tools/list=passed",
+      "codex_injection_probe": "dsh_cua:elicit_and_allow=passed",
+      "global_codex_config_mutated": false
     },
     "full_second_manifest_or_provider_allowed": false,
-    "computer_use_missing_permission_blocks_app_or_plain_codex_use": false,
-    "version_resolution": "framework_operation_resolved_dependency_identity"
+    "computer_use_missing_permission_blocks_app_or_plain_codex_use": false
   },
   "browser_provider_qualification": {
     "schema": "opl_first_run_browser_provider_qualification.v1",
@@ -151,7 +92,7 @@
       "system_chrome_requirement",
       "browser_session_authority"
     ],
-    "desktop_visual_fallback_provider_id": "kimi-cu",
+    "desktop_visual_fallback_provider_id": "dsh-cua",
     "visual_fallback_may_substitute_for_structured_provider_qualification": false,
     "missing_browser_provider_blocks_app_or_plain_codex_use": false,
     "app_contract_status": "complete",
@@ -1375,15 +1316,14 @@
     {
       "id": "managed_computer_use_standard_full_parity",
       "package_type": "standard_or_full",
-      "provider_id": "kimi-cu",
+      "provider_id": "dsh-cua",
       "expects": [
-        "Standard downloads and verifies the operation-resolved KimiCU archive while Full materializes the exact same archive from its offline seed",
-        "both carriers install the same version, Bundle ID, signing Team ID, target path, MCP command, MCP args, and required tool set",
-        "both carriers register and enable KimiCU by default in the OPL-managed Codex configuration",
-        "missing Accessibility or Screen Recording permission reports installed, registered, and enabled with permission_required and ready=false",
-        "granted permissions plus service, XPC, MCP initialize, tools/list, and tools/call list_apps report ready=true",
-        "the App-bundled Codex backend is registered before the KimiCU panel opens and the panel does not report that no supported local Agent exists",
-        "Full does not own a second Computer Use provider list, version list, MCP registration, or behavior"
+        "Standard and Full bundle the identical Studio DSH native Computer Use packages without a separate offline archive seed",
+        "opl-codex-native injects dsh_cua dynamically into Codex App Server with required=false without mutating ~/.codex/config.toml",
+        "default consent mode is elicit (per-app authorization) and Settings provides an explicit switch to unattended allow mode",
+        "missing Accessibility or Screen Recording permission never blocks plain Codex sessions and exposes request/Settings actions in Capabilities",
+        "granted permissions plus cua-mcp tools/list and Codex mcpServerStatus/list in elicit and allow modes report ready=true",
+        "Full does not own a second Computer Use provider list, version list, or offline seed"
       ]
     },
     {

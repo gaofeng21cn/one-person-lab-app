@@ -8,7 +8,6 @@ import { parseArgs } from 'node:util';
 import { resolveActiveShellPaths } from './app-shell-adapter.ts';
 import { resolveFullCarrierProfile, type FullCarrierProfile } from './build-full-first-install-package/carrier-profile.ts';
 import { findBuiltApp } from './build-full-first-install-package/archive-output.ts';
-import { assertResolvedKimiCuArchiveIdentity } from './build-full-first-install-package/runtime-layers.ts';
 import {
   assertReleaseVersionNotFuture,
   assertUpdaterVersionMatchesDisplay,
@@ -463,7 +462,6 @@ export function resolveManualBuildDependencies(
     '--app-root', appRoot,
     '--framework-root', frameworkRoot,
     '--output', resolutionDir,
-    '--dependency', 'kimi-cu',
     '--dependency', 'codex-cli',
     '--dependency', 'node',
   ], {
@@ -472,7 +470,6 @@ export function resolveManualBuildDependencies(
   });
   const qualificationManifestPath = path.join(resolutionDir, 'qualification-input-manifest.json');
   const qualificationManifest = readJson(qualificationManifestPath);
-  const kimiCu = assertResolvedKimiCuArchiveIdentity(qualificationManifest?.runtime_payloads?.kimi_cu);
   const codex = qualificationManifest?.runtime_payloads?.codex_cli;
   if (!/^\d+\.\d+\.\d+$/.test(codex?.version ?? '')
     || !/^sha512-[A-Za-z0-9+/=]+$/.test(codex?.npm_integrity ?? '')
@@ -485,12 +482,6 @@ export function resolveManualBuildDependencies(
     sourceLock: {
       dependencies: resolution.dependencies,
       qualification_manifest_sha256: fileSha256(qualificationManifestPath),
-      kimi_cu: {
-        version: kimiCu.version,
-        archive_url: kimiCu.archive_url,
-        archive_sha256: kimiCu.archive_sha256,
-        archive_size_bytes: kimiCu.archive_size_bytes,
-      },
     },
   };
 }

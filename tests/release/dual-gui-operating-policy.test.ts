@@ -178,8 +178,8 @@ test('DeepSeek Harness Application Host and visual source reuse stay Studio-only
   assert.equal(reference?.evaluated_ref, visualCohort.upstream.commit);
   assert.equal(reference?.license, 'MIT');
   assert.equal(reference?.source_usage, 'approved_application_host_runtime_and_gui_source_reuse');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.2.2-rc.3');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.2.2-rc.3');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-app-boot'], '0.2.3-alpha.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-ui-slots'], '0.2.3-alpha.2');
   assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-client-web-react'], undefined);
   assert.equal(reference?.adopted_packages['use-sync-external-store'], '1.7.0');
   assert.equal(reference?.adopted_source?.root, 'vendor/deepseek-harness');
@@ -193,8 +193,8 @@ test('DeepSeek Harness Application Host and visual source reuse stay Studio-only
   assert.equal(reference?.adopted_source?.package_roots.length, 25);
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx'));
   assert.ok(reference?.adopted_source?.files.includes('packages/client/ui-plugin-manager/src/client/PluginManagerPage.module.css'));
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-official-bundles'], '0.2.2-rc.3');
-  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-util-crypto'], '0.2.2-rc.3');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-official-bundles'], '0.2.3-alpha.2');
+  assert.equal(reference?.adopted_packages['@deepseek-ai/dsh-util-crypto'], '0.2.3-alpha.2');
   assert.equal(reference?.upstream_intake?.floating_ref_allowed, false);
   assert.equal(reference?.upstream_intake?.automatic_promotion_allowed, false);
   assert.match(visualCohort.upstream.commit, /^[0-9a-f]{40}$/);

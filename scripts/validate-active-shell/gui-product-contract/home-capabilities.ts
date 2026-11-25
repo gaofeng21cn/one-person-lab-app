@@ -40,7 +40,7 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
   );
   if (!pages.settings_capabilities.must_show?.includes(
     'OPL-managed default companions with installed, registered, enabled, permission, ready, version, and owner-projected action status',
-  ) || !pages.settings_capabilities.must_not_show?.includes('KimiCU classified as a manual or third-party capability')) {
+  ) || !pages.settings_capabilities.must_not_show?.includes('Studio native Computer Use classified as a manual or third-party capability')) {
     throw new Error('App GUI Settings Capabilities must expose managed companions separately from manual and third-party capabilities');
   }
   if (

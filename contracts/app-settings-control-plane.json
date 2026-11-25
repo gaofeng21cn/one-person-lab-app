@@ -68,29 +68,35 @@
   "managed_computer_use": {
     "schema": "opl_managed_computer_use_settings.v1",
     "product_policy_ref": "contracts/app-gui-product-contract.json#computer_use_policy",
-    "provider_identity_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
+    "provider_id": "dsh-cua",
     "route_id": "capabilities",
     "group_id": "opl_managed_companion",
-    "source": "framework_managed_companion_projection",
-    "lifecycle_owner": "one-person-lab",
-    "app_role": "render_status_and_execute_framework_projected_actions",
-    "default_install": true,
+    "source": "studio_dsh_native_computer_use_bridge",
+    "lifecycle_owner": "opl-studio",
+    "app_role": "project_studio_dsh_native_computer_use_controls_and_status",
     "default_enabled": true,
-    "required_actions": [
-      "request_permissions",
-      "recheck",
-      "repair",
-      "reinstall"
+    "default_consent_mode": "elicit",
+    "consent_modes": [
+      "elicit",
+      "allow"
     ],
-    "action_source": "opl app state --profile fast --json projected action catalog",
-    "action_route": "opl app action execute --action <projected_action_id> --json",
+    "required_actions": [
+      "request_accessibility",
+      "request_screen_recording",
+      "open_accessibility_settings",
+      "open_screen_recording_settings",
+      "revoke_app_permission",
+      "retry_app_permission",
+      "refresh"
+    ],
+    "action_source": "oplBridge.readComputerUse / setComputerUse / performComputerUseAction",
+    "mutates_global_codex_config": false,
     "manual_and_third_party_mutation_rule_applies": false,
-    "user_disable_or_uninstall": "explicit_reversible_override_preserved_until_explicit_reenable_or_reinstall",
     "must_not_own": [
       "provider_binary_implementation",
       "desktop_input_or_screenshot_engine",
       "mcp_tool_schema",
-      "second_dependency_or_version_catalog"
+      "global_codex_config_toml_mutation"
     ]
   },
   "agents_capabilities_ownership": {
@@ -5004,14 +5010,14 @@
             "OPL 托管",
             "Computer Use",
             "桌面操作",
-            "KimiCU",
+            "DSH CUA",
             "权限"
           ],
           "keywords_en": [
             "managed by OPL",
             "computer use",
             "desktop automation",
-            "KimiCU",
+            "DSH CUA",
             "permission"
           ]
         },

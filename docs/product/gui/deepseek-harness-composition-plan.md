@@ -10,8 +10,8 @@ Machine boundary: 本文解释 App 已批准的 Studio Application Host 架构�
 
 ## 结论
 
-OPL Studio 以 DeepSeek Harness `v0.2.2-rc.3`、commit
-`38a6a5c965aa99ab525161efb7cc5cf1fe62fced` 为基座，复用的是完整 DSH/Cordis
+OPL Studio 以 DeepSeek Harness `v0.2.3-alpha.2`、commit
+`4b399c39a6d1479cd84ca591b4d7c88e24d38a96` 为基座，复用的是完整 DSH/Cordis
 Application Host 骨架和选定 GUI 源码，不是只复用 GUI 模块。
 
 插件化与跟随上游升级是持续工程约束；新增上层能力按
@@ -172,5 +172,5 @@ Repository relationship、candidate role 和 adoption 只维护在
 - [`opl-studio-plan.md`](opl-studio-plan.md) 的产品角色、adoption 与仓库关系
 - [`gui-shell-candidates.md`](gui-shell-candidates.md) 的 active/candidate Shell 选择
 
-本轮跟随官方 `dsh-v0.2.2-rc.3` 发布候选；DSH 的 prerelease 标记不代表 OPL Stable 资格。
+本轮跟随官方 `dsh-v0.2.3-alpha.2`；DSH 的 prerelease 标记不代表 OPL Stable 资格。
 App 仍须以准确集成候选完成源码、签名、公证和普通账号首次安装验收后才公开。

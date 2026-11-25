@@ -14,7 +14,6 @@ import {
 } from '../full-first-install-package.ts';
 import { writeRuntimeWrappers } from '../full-first-install-runtime-wrappers.ts';
 import {
-  appRepoRoot,
   MACOS_ARM64_TEMPORAL_CORE_BRIDGE_TARGET,
 } from './paths.ts';
 import {
@@ -22,7 +21,6 @@ import {
   copyProductionNodeModules,
   copySingleFile,
   copyTreeFiltered,
-  directorySizeBytes,
 } from './filesystem.ts';
 import { readGitHead } from './git.ts';
 import { catalogPackageSeed, copyCatalogPackageSeed } from './catalog-package-seed.ts';
@@ -38,189 +36,6 @@ import {
   readMaterializedResolvedSelectedBundleDescriptor,
 } from './resolved-selected-bundle-descriptor.ts';
 
-export const KIMI_CU_QUALIFICATION_IDENTITY_REF =
-  'contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu';
-
-function requiredString(value, label) {
-  if (typeof value !== 'string' || value.trim() === '') {
-    throw new Error(`KimiCU qualification identity ${label} must be a non-empty string.`);
-  }
-  return value;
-}
-
-function safePathSegment(value, label) {
-  const segment = requiredString(value, label);
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(segment)) {
-    throw new Error(`KimiCU qualification identity ${label} is not safe for a runtime path: ${segment}`);
-  }
-  return segment;
-}
-
-export function readKimiCuQualificationIdentity(root = appRepoRoot) {
-  const manifestPath = process.env.OPL_RELEASE_DEPENDENCY_MANIFEST
-    ? path.resolve(process.env.OPL_RELEASE_DEPENDENCY_MANIFEST)
-    : path.join(root, 'contracts', 'app-release-qualification-input-manifest.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  const identity = manifest?.runtime_payloads?.kimi_cu;
-  if (!identity || typeof identity !== 'object' || Array.isArray(identity)) {
-    throw new Error(`KimiCU qualification identity is missing from ${manifestPath}.`);
-  }
-
-  safePathSegment(identity.provider_id, 'provider_id');
-  if (identity.version !== undefined) safePathSegment(identity.version, 'version');
-  requiredString(identity.product_name, 'product_name');
-  if (identity.archive_url !== undefined) requiredString(identity.archive_url, 'archive_url');
-  if (identity.archive_sha256 !== undefined && !/^[a-f0-9]{64}$/.test(String(identity.archive_sha256))) {
-    throw new Error('KimiCU qualification identity archive_sha256 must be a lowercase SHA-256 digest.');
-  }
-  if (identity.archive_size_bytes !== undefined && (!Number.isSafeInteger(identity.archive_size_bytes) || identity.archive_size_bytes <= 0)) {
-    throw new Error('KimiCU qualification identity archive_size_bytes must be a positive integer.');
-  }
-  requiredString(identity.bundle?.target_install_path, 'bundle.target_install_path');
-
-  return identity;
-}
-
-export function assertResolvedKimiCuArchiveIdentity(identity = readKimiCuQualificationIdentity()) {
-  if (!identity.version
-    || !identity.archive_url || !/^https:\/\//.test(identity.archive_url)
-    || !/^[a-f0-9]{64}$/.test(String(identity.archive_sha256 ?? ''))
-    || !Number.isSafeInteger(identity.archive_size_bytes)
-    || identity.archive_size_bytes <= 0) {
-    throw new Error(
-      'KimiCU Full offline seed requires a resolved archive identity from OPL_RELEASE_DEPENDENCY_MANIFEST.',
-    );
-  }
-  safePathSegment(identity.version, 'version');
-  return identity;
-}
-
-export function kimiCuOfflineSeedRelativePath(identity = readKimiCuQualificationIdentity()) {
-  if (!identity.version) throw new Error('KimiCU offline seed path requires an operation-resolved version.');
-  return path.posix.join(
-    'runtime-payloads',
-    safePathSegment(identity.provider_id, 'provider_id'),
-    safePathSegment(identity.version, 'version'),
-    'KimiCU.app.zip',
-  );
-}
-
-function fileSha256(filePath) {
-  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
-}
-
-export function assertKimiCuOfflineSeed(runtimeRoot, identity = readKimiCuQualificationIdentity()) {
-  if (!identity.archive_sha256 || !Number.isSafeInteger(identity.archive_size_bytes) || identity.archive_size_bytes <= 0) {
-    throw new Error('KimiCU offline seed requires a resolved archive identity from OPL_RELEASE_DEPENDENCY_MANIFEST.');
-  }
-  const relativePath = kimiCuOfflineSeedRelativePath(identity);
-  const archivePath = path.join(runtimeRoot, ...relativePath.split('/'));
-  if (!fs.existsSync(archivePath) || !fs.statSync(archivePath).isFile()) {
-    throw new Error(`Full runtime KimiCU offline seed is missing: ${archivePath}`);
-  }
-  const sizeBytes = fs.statSync(archivePath).size;
-  if (sizeBytes !== identity.archive_size_bytes) {
-    throw new Error(
-      `Full runtime KimiCU offline seed size drifted: expected ${identity.archive_size_bytes}, found ${sizeBytes}.`,
-    );
-  }
-  const archiveSha256 = fileSha256(archivePath);
-  if (archiveSha256 !== identity.archive_sha256) {
-    throw new Error(
-      `Full runtime KimiCU offline seed SHA-256 drifted: expected ${identity.archive_sha256}, found ${archiveSha256}.`,
-    );
-  }
-  return {
-    path: relativePath,
-    exists: true,
-    size_bytes: sizeBytes,
-    archive_sha256: archiveSha256,
-    role: 'bundled_exact_vendor_archive_seed',
-    provider_id: identity.provider_id,
-    qualification_identity_ref: KIMI_CU_QUALIFICATION_IDENTITY_REF,
-  };
-}
-
-export function materializeKimiCuOfflineSeed(
-  runtimeRoot,
-  sourceArchivePath,
-  identity = readKimiCuQualificationIdentity(),
-) {
-  assertResolvedKimiCuArchiveIdentity(identity);
-  const targetPath = path.join(runtimeRoot, ...kimiCuOfflineSeedRelativePath(identity).split('/'));
-  copySingleFile(sourceArchivePath, targetPath);
-  return assertKimiCuOfflineSeed(runtimeRoot, identity);
-}
-
-export function writeKimiCuOfflineSeedManifest(
-  runtimeRoot,
-  manifest,
-  identity = readKimiCuQualificationIdentity(),
-) {
-  const seed = assertKimiCuOfflineSeed(runtimeRoot, identity);
-  const existingPayloads = Array.isArray(manifest?.runtime_assertions?.offline_required_payloads)
-    ? manifest.runtime_assertions.offline_required_payloads
-    : [];
-  const offlineRequiredPayloads = [
-    ...existingPayloads.filter((entry) => entry?.path !== seed.path),
-    seed,
-  ];
-  let nextManifest = {
-    ...manifest,
-    runtime_assertions: {
-      ...(manifest?.runtime_assertions ?? {}),
-      offline_required_payloads: offlineRequiredPayloads,
-      computer_use_offline_seed: {
-        status: 'packaged',
-        ...seed,
-      },
-    },
-    computer_use_offline_seed: {
-      schema: 'opl_full_computer_use_offline_seed.v1',
-      materialization_role: 'full_offline_seed_only',
-      qualification_identity_ref: KIMI_CU_QUALIFICATION_IDENTITY_REF,
-      provider_id: identity.provider_id,
-      version: identity.version,
-      archive_url: identity.archive_url,
-      runtime_relative_path: seed.path,
-      archive_relative_path: seed.path,
-      archive_sha256: seed.archive_sha256,
-      archive_size_bytes: seed.size_bytes,
-      target_install_path: identity.bundle.target_install_path,
-      defines_second_provider_or_behavior: false,
-    },
-  };
-  const manifestPath = path.join(runtimeRoot, 'manifest', 'full-package-manifest.json');
-  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    fs.writeFileSync(manifestPath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8');
-    const totalRuntimeBytes = directorySizeBytes(runtimeRoot);
-    const seedRoot = path.join(runtimeRoot, 'runtime-payloads');
-    const withSizes = {
-      ...nextManifest,
-      size_breakdown: {
-        ...(nextManifest.size_breakdown ?? {}),
-        total_runtime_uncompressed_bytes: totalRuntimeBytes,
-        offline_seeds: {
-          relative_path: 'runtime-payloads',
-          size_bytes: directorySizeBytes(seedRoot),
-          computer_use: {
-            relative_path: seed.path,
-            size_bytes: seed.size_bytes,
-          },
-        },
-      },
-    };
-    fs.writeFileSync(manifestPath, `${JSON.stringify(withSizes, null, 2)}\n`, 'utf8');
-    if (directorySizeBytes(runtimeRoot) === totalRuntimeBytes) {
-      return withSizes;
-    }
-    nextManifest = withSizes;
-  }
-
-  throw new Error('Full runtime manifest size_breakdown did not stabilize after adding the KimiCU offline seed.');
-}
 
 export function assertOplRuntimeProductionDependencies(oplRoot) {
   const packageJsonPath = path.join(oplRoot, 'package.json');

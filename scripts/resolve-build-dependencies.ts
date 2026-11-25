@@ -63,14 +63,6 @@ export function projectResolvedBuildDependencies(resolved: Json, fullPolicy: Jso
     platform: { ...qualification.runtime_payloads.codex_cli.platform, ...platform },
   };
   }
-  if (byId.has('kimi-cu')) {
-  const kimi = archive('kimi-cu');
-  qualification.runtime_payloads.kimi_cu = {
-    ...qualification.runtime_payloads.kimi_cu,
-    version: kimi.version, archive_url: kimi.archive_url,
-    archive_sha256: kimi.archive_sha256, archive_size_bytes: kimi.archive_size_bytes,
-  };
-  }
   return { full, qualification };
 }
 
@@ -93,7 +85,7 @@ function main() {
   if (values['resolved-input']) resolved = JSON.parse(fs.readFileSync(path.resolve(values['resolved-input']), 'utf8'));
   else {
     if (!values['framework-root']) throw new Error('--framework-root or --resolved-input is required.');
-    const ids = new Set<string>(values.dependency ?? ['node', 'mineru-open-api', 'officecli', 'temporal-cli', 'kimi-cu', 'codex-cli', 'playwright-mcp']);
+    const ids = new Set<string>(values.dependency ?? ['node', 'mineru-open-api', 'officecli', 'temporal-cli', 'codex-cli', 'playwright-mcp']);
     if (!values.dependency) for (const [key, policy] of Object.entries<Json>(fullPolicy.toolchain ?? {})) ids.add(policy.dependency_id ?? key);
     const result = spawnSync(process.execPath, [path.resolve(values['framework-root'], 'scripts/resolve-dependency-releases.mjs'),
       ...[...ids].flatMap((id) => ['--dependency', id]), '--platform', values.platform, '--arch', values.arch,

@@ -43,24 +43,27 @@
   "computer_use": {
     "schema": "opl_app_computer_use_profile.v1",
     "policy_ref": "contracts/app-gui-product-contract.json#computer_use_policy",
-    "desktop_default_provider": "kimi-cu",
-    "provider_identity_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
-    "lifecycle_class": "opl_managed_bundled_companion",
-    "lifecycle_owner": "one-person-lab",
-    "default_install": true,
-    "default_register": true,
+    "desktop_default_provider": "dsh-cua",
+    "lifecycle_class": "studio_dsh_native_cua_mcp",
+    "lifecycle_owner": "opl-studio",
+    "mcp_server_name": "dsh_cua",
+    "codex_injection": "dynamic_cli_override_required_false",
+    "mutates_global_codex_config": false,
+    "consent_modes": ["elicit", "allow"],
+    "default_consent_mode": "elicit",
+    "native_helper_package": "@deepseek-ai/dsh-cua-macos",
     "default_enabled": true,
     "distribution_forms": {
       "standard": {
-        "materialization_source": "pinned_network_archive",
+        "materialization_source": "bundled_studio_app_payload",
         "offline_seed": false
       },
       "full": {
-        "materialization_source": "bundled_exact_archive_seed",
-        "offline_seed": true
+        "materialization_source": "bundled_studio_app_payload",
+        "offline_seed": false
       },
       "same_installed_identity_and_behavior_required": true,
-      "full_difference": "offline_seed_only",
+      "full_difference": "none",
       "full_additional_provider_or_behavior_allowed": false
     },
     "permission_readiness": {
@@ -88,10 +91,10 @@
       "host_browser_requirement": {
         "browser": "Google Chrome",
         "required_for_structured_provider_ready": true,
-        "missing_blocks_plain_codex_or_kimi_cu": false
+        "missing_blocks_plain_codex_or_desktop_computer_use": false
       },
-      "kimi_cu_visual_fallback": {
-        "provider_id": "kimi-cu",
+      "desktop_visual_fallback": {
+        "provider_id": "dsh-cua",
         "enabled": true,
         "may_replace_structured_default": false
       },
@@ -138,8 +141,8 @@
       "implementation_repo": "gaofeng21cn/opl-studio",
       "role": "deepseek_harness_cordis_application_host",
       "implementation_status": "source_implemented_active_shell_carrier_qualification_separate",
-      "upstream_version": "0.2.2-rc.3",
-      "upstream_ref": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "upstream_version": "0.2.3-alpha.2",
+      "upstream_ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
       "profile": "opl-studio",
       "profile_source": "src/host/dsh/cordis.yml",
       "web_overlay": "src/host/dsh/web.patch.yml",
@@ -6778,8 +6781,8 @@
               "anchor": "opl-managed-companion",
               "label_zh": "桌面操作",
           "label_en": "Desktop automation",
-              "keywords_zh": ["OPL 托管", "Computer Use", "桌面操作", "KimiCU", "权限"],
-              "keywords_en": ["managed by OPL", "computer use", "desktop automation", "KimiCU", "permission"]
+              "keywords_zh": ["OPL 托管", "Computer Use", "桌面操作", "DSH CUA", "权限"],
+              "keywords_en": ["managed by OPL", "computer use", "desktop automation", "DSH CUA", "permission"]
             },
             {
               "id": "capabilities.third_party",

@@ -741,18 +741,16 @@ test('manual latest commands and operator guide remain discoverable', () => {
   );
 });
 
-test('manual build freezes official Node, KimiCU and the Codex input required by Studio', (context) => {
+test('manual build freezes official Node and the Codex input required by Studio', (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-manual-resolved-dependencies-'));
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const framework = path.join(root, 'framework');
   fs.mkdirSync(path.join(framework, 'scripts'), { recursive: true });
   const fixtures = [
-    { dependency_id: 'node', version: '26.13.0', source_ref: 'https://nodejs.org/dist/v26.13.0/SHASUMS256.txt',
-      archive_url: 'https://nodejs.org/dist/v26.13.0/node-v26.13.0-darwin-arm64.tar.gz',
+    { dependency_id: 'node', version: '26.13.1', source_ref: 'https://nodejs.org/dist/v26.13.1/SHASUMS256.txt',
+      archive_url: 'https://nodejs.org/dist/v26.13.1/node-v26.13.1-darwin-arm64.tar.gz',
       archive_sha256: 'd'.repeat(64), archive_size_bytes: 10,
       install_metadata: { format: 'tar.gz', strip_components: 1 } },
-    { dependency_id: 'kimi-cu', version: '0.7.1', source_ref: '0.7.1',
-      archive_url: 'https://example.invalid/kimi.zip', archive_sha256: 'a'.repeat(64), archive_size_bytes: 10 },
     { dependency_id: 'codex-cli', version: '1.0.0', source_ref: '1.0.0',
       archive_url: 'https://example.invalid/codex.tgz', archive_sha256: 'b'.repeat(64), archive_size_bytes: 10,
       npm_integrity: 'sha512-Y29kZXg=', install_metadata: { npm_platform: {
@@ -774,17 +772,17 @@ test('manual build freezes official Node, KimiCU and the Codex input required by
   `);
   const result = resolveManualBuildDependencies(framework, path.join(root, 'build'));
   const manifest = JSON.parse(fs.readFileSync(result.qualificationManifestPath, 'utf8'));
-  assert.equal(manifest.runtime_payloads.kimi_cu.archive_sha256, 'a'.repeat(64));
+  assert.equal(manifest.runtime_payloads.kimi_cu, undefined);
   assert.equal(manifest.runtime_payloads.codex_cli.version, '1.0.0');
   assert.equal(manifest.runtime_payloads.codex_cli.npm_integrity, 'sha512-Y29kZXg=');
   assert.equal(manifest.runtime_payloads.codex_cli.tarball_sha256, 'b'.repeat(64));
-  assert.deepEqual(result.sourceLock.dependencies.map(entry => entry.dependency_id), ['node', 'kimi-cu', 'codex-cli']);
+  assert.deepEqual(result.sourceLock.dependencies.map(entry => entry.dependency_id), ['node', 'codex-cli']);
   assert.equal(result.sourceLock.dependencies[0].archive_sha256, 'd'.repeat(64));
   assert.match(result.sourceLock.qualification_manifest_sha256, /^[a-f0-9]{64}$/);
 });
 
 test('manual Node materialization rejects an unfrozen or nonofficial archive before downloading', () => {
-  const input = { dependency_id: 'node', version: '26.13.0', source_ref: 'https://nodejs.org/dist/v26.13.0/SHASUMS256.txt',
+  const input = { dependency_id: 'node', version: '26.13.1', source_ref: 'https://nodejs.org/dist/v26.13.1/SHASUMS256.txt',
     archive_url: 'https://example.invalid/node.tar.gz', archive_sha256: 'a'.repeat(64), archive_size_bytes: 10,
     install_metadata: { format: 'tar.gz', strip_components: 1 } };
   assert.throws(() => prepareResolvedNodeToolchain(input, '/unused', '/unused'), /exact official Node archive/);

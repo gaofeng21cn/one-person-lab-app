@@ -105,19 +105,16 @@ Standard 与 Full 共用 Official Profile，包含 Med Auto Cast (`med-autocast`
 MAC 及其 manifest 声明的必需素材库由 Framework Package 生命周期安装，所有 MAC 标准安装默认选择轻量目录包。Full 仅集成同一素材包经内容锁校验的小核心，解包上限为 50 MiB；已发布旧大包继续排除，直到 Framework 冻结来源指向新版目录包。用户可在软件中心为同一素材库选择“安装离线完整版”，该独立媒体安装不影响核心激活和默认依赖。Full 的小核心提供索引、来源、工具和随包组件，完整媒体离线能力由用户主动安装的完整版提供。
 已有安装保留用户选择，只在首次安装或显式恢复 Official Profile 时收敛全部 roots。
 
-macOS arm64 Standard 与 Full 都默认安装、注册并启用 KimiCU。Standard 在首次
-managed installation 中下载并校验固定归档；Full 把完全相同的归档作为离线 seed
-放入安装包。因此 Full 的差异只有约 `1.43 MiB` 的压缩 seed 和离线可用性，不是
-另一个 Computer Use 产品或运行路径。
-
-两种载体完成同一发布操作后必须具有相同的操作冻结 KimiCU 版本、归档 SHA-256、Bundle ID、
-Team ID、`/Applications/KimiCU.app` 路径、MCP command/args、默认 enablement、
-工具集与 TCC 状态模型。Standard 网络故障只降级 Computer Use 并提供重试，不阻塞
-普通 OPL/Codex；Full 的 clean VM 必须证明不联网也能 materialize。权限提示可由用户
-完成，但未授权时只能记录 `permission_required + ready=false`。
+macOS arm64 Standard 与 Full 均通过 Studio 应用随包的 DeepSeek Harness 原生
+Computer Use（`@deepseek-ai/dsh-cua-mcp` + `@deepseek-ai/dsh-cua-macos`）提供桌面操作能力，
+并通过 `opl-codex-native` 在启动 Codex App Server 时按 `required=false` 动态注入
+`-c mcp_servers.dsh_cua.*`（不修改 `~/.codex/config.toml`）。Standard 与 Full 携带
+完全相同的 Studio 内建 helper，不再下载或随 Full 包分发单独的 KimiCU 离线 seed。
+默认授权模式为按应用弹窗确认（`elicit`），设置页同时提供切向无人值守 `allow` 模式的入口；
+未授予 Accessibility / Screen Recording TCC 权限时不阻塞普通 OPL/Codex 对话，仅引导用户完成系统授权。
 
 机器真值在 `contracts/app-release-channel.json#computer_use_distribution` 和
-`contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu`；
+`contracts/app-gui-product-contract.json#computer_use_policy`；
 人读设计与落地计划见 [`../product/gui/computer-use.md`](../product/gui/computer-use.md)。
 这些追加不得改写主 macOS 资产、release body、updater identity 或 Latest。
 

@@ -464,49 +464,47 @@
   "computer_use_distribution": {
     "schema": "opl_app_computer_use_distribution.v1",
     "product_policy_ref": "contracts/app-gui-product-contract.json#computer_use_policy",
-    "qualification_identity_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
-    "full_seed_manifest_ref": "contracts/app-full-third-party-source-manifest.json#runtime_payloads.kimi_cu",
-    "provider_id": "kimi-cu",
-    "default_install": true,
-    "default_register": true,
+    "provider_id": "dsh-cua",
+    "lifecycle_owner": "opl-studio",
+    "native_helper_package": "@deepseek-ai/dsh-cua-macos",
+    "mcp_package": "@deepseek-ai/dsh-cua-mcp",
+    "mac_sign_ignore": true,
+    "separate_full_offline_seed_required": false,
     "default_enabled": true,
+    "default_consent_mode": "elicit",
+    "consent_modes": [
+      "elicit",
+      "allow"
+    ],
     "standard": {
       "payload_density": "standard",
-      "source": "framework_resolved_vendor_archive_download",
-      "network_required_for_first_materialization": true,
-      "target_path": "/Applications/KimiCU.app"
+      "source": "bundled_studio_app_payload",
+      "network_required_for_first_materialization": false
     },
     "full": {
       "payload_density": "full",
-      "source": "bundled_exact_vendor_archive_seed",
-      "network_required_for_first_materialization": false,
-      "target_path": "/Applications/KimiCU.app"
+      "source": "bundled_studio_app_payload",
+      "network_required_for_first_materialization": false
     },
     "post_install_parity": {
-      "same_version": true,
-      "same_archive_sha256": true,
-      "same_bundle_id": true,
-      "same_signing_team_id": true,
-      "same_target_path": true,
-      "same_mcp_command_and_args": true,
+      "same_provider_id": true,
+      "same_bundled_native_helper": true,
+      "same_codex_dynamic_injection": true,
+      "same_default_consent_mode": true,
       "same_default_enabled_state": true,
       "same_required_tool_set": true,
       "same_permission_and_health_readback": true,
-      "full_second_manifest_or_provider_allowed": false,
-      "same_version_scope": "same_frozen_release_qualification_operation_not_permanent_runtime_pin"
+      "full_second_manifest_or_provider_allowed": false
     },
     "release_qualification": {
-      "standard_clean_vm_requires_network_materialization": true,
-      "full_clean_vm_requires_offline_materialization": true,
-      "both_require_mcp_initialize_and_tools_list": true,
-      "both_require_mcp_tools_call_list_apps": true,
+      "both_require_bundled_native_helper": true,
       "both_require_permission_status_readback": true,
-      "both_require_identity_and_state_readback": true,
+      "both_require_cua_mcp_tools_list": true,
+      "both_require_codex_app_server_mcp_status_in_elicit_and_allow": true,
       "permission_prompt_completion_may_be_manual": true,
-      "permission_not_granted_expected_state": "installed_registered_enabled_permission_required_not_ready",
+      "permission_not_granted_expected_state": "enabled_permission_required_plain_codex_unblocked",
       "stable_publication_requires_accessibility_and_screen_recording_granted": true,
-      "stable_publication_requires_ready": true,
-      "stable_publication_requires_codex_backend_detected": true
+      "stable_publication_requires_ready": true
     },
     "browser_provider": {
       "schema": "opl_app_browser_provider_distribution.v1",
@@ -545,7 +543,7 @@
         "both_require_same_codex_registry_entry_readback": true,
         "both_require_mcp_initialize_and_tools_list": true,
         "both_require_structured_browser_smoke": true,
-        "kimi_cu_visual_fallback_may_substitute_for_playwright_qualification": false,
+        "desktop_visual_fallback_may_substitute_for_playwright_qualification": false,
         "installed_and_release_status": "unverified"
       },
       "dependency_id": "playwright-mcp",
@@ -568,7 +566,7 @@
       },
       "both_tracks_require": [
         "packaged_clean_vm_first_run",
-        "kimi_cu_identity_service_xpc_tcc_mcp_initialize_and_tools_list",
+        "dsh_cua_native_helper_tcc_cua_mcp_tools_list_and_codex_injection",
         "playwright_same_codex_registry_entry_mcp_initialize_tools_list_navigation_and_snapshot",
         "same_cohort_gui_readback"
       ],
@@ -581,14 +579,11 @@
       "close_condition": "standard_and_full_qualification_and_public_readback_are_bound_to_the_same_stable_cohort"
     },
     "version_resolution": {
-      "owner": "one-person-lab",
-      "source_policy_ref": "one-person-lab/contracts/opl-framework/dependency-release-sources.json#sources.kimi-cu",
-      "selection_policy": "latest_stable_at_operation_start",
-      "same_resolver_for_full_and_managed_update": true,
-      "automatic_update": true,
-      "automatic_downgrade_allowed": false,
-      "full_seed_is_initial_install_snapshot_only": true,
-      "preserve_verified_newer_installed_versions": true
+      "owner": "opl-studio",
+      "source_policy_ref": "shells/opl-studio/package.json#dependencies.@deepseek-ai/dsh-cua-mcp",
+      "selection_policy": "pinned_to_dsh_source_cohort_in_studio_app",
+      "same_bundle_in_standard_and_full": true,
+      "separate_full_seed_required": false
     }
   },
   "distribution_semantics": {

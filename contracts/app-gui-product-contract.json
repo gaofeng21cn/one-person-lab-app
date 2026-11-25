@@ -87,38 +87,28 @@
       "macos>=14.0"
     ],
     "desktop_provider": {
-      "provider_id": "kimi-cu",
+      "provider_id": "dsh-cua",
       "display_name": "Computer Use",
-      "lifecycle_class": "opl_managed_bundled_companion",
-      "provider_identity_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
-      "lifecycle_owner": "one-person-lab",
+      "lifecycle_class": "studio_dsh_native_cua_mcp",
+      "lifecycle_owner": "opl-studio",
       "app_role": "default_policy_projection_and_user_experience",
-      "managed_install_path": "/Applications/KimiCU.app",
-      "mcp_server_id": "kimi-cu",
-      "mcp_command": "/Applications/KimiCU.app/Contents/MacOS/kimi-cu",
-      "mcp_args": [
-        "mcp",
-        "-s",
-        "user"
+      "mcp_server_id": "dsh_cua",
+      "mcp_package": "@deepseek-ai/dsh-cua-mcp",
+      "native_helper_package": "@deepseek-ai/dsh-cua-macos",
+      "native_helper_sign_ignore": true,
+      "codex_injection": "dynamic_cli_override_required_false",
+      "mutates_global_codex_config": false,
+      "consent_modes": [
+        "elicit",
+        "allow"
       ],
-      "managed_codex_home_registration": true,
-      "local_agent_backend": {
-        "agent_id": "codex",
-        "source": "app_bundled_codex_cli",
-        "detection_evidence": "managed_codex_home_mcp_registration",
-        "registration_must_precede_kimi_cu_panel_launch": true,
-        "control_panel_must_detect_configured_backend": true
-      },
-      "default_install": true,
-      "default_register": true,
+      "default_consent_mode": "elicit",
+      "required_tools": [
+        "cua_get_api_reference",
+        "cua_run_code",
+        "cua_reset"
+      ],
       "default_enabled": true,
-      "startup_maintenance_recovery": {
-        "trigger": "core_readiness_after_initialize",
-        "retry_failed_initial_attempt_once": true,
-        "reuse_existing_desktop_maintenance_owner": true,
-        "concurrent_maintenance_allowed": false,
-        "core_launch_blocking": false
-      },
       "permission_model": {
         "required_permissions": [
           "accessibility",
@@ -126,31 +116,26 @@
         ],
         "system_prompt_or_settings_action_required": true,
         "permission_can_be_bypassed_or_fabricated": false,
+        "missing_permission_blocks_plain_codex": false,
         "permission_missing_state": {
-          "installed": true,
-          "registered": true,
           "enabled": true,
           "permission": "required",
           "ready": false
         },
         "permission_granted_state": {
-          "installed": true,
-          "registered": true,
           "enabled": true,
           "permission": "granted",
           "ready": true
         }
-      },
-      "release_policy_ref": "one-person-lab/contracts/opl-framework/dependency-release-sources.json#sources.kimi-cu",
-      "automatic_update": true,
-      "preserve_verified_newer_installed_versions": true
+      }
     },
     "distribution_parity": {
-      "standard_materialization": "download_exact_pinned_archive_during_managed_install",
-      "full_materialization": "materialize_exact_same_archive_from_bundled_offline_seed",
+      "standard_materialization": "bundled_in_studio_app_payload",
+      "full_materialization": "bundled_in_studio_app_payload",
+      "separate_offline_archive_seed_required": false,
       "same_provider_identity_required": true,
-      "same_target_path_required": true,
-      "same_mcp_registration_required": true,
+      "same_mcp_injection_required": true,
+      "same_default_consent_mode_required": true,
       "same_default_enabled_state_required": true,
       "same_permission_and_readiness_model_required": true,
       "full_second_provider_or_behavior_allowed": false,
@@ -178,7 +163,7 @@
         "browser": "Google Chrome",
         "required_for_structured_provider_ready": true,
         "missing_status": "attention_required",
-        "missing_blocks_plain_codex_or_kimi_cu": false
+        "missing_blocks_plain_codex_or_desktop_computer_use": false
       },
       "runtime_carrier": "framework_managed_dependency_in_standard_and_full",
       "primary_role": "structured_repeatable_browser_automation",
@@ -188,12 +173,11 @@
         "repeatable_browser_workflows",
         "deterministic_browser_regression"
       ],
-      "desktop_visual_fallback_provider_id": "kimi-cu",
-      "fallback_policy": "use_kimi_cu_only_for_visual_desktop_interaction_or_when_the_structured_browser_path_cannot_represent_the_task",
+      "desktop_visual_fallback_provider_id": "dsh-cua",
+      "fallback_policy": "use_dsh_cua_only_for_visual_desktop_interaction_or_when_the_structured_browser_path_cannot_represent_the_task",
       "existing_chrome_session_followup": {
         "status": "separate_validation_required",
         "candidate_paths": [
-          "kimi_webbridge",
           "playwright_cdp"
         ],
         "must_not_create_second_default_browser_provider": true
@@ -216,7 +200,7 @@
         "browser_session_store_allowed": false,
         "codex_thread_or_session_authority_transfer_allowed": false,
         "shell_may_mutate_codex_mcp_registry": false,
-        "kimi_cu_visual_fallback_may_replace_structured_default": false
+        "desktop_visual_fallback_may_replace_structured_default": false
       },
       "dependency_id": "playwright-mcp",
       "selection_policy": "latest_stable_at_operation_start"
@@ -7121,7 +7105,7 @@
       "official_ui_reuse": {
         "page_identity": "软件中心",
         "upstream_page": "deepseek-harness/packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
-        "upstream_ref": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "upstream_ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
         "reused_interaction_and_visuals": [
           "grouped plugin cards and compact metadata",
           "official artwork and state dots",
@@ -8629,7 +8613,7 @@
         "raw provider ids as primary capability labels",
         "Shell-local capabilities reclassified as OPL Flow managed",
         "a second OPL Flow updater or scheduler",
-        "KimiCU classified as a manual or third-party capability",
+        "Studio native Computer Use classified as a manual or third-party capability",
         "silent mutation of manual or third-party Skills and Plugins",
         "voice input configuration on Preferences or Advanced",
         "raw English trigger instructions as the primary description in a Chinese capability row"

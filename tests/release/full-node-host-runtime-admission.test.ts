@@ -26,7 +26,7 @@ test('Full consumes the carrier Node admission and refuses an unsafe explicit to
 test('Full resolves npm and npx from Homebrew-style shared links', context => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-node-homebrew-'));
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const nodeRoot = path.join(root, 'Cellar/node/26.13.0_2');
+  const nodeRoot = path.join(root, 'Cellar/node/26.13.1_2');
   const bin = path.join(nodeRoot, 'bin');
   const npmRoot = path.join(root, 'lib/node_modules/npm');
   fs.mkdirSync(bin, { recursive: true });
@@ -68,7 +68,7 @@ test('Full rejects a Node toolchain with build-machine dylibs before runtime ass
   fs.mkdirSync(path.join(root, 'lib/node_modules/npm'), { recursive: true });
   for (const name of ['npm', 'npx']) fs.writeFileSync(path.join(bin, name), 'fixture');
   const node = path.join(bin, 'node');
-  fs.writeFileSync(node, '#!/bin/sh\necho \'{"node":"26.13.0","electron":null}\'\n', { mode: 0o755 });
+  fs.writeFileSync(node, '#!/bin/sh\necho \'{"node":"26.13.1","electron":null}\'\n', { mode: 0o755 });
   fs.writeFileSync(path.join(root, 'lib/libnode.dylib'), Buffer.from('cffaedfe', 'hex'));
   fs.writeFileSync(path.join(bin, 'otool'), `#!/bin/sh
 printf '%s:\\n' "$3"

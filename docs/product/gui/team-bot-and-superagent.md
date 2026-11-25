@@ -13,7 +13,7 @@ Team、Subagent 和角色预设直接使用固定版本 DSH 的完整官方 Web 
 4. 关闭协作沿用官方确认流程：已有模型请求时需确认；取消不变；关闭保留成员和任务。子会话不显示根会话的开关和任务板。
 5. 可复用角色使用官方 Settings 中的 Agent Presets。查看配置沿用官方 YAML 视图，创建和修改沿用 Creator。固定版本没有单独的 Bot 模板管理页。
 
-DSH 固定 `dsh-v0.2.2-rc.3`，提交 `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`。协作工作台直接装配官方 `dsh-base` 与 `dsh-web-app`，不复制或改写官方 UI；主 OPL profile 不加载 base。原版 CLI 独立进程通过父 Host 的私有 IPC 复用同一个持久 Codex App Server，官方 DSH 持有逻辑会话、成员和任务，Codex 持有执行线程。执行适配将官方本轮工具目录、模型、推理和权限投影交给 Codex；不创建第二个 Codex 客户端。工作台的 Settings、热更新和退出均由原版 CLI 管理，OPL 停止工作台时中断其确切的活动轮次。Codex 内置命令的细节与 Token 用量仍以原 Codex 线程为准；当前适配展示最终回复与官方 DSH 工具卡片，尚未投影完整的 Codex 原生事件流。
+DSH 固定 `dsh-v0.2.3-alpha.2`，提交 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`。协作工作台直接装配官方 `dsh-base` 与 `dsh-web-app`，不复制或改写官方 UI；主 OPL profile 不加载 base。原版 CLI 独立进程通过父 Host 的私有 IPC 复用同一个持久 Codex App Server，官方 DSH 持有逻辑会话、成员和任务，Codex 持有执行线程。执行适配将官方本轮工具目录、模型、推理和权限投影交给 Codex；不创建第二个 Codex 客户端。工作台的 Settings、热更新和退出均由原版 CLI 管理，OPL 停止工作台时中断其确切的活动轮次。Codex 内置命令的细节与 Token 用量仍以原 Codex 线程为准；当前适配展示最终回复与官方 DSH 工具卡片，尚未投影完整的 Codex 原生事件流。
 
 旧版自制 Bot 模板、创建 Team、手工添加成员页面及其写接口已撤下。原 `$DSH_HOME/opl/sessions` 和 Codex 执行绑定继续使用；旧 `bots.json` 原文件保留供迁移参考，不再作为新角色的配置入口。
 

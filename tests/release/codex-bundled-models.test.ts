@@ -65,7 +65,10 @@ test('real subprocess uses bundled mode in an empty home instead of the configur
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-model-catalog-test-'));
     try {
       const binary = path.join(directory, 'codex');
-      const script = `#!${process.execPath}\nconst fs = require('node:fs');
+      const nodeBin = `'${process.execPath.replaceAll("'", "'\\''")}'`;
+      const script = `#!/bin/sh
+exec ${nodeBin} --input-type=commonjs - "$@" <<'__OPL_TEST_NODE_EOF__'
+const fs = require('node:fs');
 const path = require('node:path');
 const isolated = process.env.CODEX_HOME;
 const clean = isolated !== ${JSON.stringify(process.env.CODEX_HOME ?? '')}
@@ -73,7 +76,8 @@ const clean = isolated !== ${JSON.stringify(process.env.CODEX_HOME ?? '')}
 const bundled = process.argv.slice(2).join(' ') === 'debug models --bundled';
 console.log(JSON.stringify({ models: clean && bundled
   ? [{ slug: 'official', display_name: 'Official', visibility: 'list' }]
-  : [{ slug: 'deepseek-flash', display_name: 'Custom', visibility: 'list' }] }));`;
+  : [{ slug: 'deepseek-flash', display_name: 'Custom', visibility: 'list' }] }));
+__OPL_TEST_NODE_EOF__\n`;
       fs.writeFileSync(binary, script, { mode: 0o755 });
       assert.deepEqual(readBundledCodexModels(binary).map((model) => model.slug), ['official']);
       assert.deepEqual(fs.readdirSync(directory), ['codex']);

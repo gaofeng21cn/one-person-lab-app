@@ -155,8 +155,8 @@
   "application_host": {
     "role": "deepseek_harness_cordis_application_host",
     "implementation_status": "source_implemented_release_admission_separate",
-    "upstream_version": "0.2.2-rc.3",
-    "upstream_ref": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "upstream_version": "0.2.3-alpha.2",
+    "upstream_ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
     "profile": "opl-studio",
     "profile_source": "src/host/dsh/cordis.yml",
     "web_overlay": "src/host/dsh/web.patch.yml",

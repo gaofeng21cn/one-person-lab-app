@@ -23,64 +23,6 @@
         "existing_usable_codex_preserved": true,
         "permanent_version_pin": false
       }
-    },
-    "kimi_cu": {
-      "provider_id": "kimi-cu",
-      "product_name": "KimiCU",
-      "license_spdx": "MIT",
-      "redistribution_allowed": true,
-      "platform": {
-        "os": "macos",
-        "minimum_version": "14.0",
-        "architectures": [
-          "arm64"
-        ]
-      },
-      "bundle": {
-        "bundle_id": "ai.kimi.cu",
-        "team_id": "2J9472RW75",
-        "signing": "developer_id",
-        "notarization": "accepted",
-        "target_install_path": "/Applications/KimiCU.app",
-        "executable": "/Applications/KimiCU.app/Contents/MacOS/kimi-cu"
-      },
-      "mcp": {
-        "args": [
-          "mcp",
-          "-s",
-          "user"
-        ],
-        "required_tools": [
-          "list_apps",
-          "get_app_state",
-          "click",
-          "type_text",
-          "press_key",
-          "scroll",
-          "set_value",
-          "perform_secondary_action",
-          "select_text",
-          "drag"
-        ]
-      },
-      "health": {
-        "service_status_args": [
-          "service-status"
-        ],
-        "xpc_ping_args": [
-          "xpc-ping"
-        ],
-        "permission_status_args": [
-          "doctor"
-        ],
-        "mcp_handshake": [
-          "initialize",
-          "tools/list",
-          "tools/call:list_apps"
-        ]
-      },
-      "dependency_id": "kimi-cu",
-      "selection_policy": "latest_stable_at_operation_start"
     }
   },
   "release_boundary": {

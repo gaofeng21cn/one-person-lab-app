@@ -18,12 +18,12 @@ macOS arm64 同时公开 Standard 与 Full；Linux x64 和 Windows x64 使用各
 Desktop 资产。Docker WebUI 使用独立版本和 GHCR 指针，不从 Desktop Stable 继承版本、
 资格或更新状态。
 
-在 macOS arm64 上，Standard 与 Full 都会默认安装、注册并启用同一个 KimiCU
-Computer Use provider。Standard 在托管安装过程中下载固定归档；Full 随包携带完全
-相同的归档作为离线 seed。网络正常且安装完成后，两者的 Computer Use 版本、路径、
-MCP 工具、权限模型与行为完全一致；Full 只增加离线密度，不增加第二套 provider。
-macOS 仍要求用户授予 Accessibility 和 Screen Recording，授权前只影响 Computer
-Use readiness，不影响普通 OPL/Codex 使用。
+在 macOS arm64 上，Standard 与 Full 都会默认打包并启用同一套 Studio 原生 DeepSeek
+Harness Computer Use（`@deepseek-ai/dsh-cua-mcp` + `@deepseek-ai/dsh-cua-macos`），
+不再下载外部 KimiCU 归档或随 Full 携带离线 seed。两者的 Codex 动态注入（`dsh_cua`，
+`required=false`，默认按应用 `elicit` 确认并提供切到无人值守 `allow` 的设置开关）、
+MCP 工具与 TCC 权限模型完全一致；macOS 仍要求用户授予 Accessibility 和 Screen
+Recording，授权前只影响 Computer Use 就绪状态，不影响普通 OPL/Codex 使用。
 
 ## 当前 Stable Desktop artifact
 

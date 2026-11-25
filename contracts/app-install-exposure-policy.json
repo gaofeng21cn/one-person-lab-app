@@ -631,7 +631,7 @@
       "undeclared_user_server_policy": "preserve",
       "undeclared_user_server_delete_or_overwrite_allowed": false,
       "default_managed_server_requires_owner_or_carrier_projection": true,
-      "default_desktop_computer_use_provider_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.kimi_cu",
+      "default_desktop_computer_use_provider_ref": "contracts/app-gui-product-contract.json#computer_use_policy.desktop_provider",
       "managed_companion_is_not_manual_third_party": true
     }
   },

@@ -19,7 +19,7 @@ export type GuiDesignSystemValidation = {
   };
   visual_source_cohort: {
     contract: 'contracts/app-gui-visual-source-cohort.json';
-    source_commit: '38a6a5c965aa99ab525161efb7cc5cf1fe62fced';
+    source_commit: '4b399c39a6d1479cd84ca591b4d7c88e24d38a96';
     source_usage: 'pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters';
   };
   interaction_reference: string;
@@ -71,7 +71,7 @@ export type GuiDesignSystemValidation = {
 };
 
 export const visualSourceCohortPath = 'contracts/app-gui-visual-source-cohort.json';
-export const visualSourceCommit = '38a6a5c965aa99ab525161efb7cc5cf1fe62fced';
+export const visualSourceCommit = '4b399c39a6d1479cd84ca591b4d7c88e24d38a96';
 export const visualSourceUsage = 'pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters';
 export const expectedVisualSourceNormalizations = [] as const;
 export const expectedPhaseOneBehaviorInvariants = [

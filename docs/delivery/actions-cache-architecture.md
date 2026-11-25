@@ -28,10 +28,10 @@ Raw downloads and assembled runtime layers serve different points in the build.
 `dependency-archives-v1-` is restored **before** Framework dependency discovery.
 Framework always queries current official release metadata, then revalidates
 cached archive bytes with that metadata's SHA-256 or npm SRI. This covers Codex
-CLI wrapper/native tarballs, Temporal CLI, Python, Node, Go, OfficeCLI, Kimi and
+CLI wrapper/native tarballs, Temporal CLI, Python, Node, Go, OfficeCLI and
 other resolved archives. It does not cache a latest-version decision.
 
-Python, Temporal, OfficeCLI and the Kimi offline seed consume those same verified downloads
+Python, Temporal and OfficeCLI consume those same verified downloads
 through Framework's `fetch-dependency-archive.mjs`, instead of fetching the
 archives again after discovery. A missing or damaged cache downloads and
 validates normally. Older frozen Framework sources retain their direct download

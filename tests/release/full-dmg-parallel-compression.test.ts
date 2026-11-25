@@ -11,13 +11,16 @@ test('ULMO uses all available compression tasks and cleans its intermediate imag
   const log = path.join(root, 'commands.jsonl');
   const previous = { PATH: process.env.PATH, fail: process.env.OPL_TEST_CONVERT_FAIL };
   fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(bin, 'hdiutil'), `#!${process.execPath}
+  const nodeBin = `'${process.execPath.replaceAll("'", "'\\''")}'`;
+  fs.writeFileSync(path.join(bin, 'hdiutil'), `#!/bin/sh
+exec ${nodeBin} --input-type=commonjs - "$@" <<'__OPL_TEST_NODE_EOF__'
 const fs = require('node:fs');
 const args = process.argv.slice(2);
 if (args[0] === 'info') process.exit(0);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + '\\n');
 if (args[0] === 'convert' && process.env.OPL_TEST_CONVERT_FAIL === '1') process.exit(7);
 fs.writeFileSync(args[0] === 'create' ? args[1] : args[args.indexOf('-o') + 1], 'image');
+__OPL_TEST_NODE_EOF__
 `, { mode: 0o755 });
   process.env.PATH = `${bin}${path.delimiter}${previous.PATH ?? ''}`;
   const stage = path.join(root, 'staging');
