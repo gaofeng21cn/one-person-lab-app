@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parse as parseYaml } from 'yaml';
@@ -57,6 +59,51 @@ test('cancelled workflow without a terminal job stays observational', () => {
   const observation = buildReleaseAttemptObservation(run('cancelled'), { jobs: [] });
   assert.equal(observation.first_terminal.stage, 'workflow_cancelled');
   assert.equal(observation.terminal_failure_job_count, 0);
+});
+
+test('the Stable observer retries a failed jobs read without treating an error page as job data', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-stable-observer-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const action = parseYaml(fs.readFileSync(
+    path.join(appRoot, '.github/actions/release-followups/observe/action.yml'),
+    'utf8',
+  ));
+  const read = action.runs.steps[0].run;
+  const invocations = path.join(root, 'invocations');
+
+  fs.writeFileSync(path.join(root, 'gh'), `#!/bin/bash
+if [[ "$2" != "--paginate" ]]; then
+  printf '{"id":123}\\n'
+  exit 0
+fi
+if [[ ! -e invocations ]]; then
+  printf '1\\n' >> invocations
+  printf '[{"jobs":[{"id":1}]},{"message":"Server Error"}]\\n'
+  printf 'gh: Server Error (HTTP 502)\\n' >&2
+  exit 1
+fi
+printf '2\\n' >> invocations
+printf '[{"jobs":[{"id":1}]},{"jobs":[{"id":2}]}]\\n'
+`, { mode: 0o755 });
+  fs.writeFileSync(path.join(root, 'sleep'), '#!/bin/bash\nexit 0\n', { mode: 0o755 });
+
+  const result = spawnSync('bash', ['-c', read], {
+    cwd: root,
+    env: {
+      ...process.env,
+      PATH: [root, process.env.PATH].join(path.delimiter),
+      STABLE_RUN_ID: '123',
+      GITHUB_REPOSITORY: 'example/app',
+      GH_TOKEN: '',
+    },
+    encoding: 'utf8',
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.readFileSync(invocations, 'utf8'), '1\n2\n');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, 'stable-jobs.json'), 'utf8')), {
+    jobs: [{ id: 1 }, { id: 2 }],
+  });
 });
 
 test('the Stable follow-up hub keeps observation read-only and append-only', () => {
