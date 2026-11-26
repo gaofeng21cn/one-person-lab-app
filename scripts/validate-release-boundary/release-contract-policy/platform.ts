@@ -1,3 +1,14 @@
+import {
+  additionalDesktopPlatformIds,
+  desktopPlatformFollowerDrifted,
+  developmentValidationOnlyCapabilityIds,
+  previewPlatformIds,
+  releasePlatformCapabilityIds,
+  sameTagFullFollowerDrifted,
+  stableRequiredPlatformIds,
+  windowsUpdaterPublicationDrifted,
+  windowsValidationTestPaths,
+} from '../../release-platform-validation.ts';
 import { sameStringSet } from './types.ts';
 import type { ReleaseValidationProfile } from '../release-checks.ts';
 
@@ -8,28 +19,13 @@ export function validateReleasePlatformMatrix(
   const matrix = releaseContract.release_platform_matrix;
   const capabilities = matrix?.capabilities;
   const policies = matrix?.policies;
+  const windowsUpdater = matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets;
   let failures = 0;
-  const requiredCapabilityIds = ['macos-arm64'];
   const windowsCapabilityIds = ['windows-x64', 'windows-arm64'];
-  const developmentValidationOnlyCapabilityIds = [
-    'macos-x64',
-    'macos-universal',
-    'linux-arm64',
-    'windows-arm64',
-  ];
-  const capabilityIds = [
-    'macos-arm64',
-    'macos-x64',
-    'macos-universal',
-    'linux-x64',
-    'linux-arm64',
-    'windows-x64',
-    'windows-arm64',
-  ];
   if (
     matrix?.schema !== 'opl_app_release_platform_matrix.v1'
     || matrix?.resolver !== 'scripts/resolve-release-platform-matrix.ts'
-    || !sameStringSet(Object.keys(capabilities ?? {}), capabilityIds)
+    || !sameStringSet(Object.keys(capabilities ?? {}), releasePlatformCapabilityIds)
   ) {
     console.error('FAIL release_platform_matrix: one canonical resolver must own every declared build capability');
     failures += 1;
@@ -37,10 +33,10 @@ export function validateReleasePlatformMatrix(
   }
 
   const validatedCapabilityIds = profile === 'stable'
-    ? requiredCapabilityIds
+    ? stableRequiredPlatformIds
     : profile === 'windows'
       ? windowsCapabilityIds
-      : capabilityIds;
+      : releasePlatformCapabilityIds;
   for (const id of validatedCapabilityIds) {
     const capability = capabilities[id];
     if (
@@ -73,7 +69,7 @@ export function validateReleasePlatformMatrix(
     }
   }
 
-  for (const id of requiredCapabilityIds) {
+  for (const id of stableRequiredPlatformIds) {
     const capability = capabilities[id];
     if (
       capability.default_enabled !== true
@@ -84,7 +80,7 @@ export function validateReleasePlatformMatrix(
       failures += 1;
     }
   }
-  for (const id of ['macos-x64', 'macos-universal', 'linux-arm64', 'windows-arm64']) {
+  for (const id of developmentValidationOnlyCapabilityIds) {
     const capability = capabilities[id];
     if (capability.default_enabled !== false || capability.blocks_stable !== false) {
       console.error(`FAIL release_platform_matrix: ${id} must remain default-off and non-blocking`);
@@ -121,10 +117,10 @@ export function validateReleasePlatformMatrix(
     failures += 1;
   }
   const policyAssertions: Array<[string, string[], boolean, boolean]> = [
-    ['stable_required', ['macos-arm64'], true, true],
-    ['nightly_standard', ['macos-arm64'], true, true],
-    ['preview_standard', ['macos-arm64', 'linux-x64'], true, true],
-    ['stable_desktop_additional', ['linux-x64', 'windows-x64'], false, false],
+    ['stable_required', stableRequiredPlatformIds, true, true],
+    ['nightly_standard', stableRequiredPlatformIds, true, true],
+    ['preview_standard', previewPlatformIds, true, true],
+    ['stable_desktop_additional', additionalDesktopPlatformIds, false, false],
   ].filter(([name]) => (
     profile === 'aggregate'
     || profile === 'stable'
@@ -140,7 +136,7 @@ export function validateReleasePlatformMatrix(
       failures += 1;
     }
   }
-  if (profile === 'aggregate' && !sameStringSet(policies?.manual_all?.platforms, capabilityIds)) {
+  if (profile === 'aggregate' && !sameStringSet(policies?.manual_all?.platforms, releasePlatformCapabilityIds)) {
     console.error('FAIL release_platform_matrix: manual_all must preserve every build capability');
     failures += 1;
   }
@@ -148,12 +144,11 @@ export function validateReleasePlatformMatrix(
     policies?.stable_desktop_additional?.selection_mode !== 'capability_default_enabled_only'
     || !sameStringSet(
       matrix?.stable_desktop_additional_selection?.default,
-      ['linux-x64', 'windows-x64'],
+      additionalDesktopPlatformIds,
     )
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.build_validator !==
-      'scripts/validate-windows-updater-assets.ts'
+    || windowsUpdaterPublicationDrifted(windowsUpdater)
     || !sameStringSet(
-      matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.required_assets,
+      windowsUpdater?.required_assets,
       [
         'One-Person-Lab-<display-version>-win-x64.exe',
         'One-Person-Lab-<display-version>-win-x64.exe.blockmap',
@@ -161,15 +156,8 @@ export function validateReleasePlatformMatrix(
         'opl-windows-updater-assets.json',
       ],
     )
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.authenticode_required_for_publication !== false
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.authenticode_gate !==
+    || windowsUpdater?.authenticode_gate !==
       'optional_when_present_then_Get-AuthenticodeSignature_status_valid_with_timestamp_countersignature_and_exact_installer_digest'
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.unsigned_publication_allowed !== true
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.code_signing_status_must_be_explicit !== true
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.runtime_resolver !==
-      'opl-studio/desktop/updater.mjs'
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.base_stable_asset_append_allowed !== true
-    || matrix?.desktop_platform_additive_follower?.windows_x64_updater_assets?.latest_pointer_mutation_allowed !== false
     || releaseContract.release_platform_matrix?.validation_ownership?.stable?.excluded_profile !==
       'windows'
     || (
@@ -177,16 +165,7 @@ export function validateReleasePlatformMatrix(
       && !sameStringSet(
         releaseContract.release_platform_matrix?.validation_ownership?.windows
           ?.owned_test_paths,
-        [
-          'tests/release/docker-webui-clean-windows-dispatch.test.ts',
-          'tests/release/docker-webui-native-windows-smoke.test.ts',
-          'tests/release/docker-webui-windows-installer.test.ts',
-          'tests/release/docker-webui-windows-validation-fixtures.test.ts',
-          'tests/release/windows-platform-factory-contract.test.ts',
-          'tests/release/windows-stable-surface.test.ts',
-          'tests/release/windows-updater-upgrade-vm.test.ts',
-          'tests/release/windows-wsl2-validation-fixtures.test.ts',
-        ],
+        windowsValidationTestPaths,
       )
     )
   ) {
@@ -196,82 +175,19 @@ export function validateReleasePlatformMatrix(
 
   const follower = matrix.full_macos_additive_follower;
   if (
-    follower?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
-    || follower?.trigger !== 'successful_standard_publication_or_manual_target_state_reconcile'
-    || follower?.source_policy !== 'full_artifact_self_identity_plus_exact_mutable_standard_asset_set_cas'
-    || follower?.standard_release_prerequisite_required !== true
-    || follower?.cross_component_exact_version_sha_or_cohort_binding_allowed !== false
-    || follower?.compatibility_contract_ref !==
-      'contracts/app-install-exposure-policy.json#component_interoperability.compatibility_admission'
+    sameTagFullFollowerDrifted(follower, sameStringSet)
     || follower?.operation !== 'append_full'
-    || follower?.carrier !== 'same_standard_release_assets'
-    || follower?.tag_derivation !== 'none_use_exact_standard_tag'
-    || follower?.new_release_or_tag_allowed !== false
-    || follower?.target_release_must_be_mutable !== true
     || follower?.manifest !== 'opl-release-manifest.json'
-    || follower?.standard_asset_or_latest_mutation_allowed !== false
-    || !sameStringSet(follower?.target_standard_reference?.required_fields, [
-      'repository',
-      'release_id',
-      'tag',
-      'target_commitish',
-      'immutable',
-      'standard_asset_set',
-      'standard_attestation',
-    ])
-    || follower?.target_standard_reference?.purpose !== 'same_release_append_target_and_standard_asset_cas'
-    || follower?.target_standard_reference?.cross_component_compatibility_gate_allowed !== false
-    || follower?.target_standard_reference?.base_assets_mutation_allowed !== false
-    || follower?.blocks_stable_base_terminal !== false
-    || follower?.blocks_latest_activation !== false
     || follower?.failure_receipt_required !== true
-    || follower?.recovery !== 'target_state_reconcile_with_current_canonical_executor_and_no_failed_run_inputs'
-    || follower?.automatic_checkpoint_reuse !==
-      'latest_nonexpired_full_or_append_operation_checkpoint_with_exact_full_content_cohort_in_the_standard_recovery_chain'
-    || follower?.one_active_owner_per_recovery_chain !== true
   ) {
     console.error('FAIL release_platform_matrix: Full macOS follower must remain same-tag, mutable-target CAS-bound, durable, and non-blocking');
     failures += 1;
   }
-  const desktopSelection = matrix.stable_desktop_additional_selection;
-  const desktopFollower = matrix.desktop_platform_additive_follower;
-  const additiveRepair = desktopFollower?.stable_additive_repair;
+  const additiveRepair = matrix.desktop_platform_additive_follower?.stable_additive_repair;
   if (
-    desktopSelection?.authority_field !== 'opl_app_stable_operation_authority.v1#desktop_additional_platforms'
-    || desktopSelection?.control_field !== 'opl_app_stable_operation_control.v1#desktop_additional_platforms'
-    || desktopSelection?.arbitrary_command_or_os_input_allowed !== false
-    || desktopFollower?.carrier !== 'same_mutable_stable_release_assets'
-    || desktopFollower?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
-    || desktopFollower?.platform_workflow !== '.github/workflows/_release-desktop-platform-addon.yml'
-    || desktopFollower?.builder !== '.github/workflows/build-manual.yml'
-    || desktopFollower?.base_release_must_be_published_mutable !== true
-    || desktopFollower?.new_release_or_tag_allowed !== false
-    || desktopFollower?.same_name_different_digest !== 'fail_closed'
-    || desktopFollower?.platform_manifest_schema !== 'opl_app_desktop_platform_manifest.v1'
-    || desktopFollower?.aggregate_manifest_schema !== 'opl_app_desktop_artifact_manifest.v1'
-    || desktopFollower?.execution !== 'one_independent_fail_fast_false_matrix_lane_per_platform'
-    || desktopFollower?.build_mutex !== null
-    || desktopFollower?.public_append_mutex !== 'opl-release-bundle-global'
-    || desktopFollower?.aggregate_manifest_replacement !==
-      'staged_exact_asset_id_size_digest_compare_and_swap_then_rename'
-    || desktopFollower?.asset_upload_order !== 'platform_assets_before_aggregate_manifest'
-    || desktopFollower?.same_platform_same_digest !== 'already_complete'
-    || desktopFollower?.manual_reconcile?.operation !== 'reconcile_desktop_platform'
-    || !sameStringSet(desktopFollower?.manual_reconcile?.inputs, ['source_run_id', 'desktop_platform'])
-    || desktopFollower?.manual_reconcile?.failed_run_or_generation_input_allowed !== false
-    || desktopFollower?.manual_reconcile?.new_tag_allowed !== false
-    || desktopFollower?.make_latest !== false
-    || desktopFollower?.base_release_asset_append_allowed !== true
+    desktopPlatformFollowerDrifted(matrix, sameStringSet)
     || additiveRepair?.workflow !== '.github/workflows/release-stable-post-success-followups.yml'
-    || additiveRepair?.operation !== 'repair_additive'
     || additiveRepair?.protected_environment !== 'release-stable'
-    || !sameStringSet(additiveRepair?.allowed_asset_names, ['opl-install.sh'])
-    || additiveRepair?.new_release_or_tag_allowed !== false
-    || additiveRepair?.version_allocator_used !== false
-    || additiveRepair?.macos_primary_assets_frozen !== true
-    || additiveRepair?.updater_metadata_frozen !== true
-    || additiveRepair?.release_body_frozen !== true
-    || additiveRepair?.tag_target_frozen !== true
     || !sameStringSet(additiveRepair?.current_asset_cas_fields, ['asset_id', 'size', 'sha256'])
     || additiveRepair?.receipt_schema !== 'opl_app_stable_additive_repair.v1'
     || additiveRepair?.certification !==

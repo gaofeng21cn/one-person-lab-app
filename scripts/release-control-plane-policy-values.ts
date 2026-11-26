@@ -1,3 +1,5 @@
+import { stableStageAxes, stableStageIds as stableBusinessStageIds } from './stable-stage-result.ts';
+
 const retiredReleasePackageScripts = [
   'release:stable',
   'release:operator',
@@ -144,20 +146,6 @@ const exactUnknownMarkerFields = [
   'remote_target',
   'prior_mutation_attempt_id',
 ];
-const stableBusinessStageIds = [
-  'admission_and_circuit_breaker',
-  'source_contract_preflight',
-  'credential_runner_and_custody_preflight',
-  'standard_signed_notarized_build_and_seal',
-  'clean_vm_exact_artifact_qualification',
-  'updater_exact_artifact_qualification',
-  'standard_publication',
-  'homebrew_exact_artifact_install',
-  'latest_pointer_activation',
-  'remote_digest_and_clean_user_installed_readback',
-  'terminal_fold_and_idempotent_cleanup',
-];
-const stableStageAxes = ['qualification_product', 'evidence', 'transport', 'cleanup'];
 const stableFailureFingerprintFields = [
   'cohort',
   'stage_id',

@@ -1,30 +1,15 @@
 import fs from 'node:fs';
 
 import { resolveActiveShellPaths } from '../../app-shell-adapter.ts';
+import { releaseCalendarGuardViolation } from '../../release-channel-calendar-policy.ts';
+import {
+  standardUpdaterCandidateSelectionViolation,
+  standardUpdaterMetadataViolation,
+} from '../../standard-updater-contract-policy.ts';
 import { sameStringSet, stringArrayIncludesAll } from './types.ts';
 
 export function validateStandardUpdaterMetadataMigration(releaseContract: any): number {
-  const updater = releaseContract?.standard_updater;
-  const migration = updater?.metadata_migration;
-  if (
-    updater?.primary_metadata !== 'latest-mac.yml'
-    || !sameStringSet(updater?.allowed_metadata, ['latest-mac.yml', 'latest-arm64-mac.yml'])
-    || !sameStringSet(updater?.compatibility_metadata, ['latest-arm64-mac.yml'])
-    || migration?.mode !== 'dual_publish_bounded_bridge'
-    || migration?.status !== 'bridge_active'
-    || migration?.unchanged_public_release !== 'v26.8.8'
-    || migration?.successor_client_metadata !== 'latest-mac.yml'
-    || migration?.legacy_client_metadata !== 'latest-arm64-mac.yml'
-    || migration?.same_bytes_required !== true
-    || migration?.retirement_status !== 'planned_not_scheduled'
-    || !sameStringSet(migration?.retirement_requires, [
-      'publish_at_least_two_qualified_stable_releases_with_both_metadata_assets',
-      'qualify_v26.8.8_to_bridge_release_through_latest-arm64-mac.yml',
-      'qualify_bridge_release_to_successor_through_latest-mac.yml',
-      'declare_bridge_release_or_newer_as_minimum_supported_auto_update_version',
-      'retain_homebrew_and_manual_upgrade_for_older_clients',
-    ])
-  ) {
+  if (standardUpdaterMetadataViolation(releaseContract?.standard_updater, sameStringSet) !== null) {
     console.error('FAIL standard_updater_metadata_migration: native latest-mac.yml and the bounded arm64 compatibility bridge drifted');
     return 1;
   }
@@ -35,7 +20,6 @@ export function validateStandardUpdaterMetadataMigration(releaseContract: any): 
 
 export function validateGithubReleaseName(releaseContract: Record<string, any>): number {
   const releaseName = releaseContract.github_release_name;
-  const calendarGuard = releaseName?.calendar_guard;
   if (
     releaseName?.format !== 'One Person Lab v<version>' ||
     releaseName?.stable_example !== 'One Person Lab v26.6.5' ||
@@ -45,32 +29,9 @@ export function validateGithubReleaseName(releaseContract: Record<string, any>):
     releaseName?.tag_pattern !== 'v<version>' ||
     releaseName?.stable_revision?.maximum_revision !== 9 ||
     releaseName?.stable_revision?.allocation !== 'explicit_base_plus_highest_existing_remote_revision_plus_one' ||
-    releaseName?.stable_revision?.eligibility !== 'explicit_user_visible_product_change_only' ||
-    releaseName?.stable_revision?.release_intent_required !== 'new_product' ||
-    releaseName?.stable_revision?.nonempty_product_change_summary_required !== true ||
-    releaseName?.stable_revision?.publication_build_packaging_signing_notarization_notes_homebrew_or_additive_failure_eligible !== false ||
-    releaseName?.stable_revision?.same_tag_repair_required !== true ||
     releaseName?.stable_revision?.additive_platform_full_or_installer_failure_eligible !== false ||
     releaseName?.stable_revision?.additive_failure_route !==
       'repair_in_original_app_release_without_new_version' ||
-    releaseName?.release_intent_policy?.new_tag_requires !==
-      'release_intent_new_product_and_nonempty_user_visible_product_change_summary' ||
-    releaseName?.release_intent_policy?.current_latest_app_release_must_be_complete_before_new_tag !== true ||
-    !sameStringSet(releaseName?.release_intent_policy?.preserve_existing_tag_for, [
-      'build_failure',
-      'signing_failure',
-      'notarization_failure',
-      'packaging_failure',
-      'publication_failure',
-      'release_notes_repair',
-      'standard_asset_replacement',
-      'full_asset_append_or_replacement',
-      'homebrew_repair',
-      'additive_platform_repair',
-    ]) ||
-    releaseName?.release_intent_policy?.same_tag_asset_and_notes_replacement_allowed !== true ||
-    releaseName?.release_intent_policy?.same_tag_mutation_requires_exact_current_identity_cas_and_public_readback !== true ||
-    releaseName?.release_intent_policy?.nonfunctional_release_work_may_allocate_version !== false ||
     releaseName?.machine_version?.legacy_stable_last_display_version !== '26.7.20' ||
     releaseName?.machine_version?.shared_preview_lane_cutover_display_version !== '26.7.31' ||
     releaseName?.machine_version?.independent_nightly_revision_cutover_display_version !== '26.8.14' ||
@@ -89,18 +50,10 @@ export function validateGithubReleaseName(releaseContract: Record<string, any>):
     releaseName?.machine_version?.comparison !==
       'semver_core_decimal_integer_segments_then_prerelease_precedence' ||
     releaseName?.machine_version?.bundle_must_bind_both_identities !== true ||
-    calendarGuard?.time_zone !== 'Asia/Shanghai' ||
-    calendarGuard?.future_dated_versions_allowed !== false ||
-    calendarGuard?.failure_mode !== 'fail_closed_before_build_remote_lookup_or_mutation' ||
-    JSON.stringify(calendarGuard?.required_entrypoints) !== JSON.stringify([
-      'release_version_validation',
-      'framework_release_freeze',
-      'framework_release_checkpoint_export_import',
-      'standard_operation',
-      'resume_standard_operation',
-      'append_full_operation',
-      'latest_activation',
-    ])
+    releaseCalendarGuardViolation(releaseName, {
+      entrypointsEqual: (actual, expected) => JSON.stringify(actual) === JSON.stringify(expected),
+      preservationReasonsEqual: sameStringSet,
+    }) !== undefined
   ) {
     console.error('FAIL github_release_name: release names must use canonical versions and reject future dates at every build and publish entrypoint');
     return 1;
@@ -595,35 +548,12 @@ export function validateStandardUpdaterCompressionPolicy(appRoot: string, releas
 
 
 export function validateStandardUpdaterCandidateSelection(releaseContract: Record<string, any>): number {
-  const selection = releaseContract.standard_updater?.candidate_selection;
-  if (
-    selection?.schema !== 'opl_app_updater_candidate_selection.v1'
-    || selection?.updater_version_field !== 'updaterVersion'
-    || selection?.sort_authority !== 'valid_updater_version_semver'
-    || selection?.latest_pointer_is_not_candidate_sort_authority !== true
-    || selection?.nightly_is_not_an_independent_user_channel !== true
-    || !sameStringSet(selection?.stable?.allowed_quality_statuses, ['stable'])
-    || selection?.stable?.candidate_union !== 'stable_only'
-    || !sameStringSet(selection?.preview?.allowed_quality_statuses, ['stable', 'preview'])
-    || !sameStringSet(selection?.preview?.allowed_preview_kinds, ['dev', 'nightly'])
-    || selection?.preview?.candidate_union !== 'stable_plus_preview_and_nightly'
-    || selection?.preview?.higher_stable_may_supersede_preview_or_nightly !== true
-    || JSON.stringify(selection?.monotonicity) !== JSON.stringify({
-      comparison: 'semver',
-      machine_version_contract_ref: 'github_release_name.machine_version',
-      candidate_lower_than_installed: 'reject',
-      candidate_equal_to_installed: 'no_op',
-      candidate_higher_than_installed: 'update',
-      invalid_or_missing_updater_version: 'reject',
-      superseding_stable_must_exceed_published_nightly: true,
-      published_nightly_baseline_sources: [
-        'durable_publication_record',
-        'candidate_metadata',
-      ],
-      superseding_comparison: 'strictly_greater_updater_version_semver',
-      lower_or_equal_superseding_stable: 'reject',
-    })
-  ) {
+  const violation = standardUpdaterCandidateSelectionViolation(
+    releaseContract.standard_updater?.candidate_selection,
+    sameStringSet,
+    (actual, expected) => JSON.stringify(actual) === JSON.stringify(expected),
+  );
+  if (violation !== null) {
     console.error(
       'FAIL standard_updater_candidate_selection: Stable must remain Stable-only while Preview selects the highest valid Stable or Preview/Nightly updaterVersion independently of Latest',
     );
