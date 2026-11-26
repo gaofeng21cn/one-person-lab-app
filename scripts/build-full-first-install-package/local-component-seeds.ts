@@ -9,6 +9,31 @@ import { FULL_RUNTIME_STARTER_PROFILE } from './runtime-cache-package-set.ts';
 
 const digest = (bytes: Buffer) => `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
 
+// Old App cohorts still ship Weixin through Framework until Studio takes ownership.
+const LEGACY_WEIXIN_SOURCE = {
+  id: 'opl-channel-weixin',
+  ref: '0217da56d1c672f2b3f94afa56541f3d3449b29f',
+  manifest: ['opl-channel-weixin.json', 'sha256:89a628b9f6ca2f30807c70df6100ecba27cc7f001202f4db21a9a0ddacbe8292'],
+  payload: ['payloads/opl-channel-weixin-0.2.0.json', 'sha256:7d8ac1959fbc65a20926407f64341a94cc8637fbcf177157f395936c011a131d'],
+};
+
+function readLegacyWeixinSeed({ frameworkRoot }: Record<string, any>) {
+  const { ref, manifest, payload } = LEGACY_WEIXIN_SOURCE;
+  const read = ([relative, expected]: string[]) => {
+    const sourcePath = `contracts/opl-framework/packages/${relative}`;
+    let bytes: Buffer;
+    try {
+      bytes = execFileSync('git', ['show', `${ref}:${sourcePath}`], { cwd: frameworkRoot, stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      const url = `https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/${ref}/${sourcePath}`;
+      bytes = execFileSync('curl', ['--fail', '--silent', '--show-error', '--max-time', '30', url]);
+    }
+    if (digest(bytes) !== expected) throw new Error('Legacy Full Weixin seed differs from the frozen Framework bytes.');
+    return JSON.parse(bytes.toString('utf8'));
+  };
+  return { manifest: read(manifest), payload: read(payload), manifest_sha256: manifest[1], payload_sha256: payload[1] };
+}
+
 function relativePath(value: unknown): string {
   if (typeof value !== 'string' || !value || path.posix.isAbsolute(value)
     || value.includes('\\') || value.includes('\0') || value.split('/').some(part => !part || part === '.' || part === '..')) {
@@ -28,7 +53,10 @@ export function selectedLocalComponentSeedInputs(options: Record<string, any>, p
   if (!options.softwareCatalog && !options.catalogIndexPath) return [];
   const catalog = options.softwareCatalog ?? readOfficialSoftwareCatalog(fs.readFileSync(options.catalogIndexPath));
   const selected = new Set(packageIds);
-  return catalog.packages.flatMap(({ manifest: owner, payload, manifest_sha256, payload_sha256 }) => {
+  const entries = selected.has(LEGACY_WEIXIN_SOURCE.id)
+    && !catalog.packages.some((entry) => entry.package_id === LEGACY_WEIXIN_SOURCE.id)
+    ? [...catalog.packages, readLegacyWeixinSeed(options)] : catalog.packages;
+  return entries.flatMap(({ manifest: owner, payload, manifest_sha256, payload_sha256 }) => {
     if (!owner) return [];
     if (!selected.has(owner.package_id) || owner.management_scope !== 'local_component') return [];
     if (owner.codex_surface?.configured_codex_plugin_carrier?.publication_ref != null) return [];
