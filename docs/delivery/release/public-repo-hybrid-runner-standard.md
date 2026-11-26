@@ -79,6 +79,12 @@
 2. **显式传递临时钥匙串路径**（规避无桌面解锁或锁屏态下 `default keychain locked`）：凡是把凭据写入独立 `--keychain "$RUNNER_TEMP/opl-build.keychain-db"` 的步骤，调用 `xcrun notarytool submit/wait/info --keychain-profile ...` 时必须同步显式传入 `--keychain`（参见 [notarize-macos-dmg.ts](../../../scripts/notarize-macos-dmg.ts) 与 [_build-reusable.yml](../../../.github/workflows/_build-reusable.yml)）。
 3. **标签隔离**：日常自托管 VM 测试机器只挂 `["self-hosted", "macOS", "ARM64", "opl-cert-mac-tart"]`，不额外挂载重型编译池标签，除非明确要开启本地容灾构建。
 
+### 标准 6：开发机兼任自托管节点的本地优先与 24/7 宿主机基线
+
+- **本地优先推前门禁（Local-First Gate）**：日常 typecheck、lint、单测与核心契约检查应在开发机本地热缓存跑通后再 `git push`，避免把 GitHub Actions 当成试错调试器，或在自托管节点与云端之间来回传输大体积构建缓存。
+- **24/7 macOS 宿主机基线**：常开宿主机保持 `sleep 0`、`disksleep 0`、`autorestart 1`、`womp 1`、`tcpkeepalive 1`（无头环境建议配 HDMI EDID 欺骗器），优先有线网络与固定内网 IP；按物理内存限制虚拟化并发度（如 64 GB 宿主机 Tart 严格单并发、单 VM 分配 8–16 GB RAM），预留 `>= 150 GB` 可用磁盘并定期清理 `_work`、临时 Tart 克隆与过期模拟器。
+- **主开发机安全红线**：公开仓 `pull_request` / `pull_request_target` 严禁调度到开发机宿主机；宿主机 Runner 仅充当一次性 Tart VM 编排器，默认顶层 `permissions: contents: read`、`actions/checkout` 配置 `persist-credentials: false`，写操作与复杂发布流第三方 Action 固定 40 位 commit SHA。
+
 ---
 
 ## 3. 新公开仓库落地自检清单
@@ -90,3 +96,6 @@
 - [ ] 自托管 Runner 的持久化资产是否改为本机 `${{ runner.tool_cache }}` 目录 + `sha256` 校验复用？
 - [ ] 本机 runner 是否能下载待测制品，并在干净交接环境导入和执行实际验收脚本？
 - [ ] 执行是否分别记录排队、构建、签名、公证、制品传输、VM 启动和公开渠道完成时间？
+- [ ] 日常变更的 typecheck、lint、单测与契约检查是否已在开发机本地热缓存跑通后再推送，避免用 GitHub 试错或双向传输大体积缓存？
+- [ ] 24/7 常开 macOS 自托管宿主机是否已配置 `sleep 0`、`disksleep 0`、`autorestart 1`，并按物理内存限制 VM 并发度与保留 `>= 150 GB` 空闲空间？
+- [ ] 公开仓 `pull_request` / `pull_request_target` 是否已严格隔离出开发机宿主机，且写操作/复杂工作流 Action 均已锁定 40 位 commit SHA？
