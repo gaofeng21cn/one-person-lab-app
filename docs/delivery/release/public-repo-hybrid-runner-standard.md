@@ -1,24 +1,22 @@
-# 公开仓库 GitHub Actions 混合 Runner 与零跨洋回环发布标准方案
+# 公开仓库 GitHub Actions 混合 Runner 发布标准
 
-本标准沉淀自 One Person Lab App 在真实公开仓（`PUBLIC`）发布过程中针对「自托管 Mac 编译 + 本地 Tart VM 验收 + 美东 Azure Blob 制品流转」跨洋上行瓶颈的根因剖析与优化闭环，适用于所有**代码开源/公开、且仅少部分硬件虚拟化或真机测试必须跑在自有 Mac/Windows 机器**的 OPL 家族与外部公共仓库。
+本标准适用于能够使用 GitHub 托管 Runner 构建，又需要自有硬件验收的公开仓库。One Person Lab App 采用云端构建和制品交接，自有 Mac 负责 Tart 首装验收。评估时以实际 job、runner、制品和耗时为依据。
 
 ---
 
-## 1. 核心背景：为什么“同机编译 + 同机 VM”会被跨洋网络拖死？
+## 1. Runner 分工与实测
 
-在 GitHub Actions 默认编排中，`actions/cache` 与 `actions/upload-artifact` 的存储后端是**美国东部的 Azure Blob Storage**（`*.blob.core.windows.net`）。如果同一台家庭/办公宽带下的自托管 Mac 既承担重型编译与打包，又要在多个独立 Job 之间通过 Artifact/Cache 接力传给另一台或同一个本地 Tart VM Job，就会产生致命的**跨洋大文件大回环**：
+原流程在同一台自有 Mac 构建和验收，但独立 job 仍通过 GitHub Actions 交换制品。DMG、ZIP 和构建缓存先从本机上传，封存后再由同一台 Mac 下载。一次运行仅 Electron 和 Bun 缓存保存就用了 52 分 20 秒，随后制品上传在 29 分 02 秒时报 `Upload progress stalled.`。这段上行位于 VM 启动之前。改造将大文件生产和交接移入托管 Runner，Tart 主机以下载待测包和回传小型验收回执为主。 [原运行日志](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45643539781)
 
-1. **大缓存反复上云**：本地持久化硬盘原本就有缓存，但工作流照搬一次性云端 Runner 逻辑，把上百 MB 乃至 GB 级 Electron / Bun / Vite / Python 运行时缓存反复打包上传至美东 Azure Blob（实测低带宽夜间窗口仅 Electron + Bun 缓存保存就烧掉 **52 分钟**）。
-2. **大制品先传美东再拉回本机**：本地 Mac 编出 DMG/ZIP 后必须 `upload-artifact` 上传到美东 Azure，云端 `ubuntu-latest` 校准摘要，最后本地 Tart VM Job 又 `download-artifact` 把自己刚编的 DMG 从美东拉回来启动 VM，合计造成 GB 级重复上下行。
-3. **重复 zlib 二次压缩撞死 300s 停滞看门狗**：对 `.dmg`（ULFO/UDZO）、`.zip`、`.tar.gz` 等已高压缩归档若未显式设置 `compression-level: 0`，`actions/upload-artifact` 默认 `compression-level: 6` 会先做流式 zlib 再分块，一旦叠加跨境高 RTT（实测至 `*.blob.core.windows.net` TLS 握手达 700–880 ms）或抖动，极易触发 `@actions/artifact` 硬编码的 **300 秒无字节进步（`Upload progress stalled.`）** 失败退出。
-4. **辅助预热 Job 反向抢占单机自托管资源**：把纯粹只需 `curl` 下载与 SHA-256 校验 npm tarball 的预热任务（如 `_prepare-clean-vm-inputs.yml`）绑死在稀缺的 Tart Mac 标签上，既堵住真正需要 Mac 的构建排队 10 分钟，又因为往美东回传 160 MB tarball 频繁撞上超时。
+| 阶段 | App 默认运行位置 | 交接与职责 |
+| --- | --- | --- |
+| 源码验证、准入、预取 | GitHub 托管 Ubuntu | 冻结版本和依赖，下载并验证 VM 输入 |
+| macOS 构建、签名、公证 | GitHub 托管 macOS | 生成并上传签名制品和生产者回执 |
+| 制品封存、发布控制 | GitHub 托管 Ubuntu | 绑定摘要和候选身份，形成供验收和发布使用的制品 |
+| 首次启动 | 自有 ARM Mac 的 Tart runner | 验证源码交接、下载已封存制品、克隆干净 VM 并回传验收证据 |
+| 公开发布及附加渠道 | GitHub 托管池，按目标平台选择 | 验证验收回执，发布并回读正式渠道 |
 
-### 实测对照数据（`gaofeng21cn/one-person-lab-app`）
-
-| 发布形态与物理选路 | Standard `Build macos-arm64`（含签名+公证+产物上传） | Full 构建/收尾总耗时 | 典型阻塞风险 |
-| --- | --- | --- | --- |
-| **反模式**：本机 Mac 承担构建+缓存上云+跨洋传 DMG | 编包公证 25m + 缓存/制品上传 85m → **110m 失败**（Run `45643539781`） | **76m**（Run `44704631673`） | 跨洋上行波动导致 `Upload progress stalled.` |
-| **标准形态**：云端 `macos-latest` 构建上传 + 本机 `opl-cert-mac-tart` 专跑 VM | **23m**（含秒传 1.27 GB 至 Azure 内网，Run `43447258346`） | **18m–26m**（Run `43721482019` / `43528572234`） | 消除本机大体积上行，稳定性极高 |
+11 月 26 日首个云端候选的 macOS 构建 job 含签名、公证及上传共耗时 32 分钟。两次缓存保存合计 3 秒，主制品和 DMG 专用制品分别上传 11 秒和 5 秒。封存通过后，本机 runner 下载源码交接包用时 15 秒，随后在导入 Studio 验收脚本时因 npm 依赖缺失退出，尚未创建 VM。这次运行验证了云端构建与交接的耗时，并定位了一个独立的源码交接故障。 [云端候选](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45731928065) · [Tart 作业](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45731928065/job/139630485097)
 
 ---
 
@@ -26,7 +24,7 @@
 
 ### 标准 1：公开仓“云端编译默认、硬件刚需才落地、变量显式容灾”
 
-- **适用前提**：仓库为 GitHub Public 仓库，享有免费且与 Azure Blob 同机房内网直连的托管 Runner（`ubuntu-latest` / `macos-latest` / `windows-latest`）。
+- 确认仓库能使用适合目标操作系统和架构的 GitHub 托管 Runner。评估队列、相同制品的实际传输时间和托管池的计费条件。 [GitHub 托管 Runner](https://docs.github.com/en/actions/concepts/runners/github-hosted-runners)
 - **职责切分**：
   - **控制面 / 测试 / Docker 构建 / Linux & Windows 编译 / 摘要封印 / GitHub Release 写入**：全部默认使用 GitHub 托管池（如 `ubuntu-latest`、`windows-latest`），允许通过仓库变量覆盖。
   - **macOS 构建、Developer ID 签名与 Apple 公证**：**默认直接选 `macos-latest`**（即使线上存在在线自托管 macOS Runner 也不主动抢占本地带宽）；仅当托管池发生已知网络故障或需要大盘应急时，才显式配置仓库变量 `OPL_MACOS_RELEASE_RUNNER=opl-release-macos-arm64`（见 [macos-release-runner.ts](../../../scripts/macos-release-runner.ts)）或 `OPL_FULL_BUILD_RUNNER=macos-15-xlarge` 切入自有池。
@@ -43,9 +41,9 @@
 - **自托管节点改用本机持久化目录 + 内容寻址校验**：利用 Runner 常驻硬盘的 `${{ runner.tool_cache }}` 或固定只读目录暂存已按 `sha256` 校验过的外部 tarball / runtime 资产（详见 [opl-first-run-vm.yml](../../../.github/workflows/opl-first-run-vm.yml)），命中即 `0 秒` 复用，彻底绕开远端 Cache 上传下载。
 - **`setup-bun` / `setup-node` 关闭自托管远端缓存**：参考 `no-cache: ${{ runner.environment == 'self-hosted' }}`。
 
-### 标准 3：所有二进制 / 压缩包 `upload-artifact` 强制 `compression-level: 0`
+### 标准 3：已压缩制品上传选用 `compression-level: 0`
 
-凡是 `.dmg`、`.zip`、`.deb`、`.exe`、`.msi`、`.tgz`、`.tar.gz`、`.blockmap` 等已压缩或不值得再做 zlib 压缩的产物上传，**必须显式声明 `compression-level: 0`**：
+对 DMG、ZIP、DEB、TGZ 等已压缩制品显式设为 0，减少归档时的重复压缩。其他输入按实测体积与上传时间选择。 [GitHub upload-artifact 压缩参数](https://github.com/actions/upload-artifact#altering-compressions-level-speed-v-size)
 
 ```yaml
 - name: Upload macOS build artifacts
@@ -72,7 +70,7 @@
 
 对于仍需连接 GitHub Actions 下发控制流、下载待测包与回传轻量 receipt 的自托管 macOS Tart 节点，部署时遵循以下基线：
 
-1. **强制 Node.js IPv4 优先**（规避国内/企业网络 IPv6 半通、NAT64 封装或 Happy Eyeballs 导致 Azure Blob TLS 延迟激增与流式断连）：在 Runner 的 `LaunchAgent` plist（`~/Library/LaunchAgents/actions.runner.*.plist`）`EnvironmentVariables` 中加入：
+1. 本机实测某个网络路径不稳定时，分别记录 IPv4、IPv6 的 DNS、TLS 和同尺寸传输表现。OPL 的 Tart runner 已将 Node.js DNS 结果设为 IPv4 优先。其他仓库可依据本机证据在 Runner 的 `LaunchAgent` 添加同一选项。
    ```xml
    <key>NODE_OPTIONS</key>
    <string>--dns-result-order=ipv4first</string>
@@ -90,4 +88,5 @@
 - [ ] 所有 `.dmg` / `.zip` / `.exe` / `.deb` / `.tar.gz` 的 `actions/upload-artifact` 是否均已加上 `compression-level: 0`？
 - [ ] 所有 `actions/cache/save` 与大型 `restore` 是否已限制为 `runner.environment == 'github-hosted'`，且保存步骤均带 `continue-on-error: true` 与 `timeout-minutes: 5`？
 - [ ] 自托管 Runner 的持久化资产是否改为本机 `${{ runner.tool_cache }}` 目录 + `sha256` 校验复用？
-- [ ] 自托管 macOS `launchd` 服务是否已配置 `NODE_OPTIONS=--dns-result-order=ipv4first` 并在线自检通过？
+- [ ] 本机 runner 是否能下载待测制品，并在干净交接环境导入和执行实际验收脚本？
+- [ ] 执行是否分别记录排队、构建、签名、公证、制品传输、VM 启动和公开渠道完成时间？
