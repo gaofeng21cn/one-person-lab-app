@@ -12,6 +12,7 @@ import {
 import { runBoundedReadOnly } from './owner-reads.ts';
 
 const fullShaPattern = /^[0-9a-f]{40}$/i;
+const stableIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
 function normalizeWireRef(ref: string): string {
   const value = ref.trim();
@@ -121,6 +122,14 @@ export function normalizeOwnerRun(value: unknown): OwnerWorkflowRun | null {
 
 function matchingOwnerRuns(runs: unknown[], identity: OwnerRunIdentity): OwnerWorkflowRun[] {
   if (!fullShaPattern.test(identity.headSha)) throw new Error('Owner-run identity requires a full App SHA.');
+  const { operationId, authorityId } = identity;
+  const authorityBound = operationId !== undefined || authorityId !== undefined;
+  if (authorityBound && (!stableIdPattern.test(operationId ?? '') || !stableIdPattern.test(authorityId ?? ''))) {
+    throw new Error('Authority-bound owner-run identity requires canonical operation and authority IDs.');
+  }
+  const workflow = identity.workflow.includes('/')
+    ? identity.workflow
+    : `.github/workflows/${identity.workflow}`;
   const startedAt = Date.parse(identity.operationStartedAt);
   const observedAt = Date.parse(identity.observedAt ?? new Date().toISOString());
   const identityWindowMs = identity.identityWindowMs ?? defaultIdentityWindowMs;
@@ -135,9 +144,11 @@ function matchingOwnerRuns(runs: unknown[], identity: OwnerRunIdentity): OwnerWo
     .map(normalizeOwnerRun)
     .filter((run): run is OwnerWorkflowRun => run !== null)
     .filter((run) => (
-      run.path === identity.workflow
-      && classifyStableSourceOperation(run.display_title) !== 'studio'
-      && run.head_sha === identity.headSha.toLowerCase()
+      run.path === workflow
+      && (authorityBound
+        ? run.display_title === `OPL Stable standard operation:${operationId} authority:${authorityId} run:${run.id}`
+        : run.head_sha === identity.headSha.toLowerCase()
+          && classifyStableSourceOperation(run.display_title) !== 'studio')
       && run.event === 'workflow_dispatch'
       && run.head_branch === 'main'
       && run.run_attempt === 1

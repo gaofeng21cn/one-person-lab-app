@@ -98,6 +98,8 @@ export type OwnerRunsResult =
 export type OwnerRunIdentity = {
   workflow: string;
   headSha: string;
+  operationId?: string;
+  authorityId?: string;
   operationStartedAt: string;
   observedAt?: string;
   identityWindowMs?: number;

@@ -115,15 +115,16 @@ npm run release:stable-dispatch -- new-product-release \
 
 ### 派发结果未知且没有 owner run ID
 
-先从该次 controller 输出或执行记录找回真实 `operation_started_at` 和当时派发使用的 workflow executor SHA；该 SHA 不一定等于冻结产品 SHA，不能用当前 `main` 替代。使用现有只读入口：
+先从该次 controller 回执取 `operation_started_at`、`pre_dispatch_executor_sha` 和 `plan.authority`。对持有冻结 authority 的 Standard 操作，使用 operation 与 authority 的精确身份定位原 run。GitHub 通过 `main` 派发时可能选用比派发前读取更新的 workflow 提交，回读的 `owner_run.head_sha` 记录实际执行器。
 
 ```bash
 npm run release:dispatch-guard -- reconcile --workflow release-stable.yml \
-  --expected-app-sha <原派发的-workflow-executor-SHA> \
+  --expected-app-sha <派发前读取的-executor-SHA> \
+  --operation-id <原-operation-id> --authority-id <原-authority-id> \
   --operation-started-at <原派发开始时间-ISO8601>
 ```
 
-`identified` 后核对返回 run 的 operation／authority 或源 checkpoint 是否对应本次请求，再绑定跟进。零匹配、多匹配或读取失败继续保持 `outcome_unknown`，均不授权重新派发；缺少原始字段时先恢复调度证据，不填当前时间或猜测 SHA。这个入口不替代已有 run 的 publication unknown checkpoint 对账。
+按源 checkpoint 恢复的操作使用原派发前 executor SHA 和开始时间，省略两个 authority 参数。核对 `identified` 返回的 run 对应本次 operation／authority 或源 checkpoint 后绑定跟进。零匹配、多匹配或读取失败继续保持 `outcome_unknown`，只允许读取对账。缺少原始字段时从该次执行记录恢复。已有 run 的 publication unknown 继续通过其 checkpoint 对账。
 
 GitHub owner-run 分页查询要求新鲜响应。若同次读取的 `total_count` 在分页间变化，
 丢弃整次结果，在既有最多三次只读尝试预算内重新查询；不得混合前后分页或据不完整结果

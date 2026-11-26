@@ -146,6 +146,8 @@ if (isMainModule()) {
       result = buildPostDispatchReconcile({
         workflow: requiredOption(values.workflow, 'workflow'),
         headSha: requiredOption(values['expected-app-sha'], 'expected-app-sha'),
+        operationId: values['operation-id'],
+        authorityId: values['authority-id'],
         operationStartedAt: requiredOption(values['operation-started-at'], 'operation-started-at'),
         observedAt: typeof values['observed-at'] === 'string' ? values['observed-at'] : undefined,
         mutationInvocationCount: 1,
