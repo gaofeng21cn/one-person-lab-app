@@ -91,3 +91,66 @@ export function needsExactly(job: Record<string, any>, expected: string[]): bool
   return Array.isArray(needs) && needs.length === expected.length &&
     expected.every((name, index) => needs[index] === name);
 }
+
+export function sameJson(actual: unknown, expected: unknown): boolean {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
+
+export function failIf(id: string, condition: boolean, message: string): number {
+  return condition ? reportFailure(id, message) : 0;
+}
+
+export function requireSubstrings(
+  id: string,
+  text: string,
+  required: readonly string[],
+  missingPrefix: string,
+): number {
+  let failures = 0;
+  for (const item of required) {
+    if (!text.includes(item)) failures += reportFailure(id, `${missingPrefix} ${item}`);
+  }
+  return failures;
+}
+
+export function forbidSubstrings(
+  id: string,
+  text: string,
+  forbidden: readonly string[],
+  messagePrefix: string,
+): number {
+  let failures = 0;
+  for (const item of forbidden) {
+    if (text.includes(item)) failures += reportFailure(id, `${messagePrefix} ${item}`);
+  }
+  return failures;
+}
+
+export function validateReusableCall(
+  id: string,
+  jobs: Record<string, Record<string, any>>,
+  jobId: string,
+  workflowPath: string,
+  expectedPermissions?: Record<string, unknown>,
+): number {
+  const job = jobs[jobId];
+  if (!job || job.uses !== workflowPath || Object.prototype.hasOwnProperty.call(job, 'steps')) {
+    return reportFailure(id, `${jobId} must be a step-free call to ${workflowPath}`);
+  }
+  if (expectedPermissions && !exactObject(job.permissions, expectedPermissions)) {
+    return reportFailure(id, `${jobId} has broader or incomplete permissions`);
+  }
+  return 0;
+}
+
+export function validateWorkflowActionPins(
+  workflowPath: string,
+  jobs: Record<string, Record<string, any>>,
+  validatePins: (workflowPath: string, jobId: string, steps: Array<Record<string, any>>) => number,
+): number {
+  let failures = 0;
+  for (const [jobId, job] of Object.entries(jobs)) {
+    failures += validatePins(workflowPath, jobId, Array.isArray(job.steps) ? job.steps : []);
+  }
+  return failures;
+}

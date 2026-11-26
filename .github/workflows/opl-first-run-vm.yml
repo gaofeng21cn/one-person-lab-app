@@ -612,9 +612,13 @@ jobs:
       - name: Validate active shell ref before VM runner work
         id: shell_ref
         shell: bash
-        run: |
+        env:
+          STUDIO_REF_INPUT: ${{ steps.diagnostic_inputs.outputs.shell_ref }}
+          STUDIO_REF_LABEL: opl-studio ref
+          STUDIO_REF_FIELD: shell_ref
+        run: &resolve-studio-ref |
           set -euo pipefail
-          shell_ref="${{ steps.diagnostic_inputs.outputs.shell_ref }}"
+          shell_ref="$STUDIO_REF_INPUT"
           repo_url="https://github.com/gaofeng21cn/opl-studio.git"
           shell_sha="$(git ls-remote "$repo_url" "refs/heads/$shell_ref" "refs/tags/$shell_ref" "$shell_ref" | awk 'NR==1 {print $1}')"
           if [[ "$shell_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
@@ -638,40 +642,17 @@ jobs:
               exit 0
             fi
           fi
-          echo "::error::opl-studio ref '$shell_ref' does not exist; fix shell_ref before occupying the first-run VM harness."
+          echo "::error::${STUDIO_REF_LABEL} '$shell_ref' does not exist; fix ${STUDIO_REF_FIELD} before occupying the first-run VM harness."
           exit 1
 
       - name: Validate smoke harness ref before VM runner work
         id: smoke_harness_ref
         shell: bash
-        run: |
-          set -euo pipefail
-          shell_ref="${{ steps.diagnostic_inputs.outputs.smoke_harness_ref }}"
-          repo_url="https://github.com/gaofeng21cn/opl-studio.git"
-          shell_sha="$(git ls-remote "$repo_url" "refs/heads/$shell_ref" "refs/tags/$shell_ref" "$shell_ref" | awk 'NR==1 {print $1}')"
-          if [[ "$shell_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            echo "shell_sha=$shell_sha" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [[ "$shell_ref" =~ ^[0-9a-fA-F]{7,39}$ ]] &&
-             shell_sha="$(git ls-remote "$repo_url" | awk -v ref="$shell_ref" '$1 ~ "^" ref {print $1; exit}')" &&
-             [[ "$shell_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            echo "shell_sha=$shell_sha" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [[ "$shell_ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            tmp_dir="$(mktemp -d)"
-            trap 'rm -rf "$tmp_dir"' EXIT
-            git -C "$tmp_dir" init -q
-            git -C "$tmp_dir" remote add origin "$repo_url"
-            if git -C "$tmp_dir" fetch --depth=1 origin "$shell_ref" >/dev/null 2>&1; then
-              shell_sha="$(git -C "$tmp_dir" rev-parse FETCH_HEAD)"
-              echo "shell_sha=$shell_sha" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          fi
-          echo "::error::opl-studio smoke harness ref '$shell_ref' does not exist; fix smoke_harness_ref before occupying the first-run VM harness."
-          exit 1
+        env:
+          STUDIO_REF_INPUT: ${{ steps.diagnostic_inputs.outputs.smoke_harness_ref }}
+          STUDIO_REF_LABEL: opl-studio smoke harness ref
+          STUDIO_REF_FIELD: smoke_harness_ref
+        run: *resolve-studio-ref
 
       - name: Checkout immutable qualification scope executor
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1337,7 +1318,7 @@ jobs:
       - name: Remove partial release DMG after first download failure
         if: ${{ inputs.release_artifact_name != '' && steps.release_artifact_download_1.outcome == 'failure' }}
         shell: bash
-        run: |
+        run: &clean-release-artifacts |
           set -euo pipefail
           mkdir -p artifacts/release
           find artifacts/release -mindepth 1 -maxdepth 1 -exec rm -rf {} +
@@ -1348,7 +1329,7 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         timeout-minutes: 30
         continue-on-error: true
-        with:
+        with: &download-release-dmg
           name: ${{ inputs.release_artifact_name }}
           run-id: ${{ inputs.release_artifact_run_id || github.run_id }}
           github-token: ${{ github.token }}
@@ -1357,10 +1338,7 @@ jobs:
       - name: Remove partial release DMG after second download failure
         if: ${{ inputs.release_artifact_name != '' && steps.release_artifact_download_2.outcome == 'failure' }}
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/release
-          find artifacts/release -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        run: *clean-release-artifacts
 
       - name: Retry release DMG artifact download (attempt 3 of 3)
         if: ${{ inputs.release_artifact_name != '' && steps.release_artifact_download_1.outcome == 'failure' && steps.release_artifact_download_2.outcome == 'failure' }}
@@ -1368,11 +1346,7 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         timeout-minutes: 30
         continue-on-error: true
-        with:
-          name: ${{ inputs.release_artifact_name }}
-          run-id: ${{ inputs.release_artifact_run_id || github.run_id }}
-          github-token: ${{ github.token }}
-          path: artifacts/release
+        with: *download-release-dmg
 
       - name: Download release cohort identity
         if: ${{ inputs.release_artifact_name != '' && (steps.release_artifact_download_1.outcome == 'success' || steps.release_artifact_download_2.outcome == 'success' || steps.release_artifact_download_3.outcome == 'success') }}
@@ -1380,7 +1354,7 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         timeout-minutes: 10
         continue-on-error: true
-        with:
+        with: &download-release-cohort
           name: ${{ inputs.release_artifact_name }}-cohort
           run-id: ${{ inputs.release_artifact_run_id || github.run_id }}
           github-token: ${{ github.token }}
@@ -1389,7 +1363,7 @@ jobs:
       - name: Remove partial release cohort after first download failure
         if: ${{ inputs.release_artifact_name != '' && steps.release_cohort_download_1.outcome == 'failure' }}
         shell: bash
-        run: |
+        run: &clean-release-cohort |
           set -euo pipefail
           mkdir -p artifacts/release-cohort
           find artifacts/release-cohort -mindepth 1 -maxdepth 1 -exec rm -rf {} +
@@ -1400,29 +1374,18 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         timeout-minutes: 10
         continue-on-error: true
-        with:
-          name: ${{ inputs.release_artifact_name }}-cohort
-          run-id: ${{ inputs.release_artifact_run_id || github.run_id }}
-          github-token: ${{ github.token }}
-          path: artifacts/release-cohort
+        with: *download-release-cohort
 
       - name: Remove partial release cohort after second download failure
         if: ${{ inputs.release_artifact_name != '' && steps.release_cohort_download_2.outcome == 'failure' }}
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/release-cohort
-          find artifacts/release-cohort -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        run: *clean-release-cohort
 
       - name: Retry release cohort identity download (attempt 3 of 3)
         if: ${{ inputs.release_artifact_name != '' && steps.release_cohort_download_1.outcome == 'failure' && steps.release_cohort_download_2.outcome == 'failure' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         timeout-minutes: 10
-        with:
-          name: ${{ inputs.release_artifact_name }}-cohort
-          run-id: ${{ inputs.release_artifact_run_id || github.run_id }}
-          github-token: ${{ github.token }}
-          path: artifacts/release-cohort
+        with: *download-release-cohort
 
       - name: Download published DMG cohort identity
         if: ${{ inputs.release_cohort_artifact_name != '' }}

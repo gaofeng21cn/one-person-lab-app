@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { parse as parseYaml } from 'yaml';
 import {
   releaseValidationProfile,
   releaseWorkflowPaths,
@@ -8,17 +7,16 @@ import {
 } from '../release-checks.ts';
 import {
   exactObject,
+  failIf,
   hasStableMutationMutex,
-  requestsWritePermission,
   jobRuns,
-  jobEvidenceText,
-  actionSteps,
   hasLocalStep,
   localActionUse,
   workflowJobs,
   needsExactly,
   parseWorkflow,
   reportFailure,
+  sameJson,
 } from './report.ts';
 
 export { releaseWorkflowPaths, releaseWorkflowPathsForProfile } from '../release-checks.ts';
@@ -329,10 +327,11 @@ export function validateExactActionPins(
   let failures = 0;
   for (const [stepIndex, step] of steps.entries()) {
     if (typeof step.uses !== 'string' || step.uses.startsWith('./')) continue;
-    if (!/@[0-9a-f]{40}$/.test(step.uses)) {
-      console.error(`FAIL workflow_dispatch_write_authority: ${workflowPath} privileged job ${jobId} step ${stepIndex + 1} must pin ${step.uses} to an exact commit`);
-      failures += 1;
-    }
+    failures += failIf(
+      'workflow_dispatch_write_authority',
+      !/@[0-9a-f]{40}$/.test(step.uses),
+      `${workflowPath} privileged job ${jobId} step ${stepIndex + 1} must pin ${step.uses} to an exact commit`,
+    );
   }
   return failures;
 }
@@ -399,38 +398,29 @@ export function validateWorkflowTopologyPolicy(appRoot: string): number {
         : expectedWorkflowRunFollowers.has(name)
           ? ['workflow_run']
           : [];
-    if (JSON.stringify(automaticTriggers) !== JSON.stringify(expectedAutomaticTriggers)) {
-      failures += reportFailure(
-        id,
-        `${name} automatic triggers ${JSON.stringify(automaticTriggers)} do not match its single owner contract ${JSON.stringify(expectedAutomaticTriggers)}`,
-      );
-    }
+    failures += failIf(
+      id,
+      !sameJson(automaticTriggers, expectedAutomaticTriggers),
+      `${name} automatic triggers ${JSON.stringify(automaticTriggers)} do not match its single owner contract ${JSON.stringify(expectedAutomaticTriggers)}`,
+    );
 
     const schedule = triggers.schedule;
     if (expectedScheduledWorkflows.has(name)) {
       const actualCrons = Array.isArray(schedule)
         ? schedule.map((entry) => entry?.cron).filter((cron) => typeof cron === 'string')
         : [];
-      if (JSON.stringify(actualCrons) !== JSON.stringify(expectedScheduledWorkflows.get(name))) {
-        failures += reportFailure(id, `${name} must own only its declared schedule`);
-      }
+      failures += failIf(id, !sameJson(actualCrons, expectedScheduledWorkflows.get(name)), `${name} must own only its declared schedule`);
     }
 
     const workflowRun = triggers.workflow_run;
     if (expectedWorkflowRunFollowers.has(name)) {
       const expectedProducer = expectedWorkflowRunFollowers.get(name);
-      if (
-        JSON.stringify(workflowRun?.workflows) !== JSON.stringify([expectedProducer])
-        || JSON.stringify(workflowRun?.types) !== JSON.stringify(['completed'])
-      ) {
-        failures += reportFailure(
-          id,
-          `${name} must follow only ${expectedProducer} completion events`,
-        );
-      }
-      if ((workflowNames.get(expectedProducer!) ?? []).length !== 1) {
-        failures += reportFailure(id, `${name} workflow_run producer ${expectedProducer} is not uniquely defined`);
-      }
+      failures += failIf(
+        id,
+        !sameJson(workflowRun?.workflows, [expectedProducer]) || !sameJson(workflowRun?.types, ['completed']),
+        `${name} must follow only ${expectedProducer} completion events`,
+      );
+      failures += failIf(id, (workflowNames.get(expectedProducer!) ?? []).length !== 1, `${name} workflow_run producer ${expectedProducer} is not uniquely defined`);
     }
 
     for (const [jobId, job] of Object.entries(workflowJobs(workflow))) {
@@ -447,55 +437,45 @@ export function validateWorkflowTopologyPolicy(appRoot: string): number {
 
   for (const [name, workflow] of workflows) {
     const triggerNames = Object.keys(workflow.on ?? {});
-    if (
-      triggerNames.length === 1
-      && triggerNames[0] === 'workflow_call'
-      && localCallers.get(name)?.length === 0
-    ) {
-      failures += reportFailure(id, `${name} is a pure reusable workflow without a caller`);
-    }
+    failures += failIf(
+      id,
+      triggerNames.length === 1 && triggerNames[0] === 'workflow_call' && localCallers.get(name)?.length === 0,
+      `${name} is a pure reusable workflow without a caller`,
+    );
   }
   return failures;
 }
 
 export function validateWorkflowNode24Policy(appRoot: string): number {
   let failures = 0;
-
   for (const workflowPath of releaseWorkflowPathsForProfile()) {
     const absolutePath = path.join(appRoot, workflowPath);
     if (!fs.existsSync(absolutePath)) {
-      console.error(`FAIL actions_node24_runtime_policy: missing ${workflowPath}`);
-      failures += 1;
+      failures += reportFailure('actions_node24_runtime_policy', `missing ${workflowPath}`);
       continue;
     }
     const text = fs.readFileSync(absolutePath, 'utf8');
-    if (!/\nenv:\n(?:  [A-Z0-9_]+: .+\n)*  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true\n/.test(text)) {
-      console.error(
-        `FAIL actions_node24_runtime_policy: ${workflowPath} must declare FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true in top-level env`,
-      );
-      failures += 1;
-    }
+    failures += failIf(
+      'actions_node24_runtime_policy',
+      !/\nenv:\n(?:  [A-Z0-9_]+: .+\n)*  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true\n/.test(text),
+      `${workflowPath} must declare FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true in top-level env`,
+    );
   }
-
   return failures;
 }
 
 export function validateStableReleaseActionPinPolicy(appRoot: string): number {
   let failures = 0;
-  const profile = releaseValidationProfile();
-  const profileWorkflowPaths = new Set(releaseWorkflowPathsForProfile(profile));
+  const profileWorkflowPaths = new Set(releaseWorkflowPathsForProfile(releaseValidationProfile()));
   for (const relativePath of stableReleaseActionPaths.filter((candidate) =>
     !releaseWorkflowPaths.includes(candidate) || profileWorkflowPaths.has(candidate)
   )) {
-    const absolutePath = path.join(appRoot, relativePath);
-    let document: Record<string, any>;
-    try {
-      document = parseYaml(fs.readFileSync(absolutePath, 'utf8')) as Record<string, any>;
-    } catch (error) {
-      console.error(`FAIL stable_release_action_pin_policy: ${relativePath} is not valid YAML: ${error instanceof Error ? error.message : String(error)}`);
+    const parsed = parseWorkflow(appRoot, relativePath, 'stable_release_action_pin_policy');
+    if (!parsed) {
       failures += 1;
       continue;
     }
+    const document = parsed.workflow;
     const steps = relativePath.includes('/actions/')
       ? (Array.isArray(document.runs?.steps) ? document.runs.steps as Array<Record<string, any>> : [])
       : Object.values(document.jobs ?? {}).flatMap((jobValue) => {
@@ -504,10 +484,11 @@ export function validateStableReleaseActionPinPolicy(appRoot: string): number {
         });
     for (const [stepIndex, step] of steps.entries()) {
       if (typeof step.uses !== 'string' || step.uses.startsWith('./')) continue;
-      if (!/@[0-9a-f]{40}$/.test(step.uses)) {
-        console.error(`FAIL stable_release_action_pin_policy: ${relativePath} step ${stepIndex + 1} must pin ${step.uses} to an exact commit`);
-        failures += 1;
-      }
+      failures += failIf(
+        'stable_release_action_pin_policy',
+        !/@[0-9a-f]{40}$/.test(step.uses),
+        `${relativePath} step ${stepIndex + 1} must pin ${step.uses} to an exact commit`,
+      );
     }
   }
   return failures;
@@ -515,29 +496,23 @@ export function validateStableReleaseActionPinPolicy(appRoot: string): number {
 
 export function validateWorkflowDispatchWriteAuthorityForWorkflows(appRoot: string): number {
   let failures = 0;
+  const id = 'workflow_dispatch_write_authority';
   const stableWorkflowPath = '.github/workflows/release-stable.yml';
   const stableEntryJobs = new Set(Object.keys(stableEntrySpecs));
-  const workflowDirectory = path.join(appRoot, '.github', 'workflows');
-  const workflowPaths = fs.readdirSync(workflowDirectory)
+  const workflowPaths = fs.readdirSync(path.join(appRoot, '.github', 'workflows'))
     .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
     .map((name) => `.github/workflows/${name}`);
   for (const workflowPath of workflowPaths) {
-    const text = fs.readFileSync(path.join(appRoot, workflowPath), 'utf8');
-    let workflow: Record<string, any>;
-    try {
-      workflow = parseYaml(text) as Record<string, any>;
-    } catch (error) {
-      console.error(`FAIL workflow_dispatch_write_authority: ${workflowPath} is not valid YAML: ${error instanceof Error ? error.message : String(error)}`);
+    const parsed = parseWorkflow(appRoot, workflowPath, id);
+    if (!parsed) {
       failures += 1;
       continue;
     }
+    const workflow = parsed.workflow;
     if (!Object.prototype.hasOwnProperty.call(workflow?.on ?? {}, 'workflow_dispatch')) continue;
     const topPermissions = workflow.permissions && typeof workflow.permissions === 'object' ? workflow.permissions : {};
     const topWrites = Object.entries(topPermissions).filter(([, value]) => value === 'write').map(([key]) => key);
-    if (topWrites.length > 0) {
-      console.error(`FAIL workflow_dispatch_write_authority: ${workflowPath} grants top-level write permissions (${topWrites.join(',')}); use job-level least privilege`);
-      failures += 1;
-    }
+    failures += failIf(id, topWrites.length > 0, `${workflowPath} grants top-level write permissions (${topWrites.join(',')}); use job-level least privilege`);
     const jobs = workflow.jobs && typeof workflow.jobs === 'object' ? workflow.jobs : {};
     for (const [jobId, jobValue] of Object.entries(jobs)) {
       const job = jobValue as Record<string, any>;
