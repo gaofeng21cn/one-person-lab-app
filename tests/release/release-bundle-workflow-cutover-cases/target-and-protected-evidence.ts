@@ -9,7 +9,7 @@ import {
   readWorkflow,
   parseWorkflow,
   workflowStep,
-  runExpectedImmutableReleaseAssetsBuilder,
+  runExpectedMutableStandardAssetsBuilder,
   runAdmissionGate,
   runStableRestoreVersionIdentity,
 } from "./fixtures.ts";
@@ -87,7 +87,7 @@ test('Latest target_commitish rejects missing, ambiguous, and non-commit refs', 
 });
 
 test('Standard remote digest builder materializes expected mutable Standard assets without stdin', () => {
-  const { result, output, expected } = runExpectedImmutableReleaseAssetsBuilder();
+  const { result, output, expected } = runExpectedMutableStandardAssetsBuilder();
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.deepEqual(output, expected);
 });

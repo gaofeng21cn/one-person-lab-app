@@ -52,7 +52,13 @@ test('mutation unknown states persist evidence and only use bounded read-only re
     assert.match(source, /outcome_unknown[\s\S]*--outcome unknown[\s\S]*opl release publish[\s\S]*opl release status[\s\S]*opl release reconcile/);
     assert.match(source, /deadline_elapsed[\s\S]*reconcile is not authorized without a persisted unknown outcome/);
   }
-  assert.equal((standardSource.match(/framework-release-adapter\.ts github-activate-latest/g) ?? []).length, 2);
+  const activationJobs = Object.entries(parseWorkflow('_release-standard-publish.yml').jobs)
+    .flatMap(([jobName, value]) =>
+      (value as { steps?: { run?: string }[] }).steps?.filter(
+        (step) => step.run?.includes('framework-release-adapter.ts github-activate-latest'),
+      ).map(() => jobName) ?? [],
+    );
+  assert.deepEqual(activationJobs, ['publish-standard-nonlatest', 'activate-latest']);
   assert.match(standardSource, /case "\$latest_status" in[\s\S]*complete\|idempotent/);
   assert.match(standardSource, /Latest activation was not conclusively read back; no retry was attempted/);
   assert.match(readWorkflow('_release-standard-publish.yml'), /fresh_bounded_read_only_inspect_then_framework_reconcile/);

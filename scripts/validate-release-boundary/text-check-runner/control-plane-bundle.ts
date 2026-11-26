@@ -338,7 +338,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     || !String(standardJobs['remote-digest-verify']?.if ?? '').includes("needs.restore.outputs.channel != 'stable'")
     || !jobEvidenceText(standardJobs['publish-standard-nonlatest']).includes('Read back exact remote Standard digests')
     || !jobEvidenceText(standardJobs['publish-standard-nonlatest']).includes('Activate Latest after exact remote parity')
-    || !jobRuns(standardJobs['remote-digest-verify']).includes('homebrew-standard-handoff.json')
+    || !jobRuns(standardJobs['publish-standard-nonlatest']).includes('homebrew-standard-handoff.json')
     || /OPL_HOMEBREW_TAP_TOKEN|git -C tap-source push/.test(standard.text)
   ) {
     failures += reportFailure(

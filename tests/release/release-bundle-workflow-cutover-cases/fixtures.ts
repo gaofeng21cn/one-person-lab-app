@@ -193,10 +193,10 @@ export function workflowStep(workflowName: string, jobName: string, stepName: st
 
 
 
-export function runExpectedImmutableReleaseAssetsBuilder() {
+export function runExpectedMutableStandardAssetsBuilder() {
   const step = workflowStep(
     '_release-standard-publish.yml',
-    'remote-digest-verify',
+    'publish-standard-nonlatest',
     'Read back exact remote Standard digests',
   );
   const run = String(step.run ?? '');
@@ -253,7 +253,7 @@ export function runExpectedImmutableReleaseAssetsBuilder() {
       ['-e', '-u', '-o', 'pipefail', '-c', [
         `attestation_sha=sha256:${crypto.createHash('sha256').update(attestationBytes).digest('hex')}`,
         `attestation_size=${Buffer.byteLength(attestationBytes)}`,
-        `plans=(${JSON.stringify(plan)})`,
+        `record=${JSON.stringify(plan)}`,
         `sidecar_actions=${JSON.stringify(sidecarActions)}`,
         run.slice(start, end),
         'test -s expected-mutable-standard-assets.json',
