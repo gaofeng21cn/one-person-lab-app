@@ -51,6 +51,15 @@ test('Full restores raw archives before discovery and consumes the same cache be
     assert.match(named(name).run, /scripts\/fetch-dependency-archive\.mjs/);
     assert.match(named(name).run, /shasum -a 256/);
   }
+  const resolveInputsRun = named('Resolve default Full build inputs').run;
+  assert.match(resolveInputsRun, /dependency-resolution\.json/);
+  assert.match(resolveInputsRun, /zstd_url=/);
+  assert.match(resolveInputsRun, /zstd_sha256=/);
+  const installToolsRun = named('Install zstd, Temporal CLI, OfficeCLI, and MinerU').run;
+  assert.doesNotMatch(installToolsRun, /brew install zstd/);
+  assert.match(installToolsRun, /zstd_url=/);
+  assert.match(installToolsRun, /zstd-release/);
+  assert.match(installToolsRun, /\$HOME\/\.local\/bin\/zstd/);
   assert.match(named('Configure dependency archive cache').run, /OPL_DEPENDENCY_ARCHIVE_CACHE_DIR/);
   assert.ok(steps.indexOf(named('Install zstd, Temporal CLI, OfficeCLI, and MinerU')) < steps.indexOf(named('Restore Full toolchain runtime cache')));
 });
