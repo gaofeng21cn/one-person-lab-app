@@ -36,7 +36,7 @@ export function validateCandidateWebUiTransport(candidate: ShellCandidate): void
   if (transport.shared_renderer !== true) {
     throw new Error(`${candidate.id} webui_transport.shared_renderer must be true`);
   }
-  if (transport.shared_host_core !== 'plugins/opl-host-core/src/service.mjs') {
+  if (transport.shared_host_core !== 'plugins/core/opl-host-core/src/service.mjs') {
     throw new Error(`${candidate.id} transport must use the shared Node host core`);
   }
   if (transport.bridge_abi !== 'opl_app_host_bridge.v1') {

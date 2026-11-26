@@ -81,7 +81,7 @@ export type OPLStudioCarrierEvidenceContract = {
   release_authority: false;
   product_profile_owner: 'one-person-lab-app';
   shared_renderer: 'deepseek_harness_derived_react';
-  shared_host_core: 'plugins/opl-host-core/src/service.mjs';
+  shared_host_core: 'plugins/core/opl-host-core/src/service.mjs';
   bridge_abi: 'opl_app_host_bridge.v1';
   required_entries: OPLStudioCarrierId[];
   current_aionui_release_evidence_may_close_successor_entry: false;

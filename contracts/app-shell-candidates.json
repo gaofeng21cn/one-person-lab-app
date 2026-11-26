@@ -603,7 +603,7 @@
         "release_authority": false,
         "product_profile_owner": "one-person-lab-app",
         "shared_renderer": "deepseek_harness_derived_react",
-        "shared_host_core": "plugins/opl-host-core/src/service.mjs",
+        "shared_host_core": "plugins/core/opl-host-core/src/service.mjs",
         "bridge_abi": "opl_app_host_bridge.v1",
         "required_entries": [
           "electron_desktop",
@@ -637,8 +637,8 @@
         "entries": {
           "electron_desktop": {
             "source_refs": [
-              "plugins/opl-studio-client/src/client/workbench/App.tsx",
-              "plugins/opl-host-core/src/service.mjs",
+              "plugins/core/opl-studio-client/src/client/workbench/App.tsx",
+              "plugins/core/opl-host-core/src/service.mjs",
               "desktop/main.mjs",
               "desktop/preload.cjs",
               "electron-builder.yml"
@@ -669,8 +669,8 @@
           },
           "standalone_headless_webui": {
             "source_refs": [
-              "plugins/opl-studio-client/src/client/workbench/App.tsx",
-              "plugins/opl-host-core/src/service.mjs",
+              "plugins/core/opl-studio-client/src/client/workbench/App.tsx",
+              "plugins/core/opl-host-core/src/service.mjs",
               "scripts/headless/run.mjs",
               "scripts/headless/server.mjs",
               "scripts/headless/installer.mjs",
@@ -704,8 +704,8 @@
           },
           "docker_webui": {
             "source_refs": [
-              "plugins/opl-studio-client/src/client/workbench/App.tsx",
-              "plugins/opl-host-core/src/service.mjs",
+              "plugins/core/opl-studio-client/src/client/workbench/App.tsx",
+              "plugins/core/opl-host-core/src/service.mjs",
               "Dockerfile",
               "docker-compose.distribution.yaml",
               "scripts/oci/manage.mjs",
@@ -820,7 +820,7 @@
       },
       "webui_transport": {
         "shared_renderer": true,
-        "shared_host_core": "plugins/opl-host-core/src/service.mjs",
+        "shared_host_core": "plugins/core/opl-host-core/src/service.mjs",
         "bridge_abi": "opl_app_host_bridge.v1",
         "desktop_surface": "Electron preload window.oplStudio",
         "web_surface": "browser window.oplStudio HTTP/SSE adapter",
