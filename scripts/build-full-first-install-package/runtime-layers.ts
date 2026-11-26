@@ -738,6 +738,7 @@ export function buildRuntimeLayerImplementationHash(layerId: FullRuntimeCacheLay
       requiredBuiltExportPayloadStatuses,
       removeOplSourceCondition,
       removePackagedSourceExportConditions,
+      stageOfficialSoftwareCatalog,
       buildOplLayer,
     ],
     skills: [materializeResolvedSelectedBundleDescriptor, buildSkillsLayer],
