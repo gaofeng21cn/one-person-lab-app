@@ -274,12 +274,16 @@ export function buildQualificationHarnessScopeProof(input: {
   ];
   const shellHarnessMechanicsPaths = [
     // Stable smoke imports the shared Preview UI and Gateway probes.
+    'scripts/desktop/cdp.mjs',
+    'scripts/desktop/plist.mjs',
     'scripts/desktop/preview-smoke.mjs',
     'scripts/desktop/qualify-clean-vm.mjs',
     'scripts/desktop/stable-clean-vm.mjs',
     'scripts/desktop/stable-smoke.mjs',
     'scripts/desktop/stable-upgrade-vm.mjs',
     'scripts/opl-first-run-vm-smoke.mjs',
+    'tests/desktop/cdp.test.mjs',
+    'tests/desktop/plist.test.mjs',
     'tests/desktop/preview-smoke.test.mjs',
     'tests/desktop/qualification-harness.test.mjs',
     'tests/desktop/stable-clean-vm.test.mjs',

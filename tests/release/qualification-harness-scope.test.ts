@@ -16,7 +16,7 @@ const artifactShellSha = 'c'.repeat(40);
 const verificationShellSha = 'd'.repeat(40);
 
 test('Stable harness tests are admitted individually while runtime paths remain forbidden', () => {
-  for (const name of ['stable-clean-vm', 'stable-smoke', 'stable-upgrade-vm']) {
+  for (const name of ['stable-clean-vm', 'stable-smoke', 'stable-upgrade-vm', 'cdp', 'plist']) {
     const input = {
       artifactAppSha, verificationAppSha: artifactAppSha, appChangedPaths: [],
       artifactShellSha, verificationShellSha,
