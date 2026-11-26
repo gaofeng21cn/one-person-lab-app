@@ -1,5 +1,6 @@
 import { assertDeepEqualJson, assertIncludesAll } from './assertions.ts';
 import { assertExpectedFields } from '../value-assertions.ts';
+import { matchesHomebrewTapFollowerPolicy } from '../homebrew-tap-follower-policy.ts';
 
 export function validateReleaseHomebrewDistribution(releaseChannel) {
   const homebrew = releaseChannel.homebrew_tap_distribution;
@@ -98,6 +99,7 @@ function validateReleaseHomebrewTapUpdatePolicy(homebrew) {
   const tapUpdate = homebrew.tap_update_policy;
   assertExpectedFields(
     [
+      { actual: matchesHomebrewTapFollowerPolicy(tapUpdate), expected: true },
       {
         actual: tapUpdate?.discovery_model,
         expected: 'user_taps_github_homebrew_tap_repo_then_homebrew_reads_formula_or_cask',
@@ -108,8 +110,6 @@ function validateReleaseHomebrewTapUpdatePolicy(homebrew) {
         expected: 'post_publication_non_blocking_digest_bound_follower',
       },
       { actual: tapUpdate?.default_workflow_repo, expected: 'gaofeng21cn/one-person-lab-app' },
-      { actual: tapUpdate?.default_workflow, expected: '.github/workflows/release-stable-post-success-followups.yml' },
-      { actual: tapUpdate?.default_operation, expected: 'reconcile_homebrew_standard' },
       { actual: tapUpdate?.tap_sync_script, expected: null },
       { actual: tapUpdate?.app_release_promotion_workflow, expected: '.github/workflows/release-stable.yml' },
       { actual: tapUpdate?.tap_owned_stable_distribution_workflow, expected: null },
@@ -121,89 +121,15 @@ function validateReleaseHomebrewTapUpdatePolicy(homebrew) {
         expected: 'protected_environment_post_publication_follower_exact_cas',
       },
       {
-        actual: tapUpdate?.stable_release_workflow_write_mode,
-        expected: 'post_publication_non_blocking_follower',
-      },
-      {
         actual: tapUpdate?.direct_commit_conflict_policy,
         expected:
           'Apply against the exact current Cask SHA and push once without force. A mismatched result fails only the follower; a later follower rerun starts from fresh public Cask state and never allocates a release version.',
       },
       { actual: tapUpdate?.planner_script, expected: 'scripts/update-homebrew-tap.ts' },
-      {
-        actual: tapUpdate?.nightly?.mode,
-        expected: 'post_publication_digest_bound_single_attempt_follower',
-      },
-      {
-        actual: tapUpdate?.nightly?.workflow,
-        expected: '.github/workflows/release-nightly-followups.yml',
-      },
-      { actual: tapUpdate?.nightly?.operation, expected: 'reconcile_homebrew' },
-      { actual: tapUpdate?.nightly?.environment, expected: 'release-nightly' },
-      {
-        actual: tapUpdate?.nightly?.credential?.kind,
-        expected: 'repository_scoped_write_deploy_key',
-      },
-      {
-        actual: tapUpdate?.nightly?.credential?.repository,
-        expected: 'gaofeng21cn/homebrew-one-person-lab',
-      },
-      {
-        actual: tapUpdate?.nightly?.credential?.secret,
-        expected: 'release-nightly.OPL_HOMEBREW_TAP_DEPLOY_KEY',
-      },
-      {
-        actual: tapUpdate?.nightly?.credential?.stable_environment_credentials_reused,
-        expected: false,
-      },
-      { actual: tapUpdate?.nightly?.target, expected: 'Casks/one-person-lab-nightly.rb' },
-      { actual: tapUpdate?.nightly?.may_update_stable, expected: false },
-      { actual: tapUpdate?.nightly?.mutation_allowed, expected: true },
-      { actual: tapUpdate?.nightly?.stable_cask_must_remain_exact, expected: true },
-      {
-        actual: tapUpdate?.nightly?.unknown_or_conflicting_result,
-        expected: 'fail_closed_no_retry_rerun_or_redispatch',
-      },
-      {
-        actual: tapUpdate?.stable?.mode,
-        expected: 'post_publication_digest_bound_cas_follower',
-      },
-      {
-        actual: tapUpdate?.stable?.publication_mode,
-        expected: 'post_publication_digest_bound_cas_follower',
-      },
-      { actual: tapUpdate?.stable?.workflow, expected: '.github/workflows/release-stable-post-success-followups.yml' },
-      { actual: tapUpdate?.stable?.operation, expected: 'reconcile_homebrew_standard' },
-      { actual: tapUpdate?.stable?.environment, expected: 'release-stable' },
-      { actual: tapUpdate?.stable?.target, expected: 'Casks/one-person-lab.rb' },
-      { actual: tapUpdate?.stable?.source_completed_stage, expected: 'standard_public_and_latest_activated' },
-      { actual: tapUpdate?.stable?.mutation_allowed, expected: true },
-      { actual: tapUpdate?.stable?.core_release_or_latest_blocking, expected: false },
-      { actual: tapUpdate?.stable?.same_tag_replacement_allowed, expected: true },
-      { actual: tapUpdate?.stable?.new_release_version_required_for_changed_bytes, expected: false },
-      { actual: tapUpdate?.stable?.exact_current_cask_sha256_cas_required, expected: true },
-      { actual: tapUpdate?.stable?.fresh_cas_rerun_allowed, expected: true },
-      { actual: tapUpdate?.stable?.may_consume_nightly_directly, expected: false },
-      { actual: tapUpdate?.full?.mode, expected: 'post_publication_digest_bound_single_attempt_follower' },
-      { actual: tapUpdate?.full?.workflow, expected: '.github/workflows/release-stable-post-success-followups.yml' },
-      { actual: tapUpdate?.full?.operation, expected: 'reconcile_homebrew_full' },
-      { actual: tapUpdate?.full?.environment, expected: 'release-stable' },
-      { actual: tapUpdate?.full?.target, expected: 'Casks/one-person-lab-full.rb' },
-      { actual: tapUpdate?.full?.homebrew_publish_allowed, expected: true },
-      { actual: tapUpdate?.full?.mutation_allowed, expected: true },
-      { actual: tapUpdate?.full?.source_completed_stage, expected: 'full_qualified' },
-      { actual: tapUpdate?.full?.homebrew_clean_vm_gate_required, expected: false },
       { actual: tapUpdate?.full?.may_update_standard_cask, expected: false },
       { actual: tapUpdate?.full?.may_update_nightly_cask, expected: false },
       { actual: tapUpdate?.full?.standard_updater_visible, expected: false },
       { actual: tapUpdate?.full?.standard_assets_notes_updater_or_latest_may_change, expected: false },
-      { actual: tapUpdate?.full?.framework_carrier, expected: 'full_dmg_embedded_opl_base' },
-      { actual: tapUpdate?.full?.formula_dependency_required, expected: false },
-      { actual: tapUpdate?.full?.promotion_status, expected: 'approved_pending_first_protected_follower_readback' },
-      {
-        actual: tapUpdate?.full?.unknown_or_conflicting_result,
-        expected: 'fail_closed_no_retry_rerun_or_redispatch',
-      },
       { actual: tapUpdate?.version_identity?.cask_version, expected: 'updater_version' },
       { actual: tapUpdate?.version_identity?.release_tag_and_asset_url, expected: 'display_version' },
       {

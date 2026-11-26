@@ -1,24 +1,5 @@
 import { sameStringSet, stringArrayIncludesAll } from './types.ts';
 
-export const requiredRetiredReleasePackageScripts = [
-  'release:stable',
-  'release:operator',
-  'release:publish',
-  'release:bundle',
-  'release:plan',
-  'release:cohort-lock',
-  'release:cohort-plan',
-  'release:preflight',
-  'release:closeout',
-  'release:cleanup-drafts',
-  'release:gate-reuse-plan',
-  'release:cohort-manifest',
-  'release:candidate-record',
-  'release:candidate-record:resolve-owner',
-  'release:candidate-record:validate',
-  'release:candidate-record:status',
-  'release:owner-candidate-record:verify',
-];
 export const requiredRemovedReleaseImplementationPaths = [
   'scripts/run-stable-release.ts',
   'scripts/release-operator.ts',
@@ -45,27 +26,32 @@ export const requiredRetainedNonAuthoritativeImplementationPaths = [
   'scripts/inspect-release-draft-candidates.ts',
 ];
 
-export function retiredReleaseControlPlaneViolations(releaseContract: Record<string, any>): string[] {
-  const violations: string[] = [];
-  const forbiddenKeys = new Set([
-    'stable_release_state_machine',
-    'cohort_prepare',
-    'release_operator',
-    'release_monitor',
-    'gate_reuse',
-    'publish_resume',
-    'post_owner_receipt_fast_path',
-    'broker_authority_gate',
-    'promotion_saga',
-    'attempt_ledger',
-    'signed_mutation_authority',
-  ]);
-  const forbiddenWorkflowValues = new Set([
-    '.github/workflows/desktop-release.yml',
-    '.github/workflows/desktop-release-promote.yml',
-    '.github/workflows/desktop-release-full-addon.yml',
-  ]);
+const forbiddenKeys = new Set([
+  'stable_release_state_machine',
+  'cohort_prepare',
+  'release_operator',
+  'release_monitor',
+  'gate_reuse',
+  'publish_resume',
+  'post_owner_receipt_fast_path',
+  'broker_authority_gate',
+  'promotion_saga',
+  'attempt_ledger',
+  'signed_mutation_authority',
+]);
+const forbiddenWorkflowValues = new Set([
+  '.github/workflows/desktop-release.yml',
+  '.github/workflows/desktop-release-promote.yml',
+  '.github/workflows/desktop-release-full-addon.yml',
+]);
 
+
+type RetiredReleaseEntry = 'field' | 'writer workflow' | 'operator admission';
+
+export function visitRetiredReleaseControlPlane(
+  releaseContract: unknown,
+  report: (kind: RetiredReleaseEntry, path: string) => void,
+): void {
   const visit = (value: unknown, pathName = 'release_channel') => {
     if (Array.isArray(value)) {
       value.forEach((entry, index) => visit(entry, `${pathName}[${index}]`));
@@ -74,16 +60,23 @@ export function retiredReleaseControlPlaneViolations(releaseContract: Record<str
     if (!value || typeof value !== 'object') return;
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
       const entryPath = `${pathName}.${key}`;
-      if (forbiddenKeys.has(key)) violations.push(`retired field ${entryPath}`);
+      if (forbiddenKeys.has(key)) report('field', entryPath);
       if (typeof entry === 'string' && forbiddenWorkflowValues.has(entry)) {
-        violations.push(`retired writer workflow ${entryPath}`);
+        report('writer workflow', entryPath);
       }
-      if (entry === 'release_operator_plan') violations.push(`retired operator admission ${entryPath}`);
+      if (entry === 'release_operator_plan') report('operator admission', entryPath);
       visit(entry, entryPath);
     }
   };
 
   visit(releaseContract);
+}
+
+export function retiredReleaseControlPlaneViolations(releaseContract: unknown): string[] {
+  const violations: string[] = [];
+  visitRetiredReleaseControlPlane(releaseContract, (kind, path) => {
+    violations.push(`retired ${kind} ${path}`);
+  });
   return violations;
 }
 

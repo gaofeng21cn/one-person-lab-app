@@ -5,6 +5,7 @@ import {
   sameStringSet,
   stringArrayIncludesAll,
 } from './types.ts';
+import { reportPhysicalVmQualificationFailures } from './vm-qualification.ts';
 
 function readJson(appRoot: string, relativePath: string): any {
   return JSON.parse(fs.readFileSync(path.join(appRoot, relativePath), 'utf8'));
@@ -27,114 +28,7 @@ const requiredSourceGatePrecedes = [
 ];
 
 export function validatePhysicalVmOptionalCertificationPolicy(releaseContract: Record<string, any>): number {
-  const acceleration = releaseContract.release_acceleration;
-  const vmGates = Array.isArray(acceleration?.vm_gates) ? acceleration.vm_gates : [];
-  const hostedLinux = acceleration?.hosted_linux_certification;
-  let failures = 0;
-  if (
-    JSON.stringify(vmGates.map((gate) => gate?.id)) !== JSON.stringify([
-      'standard_dmg_clean_vm_smoke',
-      'homebrew_standard_cask_clean_vm_smoke',
-      'full_dmg_clean_vm_smoke',
-    ])
-  ) {
-    console.error('FAIL release_vm_certification_policy: physical VM gate identities must remain exact');
-    failures += 1;
-  }
-  const requiredVmGates = vmGates.filter((gate) =>
-    ['standard_dmg_clean_vm_smoke', 'full_dmg_clean_vm_smoke'].includes(gate?.id),
-  );
-  if (
-    requiredVmGates.length !== 2 ||
-    requiredVmGates.some((gate) =>
-      gate?.diagnostic_scope !== 'release_gate' ||
-      gate?.gate_policy !== 'required_prepublication_same_candidate' ||
-      gate?.runtime_profile !== (gate?.id === 'full_dmg_clean_vm_smoke' ? 'full' : 'standard') ||
-      !Array.isArray(gate?.certification_readiness) ||
-      !gate.certification_readiness.includes(gate?.runtime_profile === 'full'
-        ? 'official_profile_exact_roots_installed_without_restore'
-        : 'official_profile_background_status_and_root_presence_observed_without_restore') ||
-      !sameStringSet(gate?.release_blocking_readiness, [
-        'gateway_account_login',
-        ...(gate?.runtime_profile === 'full' ? ['official_profile_first_install'] : []),
-        'fresh_framework_agent_projection',
-      ])
-    )
-  ) {
-    console.error('FAIL release_vm_required_policy: Standard and Full clean-VM must remain the prepublication physical VM gates');
-    failures += 1;
-  }
-  const optionalVmGate = vmGates.find((gate) => gate?.id === 'homebrew_standard_cask_clean_vm_smoke');
-  if (
-    optionalVmGate?.diagnostic_scope !== 'post_publication_optional_certification' ||
-    optionalVmGate?.gate_policy !== 'optional_non_blocking_same_published_artifact' ||
-    'release_blocking_readiness' in (optionalVmGate ?? {})
-  ) {
-    console.error('FAIL release_vm_optional_policy: Homebrew VM certification must remain post-publication and non-blocking');
-    failures += 1;
-  }
-  const fullVmGate = vmGates.find((gate) => gate?.id === 'full_dmg_clean_vm_smoke');
-  const legacyVmGate = acceleration?.vm_gate;
-  const legacyVmMirrorFields = [
-    'source',
-    'artifact',
-    'smoke_profile',
-    'display',
-    'settings_smoke',
-    'diagnostic_scope',
-    'runtime_profile',
-    'codex_config_wizard',
-    'gate_policy',
-    'certification_readiness',
-    'release_blocking_readiness',
-    'post_core_ready_background_policy',
-  ];
-  if (
-    !fullVmGate ||
-    !legacyVmGate ||
-    legacyVmMirrorFields.some((field) =>
-      JSON.stringify(legacyVmGate[field]) !== JSON.stringify(fullVmGate[field])
-    )
-  ) {
-    console.error('FAIL release_vm_legacy_mirror: legacy Full VM policy must mirror the required clean-install gate');
-    failures += 1;
-  }
-  if (
-    hostedLinux?.id !== 'linux_x64_same_artifact_install_smoke' ||
-    hostedLinux?.workflow !== '.github/workflows/release-post-publication-certification.yml' ||
-    hostedLinux?.runner !== 'ubuntu-latest' ||
-    hostedLinux?.platform !== 'linux-x64' ||
-    hostedLinux?.artifact !== 'One-Person-Lab-<version>-linux-x64.deb' ||
-    hostedLinux?.installer !== 'opl-install.sh' ||
-    !sameStringSet(hostedLinux?.installer_arguments, [
-      '--desktop',
-      '--release-tag',
-      '<exact-tag>',
-      '--no-open',
-    ]) ||
-    hostedLinux?.app_release_single_tag_asset_binding_required !== true ||
-    hostedLinux?.same_release_tag_required !== true ||
-    hostedLinux?.desktop_manifest_cohort_binding_required !== true ||
-    hostedLinux?.same_deb_artifact_identity_required !== true ||
-    hostedLinux?.cross_component_version_sha_or_cohort_equality_required !== false ||
-    hostedLinux?.dependency_compatibility_contract_ref !==
-      'contracts/app-install-exposure-policy.json#component_interoperability.compatibility_admission' ||
-    hostedLinux?.typed_admission_schema !== 'opl_app_stable_desktop_asset_append.v1' ||
-    hostedLinux?.typed_execution_evidence_schema !== 'opl_app_linux_same_tag_desktop_install.v1' ||
-    hostedLinux?.clean_machine_preinstall_absence_required !== true ||
-    hostedLinux?.installed_executable_byte_parity_required !== true ||
-    hostedLinux?.failed_download_evidence_truthful_required !== true ||
-    JSON.stringify(hostedLinux?.terminal_statuses) !== JSON.stringify(['passed', 'failed']) ||
-    hostedLinux?.unavailable_allowed !== false ||
-    hostedLinux?.downloaded_from_published_release_required !== true ||
-    hostedLinux?.rebuilt_allowed !== false ||
-    hostedLinux?.failure_receipt_uploaded_before_job_failure !== true ||
-    hostedLinux?.gate_policy !== 'optional_non_blocking_same_published_artifact' ||
-    hostedLinux?.required_for_publication_or_latest !== false
-  ) {
-    console.error('FAIL release_hosted_linux_certification: Linux certification must consume exact public installer and DEB bytes without blocking Stable or Latest');
-    failures += 1;
-  }
+  let failures = reportPhysicalVmQualificationFailures(releaseContract.release_acceleration);
   const stableValidation = releaseContract.release_validation_profiles?.stable;
   if (
     stableValidation?.addon_gate_blocking_standard_terminal !== false ||

@@ -2,7 +2,7 @@ import { assertDeepEqualJson, assertIncludesAll } from '../assertions.ts';
 import {
   retiredReleasePackageScripts,
   validationCanaryContract,
-} from './execution-contract-values.ts';
+} from '../../release-control-plane-policy-values.ts';
 
 function validateLegacyCompatibility(releaseChannel, shellPaths, validationProfile) {
   const control = releaseChannel?.release_bundle_control_plane;
