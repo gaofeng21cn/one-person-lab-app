@@ -2,7 +2,7 @@ import path from 'node:path';
 import type { ActiveShellPaths } from '../../app-shell-adapter.ts';
 import type { ReleaseBoundaryCheck } from './types.ts';
 
-export function buildLegacyFoundationChecks(
+export function buildReleaseFoundationChecks(
   appRoot: string,
   shellPaths: ActiveShellPaths,
 ): ReleaseBoundaryCheck[] {
@@ -79,25 +79,15 @@ export function buildLegacyFoundationChecks(
     forbidden: ['"release_repo": "gaofeng21cn/one-person-lab"'],
   },
   {
-    id: "update_bridge_repo",
-    file: path.relative(
-      appRoot,
-      path.join(shellPaths.shellRoot, "packages/desktop/src/process/bridge/updateBridge.ts"),
-    ),
-    required: ["'gaofeng21cn/one-person-lab-app'"],
-    forbidden: ["const DEFAULT_REPO = 'gaofeng21cn/one-person-lab'"],
+    id: 'update_bridge_repo',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/electron-builder.stable.yml`,
+    required: ['appId: cn.onepersonlab.opl', 'productName: One Person Lab', 'repo: one-person-lab-app'],
+    forbidden: ['repo: one-person-lab\n'],
   },
   {
-    id: "application_bridge_repo",
-    file: path.relative(
-      appRoot,
-      path.join(
-        shellPaths.shellRoot,
-        "packages/desktop/src/process/bridge/applicationBridgeCore.ts",
-      ),
-    ),
-    required: ["'gaofeng21cn/one-person-lab-app'"],
-    forbidden: ["|| 'gaofeng21cn/one-person-lab'"],
+    id: 'application_bridge_repo',
+    file: `${path.relative(appRoot, shellPaths.shellRoot)}/desktop/updater.mjs`,
+    required: ['checkForUpdates', 'quitAndInstall', 'beforeRestart', 'app_server_busy'],
   },
   {
     id: "first_run_vm_download_repo",
@@ -141,7 +131,6 @@ export function buildLegacyFoundationChecks(
       "Prepare OPL Framework bootstrap archive",
       "git -C one-person-lab archive --format=tar.gz --prefix=one-person-lab/",
       'CMD+=(--framework-source-archive "${{ steps.framework_source.outputs.archive_path }}")',
-      'CMD+=(--framework-install-script "${{ steps.framework_source.outputs.install_script_path }}")',
       "fetch_release_metadata_with_retry()",
       "Release metadata fetch failed on attempt $attempt",
       "download_asset_with_retry()",
@@ -156,20 +145,17 @@ export function buildLegacyFoundationChecks(
       "filter: blob:limit=1m",
       "sparse-checkout: |",
       "/scripts/",
-      "/packages/desktop/src/common/config/oplProductProfile/oplProductProfile.generated.json",
       "sparse-checkout-cone-mode: false",
       "package_profile:",
       "diagnostic_scope:",
       "diagnostic_scope != 'bootstrap_only'",
       "Resolve package profile",
-      "--smoke-profile no-clt-clean-vm",
-      "--display 1920x1080px",
-      "--settings-smoke",
-      "--assistant-route-smoke",
-      "--codex-functional-check",
       '--runtime-profile "${{ steps.package_profile.outputs.runtime_profile }}"',
       "guide_screenshots:",
-      "CMD+=(--guide-screenshots)",
+      "scripts/desktop/stable-clean-vm.mjs",
+      "scripts/desktop/stable-smoke.mjs",
+      "--validate-runtime-evidence",
+      "--expected-sha256",
     ],
     forbidden: [
       "--repo gaofeng21cn/one-person-lab",

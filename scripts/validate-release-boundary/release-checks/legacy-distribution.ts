@@ -1,6 +1,6 @@
 import type { ReleaseBoundaryCheck } from './types.ts';
 
-export const legacyDistributionChecks: ReleaseBoundaryCheck[] = [
+export const releaseDistributionChecks: ReleaseBoundaryCheck[] = [
   {
     id: "docker_webui_clean_windows_dispatch_helper",
     file: "scripts/dispatch-docker-webui-clean-windows-smoke.ts",

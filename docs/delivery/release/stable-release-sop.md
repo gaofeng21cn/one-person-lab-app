@@ -375,7 +375,7 @@ checkpoint digest。该参数只允许用于已有检查点的恢复，迁移回
 
 ## 6. 推进附加发布，保持产品独立
 
-Nightly 发布说明在 GitHub Actions 中依次使用 Copilot CLI `--model auto`、Gateway `deepseek-flash`、Gateway `gpt-6-luna` 和机械说明。Copilot 使用 Actions 的 `GITHUB_TOKEN` 与 `copilot-requests: write`，受仓库所有者 Copilot 额度限制；Gateway 使用已有 `OPL_RELEASE_NOTES_CODEX_API_KEY`。安装失败、额度不足、超时或无效输出都会降级，三层模型写作均失败时仍发布机械说明。AI 只整理冻结 App/Shell/Framework 的公开 diff 与提交证据，英文正文中的渠道、风险、升级及提交身份由程序填入。独立的 `nightly-release-notes-check.yml` 只验证写作链，不构建或发布产品。Stable 使用相同四层顺序，在昂贵构建前生成并冻结正文；三层模型均失败时允许带明确 mechanical 来源的说明，保留英文公开正文、中英文更新弹窗、准确安装操作与变更证据。Framework 同时接受 prepared_ai 与 prepared_mechanical，正文与证据摘要仍绑定同一冻结 Bundle。
+Nightly 发布说明在 GitHub Actions 中依次使用 Copilot CLI `--model auto`、Gateway `deepseek-flash`、Gateway `gpt-6-luna` 和机械说明。Copilot 使用 Actions 的 `GITHUB_TOKEN` 与 `copilot-requests: write`，受仓库所有者 Copilot 额度限制；Gateway 使用已有 `OPL_RELEASE_NOTES_CODEX_API_KEY`。安装失败、额度不足、超时或无效输出都会降级，三层模型写作均失败时仍发布机械说明。AI 只整理冻结 App/Shell/Framework 的公开 diff 与提交证据，英文正文中的渠道、风险、升级及提交身份由程序填入。发布诊断工作流中的 `nightly_release_notes` 选项只验证写作链，不构建或发布产品。Stable 使用相同四层顺序，在昂贵构建前生成并冻结正文；三层模型均失败时允许带明确 mechanical 来源的说明，保留英文公开正文、中英文更新弹窗、准确安装操作与变更证据。Framework 同时接受 prepared_ai 与 prepared_mechanical，正文与证据摘要仍绑定同一冻结 Bundle。
 
 Nightly 抽样 VM 使用原发布 cohort、公开 DMG 摘要和带 `-nightly.N` 的机器版本，
 通过 `--channel nightly` 验证 Standard 安装、Gateway 登录与 Official Profile。

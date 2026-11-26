@@ -9,13 +9,10 @@ import {
   releaseWorkflowPaths,
   releaseWorkflowPathsForProfile,
 } from './release-checks/profile.ts';
-import { buildLegacyAdmissionChecks } from './release-checks/legacy-admission.ts';
-import { legacyDistributionChecks } from './release-checks/legacy-distribution.ts';
-import { buildLegacyFoundationChecks } from './release-checks/legacy-foundation.ts';
-import {
-  buildStudioBoundaryChecks,
-  studioCarrierChecks,
-} from './release-checks/studio-carrier.ts';
+import { buildReleaseAdmissionChecks } from './release-checks/legacy-admission.ts';
+import { releaseDistributionChecks } from './release-checks/legacy-distribution.ts';
+import { buildReleaseFoundationChecks } from './release-checks/legacy-foundation.ts';
+import { studioCarrierChecks } from './release-checks/studio-carrier.ts';
 import { studioBundleChecks } from './release-checks/studio-bundle.ts';
 import { studioFollowupChecks } from './release-checks/studio-followups.ts';
 
@@ -30,21 +27,10 @@ export {
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const shellPaths = resolveActiveShellPaths();
 
-const legacyReleaseBoundaryChecks: ReleaseBoundaryCheck[] = [
-  ...buildLegacyFoundationChecks(appRoot, shellPaths),
-  ...legacyDistributionChecks,
-  ...buildLegacyAdmissionChecks(appRoot, shellPaths),
-];
-
-const studioBoundaryChecks = buildStudioBoundaryChecks(
-  appRoot,
-  shellPaths,
-  legacyReleaseBoundaryChecks,
-);
-
 export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
-  ...legacyReleaseBoundaryChecks.map((check) => shellPaths.contract.active_shell === 'opl-studio'
-    ? studioBoundaryChecks[check.id] ?? check : check),
+  ...buildReleaseFoundationChecks(appRoot, shellPaths),
+  ...releaseDistributionChecks,
+  ...buildReleaseAdmissionChecks(appRoot, shellPaths),
   ...studioCarrierChecks,
   ...studioBundleChecks,
   ...studioFollowupChecks,
@@ -53,5 +39,8 @@ export const releaseBoundaryChecks: ReleaseBoundaryCheck[] = [
 export function releaseBoundaryChecksForProfile(
   profile = releaseValidationProfile(),
 ): ReleaseBoundaryCheck[] {
+  if (profile !== 'windows' && shellPaths.contract.active_shell !== 'opl-studio') {
+    throw new Error('App release checks require the active Studio shell contract.');
+  }
   return filterReleaseBoundaryChecksForProfile(releaseBoundaryChecks, profile);
 }
