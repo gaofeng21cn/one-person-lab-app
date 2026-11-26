@@ -6,6 +6,7 @@ import {
   FULL_RUNTIME_CACHE_LAYER_TAXONOMY,
   FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS,
 } from '../full-first-install-package.ts';
+import { OFFICIAL_SOFTWARE_CATALOG } from '../official-software-catalog.mjs';
 import { directorySizeBytes } from './filesystem.ts';
 import { readGitHead, readGitOriginUrl } from './git.ts';
 import { existingFileSha256, packageJsonVersion } from './hashing.ts';
@@ -285,6 +286,13 @@ export function buildResolvedFullPayloadRefs(options, sources, components, sourc
     throw new Error('Full runtime resolved refs require the Framework-generated Flow capability build lock.');
   }
   return {
+    ...(options.catalogIndexPath ? { opl_software_catalog: {
+      label: 'OPL Official Software Catalog',
+      repository: OFFICIAL_SOFTWARE_CATALOG.repository,
+      requested_ref: OFFICIAL_SOFTWARE_CATALOG.ref,
+      resolved_commit: OFFICIAL_SOFTWARE_CATALOG.ref,
+      index_sha256: OFFICIAL_SOFTWARE_CATALOG.index_sha256,
+    } } : {}),
     opl_framework: {
       label: 'OPL Framework',
       source_path: options.frameworkRoot,

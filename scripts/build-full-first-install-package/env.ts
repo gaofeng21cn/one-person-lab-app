@@ -68,6 +68,7 @@ function defaultReleaseOptions() {
 
 function defaultWorkspaceRoots() {
   return {
+    catalogIndexPath: envValue('OPL_FULL_CATALOG_INDEX_PATH', path.join(workspaceRoot, 'opl-catalog', 'catalog-index.json')),
     frameworkRoot: firstEnvValue(
       ['OPL_FRAMEWORK_ROOT', 'OPL_FULL_OPL_ROOT'],
       path.join(workspaceRoot, 'one-person-lab'),
@@ -164,6 +165,7 @@ const valueOptionSetters = {
   version: (parsed, value) => { parsed.version = value; },
   'updater-version': (parsed, value) => { parsed.updaterVersion = value; },
   'out-dir': (parsed, value) => { parsed.outDir = path.resolve(value); },
+  'catalog-index': (parsed, value) => { parsed.catalogIndexPath = path.resolve(value); },
   'framework-root': (parsed, value) => { parsed.frameworkRoot = path.resolve(value); },
   'opl-root': (parsed, value) => { parsed.frameworkRoot = path.resolve(value); },
   'gui-root': (parsed, value) => { parsed.guiRoot = path.resolve(value); },

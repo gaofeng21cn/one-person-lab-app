@@ -5,6 +5,14 @@
   "owner": "one-person-lab-app",
   "purpose": "Separate development and delivery units from user-facing OPL App surfaces.",
   "authority_rule": "repository_location_and_carrier_do_not_choose_the_user_entry",
+  "software_catalog": {
+    "official_source_repository": "gaofeng21cn/opl-catalog",
+    "visible_product_types": ["agent", "application", "extension", "channel"],
+    "maintenance_type": "dependency",
+    "type_owner": "package_manifest_or_native_plugin_inventory",
+    "source_visibility_policy": "public_catalog_metadata_with_separate_owner_verified_artifact_access",
+    "lifecycle_owner_policy": "route_each_action_to_the_actual_native_DSH_or_Framework_package_owner"
+  },
   "layers": {
     "dsh_host_plugin": {
       "runtime_abi": "dsh_npm_package_cordis_host_plugin",
@@ -156,7 +164,13 @@
       "plugins": {
         "responsibility": "Independently published DSH Host and Client npm packages, including package-local source and generated lib output",
         "current_location": "opl-studio/plugins/<plugin-id>",
-        "migration_status": "host_and_client_features_owned_by_their_plugins"
+        "migration_status": "grouped_layout_required_for_the_next_Studio_cohort",
+        "target_location": "opl-studio/plugins/{core,extensions,channels}/<plugin-id>",
+        "groups": {
+          "core": "bundled_runtime_and_host_infrastructure",
+          "extensions": "Workbench_and_workflow_features",
+          "channels": "built_in_connection_transports"
+        }
       },
       "packages": {
         "responsibility": "Small shared contracts, Host primitives and DSH compatibility adapters justified by current callers and a stable public interface",
@@ -227,8 +241,8 @@
     }
   },
   "inventory": {
-    "command": "node scripts/plugin-composition-inventory.mjs --studio-root <path> --framework-root <path>",
-    "source_of_truth": "current_profile_package_manifests_and_Framework_descriptors",
+    "command": "node scripts/plugin-composition-inventory.mjs --studio-root <path> [--catalog-index <path>]",
+    "source_of_truth": "Studio_profile_and_package_manifests_plus_the_frozen_official_software_catalog",
     "static_package_allowlist": false,
     "installation_claim": "inventory_describes_source_and_declared_composition_only"
   }

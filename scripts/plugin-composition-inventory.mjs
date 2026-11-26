@@ -3,19 +3,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  OFFICIAL_SOFTWARE_CATALOG, officialSoftwareCatalogIndexUrl, readOfficialSoftwareCatalog,
+} from './official-software-catalog.mjs';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const studioPluginGroups = ['core', 'extensions', 'channels'];
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
 function parseArgs(argv) {
-  const args = { studioRoot: path.resolve(appRoot, '..', 'opl-studio'), frameworkRoot: path.resolve(appRoot, '..', 'one-person-lab') };
+  const args = { studioRoot: path.resolve(appRoot, '..', 'opl-studio') };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
-    if (value === '--studio-root' || value === '--framework-root') {
-      const key = value === '--studio-root' ? 'studioRoot' : 'frameworkRoot';
+    if (value === '--studio-root' || value === '--catalog-index') {
+      const key = value === '--studio-root' ? 'studioRoot' : 'catalogIndex';
       const next = argv[index + 1];
       if (!next || next.startsWith('--')) throw new Error(`${value} requires a path`);
       args[key] = path.resolve(next);
@@ -23,7 +27,7 @@ function parseArgs(argv) {
       continue;
     }
     if (value === '--help' || value === '-h') {
-      console.log('Usage: node scripts/plugin-composition-inventory.mjs [--studio-root PATH] [--framework-root PATH]');
+      console.log('Usage: node scripts/plugin-composition-inventory.mjs [--studio-root PATH] [--catalog-index PATH]');
       process.exit(0);
     }
     throw new Error(`Unknown argument: ${value}`);
@@ -38,17 +42,24 @@ function listDirectories(root) {
 
 function readStudioInventory(root) {
   const pluginsRoot = path.join(root, 'plugins');
-  const plugins = listDirectories(pluginsRoot).flatMap(directory => {
-    const packagePath = path.join(pluginsRoot, directory, 'package.json');
+  const pluginDirectories = listDirectories(pluginsRoot).flatMap(directory => {
+    if (!studioPluginGroups.includes(directory)) return [{ directory, group: null }];
+    return listDirectories(path.join(pluginsRoot, directory)).map(name => ({ directory: name, group: directory }));
+  });
+  const plugins = pluginDirectories.flatMap(({ directory, group }) => {
+    const relativeDirectory = group ? path.join('plugins', group, directory) : path.join('plugins', directory);
+    const packagePath = path.join(root, relativeDirectory, 'package.json');
     if (!fs.existsSync(packagePath)) return [];
     const packageJson = readJson(packagePath);
     return [{
       directory,
+      group,
       package_name: packageJson.name ?? null,
       description: packageJson.description ?? null,
       has_host_entry: Boolean(packageJson.exports?.['.']),
       has_client_entry: Boolean(packageJson.exports?.['./client']),
       dsh_manifest: packageJson.dsh ?? null,
+      source_path: path.join(relativeDirectory, 'package.json'),
     }];
   });
   const profilePath = path.join(root, 'contracts', 'opl-studio-profile.json');
@@ -87,38 +98,42 @@ function readAppOwnedPackages(root) {
   });
 }
 
-function readFrameworkPackages(root) {
-  const packagesRoot = path.join(root, 'contracts', 'opl-framework', 'packages');
-  if (!fs.existsSync(packagesRoot)) return [];
-  return fs.readdirSync(packagesRoot, { withFileTypes: true })
-    .filter(entry => entry.isFile() && entry.name.endsWith('.json') && entry.name !== 'registry.json')
-    .map(entry => path.join(packagesRoot, entry.name))
-    .flatMap(manifestPath => {
-      const manifest = readJson(manifestPath);
-      if (!manifest.package_id) return [];
-      const carrier = manifest.codex_surface?.configured_codex_plugin_carrier;
-      return [{
-        package_id: manifest.package_id,
-        source_repo: manifest.source_repo ?? null,
-        package_role: manifest.package_role ?? null,
-        management_scope: manifest.management_scope ?? null,
-        has_app_contributions: Boolean(manifest.app_contributions),
-        app_contribution_count: manifest.app_contributions?.views?.length ?? 0,
-        carrier_kind: carrier?.kind ?? null,
-        carrier_selector: carrier?.plugin_selector ?? carrier?.plugin_id ?? null,
-        interaction_mode: manifest.codex_surface?.interaction_mode ?? null,
-        source_path: path.relative(root, manifestPath),
-      }];
-    });
+function readCatalogPackages(index) {
+  return index.packages.map(entry => {
+    const manifest = entry.manifest;
+    const carrier = manifest?.codex_surface?.configured_codex_plugin_carrier;
+    return {
+      package_id: entry.package_id,
+      software_type: entry.software_type,
+      visibility: entry.visibility,
+      source_repo: manifest?.source_repo ?? null,
+      package_role: manifest?.package_role ?? null,
+      management_scope: manifest?.management_scope ?? null,
+      has_app_contributions: manifest ? Boolean(manifest.app_contributions) : null,
+      app_contribution_count: manifest ? manifest.app_contributions?.views?.length ?? 0 : null,
+      carrier_kind: carrier?.kind ?? null,
+      carrier_selector: carrier?.plugin_selector ?? carrier?.plugin_id ?? null,
+      interaction_mode: manifest?.codex_surface?.interaction_mode ?? null,
+      source_path: entry.manifest_path ?? null,
+    };
+  });
 }
 
-function main() {
+async function readCatalogIndex(indexPath) {
+  if (indexPath) return readOfficialSoftwareCatalog(fs.readFileSync(indexPath));
+  const response = await fetch(officialSoftwareCatalogIndexUrl(), { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error(`Read pinned official software catalog: HTTP ${response.status}`);
+  return readOfficialSoftwareCatalog(Buffer.from(await response.arrayBuffer()));
+}
+
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   const studio = readStudioInventory(args.studioRoot);
   const appOwnedPackages = readAppOwnedPackages(appRoot);
-  const frameworkPackages = readFrameworkPackages(args.frameworkRoot);
+  const catalogIndex = await readCatalogIndex(args.catalogIndex);
+  const catalogPackages = readCatalogPackages(catalogIndex);
   const result = {
-    schema_version: 'opl_plugin_composition_inventory.v1',
+    schema_version: 'opl_plugin_composition_inventory.v2',
     generated_at: new Date().toISOString(),
     authority: 'source_manifests_and_declared_composition_only',
     installation_or_callability_claim: false,
@@ -126,18 +141,19 @@ function main() {
     repositories: {
       app: appRoot,
       studio: studio.root,
-      framework: args.frameworkRoot,
+      catalog: OFFICIAL_SOFTWARE_CATALOG.repository,
     },
     dsh_host: studio,
     app_owned_packages: {
       count: appOwnedPackages.length,
       packages: appOwnedPackages,
     },
-    framework_packages: {
-      count: frameworkPackages.length,
-      with_app_contributions: frameworkPackages.filter(packageEntry => packageEntry.has_app_contributions).length,
-      with_native_carrier: frameworkPackages.filter(packageEntry => packageEntry.carrier_kind !== null).length,
-      packages: frameworkPackages,
+    catalog_packages: {
+      source: OFFICIAL_SOFTWARE_CATALOG,
+      count: catalogPackages.length,
+      with_app_contributions: catalogPackages.filter(packageEntry => packageEntry.has_app_contributions).length,
+      with_native_carrier: catalogPackages.filter(packageEntry => packageEntry.carrier_kind !== null).length,
+      packages: catalogPackages,
     },
     interpretation: {
       dsh_host_plugins_are_not_framework_packages: true,
@@ -148,4 +164,4 @@ function main() {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-main();
+await main();

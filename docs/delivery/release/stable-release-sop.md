@@ -429,10 +429,10 @@ Studio 及领域 Package 若在用户明确范围内，按各自 owner 的合同
 
 ## 维护和安装
 
-Full 从冻结 Framework owner projection 选择本次 roots 中的 `local_component`，按其 payload
+Full 从 App cohort 固定的 `opl-catalog` 提交与索引 SHA-256 选择本次 roots 中的 `local_component`，按其 payload
 声明的精确 source commit、文件路径、模式和 SHA-256 物化到现有 runtime modules。
 seed 身份进入 domain-runtime cache key，既有 packaged-module marker 保留来源；App 不维护
-固定组件清单或独立版本表。Framework 可以使用匹配的父产品 seed，原生 carrier
+固定组件清单或独立版本表。Full 同时把经校验的目录快照装入 Framework runtime，供离线软件发现。Framework 可以使用匹配的父产品 seed，原生 carrier
 仍验证 payload 和 content lock。可独立安装的公开 App 插件可以使用 Framework 明确声明的在线载荷；无声明的附属组件继续随父产品交付。
 
 MAC catalog 的部分克隆只取回 content lock 所选路径的缺失 Git 对象，并将这些对象合并为
