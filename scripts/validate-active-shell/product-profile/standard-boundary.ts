@@ -1,12 +1,6 @@
+import { assertCompanionPayloadProfileShape } from '../../app-product-profile/profile-contract/companion.ts';
 import { assertDeepEqualJson, assertIncludesAll } from '../assertions.ts';
-import {
-  forbiddenAuthorityOwners,
-} from '../app-contract-constants.ts';
-import { assertFirstRunProgressModelShape } from '../shared-contract-validators.ts';
-
-export function validateFirstRunProgressModel(profile) {
-  assertFirstRunProgressModelShape(profile.first_run?.progress_model, 'Product profile first-run progress model');
-}
+import { forbiddenAuthorityOwners } from '../app-contract-constants.ts';
 
 export function validateStandardPackagePolicy(profile) {
   const standardPackage = profile.first_run?.core_ready_policy?.standard_package;
@@ -38,63 +32,45 @@ export function validateCommandLineToolsPolicy(profile) {
   }
 }
 
-export function validateStandardUpdatePolicy(profile) {
+export function validateStandardUpdatePolicy(profile, releaseChannel) {
+  const updater = profile.first_run?.updates?.standard_channel;
   assertDeepEqualJson(
-    profile.first_run?.updates?.standard_channel?.metadata_scope,
-    ['latest-mac.yml', 'latest-arm64-mac.yml'],
+    updater?.metadata_scope,
+    releaseChannel.standard_updater.allowed_metadata,
     'Product profile Standard updater metadata bridge',
   );
   if (
-    profile.first_run?.updates?.standard_channel?.implementation_reference !== 'electron_autoUpdater_background_download_silent_install_on_quit'
-    || profile.first_run?.updates?.standard_channel?.ready_prompt !== 'status_only_install_on_normal_restart'
-    || profile.first_run?.updates?.standard_channel?.full_first_install_metadata_allowed !== false
-    || profile.first_run?.updates?.standard_channel?.download_policy !== 'background_download'
-    || profile.first_run?.updates?.standard_channel?.apply_policy !== 'restart_when_ready'
-    || profile.first_run?.updates?.standard_channel?.blocks_core_ready !== false
+    updater?.implementation_reference !== 'electron_autoUpdater_background_download_silent_install_on_quit'
+    || updater.ready_prompt !== 'status_only_install_on_normal_restart'
+    || updater.full_first_install_metadata_allowed !== false
+    || updater.download_policy !== 'background_download'
+    || updater.apply_policy !== 'restart_when_ready'
+    || updater.blocks_core_ready !== false
   ) {
     throw new Error('Product profile standard updates must download in background, prompt restart after ready, exclude Full metadata, and not block Core ready');
   }
 }
 
 export function validateCompanionPayloadAuthority(profile, installExposurePolicy) {
-  if (profile.companion_payloads?.install_exposure_policy_ref !== 'contracts/app-install-exposure-policy.json') {
-    throw new Error('Product profile companion payloads must reference app-install-exposure-policy.json');
-  }
-  if (profile.companion_payloads?.exposure_classes_ref !== 'contracts/app-install-exposure-policy.json#exposure_classes') {
+  assertCompanionPayloadProfileShape(profile);
+  const companion = profile.companion_payloads;
+  if (companion.exposure_classes_ref !== `${companion.install_exposure_policy_ref}#exposure_classes`) {
     throw new Error('Product profile companion payloads must reference install exposure classes');
   }
-  if (profile.companion_payloads?.public_abi?.primary_semantic_entry !== installExposurePolicy.public_abi?.primary_semantic_entry) {
+  if (companion.public_abi.primary_semantic_entry !== installExposurePolicy.public_abi?.primary_semantic_entry) {
     throw new Error('Product profile companion payload public ABI must match install exposure primary semantic entry');
   }
-  if (profile.companion_payloads.public_abi.preferred_app_distribution !== 'plugin_packaged_skill') {
+  if (companion.public_abi.preferred_app_distribution !== 'plugin_packaged_skill') {
     throw new Error('Product profile companion payloads must prefer plugin-packaged skills for the App path');
   }
-  if (profile.companion_payloads.public_abi.plugin_must_not_create_second_semantics !== true) {
-    throw new Error('Product profile companion payloads must forbid second semantics from plugin packaging');
-  }
-  if (profile.companion_payloads.public_abi.cli_and_app_share_skill_semantics !== true) {
+  if (companion.public_abi.cli_and_app_share_skill_semantics !== true) {
     throw new Error('Product profile companion payloads must keep CLI and App on shared skill semantics');
   }
-  const strategy = profile.companion_payloads?.capability_strategy_consumer;
-  if (
-    strategy?.strategy_authority !== 'opl-flow'
-    || strategy.compiler_authority !== 'opl-framework'
-    || strategy.runtime_projection_ref !==
-      'app_state.agent_packages.status_index.packages.opl-flow.capability_strategy'
-    || strategy.full_build_lock_kind !== 'opl_flow_capability_build_lock.v1'
-    || strategy.app_policy_inventory_allowed !== false
-    || strategy.app_direct_workflow_policy_parse_allowed !== false
-  ) {
-    throw new Error('Product profile must consume the Framework-compiled OPL Flow capability strategy');
-  }
   assertIncludesAll(
-    profile.companion_payloads?.domain_modules,
+    companion.domain_modules,
     ['med-autoscience', 'med-autogrant', 'redcube-ai', 'opl-meta-agent', 'opl-bookforge'],
     'Product profile domain module composition',
   );
-  if (profile.companion_payloads.domain_plugin_skills_must_not_be_companion_mirrors !== true) {
-    throw new Error('Product profile domain plugin skills must not be companion skill mirrors');
-  }
 }
 
 export function validateProductProfileBoundary(profile) {

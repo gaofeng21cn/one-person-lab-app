@@ -6,7 +6,7 @@ import {
   homeActivityCenterForbiddenDisplays,
 } from '../app-contract-constants.ts';
 import { assertAgentReferenceAdmissionPolicy } from '../../app-product-profile-shared-validators.ts';
-import { productProfile } from './context.ts';
+import { productProfile, settingsControlPlane } from './context.ts';
 import { validateDynamicHomeComposerStateContract } from './actions.ts';
 
 export function validateGuiContractHomeAndCapabilities(guiContract) {
@@ -25,17 +25,7 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
   );
   assertDeepEqualJson(
     pages.settings_capabilities.entity_kinds,
-    [
-      'standard_agent',
-      'workflow_profile',
-      'capability_package',
-      'skill',
-      'plugin',
-      'mcp_server',
-      'connection_application',
-      'image_generation',
-      'voice_input',
-    ],
+    settingsControlPlane.agents_capabilities_ownership.capabilities.entity_kinds,
     'App GUI Settings Capabilities entity kinds',
   );
   if (!pages.settings_capabilities.must_show?.includes(
@@ -105,10 +95,6 @@ export function validateGuiContractHomeAndCapabilities(guiContract) {
   validateDynamicHomeComposerStateContract(
     guiContract.interaction_baseline?.home?.home_composer_state_contract,
     'App GUI Home composer state contract',
-  );
-  validateDynamicHomeComposerStateContract(
-    productProfile.gui?.home?.home_composer_state_contract,
-    'App product profile Home composer state contract',
   );
   assertDeepEqualJson(
     productProfile.gui?.home?.home_composer_state_contract,

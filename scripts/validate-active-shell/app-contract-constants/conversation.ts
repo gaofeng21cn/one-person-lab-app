@@ -1,5 +1,3 @@
-import { appOwnedOrdinaryConversation } from './ordinary-chat.ts';
-
 export const appOwnedTranscriptExport = {
   scope: "current_conversation_transcript_only",
   history_loading_policy: "load_all_pages_before_export",
@@ -26,7 +24,7 @@ export const appOwnedTranscriptExport = {
   errors_visible: true,
   workspace_bundle_authorized: false,
 };
-const appOwnedArtifactPreview = {
+export const appOwnedArtifactPreview = {
   surface: "opl_studio_preview_context_and_panel",
   entry_sources: [
     "session_attachment_ref",
@@ -60,12 +58,6 @@ const appOwnedArtifactPreview = {
   keyboard_reachable_open_action: true,
   failure_policy: "keep_ref_visible_and_fail_closed_with_reason",
   unsafe_or_unsupported_ref_policy: "do_not_open_or_guess_content",
-};
-export const appOwnedGuiContractOrdinaryConversation = {
-  ...appOwnedOrdinaryConversation,
-  model_status_surface: "executor_policy.default_model_display_value",
-  transcript_export: appOwnedTranscriptExport,
-  artifact_preview: appOwnedArtifactPreview,
 };
 export const appOwnedCurrentTaskSlice = {
   source: "contracts/app-runtime-bridge.json#current_task_slice_projection",

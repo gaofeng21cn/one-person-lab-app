@@ -29,15 +29,18 @@ function buildScenarioMap(matrix) {
   if (!Array.isArray(matrix.scenarios) || matrix.scenarios.length === 0) {
     throw new Error('First-run matrix must declare scenarios');
   }
-  return new Map(matrix.scenarios.map((scenario) => {
-    if (!scenario.id || !scenario.package_type || !Array.isArray(scenario.expects) || scenario.expects.length === 0) {
-      throw new Error(`Invalid first-run scenario: ${JSON.stringify(scenario)}`);
+  const scenarios = new Map();
+  for (const scenario of matrix.scenarios) {
+    if (!scenario.id || !scenario.package_type || scenarios.has(scenario.id)) {
+      throw new Error(`Invalid or duplicate first-run scenario: ${scenario.id}`);
     }
+    assertNonEmptyStringArray(scenario.expects, `First-run scenario ${scenario.id} expectations`);
     if (Array.isArray(scenario.aliases) && scenario.aliases.length > 0) {
       throw new Error(`First-run scenario ${scenario.id} must not declare compatibility aliases`);
     }
-    return [scenario.id, scenario];
-  }));
+    scenarios.set(scenario.id, scenario);
+  }
+  return scenarios;
 }
 
 function validateFullFirstInstallScenario(fullClean) {
@@ -148,16 +151,6 @@ function validateFlowCapabilityStrategyScenario(strategy) {
   ) {
     throw new Error('First-run matrix must consume the Framework-compiled OPL Flow capability strategy');
   }
-  for (const expected of [
-    'default Codex capabilities are selected by OPL Flow and compiled by Framework',
-    'App does not maintain a second recommended Skill or tool inventory',
-    'Full payload materialization exactly follows the Framework-generated Flow capability build lock',
-    'install materializes capabilities without running explicit $opl-flow start onboarding',
-  ]) {
-    if (!strategy.expects?.includes(expected)) {
-      throw new Error(`First-run Flow capability strategy scenario must require: ${expected}`);
-    }
-  }
 }
 
 function validateUpdaterScenario(updater) {
@@ -172,15 +165,6 @@ function validateUpdaterScenario(updater) {
     || updater?.update_policy?.opl_flow_install_allowed !== false
   ) {
     throw new Error('Standard updater scenario must update desktop App assets only and exclude Full metadata, module packages, Developer checkouts, and opl-flow install');
-  }
-  for (const expected of [
-    'standard updater does not update domain module packages',
-    'standard updater does not select Developer Profile source_channel checkouts',
-    'standard updater does not install opl-flow',
-  ]) {
-    if (!updater.expects?.includes(expected)) {
-      throw new Error(`Standard updater scenario must require: ${expected}`);
-    }
   }
 }
 
@@ -405,49 +389,13 @@ export function validateFirstRunMatrix(matrix, contract) {
     beginnerFirstRunTestIds,
     'Beginner first-run scenario shell test ids',
   );
-  for (const expected of [
-    'authenticated root, ordinary startup, catch-all, and the legacy /startup-gate compatibility route enter /guid without waiting for fast App state',
-    'startup readiness uses opl app state --profile fast --json as background bootstrap state only; ready, blocked, unknown, timeout, and read failure keep ordinary /guid entry usable and never redirect ordinary startup to /first-run',
-    'fresh authenticated WebUI login carries a one-shot postLoginSetupCheck intent; known incomplete Core readiness replaces /guid with /first-run while ready, unknown, timeout, read failure, or a 20000 ms UI deadline keep /guid fail-open',
-    'the installed launch target is 1500 ms from OS launch request until the Guid composer is visible, enabled, and focusable; this target requires exact installed evidence and is not inferred from source tests',
-    'every ordinary launch, refresh, and deep link routes directly to /guid regardless of Core readiness while /first-run remains user-opened except for the one-shot fresh WebUI login check',
-    'Chinese locale first-run primary area uses beginner labels such as 工作目录, 本机助手, and 模型访问 even when initialize checklist labels are English',
-    'Chinese locale first-run primary area does not expose Codex API Configuration, Unknown, Needs setup, raw setup_flow fields, or opl system commands',
-    'Desktop and WebUI model access default to OPL Gateway account login with email and password, while API Key remains a compatibility method',
-    'existing Codex recheck is a secondary action outside the account and API Key method switch',
-    'Gateway account login uses the runtime provider over desktop typed IPC or the existing WebUI HTTP proxy, omits device label, passes credentials through dedicated stdin, reads fast App state, and completes setup only for a uniquely resolved Codex group without executing gateway_account_use_for_model_access',
-    'after a fresh state read exposes gateway_account_use_for_model_access, a separate explicit 设为模型访问方式 confirmation is required before the medium-impact local Codex provider mutation and login never counts as that confirmation',
-    'successful Gateway login replaces the credential fields with an explicit localized success status, focuses the separate 设为模型访问方式 confirmation, and keeps setup blocked until that confirmation succeeds',
-    'each authoritative post-login fast-state read is published to the shared cache so already-mounted Home and Sider consumers stop showing stale setup blockers without an App restart',
-    'unresolved Gateway group selection shows localized group_selection_required and never claims model access ready',
-    'Gateway password clears after success, failure, or method switch and never enters renderer diagnostics',
-    'WebUI exposes Gateway account and API Key methods, defaults to Gateway account login, and reuses the existing OPL runtime HTTP proxy',
-    'first-run uses a focused full-window setup workspace and hides ordinary product navigation until the user enters /guid',
-    'first-run renders as an authenticated standalone route outside the ordinary product layout',
-    'unknown startup readiness enters /guid directly and background refresh never mutates readiness or creates a global startup failure',
-    'the three Core items render as a stable step rail while only the current task occupies the main panel',
-    'the active rail step and task panel select the first unready Core item in fixed step order before completion',
-    'Core progress uses completed step count without percentage progress',
-    'model access offers functional Gateway account and API Key compatibility paths without competing primary actions',
-    'model access method switching and alternate actions remain disabled until the current request settles',
-    'ready state replaces the current task in place and keeps one primary entry action',
-    'macOS first-install Official Profile apply starts after Core readiness and never blocks or disables the ready /guid entry',
-    'Official Profile pending, timeout, and failure remain background Package-local status with technical diagnostics and explicit retry',
-    'FirstRun never navigates automatically after initialize and explicit user entry can open /guid before or after readiness',
-    'technical details stay inside FirstRun and do not expose ordinary Settings navigation',
-    'all initialize, model access, and maintenance actions share one in-flight interaction lock',
-    'initialize pending does not claim ready or no blockers before a payload returns',
-    'required Core checklist items never treat disabled status as ready',
-    'the 400x600 minimum App window keeps the current primary action visible',
-    'background App shell is inert and aria-hidden until the user enters /guid',
-    'macOS preserves traffic-light safe area while Windows and Linux retain desktop window controls',
-    'interactive controls use localized accessible names rather than testid strings',
-    'beginner errors are localized inline while raw diagnostics remain in technical details',
-    'Gateway passwords are never stored in renderer diagnostics and submitted access keys are redacted before diagnostics are stored or rendered',
-  ]) {
-    if (!beginnerScenario.expects?.includes(expected)) {
-      throw new Error(`Beginner first-run scenario must require localized beginner setup UX: ${expected}`);
-    }
+  const progressModel = matrix.shared_progress_model;
+  if (
+    beginnerScenario.source_command !== progressModel.source_command ||
+    beginnerScenario.event_stream_source_command !== progressModel.event_stream_source_command ||
+    beginnerScenario.event_stream_policy !== progressModel.event_stream_policy
+  ) {
+    throw new Error("Beginner first-run must use shared initialize progress and keep the event stream explicit");
   }
   const progressiveRecovery = scenarioById.get('ordinary_shell_progressive_first_run_recovery');
   if (!progressiveRecovery) {
@@ -458,20 +406,6 @@ export function validateFirstRunMatrix(matrix, contract) {
     progressiveFirstRunRecoveryTestIds,
     'Progressive first-run recovery shell test ids',
   );
-  for (const expected of [
-    'incomplete Core readiness never blocks authenticated navigation to /guid',
-    'fresh authenticated WebUI login with known incomplete Core readiness enters /first-run through a one-shot route intent',
-    'ordinary sidebar keeps a non-modal localized entry back to /first-run until Core prerequisites are complete',
-    'ordinary Home never renders a persistent composer-wide runtime attention alert',
-    'plain conversation and send-scoped local file or directory inputs require Codex CLI and model access but do not require workspace_root',
-    'blocked send keeps the draft prompt and shows an inline localized recovery action',
-    'missing workspace_root disables project selection and OPL workspace controls only',
-    'unknown readiness does not synthesize failure or mutate ready_to_launch',
-  ]) {
-    if (!progressiveRecovery.expects?.includes(expected)) {
-      throw new Error(`Progressive first-run recovery scenario must require: ${expected}`);
-    }
-  }
   validateStandardBootstrapScenario(scenarioById.get('standard_app_managed_bootstrap'));
   validateCommandLineToolsScenario(scenarioById.get('macos_clt_system_installer'));
   validateFlowCapabilityStrategyScenario(

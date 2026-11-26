@@ -1,4 +1,4 @@
-import { assertDeepEqualJson } from '../assertions.ts';
+import { assertDeepEqualJson, assertIncludesAll } from '../assertions.ts';
 import {
   appOwnedSettingsAboutUpdaterStatePolicy,
   appOwnedStorageCarrierBehavior,
@@ -6,11 +6,9 @@ import {
   appOwnedWebuiDataVolumeHostActionCapabilityId,
 } from '../app-contract-constants.ts';
 import { validateEnvironmentModuleMaintenanceEntry } from '../managed-update-plane-validator.ts';
-import { validateFrameworkModuleMaintenanceEntry } from './framework-maintenance.ts';
 import { validateReadOnlyStorageLifecycleSurface } from './lifecycle.ts';
-import { storageAvailabilityPresentationVariants, storageUserVisibleImplementationTermsForbidden } from './context.ts';
 
-export function validateGuiContractSettingsMaintenanceAndStorage(guiContract) {
+export function validateGuiContractSettingsMaintenanceAndStorage(guiContract, releaseChannel) {
   const pages = guiContract.pages ?? {};
   if (
     pages.settings_storage.sections?.includes('log_directory') ||
@@ -82,19 +80,23 @@ export function validateGuiContractSettingsMaintenanceAndStorage(guiContract) {
   ) {
     throw new Error('Settings Environment must reference the canonical three-object software lifecycle');
   }
-  validateFrameworkModuleMaintenanceEntry(guiContract.framework_surfaces?.managed_update_plane?.ordinary_module_maintenance_entry);
+  validateFrameworkModuleMaintenanceEntry(
+    guiContract.framework_surfaces?.managed_update_plane?.ordinary_module_maintenance_entry,
+    pages.settings_environment.module_maintenance_entry,
+  );
   const carrierReconcile = guiContract.framework_surfaces?.managed_update_plane?.carrier_reconciliation;
+  const releaseReconcile = releaseChannel.managed_update_plane.carrier_reconciliation;
+  const frameworkExecution = releaseReconcile.framework_execution;
   if (
     carrierReconcile?.contract_ref !== 'contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation' ||
-    carrierReconcile?.trigger !== 'app_startup_after_core_ready_when_running_app_version_checkpoint_is_missing_or_changed' ||
-    carrierReconcile?.installation_source_scope !== 'all_supported_app_carriers' ||
-    carrierReconcile?.installation_source_registry_ref !==
-      'contracts/app-install-exposure-policy.json#installer_surfaces+distribution_channels' ||
-    carrierReconcile?.execution_owner !== 'one-person-lab' ||
-    carrierReconcile?.catalog_source !== 'framework_managed_update_plan' ||
+    carrierReconcile?.trigger !== releaseReconcile.trigger ||
+    carrierReconcile?.installation_source_scope !== releaseReconcile.installation_source_scope ||
+    carrierReconcile?.installation_source_registry_ref !== releaseReconcile.installation_source_registry_ref ||
+    carrierReconcile?.execution_owner !== frameworkExecution.owner ||
+    carrierReconcile?.catalog_source !== frameworkExecution.catalog_source ||
     carrierReconcile?.app_catalog_allowed !== false ||
     carrierReconcile?.app_role !== 'request_and_project_framework_terminal_readback_and_apply_receipts_only' ||
-    carrierReconcile?.idempotency !== 'once_per_running_app_version_or_image_digest_and_carrier_identity' ||
+    carrierReconcile?.idempotency !== releaseReconcile.idempotency ||
     carrierReconcile?.readback !== 'opl app state --profile fast --json#managed_update' ||
     carrierReconcile?.silent_apply_source !== 'framework_plan_auto_apply.eligible_and_app_background_safe_with_command_ref' ||
     carrierReconcile?.direct_skill_delete_allowed !== false ||
@@ -102,27 +104,9 @@ export function validateGuiContractSettingsMaintenanceAndStorage(guiContract) {
   ) {
     throw new Error('App GUI must request carrier-neutral Framework reconciliation and project terminal readback plus apply receipts without a second catalog');
   }
-  assertDeepEqualJson(
-    carrierReconcile?.projection_prefetch,
-    {
-      command: 'opl update status --json',
-      publish_when: 'valid_typed_status_readback_available',
-      purpose: 'make_framework_typed_state_available_before_network_check_and_plan_complete',
-      failure_policy: 'continue_reconciliation_without_clearing_last_valid_projection',
-    },
-    'App GUI carrier reconciliation projection prefetch',
-  );
-  assertDeepEqualJson(
-    carrierReconcile?.command_sequence,
-    [
-      'opl update check --json',
-      'opl update plan --json',
-      'opl update apply --json',
-      'opl update status --json',
-    ],
-    'App GUI carrier reconciliation command sequence',
-  );
-  assertDeepEqualJson(carrierReconcile?.software_object_scope, ['opl_base', 'opl_packages'], 'App GUI carrier reconciliation scope');
+  for (const field of ['projection_prefetch', 'command_sequence', 'software_object_scope']) {
+    assertDeepEqualJson(carrierReconcile[field], frameworkExecution[field], `App GUI carrier reconciliation ${field}`);
+  }
   if (pages.settings_storage.release_contract_ref !== 'contracts/app-release-channel.json#local_data_lifecycle') {
     throw new Error('Settings Storage must reference the App local data lifecycle contract');
   }
@@ -132,31 +116,42 @@ export function validateGuiContractSettingsMaintenanceAndStorage(guiContract) {
     ['localized_reason', 'user_visible_context_and_impact', 'recovery_action'],
     'App GUI Storage unavailable information',
   );
-  assertDeepEqualJson(
-    storageUnavailableExperience?.presentation_variants,
-    storageAvailabilityPresentationVariants,
-    'App GUI Storage availability presentation variants',
+  const variants = storageUnavailableExperience?.presentation_variants;
+  const disconnected = variants?.web_statistics_not_connected;
+  const failure = variants?.operational_failure;
+  if (
+    disconnected?.condition !== 'webui_has_no_valid_owner_storage_projection_and_no_explicit_error' ||
+    disconnected?.severity !== 'info' ||
+    disconnected?.title_intent !== 'current_web_version_cannot_display_storage_usage' ||
+    disconnected?.visible_action?.id !== 'view_deployment_status' ||
+    disconnected?.visible_action?.route !== '/settings/environment?section=services' ||
+    disconnected?.retry_visible !== false ||
+    failure?.condition !== 'explicit_permission_service_ipc_or_unknown_error' ||
+    failure?.severity !== 'warning' ||
+    failure?.localized_reason_required !== true ||
+    failure?.recovery_action_required !== true ||
+    failure?.retry_policy !== 'show_only_when_action_rechecks_the_failed_source' ||
+    failure?.technical_details_default !== 'collapsed'
+  ) {
+    throw new Error('Settings Storage availability must distinguish disconnected browser statistics from an operational failure');
+  }
+  assertIncludesAll(
+    disconnected.required_explanation,
+    ['browser_access_context', 'deployment_not_connected_to_storage_statistics_service', 'existing_data_and_other_features_unaffected'],
+    'App GUI Storage browser availability explanation',
   );
-  assertDeepEqualJson(
-    storageUnavailableExperience?.user_visible_implementation_terms_forbidden,
-    storageUserVisibleImplementationTermsForbidden,
+  assertIncludesAll(
+    storageUnavailableExperience.user_visible_implementation_terms_forbidden,
+    ['desktop storage carrier', 'owner projection', 'carrier host'],
     'App GUI Storage user-visible implementation terms',
   );
-  assertDeepEqualJson(
-    pages.settings_storage.unavailable_state?.presentation_variants,
-    storageAvailabilityPresentationVariants,
-    'Settings Storage availability presentation variants',
-  );
-  assertDeepEqualJson(
-    pages.settings_storage.unavailable_state?.required_information,
-    ['localized_reason', 'user_visible_context_and_impact', 'recovery_action'],
-    'Settings Storage unavailable information',
-  );
-  assertDeepEqualJson(
-    pages.settings_storage.unavailable_state?.user_visible_implementation_terms_forbidden,
-    storageUserVisibleImplementationTermsForbidden,
-    'Settings Storage user-visible implementation terms',
-  );
+  for (const [field, label] of Object.entries({
+    presentation_variants: 'Settings Storage availability presentation variants',
+    required_information: 'Settings Storage unavailable information',
+    user_visible_implementation_terms_forbidden: 'Settings Storage user-visible implementation terms',
+  })) {
+    assertDeepEqualJson(pages.settings_storage.unavailable_state?.[field], storageUnavailableExperience[field], label);
+  }
   if (
     storageUnavailableExperience?.refresh_only_empty_state_allowed !== false ||
     pages.settings_storage.unavailable_state?.refresh_only_allowed !== false ||
@@ -289,5 +284,31 @@ export function validateGuiContractSettingsMaintenanceAndStorage(guiContract) {
     pages.settings_personalization.compatibility_redirect?.anchor !== 'personalization'
   ) {
     throw new Error('Personalization must redirect to Workspace#personalization');
+  }
+}
+
+function validateFrameworkModuleMaintenanceEntry(entry, pageEntry) {
+  if (
+    entry?.settings_page !== 'settings_environment' ||
+    entry?.display_role !== 'user_facing_module_maintenance_entry' ||
+    'must_include_modules' in entry ||
+    'manual_action_mapping' in entry
+  ) {
+    throw new Error('App GUI managed update plane must expose module maintenance under Local Environment without owning the update kernel');
+  }
+  for (const field of [
+    'app_role',
+    'kernel_implementation_allowed',
+    'domain_truth_write_allowed',
+    'developer_checkout_silent_update_allowed',
+    'dirty_checkout_silent_update_allowed',
+    'module_collection_source',
+    'module_collection_policy',
+    'status_sources',
+    'projected_action_source',
+    'ordinary_action_policy',
+    'private_command_mapping_allowed',
+  ]) {
+    assertDeepEqualJson(entry[field], pageEntry[field], `App GUI framework module maintenance ${field}`);
   }
 }

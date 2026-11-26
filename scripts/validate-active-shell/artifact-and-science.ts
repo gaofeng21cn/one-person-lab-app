@@ -1,42 +1,88 @@
 import { assertDeepEqualJson, assertIncludesAll } from "./assertions.ts";
 import {
-  appOwnedAgentModuleStatusPanel,
-  appOwnedGenericOwnerAcceptanceCurrentnessRefPolicy,
-  appOwnedPrimaryGroupingPolicy,
-  appOwnedProjectGroupExpansionPolicy,
-  appOwnedQueueStatusPolicy,
-  appOwnedRuntimeMentalModel,
-  appOwnedRunningStatePolicy,
-  runtimeAutomationStateValues,
-  runtimePrimaryStateValues,
-  retiredMasOwnerAcceptanceMirrorFields,
-  runtimeScopeRequiredFields,
-  actionEnvelopeKinds,
-  actionOwnerKinds,
-  domainDetailViewAvailabilityValues,
-  domainDetailViewDescriptorFields,
-  domainDetailViewDescriptorOptionalFields,
-  domainDetailViewReadAvailabilityValues,
-  systemAttentionResponsibilityFields,
-  taskRunProjectionV2FieldGroups,
-  taskRunProjectionV2RequiredFields,
-  tokenObservationObservedFields,
-  tokenObservationStates,
-  workItemConditionFields,
-  workItemDetailPrimarySections,
-  runtimeWorkItemDetailSecondarySections,
-  workItemPrimaryStateLabelsByLocale,
-  workItemBusinessStates,
-  workItemProjectionFieldContracts,
-  workItemProjectionRequiredFields,
-  workItemVisibilityStates,
-} from "./app-contract-constants.ts";
-
+  refLevelFollowUpRequiredRefFields,
+  structuredResultPanelRequiredRefFields,
+  structuredResultPanelSurfaces,
+  workflowSkillCandidateActions,
+  workflowSkillCandidateRequiredRefFields,
+} from "./settings-and-provider.ts";
 import {
   assertNoForbiddenKeys,
-  assertNonEmptyString,
   assertNonEmptyStringArray,
 } from "./validation-primitives.ts";
+
+const stateIndexRequiredRefFields = [
+  "state_index_ref",
+  "stage_folder_ref",
+  "task_ref",
+  "owner_ref",
+  "updated_at",
+];
+
+const stateIndexOptionalRefFields = [
+  "artifact_index_refs",
+  "receipt_index_refs",
+  "blocker_index_refs",
+  "readiness_false_flag_refs",
+  "cache_generation_ref",
+];
+
+const stateIndexDisabledAccessFields = [
+  "sqlite_direct_read_access",
+  "sqlite_write_access",
+  "sidecar_mutation_access",
+  "domain_truth_write_access",
+  "owner_receipt_write_access",
+  "artifact_body_access",
+  "readiness_authority",
+  "artifact_authority",
+  "quality_verdict_authority",
+];
+
+const nativeDrilldownRequiredRefFields = [
+  "current_pointer_ref",
+  "canonical_artifact_refs",
+  "export_artifact_refs",
+  "lineage_refs",
+  "retention_policy_ref",
+  "conformance_summary_ref",
+];
+
+const nativeDrilldownOptionalRefFields = [
+  "content_hash_refs",
+  "attempt_manifest_refs",
+  "owner_receipt_refs",
+  "typed_blocker_refs",
+  "decision_receipt_refs",
+];
+
+const provenanceRefFields = [
+  "provenance_bundle_refs",
+  "provenance_index_ref",
+  "ro_crate_metadata_ref",
+  "replay_status_ref",
+  "agent_trace_refs",
+  "review_refs",
+  "typed_issues",
+];
+
+const nativeDrilldownForbiddenKeys = [
+  "artifact_body",
+  "artifact_body_preview",
+  "domain_artifact_body",
+  "domain_quality_verdict",
+  "quality_verdict",
+  "domain_export_readiness",
+  "export_readiness",
+  "domain_readiness",
+  "domain_ready",
+  "app_release_readiness",
+  "production_readiness",
+];
+
+const provenanceProjectionRef =
+  "contracts/app-runtime-bridge.json#artifact_provenance_bundle_projection";
+const taskDrilldownCommand = "opl runtime app-operator-drilldown --task <task_id> --json";
 
 export function validateStateIndexSidecarProjectionContract(projection, label) {
   if (!projection || typeof projection !== "object") {
@@ -44,7 +90,7 @@ export function validateStateIndexSidecarProjectionContract(projection, label) {
   }
   for (const [field, expected] of Object.entries({
     source: "app_state.operator.workbench.task_drilldowns.state_index_sidecar_projection",
-    detail_source: "opl runtime app-operator-drilldown --task <task_id> --json",
+    detail_source: taskDrilldownCommand,
     authority: "opl_framework_state_index_kernel_sqlite_sidecar_projection",
     kernel_owner: "one-person-lab",
     storage_kind: "sqlite_sidecar_read_model_cache",
@@ -65,37 +111,21 @@ export function validateStateIndexSidecarProjectionContract(projection, label) {
     [
       "opl app state --profile fast --json",
       "opl app state --profile full --json",
-      "opl runtime app-operator-drilldown --task <task_id> --json",
+      taskDrilldownCommand,
     ],
     `${label} allowed_input_surfaces`,
   );
   assertDeepEqualJson(
     projection.required_ref_fields,
-    ["state_index_ref", "stage_folder_ref", "task_ref", "owner_ref", "updated_at"],
+    stateIndexRequiredRefFields,
     `${label} required_ref_fields`,
   );
   assertDeepEqualJson(
     projection.optional_ref_fields,
-    [
-      "artifact_index_refs",
-      "receipt_index_refs",
-      "blocker_index_refs",
-      "readiness_false_flag_refs",
-      "cache_generation_ref",
-    ],
+    stateIndexOptionalRefFields,
     `${label} optional_ref_fields`,
   );
-  for (const field of [
-    "sqlite_direct_read_access",
-    "sqlite_write_access",
-    "sidecar_mutation_access",
-    "domain_truth_write_access",
-    "owner_receipt_write_access",
-    "artifact_body_access",
-    "readiness_authority",
-    "artifact_authority",
-    "quality_verdict_authority",
-  ]) {
+  for (const field of stateIndexDisabledAccessFields) {
     if (projection[field] !== false) {
       throw new Error(`${label} ${field} must be false`);
     }
@@ -127,39 +157,17 @@ export function validateStateIndexSidecarFixture(projection, label) {
   if (projection.surface_kind !== "opl_state_index_kernel_sidecar_read_model") {
     throw new Error(`${label} surface_kind must be opl_state_index_kernel_sidecar_read_model`);
   }
-  for (const field of [
-    "state_index_ref",
-    "stage_folder_ref",
-    "task_ref",
-    "owner_ref",
-    "updated_at",
-  ]) {
+  for (const field of stateIndexRequiredRefFields) {
     if (!Object.hasOwn(projection, field)) {
       throw new Error(`${label} must include ${field}`);
     }
   }
-  for (const field of [
-    "artifact_index_refs",
-    "receipt_index_refs",
-    "blocker_index_refs",
-    "readiness_false_flag_refs",
-    "cache_generation_ref",
-  ]) {
+  for (const field of stateIndexOptionalRefFields) {
     if (!Object.hasOwn(projection, field)) {
       throw new Error(`${label} must include ${field} as refs or an empty refs list`);
     }
   }
-  for (const field of [
-    "sqlite_direct_read_access",
-    "sqlite_write_access",
-    "sidecar_mutation_access",
-    "domain_truth_write_access",
-    "owner_receipt_write_access",
-    "artifact_body_access",
-    "readiness_authority",
-    "artifact_authority",
-    "quality_verdict_authority",
-  ]) {
+  for (const field of stateIndexDisabledAccessFields) {
     if (projection[field] !== false) {
       throw new Error(`${label} ${field} must be false`);
     }
@@ -194,7 +202,7 @@ export function validateArtifactNativeDrilldownProjectionContract(projection, la
   }
   for (const [field, expected] of Object.entries({
     source: "app_state.operator.workbench.task_drilldowns.artifact_native_drilldown",
-    detail_source: "opl runtime app-operator-drilldown --task <task_id> --json",
+    detail_source: taskDrilldownCommand,
     authority: "opl_framework_stage_artifact_kernel_refs_projection",
     framework_contract_ref:
       "one-person-lab/contracts/opl-framework/stage-artifact-runtime-contract.json",
@@ -213,44 +221,19 @@ export function validateArtifactNativeDrilldownProjectionContract(projection, la
   }
   assertDeepEqualJson(
     projection.required_ref_fields,
-    [
-      "current_pointer_ref",
-      "canonical_artifact_refs",
-      "export_artifact_refs",
-      "lineage_refs",
-      "retention_policy_ref",
-      "conformance_summary_ref",
-    ],
+    nativeDrilldownRequiredRefFields,
     `${label} required_ref_fields`,
   );
-  const optionalRefFields = [
-    "content_hash_refs",
-    "attempt_manifest_refs",
-    "owner_receipt_refs",
-    "typed_blocker_refs",
-    "decision_receipt_refs",
-  ];
-  if (options.requireProvenanceBundle) {
-    optionalRefFields.push(
-      "provenance_bundle_refs",
-      "provenance_index_ref",
-      "ro_crate_metadata_ref",
-      "replay_status_ref",
-      "agent_trace_refs",
-      "review_refs",
-      "typed_issues",
-    );
-  }
+  const optionalRefFields = options.requireProvenanceBundle
+    ? [...nativeDrilldownOptionalRefFields, ...provenanceRefFields]
+    : nativeDrilldownOptionalRefFields;
   assertDeepEqualJson(
     projection.optional_ref_fields,
     optionalRefFields,
     `${label} optional_ref_fields`,
   );
   if (options.requireProvenanceBundle) {
-    if (
-      projection.provenance_projection_ref !==
-      "contracts/app-runtime-bridge.json#artifact_provenance_bundle_projection"
-    ) {
+    if (projection.provenance_projection_ref !== provenanceProjectionRef) {
       throw new Error(
         `${label} provenance_projection_ref must point at artifact provenance bundle projection`,
       );
@@ -301,32 +284,12 @@ export function validateArtifactNativeDrilldownFixture(projection, label) {
   if (projection.surface_kind !== "opl_stage_artifact_runtime_workbench") {
     throw new Error(`${label} surface_kind must be opl_stage_artifact_runtime_workbench`);
   }
-  for (const field of [
-    "current_pointer_ref",
-    "canonical_artifact_refs",
-    "export_artifact_refs",
-    "lineage_refs",
-    "retention_policy_ref",
-    "conformance_summary_ref",
-  ]) {
+  for (const field of nativeDrilldownRequiredRefFields) {
     if (!Object.hasOwn(projection, field)) {
       throw new Error(`${label} must include ${field}`);
     }
   }
-  for (const field of [
-    "content_hash_refs",
-    "attempt_manifest_refs",
-    "owner_receipt_refs",
-    "typed_blocker_refs",
-    "decision_receipt_refs",
-    "provenance_bundle_refs",
-    "provenance_index_ref",
-    "ro_crate_metadata_ref",
-    "replay_status_ref",
-    "agent_trace_refs",
-    "review_refs",
-    "typed_issues",
-  ]) {
+  for (const field of [...nativeDrilldownOptionalRefFields, ...provenanceRefFields]) {
     if (!Object.hasOwn(projection, field)) {
       throw new Error(`${label} must include ${field} as refs or a typed empty value`);
     }
@@ -336,10 +299,7 @@ export function validateArtifactNativeDrilldownFixture(projection, label) {
       `${label} provenance_projection_kind must be artifact_provenance_bundle_projection`,
     );
   }
-  if (
-    projection.provenance_projection_ref !==
-    "contracts/app-runtime-bridge.json#artifact_provenance_bundle_projection"
-  ) {
+  if (projection.provenance_projection_ref !== provenanceProjectionRef) {
     throw new Error(
       `${label} provenance_projection_ref must point at app-runtime-bridge artifact provenance bundle projection`,
     );
@@ -363,10 +323,7 @@ export function validateArtifactNativeDrilldownFixture(projection, label) {
   if (typeof projection.replay_status_ref !== "string" || !projection.replay_status_ref) {
     throw new Error(`${label} replay_status_ref must be a non-empty ref`);
   }
-  if (
-    projection.provenance_drawer?.projection_ref !==
-    "contracts/app-runtime-bridge.json#artifact_provenance_bundle_projection"
-  ) {
+  if (projection.provenance_drawer?.projection_ref !== provenanceProjectionRef) {
     throw new Error(
       `${label} provenance_drawer must reference artifact provenance bundle projection`,
     );
@@ -394,38 +351,14 @@ export function validateArtifactNativeDrilldownFixture(projection, label) {
   if (projection.readiness_authority !== false) {
     throw new Error(`${label} readiness_authority must be false`);
   }
-  for (const forbidden of [
-    "artifact_body",
-    "artifact_body_preview",
-    "domain_artifact_body",
-    "domain_quality_verdict",
-    "quality_verdict",
-    "domain_export_readiness",
-    "export_readiness",
-    "domain_readiness",
-    "domain_ready",
-    "app_release_readiness",
-    "production_readiness",
-  ]) {
+  for (const forbidden of nativeDrilldownForbiddenKeys) {
     if (Object.hasOwn(projection, forbidden)) {
       throw new Error(`${label} must not project ${forbidden}`);
     }
   }
   assertNoForbiddenKeys(
     projection,
-    [
-      "artifact_body",
-      "artifact_body_preview",
-      "domain_artifact_body",
-      "domain_quality_verdict",
-      "quality_verdict",
-      "domain_export_readiness",
-      "export_readiness",
-      "domain_readiness",
-      "domain_ready",
-      "app_release_readiness",
-      "production_readiness",
-    ],
+    nativeDrilldownForbiddenKeys,
     label,
   );
 }
@@ -437,7 +370,7 @@ export function validateArtifactProvenanceBundleProjectionContract(projection, l
   for (const [field, expected] of Object.entries({
     source:
       "app_state.operator.workbench.task_drilldowns.artifact_native_drilldown.provenance_bundle_refs",
-    detail_source: "opl runtime app-operator-drilldown --task <task_id> --json",
+    detail_source: taskDrilldownCommand,
     ledger_source: "OPL Ledger artifact provenance bundle record",
     authority: "opl_ledger_artifact_provenance_bundle_refs_projection",
     projection_kind: "artifact_provenance_bundle_projection",
@@ -465,22 +398,14 @@ export function validateArtifactProvenanceBundleProjectionContract(projection, l
     projection.input_sources,
     [
       "opl app state --profile fast --json",
-      "opl runtime app-operator-drilldown --task <task_id> --json",
+      taskDrilldownCommand,
       "OPL Ledger artifact provenance bundle record",
     ],
     `${label} input_sources`,
   );
   assertDeepEqualJson(
     projection.required_ref_fields,
-    [
-      "provenance_bundle_refs",
-      "provenance_index_ref",
-      "ro_crate_metadata_ref",
-      "replay_status_ref",
-      "agent_trace_refs",
-      "review_refs",
-      "typed_issues",
-    ],
+    provenanceRefFields,
     `${label} required_ref_fields`,
   );
   assertIncludesAll(
@@ -545,17 +470,10 @@ export function validateOpenScienceAcceptedItemsFixture(task, label) {
   }
   assertDeepEqualJson(
     panel.display_surfaces,
-    ["ordinary_conversation", "current_task_slice", "right_context_inspector"],
+    structuredResultPanelSurfaces,
     `${label} structured_result_panel display_surfaces`,
   );
-  for (const field of [
-    "result_summary_ref",
-    "status_ref",
-    "evidence_card_refs",
-    "action_card_refs",
-    "artifact_provenance_ref",
-    "follow_up_refs",
-  ]) {
+  for (const field of structuredResultPanelRequiredRefFields) {
     if (!Object.hasOwn(panel, field)) {
       throw new Error(`${label} structured_result_panel must include ${field}`);
     }
@@ -574,8 +492,7 @@ export function validateOpenScienceAcceptedItemsFixture(task, label) {
     throw new Error(`${label} must include artifact_provenance_card`);
   }
   if (
-    provenanceCard.projection_ref !==
-      "contracts/app-runtime-bridge.json#artifact_provenance_bundle_projection" ||
+    provenanceCard.projection_ref !== provenanceProjectionRef ||
     provenanceCard.artifact_body_access !== false ||
     provenanceCard.readiness_authority !== false ||
     provenanceCard.quality_verdict_authority !== false
@@ -589,15 +506,7 @@ export function validateOpenScienceAcceptedItemsFixture(task, label) {
   }
   assertIncludesAll(
     Object.keys(followUps[0]),
-    [
-      "target_ref",
-      "source_ref",
-      "comment_ref",
-      "prompt_ref",
-      "action_ref",
-      "owner",
-      "content_policy",
-    ],
+    refLevelFollowUpRequiredRefFields,
     `${label} ref_level_follow_up_refs[0] fields`,
   );
   if (
@@ -614,19 +523,12 @@ export function validateOpenScienceAcceptedItemsFixture(task, label) {
   }
   assertIncludesAll(
     Object.keys(candidates[0]),
-    [
-      "candidate_ref",
-      "source_report_ref",
-      "candidate_kind",
-      "status",
-      "available_actions",
-      "content_policy",
-    ],
+    workflowSkillCandidateRequiredRefFields,
     `${label} workflow_skill_candidate_refs[0] fields`,
   );
   assertDeepEqualJson(
     candidates[0].available_actions,
-    ["review", "needs_changes", "continue_in_conversation"],
+    workflowSkillCandidateActions,
     `${label} candidate actions`,
   );
   if (
@@ -660,12 +562,11 @@ export function validateOpenScienceConsoleProjectionContract(projection, label) 
   }
   for (const [field, expected] of Object.entries({
     source: "app_state.operator.workbench.task_drilldowns.openscience_console_projection",
-    detail_source: "opl runtime app-operator-drilldown --task <task_id> --json",
+    detail_source: taskDrilldownCommand,
     authority: "opl_framework_refs_only_console_projection",
     projection_kind: "openscience_console_watch_projection",
     surface_kind: "opl_console_watch_only_drilldown_projection",
     display_policy: "console_drilldown_only_watch_cards_no_readiness_or_verdict_claims",
-    inspiration: "OpenScience product pattern",
     full_detail_policy: "on_demand_task_drilldown_only",
     native_viewer_preview_policy: "preview_refs_only_no_artifact_body_no_storage_truth",
     app_role: "display_only_openscience_console_projection_consumer",
@@ -674,16 +575,21 @@ export function validateOpenScienceConsoleProjectionContract(projection, label) 
       throw new Error(`${label} ${field} must be ${expected}`);
     }
   }
-  assertDeepEqualJson(
+  const sourceModes = assertNonEmptyStringArray(
     projection.mode_label_policy?.adapted_source_modes,
-    ["Science", "Medical Evidence", "Goal", "Knowledge Distillation"],
     `${label} mode_label_policy.adapted_source_modes`,
   );
-  assertDeepEqualJson(
+  const displayTerms = assertNonEmptyStringArray(
     projection.mode_label_policy?.app_display_terms,
-    ["Science workspace", "Medical evidence", "Goal tracking", "Knowledge distillation"],
     `${label} mode_label_policy.app_display_terms`,
   );
+  if (
+    sourceModes.length !== displayTerms.length ||
+    new Set(sourceModes).size !== sourceModes.length ||
+    new Set(displayTerms).size !== displayTerms.length
+  ) {
+    throw new Error(`${label} mode labels must map source modes to unique display terms`);
+  }
   for (const [field, expected] of Object.entries({
     "mode_label_policy.mode_labels_are_navigation_only": true,
     "mode_label_policy.medical_evidence_authority_owner": "domain_agent",

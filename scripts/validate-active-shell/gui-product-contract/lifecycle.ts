@@ -4,19 +4,6 @@ import {
   appOwnedAgentPackageOrdinaryStatusInputMapping,
   appOwnedAgentPackageUserStatusProjection,
 } from '../app-contract-constants.ts';
-import { validateManagedUpdatePageBasics, validateManagedUpdatePlaneBinding } from '../managed-update-plane-validator.ts';
-
-export function validateManagedUpdatePageSurface(page, label) {
-  validateManagedUpdatePageBasics(page, label, {
-    actionSourceError: `${label} must expose managed update actions through the shell IPC bridge`,
-  });
-  validateManagedUpdatePlaneBinding(page?.managed_update_plane, label, {
-    requirePageId: true,
-    requireStateSources: true,
-    requireStatusConsumptionPolicy: true,
-    bindingError: `${label} must bind to the App managed update plane as a status/action consumer`,
-  });
-}
 
 export function validateReadOnlyStorageLifecycleSurface(surface, label) {
   if (
