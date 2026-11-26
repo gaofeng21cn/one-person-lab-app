@@ -328,9 +328,99 @@ esac
 
 
 
-export function createFullRuntimeFixture() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-scholar-runtime-"));
+type BaseFullRuntimeTemplate = {
+  tempRoot: string;
+  sourceCommit: string;
+  frameworkCommit: string;
+};
+
+let cachedFullRuntimeTemplate: BaseFullRuntimeTemplate | null = null;
+
+function buildFixturePaths(tempRoot: string) {
   const scholarRoot = path.join(tempRoot, "mas-scholar-skills");
+  const frameworkRoot = path.join(tempRoot, "one-person-lab");
+  const masRoot = path.join(tempRoot, "med-autoscience");
+  const macRoot = path.join(tempRoot, "med-autocast");
+  const macMediaAssetsRoot = path.join(tempRoot, "mac-media-assets");
+  const magRoot = path.join(tempRoot, "med-autogrant");
+  const rcaRoot = path.join(tempRoot, "redcube-ai");
+  const metaAgentRoot = path.join(tempRoot, "opl-meta-agent");
+  const bookforgeRoot = path.join(tempRoot, "opl-bookforge");
+  const oplFlowRoot = path.join(tempRoot, "opl-flow");
+  const officeCliRoot = path.join(tempRoot, "OfficeCLI");
+  const mineruRoot = path.join(tempRoot, "MinerU-Ecosystem");
+  const mineruDocumentExtractorRoot = path.join(tempRoot, "mineru-document-extractor");
+  const toolsRoot = path.join(tempRoot, "tools");
+  const nodeRoot = path.join(toolsRoot, "node");
+  const nodeBin = path.join(nodeRoot, "bin", "node");
+  const npmBin = path.join(nodeRoot, "bin", "npm");
+  const npxBin = path.join(nodeRoot, "bin", "npx");
+  const npmRoot = path.join(nodeRoot, "lib", "node_modules", "npm");
+  const pythonRoot = path.join(toolsRoot, "cpython-3.12-fixture-macos-aarch64-none");
+  const uvBin = path.join(toolsRoot, "uv");
+  const temporalCliBin = path.join(toolsRoot, "temporal");
+  const temporalCliArchive = path.join(toolsRoot, "temporal.tar.gz");
+  const officeCliBin = path.join(toolsRoot, "officecli");
+  const mineruOpenApiBin = path.join(toolsRoot, "mineru-open-api");
+
+  const options = {
+    version: "26.7.15-scholar-fixture",
+    outDir: path.join(tempRoot, "out"),
+    frameworkRoot,
+    frameworkRef: "framework-fixture-ref",
+    guiRoot: path.join(tempRoot, "gui"),
+    masRoot,
+    masRef: "mas-fixture-ref",
+    masScholarSkillsRoot: scholarRoot,
+    masScholarSkillsRef: "scholar-fixture-ref",
+    macRoot,
+    macMediaAssetsRoot,
+    magRoot,
+    magRef: "mag-fixture-ref",
+    rcaRoot,
+    rcaRef: "rca-fixture-ref",
+    metaAgentRoot,
+    metaAgentRef: "oma-fixture-ref",
+    bookforgeRoot,
+    bookforgeRef: "obf-fixture-ref",
+    oplFlowRoot,
+    oplFlowRef: "flow-fixture-ref",
+    officeCliRoot,
+    officeCliRef: "v0.0.1",
+    officeCliRelease: {
+      requested_ref: "v0.0.1",
+      resolved_ref: "v0.0.1",
+      resolved_commit: null,
+      latest_stable_verified: true,
+      policy: "fixture",
+      version: "0.0.1",
+    },
+    mineruRoot,
+    mineruRef: "mineru-fixture-ref",
+    mineruDocumentExtractorRoot,
+    includeBunRuntime: false,
+    runtimeCacheDir: path.join(tempRoot, "cache"),
+    runtimeCacheMode: "off",
+  };
+  const sources = {
+    nodeToolchain: { nodeBin, npmBin, npxBin, npmRoot },
+    bunBin: null,
+    pythonRoot,
+    uvBin,
+    temporalCliBin,
+    temporalCliArchive,
+    officeCliBin,
+    mineruOpenApiBin,
+    mineruRepoRoot: null,
+  };
+  return { options, sources };
+}
+
+function getFullRuntimeTemplate(): BaseFullRuntimeTemplate {
+  if (cachedFullRuntimeTemplate) return cachedFullRuntimeTemplate;
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-scholar-runtime-template-"));
+  const { options, sources } = buildFixturePaths(tempRoot);
+  const scholarRoot = options.masScholarSkillsRoot;
   initializeGitRepo(scholarRoot);
   const contentLockPaths = [
     ".codex-plugin/plugin.json",
@@ -384,21 +474,26 @@ export function createFullRuntimeFixture() {
   const sourceCommit = commitFixtureRepo(scholarRoot, "fixture scholar source");
   runGit(scholarRoot, ["branch", "scholar-fixture-ref", sourceCommit]);
 
-  const frameworkRoot = path.join(tempRoot, "one-person-lab");
+  const frameworkRoot = options.frameworkRoot;
   initializeGitRepo(frameworkRoot);
   writeFrameworkRuntimeSource(frameworkRoot);
   const frameworkCommit = commitFixtureRepo(frameworkRoot, "fixture framework source");
 
-  const masRoot = path.join(tempRoot, "med-autoscience");
-  const macRoot = path.join(tempRoot, "med-autocast");
-  const macMediaAssetsRoot = path.join(tempRoot, "mac-media-assets");
+  const {
+    masRoot,
+    macRoot,
+    macMediaAssetsRoot,
+    magRoot,
+    rcaRoot,
+    metaAgentRoot,
+    bookforgeRoot,
+    oplFlowRoot,
+    officeCliRoot,
+    mineruRoot,
+    mineruDocumentExtractorRoot,
+  } = options;
   writeDomainPlugin(macRoot, "med-autocast");
   writeDomainPlugin(macMediaAssetsRoot, "mac-media-assets");
-  const magRoot = path.join(tempRoot, "med-autogrant");
-  const rcaRoot = path.join(tempRoot, "redcube-ai");
-  const metaAgentRoot = path.join(tempRoot, "opl-meta-agent");
-  const bookforgeRoot = path.join(tempRoot, "opl-bookforge");
-  const oplFlowRoot = path.join(tempRoot, "opl-flow");
   writeDomainPlugin(masRoot, "med-autoscience");
   writeDomainPlugin(magRoot, "med-autogrant");
   writeDomainPlugin(rcaRoot, "redcube-ai");
@@ -469,19 +564,11 @@ export function createFullRuntimeFixture() {
     commitFixtureRepo(sourceRoot, `fixture ${packageId} source`);
   }
 
-  const officeCliRoot = path.join(tempRoot, "OfficeCLI");
-  const mineruRoot = path.join(tempRoot, "MinerU-Ecosystem");
-  const mineruDocumentExtractorRoot = path.join(tempRoot, "mineru-document-extractor");
   for (const root of [officeCliRoot, mineruRoot, mineruDocumentExtractorRoot]) {
     fs.mkdirSync(root, { recursive: true });
   }
 
-  const toolsRoot = path.join(tempRoot, "tools");
-  const nodeRoot = path.join(toolsRoot, "node");
-  const nodeBin = path.join(nodeRoot, "bin", "node");
-  const npmBin = path.join(nodeRoot, "bin", "npm");
-  const npxBin = path.join(nodeRoot, "bin", "npx");
-  const npmRoot = path.join(nodeRoot, "lib", "node_modules", "npm");
+  const { nodeBin, npmBin, npxBin, npmRoot } = sources.nodeToolchain;
   writeVersionExecutable(nodeBin, "v22.0.0");
   writeVersionExecutable(npmBin, "10.0.0");
   writeVersionExecutable(npxBin, "10.0.0");
@@ -492,68 +579,28 @@ export function createFullRuntimeFixture() {
   writeVersionExecutable(path.join(npmRoot, "bin", "npx-cli.js"), "10.0.0");
   writeFile(path.join(npmRoot, "lib", "cli.js"), "// npm fixture\n");
 
-  const pythonRoot = path.join(toolsRoot, "cpython-3.12-fixture-macos-aarch64-none");
-  const uvBin = path.join(toolsRoot, "uv");
-  const temporalCliBin = path.join(toolsRoot, "temporal");
-  const temporalCliArchive = path.join(toolsRoot, "temporal.tar.gz");
-  const officeCliBin = path.join(toolsRoot, "officecli");
-  const mineruOpenApiBin = path.join(toolsRoot, "mineru-open-api");
-  writeVersionExecutable(path.join(pythonRoot, "bin", "python3"), "Python 3.12.0");
-  writeVersionExecutable(uvBin, "uv 0.1.0");
-  writeVersionExecutable(temporalCliBin, "temporal 1.0.0");
-  writeFile(temporalCliArchive, "fixture temporal archive");
-  writeVersionExecutable(officeCliBin, "officecli 0.0.1");
-  writeVersionExecutable(mineruOpenApiBin, "mineru-open-api 0.0.1");
+  writeVersionExecutable(path.join(sources.pythonRoot, "bin", "python3"), "Python 3.12.0");
+  writeVersionExecutable(sources.uvBin, "uv 0.1.0");
+  writeVersionExecutable(sources.temporalCliBin, "temporal 1.0.0");
+  writeFile(sources.temporalCliArchive, "fixture temporal archive");
+  writeVersionExecutable(sources.officeCliBin, "officecli 0.0.1");
+  writeVersionExecutable(sources.mineruOpenApiBin, "mineru-open-api 0.0.1");
 
-  const options = {
-    version: "26.7.15-scholar-fixture",
-    outDir: path.join(tempRoot, "out"),
-    frameworkRoot,
-    frameworkRef: "framework-fixture-ref",
-    guiRoot: path.join(tempRoot, "gui"),
-    masRoot,
-    masRef: "mas-fixture-ref",
-    masScholarSkillsRoot: scholarRoot,
-    masScholarSkillsRef: "scholar-fixture-ref",
-    macRoot,
-    macMediaAssetsRoot,
-    magRoot,
-    magRef: "mag-fixture-ref",
-    rcaRoot,
-    rcaRef: "rca-fixture-ref",
-    metaAgentRoot,
-    metaAgentRef: "oma-fixture-ref",
-    bookforgeRoot,
-    bookforgeRef: "obf-fixture-ref",
-    oplFlowRoot,
-    oplFlowRef: "flow-fixture-ref",
-    officeCliRoot,
-    officeCliRef: "v0.0.1",
-    officeCliRelease: {
-      requested_ref: "v0.0.1",
-      resolved_ref: "v0.0.1",
-      resolved_commit: null,
-      latest_stable_verified: true,
-      policy: "fixture",
-      version: "0.0.1",
-    },
-    mineruRoot,
-    mineruRef: "mineru-fixture-ref",
-    mineruDocumentExtractorRoot,
-    includeBunRuntime: false,
-    runtimeCacheDir: path.join(tempRoot, "cache"),
-    runtimeCacheMode: "off",
+  cachedFullRuntimeTemplate = { tempRoot, sourceCommit, frameworkCommit };
+  process.once("exit", () => fs.rmSync(tempRoot, { recursive: true, force: true }));
+  return cachedFullRuntimeTemplate;
+}
+
+export function createFullRuntimeFixture() {
+  const template = getFullRuntimeTemplate();
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-scholar-runtime-"));
+  fs.cpSync(template.tempRoot, tempRoot, { recursive: true, verbatimSymlinks: true });
+  const { options, sources } = buildFixturePaths(tempRoot);
+  return {
+    tempRoot,
+    options,
+    sources,
+    sourceCommit: template.sourceCommit,
+    frameworkCommit: template.frameworkCommit,
   };
-  const sources = {
-    nodeToolchain: { nodeBin, npmBin, npxBin, npmRoot },
-    bunBin: null,
-    pythonRoot,
-    uvBin,
-    temporalCliBin,
-    temporalCliArchive,
-    officeCliBin,
-    mineruOpenApiBin,
-    mineruRepoRoot: null,
-  };
-  return { tempRoot, options, sources, sourceCommit, frameworkCommit };
 }

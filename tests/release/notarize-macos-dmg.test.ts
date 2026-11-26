@@ -82,7 +82,7 @@ if [ "$1" = --force ]; then
       probe_attempt=$((probe_attempt + 1))
       printf '%s' "$probe_attempt" > "$OPL_TEST_TIMESTAMP_PROBE_ATTEMPT_FILE"
       if [ "$OPL_TEST_TIMESTAMP_SIGNING_BEHAVIOR" = probe-timeout ] || [ "$OPL_TEST_TIMESTAMP_SIGNING_BEHAVIOR" = probe-timeout-all ] || { [ "$OPL_TEST_TIMESTAMP_SIGNING_BEHAVIOR" = probe-timeout-once ] && [ "$probe_attempt" -eq 1 ]; }; then
-        sleep 2
+        exec sleep 2
         exit 0
       fi
       if [ "$OPL_TEST_TIMESTAMP_SIGNING_BEHAVIOR" = probe-fail ]; then
@@ -200,12 +200,12 @@ exit 0
       ...(timestampSigningBehavior === 'timeout-once'
         || timestampSigningBehavior === 'timeout-three'
         || timestampSigningBehavior === 'timeout-all'
-        ? { OPL_NOTARIZATION_TEST_TIMESTAMP_SIGNING_TIMEOUT_MS: '500' }
+        ? { OPL_NOTARIZATION_TEST_TIMESTAMP_SIGNING_TIMEOUT_MS: '120' }
         : {}),
       ...(timestampSigningBehavior === 'probe-timeout'
         || timestampSigningBehavior === 'probe-timeout-once'
         || timestampSigningBehavior === 'probe-timeout-all'
-        ? { OPL_NOTARIZATION_TEST_TIMESTAMP_PROBE_TIMEOUT_MS: '500' }
+        ? { OPL_NOTARIZATION_TEST_TIMESTAMP_PROBE_TIMEOUT_MS: '120' }
         : {}),
       OPL_RUNTIME_CODESIGN_IDENTITY: identity,
       appleId: 'release-owner@example.invalid',

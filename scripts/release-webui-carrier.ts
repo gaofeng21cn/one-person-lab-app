@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 type JsonRecord = Record<string, unknown>;
@@ -677,13 +678,15 @@ function writeCanonical(filePath: string, value: JsonRecord): void {
   fs.writeFileSync(filePath, `${canonicalJson(value)}\n`, 'utf8');
 }
 
-function printSummary(value: JsonRecord): void {
-  process.stdout.write(`${JSON.stringify(value)}\n`);
-}
-
-function main(): void {
+function main(
+  argv: string[] = process.argv.slice(2),
+  io: { stdout: (chunk: string) => void } = { stdout: (chunk) => process.stdout.write(chunk) },
+): void {
+  const printSummary = (value: JsonRecord): void => {
+    io.stdout(`${JSON.stringify(value)}\n`);
+  };
   const parsed = parseArgs({
-    args: process.argv.slice(2),
+    args: argv,
     options: {
       input: { type: 'string' },
       output: { type: 'string' },
@@ -798,9 +801,25 @@ function main(): void {
   fail('Usage: release-webui-carrier.ts <seal-build-input|verify-build-input|verify-codex-artifact|verify-docker-context-policy|write-carrier-receipt|verify-carrier-receipt> [options]');
 }
 
-try {
-  main();
-} catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
+export function runWebuiCarrierCli(argv: string[]): { status: number; stdout: string; stderr: string } {
+  let stdout = '';
+  try {
+    main(argv, { stdout: (chunk) => { stdout += chunk; } });
+    return { status: 0, stdout, stderr: '' };
+  } catch (error) {
+    return {
+      status: 1,
+      stdout,
+      stderr: `${error instanceof Error ? error.message : String(error)}\n`,
+    };
+  }
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
 }

@@ -443,7 +443,8 @@ find_linux_desktop_executable() {
   local package_name="$1"
   local candidate selected=''
   while IFS= read -r candidate; do
-    case "$(basename "$candidate")" in
+    local trimmed="${candidate%/}"
+    case "${trimmed##*/}" in
       'One Person Lab'|one-person-lab)
         if [ -z "$selected" ]; then
           selected="$candidate"
