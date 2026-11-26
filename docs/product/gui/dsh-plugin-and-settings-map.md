@@ -110,7 +110,7 @@ DSH 包。文档预览随固定 DSH cohort 携带官方源码和客户端载荷�
 `MarkdownText` primitive，其他已支持格式由 OPL workspace/thread 适配器呈现。接入官方
 完整 runtime 后应删除被替代的呈现代码。普通 GUI 源码复用不冒充已装载的 DSH 插件。
 
-内置微信通道由 Studio 的 DSH Host 插件持有连接、绑定与轮询生命周期，通过 `opl-codex-native` 回调驱动现有 Codex 线程。客户端复用 `settings.group.resources` 设置槽。采用前验证 Desktop、WebUI 和 Docker 上的设置挂载、状态回读、扫码、PIN、消息收发、服务重启与解绑，并验证已有绑定的迁移和单一轮询实例。采用后清退 App 旧微信 Package 和 Framework 旧路由。
+内置微信通道由 Studio 的 DSH Host 插件持有连接、绑定与轮询生命周期，通过 `opl-codex-native` 回调驱动现有 Codex 线程。客户端复用远程连接页的 `settings.section` 与 `channel_access` 视图。采用前验证 Desktop、WebUI 和 Docker 上的设置挂载、状态回读、扫码、PIN、消息收发、服务重启与解绑，并验证已有线程绑定继续指向原线程、同一账号仅一个活动轮询实例。重启后按既有规则重新登录。采用后清退 App 旧微信 Package 和 Framework 旧路由。
 
 微信绑定协议对齐腾讯 `@tencent-weixin/openclaw-weixin@3.0.0-beta-0`
 （官方 `beta`，稳定版 `latest` 仍为 `2.4.10`）。设置的“连接与部署 → 远程连接与网页访问”提供

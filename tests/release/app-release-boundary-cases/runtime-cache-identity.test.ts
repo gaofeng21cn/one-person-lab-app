@@ -112,7 +112,7 @@ test('selected package set uses Official Profile roots and records the offline d
     assert.equal(packageSet.package_ids.includes('mas-scholar-skills'), false);
     assert.equal(packageSet.dependency_closure.includes('mas-scholar-skills'), true);
     assert.equal(packageSet.dependency_closure.includes('mac-media-assets'), false);
-    assert.equal(packageSet.package_ids.includes('opl-channel-weixin'), true);
+    assert.equal(packageSet.package_ids.includes('opl-channel-weixin'), false);
     assert.equal(packageSet.dependency_closure.includes('opl-channel-weixin'), false);
     assert.deepEqual(
       packageSet.packages.map((entry) => entry.package_id),

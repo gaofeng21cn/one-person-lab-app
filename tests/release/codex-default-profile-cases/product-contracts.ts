@@ -199,7 +199,6 @@ test('product profile has one presence-only Official Profile shared by Standard 
     'obf',
     'med-autocast',
     'opl-flow',
-    'opl-channel-weixin',
   ]);
   assert.equal('starter_package_ids' in profile.gui.agent_package_registry, false);
   assert.equal('resolver_currentness_authority' in profile.gui.agent_package_registry, false);

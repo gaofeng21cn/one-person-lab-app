@@ -13,6 +13,21 @@
     "source_visibility_policy": "public_catalog_metadata_with_separate_owner_verified_artifact_access",
     "lifecycle_owner_policy": "route_each_action_to_the_actual_native_DSH_or_Framework_package_owner"
   },
+  "studio_native_weixin_channel": {
+    "plugin_id": "opl-channel-weixin",
+    "npm_package": "@gaofeng21cn/opl-channel-weixin",
+    "source_path": "opl-studio/plugins/channels/opl-channel-weixin",
+    "product_type": "channel",
+    "settings_destination": "settings.resources.remote_connections",
+    "settings_slot": "settings.section",
+    "settings_view_type": "channel_access",
+    "provider_owner": "opl-studio_dsh_profile",
+    "canonical_thread_and_turn_owner": "opl-codex-native",
+    "single_active_provider_path_required": true,
+    "existing_binding_state_policy": "reuse_legacy_provider_state_with_single_active_owner",
+    "credential_policy": "preserve_ephemeral_login_and_require_reconnect_after_restart",
+    "cutover_policy": "verify_native_plugin_composition_and_existing_binding_before_adopting_the_Shell_cohort"
+  },
   "layers": {
     "dsh_host_plugin": {
       "runtime_abi": "dsh_npm_package_cordis_host_plugin",
@@ -39,7 +54,7 @@
       "lifecycle": "owner_publication_and_native_carrier",
       "user_role": "professional_capability_provider_and_declarative_UI_contributor",
       "dsh_host_plugin": false,
-      "examples": ["opl-channel-weixin", "domain_owned_packages"]
+      "examples": ["domain_owned_packages"]
     },
     "standard_mcp_app_surface": {
       "runtime_abi": "MCP_Apps_SDK_AppBridge",

@@ -6,7 +6,8 @@ const readJson = (relativePath: string) => JSON.parse(fs.readFileSync(relativePa
 
 test('channel settings admit exactly one provider route per renderer', () => {
   const gui = readJson('contracts/app-gui-product-contract.json');
-  const weixinManifest = readJson('packages/opl-channel-weixin/opl-package.json');
+  const composition = readJson('contracts/app-plugin-composition-taxonomy.json');
+  const profile = readJson('contracts/app-product-profile.json');
   const contract = gui.framework_surfaces.package_app_contributions.opl_connect_connector_settings;
   const channelAccess = gui.framework_surfaces.package_app_contributions.standard_view_contracts.channel_access;
   const remoteCompanionAccess = gui.framework_surfaces.package_app_contributions.standard_view_contracts.remote_companion_access;
@@ -25,10 +26,11 @@ test('channel settings admit exactly one provider route per renderer', () => {
   assert.match(contract.unready_policy, /keep_standard_remote_connections_section_visible_with_setup_guidance/);
 
   const weixin = contract.currently_defined_product_classifications.find(
-    ({ package_id_example }: { package_id_example?: string }) => package_id_example === 'opl-channel-weixin',
+    ({ native_plugin_id }: { native_plugin_id?: string }) => native_plugin_id === 'opl-channel-weixin',
   );
   assert.equal(weixin.connector_kind, 'message_channel_connector');
-  assert.equal(weixin.classification_role, 'product_documentation_example_not_runtime_membership');
+  assert.equal(weixin.classification_role, 'studio_native_channel');
+  assert.equal(weixin.composition_ref, 'contracts/app-plugin-composition-taxonomy.json#studio_native_weixin_channel');
   assert.deepEqual(channelAccess.renderer_activation_policy, {
     opl_studio: {
       provider_owner: 'installed_channel_provider_package',
@@ -52,10 +54,15 @@ test('channel settings admit exactly one provider route per renderer', () => {
     'claim_secret',
     'claim_material',
   ]);
-  assert.deepEqual(weixinManifest.authority_boundary.activation_route_by_renderer, {
-    opl_studio: 'installed_provider_through_one_person_lab_framework_generic_channel_host',
-  });
-  assert.equal(weixinManifest.authority_boundary.second_channel_provider_path_allowed, false);
+  const native = composition.studio_native_weixin_channel;
+  assert.equal(native.plugin_id, weixin.native_plugin_id);
+  assert.equal(native.settings_destination, contract.destination);
+  assert.equal(native.settings_slot, 'settings.section');
+  assert.equal(native.settings_view_type, 'channel_access');
+  assert.equal(native.provider_owner, 'opl-studio_dsh_profile');
+  assert.equal(native.canonical_thread_and_turn_owner, 'opl-codex-native');
+  assert.equal(native.single_active_provider_path_required, true);
+  assert.equal(profile.official_profile.desired_root_package_ids.includes(native.plugin_id), false);
 
   assert.equal(remoteCompanionAccess.data_truth_owner, 'declaring_remote_companion_provider');
   assert.equal(contract.currently_defined_product_classifications.some(
