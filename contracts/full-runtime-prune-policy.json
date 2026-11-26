@@ -92,8 +92,8 @@
   "production_node_modules": {
     "source": "package-lock production dependencies allowlist",
     "excluded_path_patterns": [
-      "(?:^|\\/)(?:__fixtures__|__mocks__|__snapshots__|benchmarks?|coverage|docs?|examples?|fixtures?|playwright-report|storybook-static|test-results)(?:\\/|$)",
-      "^tests?(?:\\/|$)",
+      "(?:^|\\/)(?:__fixtures__|__mocks__|__snapshots__|benchmarks?|coverage|examples?|fixtures?|playwright-report|storybook-static|test-results)(?:\\/|$)",
+      "^(?:docs?|tests?)(?:\\/|$)",
       "(?:^|\\/)(?:\\.cache|\\.github|\\.nyc_output|\\.pytest_cache|\\.turbo)(?:\\/|$)"
     ]
   },
@@ -250,6 +250,7 @@
         "lib/index.js",
         "lib/mcp/test/testBackend.js",
         "lib/mcp/test/browserBackend.js",
+        "dist/doc/directives.js",
         "dist/runtime.cjs",
         "schema/contract.json",
         "native/binding.node"
