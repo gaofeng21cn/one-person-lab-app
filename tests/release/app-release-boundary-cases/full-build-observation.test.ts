@@ -121,7 +121,9 @@ test('mutated staged App signs once and performs one strict verification of the 
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-final-sign-'));
   const previous = { ...process.env };
   fs.writeFileSync(path.join(temp, 'codesign'), `#!/bin/sh
-if [ "$1" = "-dv" ]; then
+if [ "$1" = "--force" ]; then
+  printf '%s\\n' "$*" > "${temp}/sign-args.txt"
+elif [ "$1" = "-dv" ]; then
   if [ "$OPL_TEST_WRONG_SIGNER" = "1" ]; then
     printf '%s\\n' 'Signature=adhoc' >&2
   else
@@ -137,6 +139,9 @@ exit 0
     const events = captureEvents(() => ensureAppBundleAdHocCodesign('/fixture/App.app', 'Final App', { force: true }));
     assert.deepEqual(events.filter(({ status }) => status === 'completed').map(({ stage }) => stage),
       ['full_codesign_sign', 'full_codesign_verify', 'full_codesign_identity']);
+    const signArgs = fs.readFileSync(path.join(temp, 'sign-args.txt'), 'utf8');
+    assert.match(signArgs, /--preserve-metadata=identifier,entitlements,flags,runtime\b/);
+    assert.doesNotMatch(signArgs, /--preserve-metadata=[^\n]*requirements/);
     process.env.OPL_TEST_WRONG_SIGNER = '1';
     captureEvents(() => assert.throws(() => ensureAppBundleAdHocCodesign('/fixture/App.app', 'Final App', { force: true }), /Developer ID signing verification/));
   } finally {

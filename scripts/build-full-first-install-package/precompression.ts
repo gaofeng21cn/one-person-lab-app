@@ -266,12 +266,18 @@ export function normalizeFullShellNativeRpaths(
     if (inspectMachORpaths(filePath).some((entry) => removed.includes(entry))) {
       throw new Error(`Build-machine RPATH remains after normalization: ${filePath}`);
     }
-    resign(filePath);
     let parent = path.dirname(filePath);
     while (parent !== modulesRoot && parent.startsWith(`${modulesRoot}${path.sep}`)) {
-      if (parent.endsWith('.app')) bundles.add(parent);
+      if (parent.endsWith('.app')) {
+        bundles.add(parent);
+        const staleTicket = path.join(parent, 'Contents', 'CodeResources');
+        if (fs.existsSync(staleTicket) && fs.lstatSync(staleTicket).isFile()) {
+          fs.unlinkSync(staleTicket);
+        }
+      }
       parent = path.dirname(parent);
     }
+    resign(filePath);
     changes.push({ relative_path: normalizeRelativePath(builtAppPath, filePath), removed_rpaths: removed });
   }
   for (const bundle of [...bundles].sort((left, right) => right.length - left.length)) resign(bundle);
