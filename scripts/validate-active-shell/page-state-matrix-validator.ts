@@ -7,7 +7,6 @@ import {
   domainDetailViewDescriptorOptionalFields,
   firstRunModelAccessSetupPolicy,
   focusedFirstRunPresentationPolicy,
-  progressiveFirstRunRecoveryPolicy,
   progressiveFirstRunRecoveryTestIds,
   runtimeVisibilityPageStateIds,
 } from './app-contract-constants.ts';
@@ -20,7 +19,7 @@ import {
   validateAppSettingsPages,
 } from './page-state-app-settings-validator.ts';
 import { validatePrimaryInteractionPages } from './page-state-primary-interaction-validator.ts';
-import { productProfilePath } from './validation-config.ts';
+import { productProfilePath, runtimeBridgePath } from './validation-config.ts';
 import {
   validateRuntimeCockpitAcceptanceBoundary,
   validateRuntimeCockpitPageStateAcceptance,
@@ -28,6 +27,7 @@ import {
 import { validateScheduledTasksPageState } from './scheduled-tasks-policy-validator.ts';
 
 const productProfile = readJson(productProfilePath);
+const workItemBridge = readJson(runtimeBridgePath).work_item_projection;
 const expectedFirstRunProgressModel = productProfile.first_run?.progress_model;
 const expectedFirstRunCoreItems = assertNonEmptyStringArray(
   productProfile.first_run?.ready_to_launch_gate?.required_core_items,
@@ -37,15 +37,17 @@ const expectedFullReadinessItems = (productProfile.first_run?.full_readiness_lay
   .filter((item) => item !== 'core');
 
 function validateRuntimeVisibilityPageStateMatrix(stateMatrix, label) {
+  const visibility = workItemBridge.field_contracts.visibility;
+  const visibilityMutation = workItemBridge.visibility_mutation_contract;
   for (const [field, expected] of Object.entries({
-    authority: 'opl_framework_work_item_visibility',
+    authority: visibility.authority,
     projection_path: 'app_state.operator.workbench.work_item_projection_v2.items[].visibility',
     default_surface: 'runtime_main_visible_only',
     archived_surface: 'archived_tasks_library',
     archived_surface_is_saved_status_view: false,
     scope_hierarchy: 'agent_then_project_for_both_surfaces',
     status_filters_include_agent_project_or_visibility: false,
-    local_storage_truth_allowed: false,
+    local_storage_truth_allowed: visibility.local_storage_truth_allowed,
   })) {
     if (stateMatrix?.[field] !== expected) {
       throw new Error(`${label}.${field} must be ${expected}`);
@@ -53,68 +55,36 @@ function validateRuntimeVisibilityPageStateMatrix(stateMatrix, label) {
   }
   assertDeepEqualJson(
     stateMatrix?.visibility_values,
-    ['visible', 'archived'],
+    visibility.states,
     `${label}.visibility_values`,
   );
   assertDeepEqualJson(
     stateMatrix?.visibility_required_fields,
-    ['state', 'source', 'updated_at', 'control_ref', 'generation'],
+    visibility.required_fields,
     `${label}.visibility_required_fields`,
   );
-  if (stateMatrix?.generation_is_concurrency_token !== true) {
+  if (stateMatrix?.generation_is_concurrency_token !== visibility.generation_is_concurrency_token) {
     throw new Error(`${label}.generation_is_concurrency_token must be true`);
   }
   const mutation = stateMatrix?.mutation;
-  for (const [field, expected] of Object.entries({
-    action_id: 'work_item_visibility_set',
-    command: 'opl app action execute --action work_item_visibility_set --payload <json> --json',
-    expected_generation_source: 'item.visibility.generation',
-    expected_generation_required_when_available: true,
-    concurrency_token_source: 'item.visibility.generation',
-    refresh_after_execute: 'opl app state --profile fast --json',
-    readback_selector:
-      'work_item_projection_v2.items[identity.agent_id=payload.agent_id && identity.project_id=payload.project_id && identity.work_item_id=payload.work_item_id]',
-    readback_must_match_requested_visibility: true,
-    optimistic_local_truth_commit_allowed: false,
-    failure_preserves_authoritative_projection: true,
+  for (const [pageField, bridgeField] of Object.entries({
+    action_id: 'action_id',
+    command: 'action_route',
+    expected_generation_source: 'expected_generation_source',
+    expected_generation_required_when_available: 'expected_generation_required_when_available',
+    concurrency_token_source: 'concurrency_token_readback_source',
+    refresh_after_execute: 'success_refresh_command',
+    readback_selector: 'success_readback_selector',
+    readback_must_match_requested_visibility: 'success_requires_requested_visibility',
+    optimistic_local_truth_commit_allowed: 'optimistic_local_truth_commit_allowed',
+    failure_preserves_authoritative_projection: 'failure_preserves_authoritative_projection',
+    payload_required_fields: 'payload_required_fields',
+    payload_optional_fields: 'payload_optional_fields',
+    readback_identity_fields: 'success_readback_identity_fields',
+    readback_required_fields: 'success_readback_required_fields',
   })) {
-    if (mutation?.[field] !== expected) {
-      throw new Error(`${label}.mutation.${field} must be ${expected}`);
-    }
+    assertDeepEqualJson(mutation?.[pageField], visibilityMutation[bridgeField], `${label}.mutation.${pageField}`);
   }
-  assertDeepEqualJson(
-    mutation?.payload_required_fields,
-    ['agent_id', 'project_id', 'work_item_id', 'visibility_state'],
-    `${label}.mutation.payload_required_fields`,
-  );
-  assertDeepEqualJson(
-    mutation?.payload_optional_fields,
-    ['reason', 'expected_generation'],
-    `${label}.mutation.payload_optional_fields`,
-  );
-  assertDeepEqualJson(
-    mutation?.readback_identity_fields,
-    ['identity.agent_id', 'identity.project_id', 'identity.work_item_id'],
-    `${label}.mutation.readback_identity_fields`,
-  );
-  assertDeepEqualJson(
-    mutation?.readback_required_fields,
-    [
-      'item_id',
-      'identity.agent_id',
-      'identity.project_id',
-      'identity.work_item_id',
-      'visibility.state',
-      'visibility.source',
-      'visibility.updated_at',
-      'visibility.control_ref',
-      'visibility.generation',
-      'lifecycle',
-      'execution',
-      'telemetry',
-    ],
-    `${label}.mutation.readback_required_fields`,
-  );
   assertDeepEqualJson(
     stateMatrix?.archive_confirmation,
     {
@@ -142,7 +112,7 @@ function validateRuntimeVisibilityPageStateMatrix(stateMatrix, label) {
   }
   const conflict = pageStates.find((state) => state.id === 'stale_generation_conflict');
   if (
-    conflict?.when !== 'work_item_control_generation_conflict'
+    conflict?.when !== visibilityMutation.generation_conflict_error
     || conflict?.required_ui !== 'refresh_authoritative_projection_then_prompt_user_to_retry'
     || conflict?.automatic_overwrite_allowed !== false
   ) {
@@ -234,7 +204,7 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     throw new Error('Page-state matrix must not include withdrawn Docker/WebUI username, title, logo, or branding requirements');
   }
 
-  validatePrimaryInteractionPages(matrix);
+  validatePrimaryInteractionPages(matrix, guiProductContract);
   validateAppSettingsPages(matrix, guiProductContract);
   validateScheduledTasksPageState(
     (matrix.pages ?? []).find((page) => page.id === 'scheduled_tasks'),
@@ -281,37 +251,22 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
     'First-launch readiness beginner shell test ids',
   );
   const ordinaryRecovery = firstLaunchPage.ordinary_shell_recovery;
-  if (
-    ordinaryRecovery?.fresh_webui_login_setup_check_intent !==
-      progressiveFirstRunRecoveryPolicy.fresh_webui_login_setup_check_intent ||
-    ordinaryRecovery?.fresh_webui_login_known_incomplete_route !==
-      progressiveFirstRunRecoveryPolicy.fresh_webui_login_known_incomplete_route ||
-    ordinaryRecovery?.fresh_webui_login_unknown_policy !==
-      progressiveFirstRunRecoveryPolicy.fresh_webui_login_unknown_policy ||
-    ordinaryRecovery?.fresh_webui_login_ui_timeout_ms !==
-      progressiveFirstRunRecoveryPolicy.fresh_webui_login_ui_timeout_ms ||
-    ordinaryRecovery?.persistent_setup_entry_route !== progressiveFirstRunRecoveryPolicy.persistent_setup_entry_route ||
-    ordinaryRecovery?.persistent_home_composer_runtime_alert !==
-      progressiveFirstRunRecoveryPolicy.persistent_home_composer_runtime_alert ||
-    ordinaryRecovery?.unknown_readiness_policy !== progressiveFirstRunRecoveryPolicy.unknown_readiness_policy
-  ) {
-    throw new Error('First-launch page-state ordinary shell recovery policy is invalid');
+  const recoveryPolicy = productProfile.first_run.ordinary_shell_recovery;
+  const setupCheck = recoveryPolicy.fresh_webui_login_setup_check;
+  for (const [field, expected] of Object.entries({
+    fresh_webui_login_setup_check_intent: setupCheck.route_intent,
+    fresh_webui_login_known_incomplete_route: recoveryPolicy.persistent_setup_entry.target_route,
+    fresh_webui_login_unknown_policy: setupCheck.unknown_timeout_or_read_failure_behavior,
+    fresh_webui_login_ui_timeout_ms: setupCheck.ui_timeout_ms,
+    persistent_setup_entry_route: recoveryPolicy.persistent_setup_entry.target_route,
+    persistent_home_composer_runtime_alert: 'forbidden',
+    unknown_readiness_policy: recoveryPolicy.unknown_readiness_policy,
+    plain_conversation_required_items: recoveryPolicy.plain_conversation.required_items,
+    send_scoped_local_input_required_items: recoveryPolicy.send_scoped_local_inputs.required_items,
+    workspace_control_required_items: recoveryPolicy.workspace_controls.required_items,
+  })) {
+    assertDeepEqualJson(ordinaryRecovery?.[field], expected, `First-launch page-state ordinary shell recovery ${field}`);
   }
-  assertDeepEqualJson(
-    ordinaryRecovery.plain_conversation_required_items,
-    progressiveFirstRunRecoveryPolicy.plain_conversation_required_items,
-    'First-launch page-state plain conversation prerequisites',
-  );
-  assertDeepEqualJson(
-    ordinaryRecovery.send_scoped_local_input_required_items,
-    progressiveFirstRunRecoveryPolicy.send_scoped_local_input_required_items,
-    'First-launch page-state send-scoped local input prerequisites',
-  );
-  assertDeepEqualJson(
-    ordinaryRecovery.workspace_control_required_items,
-    progressiveFirstRunRecoveryPolicy.workspace_control_required_items,
-    'First-launch page-state workspace control prerequisites',
-  );
   assertIncludesAll(
     ordinaryRecovery.required_shell_testids,
     progressiveFirstRunRecoveryTestIds,

@@ -274,15 +274,6 @@ export const workItemDetailPrimarySections = [
   "action",
 ];
 
-export const workItemDetailSecondarySections = ["artifacts", "timeline", "evidence"];
-
-export const workItemDetailDiagnosticSections = [
-  "raw_refs",
-  "raw_ids",
-  "logs",
-  "provider_diagnostics",
-];
-
 export const appOwnedQueueStatusPolicy =
   "queued, pending, and waiting require explicit projected status; blocked or attention_needed stay blocked/attention states; stopped, parked, and checkpointed stay inactive; non-running must never be inferred as queued";
 

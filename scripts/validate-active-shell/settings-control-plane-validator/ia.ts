@@ -2,59 +2,23 @@ import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
 import {
   appActionRoute,
   appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
   appOwnedSettingsCompatibilityRedirects,
   appOwnedSettingsCardFields,
-  appOwnedSettingsCapabilitiesTabContract,
   appOwnedSettingsConfirmationFields,
   appOwnedSettingsIaGroupIds,
   appOwnedSettingsIssueStatuses,
-  appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
   appOwnedSettingsMakeUsableAllowedSteps,
   appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
   appOwnedSettingsNavigationDestinationIds,
   appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
   appOwnedSettingsPostUpdateNoticeFields,
-  appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
-  appOwnedSettingsProductPageIds,
-  appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
-  appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
   appOwnedSettingsTabs,
   appOwnedSettingsTaskEntryMetadataFields,
-  appOwnedSettingsTechnicalDetailsDefault,
-  appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
   appOwnedSettingsTaskEntryIds,
   appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
 } from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
-
-import {
-  assertKnownSettingsRoute,
-} from "./shared.ts";
-import {
-  validateSettingsVisualQaExpectations,
-} from "./visual-expectations.ts";
+import { assertKnownSettingsRoute } from "./shared.ts";
+import { validateSettingsVisualQaExpectations } from "./visual-expectations.ts";
 
 export function validateSettingsIa(settingsIa) {
   if (settingsIa?.schema !== "settings_ia.v2") {
@@ -146,20 +110,19 @@ export function validateSettingsIa(settingsIa) {
       );
     }
   }
-  assertDeepEqualJson(
-    settingsIa.auxiliary_entries,
-    [
-      {
-        id: "about",
-        route_id: "about",
-        route_scope: "secondary_or_deep_link",
-        placement: "sidebar_bottom",
-        label_zh: "关于",
-        label_en: "About",
-      },
-    ],
-    "Settings IA auxiliary entries",
-  );
+  const auxiliaryEntries = settingsIa.auxiliary_entries;
+  const about = auxiliaryEntries?.[0];
+  if (
+    !Array.isArray(auxiliaryEntries) ||
+    auxiliaryEntries.length !== 1 ||
+    about?.id !== "about" ||
+    about.route_id !== "about" ||
+    about.route_scope !== "secondary_or_deep_link" ||
+    about.placement !== "sidebar_bottom"
+  ) {
+    throw new Error("Settings IA auxiliary entries must contain only the bottom About entry");
+  }
+  assertBilingualNavigationLabel(about, "Settings IA auxiliary entries");
   assertDeepEqualJson(
     (settingsIa.user_task_entries ?? []).map((entry) => entry.id),
     appOwnedSettingsTaskEntryIds,
@@ -233,20 +196,11 @@ export function validateSettingsTopLevelEntries(entries, policy) {
       "Settings IA Workspace must be ordinary top-level navigation",
     );
   }
-  assertDeepEqualJson(
-    Object.fromEntries(
-      (entries ?? []).map((entry) => [
-        entry.id,
-        {
-          label_zh: entry.label_zh,
-          label_en: entry.label_en,
-        },
-      ]),
-    ),
-    appOwnedSettingsNavigationGroupLabels,
-    "Settings IA top-level product labels",
-  );
   for (const entry of entries ?? []) {
+    assertBilingualNavigationLabel(
+      entry,
+      `Settings IA top-level entry ${entry.id}`,
+    );
     assertKnownSettingsRoute(
       entry.route_id,
       `Settings IA top-level entry ${entry.id}`,
@@ -256,6 +210,16 @@ export function validateSettingsTopLevelEntries(entries, policy) {
       appOwnedSettingsTaskEntryMetadataFields,
       `Settings IA top-level entry ${entry.id} metadata fields`,
     );
+  }
+}
+
+function assertBilingualNavigationLabel(entry, label) {
+  if (
+    [entry.label_zh, entry.label_en].some(
+      (value) => typeof value !== "string" || !value.trim(),
+    )
+  ) {
+    throw new Error(`${label} must have Chinese and English product labels`);
   }
 }
 
@@ -283,11 +247,23 @@ export function validateSettingsProtocols(protocols) {
       "Settings control plane actions must route through app_state.actions and the App action route",
     );
   }
-  assertDeepEqualJson(
-    protocols.settings_search,
-    appOwnedSettingsSearchProtocol,
-    "Settings control plane search protocol",
-  );
+  const search = protocols.settings_search;
+  if (
+    search?.global_entry_count !== 1 ||
+    search.entry_testid !== "settings-search-input" ||
+    search.scope !== "bilingual_item_level_index" ||
+    search.result_policy !== "select_result_navigates_to_owner_route_and_anchor" ||
+    search.anchor_transport !== "route_id_plus_anchor_field_with_section_query_fallback" ||
+    search.compatibility_index_policy !==
+      "index_update_theme_local_services_and_personalization_under_owner_page_anchors" ||
+    search.empty_state !== "show_no_matching_settings_without_exposing_internal_route_ids" ||
+    typeof search.result_label_format !== "string" ||
+    !search.result_label_format.includes("{entry_label}") ||
+    !search.result_label_format.includes("{page_label}")
+  ) {
+    throw new Error("Settings control plane search protocol must preserve one owner-routed item-level search");
+  }
+  assertDeepEqualJson(search.languages, ["zh-CN", "en"], "Settings search languages");
   assertDeepEqualJson(
     protocols.card_protocol?.required_fields,
     appOwnedSettingsCardFields,

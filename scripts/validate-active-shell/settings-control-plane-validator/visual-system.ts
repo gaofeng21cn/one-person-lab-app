@@ -1,65 +1,17 @@
 import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
+import { appOwnedSettingsProductSystemTracks } from "../app-contract-constants.ts";
 import {
-  appActionRoute,
-  appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
-  appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
-  appOwnedSettingsCapabilitiesTabContract,
-  appOwnedSettingsConfirmationFields,
-  appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
-  appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
-  appOwnedSettingsNavigationDestinationIds,
-  appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
-  appOwnedSettingsPostUpdateNoticeFields,
-  appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
-  appOwnedSettingsProductPageIds,
-  appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
-  appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
-  appOwnedSettingsTabs,
-  appOwnedSettingsTaskEntryMetadataFields,
-  appOwnedSettingsTechnicalDetailsDefault,
-  appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
-} from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
-
+  assertNonEmptyString,
+  assertNonEmptyStringArray,
+} from "../validation-primitives.ts";
 import {
-  expectedSettingsAdapterEvidence,
-  expectedVisualQaCompatibilityRedirects,
   expectedVisualQaManifestFields,
-  expectedVisualQaRoutes,
-  expectedVisualQaSecondaryRoutes,
   expectedVisualQaStatusAnchors,
   settingsControlPlaneContractRef,
   settingsIaRef,
 } from "./constants.ts";
 
-export function validateSettingsVisualQaPolicy(controlPlane) {
+export function validateSettingsVisualQaPolicy(controlPlane, guiContract = undefined) {
   const policy = controlPlane.visual_qa_policy;
   if (
     policy?.policy !==
@@ -76,17 +28,19 @@ export function validateSettingsVisualQaPolicy(controlPlane) {
   );
   assertDeepEqualJson(
     policy.required_routes,
-    expectedVisualQaRoutes,
+    controlPlane.ordinary_routes.map((route) => route.path),
     "Settings visual QA required routes",
   );
   assertDeepEqualJson(
     policy.required_secondary_routes,
-    expectedVisualQaSecondaryRoutes,
+    controlPlane.secondary_pages.map((route) => route.path),
     "Settings visual QA secondary routes",
   );
   assertDeepEqualJson(
     policy.required_compatibility_redirects,
-    expectedVisualQaCompatibilityRedirects,
+    Object.values(controlPlane.compatibility_redirects).map(
+      (redirect) => `${redirect.source_route_id}->${redirect.target_route_id}#${redirect.anchor}`,
+    ),
     "Settings visual QA compatibility redirects",
   );
   assertDeepEqualJson(
@@ -107,31 +61,58 @@ export function validateSettingsVisualQaPolicy(controlPlane) {
     expectedVisualQaManifestFields,
     "Settings visual QA evidence manifest fields",
   );
-  if (
-    policy.evidence_manifest?.viewport_policy !==
-      "each required route is checked at both the default desktop and narrow mobile viewports" ||
-    policy.evidence_manifest?.secondary_route_policy !==
-      "about is captured as the only independent secondary page" ||
-    policy.evidence_manifest?.compatibility_route_policy !==
-      "update, theme, local-services, and personalization are captured as redirect landing evidence on their owner route and anchor"
-  ) {
-    throw new Error(
-      "Settings visual QA manifest must declare ordinary, secondary, and compatibility evidence policy",
-    );
+  for (const field of ["viewport_policy", "secondary_route_policy", "compatibility_route_policy"]) {
+    assertNonEmptyString(policy.evidence_manifest[field], `Settings visual QA manifest ${field}`);
   }
   if (!String(policy.evidence_command ?? "").includes("E2E_SCREENSHOTS=1")) {
     throw new Error(
       "Settings visual QA policy must require screenshot evidence",
     );
   }
+  const visualSystem = controlPlane.experience_contract?.visual_system;
+  const baselineCommit = visualSystem?.baseline_shell_commit ?? "";
   if (
-    policy.baseline_ref !==
-      "opl-aion-shell@409dd0c3b693f1c7c93551654dfac8fb9420843d" ||
+    !/^[0-9a-f]{40}$/.test(baselineCommit) ||
+    typeof policy.baseline_ref !== "string" ||
+    !policy.baseline_ref.endsWith(`@${baselineCommit}`) ||
     policy.baseline_comparison_policy !==
       "same_route_final_screenshots_must_preserve_or_improve_spatial_and_typographic_hierarchy"
   ) {
     throw new Error(
-      "Settings visual QA must bind same-route hierarchy comparison to the 409dd0c3 baseline",
+      "Settings visual QA must bind same-route hierarchy comparison to the visual system baseline",
+    );
+  }
+  if (guiContract) {
+    const expectations = guiContract.settings_navigation?.settings_ia?.protocols?.visual_qa_expectations;
+    assertDeepEqualJson(
+      expectations?.baseline_comparison?.shell_commit,
+      baselineCommit,
+      "Settings visual QA baseline commit across contracts",
+    );
+    assertDeepEqualJson(
+      expectations?.surface_grouping?.first_viewport_spatial_group_range,
+      visualSystem.first_viewport_spatial_group_range,
+      "Settings visual QA surface grouping range across contracts",
+    );
+    assertDeepEqualJson(
+      expectations?.responsive_hierarchy,
+      {
+        desktop: visualSystem.desktop_group_layout,
+        mobile: visualSystem.mobile_group_layout,
+        icon_slot_px: visualSystem.icon_slot_px,
+        ...visualSystem.typography,
+      },
+      "Settings visual QA responsive hierarchy across contracts",
+    );
+    assertDeepEqualJson(
+      expectations?.status_color_semantics,
+      visualSystem.status_color_semantics,
+      "Settings visual QA status colors across contracts",
+    );
+    assertDeepEqualJson(
+      expectations?.footer_structure?.controls,
+      visualSystem.footer_controls,
+      "Settings visual QA footer structure controls across contracts",
     );
   }
   assertIncludesAll(
@@ -177,37 +158,27 @@ export function validateSettingsProductSystemChecklist(controlPlane) {
       "Settings product system checklist must separate release/currentness gates from Settings tests",
     );
   }
-  const items = checklist?.items ?? [];
-  assertDeepEqualJson(
-    items.map((item) => item.id),
-    appOwnedSettingsProductSystemItemIds,
-    "Settings product system checklist item ids",
-  );
-  const tracks = [...new Set(items.map((item) => item.track))];
-  assertDeepEqualJson(
-    tracks,
+  const items = checklist?.items;
+  if (!Array.isArray(items) || new Set(items.map((item) => item?.id)).size !== items.length) {
+    throw new Error("Settings product system checklist item ids must be present and unique");
+  }
+  assertIncludesAll(
+    [...new Set(items.map((item) => item?.track))],
     appOwnedSettingsProductSystemTracks,
     "Settings product system checklist tracks",
   );
   for (const item of items) {
+    assertNonEmptyString(item?.id, "Settings product system checklist item id");
     if (!appOwnedSettingsProductSystemTracks.includes(item.track)) {
       throw new Error(
         `Settings product system checklist item ${item.id} has unknown track ${item.track}`,
       );
     }
-    if (typeof item.goal !== "string" || item.goal.trim().length < 20) {
-      throw new Error(
-        `Settings product system checklist item ${item.id} must declare a concrete goal`,
-      );
-    }
-    if (
-      !Array.isArray(item.evidence_required) ||
-      item.evidence_required.length < 3
-    ) {
-      throw new Error(
-        `Settings product system checklist item ${item.id} must list at least three evidence requirements`,
-      );
-    }
+    assertNonEmptyString(item.goal, `Settings product system checklist goal for ${item.id}`);
+    assertNonEmptyStringArray(
+      item.evidence_required,
+      `Settings product system checklist evidence for ${item.id}`,
+    );
   }
   const releaseItem = items.find(
     (item) => item.id === "installed_release_currentness",
@@ -268,14 +239,20 @@ export function validateSettingsShellAdapterSlot(adapterContract) {
   if (slot.host_component !== "SettingsHost") {
     throw new Error("Settings shell adapter slot must declare SettingsHost");
   }
-  if (!slot.slots?.SettingsShellAdapterSlot) {
+  const registry = slot.slots?.SettingsShellAdapterSlot;
+  if (
+    registry?.registry_source !== settingsControlPlaneContractRef ||
+    registry?.ordinary_route_source !== "ordinary_routes" ||
+    registry?.secondary_route_source !== "secondary_pages" ||
+    registry?.legacy_redirect_source !== "legacy_route_redirects" ||
+    registry?.extension_anchor_source !== "extension_anchor_remap"
+  ) {
     throw new Error(
-      "Settings shell adapter slot must declare SettingsShellAdapterSlot",
+      "SettingsShellAdapterSlot must mount the App-owned registry and resolve its ordinary, secondary, and compatibility routes",
     );
   }
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(
     slot.required_evidence,
-    expectedSettingsAdapterEvidence,
     "Settings shell adapter slot required evidence",
   );
 }

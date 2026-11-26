@@ -2,65 +2,25 @@ import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
 import {
   appActionRoute,
   appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
   appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
-  appOwnedSettingsCapabilitiesTabContract,
-  appOwnedSettingsConfirmationFields,
   appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
   appOwnedSettingsAboutUpdaterStatePolicy,
   appOwnedSettingsAppUpdateStatePolicy,
   appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
   appOwnedSettingsManagedUpdateRepairPolicy,
   appOwnedSettingsManagedUpdateRepairPolicyRef,
-  appOwnedSettingsNavigationDestinationIds,
-  appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
-  appOwnedSettingsPostUpdateNoticeFields,
-  appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
-  appOwnedSettingsProductPageIds,
-  appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
-  appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
   appOwnedSettingsTabs,
-  appOwnedSettingsTaskEntryMetadataFields,
-  appOwnedSettingsTechnicalDetailsDefault,
   appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
 } from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
 
 import {
   expectedAgentsRouteStateSource,
   expectedAnchorRemap,
   expectedLegacyRedirects,
   expectedSlotKeys,
-  expectedStartupPerformancePolicy,
 } from "./constants.ts";
-import {
-  validateSettingsExperienceContract,
-} from "./experience.ts";
-import {
-  validateSettingsIa,
-} from "./ia.ts";
+import { validateSettingsExperienceContract } from "./experience.ts";
+import { validateSettingsIa } from "./ia.ts";
 import {
   validateHydratedSettingsRegistry,
   validateProductProfileSettings,
@@ -68,21 +28,14 @@ import {
   validateSettingsPageStateMatrix,
   validateSettingsShellAdapterSlotContract,
 } from "./page-state.ts";
-import {
-  validateSettingsPageAdapterPolicy,
-  validateSettingsProjection,
-} from "./projection.ts";
-import {
-  validateSettingsOptionalResourceProjection,
-} from "./resources.ts";
+import { validateSettingsPageAdapterPolicy, validateSettingsProjection } from "./projection.ts";
+import { validateSettingsOptionalResourceProjection } from "./resources.ts";
 import {
   assertEveryRouteHasSlot,
   validateCrossContractConsistency,
   validateSettingsUserNavigationProjection,
 } from "./routes.ts";
-import {
-  pageById,
-} from "./shared.ts";
+import { pageById } from "./shared.ts";
 import {
   validateSettingsProductSystemChecklist,
   validateSettingsShellAdapterSlot,
@@ -299,16 +252,17 @@ export function validateSettingsControlPlane(
     appOwnedSettingsTopLevelEntryIds,
     "Settings control plane ordinary product page ids",
   );
-  assertDeepEqualJson(
-    Object.fromEntries(
-      (controlPlane.ordinary_routes ?? []).map((route) => [
-        route.product_page_id,
-        { label_zh: route.default_label_zh, label_en: route.default_label_en },
-      ]),
-    ),
-    appOwnedSettingsTopLevelLabels,
-    "Settings control plane top-level product labels",
-  );
+  for (const route of controlPlane.ordinary_routes) {
+    const tab = guiContract?.settings_navigation?.primary_tabs?.[route.id];
+    if (!tab?.label_zh?.trim() || !tab?.label_en?.trim()) {
+      throw new Error(`GUI Settings primary tab ${route.id} must declare bilingual labels`);
+    }
+    assertDeepEqualJson(
+      { label_zh: route.default_label_zh, label_en: route.default_label_en },
+      { label_zh: tab.label_zh, label_en: tab.label_en },
+      `Settings control plane top-level product labels for ${route.id}`,
+    );
+  }
   assertDeepEqualJson(
     controlPlane.secondary_pages?.map((page) => page.id),
     appOwnedSecondarySettingsPages,
@@ -372,14 +326,14 @@ export function validateSettingsControlPlane(
     productProfile,
   );
   validateSettingsProjection(controlPlane.settings_projection);
-  validateSettingsExperienceContract(controlPlane.experience_contract);
+  validateSettingsExperienceContract(controlPlane.experience_contract, guiContract);
   assertDeepEqualJson(
     guiContract?.pages?.settings_resources?.connection_authorization,
     controlPlane.experience_contract?.page_contracts?.resources?.connection_authorization,
     "Settings GUI and control-plane connection authorization projection",
   );
   validateSettingsPageAdapterPolicy(controlPlane, productProfile);
-  validateSettingsVisualQaPolicy(controlPlane);
+  validateSettingsVisualQaPolicy(controlPlane, guiContract);
   validateSettingsProductSystemChecklist(controlPlane);
   if (controlPlane.default_route !== "/settings/general") {
     throw new Error(
@@ -499,28 +453,15 @@ export function validateSettingsControlPlane(
       "Settings control plane must keep reads and actions single-flight with operation-bound results",
     );
   }
-  assertDeepEqualJson(
-    controlPlane.state_action_policy?.startup_performance_policy,
-    expectedStartupPerformancePolicy,
-    "Settings startup performance policy",
-  );
-  assertDeepEqualJson(
-    guiContract?.settings_navigation?.settings_ia?.protocols
-      ?.startup_performance,
-    expectedStartupPerformancePolicy,
-    "Settings GUI startup performance protocol",
-  );
-  assertDeepEqualJson(
-    pageStateMatrix?.settings_startup_performance_policy,
-    expectedStartupPerformancePolicy,
-    "Settings page-state startup performance policy",
-  );
-  assertDeepEqualJson(
-    productProfile?.settings?.control_plane?.state_action_policy
-      ?.startup_performance_policy,
-    expectedStartupPerformancePolicy,
-    "Settings product-profile startup performance projection",
-  );
+  const startup = controlPlane.state_action_policy?.startup_performance_policy;
+  validateStartupPerformancePolicy(startup);
+  for (const [label, projection] of [
+    ["GUI startup performance protocol", guiContract?.settings_navigation?.settings_ia?.protocols?.startup_performance],
+    ["page-state startup performance policy", pageStateMatrix?.settings_startup_performance_policy],
+    ["product-profile startup performance projection", productProfile?.settings?.control_plane?.state_action_policy?.startup_performance_policy],
+  ]) {
+    assertDeepEqualJson(projection, startup, `Settings ${label}`);
+  }
   if (
     controlPlane.state_action_policy?.configuration_action_policy !==
       "framework_owned_persistent_controls_consume_configuration_catalog_action_ids_and_verify_refs_without_shell_hardcoding" ||
@@ -592,6 +533,62 @@ export function validateSettingsControlPlane(
   );
   validateProductProfileSettings(productProfile, controlPlane);
   validateSettingsShellAdapterSlot(adapterContract);
+}
+
+function validateStartupPerformancePolicy(startup) {
+  const snapshot = startup?.persisted_snapshot;
+  const retry = startup?.background_hydration_retry;
+  if (
+    startup?.schema !== "settings_startup_performance.v1" ||
+    startup.background_state_source !== "opl app state --profile fast --json" ||
+    startup.first_window_state_source !== "renderer_localStorage_allowlisted_fast_state_snapshot_or_loading_shell" ||
+    startup.first_window_blocking_policy !== "never_wait_for_complete_fast_state_or_page_drilldowns" ||
+    startup.first_window_failure_policy !== "render_recoverable_nonblank_shell_never_fatal_or_blank_candidate_window" ||
+    startup.ordinary_guid_target_status !== "required_unverified_installed_target_not_current_measurement_or_SLA" ||
+    startup.background_hydration_in_guid_target !== false ||
+    startup.single_flight_background_refresh !== true ||
+    startup.global_refresh_on_route_mount !== false ||
+    startup.framework_projection_claim !== "not_proven_by_ui_contract_or_shell_gate" ||
+    startup.live_measurement_gate !== "installed_App_launch_to_first_window_and_settings_readiness_after_owner_absorption"
+  ) {
+    throw new Error("Settings startup performance policy must preserve fast, non-blocking startup and separate live readiness from contract evidence");
+  }
+  for (const [field, maximum] of [
+    ["cold_budget_ms", 1500],
+    ["warm_budget_ms", 1500],
+    ["ordinary_guid_interactive_target_ms", 1500],
+    ["startup_projection_payload_budget_bytes", 262144],
+  ] as const) {
+    const value = startup[field];
+    if (!Number.isSafeInteger(value) || value <= 0 || value > maximum) {
+      throw new Error(`Settings startup performance policy ${field} must be a positive integer of at most ${maximum}`);
+    }
+  }
+  if (
+    snapshot?.schema !== "opl_settings_startup_snapshot.v1" ||
+    snapshot.source !== "renderer_localStorage_allowlisted_fast_state_cache" ||
+    snapshot.version !== 1 ||
+    snapshot.freshness_policy !== "stale_while_revalidate_with_observed_at_and_stale_fields" ||
+    snapshot.secret_boundary !== "allowlisted_read_models_only_no_tokens_passwords_raw_receipts_or_unredacted_errors" ||
+    retry?.max_attempts !== 2 ||
+    retry.retry_delay_ms !== 250 ||
+    retry.clear_single_flight_marker_after_failure !== true ||
+    retry.remount_or_manual_retry_after_exhaustion !== true
+  ) {
+    throw new Error("Settings startup performance policy must keep the allowlisted snapshot and bounded, recoverable background hydration");
+  }
+  assertIncludesAll(snapshot.invalidation, [
+    "schema_or_version_mismatch",
+    "App_release_identity_change",
+    "explicit_sign_out_or_cache_clear",
+  ], "Settings startup performance policy snapshot invalidation");
+  assertIncludesAll(startup.timing_milestones, [
+    "stable_shell_first_paint",
+    "background_hydration_complete",
+  ], "Settings startup performance policy timing milestones");
+  assertIncludesAll(startup.lazy_drilldown_routes, [
+    "agents", "capabilities", "storage", "about",
+  ], "Settings startup performance policy lazy drilldowns");
 }
 
 export function validateSettingsControlPlaneBehavior({

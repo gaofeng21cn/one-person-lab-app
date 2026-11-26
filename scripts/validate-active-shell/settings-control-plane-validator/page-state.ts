@@ -1,53 +1,11 @@
 import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
 import {
-  appActionRoute,
   appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
   appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
-  appOwnedSettingsCapabilitiesTabContract,
-  appOwnedSettingsConfirmationFields,
-  appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
   appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
-  appOwnedSettingsNavigationDestinationIds,
-  appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
-  appOwnedSettingsPostUpdateNoticeFields,
-  appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
-  appOwnedSettingsProductPageIds,
-  appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
-  appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
   appOwnedSettingsTabs,
-  appOwnedSettingsTaskEntryMetadataFields,
   appOwnedSettingsTechnicalDetailsDefault,
-  appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
-  appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
 } from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
 
 import {
   expectedIaGroupByMatrixPageId,
@@ -61,9 +19,7 @@ import {
   remapSettingsExtensionAnchor,
   resolveSettingsControlPlaneRoute,
 } from "./routes.ts";
-import {
-  pageById,
-} from "./shared.ts";
+import { pageById } from "./shared.ts";
 
 export function validateSettingsPageStateMatrix(
   pageStateMatrix,
