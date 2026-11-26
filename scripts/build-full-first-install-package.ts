@@ -238,6 +238,7 @@ function main() {
   fs.mkdirSync(options.outDir, { recursive: true });
 
   for (const [label, source] of [
+    ['Official software catalog index', options.catalogIndexPath],
     ['GUI root', options.guiRoot],
     ['Framework root', options.frameworkRoot],
     ['MAS root', options.masRoot],

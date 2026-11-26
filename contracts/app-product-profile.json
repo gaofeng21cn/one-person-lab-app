@@ -1806,6 +1806,8 @@
       "manifest_lock_receipt_parser_allowed": false,
       "action_id_allowlist_allowed": false,
       "catalog_presentation_policy": {
+        "software_types": ["agent", "application", "extension", "channel", "dependency"],
+        "owner_sources": ["Framework_software_source_projection", "Studio_native_plugin_inventory"],
         "section_order": [
           "opl",
           "external",

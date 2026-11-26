@@ -3,10 +3,36 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { buildPackagedModuleMarker, PACKAGED_MODULE_MARKER_FILE } from '../full-first-install-package.ts';
+import { readOfficialSoftwareCatalog } from '../official-software-catalog.mjs';
 import { appRepoRoot } from './paths.ts';
 import { FULL_RUNTIME_STARTER_PROFILE } from './runtime-cache-package-set.ts';
 
 const digest = (bytes: Buffer) => `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+
+// Old App cohorts still ship Weixin through Framework until Studio takes ownership.
+const LEGACY_WEIXIN_SOURCE = {
+  id: 'opl-channel-weixin',
+  ref: '0217da56d1c672f2b3f94afa56541f3d3449b29f',
+  manifest: ['opl-channel-weixin.json', 'sha256:89a628b9f6ca2f30807c70df6100ecba27cc7f001202f4db21a9a0ddacbe8292'],
+  payload: ['payloads/opl-channel-weixin-0.2.0.json', 'sha256:7d8ac1959fbc65a20926407f64341a94cc8637fbcf177157f395936c011a131d'],
+};
+
+function readLegacyWeixinSeed({ frameworkRoot }: Record<string, any>) {
+  const { ref, manifest, payload } = LEGACY_WEIXIN_SOURCE;
+  const read = ([relative, expected]: string[]) => {
+    const sourcePath = `contracts/opl-framework/packages/${relative}`;
+    let bytes: Buffer;
+    try {
+      bytes = execFileSync('git', ['show', `${ref}:${sourcePath}`], { cwd: frameworkRoot, stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      const url = `https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/${ref}/${sourcePath}`;
+      bytes = execFileSync('curl', ['--fail', '--silent', '--show-error', '--max-time', '30', url]);
+    }
+    if (digest(bytes) !== expected) throw new Error('Legacy Full Weixin seed differs from the frozen Framework bytes.');
+    return JSON.parse(bytes.toString('utf8'));
+  };
+  return { manifest: read(manifest), payload: read(payload), manifest_sha256: manifest[1], payload_sha256: payload[1] };
+}
 
 function relativePath(value: unknown): string {
   if (typeof value !== 'string' || !value || path.posix.isAbsolute(value)
@@ -22,32 +48,33 @@ function repository(value: string): string {
   return match[1];
 }
 
-// Consume the frozen Framework projection and payload; do not maintain an App component list.
+// Use the same frozen catalog for checkout, cache identity, and materialization.
 export function selectedLocalComponentSeedInputs(options: Record<string, any>, packageIds = FULL_RUNTIME_STARTER_PROFILE.package_ids) {
-  const projectionRoot = path.join(options.frameworkRoot ?? '', 'contracts/opl-framework/packages');
-  if (!fs.existsSync(projectionRoot)) return [];
+  if (!options.softwareCatalog && !options.catalogIndexPath) return [];
+  const catalog = options.softwareCatalog ?? readOfficialSoftwareCatalog(fs.readFileSync(options.catalogIndexPath));
   const selected = new Set(packageIds);
-  return fs.readdirSync(projectionRoot).filter(name => name.endsWith('.json')).sort().flatMap(name => {
-    const ownerBytes = fs.readFileSync(path.join(projectionRoot, name));
-    const owner = JSON.parse(ownerBytes.toString('utf8'));
+  const entries = selected.has(LEGACY_WEIXIN_SOURCE.id)
+    && !catalog.packages.some((entry) => entry.package_id === LEGACY_WEIXIN_SOURCE.id)
+    ? [...catalog.packages, readLegacyWeixinSeed(options)] : catalog.packages;
+  return entries.flatMap(({ manifest: owner, payload, manifest_sha256, payload_sha256 }) => {
+    if (!owner) return [];
     if (!selected.has(owner.package_id) || owner.management_scope !== 'local_component') return [];
     if (owner.codex_surface?.configured_codex_plugin_carrier?.publication_ref != null) return [];
     if (typeof owner.package_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(owner.package_id)) {
       throw new Error('Full component seed owner package id is invalid.');
     }
     const surface = owner.codex_surface;
-    const payloadRef = relativePath(surface?.plugin_payload_manifest_url);
-    const payloadBytes = fs.readFileSync(path.join(projectionRoot, payloadRef));
-    const payload = JSON.parse(payloadBytes.toString('utf8'));
-    if (!/^[a-f0-9]{40}$/.test(surface?.carrier_source_commit ?? '')
+    relativePath(surface?.plugin_payload_manifest_url);
+    if (!payload || !/^[a-f0-9]{40}$/.test(surface?.carrier_source_commit ?? '')
       || payload.source_commit !== surface.carrier_source_commit || payload.package_id !== owner.package_id
       || payload.package_version !== owner.version || payload.source_repo !== owner.source_repo
+      || !/^sha256:[a-f0-9]{64}$/.test(manifest_sha256) || !/^sha256:[a-f0-9]{64}$/.test(payload_sha256)
       || !Array.isArray(payload.files) || !payload.files.length) {
       throw new Error(`Full component seed owner/payload identity drifted: ${owner.package_id}`);
     }
     relativePath(payload.source_root);
     return [{ package_id: owner.package_id, source_repo: owner.source_repo, source_commit: payload.source_commit,
-      owner_sha256: digest(ownerBytes), payload_sha256: digest(payloadBytes), payload }];
+      owner_sha256: manifest_sha256, payload_sha256, payload }];
   });
 }
 

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveStudioSourcePath } from '../../app-shell-adapter/studio-source-path.ts';
 import type { ShellCandidate } from '../types.ts';
 import {
   assertFile,
@@ -18,7 +19,7 @@ import {
 import { assertDeepEqualJson } from '../../validate-active-shell/assertions.ts';
 
 export function assertCandidateFileContains(candidate: ShellCandidate, relativePath: string, snippets: string[], label: string): void {
-  const filePath = path.join(resolveCandidateRoot(candidate.candidate_root), relativePath);
+  const filePath = resolveStudioSourcePath(resolveCandidateRoot(candidate.candidate_root), relativePath);
   assertFile(filePath, `${candidate.id} ${label}`);
   const source = fs.readFileSync(filePath, 'utf8');
   for (const snippet of snippets) {

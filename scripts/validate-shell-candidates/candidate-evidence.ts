@@ -7,6 +7,7 @@ import type {
   ValidationCommand,
 } from './types.ts';
 import { assertDeepEqualJson } from '../validate-active-shell/assertions.ts';
+import { studioSourceRefForCheckout } from '../app-shell-adapter/studio-source-path.ts';
 import { requiredDSHSourceReuseSurfaces, validateCandidateImplementationFiles } from './candidate-contract.ts';
 import {
   assertDirectory,
@@ -91,7 +92,7 @@ export type OPLStudioCarrierEvidenceManifest = {
   runtime_authority_transfer: false;
   domain_truth_owned: false;
   shared_renderer: 'deepseek_harness_derived_react';
-  shared_host_core: 'plugins/opl-host-core/src/service.mjs';
+  shared_host_core: string;
   bridge_abi: 'opl_app_host_bridge.v1';
   carriers: Record<OPLStudioCarrierId, OPLStudioCarrierEvidenceEntry>;
 };
@@ -228,7 +229,7 @@ export function validateOPLStudioCarrierEvidenceManifest(
       runtime_authority_transfer: false,
       domain_truth_owned: false,
       shared_renderer: contract.shared_renderer,
-      shared_host_core: contract.shared_host_core,
+      shared_host_core: studioSourceRefForCheckout(candidateRoot, contract.shared_host_core),
       bridge_abi: contract.bridge_abi,
     },
     `${candidate.id} carrier evidence authority boundary`,
@@ -248,6 +249,7 @@ export function validateOPLStudioCarrierEvidenceManifest(
     if (!entry || entry.carrier_id !== carrierId) {
       throw new Error(`${candidate.id} carrier evidence must contain ${carrierId}`);
     }
+    const expectedSourceRefs = expected.source_refs.map(ref => studioSourceRefForCheckout(candidateRoot, ref));
     assertDeepEqualJson(
       Object.keys(entry),
       [
@@ -287,7 +289,7 @@ export function validateOPLStudioCarrierEvidenceManifest(
       },
       {
         carrier_id: carrierId,
-        source_implementation: { status: 'implemented', refs: expected.source_refs },
+        source_implementation: { status: 'implemented', refs: expectedSourceRefs },
         package_build_status: 'passed_local_candidate_build',
         package_artifact_kind: expected.package_artifact_kind,
         local_qualification: {
@@ -311,7 +313,7 @@ export function validateOPLStudioCarrierEvidenceManifest(
       },
       `${candidate.id} ${carrierId} candidate evidence status`,
     );
-    for (const sourceRef of [...expected.source_refs, expected.update_adapter_source.ref]) {
+    for (const sourceRef of [...expectedSourceRefs, expected.update_adapter_source.ref]) {
       assertRelativePath(sourceRef, `${candidate.id} ${carrierId} source ref`);
       assertFile(path.join(candidateRoot, sourceRef), `${candidate.id} ${carrierId} source ref`);
     }
@@ -333,6 +335,7 @@ function validateOPLStudioImplementationEvidence(
   candidate: ShellCandidate,
   evidence: Record<string, any>,
 ): void {
+  const candidateRoot = resolveCandidateRoot(candidate.candidate_root);
   assertStringArrayIncludes(
     evidence.capabilities ?? [],
     requiredNativeCapabilities,
@@ -378,8 +381,8 @@ function validateOPLStudioImplementationEvidence(
   );
 
   if (
-    evidence.webui_transport?.renderer !== 'plugins/opl-studio-client/src/client/workbench/App.tsx'
-    || evidence.webui_transport?.host_core !== 'plugins/opl-host-core/src/service.mjs'
+    evidence.webui_transport?.renderer !== studioSourceRefForCheckout(candidateRoot, 'plugins/core/opl-studio-client/src/client/workbench/App.tsx')
+    || evidence.webui_transport?.host_core !== studioSourceRefForCheckout(candidateRoot, 'plugins/core/opl-host-core/src/service.mjs')
     || evidence.webui_transport?.native_host !== 'desktop/main.mjs'
     || evidence.webui_transport?.native_transport !== 'desktop/preload.cjs#window.oplStudio'
     || evidence.webui_transport?.web_transport !== 'src/bridge/webTransport.ts'
@@ -485,7 +488,7 @@ function validateOPLStudioImplementationEvidence(
   if (
     evidence.webui_parity?.shared_renderer !== true
     || evidence.webui_parity?.bridge_shape !== 'window.oplStudio'
-    || evidence.webui_parity?.product_profile !== 'plugins/opl-studio-client/src/client/generated/oplProductProfile.generated.json'
+    || evidence.webui_parity?.product_profile !== studioSourceRefForCheckout(candidateRoot, 'plugins/core/opl-studio-client/src/client/generated/oplProductProfile.generated.json')
     || evidence.webui_parity?.desktop_and_webui_default_home !== 'chat_first_default_collapsed'
   ) {
     throw new Error(`${candidate.id} evidence must prove WebUI and Electron desktop use the same renderer, bridge shape, product profile, and default home semantics`);

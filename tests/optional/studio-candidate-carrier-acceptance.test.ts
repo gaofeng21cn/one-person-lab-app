@@ -32,13 +32,17 @@ function writeFile(root: string, relativePath: string, contents = ''): void {
   fs.writeFileSync(filePath, contents);
 }
 
-function createCandidateTree(): string {
+function flatSourceRef(ref: string): string {
+  return ref.replace(/^plugins\/core\//, 'plugins/');
+}
+
+function createCandidateTree(sourceRefForFixture = (ref: string) => ref): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-studio-carriers-'));
   const contract = candidate.carrier_evidence_contract;
   assert.ok(contract);
   for (const expected of Object.values(contract.entries)) {
     for (const sourceRef of [...expected.source_refs, expected.update_adapter_source.ref]) {
-      writeFile(root, sourceRef);
+      writeFile(root, sourceRefForFixture(sourceRef));
     }
   }
   writeFile(root, 'out/mac-arm64/One Person Lab Preview.app/Contents/Info.plist', '<plist/>');
@@ -86,6 +90,8 @@ function carrierEntry(carrierId: OPLStudioCarrierId): OPLStudioCarrierEvidenceEn
 }
 
 function carrierManifest(): OPLStudioCarrierEvidenceManifest {
+  const contract = candidate.carrier_evidence_contract;
+  assert.ok(contract);
   return {
     schema: 'opl_studio_carrier_evidence.v1',
     candidate_id: 'opl-studio',
@@ -98,7 +104,7 @@ function carrierManifest(): OPLStudioCarrierEvidenceManifest {
     runtime_authority_transfer: false,
     domain_truth_owned: false,
     shared_renderer: 'deepseek_harness_derived_react',
-    shared_host_core: 'plugins/opl-host-core/src/service.mjs',
+    shared_host_core: contract.shared_host_core,
     bridge_abi: 'opl_app_host_bridge.v1',
     carriers: {
       electron_desktop: carrierEntry('electron_desktop'),
@@ -112,6 +118,22 @@ test('OPL Studio carrier evidence accepts one candidate-only entry per approved 
   const root = createCandidateTree();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   assert.doesNotThrow(() => validateOPLStudioCarrierEvidenceManifest(candidate, carrierManifest(), root));
+});
+
+test('OPL Studio carrier evidence accepts original flat paths only for a flat checkout', (t) => {
+  const flatRoot = createCandidateTree(flatSourceRef);
+  const groupedRoot = createCandidateTree();
+  t.after(() => {
+    fs.rmSync(flatRoot, { recursive: true, force: true });
+    fs.rmSync(groupedRoot, { recursive: true, force: true });
+  });
+  const manifest = carrierManifest();
+  manifest.shared_host_core = flatSourceRef(manifest.shared_host_core);
+  for (const entry of Object.values(manifest.carriers)) {
+    entry.source_implementation.refs = entry.source_implementation.refs.map(flatSourceRef);
+  }
+  assert.doesNotThrow(() => validateOPLStudioCarrierEvidenceManifest(candidate, manifest, flatRoot));
+  assert.throws(() => validateOPLStudioCarrierEvidenceManifest(candidate, manifest, groupedRoot), /authority boundary/);
 });
 
 test('OPL Studio carrier evidence rejects a missing carrier entry', (t) => {

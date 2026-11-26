@@ -461,7 +461,7 @@ export function validateCandidateAdapterContract(
       topology_authority: false,
       renderer: 'deepseek_harness_derived_react',
       application_host: 'src/host/dsh/host.mjs',
-      shared_host_core: 'plugins/opl-host-core/src/service.mjs',
+      shared_host_core: 'plugins/core/opl-host-core/src/service.mjs',
       shared_host_core_role: 'cross_carrier_application_service_facade_inside_dsh_host',
       desktop_adapter: 'desktop/main.mjs + desktop/preload.cjs',
       desktop_platforms: ['macos', 'windows', 'linux'],

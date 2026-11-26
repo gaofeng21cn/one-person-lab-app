@@ -10,8 +10,6 @@ import { materializeSelectedLocalComponentSeeds, selectedLocalComponentSeedInput
 test('Full components use selected frozen owner payload bytes and reject changed digests', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-component-seed-'));
   const componentRoot = path.join(root, 'source');
-  const frameworkRoot = path.join(root, 'framework');
-  const projectionRoot = path.join(frameworkRoot, 'contracts/opl-framework/packages');
   const pluginPath = 'packages/fixture-component';
   const git = (...args: string[]) => execFileSync('git', args, { cwd: componentRoot, encoding: 'utf8' }).trim();
   const write = (ref: string, value: string) => {
@@ -31,14 +29,14 @@ test('Full components use selected frozen owner payload bytes and reject changed
         path: ref, mode: '100644', source_url: `https://raw.githubusercontent.com/owner/component/${commit}/${pluginPath}/${ref}`,
         sha256: `sha256:${crypto.createHash('sha256').update(fs.readFileSync(path.join(componentRoot, pluginPath, ref))).digest('hex')}`,
       })) };
-    fs.mkdirSync(projectionRoot, { recursive: true });
-    fs.writeFileSync(path.join(projectionRoot, 'fixture-component.json'), JSON.stringify({ ...owner,
-      codex_surface: { carrier_source_commit: commit, plugin_payload_manifest_url: 'payloads/fixture.json' } }));
-    fs.mkdirSync(path.join(projectionRoot, 'payloads'));
-    const payloadPath = path.join(projectionRoot, 'payloads/fixture.json');
-    fs.writeFileSync(payloadPath, JSON.stringify(payload));
+    const entry = {
+      manifest: { ...owner, codex_surface: { carrier_source_commit: commit, plugin_payload_manifest_url: 'payloads/fixture.json' } },
+      payload,
+      manifest_sha256: `sha256:${'1'.repeat(64)}`,
+      payload_sha256: `sha256:${'2'.repeat(64)}`,
+    };
     write(`${pluginPath}/index.js`, 'dirty current source must not be packaged');
-    const options = { frameworkRoot, componentRoot };
+    const options = { softwareCatalog: { packages: [entry] }, componentRoot };
     const selection = ['fixture-component'];
     assert.deepEqual(selectedLocalComponentSeedInputs(options, []), []);
     const identity = selectedLocalComponentSeedInputs(options, selection)[0].payload_sha256;
@@ -48,7 +46,7 @@ test('Full components use selected frozen owner payload bytes and reject changed
     assert.equal(fs.readFileSync(path.join(seed, pluginPath, 'index.js'), 'utf8'), 'export const committed = true;\n');
     assert.equal(JSON.parse(fs.readFileSync(path.join(seed, 'opl-runtime-module.json'), 'utf8')).source_git.head_sha, commit);
     payload.files[1].sha256 = `sha256:${'0'.repeat(64)}`;
-    fs.writeFileSync(payloadPath, JSON.stringify(payload));
+    entry.payload_sha256 = `sha256:${'3'.repeat(64)}`;
     assert.notEqual(selectedLocalComponentSeedInputs(options, selection)[0].payload_sha256, identity);
     assert.throws(() => materializeSelectedLocalComponentSeeds(path.join(root, 'corrupt'), options, selection), /payload bytes or mode drifted/);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }

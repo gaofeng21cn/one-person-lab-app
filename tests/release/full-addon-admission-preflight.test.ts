@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import fs from 'node:fs';
 import { parse } from 'yaml';
@@ -94,21 +95,66 @@ test('Full recovery binds Scholar Skills to the existing artifact without readin
   assert.throws(() => resolveFullScholarSkillsRef({ fullManifest: { ...manifest, components: {} } }, noRemote), /component and resolved ref differ/);
 });
 
-test('fresh Full admission uses the frozen Framework Scholar Skills pin instead of current main', () => {
-  const calls: string[][] = [];
+test('fresh Full admission resolves Scholar Skills from the catalog pinned by the artifact App', () => {
+  const catalogRef = 'b'.repeat(40);
+  const packageId = 'mas-scholar-skills';
+  const index = JSON.stringify({
+    schema_version: 'opl_software_catalog_index.v1',
+    packages: [{
+      package_id: packageId,
+      manifest: { package_id: packageId, codex_surface: { carrier_source_commit: scholarSha } },
+    }],
+  });
+  const pin = JSON.stringify({
+    repository: 'gaofeng21cn/opl-catalog',
+    ref: catalogRef,
+    index_sha256: `sha256:${createHash('sha256').update(index).digest('hex')}`,
+  });
+  const input = { freshBuild: true, appRef: appSha, frameworkRef: 'a'.repeat(40) };
+  const runner = (command: string, args: string[]) => {
+    if (command === 'gh') {
+      assert.deepEqual(args, ['api',
+        `repos/gaofeng21cn/one-person-lab-app/contents/contracts/app-software-catalog-source.json?ref=${appSha}`,
+        '-H', 'Accept: application/vnd.github.raw+json']);
+      return { status: 0, stdout: pin, stderr: '' };
+    }
+    assert.equal(command, 'curl');
+    assert.equal(args.at(-1), `https://raw.githubusercontent.com/gaofeng21cn/opl-catalog/${catalogRef}/catalog-index.json`);
+    return { status: 0, stdout: index, stderr: '' };
+  };
+
+  assert.equal(resolveFullScholarSkillsRef({ ...input, requestedRef: scholarSha }, runner), scholarSha);
+  assert.throws(() => resolveFullScholarSkillsRef({ ...input, requestedRef: catalogRef }, runner), /differs from the frozen software catalog source pin/);
+  assert.throws(() => resolveFullScholarSkillsRef(input, (command, args) => {
+    const result = runner(command, args);
+    return command === 'curl' ? { ...result, stdout: index + '\n' } : result;
+  }), /catalog index bytes differ from the frozen SHA-256/);
+  assert.throws(() => resolveFullScholarSkillsRef(input, (command, args) => {
+    assert.equal(command, 'gh');
+    assert.ok(args[1].includes('app-software-catalog-source.json'));
+    return { status: 1, stdout: '', stderr: 'gh: rate limit exceeded (HTTP 403)' };
+  }), /Read frozen App Full software catalog pin/);
+});
+
+test('an older frozen App without a catalog pin uses its original Framework Scholar Skills pin', () => {
+  const calls: string[] = [];
   const frameworkRef = 'a'.repeat(40);
   const runner = (command: string, args: string[]) => {
     assert.equal(command, 'gh');
-    calls.push(args);
+    calls.push(args[1]);
+    if (args[1].includes('app-software-catalog-source.json')) {
+      return { status: 1, stdout: '', stderr: 'gh: Not Found (HTTP 404)' };
+    }
     return { status: 0, stdout: JSON.stringify({ package_id: 'mas-scholar-skills', codex_surface: { carrier_source_commit: scholarSha } }), stderr: '' };
   };
-  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef }, runner), scholarSha);
-  assert.equal(calls.length, 1);
-  assert.ok(calls[0].includes(`repos/gaofeng21cn/one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json?ref=${frameworkRef}`));
-  assert.equal(resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef, requestedRef: scholarSha }, runner), scholarSha);
-  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef, requestedRef: 'b'.repeat(40) }, runner), /differs from the frozen Framework source pin/);
-  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true }, runner), /fresh Full Framework ref must be an exact/);
-  assert.throws(() => resolveFullScholarSkillsRef({ freshBuild: true, frameworkRef }, () => ({ status: 1, stdout: '', stderr: 'unavailable' })), /Read frozen Framework Scholar Skills source: unavailable/);
+  const input = { freshBuild: true, appRef: appSha, frameworkRef };
+  assert.equal(resolveFullScholarSkillsRef(input, runner), scholarSha);
+  assert.deepEqual(calls, [
+    `repos/gaofeng21cn/one-person-lab-app/contents/contracts/app-software-catalog-source.json?ref=${appSha}`,
+    `repos/gaofeng21cn/one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json?ref=${frameworkRef}`,
+  ]);
+  assert.throws(() => resolveFullScholarSkillsRef({ ...input, requestedRef: 'b'.repeat(40) }, runner), /differs from the frozen Framework source pin/);
+  assert.throws(() => resolveFullScholarSkillsRef({ ...input, frameworkRef: undefined }, runner), /fresh Full Framework ref must be an exact/);
 });
 
 test('fresh Full admission fails before packaging when the frozen App lacks the dynamic local-component seed bridge', () => {

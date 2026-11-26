@@ -1,4 +1,5 @@
 import { appRoot, assert, fs, os, path, spawnSync, test } from "./helpers.ts";
+import { createHash } from "node:crypto";
 import { parse as parseYaml } from "yaml";
 
 test("Full domain build links the pinned local Framework package into RedCube", () => {
@@ -122,7 +123,7 @@ test("Full workflow checks out MAS Scholar Skills and binds both runtime assembl
   );
 });
 
-test("Full workflow binds selected seeds to Framework pins and rejects drift before cache assembly", () => {
+test("Full workflow binds selected seeds to the frozen catalog and rejects drift before cache assembly", () => {
   const workflow = parseYaml(fs.readFileSync(path.join(appRoot, ".github/workflows/full-first-install-release.yml"), "utf8"));
   const steps = workflow.jobs["full-first-install"].steps;
   const sourceStep = steps.find((step: any) => step.id === "seed-sources");
@@ -137,9 +138,14 @@ test("Full workflow binds selected seeds to Framework pins and rejects drift bef
     return result.stdout.trim();
   };
   try {
-    fs.symlinkSync(appRoot, path.join(tempRoot, "one-person-lab-app"), "dir");
-    const catalog = path.join(tempRoot, "one-person-lab/contracts/opl-framework/packages");
-    fs.mkdirSync(catalog, { recursive: true });
+    const app = path.join(tempRoot, "one-person-lab-app");
+    const scripts = path.join(app, "scripts");
+    const contracts = path.join(app, "contracts");
+    fs.mkdirSync(scripts, { recursive: true });
+    fs.mkdirSync(contracts);
+    fs.symlinkSync(path.join(appRoot, "scripts/build-full-first-install-package"), path.join(scripts, "build-full-first-install-package"), "dir");
+    fs.copyFileSync(path.join(appRoot, "scripts/official-software-catalog.mjs"), path.join(scripts, "official-software-catalog.mjs"));
+    const projections = [];
     for (const step of checkouts) {
       const id = step.with.ref.match(/outputs\.([^ ]+) /)[1];
       const root = path.join(tempRoot, step.with.path);
@@ -149,18 +155,49 @@ test("Full workflow binds selected seeds to Framework pins and rejects drift bef
       git(root, ["add", "."]);
       git(root, ["commit", "-qm", "Pinned package source"]);
       pins[id] = git(root, ["rev-parse", "HEAD"]);
-      fs.writeFileSync(path.join(catalog, `${id}.json`), JSON.stringify({
-        package_id: id, version: "1.0.0", source_repo: `https://github.com/${step.with.repository}.git`,
-        codex_surface: { carrier_source_commit: pins[id] },
-      }));
+      projections.push({
+        package_id: id,
+        manifest: {
+          package_id: id, version: "1.0.0", source_repo: `https://github.com/${step.with.repository}.git`,
+          codex_surface: { carrier_source_commit: pins[id] },
+        },
+      });
     }
+    const catalog = JSON.stringify({ schema_version: "opl_software_catalog_index.v1", packages: projections });
+    const catalogRef = "1".repeat(40);
+    fs.writeFileSync(path.join(contracts, "app-software-catalog-source.json"), JSON.stringify({
+      repository: "gaofeng21cn/opl-catalog",
+      ref: catalogRef,
+      index_sha256: `sha256:${createHash("sha256").update(catalog).digest("hex")}`,
+    }));
+    const fixture = path.join(tempRoot, "catalog-fixture.json");
+    fs.writeFileSync(fixture, catalog);
+    fs.writeFileSync(path.join(tempRoot, "curl"), [
+      "#!/bin/bash",
+      'test "${!#}" = "$EXPECTED_FULL_CATALOG_URL" || exit 3',
+      'cat "$FULL_CATALOG_FIXTURE"',
+      "",
+    ].join("\n"), { mode: 0o755 });
     const output = path.join(tempRoot, "github-output");
-    const env = { ...process.env, GITHUB_OUTPUT: output, MAS_SCHOLAR_SKILLS_REF: pins["mas-scholar-skills"] };
+    const environment = path.join(tempRoot, "github-env");
+    const env = {
+      ...process.env,
+      PATH: [tempRoot, path.dirname(process.execPath), process.env.PATH].join(path.delimiter),
+      RUNNER_TEMP: tempRoot,
+      GITHUB_OUTPUT: output,
+      GITHUB_ENV: environment,
+      MAS_SCHOLAR_SKILLS_REF: pins["mas-scholar-skills"],
+      EXPECTED_FULL_CATALOG_URL: `https://raw.githubusercontent.com/gaofeng21cn/opl-catalog/${catalogRef}/catalog-index.json`,
+      FULL_CATALOG_FIXTURE: fixture,
+    };
     const resolved = spawnSync("bash", ["-c", sourceStep.run], { cwd: tempRoot, env, encoding: "utf8" });
     assert.equal(resolved.status, 0, resolved.stderr);
     assert.deepEqual(Object.fromEntries(fs.readFileSync(output, "utf8").trim().split("\n").map((line) => line.split("="))), pins);
+    const indexPath = path.join(tempRoot, "opl-full-catalog-index.json");
+    assert.equal(fs.readFileSync(environment, "utf8").trim(), `OPL_FULL_CATALOG_INDEX_PATH=${indexPath}`);
+    assert.equal(fs.readFileSync(indexPath, "utf8"), catalog);
     const verify = () => spawnSync(process.execPath, ["--input-type=module"], {
-      cwd: tempRoot, env: { ...env, SEED_SOURCE_REFS: JSON.stringify(pins) }, input: validationScript, encoding: "utf8",
+      cwd: tempRoot, env: { ...env, OPL_FULL_CATALOG_INDEX_PATH: indexPath, SEED_SOURCE_REFS: JSON.stringify(pins) }, input: validationScript, encoding: "utf8",
     });
     const matched = verify();
     assert.equal(matched.status, 0, matched.stderr);
@@ -170,7 +207,7 @@ test("Full workflow binds selected seeds to Framework pins and rejects drift bef
     git(mas, ["commit", "-qm", "Advance source without republishing"]);
     const drifted = verify();
     assert.notEqual(drifted.status, 0);
-    assert.match(drifted.stderr, /Full source seed mas resolved .*frozen Framework requires/);
+    assert.match(drifted.stderr, /Full source seed mas resolved .*frozen source requires/);
     const conflicted = spawnSync("bash", ["-c", sourceStep.run], {
       cwd: tempRoot, env: { ...env, MAS_SCHOLAR_SKILLS_REF: "f".repeat(40) }, encoding: "utf8",
     });

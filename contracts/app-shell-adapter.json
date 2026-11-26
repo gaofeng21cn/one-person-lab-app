@@ -106,7 +106,7 @@
     "topology_authority": false,
     "renderer": "deepseek_harness_derived_react",
     "application_host": "src/host/dsh/host.mjs",
-    "shared_host_core": "plugins/opl-host-core/src/service.mjs",
+    "shared_host_core": "plugins/core/opl-host-core/src/service.mjs",
     "shared_host_core_role": "cross_carrier_application_service_facade_inside_dsh_host",
     "desktop_adapter": "desktop/main.mjs + desktop/preload.cjs",
     "desktop_platforms": [
@@ -358,7 +358,7 @@
         "desktop/deep-links.mjs",
         "desktop/main.mjs",
         "desktop/preload.cjs",
-        "plugins/opl-studio-client/src/client/workbench/deepLinkNavigation.ts",
+        "plugins/core/opl-studio-client/src/client/workbench/deepLinkNavigation.ts",
         "tests/renderer/deep-link-navigation.test.mjs"
       ]
     }
@@ -377,7 +377,7 @@
       "standard_bootstrap_resource_root": "resources/opl-framework-bootstrap",
       "standard_bootstrap_installer": "resources/opl-framework-bootstrap/opl-install.sh",
       "standard_bootstrap_manifest": "resources/opl-framework-bootstrap/manifest.json",
-      "product_profile_target": "plugins/opl-studio-client/src/client/generated/oplProductProfile.generated.json",
+      "product_profile_target": "plugins/core/opl-studio-client/src/client/generated/oplProductProfile.generated.json",
       "packaged_runtime_root": "packaged-runtimes/opl-studio-full-runtime",
       "packaged_runtime_validator": "scripts/validate-desktop-package.mjs",
       "release_prepare_script": "scripts/prepare-release-assets.sh",

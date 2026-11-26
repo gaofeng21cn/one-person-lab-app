@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       mas_scholar_skills_ref:
-        description: Exact Scholar Skills SHA frozen by Full admission; must match the frozen Framework source pin
+        description: Exact Scholar Skills SHA frozen by Full admission; must match the frozen software catalog source pin
         required: false
         default: ''
         type: string
@@ -405,7 +405,7 @@ jobs:
           path: ${{ runner.temp }}/opl-dependency-archives
           key: ${{ steps.dependency-archive-plan.outputs.cache_key }}
 
-      - name: Resolve Full source seed identities from frozen Framework
+      - name: Resolve frozen Full source seed identities
         id: seed-sources
         env:
           MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
@@ -414,16 +414,31 @@ jobs:
           set -euo pipefail
           node --experimental-strip-types --input-type=module <<'NODE'
           import fs from 'node:fs';
+          import path from 'node:path';
+          import { execFileSync } from 'node:child_process';
           import { FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE } from './one-person-lab-app/scripts/build-full-first-install-package/runtime-cache-package-set.ts';
+          const pinPath = 'one-person-lab-app/contracts/app-software-catalog-source.json';
+          let sourceSeed = (id) => JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
+          // Rebuilding an immutable older App cohort uses its original seed authority.
+          if (fs.existsSync(pinPath)) {
+            const { officialSoftwareCatalogIndexUrl, readOfficialSoftwareCatalog, requireCatalogSourceSeed } =
+              await import('./one-person-lab-app/scripts/official-software-catalog.mjs');
+            const indexPath = path.join(process.env.RUNNER_TEMP, 'opl-full-catalog-index.json');
+            const bytes = execFileSync('curl', ['--fail', '--silent', '--show-error', '--max-time', '30', officialSoftwareCatalogIndexUrl()], { maxBuffer: 16 * 1024 * 1024 });
+            const index = readOfficialSoftwareCatalog(bytes);
+            fs.writeFileSync(indexPath, bytes);
+            fs.appendFileSync(process.env.GITHUB_ENV, `OPL_FULL_CATALOG_INDEX_PATH=${indexPath}\n`);
+            sourceSeed = (id) => requireCatalogSourceSeed(index, id);
+          }
           for (const id of [...FULL_RUNTIME_DEFAULT_DEPENDENCY_CLOSURE, 'mac-media-assets']) {
-            const owner = JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
+            const owner = sourceSeed(id);
             const commit = owner.codex_surface?.carrier_source_commit;
             if (owner.package_id !== id || !/^[0-9a-f]{40}$/.test(commit ?? '')) {
-              throw new Error(`Frozen Framework has no exact source seed for ${id}.`);
+              throw new Error(`Frozen software catalog has no exact source seed for ${id}.`);
             }
             if (id === 'mas-scholar-skills' && process.env.MAS_SCHOLAR_SKILLS_REF
                 && process.env.MAS_SCHOLAR_SKILLS_REF !== commit) {
-              throw new Error('Admitted Scholar Skills ref differs from the frozen Framework source pin.');
+              throw new Error('Admitted Scholar Skills ref differs from the frozen software catalog source pin.');
             }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `${id}=${commit}\n`);
           }
@@ -553,12 +568,19 @@ jobs:
           import fs from 'node:fs';
           import path from 'node:path';
           import { execFileSync } from 'node:child_process';
+          let sourceSeed = (id) => JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
+          if (process.env.OPL_FULL_CATALOG_INDEX_PATH) {
+            const { readOfficialSoftwareCatalog, requireCatalogSourceSeed } =
+              await import('./one-person-lab-app/scripts/official-software-catalog.mjs');
+            const index = readOfficialSoftwareCatalog(fs.readFileSync(process.env.OPL_FULL_CATALOG_INDEX_PATH));
+            sourceSeed = (id) => requireCatalogSourceSeed(index, id);
+          }
           for (const [id, commit] of Object.entries(JSON.parse(process.env.SEED_SOURCE_REFS))) {
-            const owner = JSON.parse(fs.readFileSync(`one-person-lab/contracts/opl-framework/packages/${id}.json`, 'utf8'));
+            const owner = sourceSeed(id);
             const repo = path.basename(new URL(owner.source_repo).pathname.replace(/\.git$/, ''));
             const actual = execFileSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
             if (actual !== commit || commit !== owner.codex_surface?.carrier_source_commit) {
-              throw new Error(`Full source seed ${id} resolved ${actual}; frozen Framework requires ${commit}.`);
+              throw new Error(`Full source seed ${id} resolved ${actual}; the frozen source requires ${commit}.`);
             }
           }
           NODE

@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { resolveActiveShellPaths } from '../../scripts/app-shell-adapter.ts';
+import { resolveStudioSourcePath } from '../../scripts/app-shell-adapter/studio-source-path.ts';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
 const appFixturePaths = [
@@ -88,8 +89,8 @@ test('W6 Studio consumes canonical App fixture bytes through its actual Host and
   fs.writeFileSync(file, `
     import assert from 'node:assert/strict';
     import fs from 'node:fs';
-    import { compactFastState } from ${JSON.stringify(path.join(studioRoot, 'plugins/opl-framework-bridge/src/opl-passthrough.mjs'))};
-    import { deriveWorkbenchModelFromState } from ${JSON.stringify(path.join(studioRoot, 'plugins/opl-studio-client/src/client/workbench/workbenchModel.ts'))};
+    import { compactFastState } from ${JSON.stringify(resolveStudioSourcePath(studioRoot, 'plugins/core/opl-framework-bridge/src/opl-passthrough.mjs'))};
+    import { deriveWorkbenchModelFromState } from ${JSON.stringify(resolveStudioSourcePath(studioRoot, 'plugins/core/opl-studio-client/src/client/workbench/workbenchModel.ts'))};
     for (const relative of ${JSON.stringify(appFixturePaths)}) {
       const fixture = JSON.parse(fs.readFileSync(${JSON.stringify(appRoot)} + '/' + relative, 'utf8'));
       const compacted = compactFastState(fixture);

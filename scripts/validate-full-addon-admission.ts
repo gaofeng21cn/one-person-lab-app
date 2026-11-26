@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { OFFICIAL_SOFTWARE_CATALOG, officialSoftwareCatalogIndexUrl, readOfficialSoftwareCatalog, requireCatalogSourceSeed } from './official-software-catalog.mjs';
 
 import {
   inspectQualificationHarnessScope,
@@ -136,7 +137,7 @@ function validateFreshFullSeedContract(
 }
 
 export function resolveFullScholarSkillsRef(
-  input: { requestedRef?: string; fullManifest?: unknown; freshBuild?: boolean; frameworkRef?: string },
+  input: { requestedRef?: string; fullManifest?: unknown; freshBuild?: boolean; appRef?: string; frameworkRef?: string },
   runner: QualificationHarnessScopeCommandRunner = defaultRunner,
 ): string {
   const requested = input.requestedRef?.trim()
@@ -151,6 +152,26 @@ export function resolveFullScholarSkillsRef(
     return ref;
   }
   if (!input.freshBuild) throw new Error('Existing Full artifacts require their exact manifest; no current-main fallback is allowed.');
+  let source = OFFICIAL_SOFTWARE_CATALOG;
+  if (input.appRef) {
+    const appRef = exactSha(input.appRef, 'fresh Full App ref');
+    const pin = runner('gh', ['api',
+      `repos/gaofeng21cn/one-person-lab-app/contents/contracts/app-software-catalog-source.json?ref=${appRef}`,
+      '-H', 'Accept: application/vnd.github.raw+json']);
+    if (pin.status === 0) source = JSON.parse(pin.stdout);
+    else if (/HTTP 404\b/.test(pin.stderr)) source = null;
+    else throw new Error(`Read frozen App Full software catalog pin: ${pin.stderr.trim()}`);
+  }
+  if (source) {
+    const result = runner('curl', ['--fail', '--silent', '--show-error', '--max-time', '30', officialSoftwareCatalogIndexUrl(source)]);
+    if (result.status !== 0) throw new Error(`Read frozen software catalog: ${result.stderr.trim()}`);
+    const catalog = readOfficialSoftwareCatalog(Buffer.from(result.stdout, 'utf8'), source);
+    const owner = requireCatalogSourceSeed(catalog, 'mas-scholar-skills');
+    const ref = exactSha(owner.codex_surface.carrier_source_commit, 'frozen software catalog Scholar Skills ref');
+    if (requested && requested !== ref) throw new Error('Requested Scholar Skills ref differs from the frozen software catalog source pin.');
+    return ref;
+  }
+  // Only an older immutable App cohort without the catalog contract uses its original source authority.
   const frameworkRef = exactSha(input.frameworkRef ?? '', 'fresh Full Framework ref');
   const result = runner('gh', ['api',
     `repos/gaofeng21cn/one-person-lab/contents/contracts/opl-framework/packages/mas-scholar-skills.json?ref=${frameworkRef}`,
@@ -249,6 +270,7 @@ function main(): void {
     requestedRef: values['mas-scholar-skills-ref'],
     fullManifest: values['full-manifest'] ? JSON.parse(fs.readFileSync(values['full-manifest'], 'utf8')) : undefined,
     freshBuild: values['fresh-build'],
+    appRef: values['artifact-app-sha'],
     frameworkRef: values['framework-ref'],
   });
   const result = runFullAddonAdmissionPreflight({

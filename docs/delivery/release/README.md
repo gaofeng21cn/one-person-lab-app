@@ -103,7 +103,10 @@ minute Full attempts that previously failed only after reaching the VM lane.
 Fresh Full append admission also reads the exact frozen App source at the admitted SHA and
 requires the dynamic local-component seed bridge used by the Full runtime cache. The check
 binds `selectedLocalComponentSeedInputs` to `packageProfile.package_ids` and requires owner
-commit and payload commit validation before packaging. A stale App cohort now stops in the
+commit and payload commit validation before packaging. The App cohort pins the official
+software catalog commit and index SHA-256 to the same bytes for admission, checkout,
+cache, and packaged offline discovery. Existing Full artifacts retain their recorded inputs.
+A stale App cohort stops in the
 Ubuntu admission job, before the macOS build and clean VM spend time; recovery of an existing
 Full artifact continues to use its exact manifest and does not read current main.
 

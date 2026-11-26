@@ -32,6 +32,7 @@ import {
 } from './runtime-cache-package-set.ts';
 import { buildRuntimeLayerImplementationHash } from './runtime-layers.ts';
 import { selectedLocalComponentSeedInputs } from './local-component-seeds.ts';
+import { OFFICIAL_SOFTWARE_CATALOG } from '../official-software-catalog.mjs';
 
 function buildLayerImplementationInput(layerId: FullRuntimeCacheLayerId) {
   return {
@@ -110,6 +111,7 @@ export function buildRuntimeCacheKeyInputs(
     },
     'opl-runtime': {
         opl_commit: readGitHead(options.frameworkRoot),
+        ...(options.catalogIndexPath ? { software_catalog: OFFICIAL_SOFTWARE_CATALOG } : {}),
         framework_runtime_fingerprint: directoryFingerprint(options.frameworkRoot, 'opl'),
         package_json_sha256: existingFileSha256(path.join(options.frameworkRoot, 'package.json')),
         package_lock_sha256: existingFileSha256(path.join(options.frameworkRoot, 'package-lock.json')),

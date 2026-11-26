@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveStudioSourcePath } from '../../app-shell-adapter/studio-source-path.ts';
 import type {
   DSHSourceReuseContract,
   OPLStudioCarrierEvidenceContract,
@@ -29,7 +30,7 @@ function assertCandidatePathAbsent(candidate: ShellCandidate, relativePath: stri
 }
 
 function assertCandidateFileExcludes(candidate: ShellCandidate, relativePath: string, snippets: string[], label: string): void {
-  const filePath = path.join(resolveCandidateRoot(candidate.candidate_root), relativePath);
+  const filePath = resolveStudioSourcePath(resolveCandidateRoot(candidate.candidate_root), relativePath);
   assertFile(filePath, `${candidate.id} ${label}`);
   const source = fs.readFileSync(filePath, 'utf8');
   for (const snippet of snippets) {
@@ -69,7 +70,7 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
   release_authority: false,
   product_profile_owner: 'one-person-lab-app',
   shared_renderer: 'deepseek_harness_derived_react',
-  shared_host_core: 'plugins/opl-host-core/src/service.mjs',
+  shared_host_core: 'plugins/core/opl-host-core/src/service.mjs',
   bridge_abi: 'opl_app_host_bridge.v1',
   required_entries: ['electron_desktop', 'standalone_headless_webui', 'docker_webui'],
   current_aionui_release_evidence_may_close_successor_entry: false,
@@ -91,8 +92,8 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
   entries: {
     electron_desktop: {
       source_refs: [
-        'plugins/opl-studio-client/src/client/workbench/App.tsx',
-        'plugins/opl-host-core/src/service.mjs',
+        'plugins/core/opl-studio-client/src/client/workbench/App.tsx',
+        'plugins/core/opl-host-core/src/service.mjs',
         'desktop/main.mjs',
         'desktop/preload.cjs',
         'electron-builder.yml',
@@ -117,8 +118,8 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
     },
     standalone_headless_webui: {
       source_refs: [
-        'plugins/opl-studio-client/src/client/workbench/App.tsx',
-        'plugins/opl-host-core/src/service.mjs',
+        'plugins/core/opl-studio-client/src/client/workbench/App.tsx',
+        'plugins/core/opl-host-core/src/service.mjs',
         'scripts/headless/run.mjs',
         'scripts/headless/server.mjs',
         'scripts/headless/installer.mjs',
@@ -139,8 +140,8 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
     },
     docker_webui: {
       source_refs: [
-        'plugins/opl-studio-client/src/client/workbench/App.tsx',
-        'plugins/opl-host-core/src/service.mjs',
+        'plugins/core/opl-studio-client/src/client/workbench/App.tsx',
+        'plugins/core/opl-host-core/src/service.mjs',
         'Dockerfile',
         'docker-compose.distribution.yaml',
         'scripts/oci/manage.mjs',
@@ -389,7 +390,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'src/integrations/deepseek-harness/uiPrimitives.tsx',
     'the handwritten DeepSeek Harness primitives replacement',
   );
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/composition/dshSlotHost.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/composition/dshSlotHost.tsx', [
     'SlotCore',
     'createSlotRenderer',
     'ui-renderer/src/client/scoped-slots.tsx',
@@ -413,13 +414,13 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'this.renderer.renderRoot(this.host, { contributions })',
     'return slotHost.renderRoot(contributions)',
   ], 'DeepSeek Harness slot host and rendered GUI composition');
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/composition/oplStudioClientPlugin.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/composition/oplStudioClientPlugin.tsx', [
     'provideOplStudioClientContributions(ctx)',
     'ctx.provide("uiRenderer"',
     'root.render(renderOplStudioRoot(contributions))',
     'ctx.plugin(oplStudioClientPlugin)',
   ], 'Cordis client plugin and renderer composition');
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/integrations/deepseek-harness/runtimeShim.ts', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/integrations/deepseek-harness/runtimeShim.ts', [
     'export function abbreviateHomePath',
     'isWindowsStylePath',
     'path.startsWith(`${root}/`)',
@@ -431,7 +432,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'mountOplStudioClient(rootElement)',
     'new AppWebEntry(rootElement).run()',
   ], 'DeepSeek Harness composition entrypoint');
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/workbench/App.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/workbench/App.tsx', [
     'renderShell',
     'data-testid="opl-context-tabs"',
     'data-testid="opl-runtime-status-panel"',
@@ -445,7 +446,7 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'renderContributionSlot?.("runtime.detail"',
     'data-testid="opl-web-transport"',
   ], 'OPL Studio surface producer and contextual content');
-  assertCandidateFileExcludes(candidate, 'plugins/opl-studio-client/src/client/workbench/App.tsx', [
+  assertCandidateFileExcludes(candidate, 'plugins/core/opl-studio-client/src/client/workbench/App.tsx', [
     'data-testid="opl-workspace-rail"',
     'data-testid="opl-session-list"',
     'data-testid="opl-skills-panel"',
@@ -454,19 +455,19 @@ export function validateCandidateImplementationFiles(candidate: ShellCandidate):
     'data-testid="opl-always-on-panel"',
     'branding/opl-app-logo.png',
   ], 'OPL Studio product layout');
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/workbench/settings/useSettingsPageContext.tsx', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/workbench/settings/useSettingsPageContext.tsx', [
     'data-testid="opl-locale-toggle"',
     'onSettingChange("locale", "zh")',
     'onSettingChange("locale", "en")',
   ], 'OPL Studio settings locale control');
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/bridge/oplBridge.ts', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/bridge/oplBridge.ts', [
     'opl app state --profile fast --json',
     'opl app state --profile full --json',
     'opl app contribution read',
     'opl app action execute --action',
     'readContribution',
   ], 'OPL App state/action bridge');
-  assertCandidateFileContains(candidate, 'plugins/opl-studio-client/src/client/workbench/workbenchModel.ts', [
+  assertCandidateFileContains(candidate, 'plugins/core/opl-studio-client/src/client/workbench/workbenchModel.ts', [
     'results',
     'deliverables',
     'receipts',

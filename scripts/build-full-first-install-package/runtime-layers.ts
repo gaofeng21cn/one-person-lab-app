@@ -25,6 +25,7 @@ import {
 import { readGitHead } from './git.ts';
 import { catalogPackageSeed, copyCatalogPackageSeed } from './catalog-package-seed.ts';
 import { materializeSelectedLocalComponentSeeds } from './local-component-seeds.ts';
+import { stageOfficialSoftwareCatalog } from '../official-software-catalog.mjs';
 import { commandOutput } from './process.ts';
 import {
   FLOW_CAPABILITY_BUILD_LOCK_RELATIVE_PATH,
@@ -668,6 +669,7 @@ export function writeDomainMarkers(runtimeRoot, options, packagedAt) {
 export function buildOplLayer(layerRoot, options) {
   const targetRoot = path.join(layerRoot, 'opl');
   copyTreeFiltered(options.frameworkRoot, targetRoot, 'opl');
+  if (options.catalogIndexPath) stageOfficialSoftwareCatalog(options.catalogIndexPath, path.join(targetRoot, 'catalog-seed'));
   copyProductionNodeModules(options.frameworkRoot, targetRoot);
   removePackagedSourceExportConditions(path.join(targetRoot, 'node_modules'));
   pruneTemporalCoreBridgeReleases(path.join(targetRoot, 'node_modules'));
@@ -736,6 +738,7 @@ export function buildRuntimeLayerImplementationHash(layerId: FullRuntimeCacheLay
       requiredBuiltExportPayloadStatuses,
       removeOplSourceCondition,
       removePackagedSourceExportConditions,
+      stageOfficialSoftwareCatalog,
       buildOplLayer,
     ],
     skills: [materializeResolvedSelectedBundleDescriptor, buildSkillsLayer],

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveStudioSourcePath } from './app-shell-adapter/studio-source-path.ts';
 import {
   validateGuiProductContractPolicyFields,
 } from './app-shell-adapter-contract-validators.ts';
@@ -104,7 +105,7 @@ export function resolveActiveShellPaths(options: { shellRoot?: string; contract?
       ? path.join(shellRoot, paths.desktop_release_carrier_manifest)
       : null,
     buildOutputDir: path.join(shellRoot, paths.build_output_dir),
-    productProfileTargetPath: path.join(shellRoot, paths.product_profile_target),
+    productProfileTargetPath: resolveStudioSourcePath(shellRoot, paths.product_profile_target),
     packagedRuntimeRoot: path.join(shellRoot, paths.packaged_runtime_root),
     packagedRuntimeValidatorPath: path.join(shellRoot, paths.packaged_runtime_validator),
     releasePrepareScriptPath: path.join(shellRoot, paths.release_prepare_script),
