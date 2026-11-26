@@ -522,15 +522,24 @@ runs:
         set -euo pipefail
         umask 077
         output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
-        retained="$HOME/Library/Caches/OPL Release Recovery/$GITHUB_RUN_ID"
-        if ! (
+        recovery_base="$HOME/Library/Caches/OPL Release Recovery"
+        retained="$recovery_base/$GITHUB_RUN_ID"
+        staging="$recovery_base/.staging-$GITHUB_RUN_ID-$$"
+        if (
           set -e
+          trap 'rm -rf "$staging"' EXIT
           test ! -e "$retained" &&
-          mkdir -p "$retained/notarized" &&
-          cp -cR "$RUNNER_TEMP/opl-full-finalizer-input" "$retained/handoff" &&
-          cp -c "$output_dir/full-apple-notarization-receipt.json" "$retained/notarized/" &&
-          cp -c "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" "$retained/notarized/"
+          mkdir -p "$staging/notarized" &&
+          cp -cR "$RUNNER_TEMP/opl-full-finalizer-input" "$staging/handoff" &&
+          cp -c "$output_dir/full-apple-notarization-receipt.json" "$staging/notarized/" &&
+          cp -c "$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg" "$staging/notarized/" &&
+          mv "$staging" "$retained"
         ); then
+          OPL_RECOVERY_KEEP_RUN_ID="$GITHUB_RUN_ID" \
+          OPL_RECOVERY_MAX_RETAINED_RUNS="${OPL_RECOVERY_MAX_RETAINED_RUNS:-1}" \
+          node release-executor/scripts/restore-retained-full-finalizer.mjs --prune \
+            || echo "::warning::Could not prune stale local Full recovery directories."
+        else
           echo "::warning::Could not retain local Full recovery files. Continuing with the remote artifact."
         fi
 
