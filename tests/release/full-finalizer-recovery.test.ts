@@ -10,7 +10,13 @@ import { reusableFullFinalizerInput, readOriginalStandardCheckpoint } from '../.
 import { reconcileAppendFullTarget } from '../../scripts/stable-release-dispatch/owner-run-reconciliation.ts';
 import { resolveAppendFullCohort, buildAppendFullPlan } from '../../scripts/stable-release-dispatch/plan-source-guards.ts';
 import { downloadArtifact } from '../../scripts/download-github-artifact.mjs';
-import { verifyAcceptedFullDmg, verifyRetainedHandoff } from '../../scripts/restore-retained-full-finalizer.mjs';
+import {
+  ownedFullRecoveryBaseDir,
+  pruneRetainedFullRecoveryRuns,
+  verifyAcceptedFullDmg,
+  verifyRetainedHandoff,
+} from '../../scripts/restore-retained-full-finalizer.mjs';
+import { pruneFullRuntimeLayerCache } from '../../scripts/build-full-first-install-package/runtime-cache.ts';
 
 const workflow = parse(fs.readFileSync('.github/workflows/full-first-install-release.yml', 'utf8'));
 const action = parse(fs.readFileSync('.github/actions/finalize-full/action.yml', 'utf8'));
@@ -158,6 +164,107 @@ test('same-runner recovery admits only the original notarized Full bytes and run
     await assert.rejects(verifyAcceptedFullDmg({ ...expected, expectedTeamId: 'OTHERTEAM1' }), /does not admit/);
     fs.writeFileSync(dmgPath, 'modified staple');
     await assert.rejects(verifyAcceptedFullDmg(expected), /differs from the prior notarization receipt/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+test('retained Full recovery pruning keeps only the protected/latest run, enforces TTL, and skips symlinks or non-run entries', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-recovery-prune-'));
+  try {
+    const baseDir = ownedFullRecoveryBaseDir({ HOME: temp });
+    fs.mkdirSync(baseDir, { recursive: true });
+    const nowMs = Date.UTC(2026, 10, 26, 12, 0, 0);
+    const setMtime = (target: string, mtimeMs: number) => fs.utimesSync(target, mtimeMs / 1000, mtimeMs / 1000);
+
+    const oldRun = path.join(baseDir, '1001');
+    const olderRun = path.join(baseDir, '1002');
+    const latestRun = path.join(baseDir, '1003');
+    const nonRunDir = path.join(baseDir, 'manual-note');
+    const outside = path.join(temp, 'outside');
+    const symlinkRun = path.join(baseDir, '1004');
+    for (const dir of [oldRun, olderRun, latestRun, nonRunDir, outside]) {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'marker.txt'), 'ok');
+    }
+    fs.symlinkSync(outside, symlinkRun);
+    setMtime(oldRun, nowMs - 10 * 24 * 60 * 60 * 1000);
+    setMtime(olderRun, nowMs - 2 * 60 * 60 * 1000);
+    setMtime(latestRun, nowMs - 10 * 60 * 1000);
+
+    const pruned = pruneRetainedFullRecoveryRuns({
+      baseDir,
+      keepRunIds: ['1003'],
+      maxRetainedRuns: 1,
+      nowMs,
+    });
+    assert.deepEqual(pruned.retained_run_ids, ['1003']);
+    assert.deepEqual(pruned.removed_run_ids.sort(), ['1001', '1002']);
+    assert.deepEqual(pruned.skipped_entries.sort(), ['1004', 'manual-note']);
+    assert.equal(fs.existsSync(latestRun), true);
+    assert.equal(fs.existsSync(oldRun), false);
+    assert.equal(fs.existsSync(olderRun), false);
+    assert.equal(fs.existsSync(nonRunDir), true);
+    assert.equal(fs.existsSync(path.join(outside, 'marker.txt')), true);
+
+    // CLI --prune mode respects HOME and OPL_RECOVERY_KEEP_RUN_ID.
+    const nextRun = path.join(baseDir, '1005');
+    fs.mkdirSync(nextRun, { recursive: true });
+    setMtime(nextRun, nowMs);
+    const cli = spawnSync(process.execPath, ['scripts/restore-retained-full-finalizer.mjs', '--prune'], {
+      encoding: 'utf8',
+      env: { ...process.env, HOME: temp, OPL_RECOVERY_KEEP_RUN_ID: '1005', OPL_RECOVERY_MAX_RETAINED_RUNS: '1' },
+    });
+    assert.equal(cli.status, 0, cli.stderr);
+    const parsed = JSON.parse(cli.stdout);
+    assert.deepEqual(parsed.retained_run_ids, ['1005']);
+    assert.deepEqual(parsed.removed_run_ids, ['1003']);
+    assert.equal(fs.existsSync(nextRun), true);
+    assert.equal(fs.existsSync(latestRun), false);
+
+    // Workflow retain step wires automatic pruning.
+    const retainStep = action.runs.steps.find((step: any) => step.name === 'Retain verified Full inputs and notarized DMG on the owned runner');
+    assert.match(retainStep.run, /restore-retained-full-finalizer\.mjs --prune/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+test('full-runtime layer cache pruning retains active and newest archives per layer and ignores non-archive or symlink entries', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-layer-cache-prune-'));
+  try {
+    const layerDir = path.join(temp, 'toolchain');
+    fs.mkdirSync(layerDir, { recursive: true });
+    const nowMs = Date.UTC(2026, 10, 26, 12, 0, 0);
+    const setMtime = (target: string, mtimeMs: number) => fs.utimesSync(target, mtimeMs / 1000, mtimeMs / 1000);
+
+    const expired = path.join(layerDir, 'old-expired.tar.zst');
+    const oldest = path.join(layerDir, 'recent-1.tar.zst');
+    const newer = path.join(layerDir, 'recent-2.tar.zst');
+    const active = path.join(layerDir, 'active-3.tar.zst');
+    const note = path.join(layerDir, 'README.txt');
+    const outside = path.join(temp, 'outside.tar.zst');
+    const symlinkArchive = path.join(layerDir, 'linked.tar.zst');
+    for (const file of [expired, oldest, newer, active, note, outside]) fs.writeFileSync(file, 'data');
+    fs.symlinkSync(outside, symlinkArchive);
+    setMtime(expired, nowMs - 20 * 24 * 60 * 60 * 1000);
+    setMtime(oldest, nowMs - 3 * 60 * 60 * 1000);
+    setMtime(newer, nowMs - 2 * 60 * 60 * 1000);
+    setMtime(active, nowMs - 10 * 60 * 1000);
+
+    const summary = pruneFullRuntimeLayerCache(temp, 'toolchain', active, {
+      maxArchives: 2,
+      maxAgeMs: 14 * 24 * 60 * 60 * 1000,
+      nowMs,
+    });
+    assert.deepEqual(summary.retained_archives.sort(), [active, newer].sort());
+    assert.deepEqual(summary.removed_archives.sort(), [expired, oldest].sort());
+    assert.equal(fs.existsSync(active), true);
+    assert.equal(fs.existsSync(newer), true);
+    assert.equal(fs.existsSync(expired), false);
+    assert.equal(fs.existsSync(oldest), false);
+    assert.equal(fs.existsSync(note), true);
+    assert.equal(fs.existsSync(outside), true);
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
   }

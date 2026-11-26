@@ -213,6 +213,85 @@ export function buildRuntimeCacheKeyReport(
   };
 }
 
+export const DEFAULT_RUNTIME_LAYER_CACHE_MAX_ARCHIVES = 2;
+export const DEFAULT_RUNTIME_LAYER_CACHE_MAX_AGE_DAYS = 14;
+
+function positiveIntOption(value: string | undefined, fallback: number): number {
+  const raw = value?.trim();
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export function pruneFullRuntimeLayerCache(
+  cacheDir: string | null | undefined,
+  layerId: FullRuntimeCacheLayerId,
+  activeArchivePath: string | null | undefined,
+  options: {
+    maxArchives?: number;
+    maxAgeMs?: number;
+    nowMs?: number;
+  } = {},
+) {
+  const summary = {
+    layer_id: layerId,
+    layer_dir: cacheDir ? path.join(path.resolve(cacheDir), layerId) : null,
+    removed_archives: [] as string[],
+    retained_archives: [] as string[],
+  };
+  if (!summary.layer_dir) return summary;
+  let dirStat: fs.Stats;
+  try {
+    dirStat = fs.lstatSync(summary.layer_dir);
+  } catch {
+    return summary;
+  }
+  if (!dirStat.isDirectory() || dirStat.isSymbolicLink()) return summary;
+
+  const resolvedActive = activeArchivePath ? path.resolve(activeArchivePath) : null;
+  const nowMs = options.nowMs ?? Date.now();
+  const maxArchives = options.maxArchives
+    ?? positiveIntOption(process.env.OPL_FULL_RUNTIME_CACHE_MAX_ARCHIVES, DEFAULT_RUNTIME_LAYER_CACHE_MAX_ARCHIVES);
+  const maxAgeMs = options.maxAgeMs
+    ?? positiveIntOption(process.env.OPL_FULL_RUNTIME_CACHE_MAX_AGE_DAYS, DEFAULT_RUNTIME_LAYER_CACHE_MAX_AGE_DAYS)
+      * 24 * 60 * 60 * 1000;
+
+  const candidates: Array<{ path: string; mtimeMs: number; active: boolean }> = [];
+  for (const entry of fs.readdirSync(summary.layer_dir, { withFileTypes: true })) {
+    if (!entry.name.endsWith('.tar.zst')) continue;
+    const candidatePath = path.join(summary.layer_dir, entry.name);
+    let stat: fs.Stats;
+    try {
+      stat = fs.lstatSync(candidatePath);
+    } catch {
+      continue;
+    }
+    if (!stat.isFile() || stat.isSymbolicLink()) continue;
+    candidates.push({
+      path: candidatePath,
+      mtimeMs: stat.mtimeMs,
+      active: candidatePath === resolvedActive,
+    });
+  }
+  candidates.sort((left, right) => {
+    if (left.active !== right.active) return left.active ? -1 : 1;
+    return right.mtimeMs - left.mtimeMs || right.path.localeCompare(left.path);
+  });
+
+  let retained = 0;
+  for (const candidate of candidates) {
+    const expired = Number.isFinite(maxAgeMs) && maxAgeMs >= 0 && (nowMs - candidate.mtimeMs) > maxAgeMs;
+    if (candidate.active || (!expired && retained < maxArchives)) {
+      summary.retained_archives.push(candidate.path);
+      retained += 1;
+      continue;
+    }
+    fs.rmSync(candidate.path, { force: true });
+    summary.removed_archives.push(candidate.path);
+  }
+  return summary;
+}
+
 export function runCachedLayer(options, layerId, key, targetRoot, builder) {
   const startedAt = monotonicSeconds();
   const archivePath = cacheLayerArchivePath(options, layerId, key);
@@ -238,6 +317,11 @@ export function runCachedLayer(options, layerId, key, targetRoot, builder) {
     copyPathContents(tempLayerRoot, targetRoot);
     if (cacheEvent.write_archive) {
       archiveLayer(tempLayerRoot, archivePath);
+      try {
+        pruneFullRuntimeLayerCache(options.runtimeCacheDir, layerId, archivePath);
+      } catch {
+        // Best-effort layer cache pruning must not fail a verified build.
+      }
     }
     return {
       ...cacheEvent,
