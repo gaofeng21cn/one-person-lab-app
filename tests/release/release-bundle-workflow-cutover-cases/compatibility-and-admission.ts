@@ -389,7 +389,8 @@ test('Standard moving pointers require exact Desktop readback and a protected cl
     1,
     'only the historical checkpoint compatibility reader may inspect a legacy WebUI track',
   );
-  assert.equal((source.match(/\.release_bundle_status\.tracks\.standard\.reconcile_required == false/g) ?? []).length, 4);
+  const effectiveSteps = JSON.stringify(workflow.jobs);
+  assert.equal((effectiveSteps.match(/\.release_bundle_status\.tracks\.standard\.reconcile_required == false/g) ?? []).length, 4);
   assert.doesNotMatch(source, /opl-webui-carrier\.json/);
   assert.doesNotMatch(source, /oras tag[^\n]+stable|docker buildx imagetools create[^\n]+stable/);
 });
