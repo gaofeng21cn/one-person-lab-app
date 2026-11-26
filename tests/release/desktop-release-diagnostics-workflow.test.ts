@@ -36,6 +36,7 @@ test('release diagnostics is manually invokable without Stable mutation authorit
     'desktop',
     'apple_credentials',
     'timestamp_authority',
+    'nightly_release_notes',
   ]);
   assert.ok(workflow.on.workflow_dispatch.inputs.opl_version);
   assert.ok(workflow.on.workflow_dispatch.inputs.run_vm_diagnostic);
@@ -43,6 +44,8 @@ test('release diagnostics is manually invokable without Stable mutation authorit
   assert.ok(workflow.on.workflow_call.inputs.framework_ref);
   assert.ok(workflow.on.workflow_dispatch.inputs.framework_ref);
   assert.deepEqual(workflow.permissions, { actions: 'read', contents: 'read' });
+  assert.equal(workflow.jobs.writers.if, "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'nightly_release_notes' }}");
+  assert.deepEqual(workflow.jobs.writers.permissions, { contents: 'read', 'copilot-requests': 'write' });
 
   const source = fs.readFileSync(workflowPath, 'utf8');
   assert.doesNotMatch(source, /contents:\s*write|packages:\s*write/);

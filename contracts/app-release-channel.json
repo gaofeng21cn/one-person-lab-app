@@ -2875,7 +2875,10 @@
           "generation_failure_blocks_publication": false,
           "ai_scope": "user_visible_summary_only",
           "fixed_disclosure_and_release_identity_owner": "scripts/nightly-release-notes.ts",
-          "check_workflow": ".github/workflows/nightly-release-notes-check.yml",
+          "check_workflow": ".github/workflows/release-diagnostics.yml",
+          "check_workflow_input": {
+            "diagnostic": "nightly_release_notes"
+          },
           "shared_route": "public_release_notes.preferred_ai_route"
         }
       }
@@ -5592,7 +5595,8 @@
         "diagnostics": [
           "desktop",
           "apple_credentials",
-          "timestamp_authority"
+          "timestamp_authority",
+          "nightly_release_notes"
         ],
         "purpose": "harness_and_standard_artifact_only_release_diagnostics",
         "triggers": [

@@ -95,6 +95,7 @@ export const retiredWorkflowEntries = new Set([
   'docker-webui-clean-windows-vm.yml',
   'full-runtime-cache-warmup.yml',
   'homebrew-tap-update.yml',
+  'nightly-release-notes-check.yml',
   'nightly-standard-release.yml',
   'opl-updater-upgrade-vm.yml',
   'release-apple-credentials-preflight.yml',
@@ -562,8 +563,9 @@ export function validateWorkflowDispatchWriteAuthorityForWorkflows(appRoot: stri
         continue;
       }
       if (
-        workflowPath === '.github/workflows/nightly-release-notes-check.yml'
+        workflowPath === '.github/workflows/release-diagnostics.yml'
         && jobId === 'writers'
+        && job.if === "${{ github.event_name == 'workflow_dispatch' && inputs.diagnostic == 'nightly_release_notes' }}"
         && exactObject(job.permissions, { contents: 'read', 'copilot-requests': 'write' })
         && jobRuns(job).includes('scripts/check-nightly-release-note-writers.ts')
       ) {
