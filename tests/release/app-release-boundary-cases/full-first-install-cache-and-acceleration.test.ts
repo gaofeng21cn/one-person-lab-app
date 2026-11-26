@@ -277,6 +277,10 @@ test("Full release executor installs its own script dependencies before packagin
     workflow,
     /name: Install Full release executor dependencies[\s\S]*working-directory: release-executor[\s\S]*npm ci --ignore-scripts --no-audit --no-fund/,
   );
+  assert.match(
+    workflow,
+    /name: Install frozen artifact App dependencies[\s\S]*working-directory: one-person-lab-app[\s\S]*npm ci --ignore-scripts --no-audit --no-fund/,
+  );
 });
 
 test("Full Shell build skips the redundant inner App notarization without weakening signing", async () => {

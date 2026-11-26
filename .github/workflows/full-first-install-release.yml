@@ -263,6 +263,10 @@ jobs:
           node-version: '24'
           check-latest: true
 
+      - name: Install frozen artifact App dependencies
+        working-directory: one-person-lab-app
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Verify Gateway account before release-bound Full build
         if: ${{ inputs.operation == 'append_full' && !inputs.cache_only }}
         uses: ./release-executor/.github/actions/release-gateway-preflight

@@ -70,7 +70,7 @@ jobs:
       actions: read
     outputs:
       skip_code_quality: ${{ steps.verify.outputs.skip_code_quality }}
-      stable_composition_fingerprint: ${{ steps.verify.outputs.stable_composition_fingerprint }}
+      stable_composition_fingerprint: ${{ steps.platform-composition.outputs.stable_composition_fingerprint || steps.verify.outputs.stable_composition_fingerprint }}
     steps:
       - name: Resolve Standard checkpoint artifact
         id: source
@@ -166,9 +166,6 @@ jobs:
           test "${#source_gates[@]}" -eq 1
           test "sha256:$(shasum -a 256 "${source_gates[0]}" | awk '{print $1}')" = "$(jq -er .source_gate_digest "${controls[0]}")"
           fingerprint="$(jq -er .operation_fingerprint "${source_gates[0]}")"
-          if [[ "$fingerprint" == opl-desktop-stable-release:dsh-composition:* ]]; then
-            echo "stable_composition_fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
-          fi
           jq -e --arg digest "$SOURCE_BUNDLE_DIGEST" \
             --arg app "$APP_REF" --arg shell "$SHELL_REF" --arg framework "$FRAMEWORK_REF" '
               .schema == "opl_standard_release_identity_receipt.v2"
@@ -241,7 +238,50 @@ jobs:
             ' platform-shell-main.json >/dev/null
             skip_code_quality=false
           fi
+          if [[ "$fingerprint" == opl-desktop-stable-release:dsh-composition:* ]]; then
+            if [ -n "${PLATFORM_SHELL_REF:-}" ] && [ "$PLATFORM_SHELL_REF" != "$SHELL_REF" ]; then
+              echo "requires_platform_composition=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "stable_composition_fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+            fi
+          fi
           echo "skip_code_quality=$skip_code_quality" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout canonical DSH composition resolver
+        if: ${{ steps.verify.outputs.requires_platform_composition == 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: app-executor
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve platform repair DSH composition
+        id: platform-composition
+        if: ${{ steps.verify.outputs.requires_platform_composition == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_REF: ${{ inputs.app_ref }}
+          PLATFORM_SHELL_REF: ${{ inputs.platform_shell_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          runs_json="$(gh api 'repos/gaofeng21cn/opl-studio/actions/workflows/release-plugin-composition-test.yml/runs?branch=main&status=success&per_page=30')"
+          mapfile -t comp_run_ids < <(printf '%s' "$runs_json" | jq -r --arg sha "$PLATFORM_SHELL_REF" '.workflow_runs[] | select(.head_sha == $sha and .conclusion == "success") | .id')
+          test "${#comp_run_ids[@]}" -gt 0
+          resolved=""
+          for comp_run_id in "${comp_run_ids[@]}"; do
+            [[ "$comp_run_id" =~ ^[1-9][0-9]*$ ]] || continue
+            if output="$(node app-executor/scripts/stable-dsh-composition.mjs resolve --run-id "$comp_run_id" --app-sha "$APP_REF" --shell-sha "$PLATFORM_SHELL_REF")"; then
+              candidate="$(printf '%s\n' "$output" | awk 'NF { line = $0 } END { print line }')"
+              if [[ "$candidate" =~ ^opl-desktop-stable-release:dsh-composition:[1-9][0-9]*:[0-9a-f]{64}$ ]]; then
+                resolved="$candidate"
+                break
+              fi
+            fi
+          done
+          test -n "$resolved"
+          echo "stable_composition_fingerprint=$resolved" >> "$GITHUB_OUTPUT"
 
       - name: Verify qualified platform recovery producer
         if: ${{ inputs.platform_artifact_run_id != '' }}
