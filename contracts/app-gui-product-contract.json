@@ -2224,9 +2224,10 @@
         "currently_defined_product_classifications": [
           {
             "display_name": "微信",
-            "package_id_example": "opl-channel-weixin",
+            "native_plugin_id": "opl-channel-weixin",
             "connector_kind": "message_channel_connector",
-            "classification_role": "product_documentation_example_not_runtime_membership"
+            "classification_role": "studio_native_channel",
+            "composition_ref": "contracts/app-plugin-composition-taxonomy.json#studio_native_weixin_channel"
           }
         ]
       },

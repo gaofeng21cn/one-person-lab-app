@@ -832,6 +832,7 @@
       "projection_runtime_status": "current_framework_projection_proven",
       "raw_fact_owner": "current_shell_exact_binding_store",
       "projection_owner": "one-person-lab-framework",
+      "native_provider_projection_owner": "opl-studio",
       "consumer_role": "render_and_join_only",
       "required_projection_fields": [
         "surface_kind",
