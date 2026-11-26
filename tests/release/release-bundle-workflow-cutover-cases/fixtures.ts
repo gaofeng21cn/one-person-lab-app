@@ -3,7 +3,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
+import { promisify } from 'node:util';
 import { parse as parseYaml } from 'yaml';
 import { assertReleaseOperationDeadline } from "../../../scripts/release-operation-deadline.ts";
 import { resolveGithubReleaseCommit } from "../../../scripts/resolve-github-target-commit.ts";
@@ -24,13 +25,31 @@ export {
 
 
 
+const execFileAsync = promisify(execFile);
+const workflowSourceCache = new Map<string, string>();
+const parsedWorkflowCache = new Map<string, any>();
+
 export const workflowRoot = path.join(process.cwd(), '.github', 'workflows');
 
 
-export const readWorkflow = (name: string) => fs.readFileSync(path.join(workflowRoot, name), 'utf8');
+export const readWorkflow = (name: string) => {
+  let cached = workflowSourceCache.get(name);
+  if (cached === undefined) {
+    cached = fs.readFileSync(path.join(workflowRoot, name), 'utf8');
+    workflowSourceCache.set(name, cached);
+  }
+  return cached;
+};
 
 
-export const parseWorkflow = (name: string) => parseYaml(readWorkflow(name));
+export const parseWorkflow = (name: string) => {
+  let cached = parsedWorkflowCache.get(name);
+  if (cached === undefined) {
+    cached = parseYaml(readWorkflow(name));
+    parsedWorkflowCache.set(name, cached);
+  }
+  return structuredClone(cached);
+};
 
 
 export const readAdapter = () => fs.readFileSync(
@@ -267,7 +286,7 @@ export function runExpectedImmutableReleaseAssetsBuilder() {
 
 
 
-export function runAdmissionGate(
+function prepareAdmissionGateExecution(
   workflowName: string,
   jobName: string,
   stepName: string,
@@ -279,19 +298,58 @@ export function runAdmissionGate(
     (_match, name: string) => inputs[name] ?? '',
   );
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-workflow-gate-'));
+  return {
+    root,
+    script,
+    env: {
+      ...process.env,
+      GITHUB_EVENT_NAME: 'workflow_dispatch',
+      GITHUB_REF: 'refs/heads/main',
+      GITHUB_RUN_ATTEMPT: '1',
+      GITHUB_RUN_ID: '424242',
+      RUNNER_TEMP: root,
+    },
+  };
+}
+
+export function runAdmissionGate(
+  workflowName: string,
+  jobName: string,
+  stepName: string,
+  inputs: Record<string, string>,
+) {
+  const { root, script, env } = prepareAdmissionGateExecution(workflowName, jobName, stepName, inputs);
   try {
     return spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
       cwd: root,
       encoding: 'utf8',
-      env: {
-        ...process.env,
-        GITHUB_EVENT_NAME: 'workflow_dispatch',
-        GITHUB_REF: 'refs/heads/main',
-        GITHUB_RUN_ATTEMPT: '1',
-        GITHUB_RUN_ID: '424242',
-        RUNNER_TEMP: root,
-      },
+      env,
     });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
+export async function runAdmissionGateAsync(
+  workflowName: string,
+  jobName: string,
+  stepName: string,
+  inputs: Record<string, string>,
+): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  const { root, script, env } = prepareAdmissionGateExecution(workflowName, jobName, stepName, inputs);
+  try {
+    const { stdout, stderr } = await execFileAsync('bash', ['-euo', 'pipefail', '-c', script], {
+      cwd: root,
+      encoding: 'utf8',
+      env,
+    });
+    return { status: 0, stdout, stderr };
+  } catch (error: any) {
+    return {
+      status: typeof error?.code === 'number' ? error.code : 1,
+      stdout: String(error?.stdout ?? ''),
+      stderr: String(error?.stderr ?? ''),
+    };
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

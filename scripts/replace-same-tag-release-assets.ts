@@ -5,7 +5,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+
+export type GhRunner = (args: string[], timeout?: number) => { ok: boolean; output: string; error: string };
 
 type Asset = { id: number; name: string; size: number; digest: string };
 type Release = {
@@ -54,18 +57,18 @@ function runGh(args: string[], timeout = 120_000): { ok: boolean; output: string
   };
 }
 
-function gh(args: string[]): string {
-  const result = runGh(args);
+function gh(args: string[], runner: GhRunner = runGh): string {
+  const result = runner(args);
   if (!result.ok) fail(`gh ${args[0]} failed: ${result.error}`);
   return result.output;
 }
 
-function release(plan: Plan): Release {
-  const value = JSON.parse(gh(['api', `repos/${plan.repository}/releases/${plan.release_id}`])) as Release;
+function release(plan: Plan, runner: GhRunner = runGh): Release {
+  const value = JSON.parse(gh(['api', `repos/${plan.repository}/releases/${plan.release_id}`], runner)) as Release;
   if (value.id !== plan.release_id || value.tag_name !== plan.tag ||
       value.target_commitish !== plan.target_commitish || value.immutable || value.draft ||
       !Array.isArray(value.assets)) fail('Release identity or mutable publication state changed.');
-  const ref = JSON.parse(gh(['api', `repos/${plan.repository}/git/ref/tags/${plan.tag}`])) as {
+  const ref = JSON.parse(gh(['api', `repos/${plan.repository}/git/ref/tags/${plan.tag}`], runner)) as {
     ref?: string; object?: { type?: string; sha?: string };
   };
   if (ref.ref !== `refs/tags/${plan.tag}` || ref.object?.type !== 'commit' ||
@@ -121,8 +124,8 @@ function prepare(plan: Plan): Prepared[] {
   });
 }
 
-function inspect(plan: Plan, prepared: Prepared[], mode: 'stage' | 'promote'): Release {
-  const observed = release(plan);
+function inspect(plan: Plan, prepared: Prepared[], mode: 'stage' | 'promote', runner: GhRunner = runGh): Release {
+  const observed = release(plan, runner);
   if (plan.expected_body_sha256 && !bodyMatches(observed, plan.expected_body_sha256)) {
     const wanted = plan.body_file && fs.readFileSync(plan.body_file, 'utf8');
     if (!wanted || observed.body !== wanted) fail('Release body changed outside this replacement.');
@@ -142,23 +145,23 @@ function inspect(plan: Plan, prepared: Prepared[], mode: 'stage' | 'promote'): R
   return observed;
 }
 
-function mutate(plan: Plan, args: string[]): Release {
-  const result = runGh(args, 1_800_000);
-  const observed = release(plan);
+function mutate(plan: Plan, args: string[], runner: GhRunner = runGh): Release {
+  const result = runner(args, 1_800_000);
+  const observed = release(plan, runner);
   if (!result.ok) fail(`GitHub mutation outcome must be reconciled from this readback before retry: ${result.error}`);
   return observed;
 }
 
-function stage(plan: Plan, prepared: Prepared[]): void {
+function stage(plan: Plan, prepared: Prepared[], runner: GhRunner = runGh): void {
   for (const item of prepared) {
-    let observed = inspect(plan, prepared, 'stage');
+    let observed = inspect(plan, prepared, 'stage', runner);
     if (at(observed, item.stage.name)) continue;
     if (matches(at(observed, item.current.name), item.next)) continue;
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-stage-'));
     const stageFile = path.join(temp, item.stage.name);
     try {
       fs.linkSync(item.file, stageFile);
-      observed = mutate(plan, ['release', 'upload', plan.tag, stageFile, '--repo', plan.repository]);
+      observed = mutate(plan, ['release', 'upload', plan.tag, stageFile, '--repo', plan.repository], runner);
       if (!matches(at(observed, item.stage.name), item.stage)) fail(`Stage readback failed: ${item.stage.name}.`);
     } finally {
       fs.rmSync(temp, { recursive: true, force: true });
@@ -166,8 +169,8 @@ function stage(plan: Plan, prepared: Prepared[]): void {
   }
 }
 
-function promote(plan: Plan, prepared: Prepared[]): void {
-  const before = inspect(plan, prepared, 'promote');
+function promote(plan: Plan, prepared: Prepared[], runner: GhRunner = runGh): void {
+  const before = inspect(plan, prepared, 'promote', runner);
   for (const item of prepared) {
     const canonical = at(before, item.current.name);
     const staged = at(before, item.stage.name);
@@ -176,13 +179,13 @@ function promote(plan: Plan, prepared: Prepared[]): void {
     if (!complete && !ready) fail(`Replacement is not fully staged: ${item.current.name}.`);
   }
   for (const item of prepared) {
-    let observed = inspect(plan, prepared, 'promote');
+    let observed = inspect(plan, prepared, 'promote', runner);
     if (matches(at(observed, item.current.name), item.next) && !at(observed, item.stage.name)) continue;
     if (!matches(at(observed, item.stage.name), item.stage)) fail(`Missing staged candidate: ${item.stage.name}.`);
     if (matches(at(observed, item.current.name), item.current)) {
       observed = mutate(plan, [
         'api', '--method', 'DELETE', `repos/${plan.repository}/releases/assets/${item.current.id}`,
-      ]);
+      ], runner);
       if (at(observed, item.current.name)) fail(`Old asset deletion readback failed: ${item.current.name}.`);
     }
     const stageAsset = at(observed, item.stage.name);
@@ -190,14 +193,14 @@ function promote(plan: Plan, prepared: Prepared[]): void {
     observed = mutate(plan, [
       'api', '--method', 'PATCH', `repos/${plan.repository}/releases/assets/${stageAsset.id}`,
       '-f', `name=${item.current.name}`,
-    ]);
+    ], runner);
     if (!matches(at(observed, item.current.name), item.next) || at(observed, item.stage.name)) {
       fail(`Promoted asset readback failed: ${item.current.name}.`);
     }
   }
   if (plan.body_file) {
     const nextBody = fs.readFileSync(plan.body_file, 'utf8');
-    const observed = inspect(plan, prepared, 'promote');
+    const observed = inspect(plan, prepared, 'promote', runner);
     if (observed.body !== nextBody) {
       if (!bodyMatches(observed, plan.expected_body_sha256!)) fail('Release body CAS mismatch.');
       const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-release-body-'));
@@ -207,13 +210,37 @@ function promote(plan: Plan, prepared: Prepared[]): void {
         const updated = mutate(plan, [
           'api', '--method', 'PATCH', `repos/${plan.repository}/releases/${plan.release_id}`,
           '--input', payload,
-        ]);
+        ], runner);
         if (updated.body !== nextBody) fail('Release body readback failed.');
       } finally {
         fs.rmSync(temp, { recursive: true, force: true });
       }
     }
   }
+}
+
+export function executeSameTagReplacement(
+  planPath: string,
+  mode: 'stage' | 'promote',
+  options: { runGh?: GhRunner } = {},
+) {
+  const runner = options.runGh ?? runGh;
+  const plan = readPlan(planPath);
+  const prepared = prepare(plan);
+  if (mode === 'stage') stage(plan, prepared, runner);
+  else promote(plan, prepared, runner);
+  const observed = inspect(plan, prepared, 'promote', runner);
+  return {
+    release_id: observed.id,
+    tag: observed.tag_name,
+    assets: prepared.map((item) => ({
+      name: item.current.name,
+      stage: at(observed, item.stage.name)?.id || null,
+      current: at(observed, item.current.name)?.id || null,
+      current_digest: at(observed, item.current.name)?.digest || null,
+    })),
+    body_sha256: sha256(observed.body),
+  };
 }
 
 function main(): void {
@@ -223,17 +250,10 @@ function main(): void {
   if (!values.plan || Number(!!values.stage) + Number(!!values.promote) !== 1) {
     fail('Usage: replace-same-tag-release-assets.ts --plan <file> (--stage | --promote)');
   }
-  const plan = readPlan(values.plan);
-  const prepared = prepare(plan);
-  if (values.stage) stage(plan, prepared);
-  else promote(plan, prepared);
-  const observed = inspect(plan, prepared, 'promote');
-  console.log(JSON.stringify({ release_id: observed.id, tag: observed.tag_name,
-    assets: prepared.map((item) => ({ name: item.current.name,
-      stage: at(observed, item.stage.name)?.id || null,
-      current: at(observed, item.current.name)?.id || null,
-      current_digest: at(observed, item.current.name)?.digest || null })),
-    body_sha256: sha256(observed.body) }, null, 2));
+  const summary = executeSameTagReplacement(values.plan, values.stage ? 'stage' : 'promote');
+  console.log(JSON.stringify(summary, null, 2));
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

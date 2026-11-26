@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import YAML from 'yaml';
+import { runWebuiCarrierCli } from '../../scripts/release-webui-carrier.ts';
 import { validateWebuiDeploymentContract } from '../../scripts/validate-active-shell/runtime-bridge-validator/identity-authority.ts';
 
 const appRoot = process.cwd();
@@ -90,10 +91,7 @@ function writeJson(root: string, name: string, value: unknown): string {
 }
 
 function runCli(args: string[]) {
-  return spawnSync(process.execPath, ['--experimental-strip-types', cliPath, ...args], {
-    cwd: appRoot,
-    encoding: 'utf8',
-  });
+  return runWebuiCarrierCli(args);
 }
 
 test('publisher revision entrypoint selects password auth before the original entrypoint and OCI CMD', (t) => {
@@ -1352,4 +1350,13 @@ test('WebUI prequalified recovery preserves the original build bundle and cohort
       assert.equal(workflow.jobs[id].with.release_cohort_ref, '${{ needs.source-authority.outputs.build_cohort_ref }}');
     }
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('WebUI carrier CLI entrypoint validates subcommand arguments directly', () => {
+  const result = spawnSync(process.execPath, ['--experimental-strip-types', cliPath], {
+    cwd: appRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Usage: release-webui-carrier\.ts/);
 });

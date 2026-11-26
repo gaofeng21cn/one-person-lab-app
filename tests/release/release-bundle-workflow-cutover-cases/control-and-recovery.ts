@@ -13,8 +13,19 @@ import {
   transportProvenanceFields,
   frameworkOwnedLineageFields,
   workflowStep,
-  runAdmissionGate,
+  runAdmissionGateAsync,
 } from "./fixtures.ts";
+
+async function runWithConcurrency(tasks: Array<() => Promise<void>>, concurrency = 8): Promise<void> {
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, async () => {
+    while (cursor < tasks.length) {
+      const next = tasks[cursor++];
+      await next();
+    }
+  });
+  await Promise.all(workers);
+}
 
 test('signed Standard recovery keeps the workflow executor distinct from frozen product source', () => {
   const script = String(workflowStep('_release-bundle.yml', 'seal-standard-identity', 'Verify reusable signed and notarized Standard bytes').run);
@@ -159,7 +170,7 @@ test('Standard notes and Bundle freeze stay independent from Full and Package au
   assert.equal(binding.legacy_bundle_read_compatibility_only, true);
 });
 
-test('every release-bound low-level admission rejects missing, invalid, or permanently rejected identity', () => {
+test('every release-bound low-level admission rejects missing, invalid, or permanently rejected identity', async () => {
   const digest = `sha256:${'a'.repeat(64)}`;
   const baseInputs = {
     opl_version: '26.8.1-r5',
@@ -210,6 +221,7 @@ test('every release-bound low-level admission rejects missing, invalid, or perma
     },
   ] as const;
 
+  const checks: Array<() => Promise<void>> = [];
   for (const gate of gates) {
     const admission = workflowStep(gate.workflow, gate.job, gate.step);
     const source = String(admission.run);
@@ -220,25 +232,33 @@ test('every release-bound low-level admission rejects missing, invalid, or perma
     assert.match(source, /input_digest:\$input_digest/);
     assert.match(source, new RegExp(rejectedBundle));
     const validInputs = { ...baseInputs, operation: gate.operation };
-    const valid = runAdmissionGate(gate.workflow, gate.job, gate.step, validInputs);
-    assert.equal(valid.status, 0, `${gate.workflow} valid gate failed: ${valid.stderr}`);
+    checks.push(async () => {
+      const valid = await runAdmissionGateAsync(gate.workflow, gate.job, gate.step, validInputs);
+      assert.equal(valid.status, 0, `${gate.workflow} valid gate failed: ${valid.stderr}`);
+    });
 
     for (const field of gate.fields) {
-      const missing = runAdmissionGate(gate.workflow, gate.job, gate.step, { ...validInputs, [field]: '' });
-      assert.notEqual(missing.status, 0, `${gate.workflow} accepted missing ${field}`);
-      const invalidValue = field === 'release_bundle_digest' ? 'sha256:not-exact' : 'A'.repeat(40);
-      const invalid = runAdmissionGate(gate.workflow, gate.job, gate.step, {
-        ...validInputs,
-        [field]: invalidValue,
+      checks.push(async () => {
+        const missing = await runAdmissionGateAsync(gate.workflow, gate.job, gate.step, { ...validInputs, [field]: '' });
+        assert.notEqual(missing.status, 0, `${gate.workflow} accepted missing ${field}`);
       });
-      assert.notEqual(invalid.status, 0, `${gate.workflow} accepted invalid ${field}`);
+      checks.push(async () => {
+        const invalidValue = field === 'release_bundle_digest' ? 'sha256:not-exact' : 'A'.repeat(40);
+        const invalid = await runAdmissionGateAsync(gate.workflow, gate.job, gate.step, {
+          ...validInputs,
+          [field]: invalidValue,
+        });
+        assert.notEqual(invalid.status, 0, `${gate.workflow} accepted invalid ${field}`);
+      });
     }
 
-    const rejected = runAdmissionGate(gate.workflow, gate.job, gate.step, {
-      ...validInputs,
-      release_bundle_digest: rejectedBundle,
+    checks.push(async () => {
+      const rejected = await runAdmissionGateAsync(gate.workflow, gate.job, gate.step, {
+        ...validInputs,
+        release_bundle_digest: rejectedBundle,
+      });
+      assert.notEqual(rejected.status, 0, `${gate.workflow} accepted the permanently rejected Bundle`);
     });
-    assert.notEqual(rejected.status, 0, `${gate.workflow} accepted the permanently rejected Bundle`);
   }
 
   for (const [workflow, job, step] of [
@@ -249,31 +269,37 @@ test('every release-bound low-level admission rejects missing, invalid, or perma
     assert.equal(workflowStep(workflow, job, step).if, "${{ inputs.operation != '' }}");
   }
 
-  const candidateOnly = runAdmissionGate(
-    'full-first-install-release.yml',
-    'full-first-install',
-    'Admit one-shot release-bound Full build',
-    {
-      ...baseInputs,
-      operation: 'standard',
-      candidate_only: 'true',
-      target_standard_release_id: '',
-      target_standard_release_tag: '',
-      target_standard_target_commitish: '',
-    },
-  );
-  assert.equal(candidateOnly.status, 0, candidateOnly.stderr);
-  const candidateWithRelease = runAdmissionGate(
-    'full-first-install-release.yml',
-    'full-first-install',
-    'Admit one-shot release-bound Full build',
-    {
-      ...baseInputs,
-      operation: 'standard',
-      candidate_only: 'true',
-    },
-  );
-  assert.notEqual(candidateWithRelease.status, 0, 'candidate-only accepted a public Release identity');
+  checks.push(async () => {
+    const candidateOnly = await runAdmissionGateAsync(
+      'full-first-install-release.yml',
+      'full-first-install',
+      'Admit one-shot release-bound Full build',
+      {
+        ...baseInputs,
+        operation: 'standard',
+        candidate_only: 'true',
+        target_standard_release_id: '',
+        target_standard_release_tag: '',
+        target_standard_target_commitish: '',
+      },
+    );
+    assert.equal(candidateOnly.status, 0, candidateOnly.stderr);
+  });
+  checks.push(async () => {
+    const candidateWithRelease = await runAdmissionGateAsync(
+      'full-first-install-release.yml',
+      'full-first-install',
+      'Admit one-shot release-bound Full build',
+      {
+        ...baseInputs,
+        operation: 'standard',
+        candidate_only: 'true',
+      },
+    );
+    assert.notEqual(candidateWithRelease.status, 0, 'candidate-only accepted a public Release identity');
+  });
+
+  await runWithConcurrency(checks, 8);
 });
 
 test('the live control plane is split into Standard build, Standard publish, and additive Full workflows', () => {
