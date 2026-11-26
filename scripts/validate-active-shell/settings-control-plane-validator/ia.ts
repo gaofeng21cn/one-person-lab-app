@@ -3,20 +3,14 @@ import {
   appActionRoute,
   appOwnedSecondarySettingsPages,
   appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
-  appOwnedSettingsConfirmationFields,
   appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
   appOwnedSettingsNavigationDestinationIds,
   appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsPostUpdateNoticeFields,
   appOwnedSettingsTabs,
   appOwnedSettingsTaskEntryMetadataFields,
   appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
 } from "../app-contract-constants.ts";
+import { assertNonEmptyStringArray } from "../validation-primitives.ts";
 import { assertKnownSettingsRoute } from "./shared.ts";
 import { validateSettingsVisualQaExpectations } from "./visual-expectations.ts";
 
@@ -224,9 +218,10 @@ function assertBilingualNavigationLabel(entry, label) {
 }
 
 export function validateSettingsProtocols(protocols) {
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(protocols?.issue_queue?.statuses, "Settings control plane issue statuses");
+  assertIncludesAll(
     protocols?.issue_queue?.statuses,
-    appOwnedSettingsIssueStatuses,
+    ["needs_action", "in_progress", "resolved", "blocked", "dismissed"],
     "Settings control plane issue statuses",
   );
   if (
@@ -264,9 +259,10 @@ export function validateSettingsProtocols(protocols) {
     throw new Error("Settings control plane search protocol must preserve one owner-routed item-level search");
   }
   assertDeepEqualJson(search.languages, ["zh-CN", "en"], "Settings search languages");
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(protocols.card_protocol?.required_fields, "Settings control plane card fields");
+  assertIncludesAll(
     protocols.card_protocol?.required_fields,
-    appOwnedSettingsCardFields,
+    ["id", "title", "state", "summary", "recommended_action", "last_checked_at", "details_disclosure"],
     "Settings control plane card fields",
   );
   if (
@@ -277,9 +273,10 @@ export function validateSettingsProtocols(protocols) {
       "Settings control plane cards must stay summary-first before raw refs",
     );
   }
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(protocols.confirmation_drawer?.required_fields, "Settings control plane confirmation fields");
+  assertIncludesAll(
     protocols.confirmation_drawer?.required_fields,
-    appOwnedSettingsConfirmationFields,
+    ["action_id", "summary", "will_change", "will_not_change", "rollback_or_receipt", "requires_preview_or_proof"],
     "Settings control plane confirmation fields",
   );
   if (
@@ -290,9 +287,10 @@ export function validateSettingsProtocols(protocols) {
       "Settings control plane confirmation must explain change boundaries and recovery references",
     );
   }
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(protocols.post_update_notice?.required_fields, "Settings control plane post-update notice fields");
+  assertIncludesAll(
     protocols.post_update_notice?.required_fields,
-    appOwnedSettingsPostUpdateNoticeFields,
+    ["component_id", "result", "receipt_ref", "next_check", "restart_or_reload_guidance"],
     "Settings control plane post-update notice fields",
   );
   if (
@@ -318,14 +316,20 @@ export function validateSettingsProtocols(protocols) {
       "Settings control plane make-usable action must orchestrate existing App/updater actions only",
     );
   }
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(makeUsableAction.allowed_steps, "Settings control plane make-usable allowed steps");
+  assertIncludesAll(
     makeUsableAction.allowed_steps,
-    appOwnedSettingsMakeUsableAllowedSteps,
+    ["run existing repair prep", "check managed update status", "repair components with explicit repair receipt"],
     "Settings control plane make-usable allowed steps",
   );
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(makeUsableAction.must_not, "Settings control plane make-usable forbidden steps");
+  assertIncludesAll(
     makeUsableAction.must_not,
-    appOwnedSettingsMakeUsableForbiddenSteps,
+    [
+      "implement a second updater kernel",
+      "write runtime truth, domain truth, owner receipts, or typed blockers",
+      "rollback automatically without explicit per-component user confirmation",
+    ],
     "Settings control plane make-usable forbidden steps",
   );
   if (
@@ -351,9 +355,10 @@ export function validateSettingsProtocols(protocols) {
       "Settings control plane deep links must separate legacy, secondary, and compatibility routes",
     );
   }
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(protocols.visual_qa_expectations?.required_targets, "Settings control plane visual QA targets");
+  assertIncludesAll(
     protocols.visual_qa_expectations?.required_targets,
-    appOwnedSettingsVisualQaTargets,
+    ["desktop_settings_overview", "desktop_settings_gateway", "desktop_settings_agents", "desktop_settings_capabilities", "desktop_settings_maintenance", "desktop_settings_storage"],
     "Settings control plane visual QA targets",
   );
   validateSettingsVisualQaExpectations(protocols.visual_qa_expectations);

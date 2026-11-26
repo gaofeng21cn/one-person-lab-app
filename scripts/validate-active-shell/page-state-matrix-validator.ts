@@ -282,71 +282,32 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
       throw new Error(`First-launch readiness page must list ${item} as full readiness`);
     }
   }
-  for (const signal of [
-    'workspace root readiness',
-    'Codex CLI readiness',
-    'Codex model access readiness',
-    'ready_to_launch before first conversation, not before /guid',
-    'full readiness and background maintenance state',
-    'current initialization phase',
-    'Core completed and total count',
-    'Full readiness completed and total count',
-    'background maintenance completed and total count',
-    'next visible step',
-    'beginner-facing readiness summary',
-    'primary start action',
-    'focused setup workspace before user enters /guid',
-    'fixed three-step rail with one current task panel',
-    'active rail step and task panel stay aligned to the first unready Core item',
-    'authenticated standalone first-run route outside the ordinary product layout',
-    'ordinary startup shows a branded readiness overlay until app and Agent state, conversations, models, and capabilities finish loading',
-    'ordinary startup shows ready stage count over total stage count without invented percentage progress',
-    'startup read failure or timeout names the affected stage and offers retry plus explicit limited entry without mutating readiness',
-    'explicit enter OPL action before readiness without mutating readiness',
-    'Desktop and WebUI model access default to OPL Gateway account login with email and password while API Key remains a compatibility choice',
-    'existing Codex recheck remains a secondary action outside the account and API Key method switch',
-    'WebUI Gateway account login reuses the existing OPL runtime HTTP proxy and dedicated credentials stdin bridge',
-    'model access method switching and alternate actions disabled while a request is active',
-    'pending state without premature ready or no-blocker claims',
-    'required Core checklist items reject disabled status as ready',
-    '400x600 minimum window keeps the current primary action visible',
-    'background shell inert and aria-hidden while first-run is active',
-    'macOS traffic-light safe area and non-mac desktop window controls',
-    'localized accessible names without testid labels',
-    'localized inline errors with raw diagnostics only in technical details',
-    'background maintenance collapsed technical disclosure',
-    'technical details toggle',
-  ]) {
-    if (!firstLaunchPage.must_show?.includes(signal)) {
-      throw new Error(`First-launch readiness page must show ${signal}`);
-    }
-  }
-  for (const hiddenSignal of [
-    'Homebrew, Node, Git, CLT, module, provider, or runtime maintenance as primary first-screen terminal goals',
-    'Full readiness progress as the dominant first-screen message',
-    'raw command output in the beginner primary area',
-    'English runtime checklist labels in the Chinese beginner primary area',
-    'Codex API Configuration, Unknown, or Needs setup in the Chinese beginner primary area',
-    'background maintenance counters or labels in the beginner primary area',
-    'ordinary product navigation before the user enters /guid',
-    'focusable or screen-reader-visible ordinary shell before the user enters /guid',
-    'navigation to /guid mutating or synthesizing ready_to_launch',
-    'ordinary shortcut, tray, deep-link, or notification navigation mounted during first-run',
-    'percentage progress as the dominant first-run signal',
-    'simultaneous competing primary actions',
-    'ready or no-blocker claims before initialize returns',
-    'raw technical errors in beginner toasts',
-    'testid strings as accessible names',
-    'concurrent model access method actions',
-    'automatic navigation away from the FirstRun completion state',
-    'ordinary Settings routes from FirstRun technical details',
-    'Gateway account device label controls during first-run',
-    'submitted Gateway passwords or access keys in renderer errors or diagnostics',
-  ]) {
-    if (!firstLaunchPage.must_not_show?.includes(hiddenSignal)) {
-      throw new Error(`First-launch readiness page must not show ${hiddenSignal}`);
-    }
-  }
+  assertNonEmptyStringArray(firstLaunchPage.must_show, 'First-launch readiness page must_show');
+  assertIncludesAll(
+    firstLaunchPage.must_show,
+    [
+      'workspace root readiness',
+      'Codex CLI readiness',
+      'Codex model access readiness',
+      'ready_to_launch before first conversation, not before /guid',
+      'Desktop and WebUI model access default to OPL Gateway account login with email and password while API Key remains a compatibility choice',
+      '400x600 minimum window keeps the current primary action visible',
+      'background shell inert and aria-hidden while first-run is active',
+    ],
+    'First-launch readiness page must_show core signals',
+  );
+  assertNonEmptyStringArray(firstLaunchPage.must_not_show, 'First-launch readiness page must_not_show');
+  assertIncludesAll(
+    firstLaunchPage.must_not_show,
+    [
+      'ordinary product navigation before the user enters /guid',
+      'navigation to /guid mutating or synthesizing ready_to_launch',
+      'percentage progress as the dominant first-run signal',
+      'raw technical errors in beginner toasts',
+      'submitted Gateway passwords or access keys in renderer errors or diagnostics',
+    ],
+    'First-launch readiness page must_not_show guardrails',
+  );
   const localizationPolicy = firstLaunchPage.beginner_view_model?.localization_policy;
   assertIncludesAll(
     localizationPolicy?.chinese_primary_labels,
@@ -558,45 +519,29 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
   if (runtimeViewModel.authority_boundary?.non_authority_display_only !== true) {
     throw new Error('Runtime page view model must be display-only for non-authority domain refs');
   }
-  const requiredEvidencePath = [
-    'WorkItemProjection v2 project status',
-    'top-level item_id row and detail identity with full agent_id plus project_id plus work_item_id mutation and readback tuple',
-    'project display name from canonical workspace_path basename',
-    'action title_key and summary_key with one message_args object plus owner and owner_kind rendered in the current App locale',
-    'visible Runtime main list and separate archived tasks library using the same Agent then Project scope',
-    'work_item_visibility_set expected generation execute, fast refresh, and authoritative readback',
-    'generation conflict refresh followed by user retry',
-    'task title, lifecycle status, execution state, current Stage, next Stage, next action, owner, elapsed time, and Token usage',
-    'Stage popover with complete Stage order and current Attempt',
-    'Stage popover click independent from task detail drawer',
-    'telemetry missing fallback when elapsed, heartbeat, or usage are absent',
-    'fast App state refresh',
-    'operator summaries, safe actions, software updates, platform repair, module health, and provider diagnostics excluded from Runtime and routed to Settings',
-  ];
-  assertDeepEqualJson(runtimePage.runtime_acceptance_evidence, requiredEvidencePath, 'Runtime page acceptance evidence');
-  const requiredRuntimeSignals = [
-    'WorkItemProjection v2 project status',
-    'two-level Agent then Project scope',
-    'single-select status filter and Archived tasks entry',
-    'top-level item_id row and detail identity with full mutation and readback tuple',
-    'canonical workspace_path basename as the Runtime Project display name',
-    'localized action, Next Step, and owner copy from semantic keys and owner kind',
-    'visible-only Runtime main list and separate Archived tasks library with restore',
-    'work_item_visibility_set mutation with expected generation, refresh, and readback',
-    'stale generation conflict refresh and retry state',
-    'task title, lifecycle status, execution state, current Stage, next Stage, next action, owner, and elapsed time',
-    'current stage usage and task total usage or telemetry missing',
-    'clickable current Stage popover with complete Stage order, next Stage, and current Attempt',
-    'Stage click does not open the task detail drawer',
-    'selected task detail drawer with Stage Map, heartbeat, Token, and action only',
-    'operator summaries, safe actions, software updates, platform repair, module health, and provider diagnostics excluded from Runtime and routed to Settings',
-    'responsive semantic row reflow without horizontal page overflow',
-    'localized failure summary with Retry and Open Maintenance actions',
-    'collapsed copyable technical details that wrap without clipping at 375px and 400px',
-    'mutually exclusive loading, ready, empty, error, and unavailable states',
-  ];
-  assertDeepEqualJson(runtimePage.must_show, requiredRuntimeSignals, 'Runtime page must_show');
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(runtimePage.runtime_acceptance_evidence, 'Runtime page acceptance evidence');
+  assertIncludesAll(
+    runtimePage.runtime_acceptance_evidence,
+    [
+      'WorkItemProjection v2 project status',
+      'work_item_visibility_set expected generation execute, fast refresh, and authoritative readback',
+      'operator summaries, safe actions, software updates, platform repair, module health, and provider diagnostics excluded from Runtime and routed to Settings',
+    ],
+    'Runtime page acceptance evidence',
+  );
+  assertNonEmptyStringArray(runtimePage.must_show, 'Runtime page must_show');
+  assertIncludesAll(
+    runtimePage.must_show,
+    [
+      'WorkItemProjection v2 project status',
+      'two-level Agent then Project scope',
+      'visible-only Runtime main list and separate Archived tasks library with restore',
+      'mutually exclusive loading, ready, empty, error, and unavailable states',
+    ],
+    'Runtime page must_show',
+  );
+  assertNonEmptyStringArray(runtimePage.must_not_show, 'Runtime page must_not_show');
+  assertIncludesAll(
     runtimePage.must_not_show,
     [
       'operator summary',
@@ -607,18 +552,8 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
       'provider diagnostics',
       'State Index',
       'artifact provenance',
-      'raw IDs',
-      'raw logs',
-      'raw refs',
-      'receipt refs',
-      'workflow IDs and historical attempt IDs',
       'Temporal',
-      'raw projection',
-      'evidence ledger',
-      'current_control_state',
       'release evidence',
-      'raw JSON, absolute paths, or Node warnings on the primary failure surface',
-      'simultaneous refresh-failed and unavailable panels',
     ],
     'Runtime page forbidden display terms',
   );

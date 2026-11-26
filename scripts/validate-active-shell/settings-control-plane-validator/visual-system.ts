@@ -1,5 +1,4 @@
 import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
-import { appOwnedSettingsProductSystemTracks } from "../app-contract-constants.ts";
 import {
   assertNonEmptyString,
   assertNonEmptyStringArray,
@@ -162,14 +161,25 @@ export function validateSettingsProductSystemChecklist(controlPlane) {
   if (!Array.isArray(items) || new Set(items.map((item) => item?.id)).size !== items.length) {
     throw new Error("Settings product system checklist item ids must be present and unique");
   }
+  const productSystemTracks = [
+    "product_positioning",
+    "ia_routes",
+    "control_plane",
+    "shell_adapter",
+    "state_action_protocol",
+    "user_task_ux",
+    "visual_qa",
+    "ops_hygiene",
+    "release_currentness",
+  ];
   assertIncludesAll(
     [...new Set(items.map((item) => item?.track))],
-    appOwnedSettingsProductSystemTracks,
+    productSystemTracks,
     "Settings product system checklist tracks",
   );
   for (const item of items) {
     assertNonEmptyString(item?.id, "Settings product system checklist item id");
-    if (!appOwnedSettingsProductSystemTracks.includes(item.track)) {
+    if (!productSystemTracks.includes(item.track)) {
       throw new Error(
         `Settings product system checklist item ${item.id} has unknown track ${item.track}`,
       );

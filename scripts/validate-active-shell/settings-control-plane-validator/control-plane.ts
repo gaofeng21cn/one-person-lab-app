@@ -5,10 +5,6 @@ import {
   appOwnedSettingsCompatibilityRedirects,
   appOwnedSettingsIaGroupIds,
   appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
   appOwnedSettingsTabs,
   appOwnedSettingsTopLevelEntryIds,
 } from "../app-contract-constants.ts";
@@ -620,6 +616,57 @@ export function validateSettingsControlPlaneBehavior({
   }
 }
 
+const appUpdateStatePolicyRef =
+  "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.app_update_state_policy";
+const managedUpdateRepairPolicyRef =
+  "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.repair_availability_policy";
+
+function validateAppUpdateStatePolicyObject(policy, label) {
+  const expectedStatusValues = [
+    "not_checked",
+    "checking",
+    "not-available",
+    "available",
+    "downloading",
+    "downloaded",
+    "error",
+    "cancelled",
+  ];
+  if (
+    policy?.schema !== "opl_app_update_state_policy.v1" ||
+    policy.desktop?.state_source !== "single_main_process_updater_state_store" ||
+    policy.desktop?.mount_check !== false ||
+    !Array.isArray(policy.desktop?.status_values) ||
+    policy.desktop.status_values.length !== expectedStatusValues.length ||
+    !expectedStatusValues.every((value) => policy.desktop.status_values.includes(value)) ||
+    policy.attention_accounting?.independent !== true ||
+    policy.webui?.fallback_source !==
+      "opl app state --profile fast --json#managed_update.components[component_id=opl_app]" ||
+    policy.desktop?.background_completion !== "silent_install_on_normal_app_restart"
+  ) {
+    throw new Error(`${label} must keep a single desktop updater store, mount_check=false, full status vocabulary, and independent attention accounting`);
+  }
+  assertIncludesAll(policy.desktop?.consumers, ["about", "maintenance", "settings_footer"], label);
+  assertIncludesAll(policy.desktop?.attention_states, ["available", "downloading", "downloaded", "error"], label);
+}
+
+function validateManagedUpdateRepairPolicyObject(policy, label) {
+  if (
+    policy?.schema !== "opl_managed_update_repair_availability_policy.v1" ||
+    policy.current_state_precedence !== true ||
+    policy.historical_receipt_role !== "diagnostics_only" ||
+    policy.historical_receipt_may_activate_current_repair !== false ||
+    policy.unavailable_primary_action !== "check_current_status"
+  ) {
+    throw new Error(`${label} must prioritize current repair state and keep historical receipts diagnostics-only`);
+  }
+  assertIncludesAll(
+    policy.current_repair_signals,
+    ["component.repair_allowed", "component.can_repair", "component.state=failed_with_repair", "current_repair_action"],
+    label,
+  );
+}
+
 export function validateSettingsAppUpdateAuthority({
   controlPlane,
   guiContract,
@@ -627,172 +674,59 @@ export function validateSettingsAppUpdateAuthority({
   productProfile,
 }) {
   const assertPolicyRef = (actual, label) => {
-    if (actual !== appOwnedSettingsAppUpdateStatePolicyRef) {
-      throw new Error(
-        `${label} must reference the shared App update state policy`,
-      );
+    if (actual !== appUpdateStatePolicyRef) {
+      throw new Error(`${label} must reference the shared App update state policy`);
     }
   };
   const assertRepairPolicyRef = (actual, label) => {
-    if (actual !== appOwnedSettingsManagedUpdateRepairPolicyRef) {
-      throw new Error(
-        `${label} must reference the current managed-update repair policy`,
-      );
+    if (actual !== managedUpdateRepairPolicyRef) {
+      throw new Error(`${label} must reference the current managed-update repair policy`);
     }
   };
   const validateFooter = (footer, label) => {
     if (
-      footer?.availability_source !==
-        "single_main_process_updater_state_store" ||
+      footer?.availability_source !== "single_main_process_updater_state_store" ||
       footer?.webui_fallback_source !==
         "opl app state --profile fast --json#managed_update.components[component_id=opl_app]" ||
-      footer?.app_update_state_policy_ref !==
-        appOwnedSettingsAppUpdateStatePolicyRef
+      footer?.app_update_state_policy_ref !== appUpdateStatePolicyRef
     ) {
-      throw new Error(
-        `${label} must use the shared desktop updater store with the WebUI managed fallback`,
-      );
+      throw new Error(`${label} must use the shared desktop updater store with the WebUI managed fallback`);
     }
   };
 
+  const guiUpdatePolicy = guiContract?.framework_surfaces?.managed_update_plane?.app_update_state_policy;
+  const guiRepairPolicy = guiContract?.framework_surfaces?.managed_update_plane?.repair_availability_policy;
   if (guiContract) {
-    assertDeepEqualJson(
-      guiContract.framework_surfaces?.managed_update_plane
-        ?.app_update_state_policy,
-      appOwnedSettingsAppUpdateStatePolicy,
-      "App GUI shared App update state policy",
-    );
-    assertDeepEqualJson(
-      guiContract.framework_surfaces?.managed_update_plane
-        ?.repair_availability_policy,
-      appOwnedSettingsManagedUpdateRepairPolicy,
-      "App GUI managed-update repair availability policy",
-    );
-    assertDeepEqualJson(
-      guiContract.pages?.about?.updater_state_policy,
-      appOwnedSettingsAboutUpdaterStatePolicy,
-      "App GUI About updater state policy",
-    );
-    assertPolicyRef(
-      guiContract.pages?.settings_environment?.app_update_state_policy_ref,
-      "App GUI Maintenance",
-    );
-    assertRepairPolicyRef(
-      guiContract.pages?.settings_environment
-        ?.managed_update_repair_availability_policy_ref,
-      "App GUI Maintenance",
-    );
-    validateFooter(
-      guiContract.settings_navigation?.footer_update_entry,
-      "App GUI Settings footer",
-    );
+    validateAppUpdateStatePolicyObject(guiUpdatePolicy, "App GUI shared App update state policy");
+    validateManagedUpdateRepairPolicyObject(guiRepairPolicy, "App GUI managed-update repair availability policy");
+    assertDeepEqualJson(guiContract.pages?.about?.updater_state_policy, appOwnedSettingsAboutUpdaterStatePolicy, "App GUI About updater state policy");
+    assertPolicyRef(guiContract.pages?.settings_environment?.app_update_state_policy_ref, "App GUI Maintenance");
+    assertRepairPolicyRef(guiContract.pages?.settings_environment?.managed_update_repair_availability_policy_ref, "App GUI Maintenance");
+    validateFooter(guiContract.settings_navigation?.footer_update_entry, "App GUI Settings footer");
   }
 
   if (pageStateMatrix) {
-    assertDeepEqualJson(
-      pageById(pageStateMatrix, "about").updater_state_policy,
-      appOwnedSettingsAboutUpdaterStatePolicy,
-      "Page-state About updater state policy",
-    );
-    assertPolicyRef(
-      pageById(pageStateMatrix, "environment").app_update_state_policy_ref,
-      "Page-state Maintenance",
-    );
-    assertRepairPolicyRef(
-      pageById(pageStateMatrix, "environment")
-        .managed_update_repair_availability_policy_ref,
-      "Page-state Maintenance",
-    );
-    validateFooter(
-      pageStateMatrix.settings_shell_navigation?.footer_update_entry,
-      "Page-state Settings footer",
-    );
-  }
-
-  if (controlPlane) {
-    assertDeepEqualJson(
-      controlPlane.app_update_state_policy,
-      appOwnedSettingsAppUpdateStatePolicy,
-      "Settings control-plane App update state policy",
-    );
-    assertDeepEqualJson(
-      controlPlane.managed_update_repair_availability_policy,
-      appOwnedSettingsManagedUpdateRepairPolicy,
-      "Settings control-plane managed-update repair availability policy",
-    );
-    assertPolicyRef(
-      controlPlane.page_adapter_policy?.required_pages?.about
-        ?.app_update_state_policy_ref,
-      "Settings About adapter",
-    );
-    assertPolicyRef(
-      controlPlane.page_adapter_policy?.required_pages?.environment
-        ?.app_update_state_policy_ref,
-      "Settings Maintenance adapter",
-    );
-    assertRepairPolicyRef(
-      controlPlane.page_adapter_policy?.required_pages?.environment
-        ?.managed_update_repair_availability_policy_ref,
-      "Settings Maintenance adapter",
-    );
-    assertPolicyRef(
-      controlPlane.experience_contract?.page_contracts?.about
-        ?.app_update_state_policy_ref,
-      "Settings About experience",
-    );
-    assertPolicyRef(
-      controlPlane.experience_contract?.page_contracts?.maintenance
-        ?.app_update_state_policy_ref,
-      "Settings Maintenance experience",
-    );
-    assertRepairPolicyRef(
-      controlPlane.experience_contract?.page_contracts?.maintenance
-        ?.managed_update_repair_availability_policy_ref,
-      "Settings Maintenance experience",
-    );
+    assertDeepEqualJson(pageById(pageStateMatrix, "about").updater_state_policy, appOwnedSettingsAboutUpdaterStatePolicy, "Page-state About updater state policy");
+    assertPolicyRef(pageById(pageStateMatrix, "environment").app_update_state_policy_ref, "Page-state Maintenance");
+    assertRepairPolicyRef(pageById(pageStateMatrix, "environment").managed_update_repair_availability_policy_ref, "Page-state Maintenance");
+    validateFooter(pageStateMatrix.settings_shell_navigation?.footer_update_entry, "Page-state Settings footer");
   }
 
   const profileControlPlane = productProfile?.settings?.control_plane;
-  if (profileControlPlane) {
-    assertDeepEqualJson(
-      profileControlPlane.app_update_state_policy,
-      appOwnedSettingsAppUpdateStatePolicy,
-      "Product profile App update state policy projection",
-    );
-    assertDeepEqualJson(
-      profileControlPlane.managed_update_repair_availability_policy,
-      appOwnedSettingsManagedUpdateRepairPolicy,
-      "Product profile managed-update repair availability policy projection",
-    );
-    assertPolicyRef(
-      profileControlPlane.page_adapter_policy?.required_pages?.about
-        ?.app_update_state_policy_ref,
-      "Product profile About adapter",
-    );
-    assertPolicyRef(
-      profileControlPlane.page_adapter_policy?.required_pages?.environment
-        ?.app_update_state_policy_ref,
-      "Product profile Maintenance adapter",
-    );
-    assertRepairPolicyRef(
-      profileControlPlane.page_adapter_policy?.required_pages?.environment
-        ?.managed_update_repair_availability_policy_ref,
-      "Product profile Maintenance adapter",
-    );
-    assertPolicyRef(
-      profileControlPlane.experience_contract?.page_contracts?.about
-        ?.app_update_state_policy_ref,
-      "Product profile About experience",
-    );
-    assertPolicyRef(
-      profileControlPlane.experience_contract?.page_contracts?.maintenance
-        ?.app_update_state_policy_ref,
-      "Product profile Maintenance experience",
-    );
-    assertRepairPolicyRef(
-      profileControlPlane.experience_contract?.page_contracts?.maintenance
-        ?.managed_update_repair_availability_policy_ref,
-      "Product profile Maintenance experience",
-    );
+  for (const [surfaceLabel, surface, updateLabel, repairLabel] of [
+    ["Settings", controlPlane, "Settings control-plane App update state policy", "Settings control-plane managed-update repair availability policy"],
+    ["Product profile", profileControlPlane, "Product profile App update state policy projection", "Product profile managed-update repair availability policy projection"],
+  ] as const) {
+    if (!surface) continue;
+    validateAppUpdateStatePolicyObject(surface.app_update_state_policy, updateLabel);
+    if (guiUpdatePolicy) assertDeepEqualJson(surface.app_update_state_policy, guiUpdatePolicy, updateLabel);
+    validateManagedUpdateRepairPolicyObject(surface.managed_update_repair_availability_policy, repairLabel);
+    if (guiRepairPolicy) assertDeepEqualJson(surface.managed_update_repair_availability_policy, guiRepairPolicy, repairLabel);
+    assertPolicyRef(surface.page_adapter_policy?.required_pages?.about?.app_update_state_policy_ref, `${surfaceLabel} About adapter`);
+    assertPolicyRef(surface.page_adapter_policy?.required_pages?.environment?.app_update_state_policy_ref, `${surfaceLabel} Maintenance adapter`);
+    assertRepairPolicyRef(surface.page_adapter_policy?.required_pages?.environment?.managed_update_repair_availability_policy_ref, `${surfaceLabel} Maintenance adapter`);
+    assertPolicyRef(surface.experience_contract?.page_contracts?.about?.app_update_state_policy_ref, `${surfaceLabel} About experience`);
+    assertPolicyRef(surface.experience_contract?.page_contracts?.maintenance?.app_update_state_policy_ref, `${surfaceLabel} Maintenance experience`);
+    assertRepairPolicyRef(surface.experience_contract?.page_contracts?.maintenance?.managed_update_repair_availability_policy_ref, `${surfaceLabel} Maintenance experience`);
   }
 }

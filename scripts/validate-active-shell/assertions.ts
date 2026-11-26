@@ -23,6 +23,14 @@ function assertStringArrayExact(actual, expected, label) {
   }
 }
 
+export function assertFieldsMatch(actual, expected, label, separator = ' ') {
+  for (const [field, expectedValue] of Object.entries(expected)) {
+    if (actual?.[field] !== expectedValue) {
+      throw new Error(`${label}${separator}${field} must be ${expectedValue}`);
+    }
+  }
+}
+
 export function assertForbiddenCapabilityPolicy(actual, expected, label) {
   for (const field of ['exact', 'prefixes', 'contains']) {
     assertStringArrayExact(actual?.forbidden_mcp_matchers?.[field], expected.forbidden_mcp_matchers[field], `${label}.${field}`);
