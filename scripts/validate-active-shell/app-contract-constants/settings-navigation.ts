@@ -23,24 +23,6 @@ export const appOwnedSettingsNavigationDestinationIds = [
   "logs_diagnostics",
   "preferences",
 ];
-export const appOwnedSettingsNavigationGroupLabels = {
-  overview: { label_zh: "概览", label_en: "Overview" },
-  account_models: { label_zh: "账户与模型", label_en: "Account & Models" },
-  connections_deployment: {
-    label_zh: "连接与部署",
-    label_en: "Connections & Deployment",
-  },
-  workspace: { label_zh: "工作区", label_en: "Workspace" },
-  agents_capabilities: {
-    label_zh: "能力与指令",
-    label_en: "Capabilities & Instructions",
-  },
-  runtime_maintenance: {
-    label_zh: "运行与维护",
-    label_en: "Runtime & Maintenance",
-  },
-  preferences: { label_zh: "偏好", label_en: "Preferences" },
-};
 export const appOwnedSettingsNavigationDestinationOwners = {
   overview_status: { owner_group_id: "overview", route_id: "general" },
   account_access: { owner_group_id: "account_models", route_id: "gateway" },
@@ -133,18 +115,3 @@ export const appOwnedSettingsTopLevelEntryIds = [
   "storage",
   "preferences",
 ];
-export const appOwnedSettingsTopLevelLabels = {
-  overview: { label_zh: "概览", label_en: "Overview" },
-  gateway: { label_zh: "账户与访问", label_en: "Account & Access" },
-  models: { label_zh: "模型", label_en: "Models" },
-  workspace: {
-    label_zh: "工作区",
-    label_en: "Workspace",
-  },
-  agents: { label_zh: "智能体", label_en: "Agents" },
-  capabilities: { label_zh: "扩展与应用", label_en: "Extensions & Apps" },
-  resources: { label_zh: "资料与连接", label_en: "Libraries & connections" },
-  maintenance: { label_zh: "维护", label_en: "Maintenance" },
-  storage: { label_zh: "数据与存储", label_en: "Data & Storage" },
-  preferences: { label_zh: "偏好", label_en: "Preferences" },
-};

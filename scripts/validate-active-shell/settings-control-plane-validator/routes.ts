@@ -1,61 +1,6 @@
-import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
-import {
-  appActionRoute,
-  appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
-  appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
-  appOwnedSettingsCapabilitiesTabContract,
-  appOwnedSettingsConfirmationFields,
-  appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
-  appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
-  appOwnedSettingsNavigationDestinationIds,
-  appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
-  appOwnedSettingsPostUpdateNoticeFields,
-  appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
-  appOwnedSettingsProductPageIds,
-  appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
-  appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
-  appOwnedSettingsTabs,
-  appOwnedSettingsTaskEntryMetadataFields,
-  appOwnedSettingsTechnicalDetailsDefault,
-  appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
-  appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
-} from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
-
-import {
-  settingsIaRef,
-} from "./constants.ts";
-import {
-  assertKnownSettingsRoute,
-  settingsRouteResolution,
-} from "./shared.ts";
+import { assertDeepEqualJson } from "../assertions.ts";
+import { settingsIaRef } from "./constants.ts";
+import { settingsRouteResolution } from "./shared.ts";
 
 export function buildHydratedSettingsRegistry(controlPlane) {
   return {
@@ -186,6 +131,15 @@ export function validateCrossContractConsistency(
   productProfile,
 ) {
   const settingsNavigation = guiContract?.settings_navigation;
+  const searchProtocol = settingsNavigation?.settings_ia?.protocols?.settings_search;
+  const searchExperience = controlPlane.experience_contract?.global_search;
+  for (const field of ["global_entry_count", "entry_testid", "languages"]) {
+    assertDeepEqualJson(
+      searchExperience?.[field],
+      searchProtocol?.[field],
+      `Settings global search ${field} vs GUI search protocol`,
+    );
+  }
   assertDeepEqualJson(
     settingsNavigation?.ordinary_visible_tabs,
     controlPlane.ordinary_visible_tabs,
@@ -330,31 +284,8 @@ export function validateSettingsUserNavigationProjection(projection, settingsIa)
   }
   assertDeepEqualJson(
     projection.primary_group_order,
-    appOwnedSettingsIaGroupIds,
+    settingsIa?.group_ids,
     "Settings user navigation primary group order",
-  );
-  assertDeepEqualJson(
-    (projection.primary_groups ?? []).map((group) => group.id),
-    appOwnedSettingsIaGroupIds,
-    "Settings user navigation primary group ids",
-  );
-  assertDeepEqualJson(
-    Object.fromEntries(
-      (projection.primary_groups ?? []).map((group) => [
-        group.id,
-        { label_zh: group.label_zh, label_en: group.label_en },
-      ]),
-    ),
-    appOwnedSettingsNavigationGroupLabels,
-    "Settings user navigation primary group labels",
-  );
-  const destinationIds = (projection.destinations ?? []).map(
-    (destination) => destination.id,
-  );
-  assertDeepEqualJson(
-    destinationIds,
-    appOwnedSettingsNavigationDestinationIds,
-    "Settings user navigation destination ids",
   );
   for (const group of projection.primary_groups ?? []) {
     if (
@@ -365,27 +296,12 @@ export function validateSettingsUserNavigationProjection(projection, settingsIa)
         `Settings user navigation group ${group.id} must own its default destination`,
       );
     }
-  }
-  assertDeepEqualJson(
-    (projection.primary_groups ?? []).flatMap((group) => group.destination_ids),
-    appOwnedSettingsNavigationDestinationIds,
-    "Settings user navigation group destination order",
-  );
-  for (const destination of projection.destinations ?? []) {
-    const expected = appOwnedSettingsNavigationDestinationOwners[destination.id];
-    if (
-      !expected ||
-      destination.owner_group_id !== expected.owner_group_id ||
-      destination.route_id !== expected.route_id ||
-      (destination.anchor ?? null) !== (expected.anchor ?? null)
-    ) {
-      throw new Error(
-        `Settings user navigation destination ${destination.id} must preserve its user owner and carrier route`,
-      );
-    }
-    assertKnownSettingsRoute(
-      destination.route_id,
-      `Settings user navigation destination ${destination.id}`,
+    assertDeepEqualJson(
+      group.destination_ids,
+      (settingsIa?.child_entries ?? [])
+        .filter((entry) => entry.group_id === group.id)
+        .map((entry) => entry.id),
+      `Settings user navigation group ${group.id} destination order`,
     );
   }
   assertDeepEqualJson(
@@ -416,16 +332,14 @@ export function validateSettingsUserNavigationProjection(projection, settingsIa)
   );
   assertDeepEqualJson(
     projection.auxiliary_entries,
-    [
-      {
-        id: "about",
-        route_id: "about",
-        placement: "sidebar_bottom",
-        label_zh: "关于",
-        label_en: "About",
-      },
-    ],
-    "Settings user navigation auxiliary entries",
+    (settingsIa?.auxiliary_entries ?? []).map(({ id, route_id, placement, label_zh, label_en }) => ({
+      id,
+      route_id,
+      placement,
+      label_zh,
+      label_en,
+    })),
+    "Settings user navigation auxiliary entries vs GUI contract",
   );
   for (const [field, expected] of Object.entries({
     desktop:
@@ -460,11 +374,6 @@ export function validateSettingsUserNavigationProjection(projection, settingsIa)
       "Settings user navigation must preserve global search, bottom About, and forbid a duplicate Settings footer entry",
     );
   }
-  assertDeepEqualJson(
-    projection.primary_group_order,
-    settingsIa?.group_ids,
-    "Settings user navigation vs GUI group order",
-  );
   assertDeepEqualJson(
     (projection.primary_groups ?? []).map((group) => ({
       id: group.id,

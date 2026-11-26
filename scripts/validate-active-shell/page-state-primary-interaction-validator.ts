@@ -1,10 +1,7 @@
-import { assertDeepEqualJson, assertIncludesAll } from './assertions.ts';
+import { assertDeepEqualJson, assertIncludesAll, readJson } from './assertions.ts';
+import { guiProductContractPath } from './validation-config.ts';
 import {
-  appOwnedPageStateHomeLayout,
-  appOwnedPageStateOrdinaryConversation,
-  appOwnedReviewSurfaceSourceEvidence,
   appOwnedRightContextInspectorForbiddenOwners,
-  appOwnedRightContextInspectorPolicy,
   homeActivityCenterForbiddenDisplays,
   appOwnedOplStandardAgentMembershipPolicy,
 } from './app-contract-constants.ts';
@@ -18,13 +15,13 @@ function validateDynamicHomeComposerStateContract(value, label) {
   assertHomeComposerStateContract(value, label);
 }
 
-export function validatePrimaryInteractionPages(matrix) {
+export function validatePrimaryInteractionPages(matrix, guiContract = readJson(guiProductContractPath)) {
   if (matrix.schema_version !== 2) {
     throw new Error('App page-state matrix schema_version must be 2');
   }
-  validateGuidHomePage(matrix);
-  validateOrdinaryConversationPage(matrix);
-  validateRightContextInspectorPage(matrix);
+  validateGuidHomePage(matrix, guiContract);
+  validateOrdinaryConversationPage(matrix, guiContract);
+  validateRightContextInspectorPage(matrix, guiContract);
 }
 
 function pageById(matrix, id, label) {
@@ -35,12 +32,12 @@ function pageById(matrix, id, label) {
   return page;
 }
 
-function validateGuidHomePage(matrix) {
+function validateGuidHomePage(matrix, guiContract) {
   const guidHomePage = pageById(matrix, 'guid_home', 'guid_home');
   validateGuidHomePageSource(guidHomePage);
   const homeViewModel = guidHomePage.home_view_model;
   validateGuidHomeViewModelFields(homeViewModel);
-  validateGuidHomeLayout(homeViewModel);
+  validateGuidHomeLayout(homeViewModel, guiContract.home_layout);
   validateGuidHomeAgentPackageAuthority(homeViewModel);
   validateGuidHomeRouteCompatibility(homeViewModel);
   validateDynamicHomeComposerStateContract(
@@ -109,11 +106,18 @@ function validateGuidHomeViewModelFields(homeViewModel) {
   }
 }
 
-function validateGuidHomeLayout(homeViewModel) {
+function validateGuidHomeLayout(homeViewModel, guiHomeLayout) {
+  const { runtime_notice_policy_ref, must_not_show, ...sharedLayout } = guiHomeLayout;
+  const { must_not_show: hiddenSignals, ...pageLayout } = homeViewModel.home_layout ?? {};
+  assertDeepEqualJson(pageLayout, sharedLayout, 'Guid home page layout');
+  const navigationExclusions = [
+    'Sites entry without an OPL product capability',
+    'Chat entry without an OPL product capability',
+  ];
   assertDeepEqualJson(
-    homeViewModel.home_layout,
-    appOwnedPageStateHomeLayout,
-    'Guid home page layout',
+    hiddenSignals,
+    must_not_show.filter((signal) => !navigationExclusions.includes(signal)),
+    'Guid home page layout forbidden surfaces',
   );
   if (homeViewModel.ordinary_visible_mcp_server_ids !== undefined) {
     throw new Error('Guid home must not turn configured MCP servers into an App allowlist');
@@ -269,11 +273,16 @@ function fieldsFrom(record, expectedFields) {
   return Object.fromEntries(Object.keys(expectedFields).map((field) => [field, record?.[field]]));
 }
 
-function validateOrdinaryConversationPage(matrix) {
-  const ordinaryConversationPage = pageById(matrix, 'ordinary_conversation', 'ordinary_conversation');
-  if (ordinaryConversationPage.page_contract !== 'ordinary_codex_conversation') {
+function validateOrdinaryConversationPage(matrix, guiContract) {
+  const page = pageById(matrix, 'ordinary_conversation', 'ordinary_conversation');
+  if (page.page_contract !== 'ordinary_codex_conversation') {
     throw new Error('Ordinary conversation page contract must be ordinary_codex_conversation');
   }
+  const {
+    mobile_action_sheet: actionSheet,
+    current_task_slice: taskSlice,
+    ...conversationModel
+  } = page.conversation_view_model ?? {};
   const {
     experience_contract_ref: actionSheetContractRef,
     minimum_viewport: actionSheetMinimumViewport,
@@ -282,26 +291,23 @@ function validateOrdinaryConversationPage(matrix) {
     all_actions_reachable: actionSheetActionsReachable,
     horizontal_overflow_allowed: actionSheetHorizontalOverflowAllowed,
     ...baseMobileActionSheet
-  } = ordinaryConversationPage.conversation_view_model?.mobile_action_sheet ?? {};
+  } = actionSheet ?? {};
+  const {
+    model_status_surface,
+    current_task_slice: guiTaskSlice,
+    ...guiConversation
+  } = guiContract.ordinary_conversation;
+  const { fields: taskFields, ...taskPolicy } = taskSlice ?? {};
+  const { fields: guiTaskFields, ...guiTaskPolicy } = guiTaskSlice;
   assertDeepEqualJson(
+    { ...conversationModel, mobile_action_sheet: baseMobileActionSheet, current_task_slice: taskPolicy },
     {
-      ...Object.fromEntries(
-        Object.entries(ordinaryConversationPage.conversation_view_model ?? {}).map(([key, value]) => [
-          key,
-          key === 'mobile_action_sheet' ? baseMobileActionSheet : value,
-        ]),
-      ),
-      current_task_slice: Object.fromEntries(
-        Object.entries(ordinaryConversationPage.conversation_view_model?.current_task_slice ?? {}).filter(
-          ([key]) => key !== 'fields',
-        ),
-      ),
-    },
-    {
-      ...appOwnedPageStateOrdinaryConversation,
-      current_task_slice: Object.fromEntries(
-        Object.entries(appOwnedPageStateOrdinaryConversation.current_task_slice).filter(([key]) => key !== 'fields'),
-      ),
+      ...guiConversation,
+      model_status_surface_ref:
+        'contracts/app-gui-product-contract.json#executor_policy.default_model_display_value',
+      conversation_rendering_ref:
+        'contracts/app-gui-product-contract.json#interaction_baseline.visual_target.conversation_rendering',
+      current_task_slice: guiTaskPolicy,
     },
     'Ordinary conversation view model shell policy',
   );
@@ -325,87 +331,30 @@ function validateOrdinaryConversationPage(matrix) {
     },
     'Ordinary conversation mobile action-sheet reachability',
   );
-  assertIncludesAll(
-    ordinaryConversationPage.conversation_view_model?.current_task_slice?.fields,
-    [
-      ...appOwnedPageStateOrdinaryConversation.current_task_slice.fields,
-      'resource_plan_ref',
-      'resource_approval_ref',
-      'resource_usage_ref',
-      'console_policy_ref',
-      'environment_template_ref',
-      'environment_version_ref',
-    ],
-    'Ordinary conversation current task fields',
-  );
-  assertIncludesAll(ordinaryConversationPage.must_show, [
-    'Codex CLI ordinary conversation',
-    'floating bottom composer with safe inset',
-    'compact active capability chip',
-    'desktop unified plus menu, permission and access, model and reasoning, and send or stop controls in the composer',
-    'mobile plus sheet reusing the unified context menu with access, model and reasoning, and active capability actions',
-    'composer-width searchable grouped plus palette for files, folders, real owner-or-carrier projected capabilities, adapter-reported nonduplicate modes, and available App connections without workspace selection',
-    'explicit attachments, file or directory selection, paste, drop, and /open consumed by the current session send only',
-    'failed conversation creation, initial send, or in-conversation send restores prompt and attachments without overwriting post-submit input',
-    'permission and access mode in user language',
-    'projectless text conversation when no workspace is selected',
-    'projectless attachments, arbitrary local file or directory selection, paste, drop, and /open subject only to Codex permissions',
-    'read-only Conversation Environment showing the recorded workspace and live Git context when available',
-    'Codex default model and reasoning status',
-    'single current task instance in the message timeline, inline and unpinned for ordinary tasks',
-    'current task becomes sticky only after user pin or a true long_running signal',
-    'read-only Codex subagent activity grouped as Active and Done with detail, result, and open canonical task',
-    'complete paginated redacted transcript export with Markdown default, strict JSON, explicit directory and filename',
-    'Preview accepts only explicit session attachments, visible conversation results, or user-selected legal absolute local paths',
-  ], 'Ordinary conversation page visible signals');
-  assertIncludesAll(ordinaryConversationPage.must_not_show, [
-    'backend selector as normal conversation control',
-    'provider selector as normal conversation control',
-    'provider or backend language inside permission and access mode',
-    'persistent variable purpose selector in the composer',
-    'persistent project, workspace, locality, branch, attachment, or workspace-context-ref context strip',
-    'workspace-scoped project context inputs or an Add context action in the directory rail',
-    'workspaceRootReady or workspace membership used as a file-access gate',
-    'backend, provider, Team, raw MCP, or arbitrary skills in the mobile plus sheet',
-    'bound-session arbitrary project or working-directory reassignment controls',
-    'Local or Worktree launch modes, starting branch, managed worktree, handoff, snapshot, restore, cleanup, or deletion controls',
-    'cross-host task handoff controls',
-    'duplicate current task or Runtime summary outside the message timeline',
-    'AionUI Team, second App Server client, background polling, Team store, subagent scheduler, Shell execution authority, or direct subagent control buttons',
-    'workspace bundle export authorization',
-    'standalone projectless or no working directory placeholder row',
-  ], 'Ordinary conversation page hidden signals');
+  assertIncludesAll(taskFields, guiTaskFields, 'Ordinary conversation current task fields');
+  const guiPage = guiContract.pages.ordinary_conversation;
+  const sharedVisibleSignals = guiPage.must_show.filter((signal) => signal !== 'owner-projected Agent route');
+  assertIncludesAll(page.must_show, sharedVisibleSignals, 'Ordinary conversation page visible signals');
+  assertIncludesAll(page.must_not_show, guiPage.must_not_show, 'Ordinary conversation page hidden signals');
 }
 
-function validateRightContextInspectorPage(matrix) {
+function validateRightContextInspectorPage(matrix, guiContract) {
   const rightContextInspectorPage = pageById(matrix, 'right_context_inspector', 'right_context_inspector');
   const inspectorViewModel = rightContextInspectorPage.inspector_view_model;
-  const reviewSurface = inspectorViewModel?.review_surface ?? {};
-  const sourceEvidenceFields = Object.keys(appOwnedReviewSurfaceSourceEvidence);
-  const productPolicy = {
-    ...inspectorViewModel,
-    review_surface: Object.fromEntries(
-      Object.entries(reviewSurface).filter(([key]) => !sourceEvidenceFields.includes(key)),
-    ),
-  };
-  const expectedPolicy = {
-    ...appOwnedRightContextInspectorPolicy,
-    environment_popover_ref:
-      'contracts/app-gui-product-contract.json#interaction_baseline.context_surfaces.environment_popover',
-  };
+  const { current_task_evidence, must_not_own, ...inspectorPolicy } = inspectorViewModel ?? {};
+  const {
+    current_task_evidence: guiCurrentTaskEvidence,
+    must_not_own: guiForbiddenOwners,
+    environment_popover_ref: guiPopoverRef,
+    ...guiInspectorPolicy
+  } = guiContract.right_context_inspector;
   assertDeepEqualJson(
-    Object.fromEntries(
-      Object.entries(productPolicy).filter(
-        ([key]) => !['current_task_evidence', 'must_not_own'].includes(key),
-      ),
-    ),
-    expectedPolicy,
+    inspectorPolicy,
+    {
+      ...guiInspectorPolicy,
+      environment_popover_ref: `contracts/app-gui-product-contract.json#${guiPopoverRef}`,
+    },
     'On-demand advanced workspace surface policy',
-  );
-  assertDeepEqualJson(
-    Object.fromEntries(sourceEvidenceFields.map((key) => [key, reviewSurface[key]])),
-    appOwnedReviewSurfaceSourceEvidence,
-    'On-demand Review source evidence',
   );
   for (const legacyField of ['tabs', 'primary_tools', 'secondary_sections']) {
     if (legacyField in (inspectorViewModel ?? {})) {

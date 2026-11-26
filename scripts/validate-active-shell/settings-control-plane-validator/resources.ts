@@ -1,63 +1,11 @@
 import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
-import {
-  appActionRoute,
-  appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
-  appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
-  appOwnedSettingsCapabilitiesTabContract,
-  appOwnedSettingsConfirmationFields,
-  appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
-  appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
-  appOwnedSettingsNavigationDestinationIds,
-  appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
-  appOwnedSettingsPostUpdateNoticeFields,
-  appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
-  appOwnedSettingsProductPageIds,
-  appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
-  appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
-  appOwnedSettingsTabs,
-  appOwnedSettingsTaskEntryMetadataFields,
-  appOwnedSettingsTechnicalDetailsDefault,
-  appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
-  appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
-} from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
 
 import {
-  expectedAgentsPageAdapterStateSource,
+  expectedAgentsRouteStateSource,
   expectedConditionalResourceGroup,
   expectedConditionalResourceSection,
-  expectedOptionalResourceProjectionPolicy,
 } from "./constants.ts";
-import {
-  pageById,
-} from "./shared.ts";
+import { pageById } from "./shared.ts";
 
 export function validateSettingsGatewayAccountBoundary(controlPlane, gatewayAdapter) {
   const gatewaySource = 'app_state.settings_control_center.app_settings_read_model.opl_gateway_account';
@@ -108,7 +56,7 @@ export function validateSettingsGatewayAccountBoundary(controlPlane, gatewayAdap
 }
 
 export function validateSettingsAgentsDirectoryProjection(agentsPage) {
-  if (agentsPage?.state_source !== expectedAgentsPageAdapterStateSource) {
+  if (agentsPage?.state_source !== expectedAgentsRouteStateSource) {
     throw new Error(
       "Settings Agents page adapter must read from canonical agent_packages and runtime source projections",
     );
@@ -421,45 +369,41 @@ export function validateSettingsOptionalResourceProjection(
     productProfile?.settings?.control_plane?.experience_contract?.page_contracts
       ?.resources;
 
-  for (const [label, policy] of [
-    ["Settings experience", experience?.external_resource_projection_policy],
-    ["GUI Settings Resources", guiPage?.external_resource_projection_policy],
-    [
-      "Page-state Settings Resources",
-      matrixPage?.external_resource_projection_policy,
-    ],
-    [
-      "Product profile Settings Resources",
-      profileExperience?.external_resource_projection_policy,
-    ],
+  const resourcePolicy = experience?.external_resource_projection_policy;
+  if (
+    resourcePolicy?.source !== "settings_control_center.app_settings_read_model.resource_sources" ||
+    resourcePolicy.record_eligibility !== "canonical_record_exists_and_contains_at_least_one_resource_source_owner_or_route_ref" ||
+    resourcePolicy.group_visibility !== "render_each_resource_category_only_when_that_category_has_at_least_one_eligible_record" ||
+    resourcePolicy.empty_projection_policy !== "render_no_external_resource_group_anchor_or_placeholder"
+  ) {
+    throw new Error("Settings experience optional resource projection policy must show only eligible owner records and omit empty groups");
+  }
+  assertDeepEqualJson(resourcePolicy.ordinary_display_fields, [
+    "status", "management_mode", "resource_source_refs", "owner_ref", "route_ref", "projected_action_refs",
+  ], "Settings optional resource projection policy display fields");
+  assertIncludesAll(resourcePolicy.excluded_builtin_ids, ["opl_gateway", "gateway"],
+    "Settings optional resource projection policy excluded built-ins");
+  assertIncludesAll(resourcePolicy.forbidden_app_authority, [
+    "resource_scheduling", "resource_billing", "credential_ownership", "storage_execution", "provider_truth",
+  ], "Settings optional resource projection policy forbidden App authority");
+
+  for (const [label, page] of [
+    ["GUI Settings Resources", guiPage],
+    ["Page-state Settings Resources", matrixPage],
+    ["Product profile Settings Resources", profileExperience],
   ]) {
-    assertDeepEqualJson(
-      policy,
-      expectedOptionalResourceProjectionPolicy,
-      `${label} optional resource projection policy`,
-    );
+    assertDeepEqualJson(page?.external_resource_projection_policy, resourcePolicy,
+      `${label} optional resource projection policy`);
   }
 
-  assertDeepEqualJson(
-    experience?.conditional_groups,
-    [expectedConditionalResourceGroup],
-    "Settings Resources conditional groups",
-  );
-  assertDeepEqualJson(
-    profileExperience?.conditional_groups,
-    [expectedConditionalResourceGroup],
-    "Product profile Settings Resources conditional groups",
-  );
-  assertDeepEqualJson(
-    guiPage?.conditional_sections,
-    [expectedConditionalResourceSection],
-    "GUI Settings Resources conditional sections",
-  );
-  assertDeepEqualJson(
-    matrixPage?.conditional_sections,
-    [expectedConditionalResourceSection],
-    "Page-state Settings Resources conditional sections",
-  );
+  assertDeepEqualJson(experience?.conditional_groups, [expectedConditionalResourceGroup],
+    "Settings Resources conditional groups");
+  assertDeepEqualJson(profileExperience?.conditional_groups, experience.conditional_groups,
+    "Product profile Settings Resources conditional groups");
+  assertDeepEqualJson(guiPage?.conditional_sections, [expectedConditionalResourceSection],
+    "GUI Settings Resources conditional sections");
+  assertDeepEqualJson(matrixPage?.conditional_sections, guiPage.conditional_sections,
+    "Page-state Settings Resources conditional sections");
 
   const ordinaryResourceContract = JSON.stringify({
     access: controlPlane?.page_adapter_policy?.required_pages?.access,

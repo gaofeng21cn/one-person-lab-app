@@ -26,7 +26,7 @@ export const appOwnedTranscriptExport = {
   errors_visible: true,
   workspace_bundle_authorized: false,
 };
-export const appOwnedArtifactPreview = {
+const appOwnedArtifactPreview = {
   surface: "opl_studio_preview_context_and_panel",
   entry_sources: [
     "session_attachment_ref",
@@ -117,23 +117,6 @@ export const appOwnedCurrentTaskSlice = {
   model_ref: "contracts/app-runtime-bridge.json#task_awareness_projection",
   slice_policy:
     "same_task_run_projection_v2_filtered_by_current_conversation_or_selected_task",
-};
-export const appOwnedPageStateOrdinaryConversation = {
-  ...Object.fromEntries(
-    Object.entries(appOwnedOrdinaryConversation).map(([key, value]) =>
-      key === "model_status_surface"
-        ? [
-            "model_status_surface_ref",
-            "contracts/app-gui-product-contract.json#executor_policy.default_model_display_value",
-          ]
-        : [key, value],
-    ),
-  ),
-  conversation_rendering_ref:
-    "contracts/app-gui-product-contract.json#interaction_baseline.visual_target.conversation_rendering",
-  transcript_export: appOwnedTranscriptExport,
-  current_task_slice: appOwnedCurrentTaskSlice,
-  artifact_preview: appOwnedArtifactPreview,
 };
 export const appOwnedRightContextInspectorPolicy = {
   compatibility_name: "right_context_inspector",

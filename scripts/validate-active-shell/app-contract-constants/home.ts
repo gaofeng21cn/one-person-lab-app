@@ -185,18 +185,3 @@ export const appOwnedHomeLayout = {
     "AionUI Team page as ordinary App surface",
   ],
 };
-export const appOwnedPageStateHomeLayout = {
-  ...appOwnedHomeLayout,
-  home_presentation_source_ref:
-    "app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.home_shortcut_preferences[]",
-  must_not_show: [
-    "dashboard-first home",
-    "explanatory landing page",
-    "backend settings panel in composer",
-    "full-width agent category navigation or chevron trail",
-    "working directory selector inside the composer capability palette",
-    "launch-blocked professional-agent shortcut disabled before selection",
-    "AionUI Team nav entry",
-    "AionUI Team page as ordinary App surface",
-  ],
-};

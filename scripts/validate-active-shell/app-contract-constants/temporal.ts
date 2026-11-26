@@ -1,8 +1,4 @@
-export const firstRunEcosystemModules = [
-  "officecli",
-  "mineru",
-  "opl-meta-agent",
-];
+
 export const temporalLocalServiceDefaults = {
   address_env: "OPL_TEMPORAL_ADDRESS",
   default_address: "127.0.0.1:7233",

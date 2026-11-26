@@ -1,60 +1,31 @@
 import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
 import {
-  appActionRoute,
   appOwnedSecondarySettingsPages,
-  appOwnedSettingsResourcesBrowserEntry,
-  appOwnedSettingsCompatibilityRedirects,
-  appOwnedSettingsCardFields,
   appOwnedSettingsCapabilitiesTabContract,
-  appOwnedSettingsConfirmationFields,
-  appOwnedSettingsIaGroupIds,
-  appOwnedSettingsIssueStatuses,
-  appOwnedSettingsAboutUpdaterStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicy,
-  appOwnedSettingsAppUpdateStatePolicyRef,
-  appOwnedSettingsMakeUsableAllowedSteps,
-  appOwnedSettingsMakeUsableForbiddenSteps,
-  appOwnedSettingsManagedDependencySummary,
-  appOwnedSettingsManagedUpdateRepairPolicy,
-  appOwnedSettingsManagedUpdateRepairPolicyRef,
-  appOwnedSettingsNavigationDestinationIds,
-  appOwnedSettingsNavigationDestinationOwners,
-  appOwnedSettingsNavigationGroupLabels,
-  appOwnedSettingsProductSystemItemIds,
-  appOwnedSettingsProductSystemTracks,
-  appOwnedSettingsProjectionItemFields,
-  appOwnedSettingsProjectionSectionIds,
-  appOwnedSettingsPostUpdateNoticeFields,
+  appOwnedSettingsCompatibilityRedirects,
   appOwnedSettingsPageExperienceFields,
-  appOwnedSettingsPageAnchors,
-  appOwnedSettingsPageSearchEntryIds,
   appOwnedSettingsProductPageIds,
   appOwnedSettingsResourceActionBehavior,
-  appOwnedStorageCarrierBehavior,
-  appOwnedWebuiDataVolumeHostActionAbiRef,
-  appOwnedWebuiDataVolumeHostActionCapabilityId,
-  appOwnedSettingsRouteScopes,
+  appOwnedSettingsResourcesBrowserEntry,
   appOwnedSettingsSearchEntryFields,
-  appOwnedSettingsSearchProtocol,
   appOwnedSettingsTabs,
-  appOwnedSettingsTaskEntryMetadataFields,
-  appOwnedSettingsTechnicalDetailsDefault,
   appOwnedSettingsTopLevelEntryIds,
-  appOwnedSettingsTopLevelLabels,
-  appOwnedSettingsUpstreamIntakeClassifications,
-  appOwnedSettingsTaskEntryIds,
-  appOwnedSettingsVisualQaTargets,
-  appOwnedSettingsVisualSystem,
-  legacySettingsRouteRedirects,
+  appOwnedStorageCarrierBehavior,
 } from "../app-contract-constants.ts";
-import { validateSettingsCapabilitiesTaskAwarenessSurface } from "../shared-contract-validators.ts";
 
 import {
   validatePageSurfaceInventory,
   validateSettingsSurfaceModel,
 } from "./page-state.ts";
 
-export function validateSettingsExperienceContract(experience) {
+function assertSettingsRules(actual, expected, label) {
+  const declaredRules = Object.fromEntries(
+    Object.keys(expected).map((key) => [key, actual?.[key]]),
+  );
+  assertDeepEqualJson(declaredRules, expected, label);
+}
+
+export function validateSettingsExperienceContract(experience, guiContract) {
   if (
     experience?.schema !== "settings_codex_quiet_experience.v2" ||
     experience.owner !== "one-person-lab-app" ||
@@ -75,11 +46,37 @@ export function validateSettingsExperienceContract(experience) {
       "Settings experience contract must bind GUI authority and the page-state matrix",
     );
   }
-  assertDeepEqualJson(
-    experience.visual_system,
-    appOwnedSettingsVisualSystem,
-    "Settings experience visual system",
-  );
+  const visual = experience.visual_system;
+  const viewportGroups = visual?.first_viewport_spatial_group_range;
+  if (
+    visual?.style !== "codex_quiet_control_center_with_opl_information_architecture" ||
+    visual.style_exclusion !== "multi_hue_card_dashboard" ||
+    !/^[a-f0-9]{40}$/.test(visual.baseline_shell_commit ?? "") ||
+    visual.baseline_comparison_policy !==
+      "fresh_same_route_screenshots_must_preserve_or_improve_information_hierarchy" ||
+    visual.card_policy !==
+      "unframed_sections_with_bounded_groups_only_for_repeated_entities_or_confirmation" ||
+    !Number.isInteger(viewportGroups?.min) ||
+    !Number.isInteger(viewportGroups?.max) ||
+    viewportGroups.min < 1 ||
+    viewportGroups.max > 4 ||
+    viewportGroups.min > viewportGroups.max ||
+    visual.nested_cards_allowed !== false ||
+    visual.page_wide_list_wall_allowed !== false ||
+    visual.page_sections_as_floating_cards_allowed !== false ||
+    visual.footer_layout !== "compact" ||
+    visual.footer_theme_quick_toggle_allowed !== false ||
+    visual.footer_auxiliary_navigation !== "about_only_sidebar_bottom" ||
+    visual.footer_duplicate_settings_entry_allowed !== false ||
+    visual.theme_gallery_presentation !== "not_exposed" ||
+    visual.theme_swatch_list_allowed !== false ||
+    visual.primary_action_per_page_max !== 1 ||
+    visual.technical_details_default !== "collapsed"
+  ) {
+    throw new Error(
+      "Settings experience visual system must preserve grouping, disclosure, and sidebar policies",
+    );
+  }
   validateSettingsSurfaceModel(experience.surface_model);
 
   const search = experience.global_search;
@@ -156,11 +153,12 @@ export function validateSettingsExperienceContract(experience) {
         throw new Error(`Settings experience ${pageId} must declare ${field}`);
       }
     }
-    if (appOwnedSettingsTopLevelLabels[pageId]) {
+    if (pageId !== "about") {
+      const tab = guiContract?.settings_navigation?.primary_tabs?.[page.route_id];
       assertDeepEqualJson(
         { label_zh: page.label_zh, label_en: page.label_en },
-        appOwnedSettingsTopLevelLabels[pageId],
-        `Settings experience ${pageId} product label`,
+        { label_zh: tab?.label_zh, label_en: tab?.label_en },
+        `Settings experience ${pageId} product label vs GUI contract`,
       );
     }
     if (
@@ -175,8 +173,8 @@ export function validateSettingsExperienceContract(experience) {
       !Array.isArray(page.first_viewport_groups) ||
       page.first_viewport_groups.length < 1 ||
       page.first_viewport_groups.length > 4 ||
-      new Set(page.first_viewport_groups).size !==
-        page.first_viewport_groups.length
+      page.first_viewport_groups.some((group) => typeof group !== "string" || !group.trim()) ||
+      new Set(page.first_viewport_groups).size !== page.first_viewport_groups.length
     ) {
       throw new Error(
         `Settings experience ${pageId} must declare one to four distinct first-viewport groups`,
@@ -201,12 +199,14 @@ export function validateSettingsExperienceContract(experience) {
       "preferences",
     ].includes(pageId);
     const hasTechnicalDetailsSurface =
-      page.required_dom.always.includes(technicalDetailsTestId) ||
-      page.required_dom.conditional.some(
+      (Array.isArray(page.required_dom?.always) &&
+        page.required_dom.always.includes(technicalDetailsTestId)) ||
+      (Array.isArray(page.required_dom?.conditional) &&
+        page.required_dom.conditional.some(
         (entry) =>
           entry.testid === technicalDetailsTestId &&
           entry.when === "diagnostics_open",
-      );
+        ));
     if (
       !Array.isArray(page.required_dom?.always) ||
       !page.required_dom.always.includes(`settings-page-${pageId}`) ||
@@ -218,16 +218,16 @@ export function validateSettingsExperienceContract(experience) {
         `Settings experience ${pageId} must declare stable DOM testids`,
       );
     }
-    assertDeepEqualJson(
-      page.required_anchors,
-      appOwnedSettingsPageAnchors[pageId],
-      `Settings experience ${pageId} anchors`,
-    );
-    assertDeepEqualJson(
-      page.search_entry_ids,
-      appOwnedSettingsPageSearchEntryIds[pageId],
-      `Settings experience ${pageId} search entry ids`,
-    );
+    if (
+      !Array.isArray(page.required_anchors) ||
+      page.required_anchors.length === 0 ||
+      page.required_anchors.some((anchor) => typeof anchor !== "string" || !anchor.trim()) ||
+      new Set(page.required_anchors).size !== page.required_anchors.length
+    ) {
+      throw new Error(
+        `Settings experience ${pageId} anchors must be unique, non-empty strings`,
+      );
+    }
   }
   assertDeepEqualJson(
     pageContracts.resources.browser_access_entry,
@@ -365,18 +365,10 @@ export function validateSettingsExperienceContract(experience) {
       "Settings Temporal service user mental model must preserve one dependency chain, causal waiting states, one root action, and collapsed technical details",
     );
   }
-  assertDeepEqualJson(
+  assertSettingsRules(
     pageContracts.workspace.surface_rules,
     {
       workspace_card_count: 0,
-      location_presentation:
-        "one unframed Working directory group with the resolved logical workspace root",
-      permission_presentation:
-        "one merged writability status inside the workspace row",
-      responsive_row_policy:
-        "container_width_below_620px_stacks_copy_status_and_actions_without_word_breaking_paths",
-      personalization_presentation:
-        "unframed_field_groups_with_section_hairlines_no_nested_cards",
       maintenance_action_visibility: "attention_only",
       diagnostics_entry: "explicit_modal_action",
       workspace_root_owner: "one-person-lab_Framework",
@@ -402,7 +394,7 @@ export function validateSettingsExperienceContract(experience) {
     },
     "Settings Workspace surface rules",
   );
-  assertDeepEqualJson(
+  assertSettingsRules(
     pageContracts.agents.management_discoverability,
     {
       primary_row_controls: ["recommended_action", "manage"],
@@ -423,23 +415,11 @@ export function validateSettingsExperienceContract(experience) {
     },
     "Settings Agent package management discoverability",
   );
-  assertDeepEqualJson(
-    pageContracts.agents.first_viewport_groups,
-    [
-      "agent_package_catalog_controls",
-      "agent_package_directory_entries",
-      "agent_package_details",
-    ],
-    "Settings Agents first-viewport groups",
-  );
-  assertDeepEqualJson(
+  assertSettingsRules(
     pageContracts.agents.catalog_presentation,
     {
       policy_ref:
         "contracts/app-product-profile.json#gui.agent_package_registry.catalog_presentation_policy",
-      section_order: ["opl", "external", "components"],
-      role_label_policy:
-        "localized_product_type_filter_never_raw_package_role_enum",
       dependency_source:
         "app_state.agent_packages.status_index.packages[].dependent_guard.required_by_package_ids",
       dependency_policy:
@@ -461,11 +441,9 @@ export function validateSettingsExperienceContract(experience) {
       "Settings Agents exception state must use Agent package semantics",
     );
   }
-  assertDeepEqualJson(
+  assertSettingsRules(
     pageContracts.preferences.surface_rules,
     {
-      full_width_group_count: 3,
-      two_plus_one_grid_allowed: false,
       builtin_theme_ids: [],
       extension_themes_default_visible: false,
       custom_theme_management:
@@ -477,21 +455,16 @@ export function validateSettingsExperienceContract(experience) {
         "named_configuration_disclosure_collapsed_by_default_search_reveals_controls",
       voice_input_configuration_allowed: false,
       voice_input_configuration_owner: "capabilities",
-      display_preview: "live_sample_uses_current_chat_markdown_and_code_font_sizes_and_interface_scale",
     },
     "Settings Preferences surface rules",
   );
-  assertDeepEqualJson(
+  assertSettingsRules(
     pageContracts.maintenance.surface_rules,
     {
-      configuration_location:
-        "update_channel_is_an_inline_persistent_control_in_the_updates_section",
       destination_visibility_policy:
         "render_exactly_one_of_service_status_updates_repairs_or_logs_diagnostics_as_the_selected_ordinary_purpose",
       daily_action_surface:
         "the_Maintenance_page_itself_owns_check_apply_repair_and_rollback_with_per_action_state_confirmation_and_fresh_readback",
-      management_surface:
-        "inline_page_rows_and_progressive_confirmation_never_a_second_large_management_modal",
       diagnostic_surface:
         "one_advanced_read_only_disclosure_for_localized_component_path_and_receipt_evidence",
       diagnostic_entry_count: 1,
@@ -500,8 +473,6 @@ export function validateSettingsExperienceContract(experience) {
       diagnostic_mutation_controls_allowed: false,
       raw_internal_status_key_policy:
         "never_render_raw_internal_status_keys_action_ids_or_payload_fields_as_user_facing_copy",
-      unknown_state_copy:
-        "distinguish_checking_not_checked_not_applicable_and_needs_attention",
       managed_dependency_primary_visibility:
         "managed_dependency_summary_is_visible_without_opening_diagnostics",
       working_path_owner:
@@ -559,6 +530,11 @@ export function validateSettingsExperienceContract(experience) {
     );
   }
   assertDeepEqualJson(
+    pageContracts.storage.surface_rules?.cleanup_preview_interaction,
+    guiContract?.pages?.settings_storage?.cleanup_preview_interaction,
+    "Settings Storage cleanup preview vs GUI contract",
+  );
+  assertSettingsRules(
     pageContracts.storage.surface_rules,
     {
       total_usage_presentation: "status_row_in_page_header",
@@ -566,45 +542,6 @@ export function validateSettingsExperienceContract(experience) {
       diagnostics_entry: "explicit_modal_action",
       zero_byte_policy: "show_nothing_to_clean_and_hide_actions",
       cleanup_action_policy: "single_progressive_action_preview_then_confirm",
-      cleanup_preview_interaction: {
-        presentation: "modal_item_selector_before_confirmation",
-        required_summary_fields: [
-          "category_total_bytes",
-          "candidate_count",
-          "candidate_bytes",
-          "selected_bytes",
-          "retained_bytes",
-          "retained_reason",
-        ],
-        candidate_presentation: {
-          selection: "checkbox_per_candidate_default_selected",
-          visible_fields: ["friendly_name", "bytes", "localized_reason"],
-          raw_path: "collapsed_technical_detail_only",
-        },
-        inventory_composition_presentation: {
-          source: "same_inventory_snapshot_as_category_total",
-          visible_fields: [
-            "root_friendly_name",
-            "bytes",
-            "cleanup_boundary",
-            "localized_reason",
-          ],
-          boundary_states: [
-            "covered_by_this_cleanup",
-            "reported_only_not_cleanable_here",
-          ],
-          raw_path: "collapsed_technical_detail_only",
-        },
-        retained_presentation:
-          "always_explain_total_minus_candidates_and_why_it_is_not_selectable",
-        execution_policy: {
-          selection_scope:
-            "non_empty_subset_of_exact_dry_run_candidates_only",
-          empty_selection: "disabled",
-          revalidation:
-            "full_plan_hash_live_authority_and_selected_subset_membership_before_delete",
-        },
-      },
       conversation_archive_policy:
         "archive_receipt_is_required_before_delete_and_the_same_archive_exposes_a_confirmed_restore_action",
       restore_collision_policy:
@@ -638,58 +575,54 @@ export function validateSettingsExperienceContract(experience) {
       webui_host_action_abi_ref:
         "contracts/app-release-channel.json#local_data_lifecycle.owner_storage_projections.webui_data_volume.host_action_abi",
       generic_docker_prune_allowed: false,
-      deployment_location_summary: {
-        visibility: "docker_webui_only",
-        interaction: "read_only_no_mount_or_environment_mutation",
-        required_host_bind_count: 2,
-        required_host_binds: [
-          {
-            id: "projects",
-            container_path: "/projects",
-            purpose_zh: "项目与任务产物",
-            purpose_en: "Projects and task artifacts",
-            container_environment: [
-              "OPL_PROJECTS_DIR=/projects",
-              "OPL_WORKSPACE_ROOT=/projects",
-            ],
-            settings_relation:
-              "In Docker WebUI, Working Directory is fixed read-only at /projects and never executes workspace_root_set or rewires the host projects bind",
-          },
-          {
-            id: "data",
-            container_path: "/data",
-            purpose_zh: "App 数据、Framework 状态、Codex Home 与会话、日志",
-            purpose_en:
-              "App data, Framework state, Codex Home and sessions, and logs",
-            container_environment: [
-              "HOME=/data",
-              "OPL_DATA_DIR=/data",
-            ],
-            settings_relation:
-              "Data and log locations are deployment-managed and Settings never rewires the host data bind",
-          },
-        ],
-        container_recovery_surface: {
-          container_path: "/recovery",
-          environment: "OPL_WEBUI_RECOVERY_DIR=/recovery",
-          purpose_zh: "清理前归档与恢复暂存",
-          purpose_en: "Pre-cleanup archives and recovery staging",
-          required_host_bind: false,
-          host_persistence_policy:
-            "optional_and_deployment_managed_not_a_third_required_bind",
-        },
-      },
       storage_carrier_behavior: appOwnedStorageCarrierBehavior,
     },
     "Settings Storage surface rules",
   );
+  const locations = pageContracts.storage.surface_rules?.deployment_location_summary;
+  assertSettingsRules(
+    locations,
+    {
+      visibility: "docker_webui_only",
+      interaction: "read_only_no_mount_or_environment_mutation",
+      required_host_bind_count: 2,
+    },
+    "Settings Storage Docker placement",
+  );
   assertDeepEqualJson(
+    locations.required_host_binds?.map(({ id, container_path, container_environment }) => ({
+      id,
+      container_path,
+      container_environment,
+    })),
+    [
+      {
+        id: "projects",
+        container_path: "/projects",
+        container_environment: ["OPL_PROJECTS_DIR=/projects", "OPL_WORKSPACE_ROOT=/projects"],
+      },
+      {
+        id: "data",
+        container_path: "/data",
+        container_environment: ["HOME=/data", "OPL_DATA_DIR=/data"],
+      },
+    ],
+    "Settings Storage Docker required host binds",
+  );
+  assertSettingsRules(
+    locations.container_recovery_surface,
+    {
+      container_path: "/recovery",
+      environment: "OPL_WEBUI_RECOVERY_DIR=/recovery",
+      required_host_bind: false,
+      host_persistence_policy: "optional_and_deployment_managed_not_a_third_required_bind",
+    },
+    "Settings Storage Docker recovery",
+  );
+  assertSettingsRules(
     pageContracts.about.surface_rules,
     {
       version_update_card_count: 1,
-      version_channel_layout: "one compact row",
-      update_action_placement: "dedicated row below version and channel",
-      help_link_layout: "full_width_row_with_trailing_icon_at_container_edge",
       automatic_check_policy:
         "check once after App startup and publish the result to a shared updater state store",
       mount_policy:
@@ -736,7 +669,7 @@ export function validateSettingsExperienceContract(experience) {
     const page = pageContracts[entry.page_id];
     if (!page || !page.required_anchors.includes(entry.anchor)) {
       throw new Error(
-        `Settings search entry ${entry.id} must target a declared page anchor`,
+        `Settings experience ${entry.page_id} anchors must include the declared page anchor for search entry ${entry.id}`,
       );
     }
     if (

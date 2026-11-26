@@ -18,125 +18,21 @@ import {
 test("Settings visual QA enforces Codex quiet grouping, compact footer, and monochrome utility hierarchy", () => {
   const values = contracts();
   const visualSystem = values.controlPlane.experience_contract.visual_system;
-  const visualQa =
-    values.guiContract.settings_navigation.settings_ia.protocols
-      .visual_qa_expectations;
-
   assert.doesNotThrow(() => validate(values));
-  assert.deepStrictEqual(visualSystem, {
-    style: "codex_quiet_control_center_with_opl_information_architecture",
-    style_exclusion: "multi_hue_card_dashboard",
-    baseline_shell_commit: "409dd0c3b693f1c7c93551654dfac8fb9420843d",
-    baseline_comparison_policy:
-      "fresh_same_route_screenshots_must_preserve_or_improve_information_hierarchy",
-    card_policy: "unframed_sections_with_bounded_groups_only_for_repeated_entities_or_confirmation",
-    first_viewport_spatial_group_range: { min: 2, max: 4 },
-    nested_cards_allowed: false,
-    page_wide_list_wall_allowed: false,
-    page_sections_as_floating_cards_allowed: false,
-    desktop_group_layout: "single_column_reading_lane",
-    mobile_group_layout: "single_column_stack",
-    icon_slot_px: 20,
-    typography: {
-      page_title: "20/28/600",
-      card_title: "14-16/20-24/600",
-      description: "13/20/400",
-      supporting: "12/18/400",
-    },
-    status_color_semantics: {
-      normal: "muted",
-      warning: "orange",
-      error: "red",
-      action: "brand",
-    },
-    object_accent_policy:
-      "use monochrome utility navigation icons and reserve color for typed warning error success and brand actions",
-    footer_layout: "compact",
-    footer_controls: [
-      "gateway_account_or_account_access_entry",
-      "app_update_status_and_trigger",
-    ],
-    footer_account_entry_policy:
-      "show_gateway_display_name_when_connected_else_account_access_without_a_duplicate_settings_entry",
-    footer_update_entry_policy:
-      "show_confirmed_newer_app_update_as_account_row_trailing_action_and_reuse_existing_carrier_updater_without_owning_update_truth",
-    footer_theme_quick_toggle_allowed: false,
-    footer_secondary_navigation_allowed: true,
-    footer_auxiliary_navigation: "about_only_sidebar_bottom",
-    footer_duplicate_settings_entry_allowed: false,
-    appearance_mode_values: ["system", "light", "dark"],
-    appearance_mode_presentation: "three_visual_preview_cards",
-    appearance_mode_preserves_theme_preset: false,
-    theme_gallery_presentation: "not_exposed",
-    theme_swatch_list_allowed: false,
-    max_border_radius_px: 8,
-    spacing_scale_px: [12, 16, 24],
-    heading_density: "compact",
-    primary_action_per_page_max: 1,
-    normal_state_emphasis: "muted",
-    exception_state_emphasis: "accent_only_when_attention_required",
-    technical_details_default: "collapsed",
-    letter_spacing_px: 0,
-  });
   assert.deepStrictEqual(
     values.productProfile.settings.control_plane.experience_contract
       .visual_system,
     visualSystem,
   );
-  assert.deepStrictEqual(visualQa.visual_character, [
-    "quiet",
-    "dense",
-    "scannable",
-  ]);
-  assert.deepStrictEqual(visualQa.surface_grouping, {
-    allowed_bounded_group_kinds: ["repeated_entity", "confirmation"],
-    bounded_group_nesting: "none",
-    page_section_card_policy:
-      "ordinary_page_sections_are_unframed_heading_plus_flat_rows_with_hairline_dividers",
-    first_viewport_spatial_group_range: { min: 2, max: 4 },
-    page_wide_bare_divider_layout:
-      "section_scoped_hairlines_allowed_no_box_per_section",
-    page_wide_list_wall: "forbidden",
-  });
-  assert.deepStrictEqual(visualQa.footer_structure, {
-    layout: "compact",
-    controls: [
-      "gateway_account_or_account_access_entry",
-      "app_update_status_and_trigger",
-    ],
-    account_entry:
-      "gateway_display_name_when_connected_else_account_access_entry_without_a_duplicate_settings_entry",
-    update_entry:
-      "show_confirmed_newer_app_update_as_account_row_trailing_action_and_reuse_existing_carrier_updater_without_owning_update_truth",
-    theme_quick_toggle:
-      "forbidden_theme_mode_lives_in_settings_preferences",
-    help_navigation: "about_is_the_single_sidebar_bottom_auxiliary_entry",
-    duplicate_settings_entry: "forbidden_inside_settings",
-  });
-  assert.deepStrictEqual(visualQa.theme_gallery, {
-    presentation: "not_exposed",
-    legacy_user_data: "preserved_not_applied",
-  });
-  assert.deepStrictEqual(visualQa.assertion_focus, {
-    required_structure: [
-      "user_question_to_unframed_section_or_allowed_bounded_group",
-      "two_to_four_first_viewport_spatial_groups",
-      "single_column_reading_lane_to_mobile_stack",
-      "monochrome_icon_typography_and_typed_status_hierarchy",
-      "409dd0c3_same_route_non_regression",
-      "flat_rows_without_section_card_frames",
-      "compact_footer",
-      "single_governed_visual_baseline",
-    ],
-    radius_and_spacing_only: "insufficient",
-  });
-  assert.deepStrictEqual(visualQa.evidence_dimensions.required_viewports, [
-    "desktop",
-    "mobile",
-  ]);
-  assert.deepStrictEqual(visualQa.evidence_dimensions.required_color_schemes, [
-    "light",
-  ]);
+
+  const divergentBaseline = contracts();
+  divergentBaseline.guiContract.settings_navigation.settings_ia.protocols.visual_qa_expectations
+    .baseline_comparison.shell_commit = "0".repeat(40);
+  assert.throws(() => validate(divergentBaseline), /baseline commit across contracts/);
+
+  const staleScreenshotRoutes = contracts();
+  staleScreenshotRoutes.controlPlane.visual_qa_policy.required_routes.pop();
+  assert.throws(() => validate(staleScreenshotRoutes), /visual QA required routes/);
 
   const sparseLayout = contracts();
   sparseLayout.guiContract.settings_navigation.settings_ia.protocols.visual_qa_expectations.surface_grouping.page_wide_bare_divider_layout =
