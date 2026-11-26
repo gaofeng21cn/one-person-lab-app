@@ -3,7 +3,7 @@
 本页是发布入口索引，不保存某次发布的状态账本。平台与身份由
 [`app-release-channel.json`](../../../contracts/app-release-channel.json)、
 [`app-shell-adapter.json`](../../../contracts/app-shell-adapter.json) 和真实 workflow 决定；
-操作顺序与恢复规则见 [SOP](stable-release-sop.md)。合同中的 `implemented` 表示入口已实现，
+操作顺序与恢复规则见 [SOP](stable-release-sop.md)，公开仓库云端编译与自有节点混跑标化实践见 [公开仓混合 Runner 标准方案](public-repo-hybrid-runner-standard.md)。合同中的 `implemented` 表示入口已实现，
 当前版本是否完成必须读取对应 Release、GHCR、Homebrew 或验收回执。
 
 ## 产品与平台

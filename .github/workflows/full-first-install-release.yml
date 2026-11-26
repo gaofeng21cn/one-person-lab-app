@@ -395,8 +395,9 @@ jobs:
           fi
 
       - name: Save verified dependency archives
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.dependency-archive-plan.outcome == 'success' && steps.dependency-archive-plan.outputs.cache_save_required == 'true' }}
         continue-on-error: true
+        timeout-minutes: 5
         env:
           OPL_ACTIONS_CACHE_CLASS: dependency_download
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1784,6 +1785,7 @@ jobs:
       - name: Save exact desktop renderer
         if: ${{ !inputs.cache_only && inputs.candidate_only && steps.standard-base.outputs.available != 'true' }}
         continue-on-error: true
+        timeout-minutes: 5
         uses: ./release-executor/.github/actions/desktop-renderer-cache
         with:
           mode: save
@@ -1792,17 +1794,19 @@ jobs:
           cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
 
       - name: Save Full Bun install cache
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && !inputs.cache_only && steps.bun-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: ~/.bun/install/cache
           key: bun-install-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full Electron artifacts cache
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && !inputs.cache_only && steps.electron-cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && !inputs.cache_only && steps.electron-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: |
             ${{ runner.temp }}/.cache/electron
@@ -1813,9 +1817,10 @@ jobs:
           key: electron-cache-macos-arm64-arm64-${{ hashFiles(format('one-person-lab-app/{0}/package.json', steps.shell_profile.outputs.shell_root), format('one-person-lab-app/{0}/{1}', steps.shell_profile.outputs.shell_root, steps.shell_profile.outputs.package_lock)) }}
 
       - name: Save Full uv artifacts cache
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && steps.uv-cache.outputs.cache-hit != 'true' }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.uv-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: |
             ~/.cache/uv
@@ -1824,7 +1829,7 @@ jobs:
 
       - name: Save Full toolchain runtime cache
         id: save-runtime-cache-toolchain
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-toolchain.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-toolchain.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1836,7 +1841,7 @@ jobs:
 
       - name: Save Full domain runtime cache
         id: save-runtime-cache-domain
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-domain.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-domain.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1848,7 +1853,7 @@ jobs:
 
       - name: Save Full OPL runtime cache
         id: save-runtime-cache-opl
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-opl.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-opl.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1860,7 +1865,7 @@ jobs:
 
       - name: Save Full skills runtime cache
         id: save-runtime-cache-skills
-        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-skills.outputs.cache-hit != 'true') }}
+        if: ${{ inputs.operation != 'append_full' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && (inputs.force_rebuild_runtime_cache || steps.restore-runtime-cache-skills.outputs.cache-hit != 'true') }}
         env:
           OPL_ACTIONS_CACHE_CLASS: full_runtime_layer
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

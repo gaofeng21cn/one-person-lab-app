@@ -46,7 +46,7 @@ env:
 jobs:
   prepare:
     if: ${{ inputs.dependency_manifest_artifact != '' || inputs.build_cohort_artifact != '' }}
-    runs-on: [self-hosted, macOS, ARM64, opl-cert-mac-tart]
+    runs-on: ${{ fromJSON(github.ref == 'refs/heads/main' && vars.OPL_RELEASE_TRANSFER_RUNNER_LABELS || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     continue-on-error: true
     outputs:
@@ -64,17 +64,13 @@ jobs:
           ref: ${{ github.sha }}
           path: executor
           persist-credentials: false
-      - name: Inspect source VM inventory without allocating a VM
-        env:
-          SOURCE_VM: ${{ vars.OPL_FIRST_RUN_TART_SOURCE }}
+      - name: Validate frozen preparation inputs
         shell: bash
         run: |
           set -euo pipefail
           test "$(git -C frozen-inputs rev-parse HEAD)" = '${{ inputs.app_ref }}'
           case '${{ inputs.package_profile }}' in standard|full) ;; *) exit 1 ;; esac
-          test -n "$SOURCE_VM"
-          tart list --source local --quiet | grep -Fx "$SOURCE_VM"
-          echo 'VM source available; no VM has been created or started.'
+          echo 'Frozen preparation inputs verified on transfer runner.'
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -99,20 +95,21 @@ jobs:
         with:
           path: |
             artifacts/opl-first-run-vm/codex-package-tarballs
-          key: opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}-latest
+          key: opl-first-run-codex-tarballs-v1-macOS-ARM64-latest
           restore-keys: |
-            opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}-
+            opl-first-run-codex-tarballs-v1-macOS-ARM64-
       - name: Prepare digest-bound install assets from frozen inputs
         id: prefetch
         env:
           OPL_CODEX_PREWARM_MANIFEST: ${{ inputs.dependency_manifest_artifact != '' && 'frozen-dependency-resolution/qualification-input-manifest.json' || '' }}
           OPL_CODEX_BUILD_COHORT_MANIFEST: frozen-build-cohort/opl-build-cohort.json
-          CACHE_KEY_PREFIX: opl-first-run-codex-tarballs-v1-${{ runner.os }}-${{ runner.arch }}
+          CACHE_KEY_PREFIX: opl-first-run-codex-tarballs-v1-macOS-ARM64
           CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.cache.outputs.cache-matched-key }}
         run: node executor/scripts/prefetch-codex-package-install-assets.mjs
       - name: Save verified install assets for the next exact cohort
-        if: ${{ github.ref == 'refs/heads/main' && steps.prefetch.outputs.cache_save_required == 'true' }}
+        if: ${{ github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.prefetch.outputs.cache_save_required == 'true' }}
         continue-on-error: true
+        timeout-minutes: 5
         env:
           OPL_ACTIONS_CACHE_CLASS: first_run_install_seed
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

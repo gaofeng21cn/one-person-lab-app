@@ -35,15 +35,15 @@ Stable controller 在签发授权前运行当前执行器的 Bundle 工作流合
 
 Standard 冻结验证同一运行的 Apple 凭据回执后，把预检结论交给构建；构建仍在 macOS 执行 Developer ID 签名、公证和 Gatekeeper 验证。没有已核验回执的构建继续执行自己的凭据预检。
 
-Standard 和 Full 在准入阶段读取 GitHub runner 清单，优先选择在线的自有 macOS ARM64 runner `opl-release-macos-arm64`。清单确认池内无在线机器时使用 `macos-latest`。清单无法读取时使用 `OPL_MACOS_RELEASE_RUNNER` 指定的自有池，未配置时使用 `macos-latest`。此标签分配给具备 Developer ID 签名、公证和包体验证能力的本机或 Fleet 节点。普通账号 clean-VM 使用独立的 `opl-cert-mac-tart` 池。
+Standard 和 Full 在准入阶段优先使用公开仓库的 GitHub 托管 `macos-latest` 池完成编译、签名、Apple 公证与大文件内网上传（详见 [公开仓混合 Runner 标准方案](public-repo-hybrid-runner-standard.md)）；仅当显式配置仓库变量 `OPL_MACOS_RELEASE_RUNNER=opl-release-macos-arm64` 时，才读取 GitHub runner 清单切换到在线的自有 macOS ARM64 容灾池（清单确认无在线机器或变量未配置时保持使用 `macos-latest`；配置为 `opl-release-macos-arm64` 且清单不可读时沿用配置）。普通账号 clean-VM 始终使用独立的自有 `opl-cert-mac-tart` 池。
 
-主线 Stable 的准入、轻量发布控制和 Homebrew 跟进优先使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` 指定的自有 runner。当前配置是常驻的 Intel Mac 池 `["self-hosted","macOS","X64","opl-native-intel-macos"]`。该池的 runner 服务 PATH 提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。仓库变量为空时使用 `ubuntu-latest`。
+主线 Stable 的准入、轻量发布控制、VM 输入预热（`_prepare-clean-vm-inputs.yml`）和 Homebrew 跟进使用 `OPL_RELEASE_CONTROL_RUNNER_LABELS` / `OPL_RELEASE_TRANSFER_RUNNER_LABELS`；仓库变量为空时使用 `ubuntu-latest`，仅在确需跨洋容灾分担时显式指向经过验证的自有 Intel/Linux 控制池。该自有控制池的 runner 服务 PATH 需提供 Node.js、Bash 4+、Git、GitHub CLI、jq 和 GNU `timeout`。
 
 App 工作流 lint、Shell 源码检查、TypeScript 类型检查、发布边界测试和 Shell 测试使用公开仓库的标准托管 `ubuntu-latest`。
 
-Standard 产物封存、Full 包恢复、检查点导出、公开资产上传及 clean-VM 源码交接使用 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。仓库变量为空时，这些传输使用 `ubuntu-latest`，检查点导入优先沿用控制池。常驻 Intel Mac 池可接管大文件传输，选择它之前用实际尺寸的归档估算读写时间，并核对 job 时限和操作的剩余时长。其他本机或 Fleet 节点还需核对工具链、磁盘空间和 Actions runner 在线状态。切换后从原合格检查点继续同一冻结候选。
+Standard 产物封存、Full 包恢复、检查点导出、公开资产上传及 clean-VM 源码交接使用 `OPL_RELEASE_TRANSFER_RUNNER_LABELS`。仓库变量为空时，这些传输使用 `ubuntu-latest`，检查点导入优先沿用控制池。切换至自有节点前须用实际尺寸归档估算读写时间并核对 job 时限与操作剩余时长，切换后从原合格检查点继续同一冻结候选。
 
-Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用零压缩。控制池的上传中断或吞吐不足时，给传输变量指定同规模归档已实测通过的在线自有节点，以原检查点恢复发布。
+Standard 恢复检查点及 macOS/Linux/Windows 桌面产物归档包含已压缩的 DMG、ZIP、DEB 或 NSIS 安装包，所有二进制 `upload-artifact` 步骤必须声明 `compression-level: 0`。控制池的上传中断或吞吐不足时，给传输变量指定同规模归档已实测通过的在线节点，以原检查点恢复发布。
 
 平台专用步骤通过独立仓库变量接收 Actions runner 标签 JSON。Linux x64 池承载原生桌面构建、Windows WSL 宿主预备和 WebUI amd64 构建与发布。Linux arm64 池承载原生 WebUI arm64。Windows x64 池承载原生安装包。只配置已按对应工作流验证过系统、CPU、工具链和容量的在线 runner。变量为空时沿用各工作流的 GitHub 托管标签。
 
@@ -57,11 +57,9 @@ Standard 恢复检查点包含已压缩的 DMG、ZIP 和归档，上传时使用
 
 Linux x64 桌面构建已在本机隔离的 Ubuntu 24.04 `linux/amd64` 容器中跑通。注册前在目标容器实测 APT 更新与安装、runner 归档解包，再用 `./bin/Runner.Listener --version` 核对可执行版本。用独立标签注册一次性 runner，回读目标 job 已分配到该 runner 后恢复原仓库变量，job 完成后清理容器。其他平台使用各自验证过的同平台环境。
 
-自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
+自有 Mac 的 runner PATH 需提供与本机架构一致的 `python3.12`。Standard 直接校验并使用它编译原生依赖。构建签名使用临时钥匙串，结束后恢复原搜索列表；自托管环境若使用 `--keychain-profile` 调用 `notarytool`，必须通过 `OPL_NOTARYTOOL_KEYCHAIN` 显式传递临时钥匙串路径，并配置 `NODE_OPTIONS=--dns-result-order=ipv4first`。全局磁盘镜像清理仅用于 GitHub 托管的临时机器。
 
-检查点恢复在自有 runner 上使用本机 npm 缓存，省去 GitHub 缓存归档的下载和上传。`npm ci` 仍按精确 Framework 提交的 lockfile 安装依赖。GitHub 托管 runner 继续使用按 lockfile 匹配的缓存。
-
-自有 runner 的 Studio 源码与桌面构建使用本机 Bun，关闭 `setup-bun` 的远端缓存写入。Full 构建在自有 Mac 使用本机 npm 缓存，`setup-node` 的远端 npm 缓存仅用于托管 runner。已在线并通过工具链核对的 Intel Mac 可以加入同一控制池并行分担检查。
+远端 `actions/cache/save` 及大型缓存恢复限定仅在 `runner.environment == 'github-hosted'` 执行，并带 `continue-on-error: true` 与 `timeout-minutes: 5` 保护。自有自托管 runner 一律使用本机持久化磁盘缓存（例如 `${{ runner.tool_cache }}`、本机 npm 缓存与原生 Bun）且关闭远端缓存写入，避免经公网反复上传 Electron/Bun/Runtime 缓存。
 
 Standard 的构建工作流、Mac runner 选择和签名钥匙串脚本参与 operation 标识。修复这些执行器输入后，controller 可保留冻结产品及已通过的源码证据，用修复后的执行器签发新的 operation。
 

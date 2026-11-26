@@ -81,18 +81,27 @@ test('Stable and Latest allow the protected clean-install gate without advisory 
   // Workflow paths in the immutable input manifest are data, not job calls.
 });
 
-test('Stable macOS runner selection prefers an online release ARM64 machine across inventory pages', () => {
+test('Stable macOS runner selection defaults to hosted macos-latest and opts into owned ARM64 pool when configured', () => {
   const label = 'opl-release-macos-arm64';
   const labels = ['self-hosted', 'macOS', 'ARM64', label].map((name) => ({ name }));
   const offline = { status: 'offline', labels };
   const intel = { status: 'online', labels: labels.map((entry) => entry.name === 'ARM64' ? { name: 'X64' } : entry) };
   const certOnly = { status: 'online', labels: labels.slice(0, 3) };
-  assert.equal(selectMacReleaseRunner([{ runners: [offline, intel, certOnly] }]), 'macos-latest');
-  assert.equal(selectMacReleaseRunner([{ runners: [offline] }, { runners: [{ status: 'online', labels }] }]), label);
+  // Default (no OPL_MACOS_RELEASE_RUNNER configured): always stays on hosted macos-latest even when owned runners exist.
+  assert.equal(selectMacReleaseRunner([{ runners: [{ status: 'online', labels }] }]), 'macos-latest');
   assert.equal(selectMacReleaseRunner([]), 'macos-latest');
+  assert.equal(selectMacReleaseRunner(null), 'macos-latest');
+  // Explicit opt-in failover (OPL_MACOS_RELEASE_RUNNER=opl-release-macos-arm64): selects online owned ARM64 runner or falls back when offline.
+  assert.equal(selectMacReleaseRunner([{ runners: [offline, intel, certOnly] }], label), 'macos-latest');
+  assert.equal(selectMacReleaseRunner([{ runners: [offline] }, { runners: [{ status: 'online', labels }] }], label), label);
   assert.equal(selectMacReleaseRunner([{ runners: [offline] }], label), 'macos-latest');
   assert.equal(selectMacReleaseRunner(null, label), label);
   assert.equal(selectMacReleaseRunner(null, 'unregistered-runner'), 'macos-latest');
+
+  const { workflow: prepareVm } = readWorkflow('_prepare-clean-vm-inputs.yml');
+  const prepareRunsOn = String(prepareVm.jobs.prepare['runs-on']);
+  assert.match(prepareRunsOn, /vars[.]OPL_RELEASE_TRANSFER_RUNNER_LABELS.*ubuntu-latest/);
+  assert.doesNotMatch(prepareRunsOn, /self-hosted|opl-cert-mac-tart/);
 });
 
 test('Stable can run release control on owned machines while keeping the protected Tart gate', () => {
