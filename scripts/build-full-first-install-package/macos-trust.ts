@@ -55,7 +55,8 @@ export function ensureAppBundleAdHocCodesign(appPath, label, { force = false } =
         '--timestamp',
         '--options',
         'runtime',
-        '--preserve-metadata=identifier,entitlements,requirements,flags,runtime',
+        // The designated requirement is Team-bound and must be regenerated for the release identity.
+        '--preserve-metadata=identifier,entitlements,flags,runtime',
         '--sign',
         identity,
         appPath,
