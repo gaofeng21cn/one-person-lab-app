@@ -377,6 +377,15 @@ jobs:
             output="${selector%%:*}"; query="${selector#*:}"; value="$(jq -er "$query" "$resolved_full")"
             echo "${output}=$value" >> "$GITHUB_OUTPUT"
           done
+          resolved_deps="$RUNNER_TEMP/opl-full-dependency-resolution/dependency-resolution.json"
+          zstd_url="$(jq -er '.dependencies[] | select(.dependency_id == "zstd") | .archive_url' "$resolved_deps")"
+          zstd_sha256="$(jq -er '.dependencies[] | select(.dependency_id == "zstd") | .archive_sha256' "$resolved_deps")"
+          [[ "$zstd_url" == https://github.com/meta/zstd/releases/download/* ]]
+          [[ "$zstd_sha256" =~ ^[0-9a-f]{64}$ ]]
+          {
+            echo "zstd_url=$zstd_url"
+            echo "zstd_sha256=$zstd_sha256"
+          } >> "$GITHUB_OUTPUT"
       - name: Validate and bound dependency archive cache
         id: dependency-archive-plan
         if: ${{ github.ref == 'refs/heads/main' }}
@@ -745,8 +754,31 @@ jobs:
         run: |
           set -euo pipefail
           test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
-          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
-          brew install zstd
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$HOME/go/bin:$HOME/.local/bin:$PATH"
+          zstd_version='${{ steps.full-build-inputs.outputs.zstd_version }}'
+          if ! (command -v zstd >/dev/null 2>&1 && zstd --version | grep -F "v${zstd_version}" >/dev/null); then
+            zstd_url='${{ steps.full-build-inputs.outputs.zstd_url }}'
+            zstd_sha256='${{ steps.full-build-inputs.outputs.zstd_sha256 }}'
+            [[ "$zstd_url" == https://github.com/meta/zstd/releases/download/* ]]
+            [[ "$zstd_sha256" =~ ^[0-9a-f]{64}$ ]]
+            zstd_archive="$RUNNER_TEMP/zstd-${zstd_version}.tar.gz"
+            if [ -f one-person-lab/scripts/fetch-dependency-archive.mjs ]; then
+              node one-person-lab/scripts/fetch-dependency-archive.mjs --url "$zstd_url" --sha256 "$zstd_sha256" --output "$zstd_archive"
+            else
+              curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$zstd_url" -o "$zstd_archive"
+            fi
+            echo "$zstd_sha256  $zstd_archive" | shasum -a 256 -c -
+            zstd_build_dir="$RUNNER_TEMP/zstd-build-${zstd_version}"
+            rm -rf "$zstd_build_dir"
+            mkdir -p "$zstd_build_dir"
+            tar -xzf "$zstd_archive" --strip-components=1 -C "$zstd_build_dir"
+            make -C "$zstd_build_dir/programs" -j"$(sysctl -n hw.ncpu)" HAVE_PTHREAD=1 HAVE_ZLIB=0 HAVE_LZMA=0 HAVE_LZ4=0 zstd-release
+            install -m 0755 "$zstd_build_dir/programs/zstd" "$HOME/.local/bin/zstd"
+            rm -rf "$zstd_build_dir"
+          fi
           mineru_root="$GITHUB_WORKSPACE/MinerU-Ecosystem/cli/mineru-open-api"
           mineru_version="$(cat "$mineru_root/VERSION")"
           mineru_commit="$(git -C "$GITHUB_WORKSPACE/MinerU-Ecosystem" rev-parse --short HEAD)"
@@ -755,7 +787,6 @@ jobs:
             cd "$mineru_root"
             go install -ldflags "-X github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api/cmd.version=$mineru_version -X github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api/cmd.commit=$mineru_commit -X github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api/cmd.date=$mineru_built_at" .
           )
-          mkdir -p "$HOME/.local/bin"
           officecli_bin="$HOME/.local/bin/officecli"
           officecli_url="https://github.com/iOfficeAI/OfficeCLI/releases/download/v${{ steps.full-build-inputs.outputs.officecli_version }}/officecli-mac-arm64"
           if [ -f one-person-lab/scripts/fetch-dependency-archive.mjs ]; then
@@ -765,9 +796,6 @@ jobs:
           fi
           echo '${{ steps.full-build-inputs.outputs.officecli_sha256 }}  '"$officecli_bin" | shasum -a 256 -c -
           chmod +x "$officecli_bin"
-          echo "$HOME/go/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          export PATH="$(dirname "$OPL_FULL_UV_BIN"):$HOME/go/bin:$HOME/.local/bin:$PATH"
           officecli --version
           mineru-open-api version
           temporal_version='${{ steps.full-build-inputs.outputs.temporal_version }}'
