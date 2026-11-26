@@ -898,8 +898,25 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Checkout the frozen product App catalog pin
+        id: artifact-app
+        if: ${{ steps.diagnostic_inputs.outputs.profile == 'full' && steps.diagnostic_inputs.outputs.diagnostic_scope == 'release_gate' && steps.mas_ref.outputs.mas_sha != '' && steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha != '' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.diagnostic_inputs.outputs.artifact_app_sha }}
+          path: .opl-vm-source-checkouts/artifact-app
+          sparse-checkout: /contracts/app-software-catalog-source.json
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
       - name: Build exact clean VM source handoff
         shell: bash
+        env:
+          ARTIFACT_APP_CHECKED_OUT: ${{ steps.artifact-app.outcome == 'success' }}
+          ARTIFACT_APP_SHA: ${{ steps.diagnostic_inputs.outputs.artifact_app_sha }}
+          MAS_SHA: ${{ steps.mas_ref.outputs.mas_sha }}
+          SCHOLAR_SKILLS_SHA: ${{ steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha }}
         run: |
           set -euo pipefail
           bundle_root="$RUNNER_TEMP/opl-clean-vm-source-bundle"
@@ -954,6 +971,52 @@ jobs:
               "$GITHUB_WORKSPACE/.opl-vm-source-checkouts/framework-executor" \
               "$workspace_root/one-person-lab-executor" \
               '${{ steps.framework_executor_ref.outputs.framework_sha }}'
+          fi
+
+          artifact_app="$GITHUB_WORKSPACE/.opl-vm-source-checkouts/artifact-app"
+          if [ "$ARTIFACT_APP_CHECKED_OUT" = true ]; then
+            test "$(git -C "$artifact_app" rev-parse HEAD)" = "$ARTIFACT_APP_SHA"
+          fi
+          # Cohorts before the catalog cutover use Framework's bundled projections.
+          if [ "$ARTIFACT_APP_CHECKED_OUT" = true ] && [ -n "$(git -C "$artifact_app" ls-tree "$ARTIFACT_APP_SHA" -- contracts/app-software-catalog-source.json)" ]; then
+            catalog_pin="$RUNNER_TEMP/opl-clean-vm-catalog-pin.json"
+            git -C "$artifact_app" show "$ARTIFACT_APP_SHA:contracts/app-software-catalog-source.json" > "$catalog_pin"
+            export OPL_CLEAN_VM_CATALOG_PIN="$catalog_pin"
+            node --input-type=module - "$workspace_root/.opl-mas-catalog-seed" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { isDeepStrictEqual } from 'node:util';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { officialSoftwareCatalogIndexUrl, readOfficialSoftwareCatalog, requireCatalogSourceSeed } from './scripts/official-software-catalog.mjs';
+
+          const { MAS_SHA, SCHOLAR_SKILLS_SHA, RUNNER_TEMP, OPL_CLEAN_VM_CATALOG_PIN } = process.env;
+          const destination = process.argv[2];
+          const source = JSON.parse(fs.readFileSync(OPL_CLEAN_VM_CATALOG_PIN, 'utf8'));
+          officialSoftwareCatalogIndexUrl(source);
+          const checkout = fs.mkdtempSync(path.join(RUNNER_TEMP, 'opl-clean-vm-catalog-'));
+          try {
+            execFileSync('git', ['init', '-q', checkout]);
+            execFileSync('git', ['-C', checkout, 'fetch', '--quiet', '--no-tags', '--depth=1', 'https://github.com/gaofeng21cn/opl-catalog.git', source.ref], { timeout: 60_000 });
+            if (execFileSync('git', ['-C', checkout, 'rev-parse', 'FETCH_HEAD'], { encoding: 'utf8' }).trim() !== source.ref) {
+              throw new Error('Clean VM catalog checkout differs from the frozen App source pin.');
+            }
+            const archive = path.join(checkout, 'catalog.tar');
+            execFileSync('git', ['-C', checkout, 'archive', '--output', archive, source.ref, 'catalog-index.json', 'packages', 'allowlists']);
+            fs.mkdirSync(destination);
+            execFileSync('tar', ['-xf', archive, '-C', destination]);
+          } finally {
+            fs.rmSync(checkout, { recursive: true });
+          }
+          const index = readOfficialSoftwareCatalog(fs.readFileSync(path.join(destination, 'catalog-index.json')), source);
+          for (const [id, sha] of [['mas', MAS_SHA], ['mas-scholar-skills', SCHOLAR_SKILLS_SHA]]) {
+            const entry = index.packages.find((candidate) => candidate.package_id === id);
+            const manifest = requireCatalogSourceSeed(index, id);
+            if (manifest.codex_surface.carrier_source_commit !== sha
+                || !isDeepStrictEqual(JSON.parse(fs.readFileSync(path.join(destination, entry.manifest_path), 'utf8')), manifest)) {
+              throw new Error(`Full qualification checkout differs from the frozen software catalog source for ${id}.`);
+            }
+          }
+          NODE
           fi
 
           tar -C "$bundle_root" -czf "$RUNNER_TEMP/opl-clean-vm-sources.tar.gz" workspace
@@ -2098,6 +2161,9 @@ jobs:
           test "$(git -C "$OPL_MODULE_PATH_SCHOLARSKILLS" rev-parse HEAD)" = '${{ needs.validate-vm-inputs.outputs.mas_scholar_skills_sha }}'
           test -f "$OPL_MODULE_PATH_SCHOLARSKILLS/contracts/opl_capability_package_manifest.json"
 
+          if [ -d "$GITHUB_WORKSPACE/.opl-mas-catalog-seed/packages" ]; then
+            export OPL_CATALOG_SEED_DIR="$GITHUB_WORKSPACE/.opl-mas-catalog-seed"
+          fi
           npm ci --prefix one-person-lab-executor --ignore-scripts --no-audit --no-fund
           install_output="$RUNNER_TEMP/mas-package-install.json"
           install_error="$RUNNER_TEMP/mas-package-install.stderr"
