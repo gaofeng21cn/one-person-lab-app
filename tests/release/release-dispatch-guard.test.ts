@@ -206,6 +206,44 @@ test('zero and ambiguous exact owner-run matches remain outcome_unknown', () => 
   assert.equal(ambiguous.match_count, 2);
 });
 
+test('Standard readback matches its exact authority across a main revision change', () => {
+  const identity = {
+    workflow: 'release-source-qualification.yml',
+    headSha: appSha,
+    operationId,
+    authorityId: 'authority-42',
+    operationStartedAt,
+    observedAt,
+  };
+  const standardOwner = (id: number, overrides: Record<string, unknown> = {}) => ownerRun(id, {
+    head_sha: 'f'.repeat(40),
+    display_title: `OPL Stable standard operation:${operationId} authority:authority-42 run:${id}`,
+    ...overrides,
+  });
+  const owner = standardOwner(35);
+  const result = extractUniqueOwnerWorkflowRun([
+    ownerRun(30),
+    standardOwner(31, { display_title: `OPL Stable standard operation:${operationId}-other authority:authority-42 run:31` }),
+    standardOwner(32, { display_title: `OPL Stable standard operation:${operationId} authority:authority-42-other run:32` }),
+    standardOwner(33, { display_title: `OPL Stable standard operation:${operationId} authority:authority-42 run:34` }),
+    standardOwner(34, { event: 'push' }),
+    owner,
+    standardOwner(36, { head_branch: 'other' }),
+    standardOwner(37, { run_attempt: 2 }),
+    standardOwner(38, { created_at: '2026-07-26T05:59:00Z' }),
+    standardOwner(39, { created_at: '2026-07-26T06:06:00Z' }),
+    standardOwner(40, { path: '.github/workflows/release-stable.yml' }),
+  ], identity);
+  assert.equal(result.status, 'unique');
+  assert.equal(result.run?.id, 35);
+  assert.equal(result.run?.head_sha, owner.head_sha);
+  assert.equal(extractUniqueOwnerWorkflowRun([owner, standardOwner(41)], identity).status, 'outcome_unknown');
+  assert.throws(
+    () => extractUniqueOwnerWorkflowRun([owner], { ...identity, authorityId: undefined }),
+    /requires canonical operation and authority IDs/,
+  );
+});
+
 test('successful post-dispatch readback identifies one run without mutation retry', () => {
   const report = buildPostDispatchReconcile({
     workflow,

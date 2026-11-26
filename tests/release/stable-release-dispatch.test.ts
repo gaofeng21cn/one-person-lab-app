@@ -651,6 +651,58 @@ test('an unknown dispatch result performs one mutation and read-only reconciliat
   assert.equal(commands.filter(({ command, args }) => command === 'gh' && args[0] === 'api').length, 6);
 });
 
+test('a Standard dispatch identifies its existing run when main advances after source admission', async () => {
+  const authority = { operation_id: 'stable-operation-42', authority_id: 'authority-42', authority_digest: 'test' };
+  const workflow = '.github/workflows/release-stable.yml';
+  const owner = {
+    ...appendFullOwnerRun(42, '10'),
+    head_sha: 'f'.repeat(40),
+    display_title: `OPL Stable standard operation:${authority.operation_id} authority:${authority.authority_id} run:42`,
+  };
+  let mutations = 0;
+  const result = await dispatchOnce({
+    runner(command, args) {
+      assert.equal(command, 'gh');
+      if (args[0] === 'workflow') {
+        mutations += 1;
+        assert.ok(args.includes(`operation_id=${authority.operation_id}`));
+        assert.ok(args.includes(`authority_id=${authority.authority_id}`));
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      assert.equal(args[0], 'api');
+      assert.ok(args.includes('GET'));
+      return { status: 0, stdout: ownerRunsPayload([owner]), stderr: '' };
+    },
+    now: () => new Date('2026-08-24T00:00:00.000Z'),
+    randomBytes: (size) => Buffer.alloc(size, 1),
+    wait: async () => {},
+  }, 'gaofeng21cn/one-person-lab-app', workflow, appSha, {
+    schema: 'opl_app_stable_dispatch_plan.v1',
+    status: 'ready',
+    operation: 'standard',
+    attempt_id: 'standard-20260824000000-aabbccdd',
+    version_policy: 'explicit_new_product_release',
+    workflow_inputs: { ...authority, operation: 'standard' },
+    source: { run_id: null, artifact: null },
+    recovery: {
+      requested_run_id: null,
+      artifact_producer_run_id: null,
+      qualification_run_id: null,
+      smoke_harness_ref: null,
+      verification_app_ref: null,
+    },
+    cohort: { app_sha: appSha, shell_sha: shellSha, framework_sha: frameworkSha },
+    authority,
+  });
+
+  assert.equal(result.status, 'dispatched');
+  assert.equal(result.pre_dispatch_executor_sha, appSha);
+  assert.equal(result.owner_run?.id, owner.id);
+  assert.equal(result.owner_run?.head_sha, owner.head_sha);
+  assert.equal(result.mutation_retry_count, 0);
+  assert.equal(mutations, 1);
+});
+
 function appendFullOwnerRun(
   id: number,
   sourceRunId: string,

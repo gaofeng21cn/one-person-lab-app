@@ -148,6 +148,7 @@ export async function dispatchOnce(
   executorSha: string,
   plan: StableDispatchPlan,
 ) {
+  const authority = plan.operation === 'standard' ? plan.authority : null;
   const operationStartedAt = runtime.now().toISOString();
   const dispatch = runtime.runner(
     'gh',
@@ -159,6 +160,8 @@ export async function dispatchOnce(
     reconcile = buildPostDispatchReconcile({
       workflow,
       headSha: executorSha,
+      operationId: authority?.operation_id,
+      authorityId: authority?.authority_id,
       operationStartedAt,
       observedAt: runtime.now().toISOString(),
       mutationInvocationCount: 1,
@@ -175,6 +178,7 @@ export async function dispatchOnce(
     mutation_invocation_count: 1,
     mutation_retry_count: 0,
     operation_started_at: operationStartedAt,
+    pre_dispatch_executor_sha: executorSha,
     dispatch_transport: {
       exit_status: dispatch.status,
       error: dispatch.status === 0 && !dispatch.error ? null : commandDetail(dispatch),
