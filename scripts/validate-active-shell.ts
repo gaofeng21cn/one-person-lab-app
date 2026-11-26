@@ -82,7 +82,11 @@ validateFirstRunCompiledExpectations({
   productProfile,
   release: releaseChannel,
 });
-validateProductProfile(productProfile, installExposurePolicy);
+validateProductProfile(productProfile, installExposurePolicy, {
+  guiContract: guiProductContract,
+  releaseChannel,
+  shellAdapter: contract,
+});
 validateReleaseChannelContract(
   releaseChannel,
   validateImplementation ? shellPaths : null,

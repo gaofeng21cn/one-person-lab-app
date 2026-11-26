@@ -1,63 +1,65 @@
 import { assertDeepEqualJson, assertIncludesAll } from "./assertions.ts";
-import {
-  appOwnedAgentModuleStatusPanel,
-  appOwnedGenericOwnerAcceptanceCurrentnessRefPolicy,
-  appOwnedPrimaryGroupingPolicy,
-  appOwnedProjectGroupExpansionPolicy,
-  appOwnedQueueStatusPolicy,
-  appOwnedRuntimeMentalModel,
-  appOwnedRunningStatePolicy,
-  runtimeAutomationStateValues,
-  runtimePrimaryStateValues,
-  retiredMasOwnerAcceptanceMirrorFields,
-  runtimeScopeRequiredFields,
-  actionEnvelopeKinds,
-  actionOwnerKinds,
-  domainDetailViewAvailabilityValues,
-  domainDetailViewDescriptorFields,
-  domainDetailViewDescriptorOptionalFields,
-  domainDetailViewReadAvailabilityValues,
-  systemAttentionResponsibilityFields,
-  taskRunProjectionV2FieldGroups,
-  taskRunProjectionV2RequiredFields,
-  tokenObservationObservedFields,
-  tokenObservationStates,
-  workItemConditionFields,
-  workItemDetailPrimarySections,
-  runtimeWorkItemDetailSecondarySections,
-  workItemPrimaryStateLabelsByLocale,
-  workItemBusinessStates,
-  workItemProjectionFieldContracts,
-  workItemProjectionRequiredFields,
-  workItemVisibilityStates,
-} from "./app-contract-constants.ts";
 
-import {
-  assertFirstRunProgressModelMatches,
-  assertFirstRunProgressModelShape,
-  assertNoForbiddenKeys,
-  assertNonEmptyString,
-  assertNonEmptyStringArray,
-  assertSharedFirstRunProgressModelMatches,
-  resourceContextOptionalTaskRefs,
-} from "./validation-primitives.ts";
+export const structuredResultPanelSurfaces = [
+  "ordinary_conversation",
+  "current_task_slice",
+  "right_context_inspector",
+];
+
+export const structuredResultPanelRequiredRefFields = [
+  "result_summary_ref",
+  "status_ref",
+  "evidence_card_refs",
+  "action_card_refs",
+  "artifact_provenance_ref",
+  "follow_up_refs",
+];
+
+export const refLevelFollowUpRequiredRefFields = [
+  "target_ref",
+  "source_ref",
+  "comment_ref",
+  "prompt_ref",
+  "action_ref",
+  "owner",
+  "content_policy",
+];
+
+export const workflowSkillCandidateRequiredRefFields = [
+  "candidate_ref",
+  "source_report_ref",
+  "candidate_kind",
+  "status",
+  "available_actions",
+  "content_policy",
+];
+
+export const workflowSkillCandidateActions = [
+  "review",
+  "needs_changes",
+  "continue_in_conversation",
+];
+
+function assertProjectionFields(projection, fields, label, separator = " ") {
+  for (const [field, expected] of Object.entries(fields)) {
+    if (projection[field] !== expected) {
+      throw new Error(`${label}${separator}${field} must be ${expected}`);
+    }
+  }
+}
 
 export function validateSettingsCapabilitiesTaskAwarenessSurface(surface, label) {
   if (!surface || typeof surface !== "object") {
     throw new Error(`${label} must be declared`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(surface, {
     surface: "settings_capabilities",
     source: "same_task_awareness_projection_capability_and_workflow_refs_only",
     display_policy:
       "capability_health_workflow_and_candidate_refs_only_no_agent_package_gateway_or_resource_fields",
     action_policy:
       "export_bundle_action_ref_may_open_app_action_dry_run_receipt_only_until_domain_owner_execute_exists",
-  })) {
-    if (surface[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertIncludesAll(
     surface.required_ref_fields,
     [
@@ -91,25 +93,21 @@ export function validateSettingsCapabilitiesTaskAwarenessSurface(surface, label)
   if ("resource_grouping_policy" in surface || "connector_grouping_policy" in surface) {
     throw new Error(`${label} must not aggregate Gateway, connector, or Fabric resource groups`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(surface, {
     refs_only: true,
     skill_body_access: false,
     workflow_body_access: false,
     artifact_body_access: false,
     owner_receipt_write_access: false,
     domain_verdict_authority: false,
-  })) {
-    if (surface[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
 }
 
 export function validateStructuredResultPanelProjectionContract(projection, label) {
   if (!projection || typeof projection !== "object") {
     throw new Error(`${label} must be declared`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     source: "app_state.operator.workbench.task_run_projection_v2.tasks[].structured_result_panel",
     authority: "opl_framework_refs_only_structured_result_projection",
     projection_kind: "structured_result_panel_projection",
@@ -120,40 +118,25 @@ export function validateStructuredResultPanelProjectionContract(projection, labe
     content_policy: "refs_only_no_artifact_body_no_domain_verdict",
     app_role: "display_only_structured_result_panel_consumer",
     shell_role: "thin_renderer_existing_task_surfaces_only",
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertDeepEqualJson(
     projection.surfaces,
-    ["ordinary_conversation", "current_task_slice", "right_context_inspector"],
+    structuredResultPanelSurfaces,
     `${label} surfaces`,
   );
   assertIncludesAll(
     projection.required_ref_fields,
-    [
-      "result_summary_ref",
-      "status_ref",
-      "evidence_card_refs",
-      "action_card_refs",
-      "artifact_provenance_ref",
-      "follow_up_refs",
-    ],
+    structuredResultPanelRequiredRefFields,
     `${label} required_ref_fields`,
   );
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     new_dashboard_allowed: false,
     refs_only: true,
     artifact_body_access: false,
     domain_verdict_authority: false,
     quality_verdict_authority: false,
     readiness_authority: false,
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertIncludesAll(
     projection.forbidden_claims,
     [
@@ -171,7 +154,7 @@ export function validateRefLevelFollowUpProjectionContract(projection, label) {
   if (!projection || typeof projection !== "object") {
     throw new Error(`${label} must be declared`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     source: "app_state.operator.workbench.task_run_projection_v2.tasks[].ref_level_follow_up_refs",
     authority: "opl_framework_refs_only_ref_level_follow_up_projection",
     projection_kind: "ref_level_follow_up_projection",
@@ -179,11 +162,7 @@ export function validateRefLevelFollowUpProjectionContract(projection, label) {
     display_policy:
       "review_request_change_follow_up_prompt_action_refs_only_no_app_annotation_store",
     app_role: "display_only_ref_level_follow_up_refs_consumer",
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertIncludesAll(
     projection.surfaces,
     [
@@ -200,29 +179,17 @@ export function validateRefLevelFollowUpProjectionContract(projection, label) {
   );
   assertIncludesAll(
     projection.required_ref_fields,
-    [
-      "target_ref",
-      "source_ref",
-      "comment_ref",
-      "prompt_ref",
-      "action_ref",
-      "owner",
-      "content_policy",
-    ],
+    refLevelFollowUpRequiredRefFields,
     `${label} required_ref_fields`,
   );
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     app_annotation_store_allowed: false,
     refs_only: true,
     artifact_body_access: false,
     app_annotation_store_write: false,
     owner_receipt_write_access: false,
     domain_verdict_authority: false,
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertIncludesAll(
     projection.forbidden_claims,
     [
@@ -240,7 +207,7 @@ export function validateWorkflowSkillCandidateProjectionContract(projection, lab
   if (!projection || typeof projection !== "object") {
     throw new Error(`${label} must be declared`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     source:
       "app_state.operator.workbench.task_run_projection_v2.tasks[].workflow_skill_candidate_refs",
     authority: "opl_framework_refs_only_workflow_skill_candidate_projection",
@@ -252,29 +219,18 @@ export function validateWorkflowSkillCandidateProjectionContract(projection, lab
     professional_agent_boundary:
       "professional_agents_are_codex_plugins_or_packaged_codex_skill_surfaces",
     app_role: "display_only_workflow_skill_candidate_refs_consumer",
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertIncludesAll(
     projection.required_ref_fields,
-    [
-      "candidate_ref",
-      "source_report_ref",
-      "candidate_kind",
-      "status",
-      "available_actions",
-      "content_policy",
-    ],
+    workflowSkillCandidateRequiredRefFields,
     `${label} required_ref_fields`,
   );
   assertDeepEqualJson(
     projection.allowed_actions,
-    ["review", "needs_changes", "continue_in_conversation"],
+    workflowSkillCandidateActions,
     `${label} allowed_actions`,
   );
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     report_first: true,
     auto_enable_allowed: false,
     refs_only: true,
@@ -283,11 +239,7 @@ export function validateWorkflowSkillCandidateProjectionContract(projection, lab
     workflow_body_access: false,
     runtime_truth_write_access: false,
     domain_verdict_authority: false,
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertIncludesAll(
     projection.forbidden_claims,
     [
@@ -305,7 +257,7 @@ export function validateProgressDeltaDisplayContract(progressDelta, label) {
   if (!progressDelta || typeof progressDelta !== "object") {
     throw new Error(`${label} must be declared`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(progressDelta, {
     source: "app_state.operator.workbench.task_drilldowns.progress_delta_classification",
     authority: "opl_framework_shared_progress_projection",
     display_policy: "classification_only_no_domain_artifact_body",
@@ -313,11 +265,7 @@ export function validateProgressDeltaDisplayContract(progressDelta, label) {
     runtime_page_visible: false,
     platform_repair_display_treatment: "separate_infrastructure_repair_not_deliverable_progress",
     platform_repair_owner_surface: "/settings/environment?section=services",
-  })) {
-    if (progressDelta[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   assertDeepEqualJson(
     progressDelta.required_fields,
     ["deliverable_progress_delta", "platform_repair_delta", "progress_delta_classification"],
@@ -330,11 +278,20 @@ export function validateProgressDeltaDisplayContract(progressDelta, label) {
   }
 }
 
+function assertRepairCase(cases, blocker, fields, label) {
+  const repairCase = cases.find((candidate) => candidate?.blocker === blocker);
+  if (!repairCase) {
+    throw new Error(`${label} must declare ${blocker} repair case`);
+  }
+  assertProjectionFields(repairCase, fields, `${label} ${blocker}`, ".");
+  return repairCase;
+}
+
 export function validateProviderReadinessRepairProjectionContract(projection, label, options = {}) {
   if (!projection || typeof projection !== "object") {
     throw new Error(`${label} must be declared`);
   }
-  for (const [field, expected] of Object.entries({
+  assertProjectionFields(projection, {
     source:
       "app_state.provider + app_state.actions + app_state.operator.default_read_surface_policy",
     authority: "opl_framework_provider_readiness_refs_projection",
@@ -346,11 +303,7 @@ export function validateProviderReadinessRepairProjectionContract(projection, la
     current_owner_delta_policy:
       "never_replace_default_operator_payload_or_owner_delta_show_as_provider_readiness_repair_only",
     app_role: "display_only_provider_repair_path_consumer",
-  })) {
-    if (projection[field] !== expected) {
-      throw new Error(`${label} ${field} must be ${expected}`);
-    }
-  }
+  }, label);
   if (
     options.requireProjectionRef &&
     projection.projection_ref !==
@@ -367,13 +320,7 @@ export function validateProviderReadinessRepairProjectionContract(projection, la
     throw new Error(`${label} provider_readiness_authority must be false`);
   }
   const cases = projection.repair_cases ?? [];
-  const serviceSupervisorNotReady = cases.find(
-    (repairCase) => repairCase?.blocker === "service_supervisor_not_ready",
-  );
-  if (!serviceSupervisorNotReady) {
-    throw new Error(`${label} must declare service_supervisor_not_ready repair case`);
-  }
-  for (const [field, expected] of Object.entries({
+  assertRepairCase(cases, "service_supervisor_not_ready", {
     source_status:
       "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor.ready=false_or_error",
     display_state: "temporal_service_supervisor_not_ready",
@@ -382,43 +329,21 @@ export function validateProviderReadinessRepairProjectionContract(projection, la
     safe_action_id: "provider_service_start",
     runtime_action_id: null,
     command_role: "provider_server_restart_self_healing_repair_only",
-  })) {
-    if (serviceSupervisorNotReady[field] !== expected) {
-      throw new Error(`${label} service_supervisor_not_ready.${field} must be ${expected}`);
-    }
-  }
-  const workerNotReady = cases.find((repairCase) => repairCase?.blocker === "worker_not_ready");
-  if (!workerNotReady) {
-    throw new Error(`${label} must declare worker_not_ready repair case`);
-  }
-  for (const [field, expected] of Object.entries({
+  }, label);
+  assertRepairCase(cases, "worker_not_ready", {
     source_status: "temporal_worker_readiness.readiness_status=worker_not_ready",
     display_state: "provider_worker_not_ready",
     next_repair_command: "opl family-runtime worker start --provider temporal",
     safe_action_id: "provider_worker_start",
     runtime_action_id: "provider-worker:temporal:start",
     command_role: "provider_liveness_repair_only",
-  })) {
-    if (workerNotReady[field] !== expected) {
-      throw new Error(`${label} worker_not_ready.${field} must be ${expected}`);
-    }
-  }
-  const searchAttributesMissing = cases.find(
-    (repairCase) => repairCase?.blocker === "missing_search_attributes",
-  );
-  if (!searchAttributesMissing) {
-    throw new Error(`${label} must declare missing_search_attributes repair case`);
-  }
-  for (const [field, expected] of Object.entries({
+  }, label);
+  const searchAttributesMissing = assertRepairCase(cases, "missing_search_attributes", {
     source_status: "temporal_visibility_readiness.readiness_status=missing_search_attributes",
     display_state: "temporal_search_attributes_missing",
     next_repair_command: "opl family-runtime provider repair --provider temporal",
     command_role: "provider_visibility_repair_only",
-  })) {
-    if (searchAttributesMissing[field] !== expected) {
-      throw new Error(`${label} missing_search_attributes.${field} must be ${expected}`);
-    }
-  }
+  }, label);
   if (
     searchAttributesMissing.safe_action_id !== null ||
     searchAttributesMissing.runtime_action_id !== null
@@ -427,39 +352,19 @@ export function validateProviderReadinessRepairProjectionContract(projection, la
       `${label} missing_search_attributes must be surfaced as a repair command, not a shell-owned safe action`,
     );
   }
-  const searchAttributesCapacity = cases.find(
-    (repairCase) => repairCase?.blocker === "search_attribute_capacity_exceeded",
-  );
-  if (!searchAttributesCapacity) {
-    throw new Error(`${label} must declare search_attribute_capacity_exceeded repair case`);
-  }
-  for (const [field, expected] of Object.entries({
+  const searchAttributesCapacity = assertRepairCase(cases, "search_attribute_capacity_exceeded", {
     source_status: "temporal_visibility_readiness.readiness_status=search_attribute_capacity_exceeded",
     display_state: "temporal_search_attributes_capacity_exceeded",
     command_role: "provider_visibility_migration_readback_only",
-  })) {
-    if (searchAttributesCapacity[field] !== expected) {
-      throw new Error(`${label} search_attribute_capacity_exceeded.${field} must be ${expected}`);
-    }
-  }
+  }, label);
   if (searchAttributesCapacity.safe_action_id !== null || searchAttributesCapacity.runtime_action_id !== null) {
     throw new Error(`${label} search_attribute_capacity_exceeded must not expose a shell-owned action`);
   }
-  const visibilityDegraded = cases.find(
-    (repairCase) => repairCase?.blocker === "visibility_degraded",
-  );
-  if (!visibilityDegraded) {
-    throw new Error(`${label} must declare visibility_degraded repair case`);
-  }
-  for (const [field, expected] of Object.entries({
+  const visibilityDegraded = assertRepairCase(cases, "visibility_degraded", {
     source_status: "temporal_visibility_readiness.indexing_ready=false_and_execution_ready=true",
     display_state: "temporal_visibility_degraded_unindexed",
     command_role: "provider_visibility_optional_degradation",
-  })) {
-    if (visibilityDegraded[field] !== expected) {
-      throw new Error(`${label} visibility_degraded.${field} must be ${expected}`);
-    }
-  }
+  }, label);
   if (visibilityDegraded.safe_action_id !== null || visibilityDegraded.runtime_action_id !== null) {
     throw new Error(`${label} visibility_degraded must not expose a shell-owned action`);
   }

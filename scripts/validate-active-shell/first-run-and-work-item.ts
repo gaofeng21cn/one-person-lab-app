@@ -1,16 +1,7 @@
 import { assertDeepEqualJson, assertIncludesAll } from "./assertions.ts";
 import {
-  appOwnedAgentModuleStatusPanel,
-  appOwnedGenericOwnerAcceptanceCurrentnessRefPolicy,
-  appOwnedPrimaryGroupingPolicy,
-  appOwnedProjectGroupExpansionPolicy,
-  appOwnedQueueStatusPolicy,
-  appOwnedRuntimeMentalModel,
-  appOwnedRunningStatePolicy,
   runtimeAutomationStateValues,
   runtimePrimaryStateValues,
-  retiredMasOwnerAcceptanceMirrorFields,
-  runtimeScopeRequiredFields,
   actionEnvelopeKinds,
   actionOwnerKinds,
   domainDetailViewAvailabilityValues,
@@ -32,15 +23,11 @@ import {
   workItemVisibilityStates,
 } from "./app-contract-constants.ts";
 
-import {
-  assertFirstRunProgressModelMatches,
-  assertFirstRunProgressModelShape,
-  assertNonEmptyString,
-  assertNonEmptyStringArray,
-  assertSharedFirstRunProgressModelMatches,
-  resourceContextOptionalTaskRefs,
-} from "./validation-primitives.ts";
+import { assertNonEmptyString, resourceContextOptionalTaskRefs } from "./validation-primitives.ts";
 import { validateSettingsCapabilitiesTaskAwarenessSurface } from "./settings-and-provider.ts";
+
+const workItemIdentityFields = ["agent_id", "project_id", "work_item_id"];
+const workItemReadbackIdentityFields = workItemIdentityFields.map((field) => `identity.${field}`);
 
 export function validateTaskAwarenessProjectionContract(projection, label) {
   if (!projection || typeof projection !== "object") {
@@ -144,18 +131,16 @@ export function validateWorkItemRowIdentityFixture(
   for (const [index, item] of items.entries()) {
     const itemLabel = `${label}[${index}]`;
     assertNonEmptyString(item?.item_id, `${itemLabel}.item_id`);
-    assertNonEmptyString(item?.identity?.agent_id, `${itemLabel}.identity.agent_id`);
-    assertNonEmptyString(item?.identity?.project_id, `${itemLabel}.identity.project_id`);
-    assertNonEmptyString(item?.identity?.work_item_id, `${itemLabel}.identity.work_item_id`);
+    const identityTuple = workItemIdentityFields.map((field) => {
+      const value = item?.identity?.[field];
+      assertNonEmptyString(value, `${itemLabel}.identity.${field}`);
+      return value;
+    });
     if (itemIds.has(item.item_id)) {
       throw new Error(`${label} item_id must be globally unique`);
     }
     itemIds.add(item.item_id);
-    const mutationTuple = [
-      item.identity.agent_id,
-      item.identity.project_id,
-      item.identity.work_item_id,
-    ].join("\u0000");
+    const mutationTuple = JSON.stringify(identityTuple);
     if (mutationTuples.has(mutationTuple)) {
       throw new Error(`${label} mutation identity tuple must be unique`);
     }
@@ -377,12 +362,8 @@ export function validateWorkItemProjectionContract(projection, label) {
       item_id_derivation: "project_id_plus_encoded_work_item_id",
       identity_work_item_id_scope: "project_local",
       duplicate_local_work_item_id_across_projects_allowed: true,
-      mutation_identity_fields: ["agent_id", "project_id", "work_item_id"],
-      readback_identity_fields: [
-        "identity.agent_id",
-        "identity.project_id",
-        "identity.work_item_id",
-      ],
+      mutation_identity_fields: workItemIdentityFields,
+      readback_identity_fields: workItemReadbackIdentityFields,
     },
     `${label} row_identity_contract`,
   );
@@ -431,12 +412,12 @@ export function validateWorkItemProjectionContract(projection, label) {
   );
   assertDeepEqualJson(
     projection.action_envelope_contract?.required_fields,
-    workItemProjectionFieldContracts.action,
+    action.required_fields,
     `${label} action envelope required_fields`,
   );
   assertDeepEqualJson(
     projection.action_envelope_contract?.owner_kinds,
-    actionOwnerKinds,
+    action.owner_kinds,
     `${label} action envelope owner_kinds`,
   );
   assertDeepEqualJson(
@@ -446,7 +427,7 @@ export function validateWorkItemProjectionContract(projection, label) {
   );
   assertDeepEqualJson(
     projection.action_envelope_contract?.compatibility_fallback_fields,
-    ["title", "summary"],
+    action.compatibility_fallback_fields,
     `${label} action envelope compatibility_fallback_fields`,
   );
   if (
@@ -463,7 +444,7 @@ export function validateWorkItemProjectionContract(projection, label) {
   const visibilityMutation = projection.visibility_mutation_contract;
   assertDeepEqualJson(
     visibilityMutation?.payload_required_fields,
-    ["agent_id", "project_id", "work_item_id", "visibility_state"],
+    [...workItemIdentityFields, "visibility_state"],
     `${label} visibility mutation payload_required_fields`,
   );
   assertDeepEqualJson(
@@ -473,7 +454,7 @@ export function validateWorkItemProjectionContract(projection, label) {
   );
   assertDeepEqualJson(
     visibilityMutation?.visibility_values,
-    workItemVisibilityStates,
+    visibility.states,
     `${label} visibility mutation values`,
   );
   for (const [field, expected] of Object.entries({
@@ -502,21 +483,15 @@ export function validateWorkItemProjectionContract(projection, label) {
   }
   assertDeepEqualJson(
     visibilityMutation?.success_readback_identity_fields,
-    ["identity.agent_id", "identity.project_id", "identity.work_item_id"],
+    workItemReadbackIdentityFields,
     `${label} visibility mutation success_readback_identity_fields`,
   );
   assertDeepEqualJson(
     visibilityMutation?.success_readback_required_fields,
     [
       "item_id",
-      "identity.agent_id",
-      "identity.project_id",
-      "identity.work_item_id",
-      "visibility.state",
-      "visibility.source",
-      "visibility.updated_at",
-      "visibility.control_ref",
-      "visibility.generation",
+      ...workItemReadbackIdentityFields,
+      ...visibility.required_fields.map((field) => `visibility.${field}`),
       "lifecycle",
       "execution",
       "telemetry",
@@ -737,10 +712,7 @@ export function validateTaskRunProjectionV2Fixture(task, label) {
           throw new Error(`${label} ${group}[0] must include ${field}`);
         }
       }
-      if (
-        ["evidence_cards", "action_cards", "resource_cards"].includes(group) &&
-        (!value[0].open_action || typeof value[0].open_action !== "object")
-      ) {
+      if (!value[0].open_action || typeof value[0].open_action !== "object") {
         throw new Error(`${label} ${group}[0] must include open_action object`);
       }
     } else {

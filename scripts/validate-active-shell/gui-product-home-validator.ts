@@ -2,25 +2,16 @@ import { assertDeepEqualJson, assertIncludesAll } from './assertions.ts';
 import {
   appOwnedCurrentTaskSlice,
   appOwnedDirectoryGroupPolicy,
-  appOwnedExplicitSessionInputPolicy,
-  appOwnedGuiContractOrdinaryConversation,
-  appOwnedHomeLayout,
+  appOwnedActiveStudioPrimaryNavigation,
+  appOwnedArtifactPreview,
+  appOwnedOplStandardAgentMembershipPolicy,
   appOwnedReviewSurfaceSourceEvidence,
   appOwnedRightContextInspectorForbiddenOwners,
   appOwnedRightContextInspectorPolicy,
-  appOwnedSessionWorkspaceModel,
 } from './app-contract-constants.ts';
 import { validateGuiProductAuthority } from './gui-product-authority-validator.ts';
-
-const dynamicPackagePresentationPolicy = {
-  homeShortcuts: {
-    role: 'owner_projected_package_presentation',
-    shortcut_source_ref: 'app_state.agent_packages.directory.entries[].home_shortcuts[]',
-    preference_source_ref: 'app_state.agent_packages.status_index.home_shortcut_preferences[]',
-    package_id_allowlist_allowed: false,
-    fallback_policy: 'omit_invalid_shortcut_and_preserve_other_packages',
-  },
-};
+import { productProfile } from './gui-product-contract/context.ts';
+import { assertNonEmptyStringArray } from './validation-primitives.ts';
 
 const dynamicPackageShortcutIconPolicy = {
   role: 'owner_projected_package_presentation',
@@ -72,102 +63,161 @@ function validateExecutorPolicy(guiContract) {
 }
 
 function validateHomeLayout(guiContract) {
-  const {
-    runtime_notice_policy_ref: runtimeNoticePolicyRef,
-    ...homeLayout
-  } = guiContract.home_layout ?? {};
-  assertDeepEqualJson(homeLayout, appOwnedHomeLayout, 'App GUI home layout');
-  if (runtimeNoticePolicyRef !== 'ui_experience_contract.home.runtime_notice') {
-    throw new Error('App GUI Home Runtime notice must use the exception-only UI experience contract');
+  const layout = guiContract.home_layout;
+  if (
+    layout?.default_mode !== 'composer_first_chat_canvas' ||
+    layout?.default_active_shortcut !== null ||
+    layout?.shortcut_selection_policy !==
+      'explicit_user_or_navigation_selection_only_no_saved_preset_restore_and_never_disabled_by_launch_readiness' ||
+    layout?.composer_primary !== true ||
+    layout?.composer_position !== 'floating_bottom_with_safe_inset' ||
+    layout?.workspace_selector_visible !== true ||
+    layout?.workspace_selector_entry !== 'home.new_session_context_bar' ||
+    layout?.unselected_workspace_control_visible !== true ||
+    layout?.projectless_conversation_supported !== true ||
+    layout?.text_chat_without_workspace !== 'available' ||
+    layout?.right_context_inspector_default_state !== 'collapsed'
+  ) {
+    throw new Error('App GUI home layout must keep the composer primary and allow ordinary chat before workspace selection');
+  }
+  if (
+    layout?.starter_limit !== null ||
+    layout?.starter_truncation_allowed !== false ||
+    layout?.selected_starter_accessibility_state !== 'aria_pressed_reflects_active_shortcut' ||
+    layout?.shortcut_membership_source_ref !== 'app_state.agent_packages.directory.entries' ||
+    layout?.shortcut_preference_source_ref !== 'app_state.agent_packages.status_index.home_shortcut_preferences[]' ||
+    layout?.home_shortcut_visibility_source_ref !==
+      'app_state.agent_packages.directory.entries + app_state.agent_packages.status_index.home_shortcut_preferences[visible=true]' ||
+    layout?.unknown_standard_agent_policy !==
+      'render_unknown_package_ids_only_when_they_match_opl_standard_agent_membership_without_app_allowlist'
+  ) {
+    throw new Error('App GUI home layout must expose all selectable owner-projected shortcuts');
   }
   assertDeepEqualJson(
-    guiContract.interaction_baseline?.conversation_scope?.session_workspace_model,
-    appOwnedSessionWorkspaceModel,
-    'App GUI interaction session workspace model',
+    layout.opl_standard_agent_membership_policy,
+    appOwnedOplStandardAgentMembershipPolicy,
+    'App GUI Home Agent membership',
   );
   assertDeepEqualJson(
-    guiContract.interaction_baseline?.conversation_scope?.explicit_session_input_policy,
-    appOwnedExplicitSessionInputPolicy,
-    'App GUI interaction explicit session input policy',
+    layout.workspace_selector_policy,
+    {
+      primary_scope: "active_workspace_only",
+      inactive_recent_directories_visible: false,
+      management_entry: "registered_directories_modal",
+      management_scope: "registered_workspaces",
+      selection_effect: "set_new_session_initial_cwd_only",
+      unregister_effect: "remove_registration_only",
+      filesystem_delete_allowed: false,
+      active_conversation_change_on_unregister: false,
+      session_ownership_effect: "none",
+      cascade_session_delete_allowed: false,
+    },
+    'App GUI Home workspace selector session ownership policy',
   );
+  assertDeepEqualJson(
+    layout.home_shortcut_mutation_policy,
+    {
+      pending_scope: "single_shortcut",
+      pending_key: "shortcut_id",
+      other_shortcuts_remain_interactive: true,
+      readback_mode: "background_no_page_loading",
+    },
+    'App GUI Home independent shortcut mutation and readback',
+  );
+  assertDeepEqualJson(
+    layout.active_studio_primary_navigation,
+    appOwnedActiveStudioPrimaryNavigation,
+    'App GUI Home active Studio primary navigation',
+  );
+  const visualStructure = guiContract.interaction_baseline?.home?.visual_structure;
+  for (const field of [
+    'desktop_composer_max_width_px',
+    'desktop_composer_min_height_px',
+    'desktop_composer_corner_radius_px',
+    'desktop_context_bar_height_px',
+    'desktop_context_bar_overlap_px',
+    'desktop_context_bar_horizontal_inset_px',
+  ]) {
+    if (!Number.isInteger(layout[field]) || layout[field] < 1 || visualStructure?.[field] !== layout[field]) {
+      throw new Error(`App GUI home layout ${field} must agree with the visual baseline`);
+    }
+  }
+  assertNonEmptyStringArray(layout.must_not_show, 'App GUI home layout exclusions');
+  if (layout.runtime_notice_policy_ref !== 'ui_experience_contract.home.runtime_notice') {
+    throw new Error('App GUI Home Runtime notice must use the exception-only UI experience contract');
+  }
+}
+
+function validateUtilityIconPolicy(guiContract) {
+  const icons = guiContract.utility_icon_policy;
+  const feedback = icons?.global_feedback_action;
+  const startup = feedback?.startup_failure_action;
   if (
-    guiContract.utility_icon_policy?.library !== 'pinned_deepseek_harness_icon_cohort_via_opl_icon_adapter' ||
-    guiContract.utility_icon_policy?.opl_owned_settings_navigation_and_overview !==
-      'dsh_icon_primitives_14_16px_currentcolor' ||
-    guiContract.utility_icon_policy?.settings_icon_geometry !==
-      'stable_16px_slot_1_5_to_1_75px_visual_stroke_no_colored_tile_or_letter_avatar' ||
-    guiContract.utility_icon_policy?.upstream_fork_body_bulk_icon_rewrite !== 'forbidden' ||
-    guiContract.utility_icon_policy?.refresh_actions !== 'icon_only_with_tooltip_and_accessible_name' ||
-    guiContract.utility_icon_policy?.model_reasoning_control !== 'text_and_disclosure_without_brain_icon' ||
-    JSON.stringify(guiContract.utility_icon_policy?.account_identity_avatar) !==
-      JSON.stringify({
-        shape: 'circle',
-        background: 'semantic_success_green',
-        foreground: 'inverse',
-        han_name_initials: 'first_han_character_only',
-        non_han_name_initials: 'first_letters_of_first_two_words_uppercase_else_first_two_codepoints',
-        email_fallback_initials: 'first_two_local_part_codepoints_uppercase',
-        empty_fallback: 'OP',
-      }) ||
-    guiContract.utility_icon_policy?.global_feedback_action?.placement !== 'titlebar_trailing_utility' ||
-    guiContract.utility_icon_policy?.global_feedback_action?.icon !== 'circle_question' ||
-    guiContract.utility_icon_policy?.global_feedback_action?.icon_style !== 'regular_outline' ||
-    guiContract.utility_icon_policy?.global_feedback_action?.target_url !==
-      'https://github.com/gaofeng21cn/one-person-lab-app/issues/new' ||
-    guiContract.utility_icon_policy?.global_feedback_action?.open_mode !==
-      'external_browser_user_review_and_submit' ||
-    JSON.stringify(guiContract.utility_icon_policy?.global_feedback_action?.prefill_fields) !==
-      JSON.stringify(['localized_title', 'localized_body', 'current_route', 'app_release_version']) ||
-    JSON.stringify(guiContract.utility_icon_policy?.global_feedback_action?.startup_failure_action) !==
-      JSON.stringify({
-        placement: 'blocking_startup_failure_dialog',
-        delivery_channel: 'electron_main_process_native_open_external_via_preload_ipc',
-        backend_dependency: 'none',
-        submission_policy: 'external_browser_user_review_and_submit',
-        automatic_submission: false,
-        prefill_fields: [
-          'localized_title',
-          'localized_body',
-          'app_release_version',
-          'platform',
-          'architecture',
-          'startup_failure_reason',
-          'backend_boundary_code',
-          'backend_boundary_stage',
-        ],
-        automatic_attachment_policy: 'forbidden_no_logs_paths_credentials_or_user_content',
-      }) ||
-    guiContract.utility_icon_policy?.global_feedback_action?.shell_local_delivery_forbidden !== true
+    icons?.library !== 'pinned_deepseek_harness_icon_cohort_via_opl_icon_adapter' ||
+    icons?.upstream_fork_body_bulk_icon_rewrite !== 'forbidden' ||
+    icons?.refresh_actions !== 'icon_only_with_tooltip_and_accessible_name' ||
+    feedback?.placement !== 'titlebar_trailing_utility' ||
+    feedback?.target_url !== 'https://github.com/gaofeng21cn/one-person-lab-app/issues/new' ||
+    feedback?.open_mode !== 'external_browser_user_review_and_submit' ||
+    feedback?.shell_local_delivery_forbidden !== true ||
+    startup?.placement !== 'blocking_startup_failure_dialog' ||
+    startup?.delivery_channel !== 'electron_main_process_native_open_external_via_preload_ipc' ||
+    startup?.backend_dependency !== 'none' ||
+    startup?.submission_policy !== feedback.open_mode ||
+    startup?.automatic_submission !== false ||
+    startup?.automatic_attachment_policy !== 'forbidden_no_logs_paths_credentials_or_user_content'
   ) {
     throw new Error('App GUI utility icon policy must bind the global feedback action to OPL App GitHub issues');
   }
   assertDeepEqualJson(
-    Object.fromEntries(
-      Object.entries(guiContract.ordinary_conversation ?? {}).filter(([key]) => key !== 'current_task_slice'),
-    ),
-    appOwnedGuiContractOrdinaryConversation,
-    'App GUI ordinary conversation contract',
+    feedback.prefill_fields,
+    ['localized_title', 'localized_body', 'current_route', 'app_release_version'],
+    'App GUI utility icon policy feedback fields',
   );
   assertDeepEqualJson(
-    Object.fromEntries(
-      Object.entries(guiContract.ordinary_conversation?.current_task_slice ?? {}).filter(([key]) => key !== 'fields'),
-    ),
-    Object.fromEntries(Object.entries(appOwnedCurrentTaskSlice).filter(([key]) => key !== 'fields')),
-    'App GUI ordinary conversation current task slice shell policy',
-  );
-  assertIncludesAll(
-    guiContract.ordinary_conversation?.current_task_slice?.fields,
+    startup.prefill_fields,
     [
-      ...appOwnedCurrentTaskSlice.fields,
-      'resource_plan_ref',
-      'resource_approval_ref',
-      'resource_usage_ref',
-      'console_policy_ref',
-      'environment_template_ref',
-      'environment_version_ref',
+      'localized_title',
+      'localized_body',
+      'app_release_version',
+      'platform',
+      'architecture',
+      'startup_failure_reason',
+      'backend_boundary_code',
+      'backend_boundary_stage',
     ],
-    'App GUI ordinary conversation current task slice fields',
+    'App GUI utility icon policy startup feedback fields',
   );
+}
+
+function validateOrdinaryConversation(guiContract) {
+  const {
+    current_task_slice: taskSlice,
+    artifact_preview: artifactPreview,
+    ...ordinaryConversation
+  } = guiContract.ordinary_conversation ?? {};
+  const profileConversation = productProfile.gui.ordinary_conversation;
+  const conversationScope = guiContract.interaction_baseline?.conversation_scope;
+  assertDeepEqualJson(
+    conversationScope?.session_workspace_model,
+    ordinaryConversation.session_workspace_model,
+    'App GUI interaction session workspace model',
+  );
+  assertDeepEqualJson(
+    conversationScope?.explicit_session_input_policy,
+    ordinaryConversation.explicit_session_input_policy,
+    'App GUI interaction explicit session input policy',
+  );
+  assertDeepEqualJson(ordinaryConversation, profileConversation, 'App GUI ordinary conversation contract');
+  assertDeepEqualJson(
+    artifactPreview,
+    appOwnedArtifactPreview,
+    'App GUI ordinary conversation contract artifact preview',
+  );
+  const { fields, ...taskPolicy } = taskSlice ?? {};
+  const { fields: expectedFields, ...expectedTaskPolicy } = appOwnedCurrentTaskSlice;
+  assertDeepEqualJson(taskPolicy, expectedTaskPolicy, 'App GUI ordinary conversation current task slice shell policy');
+  assertIncludesAll(fields, expectedFields, 'App GUI ordinary conversation current task slice fields');
   assertIncludesAll(guiContract.pages?.ordinary_conversation?.must_show, [
     'desktop unified plus menu, permission and access, model and reasoning, and send or stop controls in the composer',
     'mobile plus sheet reusing the unified context menu with access, model and reasoning, and active capability actions',
@@ -386,13 +436,16 @@ function validateRightContextInspector(guiContract) {
 }
 
 function validateHomeShortcutCompatibilityMetadata(guiContract) {
-  assertDeepEqualJson(
-    guiContract.home_agent_shortcuts_metadata_policy,
-    dynamicPackagePresentationPolicy.homeShortcuts,
-    'App GUI contract Home shortcut projection policy',
-  );
-  if ('home_agent_shortcuts' in guiContract) {
-    throw new Error('App GUI contract must not restore an App-owned Home shortcut list');
+  const layout = guiContract.home_layout;
+  const policy = guiContract.home_agent_shortcuts_metadata_policy;
+  if (
+    policy?.role !== 'owner_projected_package_presentation' ||
+    policy?.shortcut_source_ref !== `${layout.shortcut_membership_source_ref}[].home_shortcuts[]` ||
+    policy?.preference_source_ref !== layout.shortcut_preference_source_ref ||
+    policy?.package_id_allowlist_allowed !== false ||
+    policy?.fallback_policy !== 'omit_invalid_shortcut_and_preserve_other_packages'
+  ) {
+    throw new Error('App GUI contract Home shortcut projection policy must consume dynamic owner metadata');
   }
 }
 
@@ -431,6 +484,8 @@ export function validateGuiProductHomeContract(guiContract) {
   validateExecutorPolicy(guiContract);
   validateUiLocalePolicy(guiContract);
   validateHomeLayout(guiContract);
+  validateUtilityIconPolicy(guiContract);
+  validateOrdinaryConversation(guiContract);
   validateSessionDirectoryPolicy(guiContract);
   validateAiFirstInteractionModel(guiContract);
   validateRightContextInspector(guiContract);

@@ -11,31 +11,36 @@ import {
   runtimePrimaryStateValues,
   retiredMasOwnerAcceptanceMirrorFields,
   runtimeScopeRequiredFields,
-  actionEnvelopeKinds,
-  actionOwnerKinds,
-  domainDetailViewAvailabilityValues,
-  domainDetailViewDescriptorFields,
-  domainDetailViewDescriptorOptionalFields,
-  domainDetailViewReadAvailabilityValues,
-  systemAttentionResponsibilityFields,
-  taskRunProjectionV2FieldGroups,
-  taskRunProjectionV2RequiredFields,
-  tokenObservationObservedFields,
-  tokenObservationStates,
-  workItemConditionFields,
-  workItemDetailPrimarySections,
-  runtimeWorkItemDetailSecondarySections,
-  workItemPrimaryStateLabelsByLocale,
-  workItemBusinessStates,
-  workItemProjectionFieldContracts,
-  workItemProjectionRequiredFields,
   workItemVisibilityStates,
 } from "./app-contract-constants.ts";
 
 import {
   assertNonEmptyString,
   assertNonEmptyStringArray,
+  resourceContextOptionalTaskRefs,
 } from "./validation-primitives.ts";
+
+const stageRunCockpitFields = [
+  "stage_run_cockpit",
+  "stage_run_cockpit_summary",
+  "stage_run_current_owner_delta",
+];
+
+const stageRunCockpitRequiredRefs = [
+  "task_id",
+  "stage_id",
+  "owner",
+  "next_visible_step",
+  "accepted_return_shapes",
+  "readiness_false_flag_refs",
+];
+
+const stageRunCockpitSummaryFields = [
+  "current_owner",
+  "required_delta",
+  "next_safe_action_ref",
+  "artifact_or_blocker_refs",
+];
 
 export function validateStageRunCockpitProjectionContract(projection, label) {
   if (!projection || typeof projection !== "object") {
@@ -56,19 +61,12 @@ export function validateStageRunCockpitProjectionContract(projection, label) {
   }
   assertDeepEqualJson(
     projection.accepted_fast_state_fields,
-    ["stage_run_cockpit", "stage_run_cockpit_summary", "stage_run_current_owner_delta"],
+    stageRunCockpitFields,
     `${label} accepted_fast_state_fields`,
   );
   assertIncludesAll(
     projection.required_ref_fields,
-    [
-      "task_id",
-      "stage_id",
-      "owner",
-      "next_visible_step",
-      "accepted_return_shapes",
-      "readiness_false_flag_refs",
-    ],
+    stageRunCockpitRequiredRefs,
     `${label} required_ref_fields`,
   );
   assertDeepEqualJson(
@@ -87,7 +85,7 @@ export function validateStageRunCockpitProjectionContract(projection, label) {
   );
   assertIncludesAll(
     projection.summary_fields,
-    ["current_owner", "required_delta", "next_safe_action_ref", "artifact_or_blocker_refs"],
+    stageRunCockpitSummaryFields,
     `${label} summary_fields`,
   );
   assertNonEmptyStringArray(projection.preferred_panel_fields, `${label} preferred_panel_fields`);
@@ -125,24 +123,12 @@ export function validateStageRunCockpitFixture(task, label) {
   if (cockpit.derived_from !== "current_owner_delta") {
     throw new Error(`${label} must derive from current_owner_delta`);
   }
-  for (const field of [
-    "task_id",
-    "stage_id",
-    "owner",
-    "next_visible_step",
-    "accepted_return_shapes",
-    "readiness_false_flag_refs",
-  ]) {
+  for (const field of stageRunCockpitRequiredRefs) {
     if (!Object.hasOwn(cockpit, field)) {
       throw new Error(`${label} cockpit must include ${field}`);
     }
   }
-  for (const field of [
-    "current_owner",
-    "required_delta",
-    "next_safe_action_ref",
-    "artifact_or_blocker_refs",
-  ]) {
+  for (const field of stageRunCockpitSummaryFields) {
     if (!Object.hasOwn(task.stage_run_cockpit_summary, field)) {
       throw new Error(`${label} summary must include ${field}`);
     }
@@ -175,11 +161,7 @@ export function validateStageRunCockpitFixture(task, label) {
   }
 }
 
-function validateActiveProjectLineProjectionContract(
-  activeProjectLineProjection,
-  label,
-  options = {},
-) {
+function validateActiveProjectLineProjectionContract(activeProjectLineProjection, label) {
   if (!activeProjectLineProjection || typeof activeProjectLineProjection !== "object") {
     throw new Error(`${label} must be declared`);
   }
@@ -207,13 +189,11 @@ function validateActiveProjectLineProjectionContract(
     appOwnedProjectGroupExpansionPolicy,
     `${label} project_group_expansion_policy`,
   );
-  if (options.requireFields !== false) {
-    assertIncludesAll(
-      activeProjectLineProjection.required_fields,
-      ["task_id", "title", "state", "status", "study_id", "active_run_id", "next_visible_step"],
-      `${label} required_fields`,
-    );
-  }
+  assertIncludesAll(
+    activeProjectLineProjection.required_fields,
+    ["task_id", "title", "state", "status", "study_id", "active_run_id", "next_visible_step"],
+    `${label} required_fields`,
+  );
   assertIncludesAll(
     activeProjectLineProjection.must_not_claim,
     ["active_worker_run", "provider_execution_running", "domain_ready", "paper_quality_ready"],
@@ -299,8 +279,6 @@ export function validateUserTaskStatusProjectionContract(
       "app_state.operator.workbench.summary_cards + app_state.operator.workbench.activity_center + app_state.operator.workbench.task_drilldowns + app_state.operator.visual_ref_groups.active_project_refs",
     authority: "opl_framework_refs_only_user_task_projection",
     display_policy: "scope_switchable_user_task_status_first_provider_projection_diagnostic_only",
-    default_user_question:
-      "Within the selected scope, which projects are moving, which are paused, which need a user decision, which need system handling, and what is each task's current stage, liveness, and token usage?",
     progress_label_policy:
       "render framework progress classification and stage labels as human task progress labels without exposing raw projection or ledger names",
     diagnostic_source_policy:
@@ -310,6 +288,7 @@ export function validateUserTaskStatusProjectionContract(
       throw new Error(`${label} ${field} must be ${expected}`);
     }
   }
+  assertNonEmptyString(userTaskStatus.default_user_question, `${label} default_user_question`);
   assertDeepEqualJson(
     userTaskStatus.generic_owner_acceptance_currentness_ref_policy,
     appOwnedGenericOwnerAcceptanceCurrentnessRefPolicy,
@@ -320,9 +299,19 @@ export function validateUserTaskStatusProjectionContract(
     runtimeScopeRequiredFields,
     `${label} scope_fields`,
   );
+  const countPolicies = {
+    running_task_count:
+      "count user tasks projected as actively running or advancing, never raw provider attempts",
+    active_project_count:
+      "count active user-visible project lines from the framework project-line projection",
+    queued_project_count:
+      "count queued or waiting user-visible project/task lines without claiming active worker runs",
+    attention_count:
+      "count user-visible blockers, human gates, failed safe actions, or owner attention states",
+  };
   assertDeepEqualJson(
     userTaskStatus.summary_fields,
-    ["running_task_count", "active_project_count", "queued_project_count", "attention_count"],
+    Object.keys(countPolicies),
     `${label} summary_fields`,
   );
   assertDeepEqualJson(
@@ -374,34 +363,13 @@ export function validateUserTaskStatusProjectionContract(
       "owner",
       "last_progress",
       "next_owner",
-      "stage_run_cockpit",
-      "stage_run_cockpit_summary",
-      "stage_run_current_owner_delta",
+      ...stageRunCockpitFields,
       "artifact_or_blocker",
       "review_receipt",
       "action_receipt",
       "workflow_refs",
       "export_bundle_action_ref",
-      "gateway_status_ref",
-      "resource_source_refs",
-      "environment_ref",
-      "storage_ref",
-      "resource_plan_ref",
-      "resource_approval_ref",
-      "resource_execute_ref",
-      "resource_monitor_ref",
-      "resource_collect_ref",
-      "resource_usage_ref",
-      "console_policy_ref",
-      "quota_ref",
-      "billing_ref",
-      "permission_ref",
-      "environment_template_ref",
-      "environment_version_ref",
-      "environment_source_ref",
-      "environment_task_refs",
-      "resource_receipt_ref",
-      "cost_estimate_ref",
+      ...resourceContextOptionalTaskRefs,
       "connector_readiness_refs",
       "diagnostic_substrate_refs",
     ],
@@ -415,16 +383,7 @@ export function validateUserTaskStatusProjectionContract(
       throw new Error(`${label} must not mirror retired MAS owner field ${retiredField}`);
     }
   }
-  for (const [field, expected] of Object.entries({
-    running_task_count:
-      "count user tasks projected as actively running or advancing, never raw provider attempts",
-    active_project_count:
-      "count active user-visible project lines from the framework project-line projection",
-    queued_project_count:
-      "count queued or waiting user-visible project/task lines without claiming active worker runs",
-    attention_count:
-      "count user-visible blockers, human gates, failed safe actions, or owner attention states",
-  })) {
+  for (const [field, expected] of Object.entries(countPolicies)) {
     if (userTaskStatus.count_policies?.[field] !== expected) {
       throw new Error(`${label} count_policies.${field} must be ${expected}`);
     }
@@ -464,7 +423,7 @@ export function validateUserTaskStatusProjectionContract(
     userTaskStatus.work_item_visibility,
     {
       projection_path: "work_item_projection_v2.items[].visibility",
-      axis_values: ["visible", "archived"],
+      axis_values: workItemVisibilityStates,
       default_projection: "visible_only",
       archived_surface: "archived_tasks_library",
       archived_surface_scope: "same_agent_then_project_scope",

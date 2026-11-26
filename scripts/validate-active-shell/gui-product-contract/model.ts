@@ -4,48 +4,40 @@ import { productProfile } from './context.ts';
 export function validateCodexModelPolicy(guiContract) {
   const executorPolicy = guiContract.executor_policy ?? {};
   const productHome = productProfile.gui?.home ?? {};
-  assertDeepEqualJson(
-    {
-      default_model: executorPolicy.default_model,
-      default_reasoning_effort: executorPolicy.default_reasoning_effort,
-      default_model_display_value: executorPolicy.default_model_display_value,
-      home_model_status_label: executorPolicy.home_model_status_label,
-      home_model_status_label_en: executorPolicy.home_model_status_label_en,
-      auto_model_policy_source_ref: executorPolicy.auto_model_policy_source_ref,
-      display_policy: executorPolicy.model_display_options_policy?.display_policy,
-      button_label_policy: executorPolicy.model_display_options_policy?.button_label_policy,
-      reasoning_menu_title_zh: executorPolicy.model_display_options_policy?.reasoning_menu_title_zh,
-      reasoning_menu_title_en: executorPolicy.model_display_options_policy?.reasoning_menu_title_en,
-      reasoning_effort_override_surface:
-        executorPolicy.model_display_options_policy?.reasoning_effort_override_surface,
-      model_menu_policy: executorPolicy.model_display_options_policy?.model_menu_policy,
-      menu_structure: executorPolicy.model_display_options_policy?.menu_structure,
-      user_reasoning_effort_options: executorPolicy.model_display_options_policy?.user_reasoning_effort_options,
-      known_visible_models_follow_frontier_preference_order:
-        executorPolicy.model_display_options_policy?.known_visible_models_follow_frontier_preference_order,
-      unknown_catalog_default_must_remain_visible_in_auto:
-        executorPolicy.model_display_options_policy?.unknown_catalog_default_must_remain_visible_in_auto,
-    },
-    {
-      default_model: productProfile.codex?.default_model,
-      default_reasoning_effort: productProfile.codex?.default_reasoning_effort,
-      default_model_display_value: productHome.codex_home_model_status_label,
-      home_model_status_label: productHome.codex_home_model_status_label,
-      home_model_status_label_en: productHome.codex_home_model_status_label_en,
-      auto_model_policy_source_ref: productHome.codex_auto_model_selection?.policy_source_ref,
-      display_policy: productHome.codex_model_display_options?.display_policy,
-      button_label_policy: productHome.codex_model_display_options?.button_label_policy,
-      reasoning_menu_title_zh: productHome.codex_model_display_options?.reasoning_menu_title_zh,
-      reasoning_menu_title_en: productHome.codex_model_display_options?.reasoning_menu_title_en,
-      reasoning_effort_override_surface: productHome.codex_model_display_options?.reasoning_effort_override_surface,
-      model_menu_policy: productHome.codex_model_display_options?.model_menu_policy,
-      menu_structure: productHome.codex_model_display_options?.menu_structure,
-      user_reasoning_effort_options: productHome.codex_model_display_options?.user_reasoning_effort_options,
-      known_visible_models_follow_frontier_preference_order: true,
-      unknown_catalog_default_must_remain_visible_in_auto: true,
-    },
-    'App GUI Codex model policy',
-  );
+  const displayOptions = executorPolicy.model_display_options_policy;
+  const projectedExecutorFields = {
+    default_model: productProfile.codex?.default_model,
+    default_reasoning_effort: productProfile.codex?.default_reasoning_effort,
+    default_model_display_value: productHome.codex_home_model_status_label,
+    home_model_status_label: productHome.codex_home_model_status_label,
+    home_model_status_label_en: productHome.codex_home_model_status_label_en,
+    auto_model_policy_source_ref: productHome.codex_auto_model_selection?.policy_source_ref,
+  };
+  for (const [field, expected] of Object.entries(projectedExecutorFields)) {
+    assertDeepEqualJson(executorPolicy[field], expected, `App GUI Codex model policy ${field}`);
+  }
+  for (const field of [
+    'display_policy',
+    'button_label_policy',
+    'reasoning_menu_title_zh',
+    'reasoning_menu_title_en',
+    'reasoning_effort_override_surface',
+    'model_menu_policy',
+    'menu_structure',
+    'user_reasoning_effort_options',
+  ]) {
+    assertDeepEqualJson(
+      displayOptions?.[field],
+      productHome.codex_model_display_options?.[field],
+      `App GUI Codex model policy ${field}`,
+    );
+  }
+  if (
+    displayOptions?.known_visible_models_follow_frontier_preference_order !== true ||
+    displayOptions?.unknown_catalog_default_must_remain_visible_in_auto !== true
+  ) {
+    throw new Error('App GUI Codex model policy must prioritize known models and keep an unknown catalog default available in Auto');
+  }
 }
 
 export function validateVisualTokenBindings(guiContract) {

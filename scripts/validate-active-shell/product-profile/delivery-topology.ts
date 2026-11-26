@@ -1,15 +1,25 @@
 import { validateMobileCompanionTopology } from '../remote-companion-validator.ts';
 import { readAppShellAdapterContract } from '../../app-shell-adapter.ts';
-import { assertDeepEqualJson } from '../assertions.ts';
+import { assertDeepEqualJson, readJson } from '../assertions.ts';
+import { defaultActiveShellContractPath, releaseChannelPath } from '../validation-config.ts';
 import { validateMinimumCompleteProductContract } from '../../validate-shell-candidates/candidate-contract.ts';
 
-export function validateDeliveryTopology(profile) {
+export function validateDeliveryTopology(profile, releaseChannel = readJson(releaseChannelPath)) {
   const topology = profile.delivery_topology;
+  const adapter = readJson(defaultActiveShellContractPath);
+  const adapterTopology = adapter.delivery_topology;
+  const stablePlatforms = releaseChannel.release_platform_matrix.policies.stable_required.platforms;
+  const runtimeForms = [
+    topology?.desktop?.carrier_id,
+    topology?.headless_webui?.carrier_id,
+    topology?.docker_webui?.carrier_id,
+  ];
+  const topologyLabel = 'Product profile must separate the approved target topology from current release-platform authority';
+  assertDeepEqualJson(profile.product?.target_desktop_platforms, adapterTopology.desktop_platforms, topologyLabel);
+  assertDeepEqualJson(profile.product?.target_runtime_forms, runtimeForms, topologyLabel);
+  assertDeepEqualJson(Object.keys(adapterTopology.carrier_entries), runtimeForms, 'Shell adapter delivery carrier entries');
   validateMinimumCompleteProductContract(topology.minimum_complete_product);
   if (
-    JSON.stringify(profile.product?.target_desktop_platforms) !== JSON.stringify(['macos', 'windows', 'linux']) ||
-    JSON.stringify(profile.product?.target_runtime_forms) !==
-      JSON.stringify(['electron_desktop', 'standalone_headless_webui', 'docker_webui']) ||
     Object.hasOwn(profile.product ?? {}, 'supported_release_platforms') ||
     topology?.schema !== 'opl_app_delivery_topology.v2' ||
     topology.role !== 'active_product_and_release_target' ||
@@ -17,7 +27,7 @@ export function validateDeliveryTopology(profile) {
     topology.product_behavior_authority !== 'one-person-lab-app' ||
     topology.release_roles_source_ref !== 'release_roles'
   ) {
-    throw new Error('Product profile must separate the approved target topology from current release-platform authority');
+    throw new Error(topologyLabel);
   }
   assertDeepEqualJson(
     profile.release_roles,
@@ -26,7 +36,7 @@ export function validateDeliveryTopology(profile) {
         shell: readAppShellAdapterContract().active_shell,
         adapter_ref: 'contracts/app-shell-adapter.json',
         release_channel_ref: 'contracts/app-release-channel.json',
-        admitted_product_platforms: ['macos-arm64'],
+        admitted_product_platforms: stablePlatforms,
       },
       successor: {
         candidate_id: 'opl-studio',
@@ -42,11 +52,11 @@ export function validateDeliveryTopology(profile) {
     topology.shared_renderer,
     {
       product_owner: 'one-person-lab-app',
-      technology: 'deepseek_harness_derived_react',
+      technology: adapterTopology.renderer,
       role: 'single_opl_owned_product_renderer',
       implementation_status: 'active_product_implementation',
       technical_evaluation_candidate: 'opl-studio',
-      required_surfaces: ['electron_desktop', 'standalone_headless_webui', 'docker_webui'],
+      required_surfaces: runtimeForms,
       source_reuse_policy_ref: 'docs/product/gui/deepseek-harness-composition-plan.md',
       single_active_product_renderer_required: true,
       carrier_specific_product_forks_allowed: false,
@@ -54,17 +64,18 @@ export function validateDeliveryTopology(profile) {
     },
     'Product profile shared renderer topology',
   );
+  const host = adapter.application_host;
   assertDeepEqualJson(
     topology.application_host,
     {
-      implementation_repo: 'gaofeng21cn/opl-studio',
-      role: 'deepseek_harness_cordis_application_host',
+      implementation_repo: adapter.shell_source.owner_repo,
+      role: host.role,
       implementation_status: 'source_implemented_active_shell_carrier_qualification_separate',
-      upstream_version: '0.2.3-alpha.2',
-      upstream_ref: '4b399c39a6d1479cd84ca591b4d7c88e24d38a96',
-      profile: 'opl-studio',
-      profile_source: 'src/host/dsh/cordis.yml',
-      web_overlay: 'src/host/dsh/web.patch.yml',
+      upstream_version: host.upstream_version,
+      upstream_ref: host.upstream_ref,
+      profile: host.profile,
+      profile_source: host.profile_source,
+      web_overlay: host.web_overlay,
       dsh_base_loaded: false,
       codex_runtime_owner: 'opl-codex-native',
       framework_bridge_scope: 'framework_app_state_action_authentication_and_channel_callbacks_only',
@@ -77,17 +88,17 @@ export function validateDeliveryTopology(profile) {
     topology.shared_host_core,
     {
       technology: 'node',
-      role: 'cross_carrier_application_service_facade_inside_dsh_host',
+      role: adapterTopology.shared_host_core_role,
       exposes: [
         'codex_thread_and_turn_transport',
         'framework_app_state_action_bridge',
         'typed_host_events',
       ],
       lifecycle_owner: 'opl-studio_dsh_application_host',
-      codex_service_owner: 'opl-codex-native',
+      codex_service_owner: topology.application_host.codex_runtime_owner,
       framework_bridge_owner: 'opl-framework-bridge',
       desktop_adapter: 'electron_main_and_preload_ipc',
-      web_adapter: 'http_sse',
+      web_adapter: adapterTopology.web_adapter,
       same_core_required_across_carriers: true,
       carrier_specific_business_logic_allowed: false,
       second_session_store_or_action_bus_allowed: false,
@@ -99,24 +110,22 @@ export function validateDeliveryTopology(profile) {
     {
       supported_backend_scope: 'codex_cli_only',
       codex_interface: 'codex_app_server',
-      codex_transport_by_carrier: {
-        electron_desktop: 'opl_codex_native_managed_app_server_stdio',
-        standalone_headless_webui: 'opl_codex_native_managed_app_server_stdio',
-        docker_webui: 'opl_codex_native_managed_app_server_stdio',
-      },
+      codex_transport_by_carrier: Object.fromEntries(
+        runtimeForms.map((carrier) => [carrier, 'opl_codex_native_managed_app_server_stdio']),
+      ),
       opl_integration: 'framework_app_state_action_authentication_and_channel_callbacks_only',
       aioncore_allowed: false,
       aionui_required: false,
       multi_backend_abstraction_required: false,
       second_provider_or_session_store_allowed: false,
-      thread_store_owner: 'codex_core_app_server',
+      thread_store_owner: adapter.codex_executable_contract.thread_store_owner,
     },
     'Product profile Codex-only runtime topology',
   );
   assertDeepEqualJson(
     topology.bridge,
     {
-      abi: 'opl_app_host_bridge.v1',
+      abi: adapterTopology.bridge_abi,
       product_runtime_interface: 'opl_app_state_action_and_codex_app_server_thread_event_contracts',
       shared_typed_bridge_shape_required: true,
       desktop_transport_adapter: 'electron_preload_ipc_to_shared_node_host_core',
@@ -134,7 +143,7 @@ export function validateDeliveryTopology(profile) {
       technical_evaluation_candidate: 'opl-studio',
       implementation_status: 'electron_package_and_updater_adapter_source_implemented_distribution_update_release_wiring_open',
       host_technology: 'electron_thin_shell',
-      target_platforms: ['macos', 'windows', 'linux'],
+      target_platforms: adapterTopology.desktop_platforms,
       mainline_implementation_assigned: false,
       active_release_carrier: false,
       package_source_implemented: true,
@@ -163,7 +172,7 @@ export function validateDeliveryTopology(profile) {
       implementation_status: 'foreground_cli_user_service_installer_and_update_adapter_source_implemented_distribution_update_release_wiring_open',
       mainline_implementation_assigned: false,
       host_technology: 'shared_node_host_core',
-      transport: 'http_sse',
+      transport: adapterTopology.web_adapter,
       runtime_process: 'codex_cli_app_server_child_process',
       install_and_launch_modes: ['foreground_cli', 'background_service'],
       foreground_cli_source_implemented: true,
@@ -196,7 +205,7 @@ export function validateDeliveryTopology(profile) {
       implementation_status: 'successor_oci_preview_admission_implemented_cloud_activation_open',
       mainline_implementation_assigned: false,
       host_technology: 'shared_node_host_core',
-      transport: 'http_sse',
+      transport: adapterTopology.web_adapter,
       runtime_process: 'codex_cli_app_server_child_process',
       container_source_implemented: true,
       shared_renderer_reuse_implemented: true,
@@ -256,10 +265,8 @@ export function validateDeliveryTopology(profile) {
     'Product profile successor product policy',
   );
   assertDeepEqualJson(
-    (({ feature_inventory_ref, functional_baseline_scope, evidence_axes, features, startup_history_continuity, ...legacyMinimumProduct }) => legacyMinimumProduct)(topology.minimum_complete_product),
+    (({ schema, implementation_id, feature_inventory_ref, functional_baseline_scope, evidence_axes, features, startup_history_continuity, ...legacyMinimumProduct }) => legacyMinimumProduct)(topology.minimum_complete_product),
     {
-      schema: 'opl_app_successor_minimum_complete_product.v3',
-      implementation_id: 'opl-studio',
       completion_rule:
         'all_required_user_outcomes_have_owner_backed_state_action_and_post_action_readback_without_a_second_runtime_or_truth_store',
       required_user_outcomes: [
@@ -303,7 +310,7 @@ export function validateDeliveryTopology(profile) {
         framework_host_composition_authority: 'one-person-lab-framework',
         framework_host_composition_authority_scope: 'framework_runtime_package_graph_and_app_projection',
         framework_runtime_and_package_composition_authority: 'one-person-lab-framework',
-        studio_application_host: 'opl-studio',
+        studio_application_host: adapter.active_shell,
         studio_application_host_scope: 'dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition',
         studio_application_host_may_exist_without_authority_transfer: true,
         app_authority_policy: 'one-person-lab-app_owns_product_profile_gui_abi_active_shell_and_release',
@@ -316,7 +323,7 @@ export function validateDeliveryTopology(profile) {
         client_renderer_compatibility_profile: 'client_renderer_compatibility',
         client_renderer_switch_policy: 'explicit_adapter_selection_after_compatibility_admission_never_unverified_hot_switch',
         brand_capability_projection_policy: 'dynamic_framework_host_projection_no_fixed_brand_or_domain_registry_in_app_or_client',
-        shared_shell_consumers: ['opl-studio'],
+        shared_shell_consumers: [adapter.active_shell],
         renderer_and_package_carrier_may_differ: true,
         independent_host_truth_allowed: false,
         second_client_composition_graph_allowed: false,

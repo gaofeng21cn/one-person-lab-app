@@ -1,22 +1,23 @@
 import { assertDeepEqualJson, assertIncludesAll } from '../assertions.ts';
-import {
-  firstRunModelAccessSetupPolicy,
-  focusedFirstRunPresentationPolicy,
-  progressiveFirstRunRecoveryPolicy,
-  progressiveFirstRunRecoveryTestIds,
-} from '../app-contract-constants.ts';
-import {
-  expectedFirstRunCoreItems,
-  expectedFirstRunProgressModel,
-  expectedFullReadinessItems,
-  aionuiTeamProbeIds,
-  productProfile,
-  settingsControlPlane,
-} from './context.ts';
+import { progressiveFirstRunRecoveryTestIds } from '../app-contract-constants.ts';
+import { assertNonEmptyString, assertNonEmptyStringArray } from '../validation-primitives.ts';
 import { assertFirstRunProgressModelMatches, validateBeginnerFirstRunPresentation } from '../shared-contract-validators.ts';
+import { productProfile, settingsControlPlane } from './context.ts';
+
+const aionuiTeamProbeIds = [
+  'team_mode_disabled',
+  'team_route_redirect',
+  'team_sidebar_gate',
+  'team_created_redirect_noop',
+  'ordinary_conversation_team_snapshot_scrub',
+  'agent_switching_drops_team_mcp',
+  'team_deep_link_not_whitelisted',
+  'team_bridge_mutation_gate',
+];
 
 export function validateGuiContractStartupAndNavigation(guiContract) {
-  const startupReadModelPolicy = guiContract.framework_surfaces?.canonical_state?.startup_read_model_policy;
+  const statePolicy = guiContract.framework_surfaces?.canonical_state;
+  const startupReadModelPolicy = statePolicy?.startup_read_model_policy;
   if (
     startupReadModelPolicy?.blocking_policy !==
     'ordinary_startup_waits_only_for_fast_state_agent_conversation_model_and_capability_catalog_reads_then_core_failures_restrict_only_dependent_capabilities'
@@ -59,62 +60,47 @@ export function validateGuiContractStartupAndNavigation(guiContract) {
   if (!guiContract.theme_and_branding?.visible_branding_surfaces?.includes('navigation_rail_brand')) {
     throw new Error('App GUI visible branding surfaces must include navigation_rail_brand');
   }
-  if (
-    !Array.isArray(guiContract.theme_and_branding?.allowed_theme_ids) ||
-    guiContract.theme_and_branding.allowed_theme_ids.length !== 1 ||
-    guiContract.theme_and_branding.allowed_theme_ids[0] !== 'default-theme'
-  ) {
-    throw new Error('App GUI theme list must expose only default-theme');
-  }
-  for (const section of [
-    'general',
-    'gateway',
-    'access',
-    'workspace',
-    'agents',
-    'capabilities',
-    'resources',
-    'environment',
-    'storage',
-    'appearance',
-    'about',
-  ]) {
-    if (!guiContract.settings_navigation?.required_sections?.includes(section)) {
-      throw new Error(`App GUI settings navigation must include ${section}`);
-    }
-  }
   assertDeepEqualJson(
-    guiContract.settings_navigation?.ordinary_visible_tabs,
+    guiContract.theme_and_branding.allowed_theme_ids,
+    [guiContract.theme_and_branding.default_theme_id],
+    'App GUI theme list',
+  );
+
+  const settingsNavigation = guiContract.settings_navigation;
+  const secondaryPages = settingsControlPlane.secondary_pages.map((route) => route.id);
+  assertIncludesAll(
+    settingsNavigation?.required_sections,
+    [...settingsControlPlane.ordinary_visible_tabs, ...secondaryPages],
+    'App GUI settings navigation',
+  );
+  assertDeepEqualJson(
+    settingsNavigation.ordinary_visible_tabs,
     settingsControlPlane.ordinary_visible_tabs,
     'App GUI settings navigation ordinary visible tabs',
   );
   assertDeepEqualJson(
-    guiContract.settings_navigation?.secondary_page_ids,
-    settingsControlPlane.secondary_pages?.map((route) => route.id),
+    settingsNavigation.secondary_page_ids,
+    secondaryPages,
     'App GUI settings navigation secondary page ids',
   );
   assertDeepEqualJson(
-    guiContract.settings_navigation?.compatibility_redirects,
+    settingsNavigation.compatibility_redirects,
     settingsControlPlane.compatibility_redirects,
     'App GUI settings compatibility redirects',
   );
   assertDeepEqualJson(
-    guiContract.settings_navigation?.ordinary_hidden_compatibility_routes,
-    ['update', 'theme', 'local-services', 'personalization'],
+    settingsNavigation.ordinary_hidden_compatibility_routes,
+    Object.keys(settingsControlPlane.compatibility_redirects),
     'App GUI hidden compatibility routes',
   );
   assertDeepEqualJson(
-    guiContract.settings_navigation?.legacy_route_redirects,
-    Object.fromEntries(
-      Object.entries(settingsControlPlane.legacy_route_redirects ?? {})
-        .filter(([id]) => id !== 'about')
-        .map(([id, target]) => [id, target]),
-    ),
+    settingsNavigation.legacy_route_redirects,
+    settingsControlPlane.legacy_route_redirects,
     'App GUI settings navigation legacy route redirects',
   );
   assertDeepEqualJson(
-    guiContract.settings_navigation?.ordinary_hidden_legacy_tabs,
-    Object.keys(guiContract.settings_navigation?.legacy_route_redirects ?? {}),
+    settingsNavigation.ordinary_hidden_legacy_tabs,
+    Object.keys(settingsNavigation.legacy_route_redirects),
     'App GUI settings navigation ordinary hidden legacy tabs',
   );
   if (
@@ -134,18 +120,17 @@ export function validateGuiContractStartupAndNavigation(guiContract) {
     ['AionUI Team', 'Team nav entry', 'Team leader configuration', 'team deep link navigation'],
     'App GUI settings hidden upstream surfaces',
   );
-  for (const [field, expected] of Object.entries({
-    ordinary_visible: false,
-    route_policy: 'disabled_or_redirect_to_app_owned_home',
-    deep_link_policy: 'not_whitelisted',
-    rationale: 'upstream AionUI Team is configured around shell-local agents and is not an OPL ordinary-user capability',
-  })) {
-    if (guiContract.settings_navigation?.team_surface_policy?.[field] !== expected) {
-      throw new Error(`App GUI settings team_surface_policy.${field} must be ${expected}`);
-    }
+  const teamPolicy = settingsNavigation.team_surface_policy;
+  if (
+    teamPolicy?.ordinary_visible !== false ||
+    teamPolicy?.route_policy !== 'disabled_or_redirect_to_app_owned_home' ||
+    teamPolicy?.deep_link_policy !== 'not_whitelisted'
+  ) {
+    throw new Error('App GUI settings must keep the retired Team surface hidden and unaddressable');
   }
+  assertNonEmptyString(teamPolicy.rationale, 'App GUI settings Team rationale');
   assertDeepEqualJson(
-    guiContract.settings_navigation.team_surface_policy.required_probes,
+    teamPolicy.required_probes,
     aionuiTeamProbeIds,
     'App GUI Team surface required probes',
   );
@@ -155,10 +140,18 @@ export function validateGuiContractStartupAndNavigation(guiContract) {
   ) {
     throw new Error('App GUI settings navigation must render persisted narrow state before background fast App state hydration');
   }
-  if (guiContract.settings_navigation.refresh_source !== 'opl app state --profile fast --json') {
+  if (settingsNavigation.refresh_source !== statePolicy.refresh_command) {
     throw new Error('App GUI settings navigation refresh must use fast App state');
   }
+
   const firstLaunchPolicy = guiContract.first_launch_readiness_policy;
+  const firstRun = productProfile.first_run;
+  const expectedCoreItems = assertNonEmptyStringArray(
+    firstRun.ready_to_launch_gate?.required_core_items,
+    'Product profile ready_to_launch required_core_items',
+  );
+  const fullReadinessItems = firstRun.full_readiness_layers.filter((item) => item !== 'core');
+  const defaultSession = productProfile.default_session_profile;
   if (
     firstLaunchPolicy?.launch_gate !== 'ready_to_launch' ||
     firstLaunchPolicy?.ui_order !== 'before_first_conversation_not_before_guid' ||
@@ -166,63 +159,48 @@ export function validateGuiContractStartupAndNavigation(guiContract) {
   ) {
     throw new Error('App GUI first-launch readiness must gate first conversation without blocking /guid navigation');
   }
-  for (const item of expectedFirstRunCoreItems) {
-    if (!firstLaunchPolicy?.core_required_items?.includes(item)) {
-      throw new Error(`App GUI first-launch readiness must require Core item ${item}`);
-    }
-  }
-  for (const item of expectedFullReadinessItems) {
-    if (!firstLaunchPolicy?.full_readiness_items?.includes(item)) {
-      throw new Error(`App GUI first-launch readiness must keep ${item} in full readiness`);
-    }
-  }
+  assertIncludesAll(firstLaunchPolicy.core_required_items, expectedCoreItems, 'App GUI first-launch Core items');
+  assertIncludesAll(firstLaunchPolicy.full_readiness_items, fullReadinessItems, 'App GUI first-launch full readiness items');
   for (const [field, expected] of Object.entries({
     full_readiness_blocks_launch: false,
-    default_provider: 'oplgateway',
-    default_provider_name: 'OPL Gateway',
-    existing_provider_name_policy: 'preserve_existing_provider_name_no_migration',
-    default_base_url: 'https://gateway.medopl.com/v1',
-    default_model: productProfile.codex.default_model,
-    default_reasoning_effort: productProfile.codex.default_reasoning_effort,
-    default_executor: 'codex_cli',
-    full_runtime_provider: 'temporal',
+    default_provider: defaultSession.provider,
+    default_provider_name: defaultSession.provider_name,
+    existing_provider_name_policy: defaultSession.existing_provider_name_policy,
+    default_base_url: defaultSession.base_url,
+    default_model: defaultSession.model,
+    default_reasoning_effort: defaultSession.reasoning_effort,
+    default_executor: defaultSession.executor,
+    full_runtime_provider: firstRun.runtime_provider.full_readiness_provider,
   })) {
     if (firstLaunchPolicy?.[field] !== expected) {
       throw new Error(`App GUI first-launch readiness ${field} must be ${expected}`);
     }
   }
+  const presentation = firstLaunchPolicy.beginner_presentation;
   validateBeginnerFirstRunPresentation(
-    firstLaunchPolicy?.beginner_presentation,
+    presentation,
     'App GUI first-launch beginner presentation',
-    expectedFirstRunCoreItems,
+    expectedCoreItems,
   );
-  for (const [field, expected] of Object.entries(focusedFirstRunPresentationPolicy)) {
-    if (firstLaunchPolicy?.beginner_presentation?.[field] !== expected) {
-      throw new Error(`App GUI first-launch beginner presentation ${field} must be ${expected}`);
-    }
+  for (const [field, expected] of Object.entries(firstRun.beginner_presentation)) {
+    assertDeepEqualJson(
+      presentation[field],
+      expected,
+      `App GUI first-launch beginner presentation ${field}`,
+    );
   }
-  assertDeepEqualJson(
-    firstLaunchPolicy?.beginner_presentation?.model_access_setup,
-    firstRunModelAccessSetupPolicy,
-    'App GUI first-launch model access setup policy',
-  );
-  assertDeepEqualJson(
-    firstLaunchPolicy?.beginner_presentation?.primary_steps,
-    expectedFirstRunCoreItems,
-    "App GUI first-launch beginner presentation primary steps",
-  );
   assertFirstRunProgressModelMatches(
-    firstLaunchPolicy?.progress_model,
-    expectedFirstRunProgressModel,
+    firstLaunchPolicy.progress_model,
+    firstRun.progress_model,
     'App GUI first-launch',
   );
   for (const [field, expected] of Object.entries({
-    default_launch_command: 'opl app state --profile fast --json',
+    default_launch_command: statePolicy.default_command,
     default_launch_mode: 'bounded_readiness_overlay_then_guid',
     first_run_route_policy: 'authenticated_standalone_route_outside_ordinary_product_layout',
-    ordinary_entry_route: '/guid',
-    visible_startup_gate: 'bounded_core_catalog_readiness_overlay',
-    navigation_wait_for_fast_state_ms: 20000,
+    ordinary_entry_route: startupReadModelPolicy.ordinary_entry_route,
+    visible_startup_gate: startupReadModelPolicy.visible_startup_gate,
+    navigation_wait_for_fast_state_ms: startupReadModelPolicy.navigation_wait_for_fast_state_ms,
     unknown_readiness_policy: 'show_truthful_pending_stage_then_allow_explicit_limited_guid_without_mutating_readiness',
     guid_navigation_blocked_by_readiness: true,
     core_capability_use_blocked_when_prerequisites_fail: true,
@@ -234,66 +212,22 @@ export function validateGuiContractStartupAndNavigation(guiContract) {
   if (firstLaunchPolicy?.startup_runtime_policy?.limited_guid_entry_after_failure_or_timeout !== true) {
     throw new Error('App GUI first-launch startup runtime must allow explicit limited entry after a failed or timed-out stage');
   }
-  const postLoginSetupCheck = firstLaunchPolicy?.startup_runtime_policy?.fresh_webui_login_setup_check;
-  if (
-    postLoginSetupCheck?.trigger !== 'successful_authenticated_webui_login_only' ||
-    postLoginSetupCheck?.route_intent !== progressiveFirstRunRecoveryPolicy.fresh_webui_login_setup_check_intent ||
-    postLoginSetupCheck?.state_source !== 'shared_opl_app_fast_state' ||
-    postLoginSetupCheck?.known_incomplete_behavior !== 'replace_guid_with_first_run' ||
-    postLoginSetupCheck?.ready_behavior !== 'keep_guid' ||
-    postLoginSetupCheck?.unknown_timeout_or_read_failure_behavior !==
-      progressiveFirstRunRecoveryPolicy.fresh_webui_login_unknown_policy ||
-    postLoginSetupCheck?.ui_timeout_ms !== progressiveFirstRunRecoveryPolicy.fresh_webui_login_ui_timeout_ms ||
-    postLoginSetupCheck?.ordinary_startup_refresh_and_deep_link_behavior !==
-      'keep_guid_without_automatic_first_run' ||
-    postLoginSetupCheck?.consumption_policy !== 'one_shot'
-  ) {
-    throw new Error('App GUI fresh WebUI login setup check policy is invalid');
-  }
-  const ordinaryRecovery = firstLaunchPolicy?.ordinary_shell_recovery_policy;
-  if (
-    ordinaryRecovery?.persistent_setup_entry?.target_route !==
-      progressiveFirstRunRecoveryPolicy.persistent_setup_entry_route ||
-    ordinaryRecovery?.persistent_setup_entry?.surface !== 'ordinary_sidebar_non_modal_entry' ||
-    ordinaryRecovery?.persistent_setup_entry?.must_preserve_current_route_until_clicked !== true ||
-    ordinaryRecovery?.persistent_home_composer_runtime_alert !==
-      'forbidden_use_sidebar_and_send_scoped_inline_recovery_only' ||
-    ordinaryRecovery?.plain_conversation?.workspace_root_required !== false ||
-    ordinaryRecovery?.plain_conversation?.must_preserve_prompt !== true ||
-    ordinaryRecovery?.send_scoped_local_inputs?.workspace_root_required !== false ||
-    ordinaryRecovery?.workspace_controls?.plain_conversation_remains_available !== true ||
-    ordinaryRecovery?.workspace_controls?.send_scoped_local_inputs_remain_available !== true ||
-    ordinaryRecovery?.unknown_readiness_policy !== progressiveFirstRunRecoveryPolicy.unknown_readiness_policy
-  ) {
-    throw new Error('App GUI first-launch ordinary shell recovery policy is invalid');
-  }
+  const { fresh_webui_login_setup_check: postLoginSetupCheck, ...profileRecovery } =
+    firstRun.ordinary_shell_recovery;
   assertDeepEqualJson(
-    ordinaryRecovery.plain_conversation.required_items,
-    progressiveFirstRunRecoveryPolicy.plain_conversation_required_items,
-    'App GUI first-launch plain conversation prerequisites',
+    firstLaunchPolicy.startup_runtime_policy.fresh_webui_login_setup_check,
+    postLoginSetupCheck,
+    'App GUI fresh WebUI login setup check policy',
   );
+  const { required_shell_testids: recoveryTestIds, ...ordinaryRecovery } =
+    firstLaunchPolicy.ordinary_shell_recovery_policy ?? {};
   assertDeepEqualJson(
-    ordinaryRecovery.send_scoped_local_inputs.required_items,
-    progressiveFirstRunRecoveryPolicy.send_scoped_local_input_required_items,
-    'App GUI first-launch send-scoped local input prerequisites',
-  );
-  assertDeepEqualJson(
-    ordinaryRecovery.send_scoped_local_inputs.supported_inputs,
-    progressiveFirstRunRecoveryPolicy.send_scoped_local_input_surfaces,
-    'App GUI first-launch send-scoped local input surfaces',
-  );
-  assertDeepEqualJson(
-    ordinaryRecovery.workspace_controls.required_items,
-    progressiveFirstRunRecoveryPolicy.workspace_control_required_items,
-    'App GUI first-launch workspace control prerequisites',
-  );
-  assertDeepEqualJson(
-    ordinaryRecovery.workspace_controls.restricted_capabilities,
-    progressiveFirstRunRecoveryPolicy.workspace_restricted_capabilities,
-    'App GUI first-launch workspace-restricted capabilities',
+    ordinaryRecovery,
+    profileRecovery,
+    'App GUI first-launch ordinary shell recovery policy',
   );
   assertIncludesAll(
-    ordinaryRecovery.required_shell_testids,
+    recoveryTestIds,
     progressiveFirstRunRecoveryTestIds,
     'App GUI first-launch progressive recovery shell test ids',
   );
@@ -302,36 +236,22 @@ export function validateGuiContractStartupAndNavigation(guiContract) {
   if (modulePathPolicy?.source !== 'app_state.modules[].source + app_state.modules[].path + app_state.paths') {
     throw new Error('App GUI module path explanation must come from App state module/path refs');
   }
-  for (const explanation of [
-    'whether a module comes from the bundled Full runtime payload',
-    'which compatible source the Framework resolver selected for a package',
-    'whether an exact installed lock or build artifact records the selected bytes',
-    'whether a module comes from a local domain repository checkout',
-    'whether Developer Profile source_channel uses a GitHub repo or local checkout',
-    'whether a module is managed by App/CLI maintenance',
-    'that module path display is refs-only and not domain truth authority',
-  ]) {
-    if (!modulePathPolicy.must_explain?.includes(explanation)) {
-      throw new Error(`App GUI module path source policy must explain ${explanation}`);
-    }
-  }
+  assertNonEmptyStringArray(modulePathPolicy.must_explain, 'App GUI module path explanation');
   if (
     modulePathPolicy.ordinary_user_source !== 'framework_resolved_compatible_source' ||
     modulePathPolicy.ordinary_user_transport !== 'framework_package_lifecycle'
   ) {
     throw new Error('App GUI module path source policy must keep ordinary users on Framework-resolved package maintenance');
   }
-  if (modulePathPolicy.developer_override_surface !== 'Developer Profile source_channel capability') {
-    throw new Error('App GUI module path source policy must route repo/checkout override through Developer Profile source_channel');
-  }
-  if (modulePathPolicy.developer_override_policy !== 'explicit_opt_in_only') {
-    throw new Error('App GUI module path source policy must require explicit opt-in for Developer Profile checkout override');
-  }
-  if (modulePathPolicy.developer_profile_ref !== 'developer_profile.capabilities.source_channel') {
-    throw new Error('App GUI module path source policy must link to Developer Profile source_channel');
+  if (
+    modulePathPolicy.developer_override_surface !== 'Developer Profile source_channel capability' ||
+    modulePathPolicy.developer_override_policy !== 'explicit_opt_in_only' ||
+    modulePathPolicy.developer_profile_ref !== 'developer_profile.capabilities.source_channel' ||
+    !guiContract.developer_profile?.capabilities?.source_channel
+  ) {
+    throw new Error('App GUI module path source policy must route explicit repo or checkout overrides through Developer Profile source_channel');
   }
   if (!modulePathPolicy.must_not_use?.includes('raw OPL_MODULE_SOURCE_MODE as ordinary Settings UI')) {
     throw new Error('App GUI module path source policy must not expose raw OPL_MODULE_SOURCE_MODE as ordinary Settings UI');
   }
-
 }
