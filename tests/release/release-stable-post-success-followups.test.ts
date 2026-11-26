@@ -411,7 +411,13 @@ function runDesktopQualityVerify(input: {
     const lines = fs.readFileSync(output, 'utf8').split('\n');
     const admitted = lines.includes('skip_code_quality=true');
     const fingerprint = lines.find(line => line.startsWith('stable_composition_fingerprint='))?.split('=')[1];
-    return fingerprint ? { status: result.status, admitted, fingerprint } : { status: result.status, admitted };
+    const requiresPlatformComposition = lines.includes('requires_platform_composition=true');
+    return {
+      status: result.status,
+      admitted,
+      ...(fingerprint ? { fingerprint } : {}),
+      ...(requiresPlatformComposition ? { requiresPlatformComposition } : {}),
+    };
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -434,6 +440,20 @@ test('Desktop add-on skip_code_quality requires the Standard checkpoint identity
   assert.equal(runDesktopQualityVerify({ compositionFingerprint: fingerprint, sourceGateDigest: `sha256:${'0'.repeat(64)}` }).admitted, false);
   assert.equal(runDesktopQualityVerify({ stage: 'standard_qualified' }).admitted, true);
   assert.deepEqual(runDesktopQualityVerify({ platformShell: 'f'.repeat(40) }), { status: 0, admitted: false });
+  assert.deepEqual(
+    runDesktopQualityVerify({ compositionFingerprint: fingerprint, platformShell: 'f'.repeat(40) }),
+    { status: 0, admitted: false, requiresPlatformComposition: true },
+  );
+  assert.equal(
+    platformWorkflow.jobs['verify-standard-quality'].outputs.stable_composition_fingerprint,
+    '${{ steps.platform-composition.outputs.stable_composition_fingerprint || steps.verify.outputs.stable_composition_fingerprint }}',
+  );
+  const platformComposition = platformWorkflow.jobs['verify-standard-quality'].steps.find(
+    (entry: Record<string, any>) => entry.id === 'platform-composition',
+  );
+  assert.match(String(platformComposition?.run), /stable-dsh-composition\.mjs resolve/);
+  assert.match(String(platformComposition?.run), /awk 'NF \{ line = \$0 \} END \{ print line \}'/);
+  assert.match(String(platformComposition?.run), /\^opl-desktop-stable-release:dsh-composition:\[1-9\]\[0-9\]\*:\[0-9a-f\]\{64\}\$/);
   assert.notEqual(runDesktopQualityVerify({ platformShell: 'f'.repeat(40), canonicalShell: 'e'.repeat(40) }).status, 0);
   assert.equal(
     runDesktopQualityVerify({
