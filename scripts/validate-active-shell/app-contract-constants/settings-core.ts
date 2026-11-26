@@ -10,79 +10,16 @@ export const appOwnedSettingsTabs = [
   "storage",
   "appearance",
 ];
-export const appOwnedSettingsAppUpdateStatePolicyRef =
-  "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.app_update_state_policy";
-export const appOwnedSettingsAppUpdateStatePolicy = {
-  schema: "opl_app_update_state_policy.v1",
-  desktop: {
-    state_source: "single_main_process_updater_state_store",
-    consumers: ["about", "maintenance", "settings_footer"],
-    mount_check: false,
-    status_values: [
-      "not_checked",
-      "checking",
-      "not-available",
-      "available",
-      "downloading",
-      "downloaded",
-      "error",
-      "cancelled",
-    ],
-    attention_states: ["available", "downloading", "downloaded", "error"],
-    non_attention_states: [
-      "not_checked",
-      "checking",
-      "not-available",
-      "cancelled",
-    ],
-    manual_check: "refresh_the_same_shared_state",
-    download_progress: "about_displays_percent_transferred_total_and_speed_from_shared_updater_state",
-    active_download_manual_check: "observe_existing_download_without_restarting",
-    background_completion: "silent_install_on_normal_app_restart",
-  },
-  webui: {
-    fallback_source:
-      "opl app state --profile fast --json#managed_update.components[component_id=opl_app]",
-    fallback_policy:
-      "use_only_when_desktop_main_process_updater_is_unavailable",
-  },
-  attention_accounting: {
-    independent: true,
-    runtime_service_source:
-      "current_runtime_environment_readiness_excluding_app_update",
-    app_update_source:
-      "desktop_shared_updater_store_or_webui_managed_opl_app_fallback",
-    aggregation:
-      "runtime_service_attention_count_plus_one_when_app_update_attention_is_true",
-    desktop_managed_opl_app_policy:
-      "exclude_from_runtime_service_attention_when_desktop_updater_is_available",
-    webui_managed_opl_app_policy: "use_as_app_update_fallback_only",
-  },
-};
 export const appOwnedSettingsAboutUpdaterStatePolicy = {
   startup_check: "once_after_App_startup",
   mount_check: false,
   shared_state: "single_main_process_updater_state_store",
   manual_check: "refresh_the_same_shared_state",
-    download_progress: "about_displays_percent_transferred_total_and_speed_from_shared_updater_state",
-    active_download_manual_check: "observe_existing_download_without_restarting",
-    background_completion: "silent_install_on_normal_app_restart",
-  app_update_state_policy_ref: appOwnedSettingsAppUpdateStatePolicyRef,
-};
-export const appOwnedSettingsManagedUpdateRepairPolicyRef =
-  "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.repair_availability_policy";
-export const appOwnedSettingsManagedUpdateRepairPolicy = {
-  schema: "opl_managed_update_repair_availability_policy.v1",
-  current_repair_signals: [
-    "component.repair_allowed",
-    "component.can_repair",
-    "component.state=failed_with_repair",
-    "current_repair_action",
-  ],
-  current_state_precedence: true,
-  historical_receipt_role: "diagnostics_only",
-  historical_receipt_may_activate_current_repair: false,
-  unavailable_primary_action: "check_current_status",
+  download_progress: "about_displays_percent_transferred_total_and_speed_from_shared_updater_state",
+  active_download_manual_check: "observe_existing_download_without_restarting",
+  background_completion: "silent_install_on_normal_app_restart",
+  app_update_state_policy_ref:
+    "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.app_update_state_policy",
 };
 export const appOwnedSettingsManagedDependencySummary = {
   source_ref:
@@ -171,13 +108,6 @@ export const appOwnedSettingsManagedDependencySummary = {
     normalization: "normalize_semver_without_v_prefix_and_never_compare_runtime_bundle_version_to_system_cli_version",
   },
 };
-export const appOwnedTaskAwarenessRefFields = [
-  "capability_health_refs",
-  "workflow_refs",
-  "export_bundle_action_ref",
-  "candidate_report_refs",
-  "workflow_skill_candidate_refs",
-];
 export const appOwnedSecondarySettingsPages = ["about"];
 export const appOwnedSettingsCompatibilityRedirects = {
   update: {

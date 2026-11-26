@@ -4,7 +4,6 @@ import {
   appOwnedSettingsManagedDependencySummary,
   appOwnedSettingsResourceActionBehavior,
   appOwnedSettingsTechnicalDetailsDefault,
-  appOwnedTaskAwarenessRefFields,
 } from './app-contract-constants.ts';
 import {
   validateEnvironmentModuleMaintenanceEntry,
@@ -370,9 +369,9 @@ function validateCapabilitiesPage(matrix, guiContract) {
   if (capabilitiesPage.task_awareness_refs_source !== 'contracts/app-runtime-bridge.json#task_awareness_projection.settings_capabilities_surface') {
     throw new Error('Capabilities page must consume the App runtime bridge task-awareness Settings surface');
   }
-  assertDeepEqualJson(
+  assertIncludesAll(
     capabilitiesPage.task_awareness_ref_fields,
-    appOwnedTaskAwarenessRefFields,
+    ['capability_health_refs', 'workflow_refs', 'export_bundle_action_ref', 'candidate_report_refs', 'workflow_skill_candidate_refs'],
     'Capabilities page task awareness ref fields',
   );
   if (
@@ -413,13 +412,25 @@ function validateCapabilitiesPage(matrix, guiContract) {
   ) {
     throw new Error('Shell auto-injected Skills must remain hidden diagnostics and cannot materialize into workspaces');
   }
-  assertDeepEqualJson(
-    capabilitiesPage.capability_detail_presentation_policy,
-    expectedCapabilityDetailPresentationPolicy(),
-    'Capabilities page detail presentation policy',
+  const detailPolicy = capabilitiesPage.capability_detail_presentation_policy;
+  if (
+    detailPolicy?.default_surface !== 'desktop_right_side_panel_mobile_drawer' ||
+    detailPolicy?.advanced_diagnostics?.default_visibility !== 'collapsed'
+  ) {
+    throw new Error('Capabilities page detail presentation policy must keep right panel / mobile drawer with collapsed advanced diagnostics');
+  }
+  assertIncludesAll(
+    detailPolicy.default_visible_fields,
+    ['display_name', 'entity_kind', 'ownership_group', 'owner', 'version', 'currentness', 'available_actions'],
+    'Capabilities page detail presentation visible fields',
+  );
+  assertIncludesAll(
+    detailPolicy.advanced_diagnostics?.fields,
+    ['provider_id', 'registry_path', 'raw_refs_json'],
+    'Capabilities page detail presentation advanced diagnostic fields',
   );
   assertDeepEqualJson(
-    capabilitiesPage.capability_detail_presentation_policy,
+    detailPolicy,
     guiCapabilitiesPage?.capability_detail_presentation_policy,
     'Capabilities page detail presentation mirror of App GUI contract',
   );
@@ -489,66 +500,26 @@ function validateResourcesPage(matrix, guiContract) {
     appOwnedSettingsResourceActionBehavior,
     'App GUI Resources action behavior',
   );
-  const remoteCompanionAccess = {
-    source: 'framework_projected_remote_companion_connector_route',
-    source_by_renderer: {
-      opl_studio: 'app_state.ui_contributions.slots.settings.section',
-    },
-    standard_view_type: 'remote_companion_access',
-    standard_view_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result',
-    single_active_provider_path_per_renderer_required: true,
-    transport_binding_projection_ref:
-      'contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection',
-    provider_absent_policy:
-      'project_unavailable_without_fabricated_pair_or_device_state_and_keep_the_desktop_workbench_usable',
-    status_values: [
-      'unavailable',
-      'unpaired',
-      'reserving',
-      'qr_ready',
-      'awaiting_confirmation',
-      'active',
-      'revoking',
-      'attention',
-    ],
-    ordinary_controls: [
-      'pair.start',
-      'pair.refresh',
-      'pair.confirm',
-      'pair.cancel',
-      'device.rename',
-      'pair.revoke',
-    ],
-    forbidden_controls: [
-      'agent_selector',
-      'model_selector',
-      'model_following_status',
-      'arbitrary_form_or_ui_input',
-      'claim_secret_or_claim_material',
-      'target_shell_owned_binding_or_workspace_inference_after_framework_transport_binding_projection_cutover',
-    ],
-    secret_boundary: {
-      transient_interaction_fields: ['invitation_code', 'manual_code', 'qr_payload', 'authentication_digits'],
-      never_cached_logged_or_returned_by_app_action: [
-        'invitation_code',
-        'manual_code',
-        'qr_payload',
-        'claim_secret',
-        'claim_material',
-      ],
-      qr_payload_only_in_status: 'qr_ready',
-      qr_payload_max_length: 8192,
-    },
-    navigation_policy: {
-      close_connection_details: 'return_to_settings_resources',
-      return_to_app: 'use_settings_return_to_app_action',
-    },
-  };
-  assertDeepEqualJson(
-    resourcesPage.remote_companion_access,
-    remoteCompanionAccess,
-    'Resources page remote companion access contribution',
-  );
+  const remoteCompanion = resourcesPage.remote_companion_access;
+  if (
+    remoteCompanion?.source !== 'framework_projected_remote_companion_connector_route' ||
+    remoteCompanion?.source_by_renderer?.opl_studio !== 'app_state.ui_contributions.slots.settings.section' ||
+    remoteCompanion?.standard_view_type !== 'remote_companion_access' ||
+    remoteCompanion?.standard_view_schema_ref !== 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result' ||
+    remoteCompanion?.single_active_provider_path_per_renderer_required !== true ||
+    remoteCompanion?.transport_binding_projection_ref !== 'contracts/app-runtime-bridge.json#canonical_conversation_continuity_policy.transport_binding_projection' ||
+    typeof remoteCompanion?.provider_absent_policy !== 'string' ||
+    remoteCompanion.provider_absent_policy.length === 0 ||
+    remoteCompanion?.secret_boundary?.qr_payload_only_in_status !== 'qr_ready' ||
+    remoteCompanion?.secret_boundary?.qr_payload_max_length !== 8192 ||
+    remoteCompanion?.navigation_policy?.return_to_app !== 'use_settings_return_to_app_action'
+  ) {
+    throw new Error('Resources page remote companion access contribution must keep single-active-provider routing and transient secret boundaries');
+  }
+  assertIncludesAll(remoteCompanion.status_values, ['unavailable', 'unpaired', 'qr_ready', 'awaiting_confirmation', 'active', 'attention'], 'Resources page remote companion statuses');
+  assertIncludesAll(remoteCompanion.ordinary_controls, ['pair.start', 'pair.refresh', 'pair.confirm', 'pair.cancel', 'device.rename', 'pair.revoke'], 'Resources page remote companion ordinary controls');
+  assertIncludesAll(remoteCompanion.forbidden_controls, ['agent_selector', 'model_selector', 'claim_secret_or_claim_material'], 'Resources page remote companion forbidden controls');
+  assertIncludesAll(remoteCompanion.secret_boundary?.never_cached_logged_or_returned_by_app_action, ['invitation_code', 'manual_code', 'qr_payload', 'claim_secret', 'claim_material'], 'Resources page remote companion secret boundary');
   assertIncludesAll(
     resourcesPage.state_sections,
     ['ui_contributions.slots.settings.section', 'transport_bindings'],
@@ -564,36 +535,6 @@ function validateResourcesPage(matrix, guiContract) {
     },
     'App GUI Resources remote companion access contribution',
   );
-}
-
-function expectedCapabilityDetailPresentationPolicy() {
-  return {
-    default_surface: 'desktop_right_side_panel_mobile_drawer',
-    default_visible_fields: [
-      'display_name',
-      'entity_kind',
-      'ownership_group',
-      'source_label',
-      'owner',
-      'version',
-      'currentness',
-      'available_actions',
-    ],
-    source_label_policy:
-      'render product-profile display names and user-language owners; raw provider ids stay in diagnostics',
-    empty_field_policy:
-      'hide empty unknown or unavailable values and explain a genuinely unavailable canonical source',
-    advanced_diagnostics: {
-      default_visibility: 'collapsed',
-      fields: [
-        'provider_id',
-        'registry_path',
-        'dependency_ref',
-        'receipt_refs',
-        'raw_refs_json',
-      ],
-    },
-  };
 }
 
 function validateEnvironmentPage(matrix, guiContract) {

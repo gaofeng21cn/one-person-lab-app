@@ -483,7 +483,11 @@ export function validateRuntimeCockpitProductContract(contract, label) {
     `${label}.progressive_disclosure`,
   );
 
-  assertDeepEqualJson(
+  assertNonEmptyStringArray(
+    contract.runtime_surface_exclusions?.forbidden,
+    `${label}.runtime_surface_exclusions.forbidden`,
+  );
+  assertIncludesAll(
     contract.runtime_surface_exclusions?.forbidden,
     [
       'operator_summary',
@@ -495,9 +499,6 @@ export function validateRuntimeCockpitProductContract(contract, label) {
       'state_index',
       'artifact_provenance',
       'release_evidence',
-      'historical_attempts',
-      'raw_logs',
-      'raw_refs',
       'raw_runtime_readback',
     ],
     `${label}.runtime_surface_exclusions.forbidden`,

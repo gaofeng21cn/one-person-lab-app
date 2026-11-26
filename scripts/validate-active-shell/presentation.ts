@@ -1,36 +1,4 @@
 import { assertDeepEqualJson, assertIncludesAll } from "./assertions.ts";
-import {
-  appOwnedAgentModuleStatusPanel,
-  appOwnedGenericOwnerAcceptanceCurrentnessRefPolicy,
-  appOwnedPrimaryGroupingPolicy,
-  appOwnedProjectGroupExpansionPolicy,
-  appOwnedQueueStatusPolicy,
-  appOwnedRuntimeMentalModel,
-  appOwnedRunningStatePolicy,
-  runtimeAutomationStateValues,
-  runtimePrimaryStateValues,
-  retiredMasOwnerAcceptanceMirrorFields,
-  runtimeScopeRequiredFields,
-  actionEnvelopeKinds,
-  actionOwnerKinds,
-  domainDetailViewAvailabilityValues,
-  domainDetailViewDescriptorFields,
-  domainDetailViewDescriptorOptionalFields,
-  domainDetailViewReadAvailabilityValues,
-  systemAttentionResponsibilityFields,
-  taskRunProjectionV2FieldGroups,
-  taskRunProjectionV2RequiredFields,
-  tokenObservationObservedFields,
-  tokenObservationStates,
-  workItemConditionFields,
-  workItemDetailPrimarySections,
-  runtimeWorkItemDetailSecondarySections,
-  workItemPrimaryStateLabelsByLocale,
-  workItemBusinessStates,
-  workItemProjectionFieldContracts,
-  workItemProjectionRequiredFields,
-  workItemVisibilityStates,
-} from "./app-contract-constants.ts";
 
 export function validateBeginnerFirstRunPresentation(presentation, label, expectedCoreItems) {
   if (presentation?.audience !== "beginner_non_technical_users") {

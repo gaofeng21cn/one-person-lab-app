@@ -127,26 +127,3 @@ export const progressiveFirstRunRecoveryTestIds = [
   "opl-guid-setup-notice-action",
   "opl-guid-workspace-access-disabled",
 ];
-export const progressiveFirstRunRecoveryPolicy = {
-  fresh_webui_login_setup_check_intent: "postLoginSetupCheck",
-  fresh_webui_login_known_incomplete_route: "/first-run",
-  fresh_webui_login_unknown_policy: "keep_guid_fail_open",
-  fresh_webui_login_ui_timeout_ms: 20000,
-  persistent_setup_entry_route: "/first-run",
-  persistent_home_composer_runtime_alert: "forbidden",
-  plain_conversation_required_items: ["codex_cli", "codex_config"],
-  send_scoped_local_input_required_items: ["codex_cli", "codex_config"],
-  send_scoped_local_input_surfaces: [
-    "file_dialog_attachment",
-    "directory_dialog_attachment",
-    "file_paste_attachment",
-    "file_drag_attachment",
-    "slash_open_absolute_path",
-  ],
-  workspace_control_required_items: ["workspace_root"],
-  workspace_restricted_capabilities: [
-    "project_workspace_selection",
-    "opl_workspace_controls",
-  ],
-  unknown_readiness_policy: "do_not_synthesize_failure_or_mutate_readiness",
-};
