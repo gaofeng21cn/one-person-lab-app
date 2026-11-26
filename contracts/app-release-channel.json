@@ -5891,8 +5891,9 @@
       "owner": "protected_stable_release_workflows",
       "resolver": "scripts/macos-release-runner.ts",
       "owned_runner_labels": ["self-hosted", "macOS", "ARM64", "opl-release-macos-arm64"],
-      "selection": "prefer_online_owned_pool_then_github_hosted",
+      "selection": "hosted_default_with_explicit_opt_in_owned_pool",
       "hosted_fallback": "macos-latest",
+      "opt_in_owned_pool": { "repository_variable": "OPL_MACOS_RELEASE_RUNNER", "permitted_owned_pool": "opl-release-macos-arm64" },
       "inventory_unavailable_fallback": { "repository_variable": "OPL_MACOS_RELEASE_RUNNER", "permitted_owned_pool": "opl-release-macos-arm64" },
       "opt_in_full_build_runner": { "repository_variable": "OPL_FULL_BUILD_RUNNER", "label": "macos-15-xlarge" },
       "stages": ["standard_credential_admission", "standard_build", "full_build", "full_finalizer_recovery", "full_package_qualification"]

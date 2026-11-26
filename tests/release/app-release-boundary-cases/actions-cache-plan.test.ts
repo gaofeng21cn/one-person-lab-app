@@ -410,18 +410,18 @@ test('reusable Electron/Bun cache restore and save consume the shared admission 
   assert.equal(admission?.env?.RELEASE_COHORT_REF, '${{ inputs.release_cohort_ref }}');
   assert.equal(
     step('Restore Electron artifacts cache')?.if,
-    "${{ steps.cache-admission.outputs.admitted == 'true' }}",
+    "${{ steps.cache-admission.outputs.admitted == 'true' && runner.environment == 'github-hosted' }}",
   );
   assert.equal(
     step('Restore Bun install cache')?.if,
-    "${{ steps.cache-admission.outputs.admitted == 'true' }}",
+    "${{ steps.cache-admission.outputs.admitted == 'true' && runner.environment == 'github-hosted' }}",
   );
   assert.equal(
     step('Save Electron artifacts cache')?.if,
-    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}",
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.electron-cache.outputs.cache-hit != 'true' }}",
   );
   assert.equal(
     step('Save Bun install cache')?.if,
-    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}",
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.bun-cache.outputs.cache-hit != 'true' }}",
   );
 });

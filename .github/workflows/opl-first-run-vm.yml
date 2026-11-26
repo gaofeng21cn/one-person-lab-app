@@ -1829,8 +1829,20 @@ jobs:
           OPL_ARTIFACT_CACHE: ${{ runner.tool_cache }}/opl-exact-artifact-downloads
         run: node "$RUNNER_TEMP/opl-download-github-artifact.mjs"
 
+      - name: Restore local verified Codex install seed on self-hosted runner
+        if: ${{ runner.environment == 'self-hosted' && needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && (inputs.prepared_inputs_artifact == '' || steps.prepared_install_assets.outcome != 'success') }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          seed_dir="${{ runner.tool_cache }}/opl-first-run-codex-tarballs"
+          if [ -d "$seed_dir" ]; then
+            mkdir -p artifacts/opl-first-run-vm/codex-package-tarballs
+            cp -f "$seed_dir"/openai-codex*.tgz artifacts/opl-first-run-vm/codex-package-tarballs/ 2>/dev/null || true
+          fi
+
       - name: Restore Codex install asset cache
-        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && (inputs.prepared_inputs_artifact == '' || steps.prepared_install_assets.outcome != 'success') }}
+        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && runner.environment == 'github-hosted' && (inputs.prepared_inputs_artifact == '' || steps.prepared_install_assets.outcome != 'success') }}
         id: codex_install_asset_cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -1880,12 +1892,23 @@ jobs:
           CODEX_CACHE_RESTORE_MATCHED_KEY: ${{ steps.codex_install_asset_cache.outputs.cache-matched-key }}
           OPL_CODEX_BUILD_COHORT_MANIFEST: ${{ inputs.codex_qualification_cohort_artifact_name != '' && 'artifacts/codex-qualification-cohort/opl-build-cohort.json' || '' }}
 
+      - name: Persist verified Codex install seed on self-hosted runner
+        if: ${{ runner.environment == 'self-hosted' && needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          seed_dir="${{ runner.tool_cache }}/opl-first-run-codex-tarballs"
+          mkdir -p "$seed_dir"
+          cp -f artifacts/opl-first-run-vm/codex-package-tarballs/openai-codex*.tgz "$seed_dir/" 2>/dev/null || true
+
       - name: Save Codex install asset cache
-        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
+        if: ${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}
         env:
           OPL_ACTIONS_CACHE_CLASS: first_run_install_seed
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         continue-on-error: true
+        timeout-minutes: 5
         with:
           path: |
             artifacts/opl-first-run-vm/codex-package-tarballs

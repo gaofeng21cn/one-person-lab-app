@@ -102,16 +102,32 @@ test('reusable Electron/Bun caches share one admission output and main-only miss
   assert.equal(env.CACHE_ROLE, '${{ inputs.cache_role }}');
   assert.equal(env.RELEASE_BUNDLE_DIGEST, '${{ inputs.release_bundle_digest }}');
   assert.equal(env.RELEASE_COHORT_REF, '${{ inputs.release_cohort_ref }}');
-  assert.equal(steps.find((step) => step.name === 'Restore Electron artifacts cache')?.if, reusableCacheAdmission);
-  assert.equal(steps.find((step) => step.name === 'Restore Bun install cache')?.if, reusableCacheAdmission);
   assert.equal(
-    steps.find((step) => step.name === 'Save Electron artifacts cache')?.if,
-    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}",
+    steps.find((step) => step.name === 'Restore Electron artifacts cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && runner.environment == 'github-hosted' }}",
   );
   assert.equal(
-    steps.find((step) => step.name === 'Save Bun install cache')?.if,
-    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}",
+    steps.find((step) => step.name === 'Restore Bun install cache')?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && runner.environment == 'github-hosted' }}",
   );
+  const saveElectron = steps.find((step) => step.name === 'Save Electron artifacts cache');
+  const saveBun = steps.find((step) => step.name === 'Save Bun install cache');
+  assert.equal(
+    saveElectron?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.electron-cache.outputs.cache-hit != 'true' }}",
+  );
+  assert.equal(saveElectron?.['continue-on-error'], true);
+  assert.equal(saveElectron?.['timeout-minutes'], 5);
+  assert.equal(
+    saveBun?.if,
+    "${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.bun-cache.outputs.cache-hit != 'true' }}",
+  );
+  assert.equal(saveBun?.['continue-on-error'], true);
+  assert.equal(saveBun?.['timeout-minutes'], 5);
+  for (const uploadName of ['Upload build artifacts', 'Upload macOS DMG-only artifact']) {
+    const uploadStep = steps.find((step) => step.name === uploadName);
+    assert.equal(uploadStep?.with?.['compression-level'], 0, `${uploadName} must disable zlib re-compression`);
+  }
 });
 
 test('reusable Electron/Bun cache admission executes the workflow script', () => {
@@ -185,14 +201,16 @@ test('first-run Codex install seed uses content identity and trusted-main miss s
   assert.match(prefetchScriptText, /`cache_save_required=\$\{cacheSaveRequired\}`/);
   assert.equal(
     saveStep?.if,
-    "${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}",
+    "${{ needs.validate-vm-inputs.outputs.diagnostic_scope != 'bootstrap_only' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && steps.codex_package_preflight.outputs.cache_save_required == 'true' }}",
   );
+  assert.equal(saveStep?.['timeout-minutes'], 5);
   assert.equal(saveStep?.with?.key, '${{ steps.codex_package_preflight.outputs.cache_key }}');
   assert.equal(saveStep?.env?.OPL_ACTIONS_CACHE_CLASS, 'first_run_install_seed');
-  const maySave = (event: string, ref = 'refs/heads/main', scope = 'release_gate', needed = 'true') => {
+  const maySave = (event: string, ref = 'refs/heads/main', scope = 'release_gate', needed = 'true', runnerEnv = 'github-hosted') => {
     const condition = String(saveStep?.if).slice(3, -2)
       .replaceAll('github.event_name', JSON.stringify(event))
       .replaceAll('github.ref', JSON.stringify(ref))
+      .replaceAll('runner.environment', JSON.stringify(runnerEnv))
       .replaceAll('needs.validate-vm-inputs.outputs.diagnostic_scope', JSON.stringify(scope))
       .replaceAll('steps.codex_package_preflight.outputs.cache_save_required', JSON.stringify(needed));
     return Function(`return (${condition});`)();
@@ -202,6 +220,7 @@ test('first-run Codex install seed uses content identity and trusted-main miss s
     assert.equal(maySave(event, 'refs/heads/feature'), false);
     assert.equal(maySave(event, 'refs/heads/main', 'bootstrap_only'), false);
     assert.equal(maySave(event, 'refs/heads/main', 'release_gate', 'false'), false);
+    assert.equal(maySave(event, 'refs/heads/main', 'release_gate', 'true', 'self-hosted'), false);
   }
   assert.equal(maySave('pull_request'), false);
 });

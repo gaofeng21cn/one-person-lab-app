@@ -680,7 +680,7 @@ jobs:
 
       - name: Restore Electron artifacts cache
         id: electron-cache
-        if: ${{ steps.cache-admission.outputs.admitted == 'true' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && runner.environment == 'github-hosted' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -696,7 +696,7 @@ jobs:
 
       - name: Restore Bun install cache
         id: bun-cache
-        if: ${{ steps.cache-admission.outputs.admitted == 'true' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && runner.environment == 'github-hosted' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
@@ -1415,6 +1415,7 @@ jobs:
       - name: Save exact desktop renderer
         if: ${{ steps.cache-admission.outputs.admitted == 'true' && hashFiles('.github/actions/desktop-renderer-cache/action.yml') != '' }}
         continue-on-error: true
+        timeout-minutes: 5
         uses: ./.github/actions/desktop-renderer-cache
         with:
           mode: save
@@ -1423,7 +1424,9 @@ jobs:
           cache-hit: ${{ steps.renderer-cache.outputs.cache-hit }}
 
       - name: Save Electron artifacts cache
-        if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.electron-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.electron-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -1435,7 +1438,9 @@ jobs:
           key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles(format('{0}/package.json', needs.resolve-active-shell-ref.outputs.shell_root), format('{0}/{1}', needs.resolve-active-shell-ref.outputs.shell_root, needs.resolve-active-shell-ref.outputs.package_lock)) }}
 
       - name: Save Bun install cache
-        if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && steps.bun-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 5
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
@@ -1581,6 +1586,7 @@ jobs:
             ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-gatekeeper-launch-policy.json
             ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/standard-apple-notarization-receipt.json
           if-no-files-found: warn
+          compression-level: 0
           retention-days: 7
 
       - name: Upload macOS DMG-only artifact
@@ -1592,6 +1598,7 @@ jobs:
             ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/*.dmg
             ${{ needs.resolve-active-shell-ref.outputs.shell_root }}/out/opl-build-cohort.json
           if-no-files-found: error
+          compression-level: 0
           retention-days: 7
 
   build-summary:

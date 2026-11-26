@@ -36,7 +36,7 @@ runs:
         if [ -f "$script" ]; then node "$script"; fi
     - name: Restore compiled renderer
       id: restore
-      if: ${{ inputs.mode == 'restore' && steps.identity.outputs.key != '' }}
+      if: ${{ inputs.mode == 'restore' && steps.identity.outputs.key != '' && runner.environment == 'github-hosted' }}
       env:
         OPL_ACTIONS_CACHE_CLASS: compiled_output
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -67,7 +67,8 @@ runs:
           cp -R "$renderer_dir/." "$cache_dir/"
         fi
     - name: Save compiled renderer
-      if: ${{ inputs.mode == 'save' && steps.identity.outputs.reusable == 'true' && github.ref == 'refs/heads/main' && inputs.cache-hit != 'true' }}
+      if: ${{ inputs.mode == 'save' && steps.identity.outputs.reusable == 'true' && github.ref == 'refs/heads/main' && runner.environment == 'github-hosted' && inputs.cache-hit != 'true' }}
+      continue-on-error: true
       env:
         OPL_ACTIONS_CACHE_CLASS: compiled_output
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
