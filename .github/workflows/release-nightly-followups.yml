@@ -115,7 +115,7 @@ jobs:
           receipt=nightly-publication/nightly-publication.json
           source_event="$(jq -er .event source-run.json)"
           source_head_sha="$(jq -er .head_sha source-run.json)"
-          jq -e --arg run "$SOURCE_RUN_ID" --arg event "$source_event" --arg head "$source_head_sha" '
+          jq -e --arg run "$SOURCE_RUN_ID" --arg event "$source_event" --arg head "$source_head_sha" --slurpfile source source-run.json '
             .schema == "opl_standard_nightly_publication_receipt.v1"
             and (.status == "published" or .status == "already_complete")
             and .actions.run_id == $run
@@ -129,6 +129,18 @@ jobs:
                 confirmation: null,
                 execution_path: "scheduled_nightly"
               })
+              or
+              (.invocation == {
+                mode: "scheduled_production",
+                event: "workflow_dispatch",
+                authority_source: "opl_release_control",
+                control_run_id: .invocation.control_run_id,
+                confirmation: null,
+                execution_path: "scheduled_nightly"
+              }
+              and (.invocation.control_run_id | test("^[1-9][0-9]*$"))
+              and $source[0].actor.id == 356454848
+              and $source[0].display_title == ("OPL Standard Nightly (scheduled-production) [opl-release:" + .invocation.control_run_id + "]"))
               or
               (.invocation == {
                 mode: "development_validation",
@@ -295,7 +307,7 @@ jobs:
           receipt=nightly-publication/nightly-publication.json
           source_event="$(jq -er .event source-run.json)"
           source_head_sha="$(jq -er .head_sha source-run.json)"
-          jq -e --arg run "$SOURCE_RUN_ID" --arg event "$source_event" --arg head "$source_head_sha" '
+          jq -e --arg run "$SOURCE_RUN_ID" --arg event "$source_event" --arg head "$source_head_sha" --slurpfile source source-run.json '
             .schema == "opl_standard_nightly_publication_receipt.v1"
             and (.status == "published" or .status == "already_complete")
             and .actions.run_id == $run
@@ -303,6 +315,11 @@ jobs:
             and .invocation.event == $event
             and (
               (.invocation == {mode:"scheduled_production",event:"schedule",authority_source:"daily_schedule",confirmation:null,execution_path:"scheduled_nightly"})
+              or
+              (.invocation == {mode:"scheduled_production",event:"workflow_dispatch",authority_source:"opl_release_control",control_run_id:.invocation.control_run_id,confirmation:null,execution_path:"scheduled_nightly"}
+              and (.invocation.control_run_id | test("^[1-9][0-9]*$"))
+              and $source[0].actor.id == 356454848
+              and $source[0].display_title == ("OPL Standard Nightly (scheduled-production) [opl-release:" + .invocation.control_run_id + "]"))
               or
               (.invocation == {mode:"development_validation",event:"workflow_dispatch",authority_source:"user_explicit",confirmation:"publish_nonlatest_nightly",execution_path:"same_as_scheduled_nightly"})
             )

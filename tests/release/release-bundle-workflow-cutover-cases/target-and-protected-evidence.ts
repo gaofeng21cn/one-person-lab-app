@@ -148,9 +148,12 @@ test('Stable and protected Manual Preview are isolated from daily-default Nightl
   });
   assert.deepEqual(Object.keys(nightly.on).sort(), ['schedule', 'workflow_dispatch']);
   assert.deepEqual(nightly.on.schedule, [{ cron: '17 19 * * *' }]);
-  assert.deepEqual(Object.keys(nightly.on.workflow_dispatch.inputs), ['operator_confirmation']);
-  assert.equal(nightly.on.workflow_dispatch.inputs.operator_confirmation.required, true);
+  assert.deepEqual(Object.keys(nightly.on.workflow_dispatch.inputs), [
+    'operator_confirmation', 'opl_release_control_run_id',
+  ]);
+  assert.equal(nightly.on.workflow_dispatch.inputs.operator_confirmation.required, false);
   assert.equal(nightly.on.workflow_dispatch.inputs.operator_confirmation.type, 'string');
+  assert.equal(nightly.on.workflow_dispatch.inputs.opl_release_control_run_id.required, false);
   assert.match(nightly['run-name'], /scheduled-production/);
   assert.match(nightly['run-name'], /development-validation/);
   assert.deepEqual(nightly.concurrency, {

@@ -38,16 +38,18 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   const releaseJobs = workflowJobs(release.workflow);
   const devInputs = release.workflow.on?.workflow_dispatch?.inputs ?? {};
   const devConfirm = devInputs.operator_confirmation;
+  const controlRun = devInputs.opl_release_control_run_id;
   failures += failIf(
     id,
     !sameJson(Object.keys(release.workflow.on ?? {}).sort(), ['schedule', 'workflow_dispatch']) ||
       !sameJson(release.workflow.on?.schedule, [{ cron: '17 19 * * *' }]) ||
-      !sameJson(Object.keys(devInputs), ['operator_confirmation']) ||
-      devConfirm?.required !== true || devConfirm?.type !== 'string' ||
+      !sameJson(Object.keys(devInputs), ['operator_confirmation', 'opl_release_control_run_id']) ||
+      devConfirm?.required !== false || devConfirm?.type !== 'string' ||
+      controlRun?.required !== false || controlRun?.type !== 'string' ||
       !exactObject(release.workflow.permissions, exactReadPermissions) ||
       !exactObject(release.workflow.concurrency, { group: 'opl-standard-nightly', 'cancel-in-progress': false }) ||
       !sameJson(Object.keys(releaseJobs), ['admission', 'standard-build', 'qualify-and-publish']),
-    'Nightly must keep one daily production schedule and one user-explicit development-validation entry on the same Standard prerelease lane',
+    'Nightly requires the local schedule, the controller correlation input, and explicit development validation on one Standard prerelease lane',
   );
 
   const { admission, 'standard-build': build, 'qualify-and-publish': publish } = releaseJobs;
@@ -68,7 +70,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   failures += requireSubstrings(id, release.text, [
     'test "$GITHUB_RUN_ATTEMPT" = 1', 'GITHUB_EVENT_NAME', 'publish_nonlatest_nightly',
     'invocation_mode=scheduled_production', 'invocation_mode=development_validation',
-    'authority_source=daily_schedule', 'authority_source=user_explicit',
+    'authority_source=daily_schedule', 'authority_source=opl_release_control', 'authority_source=user_explicit',
     '--invocation-mode "$invocation_mode"', '--event "$GITHUB_EVENT_NAME"',
     '--authority-source "$authority_source"', '.invocation.mode', '.invocation.event',
     '.invocation.authority_source', 'refs/heads/main', 'TZ=Asia/Shanghai',

@@ -6,6 +6,7 @@
   "trigger": "owner_schedule",
   "publisher_workflow": "release-nightly.yml",
   "primary_lane": "nightly",
+  "daily_dispatch": true,
   "channel": {
     "kind": "github_prerelease",
     "tag_pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+-nightly(\\.r[0-9]+)?"

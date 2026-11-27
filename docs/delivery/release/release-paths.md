@@ -54,6 +54,7 @@ node --experimental-strip-types scripts/resolve-release-platform-matrix.ts --pol
 | Docker 自动附加 | Stable workflow 的 WebUI source/carrier/promotion jobs | 双架构原生资格、不可变 OCI 版本、durable publication record、版本与移动标签回读 |
 | Docker 单独验收、发布或修复 | `release-webui-development.yml`，`qualify` / `publish` / `promote` | 可用 `qualified_artifact_run_id` 复用合格镜像；Stable `publish` 已接续 promotion，成功后不重复 promote |
 | 定时 Nightly | `release-nightly.yml` 的 schedule | 读取当前 Studio adapter，冻结源码，轻量资格后公开 prerelease；重构建分配新的 Nightly revision |
+| 集中调度 Nightly | `opl-release` 日程通过 GitHub App 派发 `release-nightly.yml`，传入 `opl_release_control_run_id` | App 校验派发方和源日程，回执绑定控制 run ID，沿用定时 Nightly 的资格和发布路径。接入验证前保留 App 日程，正式启用时避免两路并行派发 |
 | 手动 Nightly | 同一 workflow，准确 `publish_nonlatest_nightly` 确认 | 与 schedule 共用实现，保持非 Latest |
 | Nightly 附加恢复 | `release-nightly-followups.yml` | `reconcile_homebrew` 或 `run_sampled_vm`；消费准确成功的 Nightly publication handoff |
 | Manual Standard Preview / Latest 选择 | `release-manual-preview.yml` | `preview` / `resume_preview` / `move_latest_pointer`；需要明确的 Preview 或指针操作范围 |

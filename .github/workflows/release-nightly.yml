@@ -1,5 +1,9 @@
 name: OPL Standard Nightly Release
-run-name: OPL Standard Nightly (${{ github.event_name == 'schedule' && 'scheduled-production' || 'development-validation' }})
+run-name: >-
+  ${{ inputs.opl_release_control_run_id != ''
+    && format('OPL Standard Nightly (scheduled-production) [opl-release:{0}]', inputs.opl_release_control_run_id)
+    || github.event_name == 'schedule' && 'OPL Standard Nightly (scheduled-production)'
+    || 'OPL Standard Nightly (development-validation)' }}
 
 on:
   schedule:
@@ -8,7 +12,11 @@ on:
     inputs:
       operator_confirmation:
         description: Type publish_nonlatest_nightly for user-explicit development validation
-        required: true
+        required: false
+        type: string
+      opl_release_control_run_id:
+        description: Schedule run ID from gaofeng21cn/opl-release (GitHub App only)
+        required: false
         type: string
 
 permissions:
@@ -67,6 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation || '' }}
+          OPL_RELEASE_CONTROL_RUN_ID: ${{ inputs.opl_release_control_run_id || '' }}
           SHELL_REPOSITORY: ${{ steps.profile.outputs.shell_repository }}
         shell: bash
         run: |
@@ -77,17 +86,65 @@ jobs:
           }
           case "$GITHUB_EVENT_NAME" in
             schedule)
-              test -z "$OPERATOR_CONFIRMATION"
+              test -z "$OPERATOR_CONFIRMATION" && test -z "$OPL_RELEASE_CONTROL_RUN_ID"
               invocation_mode=scheduled_production
               authority_source=daily_schedule
               ;;
             workflow_dispatch)
-              test "$OPERATOR_CONFIRMATION" = publish_nonlatest_nightly || {
-                echo "::error::Development-validation Nightly requires the exact non-Latest confirmation."
-                exit 1
-              }
-              invocation_mode=development_validation
-              authority_source=user_explicit
+              if [ -n "$OPL_RELEASE_CONTROL_RUN_ID" ]; then
+                test "$GITHUB_ACTOR_ID" = 356454848 || {
+                  echo "::error::Centralized Nightly dispatch requires the OPL Package Publisher GitHub App actor."
+                  exit 1
+                }
+                test -z "$OPERATOR_CONFIRMATION" || {
+                  echo "::error::Centralized Nightly dispatch cannot include operator_confirmation."
+                  exit 1
+                }
+                [[ "$OPL_RELEASE_CONTROL_RUN_ID" =~ ^[1-9][0-9]*$ ]] || {
+                  echo "::error::opl_release_control_run_id must be a positive decimal Actions run ID."
+                  exit 1
+                }
+                test "$GITHUB_REF" = refs/heads/main
+                curl --fail --silent --show-error \
+                  --header 'Accept: application/vnd.github+json' \
+                  "https://api.github.com/repos/gaofeng21cn/opl-release/actions/runs/$OPL_RELEASE_CONTROL_RUN_ID" \
+                  > "$RUNNER_TEMP/opl-release-control-run.json"
+                jq -e --arg run "$OPL_RELEASE_CONTROL_RUN_ID" '
+                  (.id | tostring) == $run
+                  and .repository.full_name == "gaofeng21cn/opl-release"
+                  and .head_repository.full_name == "gaofeng21cn/opl-release"
+                  and .path == ".github/workflows/control-daily-releases.yml"
+                  and .event == "schedule"
+                  and .head_branch == "main"
+                  and .run_attempt == 1
+                ' "$RUNNER_TEMP/opl-release-control-run.json" >/dev/null || {
+                  echo "::error::The source must be the exact first-attempt schedule from opl-release main."
+                  exit 1
+                }
+                gh api --paginate --slurp \
+                  "repos/$GITHUB_REPOSITORY/actions/workflows/release-nightly.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
+                  > "$RUNNER_TEMP/opl-nightly-dispatch-runs.json"
+                control_title="OPL Standard Nightly (scheduled-production) [opl-release:$OPL_RELEASE_CONTROL_RUN_ID]"
+                jq -e --arg title "$control_title" --argjson current "$GITHUB_RUN_NUMBER" --argjson actor "$GITHUB_ACTOR_ID" '
+                  [
+                    .[]?.workflow_runs[]?
+                    | select(.run_number < $current and .actor.id == $actor)
+                    | select(.display_title == $title)
+                  ] | length == 0
+                ' "$RUNNER_TEMP/opl-nightly-dispatch-runs.json" >/dev/null || {
+                  echo "::error::This centralized controller run ID has already dispatched a Nightly."
+                  exit 1
+                }
+                invocation_mode=scheduled_production
+                authority_source=opl_release_control
+              else
+                test "$OPERATOR_CONFIRMATION" = publish_nonlatest_nightly || {
+                  echo "::error::Development-validation Nightly requires the exact non-Latest confirmation."
+                  exit 1
+                }
+                invocation_mode=development_validation
+                authority_source=user_explicit
+              fi
               ;;
             *)
               echo "::error::Nightly requires the daily schedule or user-explicit development validation."
@@ -124,6 +181,7 @@ jobs:
             --event "$GITHUB_EVENT_NAME" \
             --authority-source "$authority_source" \
             --operator-confirmation "$OPERATOR_CONFIRMATION" \
+            --opl-release-control-run-id "$OPL_RELEASE_CONTROL_RUN_ID" \
             --output opl-nightly-request.json \
             --github-output "$GITHUB_OUTPUT"
 
