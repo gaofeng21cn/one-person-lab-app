@@ -1103,6 +1103,7 @@ test('Nightly admission accepts the scoped controller and rejects copied or inva
     }
     for (const invalid of [
       { GITHUB_ACTOR_ID: '1' },
+      { GITHUB_ACTOR_ID: '173561466' },
       { OPL_RELEASE_CONTROL_RUN_ID: 'wrong' },
       { GITHUB_REF: 'refs/heads/feature' },
       { OPERATOR_CONFIRMATION: 'publish_nonlatest_nightly' },
@@ -1136,6 +1137,10 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(release['run-name'], /scheduled-production/);
   assert.match(release['run-name'], /development-validation/);
   assert.match(release['run-name'], /\[opl-release:\{0\}\]/);
+  assert.equal(
+    release.jobs.admission.if,
+    "${{ github.event_name != 'schedule' || vars.OPL_RELEASE_CENTRAL_DAILY != 'true' }}",
+  );
   const admissionRun = String(
     release.jobs.admission.steps.find((step: any) => step.id === 'request')?.run ?? '',
   );

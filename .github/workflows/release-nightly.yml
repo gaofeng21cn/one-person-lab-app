@@ -33,6 +33,7 @@ concurrency:
 jobs:
   admission:
     name: Freeze exact Nightly request
+    if: ${{ github.event_name != 'schedule' || vars.OPL_RELEASE_CENTRAL_DAILY != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}

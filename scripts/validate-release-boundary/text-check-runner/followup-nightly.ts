@@ -56,7 +56,9 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   const preflight = admission?.steps?.find((step: Record<string, any>) => step.name === 'Check Nightly publication credential availability');
   failures += failIf(
     id,
-    !admission || admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}" ||
+    !admission ||
+      admission.if !== "${{ github.event_name != 'schedule' || vars.OPL_RELEASE_CENTRAL_DAILY != 'true' }}" ||
+      admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}" ||
       !exactObject(admission.permissions, exactReadPermissions) ||
       preflight?.env?.NIGHTLY_PUBLISHER_CONFIGURED !== "${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN != '' }}" ||
       !build || build.uses !== './.github/workflows/_build-reusable.yml' || !needsExactly(build, ['admission']) ||
