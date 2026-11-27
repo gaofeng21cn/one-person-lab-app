@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { assertDeepEqualJson, assertIncludesAll } from '../assertions.ts';
+import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll } from '../assertions.ts';
 export const componentInteroperabilityRef =
   'contracts/app-install-exposure-policy.json#component_interoperability';
 const frameworkCompatibilityProducerContractRef =
@@ -130,18 +130,13 @@ export function validateComponentCompatibilityReceipt(receipt, context = {}) {
   const record = objectRecord(receipt, 'Component compatibility receipt');
   const normalizeDigest = (value, label) =>
     exactSha256(nonEmptyString(value, label).replace(/^sha256:/, ''), label);
-  if (
-    record.schema !== 'opl_component_compatibility_receipt.v1' ||
-    record.contract_ref !== `${componentInteroperabilityRef}.compatibility_admission`
-  ) {
-    throw new Error('Framework compatibility receipt must bind the canonical interoperability contract');
-  }
-  if (record.owner !== 'one-person-lab' || record.producer_role !== 'opl_framework') {
-    throw new Error('Framework compatibility receipt must bind owner one-person-lab and producer role opl_framework');
-  }
-  if (record.producer_contract_ref !== frameworkCompatibilityProducerContractRef) {
-    throw new Error('Framework compatibility receipt must bind the canonical Framework producer contract');
-  }
+  assertFieldsMatch(record, {
+    schema: 'opl_component_compatibility_receipt.v1',
+    contract_ref: `${componentInteroperabilityRef}.compatibility_admission`,
+    owner: 'one-person-lab',
+    producer_role: 'opl_framework',
+    producer_contract_ref: frameworkCompatibilityProducerContractRef,
+  }, 'Framework compatibility receipt');
   const producerIdentity = objectRecord(
     record.producer_identity,
     'Framework compatibility receipt producer_identity',
@@ -221,14 +216,8 @@ export function validateComponentCompatibilityReceipt(receipt, context = {}) {
   const sources = objectRecord(record.sources, 'Framework compatibility receipt sources');
   const requirementSource = objectRecord(sources.requirements, 'Framework compatibility requirements source');
   const subjectSource = objectRecord(sources.subject, 'Framework compatibility subject source');
-  if (
-    requirementSource.owner !== 'one-person-lab-app' ||
-    requirementSource.schema !== 'opl_component_compatibility_requirements.v1' ||
-    subjectSource.owner !== 'one-person-lab-app' ||
-    subjectSource.schema !== 'opl_app_compatibility_subject.v1'
-  ) {
-    throw new Error('Framework compatibility receipt sources must remain App-owned requirements and subject files');
-  }
+  assertFieldsMatch(requirementSource, { owner: 'one-person-lab-app', schema: 'opl_component_compatibility_requirements.v1' }, 'Framework compatibility receipt requirements source');
+  assertFieldsMatch(subjectSource, { owner: 'one-person-lab-app', schema: 'opl_app_compatibility_subject.v1' }, 'Framework compatibility receipt subject source');
   const normalizedSources = {
     requirements: {
       path: nonEmptyString(requirementSource.path, 'Framework compatibility requirements source path'),
@@ -408,17 +397,15 @@ export function validateComponentCompatibilityReceipt(receipt, context = {}) {
     record.authority_boundary,
     'Framework compatibility receipt authority_boundary',
   );
-  if (
-    authorityBoundary.compatibility_only !== true ||
-    authorityBoundary.selected_artifact_binding_is_subject_evidence_only !== true ||
-    authorityBoundary.may_require_exact_cross_component_version_or_sha !== false ||
-    authorityBoundary.may_require_same_cohort !== false ||
-    authorityBoundary.may_define_package_currentness !== false ||
-    authorityBoundary.may_claim_release_ready !== false ||
-    authorityBoundary.may_claim_install_ready !== false
-  ) {
-    throw new Error('Framework compatibility receipt authority boundary permits a forbidden cross-component claim');
-  }
+  assertFieldsMatch(authorityBoundary, {
+    compatibility_only: true,
+    selected_artifact_binding_is_subject_evidence_only: true,
+    may_require_exact_cross_component_version_or_sha: false,
+    may_require_same_cohort: false,
+    may_define_package_currentness: false,
+    may_claim_release_ready: false,
+    may_claim_install_ready: false,
+  }, 'Framework compatibility receipt authority boundary');
   if (
     context.expected_requirements !== undefined &&
     JSON.stringify(record.requirements) !== JSON.stringify(context.expected_requirements)
@@ -441,77 +428,52 @@ export function validateComponentCompatibilityReceipt(receipt, context = {}) {
 }
 
 function validateComponentInteroperability(interoperability) {
-  if (
-    interoperability?.schema !== 'opl_component_interoperability.v1' ||
-    interoperability?.authority !== 'one-person-lab-app' ||
-    interoperability?.model !== 'independently_versioned_open_composition'
-  ) {
-    throw new Error('Install exposure must declare the canonical independently versioned component model');
-  }
-  assertDeepEqualJson(
-    interoperability.components,
-    ['opl_app', 'opl_shell', 'opl_framework', 'opl_base', 'opl_package'],
-    'Component interoperability participants',
-  );
-  const combination = interoperability.combination_policy;
-  if (
-    combination?.default !==
-      'any_component_versions_may_compose_when_compatibility_requirements_are_satisfied' ||
-    combination?.full_and_standard_may_publish_and_install_independently !== true ||
-    combination?.exact_cross_component_version_or_commit_lockstep_required !== false ||
-    combination?.carrier_choice_may_define_package_currentness !== false
-  ) {
-    throw new Error('Component interoperability must preserve independent version lines and open composition');
-  }
+  assertFieldsMatch(interoperability, {
+    schema: 'opl_component_interoperability.v1',
+    authority: 'one-person-lab-app',
+    model: 'independently_versioned_open_composition',
+  }, 'Component interoperability');
+  assertDeepEqualJson(interoperability.components, componentKinds, 'Component interoperability participants');
+  assertFieldsMatch(interoperability.combination_policy, {
+    default: 'any_component_versions_may_compose_when_compatibility_requirements_are_satisfied',
+    full_and_standard_may_publish_and_install_independently: true,
+    exact_cross_component_version_or_commit_lockstep_required: false,
+    carrier_choice_may_define_package_currentness: false,
+  }, 'Component interoperability combination_policy');
   const artifact = interoperability.artifact_self_integrity;
-  if (
-    artifact?.scope !== 'one_selected_downloaded_or_executed_artifact' ||
-    artifact?.same_release_asset_anonymous_authenticated_byte_parity_required !== true ||
-    artifact?.installed_bytes_must_match_selected_carrier_artifact !== true
-  ) {
-    throw new Error('Component interoperability must bind integrity to the selected artifact itself');
-  }
+  assertFieldsMatch(artifact, {
+    scope: 'one_selected_downloaded_or_executed_artifact',
+    same_release_asset_anonymous_authenticated_byte_parity_required: true,
+    installed_bytes_must_match_selected_carrier_artifact: true,
+  }, 'Component interoperability artifact_self_integrity');
   assertDeepEqualJson(
     artifact.required_identity_fields,
     ['owner_authority', 'immutable_release_tag', 'asset_url', 'asset_name', 'byte_size', 'sha256'],
     'Selected artifact identity fields',
   );
-  assertDeepEqualJson(
-    artifact.platform_attestations_when_applicable,
-    ['signature', 'notarization'],
-    'Selected artifact platform attestations',
-  );
+  assertDeepEqualJson(artifact.platform_attestations_when_applicable, ['signature', 'notarization'], 'Selected artifact platform attestations');
   const compatibility = interoperability.compatibility_admission;
-  if (
-    compatibility?.authority_model !==
-      'app_requirements_framework_owner_evaluation_app_fail_closed_validation' ||
-    compatibility?.requirements_owner !== 'one-person-lab-app' ||
-    compatibility?.observation_owner !== 'one-person-lab' ||
-    compatibility?.observation_producer_role !== 'opl_framework' ||
-    compatibility?.observation_command !==
-      'opl app compatibility receipt --requirements-file <path> --subject-file <path> --output <path> --ttl-seconds 300 --json' ||
-    compatibility?.receipt_schema !== 'opl_component_compatibility_receipt.v1' ||
-    compatibility?.requirements_schema !== 'opl_component_compatibility_requirements.v1' ||
-    compatibility?.subject_schema !== 'opl_app_compatibility_subject.v1' ||
-    compatibility?.receipt_transport !==
-      'cli_envelope_with_independent_json_file_and_sha256_sidecar' ||
-    compatibility?.consumer_preflight_receipt_schema !==
-      'opl_app_installed_gui_artifact_preflight_receipt.v2' ||
-    compatibility?.current_framework_producer_status !==
-      'canonical_owner_cli_and_receipt_producer' ||
-    compatibility?.producer_contract_ref !==
-      'contracts/opl-framework/app-component-compatibility-receipt-contract.json' ||
-    compatibility?.inline_compatible_claim_allowed !== false ||
-    compatibility?.app_may_generate_compatible_receipt !== false ||
-    compatibility?.requirements_must_be_nonempty !== true ||
-    compatibility?.compatible_receipt_observed_components_must_be_nonempty !== true ||
-    compatibility?.observation_max_age_seconds !== 300 ||
-    compatibility?.requirement_evaluation_policy !==
-      'exactly_one_framework_evaluation_per_app_requirement' ||
-    compatibility?.success_code !== 'compatible'
-  ) {
-    throw new Error('Component compatibility admission must bind App requirements to one fresh Framework-owned receipt');
-  }
+  assertFieldsMatch(compatibility, {
+    authority_model: 'app_requirements_framework_owner_evaluation_app_fail_closed_validation',
+    requirements_owner: 'one-person-lab-app',
+    observation_owner: 'one-person-lab',
+    observation_producer_role: 'opl_framework',
+    observation_command: 'opl app compatibility receipt --requirements-file <path> --subject-file <path> --output <path> --ttl-seconds 300 --json',
+    receipt_schema: 'opl_component_compatibility_receipt.v1',
+    requirements_schema: 'opl_component_compatibility_requirements.v1',
+    subject_schema: 'opl_app_compatibility_subject.v1',
+    receipt_transport: 'cli_envelope_with_independent_json_file_and_sha256_sidecar',
+    consumer_preflight_receipt_schema: 'opl_app_installed_gui_artifact_preflight_receipt.v2',
+    current_framework_producer_status: 'canonical_owner_cli_and_receipt_producer',
+    producer_contract_ref: frameworkCompatibilityProducerContractRef,
+    inline_compatible_claim_allowed: false,
+    app_may_generate_compatible_receipt: false,
+    requirements_must_be_nonempty: true,
+    compatible_receipt_observed_components_must_be_nonempty: true,
+    observation_max_age_seconds: 300,
+    requirement_evaluation_policy: 'exactly_one_framework_evaluation_per_app_requirement',
+    success_code: 'compatible',
+  }, 'Component compatibility admission');
   assertDeepEqualJson(
     compatibility.producer_receipt_output,
     {
@@ -604,14 +566,12 @@ function validateComponentInteroperability(interoperability) {
     interoperability.compatibility_profiles?.gui_installed_acceptance,
     'Installed GUI compatibility profile',
   );
-  if (
-    guiCompatibilityProfile.profile_id !== 'gui_installed_acceptance' ||
-    guiCompatibilityProfile.scope !== 'installed_gui_artifact_acceptance_only' ||
-    guiCompatibilityProfile.shell_acceptance_boundary !==
-      'app_build_contract_active_shell_gate_and_installed_browser_first_dom_pixel_a11y_behavior' ||
-    !Array.isArray(guiCompatibilityProfile.requirements) ||
-    guiCompatibilityProfile.requirements.length === 0
-  ) {
+  assertFieldsMatch(guiCompatibilityProfile, {
+    profile_id: 'gui_installed_acceptance',
+    scope: 'installed_gui_artifact_acceptance_only',
+    shell_acceptance_boundary: 'app_build_contract_active_shell_gate_and_installed_browser_first_dom_pixel_a11y_behavior',
+  }, 'Installed GUI compatibility profile');
+  if (!Array.isArray(guiCompatibilityProfile.requirements) || guiCompatibilityProfile.requirements.length === 0) {
     throw new Error('Installed GUI compatibility profile must contain App-owned non-empty requirements');
   }
   const profileRequirementIds = new Set();
@@ -622,18 +582,15 @@ function validateComponentInteroperability(interoperability) {
     }
     profileRequirementIds.add(validated.requirementId);
   }
-  const provenance = interoperability.provenance;
-  if (
-    provenance?.exact_component_versions_commits_and_digests_may_be_recorded !== true ||
-    provenance?.role !== 'observational_build_or_installed_state_only' ||
-    provenance?.may_gate_install_or_runtime !== false ||
-    provenance?.may_define_package_currentness !== false ||
-    provenance?.full_offline_seed_versions_are_payload_provenance_only !== true ||
-    provenance?.resolver_receipts_may_record_selected_versions !== true ||
-    provenance?.resolver_receipts_may_create_future_combination_lock !== false
-  ) {
-    throw new Error('Component provenance must remain observational and must not create a future lock');
-  }
+  assertFieldsMatch(interoperability.provenance, {
+    exact_component_versions_commits_and_digests_may_be_recorded: true,
+    role: 'observational_build_or_installed_state_only',
+    may_gate_install_or_runtime: false,
+    may_define_package_currentness: false,
+    full_offline_seed_versions_are_payload_provenance_only: true,
+    resolver_receipts_may_record_selected_versions: true,
+    resolver_receipts_may_create_future_combination_lock: false,
+  }, 'Component interoperability provenance');
   assertDeepEqualJson(
     interoperability.forbidden_install_or_runtime_gates,
     [

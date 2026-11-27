@@ -1,4 +1,4 @@
-import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
+import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll } from "../assertions.ts";
 import {
   appOwnedSecondarySettingsPages,
   appOwnedSettingsCapabilitiesTabContract,
@@ -26,82 +26,74 @@ function assertSettingsRules(actual, expected, label) {
 }
 
 export function validateSettingsExperienceContract(experience, guiContract) {
-  if (
-    experience?.schema !== "settings_codex_quiet_experience.v2" ||
-    experience.owner !== "one-person-lab-app" ||
-    experience.purpose !==
-      "machine_verifiable_settings_visual_search_page_and_dom_contract"
-  ) {
-    throw new Error(
-      "Settings experience contract must be active App-owned control-center behavior",
-    );
-  }
-  if (
-    experience.source_contract_ref !==
-      "contracts/app-gui-product-contract.json#settings_navigation.settings_ia" ||
-    experience.page_state_matrix_ref !==
-      "contracts/app-page-state-matrix.json#pages"
-  ) {
-    throw new Error(
-      "Settings experience contract must bind GUI authority and the page-state matrix",
-    );
-  }
+  assertSettingsRules(
+    experience,
+    {
+      schema: "settings_codex_quiet_experience.v2",
+      owner: "one-person-lab-app",
+      purpose: "machine_verifiable_settings_visual_search_page_and_dom_contract",
+      source_contract_ref: "contracts/app-gui-product-contract.json#settings_navigation.settings_ia",
+      page_state_matrix_ref: "contracts/app-page-state-matrix.json#pages",
+    },
+    "Settings experience contract must bind active App-owned GUI and page-state authorities",
+  );
   const visual = experience.visual_system;
   const viewportGroups = visual?.first_viewport_spatial_group_range;
   if (
-    visual?.style !== "codex_quiet_control_center_with_opl_information_architecture" ||
-    visual.style_exclusion !== "multi_hue_card_dashboard" ||
-    !/^[a-f0-9]{40}$/.test(visual.baseline_shell_commit ?? "") ||
-    visual.baseline_comparison_policy !==
-      "fresh_same_route_screenshots_must_preserve_or_improve_information_hierarchy" ||
-    visual.card_policy !==
-      "unframed_sections_with_bounded_groups_only_for_repeated_entities_or_confirmation" ||
+    !/^[a-f0-9]{40}$/.test(visual?.baseline_shell_commit ?? "") ||
     !Number.isInteger(viewportGroups?.min) ||
     !Number.isInteger(viewportGroups?.max) ||
     viewportGroups.min < 1 ||
     viewportGroups.max > 4 ||
-    viewportGroups.min > viewportGroups.max ||
-    visual.nested_cards_allowed !== false ||
-    visual.page_wide_list_wall_allowed !== false ||
-    visual.page_sections_as_floating_cards_allowed !== false ||
-    visual.footer_layout !== "compact" ||
-    visual.footer_theme_quick_toggle_allowed !== false ||
-    visual.footer_auxiliary_navigation !== "about_only_sidebar_bottom" ||
-    visual.footer_duplicate_settings_entry_allowed !== false ||
-    visual.theme_gallery_presentation !== "not_exposed" ||
-    visual.theme_swatch_list_allowed !== false ||
-    visual.primary_action_per_page_max !== 1 ||
-    visual.technical_details_default !== "collapsed"
+    viewportGroups.min > viewportGroups.max
   ) {
     throw new Error(
       "Settings experience visual system must preserve grouping, disclosure, and sidebar policies",
     );
   }
+  assertSettingsRules(
+    visual,
+    {
+      style: "codex_quiet_control_center_with_opl_information_architecture",
+      style_exclusion: "multi_hue_card_dashboard",
+      baseline_comparison_policy: "fresh_same_route_screenshots_must_preserve_or_improve_information_hierarchy",
+      card_policy: "unframed_sections_with_bounded_groups_only_for_repeated_entities_or_confirmation",
+      nested_cards_allowed: false,
+      page_wide_list_wall_allowed: false,
+      page_sections_as_floating_cards_allowed: false,
+      footer_layout: "compact",
+      footer_theme_quick_toggle_allowed: false,
+      footer_auxiliary_navigation: "about_only_sidebar_bottom",
+      footer_duplicate_settings_entry_allowed: false,
+      theme_gallery_presentation: "not_exposed",
+      theme_swatch_list_allowed: false,
+      primary_action_per_page_max: 1,
+      technical_details_default: "collapsed",
+    },
+    "Settings experience visual system must preserve grouping, disclosure, and sidebar policies",
+  );
   validateSettingsSurfaceModel(experience.surface_model);
 
   const search = experience.global_search;
-  if (
-    search?.global_entry_count !== 1 ||
-    search.entry_testid !== "settings-search-input" ||
-    search.results_testid !== "settings-search-results" ||
-    search.result_item_testid !== "settings-search-result" ||
-    search.empty_state_testid !== "settings-search-empty" ||
-    search.index_granularity !== "item" ||
-    search.result_label_format !== "{group_label} > {destination_label} > {entry_label}" ||
-    search.result_navigation !== "route_id_plus_anchor" ||
-    search.keyboard_activation_policy !==
-      "arrow_keys_select_result_enter_activates_selected_escape_clears_query" ||
-    search.destination_focus_policy !== "open_ancestor_disclosures_scroll_focus_and_highlight_declared_anchor" ||
-    search.anchor_query_param !== "section" ||
-    search.hash_router_policy !==
-      "use_route_query_section_when_a_second_hash_fragment_is_not_supported" ||
-    search.compatibility_index_policy !==
-      "index_update_theme_local_services_and_personalization_under_their_owner_page_anchors"
-  ) {
-    throw new Error(
-      "Settings search must be one bilingual item-level route-and-anchor search",
-    );
-  }
+  assertFieldsMatch(
+    search,
+    {
+      global_entry_count: 1,
+      entry_testid: "settings-search-input",
+      results_testid: "settings-search-results",
+      result_item_testid: "settings-search-result",
+      empty_state_testid: "settings-search-empty",
+      index_granularity: "item",
+      result_label_format: "{group_label} > {destination_label} > {entry_label}",
+      result_navigation: "route_id_plus_anchor",
+      keyboard_activation_policy: "arrow_keys_select_result_enter_activates_selected_escape_clears_query",
+      destination_focus_policy: "open_ancestor_disclosures_scroll_focus_and_highlight_declared_anchor",
+      anchor_query_param: "section",
+      hash_router_policy: "use_route_query_section_when_a_second_hash_fragment_is_not_supported",
+      compatibility_index_policy: "index_update_theme_local_services_and_personalization_under_their_owner_page_anchors",
+    },
+    "Settings search must be one bilingual item-level route-and-anchor search:",
+  );
   assertDeepEqualJson(
     search.languages,
     ["zh-CN", "en"],
@@ -243,20 +235,17 @@ export function validateSettingsExperienceContract(experience, guiContract) {
     );
   }
   const connectionAuthorization = pageContracts.resources.connection_authorization;
-  if (
-    connectionAuthorization?.source !==
-      "settings_control_center.app_settings_read_model.connections.authorization" ||
-    connectionAuthorization.approval_policy !==
-      "pending_request_requires_dedicated_trusted_app_user_bridge_after_fresh_projection; never_generic_action_or_model_callable" ||
-    connectionAuthorization.approval_bridge_ref !==
-      "contracts/app-runtime-bridge.json#connection_access_approval_bridge" ||
-    connectionAuthorization.invocation_limit !== 20 ||
-    connectionAuthorization.approval_action_id_in_generic_action_catalog !== false
-  ) {
-    throw new Error(
-      "Settings Resources connection authorization must retain the dedicated user approval bridge",
-    );
-  }
+  assertFieldsMatch(
+    connectionAuthorization,
+    {
+      source: "settings_control_center.app_settings_read_model.connections.authorization",
+      approval_policy: "pending_request_requires_dedicated_trusted_app_user_bridge_after_fresh_projection; never_generic_action_or_model_callable",
+      approval_bridge_ref: "contracts/app-runtime-bridge.json#connection_access_approval_bridge",
+      invocation_limit: 20,
+      approval_action_id_in_generic_action_catalog: false,
+    },
+    "Settings Resources connection authorization must retain the dedicated user approval bridge:",
+  );
   assertDeepEqualJson(
     connectionAuthorization.available_connection_fields,
     [
@@ -312,59 +301,46 @@ export function validateSettingsExperienceContract(experience, guiContract) {
     );
   }
   const backgroundTasks = pageContracts.overview.background_services_summary;
+  assertFieldsMatch(
+    backgroundTasks,
+    {
+      overview_visible_unit: "background_tasks",
+      overview_label_zh: "后台任务",
+      overview_label_en: "Background tasks",
+      component_detail_visibility: "service_status_destination_only",
+    },
+    "Settings Overview background_services_summary",
+  );
   if (
-    backgroundTasks?.overview_visible_unit !== "background_tasks" ||
-    backgroundTasks?.overview_label_zh !== "后台任务" ||
-    backgroundTasks?.overview_label_en !== "Background tasks" ||
-    backgroundTasks?.component_detail_visibility !==
-      "service_status_destination_only" ||
-    !pageContracts.overview.required_dom.always.includes(
-      "settings-overview-background-tasks",
-    ) ||
-    pageContracts.overview.required_dom.always.some((id) =>
-      id.startsWith("settings-overview-temporal-"),
-    )
+    !pageContracts.overview.required_dom.always.includes("settings-overview-background-tasks") ||
+    pageContracts.overview.required_dom.always.some((id) => id.startsWith("settings-overview-temporal-"))
   ) {
     throw new Error(
       "Settings Overview must keep one persistent Background tasks summary and leave Temporal component detail on Service Status",
     );
   }
-  const temporalMentalModel =
-    pageContracts.maintenance?.temporal_service_management?.user_mental_model;
-  if (
-    temporalMentalModel?.surface_label_zh !== "持久任务运行（Temporal）" ||
-    temporalMentalModel?.surface_label_en !== "Durable tasks (Temporal)" ||
-    temporalMentalModel?.component_labels?.temporal_server?.label_zh !==
-      "Temporal 基础服务" ||
-    temporalMentalModel?.component_labels?.temporal_server?.role !==
-      "single_required_temporal_dependency_substrate" ||
-    temporalMentalModel?.component_labels?.temporal_worker?.label_zh !==
-      "OPL 任务执行器" ||
-    temporalMentalModel?.component_labels?.temporal_scheduler?.label_zh !==
-      "周期计划" ||
-    temporalMentalModel?.component_labels?.temporal_scheduler?.role !==
-      "temporal_schedule_cadence_not_a_second_scheduler_service" ||
-    JSON.stringify(temporalMentalModel?.dependency_topology) !==
-      JSON.stringify([
-        "temporal_server",
-        "temporal_worker",
-        "temporal_scheduler",
-      ]) ||
-    temporalMentalModel?.causal_blocking_policy !==
-      "downstream_unready_due_to_an_upstream_component_must_show_waiting_for_the_named_upstream_not_generic_attention" ||
-    temporalMentalModel?.aggregate_status_policy !==
-      "show_the_root_cause_and_user_impact_once_never_repeat_one_generic_attention_label_for_every_component" ||
-    temporalMentalModel?.primary_action_policy !==
-      "show_exactly_one_safe_action_for_the_first_actionable_root_cause_plus_one_recheck_action" ||
-    temporalMentalModel?.disabled_action_policy !==
-      "hide_blocked_downstream_actions_or_explain_their_named_prerequisite_with_focusable_accessible_help" ||
-    temporalMentalModel?.technical_detail_policy !==
-      "address_namespace_task_queue_supervisor_and_component_timestamps_are_collapsed_by_default"
-  ) {
-    throw new Error(
-      "Settings Temporal service user mental model must preserve one dependency chain, causal waiting states, one root action, and collapsed technical details",
-    );
-  }
+  const temporalMentalModel = pageContracts.maintenance?.temporal_service_management?.user_mental_model;
+  assertFieldsMatch(
+    temporalMentalModel,
+    {
+      surface_label_zh: "持久任务运行（Temporal）",
+      surface_label_en: "Durable tasks (Temporal)",
+      causal_blocking_policy: "downstream_unready_due_to_an_upstream_component_must_show_waiting_for_the_named_upstream_not_generic_attention",
+      aggregate_status_policy: "show_the_root_cause_and_user_impact_once_never_repeat_one_generic_attention_label_for_every_component",
+      primary_action_policy: "show_exactly_one_safe_action_for_the_first_actionable_root_cause_plus_one_recheck_action",
+      disabled_action_policy: "hide_blocked_downstream_actions_or_explain_their_named_prerequisite_with_focusable_accessible_help",
+      technical_detail_policy: "address_namespace_task_queue_supervisor_and_component_timestamps_are_collapsed_by_default",
+    },
+    "Settings Temporal service user mental model",
+  );
+  assertDeepEqualJson(
+    temporalMentalModel?.dependency_topology,
+    ["temporal_server", "temporal_worker", "temporal_scheduler"],
+    "Settings Temporal service user mental model dependency_topology",
+  );
+  assertFieldsMatch(temporalMentalModel?.component_labels?.temporal_server, { label_zh: "Temporal 基础服务", role: "single_required_temporal_dependency_substrate" }, "Settings Temporal service user mental model server label");
+  assertFieldsMatch(temporalMentalModel?.component_labels?.temporal_worker, { label_zh: "OPL 任务执行器" }, "Settings Temporal service user mental model worker label");
+  assertFieldsMatch(temporalMentalModel?.component_labels?.temporal_scheduler, { label_zh: "周期计划", role: "temporal_schedule_cadence_not_a_second_scheduler_service" }, "Settings Temporal service user mental model scheduler label");
   assertSettingsRules(
     pageContracts.workspace.surface_rules,
     {
