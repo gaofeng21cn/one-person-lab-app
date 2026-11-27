@@ -161,3 +161,29 @@ test('Studio Full contract keeps its additive asset set explicit', () => {
   assert.ok(policy.forbidden_mutations.includes('latest-mac.yml'));
   assert.equal(policy.unknown_upload_result, 'readback_only_no_retry');
 });
+
+test('Studio Standard and Full macOS signing steps enforce open-file limit and probe throttling', () => {
+  const studioRelease = readWorkflow('_release-studio.yml');
+  const checks = [
+    {
+      label: '_release-studio-full.yml',
+      steps: readSteps(full.jobs['build-full-signed-notarized']),
+      stepName: 'Build the exact Studio desktop directory',
+    },
+    {
+      label: '_release-studio.yml',
+      steps: readSteps(studioRelease.jobs['build-signed-notarized']),
+      stepName: 'Build exact Developer ID signed App directory',
+    },
+  ];
+  for (const { label, steps, stepName } of checks) {
+    const step = steps.find((candidate) => candidate.name === stepName);
+    assert.ok(step, `${label}: missing ${stepName}`);
+    const runScript = String(step.run ?? '');
+    assert.match(runScript, /ulimit -S -n 65536 \|\| \{/, label);
+    assert.match(runScript, /signing_fs_preload="\$RUNNER_TEMP\/opl-macos-signing-fs\.cjs"/, label);
+    assert.match(runScript, /graceful-fs/, label);
+    assert.match(runScript, /p-limit/, label);
+    assert.match(runScript, /export NODE_OPTIONS="\$\{NODE_OPTIONS:-\} --require=\\"\$signing_fs_preload\\""[\s\S]*npx electron-builder --mac/, label);
+  }
+});

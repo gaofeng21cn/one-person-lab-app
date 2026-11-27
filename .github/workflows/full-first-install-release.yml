@@ -1259,7 +1259,11 @@ jobs:
           OPL_FULL_FRAMEWORK_REF: ${{ inputs.framework_ref }}
         run: |
           set -euo pipefail
-          ulimit -n 65536 || true
+          ulimit -S -n 65536 || {
+            echo "::error::macOS signing requires an open-file limit of at least 65536."
+            exit 1
+          }
+          echo "macOS Full build open-file limit: $(ulimit -S -n)"
           export OPL_FRAMEWORK_ROOT="$GITHUB_WORKSPACE/one-person-lab"
           export OPL_FULL_BUN_BIN="${OPL_FULL_BUN_BIN:-$(command -v bun)}"
           export OPL_FULL_INCLUDE_BUN_RUNTIME="${OPL_FULL_INCLUDE_BUN_RUNTIME:-0}"

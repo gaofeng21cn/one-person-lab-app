@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument } from 'yaml';
@@ -190,6 +191,43 @@ export function shellBuildEnvironmentWithoutRedundantNotarization(env = process.
   return shellBuildEnv;
 }
 
+export function renderMacosSigningFsPreload(guiRoot: string): string {
+  const anchor = JSON.stringify(path.resolve(guiRoot, 'package.json'));
+  return [
+    `const fromShell = require('node:module').createRequire(${anchor});`,
+    `fromShell('graceful-fs').gracefulify(require('node:fs'));`,
+    `const fromSign = require('node:module').createRequire(fromShell.resolve('@electron/osx-sign'));`,
+    `const binary = fromSign('isbinaryfile');`,
+    `const limitModule = fromShell('p-limit');`,
+    `const limit = (limitModule.default || limitModule)(32);`,
+    `const original = binary.isBinaryFile;`,
+    `binary.isBinaryFile = (...args) => limit(() => original(...args));`,
+    '',
+  ].join('\n');
+}
+
+export function withShellMacosSigningFsPreload<T>(
+  guiRoot: string,
+  env: NodeJS.ProcessEnv,
+  build: (shellEnv: NodeJS.ProcessEnv) => T,
+  platform = process.platform,
+): T {
+  if (platform !== 'darwin' || (env.NODE_OPTIONS || '').includes('opl-macos-signing-fs.cjs')) {
+    return build({ ...env });
+  }
+  const preloadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-macos-signing-fs-'));
+  const preloadPath = path.join(preloadDir, 'opl-macos-signing-fs.cjs');
+  fs.writeFileSync(preloadPath, renderMacosSigningFsPreload(guiRoot), 'utf8');
+  const nodeOptions = [env.NODE_OPTIONS?.trim(), `--require=${JSON.stringify(preloadPath)}`]
+    .filter(Boolean)
+    .join(' ');
+  try {
+    return build({ ...env, NODE_OPTIONS: nodeOptions });
+  } finally {
+    fs.rmSync(preloadDir, { recursive: true, force: true });
+  }
+}
+
 export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
   const shellPaths = resolveActiveShellPaths({ shellRoot: guiRoot });
   const configPath = shellPaths.electronBuilderConfigPath;
@@ -359,17 +397,20 @@ function main() {
       if (options.reuseGuiViteOutput) {
         shellBuildArgs.push('--skip-vite');
       }
+      const baseShellEnv = {
+        ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
+        OPL_APP_REPO_ROOT: appRepoRoot,
+        OPL_DESKTOP_RELEASE_IDENTITY: carrier.bundleId === 'cn.onepersonlab.opl' ? 'stable' : 'preview',
+        OPL_RELEASE_VERSION: options.version,
+        OPL_UPDATER_VERSION: options.updaterVersion,
+        OPL_REQUIRE_FULL_RUNTIME: '1',
+      };
       withShellFullRuntimeSigningExcluded(options.guiRoot, () => {
-        run('npm', shellBuildArgs, {
-          cwd: options.guiRoot,
-          env: {
-            ...shellBuildEnvironmentWithoutRedundantNotarization(process.env),
-            OPL_APP_REPO_ROOT: appRepoRoot,
-            OPL_DESKTOP_RELEASE_IDENTITY: carrier.bundleId === 'cn.onepersonlab.opl' ? 'stable' : 'preview',
-            OPL_RELEASE_VERSION: options.version,
-            OPL_UPDATER_VERSION: options.updaterVersion,
-            OPL_REQUIRE_FULL_RUNTIME: '1',
-          },
+        withShellMacosSigningFsPreload(options.guiRoot, baseShellEnv, (shellEnv) => {
+          run('npm', shellBuildArgs, {
+            cwd: options.guiRoot,
+            env: shellEnv,
+          });
         });
       });
       timings.shell_build = durationSeconds(shellBuildStartedAt, monotonicSeconds());

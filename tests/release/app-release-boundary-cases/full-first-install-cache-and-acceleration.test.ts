@@ -474,3 +474,141 @@ test("Full runtime cache classifies hit and miss modes from one canonical key", 
     mod.buildFullPackageManifest().opl_execution_environment_consumer,
   );
 });
+
+test("Full Shell macOS build enforces open-file limit and throttles binary signing probes", async (context) => {
+  const { withShellMacosSigningFsPreload } = await import(
+    "../../../scripts/build-full-first-install-package.ts"
+  );
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-macos-signing-preload-"));
+  context.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+
+  const guiRoot = path.join(fixtureRoot, "shell");
+  const nodeModules = path.join(guiRoot, "node_modules");
+  fs.mkdirSync(path.join(nodeModules, "graceful-fs"), { recursive: true });
+  fs.mkdirSync(path.join(nodeModules, "p-limit"), { recursive: true });
+  fs.mkdirSync(path.join(nodeModules, "@electron", "osx-sign", "node_modules", "isbinaryfile"), {
+    recursive: true,
+  });
+  fs.writeFileSync(path.join(guiRoot, "package.json"), JSON.stringify({ name: "mock-shell" }));
+  fs.writeFileSync(
+    path.join(nodeModules, "graceful-fs", "index.js"),
+    "exports.gracefulify = (fsMod) => { fsMod.__oplGracefulified = true; };\n",
+  );
+  fs.writeFileSync(
+    path.join(nodeModules, "p-limit", "index.js"),
+    [
+      "module.exports = function pLimit(concurrency) {",
+      "  let active = 0;",
+      "  const queue = [];",
+      "  const next = () => {",
+      "    if (active >= concurrency || queue.length === 0) return;",
+      "    active += 1;",
+      "    const { fn, resolve, reject } = queue.shift();",
+      "    Promise.resolve().then(fn).then(resolve, reject).finally(() => { active -= 1; next(); });",
+      "  };",
+      "  return (fn) => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); next(); });",
+      "};",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(nodeModules, "@electron", "osx-sign", "index.js"),
+    "module.exports = {};\n",
+  );
+  fs.writeFileSync(
+    path.join(nodeModules, "@electron", "osx-sign", "node_modules", "isbinaryfile", "index.js"),
+    [
+      "let active = 0;",
+      "let peak = 0;",
+      "exports.getStats = () => ({ active, peak });",
+      "exports.isBinaryFile = async () => {",
+      "  active += 1;",
+      "  if (active > peak) peak = active;",
+      "  try { await new Promise((r) => setTimeout(r, 5)); return false; }",
+      "  finally { active -= 1; }",
+      "};",
+    ].join("\n"),
+  );
+
+  let nonDarwinEnv: NodeJS.ProcessEnv = {};
+  withShellMacosSigningFsPreload(
+    guiRoot,
+    { NODE_OPTIONS: "--max-old-space-size=8192" },
+    (shellEnv) => {
+      nonDarwinEnv = shellEnv;
+    },
+    "linux",
+  );
+  assert.equal(nonDarwinEnv.NODE_OPTIONS, "--max-old-space-size=8192");
+
+  let existingPreloadEnv: NodeJS.ProcessEnv = {};
+  withShellMacosSigningFsPreload(
+    guiRoot,
+    { NODE_OPTIONS: "--require=/tmp/opl-macos-signing-fs.cjs" },
+    (shellEnv) => {
+      existingPreloadEnv = shellEnv;
+    },
+    "darwin",
+  );
+  assert.equal(existingPreloadEnv.NODE_OPTIONS, "--require=/tmp/opl-macos-signing-fs.cjs");
+
+  let leakedPreloadPath = "";
+  assert.throws(
+    () =>
+      withShellMacosSigningFsPreload(
+        guiRoot,
+        { NODE_OPTIONS: "--max-old-space-size=8192" },
+        (shellEnv) => {
+          const match = String(shellEnv.NODE_OPTIONS).match(/--require="?([^"\s]+)"?/);
+          assert.ok(match?.[1], shellEnv.NODE_OPTIONS);
+          leakedPreloadPath = match[1];
+          assert.ok(fs.existsSync(leakedPreloadPath));
+          throw new Error("expected preload failure");
+        },
+        "darwin",
+      ),
+    /expected preload failure/,
+  );
+  assert.equal(fs.existsSync(path.dirname(leakedPreloadPath)), false);
+
+  withShellMacosSigningFsPreload(
+    guiRoot,
+    { NODE_OPTIONS: "--max-old-space-size=8192" },
+    (shellEnv) => {
+      assert.match(String(shellEnv.NODE_OPTIONS), /^--max-old-space-size=8192 --require="/);
+      const probe = spawnSync(
+        process.execPath,
+        [
+          "-e",
+          [
+            "const fsMod = require('node:fs');",
+            "const { createRequire } = require('node:module');",
+            `const fromShell = createRequire(${JSON.stringify(path.join(guiRoot, "package.json"))});`,
+            "const fromSign = createRequire(fromShell.resolve('@electron/osx-sign'));",
+            "const binary = fromSign('isbinaryfile');",
+            "Promise.all(Array.from({ length: 64 }, (_, i) => binary.isBinaryFile(`/tmp/file-${i}`))).then(() => {",
+            "  const stats = binary.getStats();",
+            "  console.log(JSON.stringify({ gracefulified: Boolean(fsMod.__oplGracefulified), peak: stats.peak }));",
+            "});",
+          ].join("\n"),
+        ],
+        { env: { ...process.env, ...shellEnv }, encoding: "utf8" },
+      );
+      assert.equal(probe.status, 0, probe.stderr);
+      const result = JSON.parse(probe.stdout.trim());
+      assert.equal(result.gracefulified, true);
+      assert.ok(result.peak > 0 && result.peak <= 32, `unexpected concurrency peak ${result.peak}`);
+    },
+    "darwin",
+  );
+
+  const workflow = parseYaml(
+    fs.readFileSync(path.join(appRoot, ".github/workflows/full-first-install-release.yml"), "utf8"),
+  ) as Record<string, any>;
+  const buildStep = (workflow.jobs["full-first-install"].steps as Array<Record<string, any>>).find(
+    (step) => step.name === "Build Full first-install package",
+  );
+  const runScript = String(buildStep?.run ?? "");
+  assert.doesNotMatch(runScript, /ulimit -n 65536 \|\| true/);
+  assert.match(runScript, /ulimit -S -n 65536 \|\| \{/);
+  assert.match(runScript, /macOS Full build open-file limit: \$\(ulimit -S -n\)/);
+});
