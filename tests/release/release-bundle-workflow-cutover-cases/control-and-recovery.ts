@@ -499,10 +499,10 @@ test('resume admission preserves Standard identity and rotates only an expired e
   assert.match(reconcileRun, /operation_deadline_at='\$\{\{ inputs\.operation_deadline_at \}\}'/);
   assert.match(reconcileRun, /operation-status-after-admit\.json/);
   const exportCheckpoint = workflowStep('_release-standard-publish.yml', 'restore', 'Export reconciled operation checkpoint');
-  assert.match(reconcileRun, /release operation admit[^]*operation-admit-result\.json/);
+  assert.match(reconcileRun, /release-bundle-cli\.ts operation admit[^]*operation-admit-result\.json/);
   assert.ok(restore.steps.findIndex((step: any) => step.id === 'operation')
     < restore.steps.findIndex((step: any) => step.name === 'Export reconciled operation checkpoint'));
-  assert.match(String(exportCheckpoint.run), /release checkpoint export/);
+  assert.match(String(exportCheckpoint.run), /release-bundle-cli\.ts checkpoint export/);
   assert.match(reconcileRun, /echo "release_operation=\$release_operation"/);
   assert.match(reconcileRun, /echo "operation_started_at=\$operation_started_at"/);
   assert.match(reconcileRun, /echo "operation_deadline_at=\$operation_deadline_at"/);
@@ -645,7 +645,7 @@ test('resume admission preserves Standard identity and rotates only an expired e
 
   assert.match(source, /test "\$\(jq -r \.rebuild_performed <<<"\$CHECKPOINT_IMPORT"\)" = false/);
   assert.doesNotMatch(source, /uses:\s*\.\/\.github\/workflows\/_release-bundle\.yml/);
-  assert.doesNotMatch(source, /opl release (?:freeze|build|verify)\b/);
+  assert.doesNotMatch(source, /(?:\bopl\s+release|release-bundle-cli\.ts)\s+(?:freeze|build|verify)\b/);
 });
 
 test('Standard publication materializes the complete frozen payload when the Framework upload delta is empty or partial', () => {
@@ -799,8 +799,9 @@ test('checkpoint state lineage remains Framework-owned while App exposes transpo
   const action = fs.readFileSync(path.join(process.cwd(), '.github', 'actions', 'restore-release-checkpoint', 'action.yml'), 'utf8');
   assert.match(action, /rebuild_performed/);
   assert.match(action, /publish_state_imported/);
-  assert.match(action, /opl release checkpoint import/);
-  assert.match(action, /opl release status/);
+  assert.match(action, /scripts\/release-bundle-cli\.ts/);
+  assert.match(action, /checkpoint import/);
+  assert.match(action, /node --experimental-strip-types "\$cli" status/);
   assert.doesNotMatch(action, /standard-build-receipt\.json|full-build-receipt\.json/);
   for (const field of transportProvenanceFields) assert.match(action, new RegExp(field));
   for (const field of frameworkOwnedLineageFields) assert.doesNotMatch(action, new RegExp(field));
@@ -880,7 +881,7 @@ test('completed Full stages skip work already proven by the checkpoint', () => {
   assert.match(run, /standard_qualified\)/);
   assert.match(run, /full_built\)/);
   assert.match(run, /cp "\$original_full_receipt" full-build-receipt\.json/);
-  assert.equal((run.match(/opl release build/g) ?? []).length, 1);
+  assert.equal((run.match(/release-bundle-cli\.ts build/g) ?? []).length, 1);
   assert.match(run, /--hosted-core-qualification "\$hosted_receipt"/);
   assert.match(run, /standard-clean-vm-qualification-receipt\.json/);
   assert.match(run, /full-clean-vm-qualification-receipt\.json/);

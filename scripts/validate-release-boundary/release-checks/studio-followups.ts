@@ -34,6 +34,7 @@ export const studioFollowupChecks: ReleaseBoundaryCheck[] = [
       "make_latest: 'true'",
       "--clobber",
       "opl release",
+      "release-bundle-cli.ts",
     ],
   },
   {

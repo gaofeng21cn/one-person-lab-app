@@ -29,7 +29,7 @@ function runDatabaseId(options: Options, run: JsonRecord): string | null {
 
 function stableSessionRoutes() {
   return {
-    status: 'opl release status --bundle <sha256:digest> --store <directory>',
+    status: 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> --store <directory>',
     resume: [
       'manual handoff only:',
       'select Stable operation resume_standard with the exact Framework portable checkpoint;',

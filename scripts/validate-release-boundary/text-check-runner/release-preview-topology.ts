@@ -106,7 +106,7 @@ export function validateManualFullPreviewControlPlane(appRoot: string): number {
   failures += failIf(
     id,
     ['artifact-ids: ${{ needs.ingress.outputs.artifact_id }}', 'overwrite: false', 'compression-level: 0'].some((s) => !text.includes(s)) ||
-      /(?:opl release|gh workflow run|gh run (?:rerun|cancel)|--clobber)/.test(text),
+      /(?:opl release|release-bundle-cli\.ts|gh workflow run|gh run (?:rerun|cancel)|--clobber)/.test(text),
     'Manual Full preview transport or forbidden mutation boundary drifted',
   );
   failures += validateWorkflowActionPins(manualFullPreviewWorkflowPath, jobs, validateExactActionPins);

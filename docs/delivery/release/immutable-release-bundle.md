@@ -3,8 +3,9 @@
 This document explains the artifact boundary consumed by the App release executor.
 The [release guide](README.md) owns operator commands, recovery and publication;
 [`contracts/app-release-channel.json`](../../../contracts/app-release-channel.json)
-owns App product policy. Framework owns Bundle identity, storage, checkpoints and
-operation receipts.
+owns App product policy. `one-person-lab-app` owns Bundle identity, storage, checkpoints, and
+operation receipts via `scripts/release-bundle-cli.ts`; `one-person-lab` (OPL Framework v2) owns
+runtime, package discovery, and build dependency resolution.
 
 A Bundle freezes the exact App, Shell and Framework source, version, prepared
 notes, selected Desktop platforms, Standard inputs and any Full package closure.

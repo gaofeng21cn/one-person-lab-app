@@ -76,7 +76,7 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
   ], 'Full Homebrew publication must not fabricate optional certification field');
   failures += failIf(
     id,
-    /restore-release-checkpoint|framework-executor|opl release (?:operation|publish|reconcile|checkpoint)/.test(publisher.text),
+    /restore-release-checkpoint|framework-executor|(?:opl release|release-bundle-cli\.ts) (?:operation|publish|reconcile|checkpoint)/.test(publisher.text),
     'Full Homebrew observer must not import Framework checkpoint or release mutation authority',
   );
   failures += failIf(

@@ -1714,16 +1714,16 @@
   "release_bundle_control_plane": {
     "schema": "opl_app_release_bundle_control_plane.v1",
     "contract_status": "active",
-    "implementation_status": "framework_bundle_authority_active_event_projection_available",
+    "implementation_status": "app_owned_bundle_authority_active_event_projection_available",
     "canonical_document": "docs/delivery/release/immutable-release-bundle.md",
     "framework_authority": {
-      "owner": "gaofeng21cn/one-person-lab",
+      "owner": "gaofeng21cn/one-person-lab-app",
       "bundle_schema": "opl_release_bundle.v1",
-      "bundle_schema_owner": "OPL Framework",
+      "bundle_schema_owner": "one-person-lab-app",
       "app_may_redefine_framework_bundle_closed_shape": false,
-      "store_owner": "OPL Framework",
-      "canonical_digest_owner": "OPL Framework",
-      "cli": "opl release",
+      "store_owner": "one-person-lab-app",
+      "canonical_digest_owner": "one-person-lab-app",
+      "cli": "node --experimental-strip-types scripts/release-bundle-cli.ts",
       "commands": [
         "freeze",
         "operation admit",
@@ -1738,17 +1738,17 @@
         "consumer envelope"
       ],
       "command_forms": [
-        "opl release freeze --request <request.json> [--source-root <directory>] [--store <directory>]",
-        "opl release operation admit --bundle <sha256:digest> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-        "opl release build --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-        "opl release checkpoint export --bundle <sha256:digest> --output <directory> [--store <directory>]",
-        "opl release checkpoint import --checkpoint <checkpoint.json> [--store <directory>]",
-        "opl release verify --bundle <sha256:digest> --qualification-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--track standard|full] [--store <directory>]",
-        "opl release publish --bundle <sha256:digest> --executor-receipt <remote-inspect.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-        "opl release reconcile --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-        "opl release status --bundle <sha256:digest> [--store <directory>]",
-        "opl release events --bundle <sha256:digest> [--after-event <sha256:event>] [--store <directory>]",
-        "opl release consumer envelope --bundle <sha256:digest> --track <standard|full> [--source-checkpoint-run-id <run-id>] [--store <directory>]"
+        "node --experimental-strip-types scripts/release-bundle-cli.ts freeze --request <request.json> [--source-root <directory>] [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts operation admit --bundle <sha256:digest> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts build --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint export --bundle <sha256:digest> --output <directory> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint import --checkpoint <checkpoint.json> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts verify --bundle <sha256:digest> --qualification-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--track standard|full] [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts publish --bundle <sha256:digest> --executor-receipt <remote-inspect.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts reconcile --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts events --bundle <sha256:digest> [--after-event <sha256:event>] [--store <directory>]",
+        "node --experimental-strip-types scripts/release-bundle-cli.ts consumer envelope --bundle <sha256:digest> --track <standard|full> [--source-checkpoint-run-id <run-id>] [--store <directory>]"
       ],
       "receipt_schemas": [
         "opl_release_bundle_executor_receipt.v1",
@@ -1760,11 +1760,11 @@
       "operation_event_schema": "opl_release_bundle_operation_event.v1",
       "consumer_envelope_schema": "opl_release_bundle_consumer_envelope.v1",
       "unknown_outcome_schema": "opl_release_bundle_unknown_outcome.v1",
-      "live_mutation_authority": "framework_release_bundle_executor",
+      "live_mutation_authority": "app_release_bundle_executor",
       "checkpoint_and_receipt_state_authority_exclusive": true,
       "app_may_define_checkpoint_or_receipt_schema": false,
       "app_may_derive_or_project_release_stage_state": false,
-      "rule": "OPL Framework owns the generic immutable Release Bundle schema, store, canonical digest, receipts, operation events, consumer envelopes, and executor ABI. The App consumes that authority and must not fork or redefine its closed shape.",
+      "rule": "one-person-lab-app owns the immutable Release Bundle schema, store, canonical digest, receipts, operation events, consumer envelopes, and portable checkpoint CLI via scripts/release-bundle-cli.ts; OPL Framework v2 owns runtime, package discovery, and build dependency resolution.",
       "portable_checkpoint_authority_first_landed_sha": "f785cda96",
       "consumed_abi_sha": "97510b268300b1996f308e7a4110205cd703b95e",
       "cordis_composition": {
@@ -1797,6 +1797,7 @@
       "owner": "one-person-lab-app",
       "owns": [
         "product_release_adapter",
+        "release_bundle_schema_store_digest_and_executor_state_machine",
         "public_asset_policy",
         "prepared_ai_release_notes_policy",
         "installed_app_acceptance",
@@ -1806,11 +1807,9 @@
         "post_publication_optional_certification_policy"
       ],
       "does_not_own": [
-        "generic_release_bundle_schema",
-        "generic_release_bundle_store",
-        "generic_release_bundle_digest",
-        "generic_executor_state_machine",
-        "generic_publisher_ledger"
+        "framework_runtime_and_package_graph",
+        "framework_package_discovery",
+        "framework_dependency_release_resolution"
       ]
     },
     "identity": {
@@ -1916,7 +1915,7 @@
     },
     "live_authority": {
       "single_live_mutation_authority": true,
-      "state_owner": "OPL Framework opl release",
+      "state_owner": "one-person-lab-app release-bundle-cli",
       "state_surface": "opl_release_bundle_checkpoint.v1",
       "mutation_executor_owner": "one-person-lab-app",
       "mutation_executor_role": "product_policy_adapter_and_local_or_github_executor",
@@ -1934,7 +1933,7 @@
       "validation_canary_entry": ".github/workflows/release-bundle-canary.yml_schedule",
       "app_session_broker_or_operator_may_authorize_mutation": false,
       "framework_checkpoint_required_for_resume_or_executor_switch": true,
-      "rule": "Framework checkpoint state plus one App-owned Stable executor is the only live release mutation path. Daily validation uses the no-secret Canary and cannot authorize, schedule, dispatch, publish, rebuild, promote, or cancel."
+      "rule": "App-owned portable checkpoint state plus one App-owned Stable executor is the only live release mutation path. Daily validation uses the no-secret Canary and cannot authorize, schedule, dispatch, publish, rebuild, promote, or cancel."
     },
     "event_delivery": {
       "schema": "opl_app_release_event_delivery.v1",

@@ -115,17 +115,17 @@ const frameworkReleaseCommands = [
   'consumer envelope',
 ];
 const frameworkReleaseCommandForms = [
-  'opl release freeze --request <request.json> [--source-root <directory>] [--store <directory>]',
-  'opl release operation admit --bundle <sha256:digest> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
-  'opl release build --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
-  'opl release checkpoint export --bundle <sha256:digest> --output <directory> [--store <directory>]',
-  'opl release checkpoint import --checkpoint <checkpoint.json> [--store <directory>]',
-  'opl release verify --bundle <sha256:digest> --qualification-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--track standard|full] [--store <directory>]',
-  'opl release publish --bundle <sha256:digest> --executor-receipt <remote-inspect.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
-  'opl release reconcile --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
-  'opl release status --bundle <sha256:digest> [--store <directory>]',
-  'opl release events --bundle <sha256:digest> [--after-event <sha256:event>] [--store <directory>]',
-  'opl release consumer envelope --bundle <sha256:digest> --track <standard|full> [--source-checkpoint-run-id <run-id>] [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts freeze --request <request.json> [--source-root <directory>] [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts operation admit --bundle <sha256:digest> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts build --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint export --bundle <sha256:digest> --output <directory> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint import --checkpoint <checkpoint.json> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts verify --bundle <sha256:digest> --qualification-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--track standard|full] [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts publish --bundle <sha256:digest> --executor-receipt <remote-inspect.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts reconcile --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts events --bundle <sha256:digest> [--after-event <sha256:event>] [--store <directory>]',
+  'node --experimental-strip-types scripts/release-bundle-cli.ts consumer envelope --bundle <sha256:digest> --track <standard|full> [--source-checkpoint-run-id <run-id>] [--store <directory>]',
 ];
 const immutableOperationControlFields = [
   'control_digest',

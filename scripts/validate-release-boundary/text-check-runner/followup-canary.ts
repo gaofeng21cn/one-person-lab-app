@@ -58,8 +58,9 @@ export function validateReleaseBundleCanaryTopology(appRoot: string): number {
       !jobRuns(framework).includes('packages/pack/tests/content-lock-and-build.test.ts') ||
       !contract || contract['runs-on'] !== 'ubuntu-latest' || requestsWritePermission(contract.permissions) ||
       !jobRuns(contract).includes('tests/release/release-bundle-workflow-cutover.test.ts') ||
-      !jobRuns(contract).includes('tests/release/release-control-plane-boundary.test.ts'),
-    'Canary jobs must run the two exact read-only contract checks',
+      !jobRuns(contract).includes('tests/release/release-control-plane-boundary.test.ts') ||
+      !jobRuns(contract).includes('tests/release/release-bundle-authority.test.ts'),
+    'Canary jobs must run the exact read-only contract checks',
   );
   for (const [jobId, job] of Object.entries(jobs)) {
     if (job.uses !== undefined || requestsWritePermission(job.permissions) || job.secrets !== undefined) {

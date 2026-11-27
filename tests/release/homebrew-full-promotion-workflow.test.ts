@@ -237,7 +237,7 @@ test('Full Homebrew reusable publishes hosted-qualified bytes before optional ph
   assert.match(source, /app_sha="\$\(jq -er \.build_provenance\.app_sha handoff\.json\)"/);
   assert.doesNotMatch(source, /\.release\.(?:base_tag|bundle_digest|cohort|updater_version)/);
   assert.doesNotMatch(source, /Restore (?:exact )?qualified Full|restore-release-checkpoint|framework-executor/);
-  assert.doesNotMatch(source, /opl release (?:operation|publish|reconcile|checkpoint)/);
+  assert.doesNotMatch(source, /(?:opl release|release-bundle-cli\.ts) (?:operation|publish|reconcile|checkpoint)/);
   assert.match(source, /opl_homebrew_full_observational_binding\.v2/);
   assert.match(source, /authority_model:"workflow_cas_and_unified_attestation_observer"/);
   assert.match(source, /github_release_immutable_claim:false/);

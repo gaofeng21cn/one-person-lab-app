@@ -56,14 +56,14 @@ test('restore action executes with the caller-bound Framework SHA while preservi
   const downloadIndex = steps.findIndex((candidate) => candidate.name === 'Download exact portable checkpoint');
   const localBindIndex = steps.findIndex((candidate) => candidate.name === 'Bind local portable checkpoint');
   const bindingIndex = steps.findIndex((candidate) => candidate.name === 'Resolve the opaque checkpoint transport');
-  const checkoutIndex = steps.findIndex((candidate) => candidate.name === 'Checkout exact Framework checkpoint executor');
-  const installIndex = steps.findIndex((candidate) => candidate.name === 'Install Framework runtime dependencies');
+  const setupIndex = steps.findIndex((candidate) => candidate.name === 'Setup Release Bundle CLI runtime');
+  const installIndex = steps.findIndex((candidate) => candidate.name === 'Install Release Bundle CLI dependencies');
   const importIndex = steps.findIndex((candidate) => candidate.name === 'Verify and import portable checkpoint');
   assert.ok(
     downloadIndex < localBindIndex
       && localBindIndex < bindingIndex
-      && bindingIndex < checkoutIndex
-      && checkoutIndex < installIndex
+      && bindingIndex < setupIndex
+      && setupIndex < installIndex
       && installIndex < importIndex,
   );
   assert.equal(step('Download exact portable checkpoint').if, "${{ inputs.local-checkpoint-dir == '' }}");
@@ -75,23 +75,20 @@ test('restore action executes with the caller-bound Framework SHA while preservi
   assert.doesNotMatch(binding, /\.sources\.framework\.source_commit/);
   assert.match(binding, /framework_executor_ref.*FRAMEWORK_EXECUTOR_REF/);
   assert.match(binding, /FRAMEWORK_EXECUTOR_REF.*\^\[0-9a-f\]\{40\}\$/);
-  assert.equal(
-    step('Checkout exact Framework checkpoint executor').with.ref,
-    '${{ steps.binding.outputs.framework_executor_ref }}',
-  );
   assert.doesNotMatch(source, /expected_framework_abi=/);
+  assert.doesNotMatch(source, /actions\/checkout/);
 
-  const install = String(step('Install Framework runtime dependencies').run);
-  assert.match(install, /npm --prefix framework-executor ci --ignore-scripts/);
-  const setupNode = step('Setup Framework runtime');
+  const install = String(step('Install Release Bundle CLI dependencies').run);
+  assert.match(install, /npm --prefix "\$app_root" ci --ignore-scripts/);
+  const setupNode = step('Setup Release Bundle CLI runtime');
   assert.equal(setupNode.with.cache, "${{ runner.environment == 'github-hosted' && 'npm' || '' }}");
   assert.equal(setupNode.with['package-manager-cache'], false);
   assert.doesNotMatch(source, /cli:surface:generate/);
 
   const restore = String(step('Verify and import portable checkpoint').run);
-  assert.match(restore, /git -C framework-executor rev-parse HEAD/);
-  assert.match(restore, /framework-executor\/bin\/opl release checkpoint import/);
-  assert.match(restore, /framework-executor\/bin\/opl release status/);
+  assert.match(restore, /scripts\/release-bundle-cli\.ts/);
+  assert.match(restore, /node --experimental-strip-types "\$cli" checkpoint import/);
+  assert.match(restore, /node --experimental-strip-types "\$cli" status/);
   assert.match(restore, /\.release_bundle_checkpoint_import/);
   assert.match(restore, /\.release_bundle_status/);
   assert.match(restore, /rebuild_performed/);
@@ -135,8 +132,8 @@ test('restore action persists typed failure evidence before returning failure', 
   assert.match(source, /bound-input\.json/);
   assert.match(source, /restore\.stdout\.log/);
   assert.match(source, /restore\.stderr\.log/);
-  assert.match(source, /framework-executor\.stdout\.log/);
-  assert.match(source, /framework-executor\.stderr\.log/);
+  assert.match(source, /release-bundle-cli\.stdout\.log/);
+  assert.match(source, /release-bundle-cli\.stderr\.log/);
   assert.match(source, /checkpoint-import-failure\.json/);
   const upload = step('Upload typed restore failure evidence');
   assert.equal(upload.if, '${{ failure() }}');

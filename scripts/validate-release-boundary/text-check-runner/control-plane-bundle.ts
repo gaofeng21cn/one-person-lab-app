@@ -90,9 +90,9 @@ export function validateReleaseBundleTopology(appRoot: string): number {
     'Bundle execute mode must admit Stable or Manual Preview while excluding scheduled Nightly allocation',
   );
   for (const [jobId, command] of [
-    ['freeze', 'opl release freeze'],
-    ['checkpoint-standard', 'opl release build'],
-    ['checkpoint-standard', 'opl release checkpoint export'],
+    ['freeze', 'release-bundle-cli.ts freeze'],
+    ['checkpoint-standard', 'release-bundle-cli.ts build'],
+    ['checkpoint-standard', 'release-bundle-cli.ts checkpoint export'],
   ]) {
     failures += failIf(id, !jobRuns(bundleJobs[jobId]).includes(command), `_release-bundle.yml ${jobId} is missing ${command}`);
   }
@@ -146,7 +146,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
   );
   failures += failIf(
     id,
-    Boolean(bundleJobs['standard-qualification']) || /\bopl\s+release\s+verify\b/.test(jobRuns(bundleJobs['checkpoint-standard'])),
+    Boolean(bundleJobs['standard-qualification']) || /(?:\bopl\s+release|release-bundle-cli\.ts)\s+verify\b/.test(jobRuns(bundleJobs['checkpoint-standard'])),
     'Bundle publication must consume sealed identity without reintroducing the retired inline qualification gate',
   );
   failures += validateReusableCall(id, bundleJobs, 'standard-clean-vm-qualification', './.github/workflows/opl-first-run-vm.yml', exactReadPermissions);
@@ -171,7 +171,7 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       !needsExactly(bundleJobs['publish-standard'], ['freeze', 'checkpoint-standard']),
     'Standard checkpoint must require protected clean-VM qualification before publication',
   );
-  failures += failIf(id, /\bopl\s+release\s+(?:publish|reconcile|status)\b/.test(bundle.text), '_release-bundle.yml must delegate publish/reconcile/status to Standard publish');
+  failures += failIf(id, /(?:\bopl\s+release|release-bundle-cli\.ts)\s+(?:publish|reconcile|status)\b/.test(bundle.text), '_release-bundle.yml must delegate publish/reconcile/status to Standard publish');
 
   const standardJobs = workflowJobs(standard.workflow);
   failures += failIf(
@@ -180,8 +180,8 @@ export function validateReleaseBundleTopology(appRoot: string): number {
       !standard.text.includes('preview)') || standard.text.includes('nightly)'),
     'Standard publisher must admit only Stable or Manual Preview checkpoints and expose no scheduled Nightly terminal',
   );
-  failures += requireSubstrings(id, standard.text, ['opl release publish', 'opl release reconcile', 'opl release status'], '_release-standard-publish.yml is missing');
-  failures += failIf(id, /\bopl\s+release\s+(?:freeze|build|verify)\b/.test(standard.text), '_release-standard-publish.yml must not rebuild or reverify Bundle bytes');
+  failures += requireSubstrings(id, standard.text, ['release-bundle-cli.ts publish', 'release-bundle-cli.ts reconcile', 'release-bundle-cli.ts status'], '_release-standard-publish.yml is missing');
+  failures += failIf(id, /(?:\bopl\s+release|release-bundle-cli\.ts)\s+(?:freeze|build|verify)\b/.test(standard.text), '_release-standard-publish.yml must not rebuild or reverify Bundle bytes');
   for (const jobId of ['updater-upgrade-qualification', 'updater-upgrade-qualification-highest', 'homebrew-standard-vm']) {
     failures += failIf(id, Boolean(standardJobs[jobId]), `_release-standard-publish.yml must not restore retired inline VM job ${jobId}`);
   }

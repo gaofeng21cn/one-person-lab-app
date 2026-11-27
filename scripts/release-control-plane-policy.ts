@@ -8,8 +8,8 @@ export function hasFrameworkAuthority(control: ReleasePolicySection): boolean {
   return !(
     control?.schema !== 'opl_app_release_bundle_control_plane.v1' ||
     control?.contract_status !== 'active' ||
-    framework?.owner !== 'gaofeng21cn/one-person-lab' ||
-    framework?.cli !== 'opl release' ||
+    framework?.owner !== 'gaofeng21cn/one-person-lab-app' ||
+    framework?.cli !== 'node --experimental-strip-types scripts/release-bundle-cli.ts' ||
     framework?.bundle_schema !== 'opl_release_bundle.v1' ||
     framework?.checkpoint_schema !== 'opl_release_bundle_checkpoint.v1' ||
     framework?.operation_control_schema !== 'opl_release_bundle_operation_control.v1' ||
@@ -18,7 +18,7 @@ export function hasFrameworkAuthority(control: ReleasePolicySection): boolean {
     framework?.unknown_outcome_schema !== 'opl_release_bundle_unknown_outcome.v1' ||
     framework?.portable_checkpoint_authority_first_landed_sha !== 'f785cda96' ||
     framework?.consumed_abi_sha !== frameworkReleaseAbiSha ||
-    framework?.live_mutation_authority !== 'framework_release_bundle_executor' ||
+    framework?.live_mutation_authority !== 'app_release_bundle_executor' ||
     framework?.checkpoint_and_receipt_state_authority_exclusive !== true ||
     framework?.app_may_define_checkpoint_or_receipt_schema !== false ||
     framework?.app_may_derive_or_project_release_stage_state !== false
@@ -28,7 +28,7 @@ export function hasFrameworkAuthority(control: ReleasePolicySection): boolean {
 export function hasLiveReleaseAuthority(live: ReleasePolicySection): boolean {
   return !(
     live?.single_live_mutation_authority !== true ||
-    live?.state_owner !== 'OPL Framework opl release' ||
+    live?.state_owner !== 'one-person-lab-app release-bundle-cli' ||
     live?.state_surface !== 'opl_release_bundle_checkpoint.v1' ||
     live?.mutation_executor_owner !== 'one-person-lab-app' ||
     live?.state_authority_ref !== 'release_bundle_control_plane.framework_authority' ||

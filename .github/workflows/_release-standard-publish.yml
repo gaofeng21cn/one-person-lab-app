@@ -528,7 +528,7 @@ jobs:
           requested_operation='${{ inputs.operation }}'
           case "$requested_operation" in standard|resume_standard) ;; *) exit 1 ;; esac
           release_operation="$requested_operation"
-          framework-executor/bin/opl release status \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > operation-status-before.json
           operation_id="$(jq -er '.release_bundle_status.operation_controls.standard.operation_id | strings | select(length > 0)' operation-status-before.json)"
           previous_operation_started_at="$(jq -er '.release_bundle_status.operation_controls.standard.operation_started_at | strings | select(length > 0)' operation-status-before.json)"
@@ -603,11 +603,11 @@ jobs:
                 --bundle "$bundle" --track standard --outcome "$outcome" \
                 --output resume-reconcile.receipt.json
             fi
-            framework-executor/bin/opl release reconcile \
+            node --experimental-strip-types app-source/scripts/release-bundle-cli.ts reconcile \
               --bundle "$BUNDLE_DIGEST" --executor-receipt resume-reconcile.receipt.json \
               "${reconcile_args[@]}" --store "$store" --json > resume-reconcile-result.json
           fi
-          framework-executor/bin/opl release status \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > operation-status-after-reconcile.json
           test "$(jq -r '.release_bundle_status.active_unknown_markers | length' operation-status-after-reconcile.json)" -eq 0 || {
             echo "::error::Exact read-only reconcile did not resolve the imported outcome; no mutation is authorized."
@@ -630,11 +630,11 @@ jobs:
             --operation-started-at "$operation_started_at"
             --operation-deadline-at "$operation_deadline_at"
           )
-          framework-executor/bin/opl release operation admit \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts operation admit \
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > operation-admit-result.json
           test "$(jq -r .release_bundle_operation_admit.operation_control.operation_id operation-admit-result.json)" = "$operation_id"
-          framework-executor/bin/opl release status \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > operation-status-after-admit.json
           test "$(jq -r .release_bundle_status.operation_controls.standard.operation_started_at operation-status-after-admit.json)" = "$operation_started_at"
           test "$(jq -r .release_bundle_status.operation_controls.standard.operation_deadline_at operation-status-after-admit.json)" = "$operation_deadline_at"
@@ -670,7 +670,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          framework-executor/bin/opl release checkpoint export \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts checkpoint export \
             --bundle "$BUNDLE_DIGEST" --output standard-operation-checkpoint \
             --store "$STORE" --json > operation-checkpoint-export.json
           standard_build_receipts=()
@@ -1199,7 +1199,7 @@ jobs:
             --operation-deadline-at '${{ needs.restore.outputs.operation_deadline_at }}'
           )
           remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
-          framework-executor/bin/opl release operation admit \
+          node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts operation admit \
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > publish-operation-admit.json
           node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts github-inspect \
@@ -1210,7 +1210,7 @@ jobs:
             --remote-target "$remote_target" --publication-scope track_assets \
             --bundle "$bundle" --track standard --outcome complete \
             --inspection remote-before.json --output remote-before.receipt.json
-          framework-executor/bin/opl release publish \
+          node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts publish \
             --bundle "$BUNDLE_DIGEST" --executor-receipt remote-before.receipt.json \
             "${operation_args[@]}" \
             --store "$store" --json > publish-plan.json
@@ -1431,12 +1431,12 @@ jobs:
                   --release-operation '${{ needs.restore.outputs.release_operation }}' --operation-id "$operation_id" \
                   --remote-target "$unknown_target" --publication-scope track_assets \
                   --bundle "$bundle" --track standard --outcome unknown --output unknown.receipt.json
-                framework-executor/bin/opl release publish \
+                node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts publish \
                   --bundle "$BUNDLE_DIGEST" --executor-receipt unknown.receipt.json \
                   "${operation_args[@]}" \
                   --store "$store" --json > unknown-persisted.json
                 test "$(jq -r .release_bundle_publish.status unknown-persisted.json)" = reconcile_only
-                framework-executor/bin/opl release checkpoint export \
+                node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts checkpoint export \
                   --bundle "$BUNDLE_DIGEST" --output standard-github-unknown-checkpoint \
                   --store "$store" --json > unknown-checkpoint-export.json
                 ;;
@@ -1457,7 +1457,7 @@ jobs:
                 exit 1
                 ;;
             esac
-            framework-executor/bin/opl release status \
+            node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts status \
               --bundle "$BUNDLE_DIGEST" --store "$store" --json > reconcile-admission-status.json
             test "$(jq -r .release_bundle_status.tracks.standard.reconcile_required reconcile-admission-status.json)" = true || {
               echo "::error::Framework did not persist an unknown Standard publish outcome; reconcile is forbidden."
@@ -1473,7 +1473,7 @@ jobs:
               --publication-scope track_assets \
               --bundle "$bundle" --track standard --outcome complete \
               --inspection reconcile-observation.json --output reconcile.receipt.json
-            framework-executor/bin/opl release reconcile \
+            node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts reconcile \
               --bundle "$BUNDLE_DIGEST" --executor-receipt reconcile.receipt.json \
               "${operation_args[@]}" \
               --store "$store" --json > reconcile-result.json
@@ -1490,7 +1490,7 @@ jobs:
             --remote-target "$remote_target" --publication-scope track_assets \
             --bundle "$bundle" --track standard --outcome complete \
             --inspection remote-after.json --output remote-after.receipt.json
-          framework-executor/bin/opl release publish \
+          node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts publish \
             --bundle "$BUNDLE_DIGEST" --executor-receipt remote-after.receipt.json \
             "${operation_args[@]}" \
             --store "$store" --json > standard-published.json
@@ -1578,7 +1578,7 @@ jobs:
             --operation-deadline-at '${{ needs.restore.outputs.operation_deadline_at }}'
           )
           remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
-          framework-executor/bin/opl release operation admit \
+          node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts operation admit \
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > operation-admit.json
           node --experimental-strip-types app-executor/scripts/framework-release-adapter.ts github-inspect \
@@ -1653,12 +1653,12 @@ jobs:
             --remote-target "$remote_target" --publication-scope track_assets \
             --bundle "$bundle" --track standard --outcome complete \
             --inspection remote.json --output remote.receipt.json
-          framework-executor/bin/opl release publish \
+          node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts publish \
             --bundle "$BUNDLE_DIGEST" --executor-receipt remote.receipt.json \
             "${operation_args[@]}" \
             --store "$store" --json > publication.json
           test "$(jq -r .release_bundle_publish.status publication.json)" = complete
-          framework-executor/bin/opl release status \
+          node --experimental-strip-types app-executor/scripts/release-bundle-cli.ts status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
           jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
             bundle-status.json >/dev/null
@@ -1784,7 +1784,7 @@ jobs:
           )
           github_remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
           latest_remote_target="github-latest:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
-          framework-executor/bin/opl release operation admit \
+          node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts operation admit \
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > latest-operation-admit.json
           node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/framework-release-adapter.ts github-inspect \
@@ -1795,11 +1795,11 @@ jobs:
             --remote-target "$github_remote_target" --publication-scope track_assets \
             --bundle "$bundle" --track standard --outcome complete \
             --inspection remote.json --output remote.receipt.json
-          framework-executor/bin/opl release publish \
+          node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts publish \
             --bundle "$BUNDLE_DIGEST" --executor-receipt remote.receipt.json \
             "${operation_args[@]}" \
             --store "$store" --json > publication.json
-          framework-executor/bin/opl release status \
+          node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
           jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
             bundle-status.json >/dev/null
@@ -1864,7 +1864,7 @@ jobs:
                 --remote-target "$latest_remote_target" --publication-scope external_target \
                 --bundle "$bundle" --track standard --outcome complete \
                 --output latest-framework.receipt.json
-              framework-executor/bin/opl release publish \
+              node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts publish \
                 --bundle "$BUNDLE_DIGEST" --executor-receipt latest-framework.receipt.json \
                 "${operation_args[@]}" --store "$store" --json > latest-framework-result.json
               test "$(jq -r .release_bundle_publish.status latest-framework-result.json)" = complete
@@ -1879,14 +1879,14 @@ jobs:
                 --remote-target "$latest_unknown_target" --publication-scope external_target \
                 --bundle "$bundle" --track standard --outcome unknown \
                 --output latest-unknown.receipt.json
-              framework-executor/bin/opl release publish \
+              node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts publish \
                 --bundle "$BUNDLE_DIGEST" --executor-receipt latest-unknown.receipt.json \
                 "${operation_args[@]}" --store "$store" --json > latest-unknown-persisted.json
               test "$(jq -r .release_bundle_publish.status latest-unknown-persisted.json)" = reconcile_only
-              framework-executor/bin/opl release checkpoint export \
+              node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts checkpoint export \
                 --bundle "$BUNDLE_DIGEST" --output latest-unknown-checkpoint \
                 --store "$store" --json > latest-unknown-checkpoint-export.json
-              framework-executor/bin/opl release status \
+              node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts status \
                 --bundle "$BUNDLE_DIGEST" --store "$store" --json > latest-reconcile-status.json
               test "$(jq -r '.release_bundle_status.active_unknown_markers | length' latest-reconcile-status.json)" -eq 1
               latest_reconcile_outcome=unknown
@@ -1901,7 +1901,7 @@ jobs:
                 --remote-target "$latest_unknown_target" --prior-attempt-id "$latest_unknown_attempt" \
                 --publication-scope external_target --bundle "$bundle" --track standard \
                 --outcome "$latest_reconcile_outcome" --output latest-reconcile.receipt.json
-              framework-executor/bin/opl release reconcile \
+              node --experimental-strip-types "$OPL_LATEST_APP_EXECUTOR/scripts"/release-bundle-cli.ts reconcile \
                 --bundle "$BUNDLE_DIGEST" --executor-receipt latest-reconcile.receipt.json \
                 "${operation_args[@]}" --store "$store" --json > latest-framework-result.json
               test "$(jq -r .release_bundle_reconcile.status latest-framework-result.json)" = complete || {
@@ -2013,7 +2013,7 @@ jobs:
             --operation-deadline-at '${{ needs.restore.outputs.operation_deadline_at }}'
           )
           remote_target="github-release:${GITHUB_REPOSITORY}@${{ needs.restore.outputs.tag }}"
-          framework-executor/bin/opl release operation admit \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts operation admit \
             --bundle "$BUNDLE_DIGEST" "${operation_args[@]}" \
             --store "$store" --json > operation-admit.json
           node --experimental-strip-types app-source/scripts/framework-release-adapter.ts github-inspect \
@@ -2030,12 +2030,12 @@ jobs:
             --remote-target "$remote_target" --publication-scope track_assets \
             --bundle "$bundle" --track standard --outcome complete \
             --inspection remote.json --output remote.receipt.json
-          framework-executor/bin/opl release publish \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts publish \
             --bundle "$BUNDLE_DIGEST" --executor-receipt remote.receipt.json \
             "${operation_args[@]}" \
             --store "$store" --json > publication.json
           test "$(jq -r .release_bundle_publish.status publication.json)" = complete
-          framework-executor/bin/opl release status \
+          node --experimental-strip-types app-source/scripts/release-bundle-cli.ts status \
             --bundle "$BUNDLE_DIGEST" --store "$store" --json > bundle-status.json
           jq -e '.release_bundle_status.tracks.standard.reconcile_required == false' \
             bundle-status.json >/dev/null

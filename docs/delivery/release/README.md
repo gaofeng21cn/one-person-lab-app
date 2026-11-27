@@ -40,8 +40,8 @@ For operator sequencing, monitoring, recovery decisions and closeout, start with
 
 Product and installation semantics live in
 [`../distribution-and-install-ssot.md`](../distribution-and-install-ssot.md).
-Machine policy lives in `contracts/app-release-channel.json`; Framework owns the content-addressed Bundle,
-checkpoint and operation receipt identity. This guide describes the App executor only.
+Machine policy lives in `contracts/app-release-channel.json`; `one-person-lab-app` owns the content-addressed Bundle,
+checkpoint and operation receipt identity via `scripts/release-bundle-cli.ts` (`one-person-lab` v2 owns runtime, package discovery, and dependency release resolution). This guide describes the App executor only.
 
 The public App release product is Desktop. A Stable version becomes valid when its signed and
 notarized macOS arm64 primary release passes publication and public readback. The same mutable GitHub

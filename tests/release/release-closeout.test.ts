@@ -129,7 +129,7 @@ test('nonterminal historical runs hand off to read-only Framework Bundle status'
 
   assert.equal(stdout.next_action, 'inspect_framework_bundle_status');
   assert.equal(stdout.mutation_authorized, false);
-  assert.equal(summary.decision.command, 'opl release status --bundle <sha256:digest> --store <directory>');
+  assert.equal(summary.decision.command, 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> --store <directory>');
   assert.equal(summary.decision.routes.resume.includes('manual handoff only'), true);
   assert.equal(summary.decision.routes.resume.includes('cannot authorize or execute release mutation'), true);
   assert.equal(monitor.state, 'running');

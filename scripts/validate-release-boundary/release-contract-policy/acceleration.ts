@@ -102,7 +102,7 @@ export function validateReleaseAccelerationPolicy(
     ]) ||
     JSON.stringify(framework?.commands) !== JSON.stringify(frameworkReleaseCommands)
   ) {
-    console.error('FAIL release_bundle_authority: Framework opl release and its portable checkpoint must own live release state');
+    console.error('FAIL release_bundle_authority: App-owned release-bundle-cli.ts and its portable checkpoint must own live release state');
     failures += 1;
   }
   if (

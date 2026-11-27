@@ -1,9 +1,9 @@
 name: Restore OPL Release Bundle checkpoint
-description: Import one Framework-owned portable checkpoint and expose its immutable identity
+description: Import one App-owned portable checkpoint and expose its immutable identity
 
 inputs:
   framework-executor-ref:
-    description: Exact Framework executor SHA used to verify and import the checkpoint; independent from the frozen Bundle source SHA
+    description: Exact Framework target SHA recorded for the cohort and downstream VM runtime inspection
     required: true
   source-run-id:
     description: Exact Actions run containing the checkpoint artifact
@@ -148,7 +148,7 @@ runs:
         checkpoint="${checkpoints[0]}"
         checkpoint_dir="$(dirname "$checkpoint")"
         [[ "$FRAMEWORK_EXECUTOR_REF" =~ ^[0-9a-f]{40}$ ]] || {
-          echo "::error::Framework checkpoint executor must be an exact lowercase SHA."
+          echo "::error::Framework executor must be an exact lowercase SHA."
           exit 1
         }
 
@@ -176,30 +176,30 @@ runs:
           echo "framework_executor_ref=$FRAMEWORK_EXECUTOR_REF"
         } >> "$GITHUB_OUTPUT"
 
-    - name: Checkout exact Framework checkpoint executor
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-      with:
-        repository: gaofeng21cn/one-person-lab
-        ref: ${{ steps.binding.outputs.framework_executor_ref }}
-        path: framework-executor
-
-    - name: Setup Framework runtime
+    - name: Setup Release Bundle CLI runtime
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
       with:
         node-version: '24'
         cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
-        cache-dependency-path: framework-executor/package-lock.json
+        cache-dependency-path: '**/package-lock.json'
         package-manager-cache: false
 
-    - name: Install Framework runtime dependencies
+    - name: Install Release Bundle CLI dependencies
       shell: bash
       env:
         EVIDENCE_DIR: ${{ steps.evidence.outputs.evidence_dir }}
       run: |
         set -euo pipefail
-        npm --prefix framework-executor ci --ignore-scripts \
-          > >(tee -a "$EVIDENCE_DIR/restore.stdout.log") \
-          2> >(tee -a "$EVIDENCE_DIR/restore.stderr.log" >&2)
+        app_root="$(cd "${GITHUB_ACTION_PATH}/../../.." && pwd)"
+        test -f "$app_root/scripts/release-bundle-cli.ts" || {
+          echo "::error::Missing App-owned scripts/release-bundle-cli.ts under $app_root."
+          exit 1
+        }
+        if [ ! -d "$app_root/node_modules/ajv" ] || [ ! -d "$app_root/node_modules/ajv-formats" ]; then
+          npm --prefix "$app_root" ci --ignore-scripts \
+            > >(tee -a "$EVIDENCE_DIR/restore.stdout.log") \
+            2> >(tee -a "$EVIDENCE_DIR/restore.stderr.log" >&2)
+        fi
 
     - name: Verify and import portable checkpoint
       id: restore
@@ -214,19 +214,21 @@ runs:
         set -euo pipefail
         exec > >(tee -a "$EVIDENCE_DIR/restore.stdout.log") \
           2> >(tee -a "$EVIDENCE_DIR/restore.stderr.log" >&2)
-        [ "$(git -C framework-executor rev-parse HEAD)" = "$FRAMEWORK_EXECUTOR_REF" ] || {
-          echo "::error::Framework checkout differs from the exact executor SHA."
+        app_root="$(cd "${GITHUB_ACTION_PATH}/../../.." && pwd)"
+        cli="$app_root/scripts/release-bundle-cli.ts"
+        test -f "$cli" || {
+          echo "::error::Missing App-owned scripts/release-bundle-cli.ts under $app_root."
           exit 1
         }
 
         store_dir="$RUNNER_TEMP/opl-release-store-$GITHUB_JOB"
-        framework-executor/bin/opl release checkpoint import \
+        node --experimental-strip-types "$cli" checkpoint import \
           --checkpoint "$CHECKPOINT" \
           --store "$store_dir" \
           --json \
-          > "$EVIDENCE_DIR/framework-executor.stdout.log" \
-          2> "$EVIDENCE_DIR/framework-executor.stderr.log"
-        cp "$EVIDENCE_DIR/framework-executor.stdout.log" "$EVIDENCE_DIR/checkpoint-import-result.json"
+          > "$EVIDENCE_DIR/release-bundle-cli.stdout.log" \
+          2> "$EVIDENCE_DIR/release-bundle-cli.stderr.log"
+        cp "$EVIDENCE_DIR/release-bundle-cli.stdout.log" "$EVIDENCE_DIR/checkpoint-import-result.json"
 
         checkpoint_result="$EVIDENCE_DIR/checkpoint-import-result.json"
         test "$(jq -er .version "$checkpoint_result")" = g2
@@ -235,7 +237,7 @@ runs:
         test "$(jq -r .publish_state_imported <<<"$checkpoint_import")" = false
         completed_stage="$(jq -er '.checkpoint_stage | strings | select(length > 0)' <<<"$checkpoint_import")"
         bundle_digest="$(jq -er '.bundle_digest | select(test("^sha256:[0-9a-f]{64}$"))' <<<"$checkpoint_import")"
-        framework-executor/bin/opl release status \
+        node --experimental-strip-types "$cli" status \
           --bundle "$bundle_digest" \
           --store "$store_dir" \
           --json > "$EVIDENCE_DIR/framework-status.json"
@@ -297,8 +299,8 @@ runs:
         touch \
           "$evidence_dir/restore.stdout.log" \
           "$evidence_dir/restore.stderr.log" \
-          "$evidence_dir/framework-executor.stdout.log" \
-          "$evidence_dir/framework-executor.stderr.log"
+          "$evidence_dir/release-bundle-cli.stdout.log" \
+          "$evidence_dir/release-bundle-cli.stderr.log"
         if [ ! -s "$evidence_dir/input.json" ]; then
           jq -n \
             --arg framework_executor_ref "$FRAMEWORK_EXECUTOR_REF" \
