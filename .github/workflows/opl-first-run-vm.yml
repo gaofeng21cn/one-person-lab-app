@@ -2216,6 +2216,18 @@ jobs:
           request_file="$RUNNER_TEMP/mas-qualification-request.json"
           AUTHORITY_FILE="$authority_file" REQUEST_FILE="$request_file" node --experimental-strip-types scripts/write-mas-qualification-provisioning-request.ts
 
+          mas_python_env="$RUNNER_TEMP/opl-mas-qualification-python-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          cleanup_mas_python_env() {
+            rm -rf "$mas_python_env"
+          }
+          trap cleanup_mas_python_env EXIT
+          rm -rf "$mas_python_env"
+          PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH" \
+            UV_PROJECT_ENVIRONMENT="$mas_python_env" \
+            uv sync --project "$OPL_MODULE_PATH_MEDAUTOSCIENCE" --no-dev --frozen --quiet
+          test -x "$mas_python_env/bin/python"
+          export OPL_STANDARD_AGENT_PYTHON="$mas_python_env/bin/python"
+
           result_file="$RUNNER_TEMP/mas-qualification-provisioning-result.json"
           one-person-lab-executor/bin/opl agents run \
             --domain mas \

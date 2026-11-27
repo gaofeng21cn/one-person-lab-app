@@ -63,3 +63,33 @@ test('Full restores raw archives before discovery and consumes the same cache be
   assert.match(named('Configure dependency archive cache').run, /OPL_DEPENDENCY_ARCHIVE_CACHE_DIR/);
   assert.ok(steps.indexOf(named('Install zstd, Temporal CLI, OfficeCLI, and MinerU')) < steps.indexOf(named('Restore Full toolchain runtime cache')));
 });
+
+function walkFiles(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) results.push(...walkFiles(full));
+    else results.push(full);
+  }
+  return results;
+}
+
+test('release workflows and scripts avoid Homebrew zstd, stale codesign requirements preservation, and unseeded MAS Python provisioning', () => {
+  const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  for (const file of fs.readdirSync(path.join(appRoot, '.github/workflows')).filter((name) => name.endsWith('.yml'))) {
+    const contents = fs.readFileSync(path.join(appRoot, '.github/workflows', file), 'utf8');
+    assert.doesNotMatch(contents, /brew install zstd/, `${file} must not install zstd from Homebrew`);
+  }
+  for (const file of walkFiles(path.join(appRoot, 'scripts')).filter((name) => /\.(?:ts|mjs|js|sh)$/.test(name))) {
+    const contents = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(contents, /--preserve-metadata=[^\n]*requirements/, `${path.relative(appRoot, file)} must not preserve upstream designated requirements`);
+  }
+  const vmWorkflow = parse(fs.readFileSync(path.join(appRoot, '.github/workflows/opl-first-run-vm.yml'), 'utf8'));
+  const vmStep = vmWorkflow.jobs['clean-vm-first-run'].steps.find((step: any) => step.id === 'mas_qualification_provisioning');
+  assert.ok(vmStep);
+  assert.match(vmStep.run, /OPL_CATALOG_SEED_DIR/);
+  assert.match(vmStep.run, /UV_PROJECT_ENVIRONMENT/);
+  assert.match(vmStep.run, /OPL_STANDARD_AGENT_PYTHON/);
+  assert.match(vmStep.run, /\$HOME\/\.local\/bin/);
+  assert.match(vmStep.run, /trap cleanup_mas_python_env EXIT/);
+});
