@@ -17,6 +17,14 @@ export type NightlyInvocation =
       execution_path: 'scheduled_nightly';
     }
   | {
+      mode: 'scheduled_production';
+      event: 'workflow_dispatch';
+      authority_source: 'opl_release_control';
+      control_run_id: string;
+      confirmation: null;
+      execution_path: 'scheduled_nightly';
+    }
+  | {
       mode: 'development_validation';
       event: 'workflow_dispatch';
       authority_source: 'user_explicit';
@@ -80,14 +88,17 @@ function resolveNightlyInvocation(input: {
   invocationMode: string;
   event: string;
   authoritySource: string;
+  oplReleaseControlRunId?: string;
   operatorConfirmation?: string;
 }): NightlyInvocation {
   const confirmation = input.operatorConfirmation?.trim() || null;
+  const controlRunId = input.oplReleaseControlRunId || null;
   if (
     input.invocationMode === 'scheduled_production'
     && input.event === 'schedule'
     && input.authoritySource === 'daily_schedule'
     && confirmation === null
+    && controlRunId === null
   ) {
     return {
       mode: 'scheduled_production',
@@ -98,10 +109,27 @@ function resolveNightlyInvocation(input: {
     };
   }
   if (
+    input.invocationMode === 'scheduled_production'
+    && input.event === 'workflow_dispatch'
+    && input.authoritySource === 'opl_release_control'
+    && confirmation === null
+    && controlRunId !== null
+  ) {
+    return {
+      mode: 'scheduled_production',
+      event: 'workflow_dispatch',
+      authority_source: 'opl_release_control',
+      control_run_id: positiveInteger(controlRunId, 'OPL Release control run id'),
+      confirmation: null,
+      execution_path: 'scheduled_nightly',
+    };
+  }
+  if (
     input.invocationMode === 'development_validation'
     && input.event === 'workflow_dispatch'
     && input.authoritySource === 'user_explicit'
     && confirmation === 'publish_nonlatest_nightly'
+    && controlRunId === null
   ) {
     return {
       mode: 'development_validation',
@@ -119,11 +147,14 @@ function digestRequest(value: Omit<NightlyReleaseRequest, 'request_digest'>): `s
 }
 
 export function assertNightlyRequestDigest(request: NightlyReleaseRequest): void {
+  const recordedInvocation = request.invocation;
   const invocation = resolveNightlyInvocation({
-    invocationMode: request.invocation?.mode,
-    event: request.invocation?.event,
-    authoritySource: request.invocation?.authority_source,
-    operatorConfirmation: request.invocation?.confirmation ?? undefined,
+    invocationMode: recordedInvocation?.mode,
+    event: recordedInvocation?.event,
+    authoritySource: recordedInvocation?.authority_source,
+    oplReleaseControlRunId: recordedInvocation?.authority_source === 'opl_release_control'
+      ? recordedInvocation.control_run_id : undefined,
+    operatorConfirmation: recordedInvocation?.confirmation ?? undefined,
   });
   if (
     request.schema !== 'opl_standard_nightly_request.v1'
@@ -168,6 +199,7 @@ export function resolveNightlyReleaseRequest(input: {
   invocationMode: string;
   event: string;
   authoritySource: string;
+  oplReleaseControlRunId?: string;
   operatorConfirmation?: string;
 }): NightlyReleaseRequest {
   if (!nightlyBasePattern.test(input.baseVersion)) {
@@ -229,6 +261,7 @@ function main(argv: string[]): void {
       'invocation-mode': { type: 'string' },
       event: { type: 'string' },
       'authority-source': { type: 'string' },
+      'opl-release-control-run-id': { type: 'string' },
       'operator-confirmation': { type: 'string' },
       output: { type: 'string' },
       'github-output': { type: 'string' },
@@ -252,6 +285,7 @@ function main(argv: string[]): void {
     invocationMode: required('invocation-mode'),
     event: required('event'),
     authoritySource: required('authority-source'),
+    oplReleaseControlRunId: values['opl-release-control-run-id'],
     operatorConfirmation: values['operator-confirmation'],
   });
   const output = path.resolve(required('output'));

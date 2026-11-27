@@ -46,7 +46,6 @@ export const studioFollowupChecks: ReleaseBoundaryCheck[] = [
       "workflow_dispatch:",
       "operator_confirmation:",
       "publish_nonlatest_nightly",
-      "group: opl-standard-nightly",
       "uses: ./.github/workflows/_build-reusable.yml",
       "require_macos_gatekeeper: false",
       "resolve-nightly-release-request.ts",

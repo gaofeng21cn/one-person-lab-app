@@ -38,23 +38,30 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   const releaseJobs = workflowJobs(release.workflow);
   const devInputs = release.workflow.on?.workflow_dispatch?.inputs ?? {};
   const devConfirm = devInputs.operator_confirmation;
+  const controlRun = devInputs.opl_release_control_run_id;
   failures += failIf(
     id,
     !sameJson(Object.keys(release.workflow.on ?? {}).sort(), ['schedule', 'workflow_dispatch']) ||
       !sameJson(release.workflow.on?.schedule, [{ cron: '17 19 * * *' }]) ||
-      !sameJson(Object.keys(devInputs), ['operator_confirmation']) ||
-      devConfirm?.required !== true || devConfirm?.type !== 'string' ||
+      !sameJson(Object.keys(devInputs), ['operator_confirmation', 'opl_release_control_run_id']) ||
+      devConfirm?.required !== false || devConfirm?.type !== 'string' ||
+      controlRun?.required !== false || controlRun?.type !== 'string' ||
       !exactObject(release.workflow.permissions, exactReadPermissions) ||
-      !exactObject(release.workflow.concurrency, { group: 'opl-standard-nightly', 'cancel-in-progress': false }) ||
+      !exactObject(release.workflow.concurrency, {
+        group: "${{ github.event_name == 'schedule' && vars.OPL_RELEASE_CENTRAL_DAILY == 'true' && format('opl-standard-nightly-disabled-{0}', github.run_id) || 'opl-standard-nightly' }}",
+        'cancel-in-progress': false,
+      }) ||
       !sameJson(Object.keys(releaseJobs), ['admission', 'standard-build', 'qualify-and-publish']),
-    'Nightly must keep one daily production schedule and one user-explicit development-validation entry on the same Standard prerelease lane',
+    'Nightly requires the local schedule, the controller correlation input, and explicit development validation on one Standard prerelease lane',
   );
 
   const { admission, 'standard-build': build, 'qualify-and-publish': publish } = releaseJobs;
   const preflight = admission?.steps?.find((step: Record<string, any>) => step.name === 'Check Nightly publication credential availability');
   failures += failIf(
     id,
-    !admission || admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}" ||
+    !admission ||
+      admission.if !== "${{ github.event_name != 'schedule' || vars.OPL_RELEASE_CENTRAL_DAILY != 'true' }}" ||
+      admission.environment !== "${{ github.ref == 'refs/heads/main' && 'release-stable' || null }}" ||
       !exactObject(admission.permissions, exactReadPermissions) ||
       preflight?.env?.NIGHTLY_PUBLISHER_CONFIGURED !== "${{ secrets.OPL_GITHUB_RELEASE_ADMIN_TOKEN != '' }}" ||
       !build || build.uses !== './.github/workflows/_build-reusable.yml' || !needsExactly(build, ['admission']) ||
@@ -68,7 +75,7 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
   failures += requireSubstrings(id, release.text, [
     'test "$GITHUB_RUN_ATTEMPT" = 1', 'GITHUB_EVENT_NAME', 'publish_nonlatest_nightly',
     'invocation_mode=scheduled_production', 'invocation_mode=development_validation',
-    'authority_source=daily_schedule', 'authority_source=user_explicit',
+    'authority_source=daily_schedule', 'authority_source=opl_release_control', 'authority_source=user_explicit',
     '--invocation-mode "$invocation_mode"', '--event "$GITHUB_EVENT_NAME"',
     '--authority-source "$authority_source"', '.invocation.mode', '.invocation.event',
     '.invocation.authority_source', 'refs/heads/main', 'TZ=Asia/Shanghai',
