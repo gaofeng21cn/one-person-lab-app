@@ -20,7 +20,11 @@
     {
       "lane": "stable-full",
       "workflow": "release-stable.yml",
-      "title_pattern": " (append_full source:|Studio Full append ref:)"
+      "title_pattern": " (append_full source:|Studio Full append ref:)",
+      "channel": {
+        "kind": "github_release",
+        "asset_pattern": "One-Person-Lab-Full-.*-mac-arm64\\.dmg"
+      }
     }
   ]
 }
