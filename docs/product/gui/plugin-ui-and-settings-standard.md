@@ -35,7 +35,7 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 
 | 层级 | 适用场景 | 核心契约 / 扩展点 | 运行时承载与安全边界 | 典型例子 |
 | --- | --- | --- | --- | --- |
-| **Tier 1 · 声明式 Schema（首选）** | 通道接入、服务状态、开关/参数配置页 | [`opl-app-contributions.schema.json`](../../../contracts/opl-app-contributions.schema.json) (`app_contributions`, slot `settings.section` / `runtime.detail` / `composer.palette`) | App 以固定白名单原语渲染。动作走 `opl app contribution execute` | `channel_access`、`service_status`、`settings_form` |
+| **Tier 1 · 声明式 Schema（首选）** | 通道接入、服务状态、开关/参数配置页 | [`opl-app-contributions.schema.json`](../../../contracts/opl-app-contributions.schema.json) (`app_contributions`, slot `settings.section` / `runtime.detail` / `composer.palette`) | Studio 以固定白名单原语渲染；读写经本机 `opld` 公开 RPC（`app.contribution.read` / `app.action.execute`，不依赖已删除 v1 CLI） | `channel_access`、`service_status`、`settings_form` |
 | **Tier 2 · 类型化 DSH Client Slot + 共享 UI Kit** | 需丰富本地交互的一级工作面、原生设置组卡片 | DSH `dsh.client` + 强类型 `OplSlotRegistry` + 公开包 `@gaofeng21cn/opl-plugin-ui-kit`（仓内经 `@gaofeng21cn/opl-dsh-adapters/ui-kit` 透传兼容） | 独立 CJS client bundle 由 DSH `client-modules` 装载；外层包裹 `PluginErrorBoundary`；禁止相对路径直连 `vendor/` 或私有宿主机包 | `opl-runtime-status`（运行状态）、`opl-materials-space`（资料空间）、`opl-team-bots`、`opl-superagent`、第三方 DSH 客户端设置卡片 |
 | **Tier 3 · 沙箱 MCP App** | 领域独立工作台、审阅看板、多步骤生产力应用 | MCP Apps SDK `AppBridge` ＋ `@gaofeng21cn/opl-mcp-apps` | 独立沙箱 iframe；透传主题/字号/语言 token；复用当前 Codex 线程、权限与审批 | 科研助手工作台、领域专用 MiniApp |
 
@@ -54,7 +54,9 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 - **App 级一等扩展插件（Tier 2）**：
   - `@gaofeng21cn/opl-runtime-status`（侧栏 `id: "runtime"`, `order: 20`）：消费 `oplStudioShell` Cordis 服务与 Framework `work_item_projection_v2` 投影，提供自动刷新、运行焦点条（Active Runs Spotlight）、可视化阶段进度条与 Popover、本地任务详情抽屉、按代次并发校验的归档/恢复确认，以及向资料空间的一键跳转。
   - `@gaofeng21cn/opl-materials-space`（侧栏 `id: "materials"`, `order: 25`）：由 Host 服务（基于已注册智能体项目目录发现、自动跳过 `runtime/`、`control/`、`controller/` 等内部状态目录）与 Client UI 组成，提供跨智能体多项目目录的「交付物」与「全部文件」双模式浏览与富文本/表格/沙箱 HTML/PDF/媒体预览。
+  - **可选工作总控插件（`@gaofeng21cn/opl-flow-workbench`）**：遵循 Framework v2 架构边界（Studio 侧 DSH/Cordis 承载交互界面与插件组合，Framework `opld` 仅通过公开 RPC `app.state.get`、`app.contribution.read`、`app.action.execute` 提供状态投影与动作执行；Package 启停与同步使用 `opl pack ensure` / `opl pack sync`，禁止依赖已删除的 Framework v1 CLI）。遵循 Tier 2 规范（标准 `sidebar.panellist` `id: "opl-flow"` 默认放入 `default_unpinned_panel_ids` 收纳于「更多」、仅在 `opl-flow` Package 安装启用后条件露出；看板读取支持受信任本机模式 `include_local_navigation: true` 与 `host_carrier` 并严格按只读 `jump_mode` 切换或启动宿主原生会话；`send` 契约包含 `executor` 与 `session_ref`，`service` 契约纳入标准贡献动作；**禁止在插件页内自建第二套聊天框或线程存储**），完整规划见 [OPL Flow 控制塔规划](https://github.com/gaofeng21cn/opl-flow/blob/main/docs/opl-flow-workbench-plugin-plan.md)。
 - **零源码直连约束**：所有 `plugins/*` 包严禁使用 `../../../../vendor/deepseek-harness/...` 相对路径导入内部源码，严禁绕过 `SlotRegistry` 隐式读写全局变量。
+- **侧栏左下角账户展示规范**：连接 OPL Gateway 账号后，左下角设置/账户触发入口优先展示账号 `display_name`（如用户姓名），`email` 仅作无姓名时的回退与悬停提示补充；未登录或不可用时回退标准入口文案，不在设置弹窗内外制造第二个重复设置入口。
 - **受控设置子槽位**：开放 `settings.group.models`、`settings.group.resources`、`settings.group.workspace`、`settings.group.capabilities`、`settings.group.services`、`settings.group.preferences`。插件注册卡片必须提供稳定 `id`、`packageId`、`titleI18n` 与 `searchKeywords`（与全局设置搜索统一索引）。
 - 下一采用批次中的 Studio 内置微信通道使用 `settings.group.resources`，沿用远程连接入口。绑定、状态和动作由微信 Host 服务提供，线程和 turn 由现有 Codex App Server 持有。[微信设置与切换条件](dsh-plugin-and-settings-map.md#dsh-插件统一规范)
 - **错误边界隔离**：每个通过槽位挂载的独立面板与设置卡片必须包裹 `PluginErrorBoundary`。单个插件渲染异常时，向用户呈现可读降级卡片（「该扩展界面加载异常，已隔离不影响核心对话 · 重新加载 / 前往软件中心」），绝不白屏拖垮主工作台。

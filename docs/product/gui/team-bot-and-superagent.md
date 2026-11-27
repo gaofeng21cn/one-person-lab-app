@@ -22,3 +22,18 @@ Superagent 使用独立的完整原型工作台，固定 `8c32a9dc5d72c033816c6a
 两种工作台都监听 Studio 所在机器的回环地址，本机从 App 入口启动；远程 WebUI 使用者需在该机器打开或显式转发工作台端口。源码验证、真实模型执行、安装、发布和外部接单分别验收；既有真实 Codex 续作和任务修订证据不替代本次官方界面交互验证。Superagent 尚未做 GitHub／飞书真实接单的业务验收。
 
 本次验证覆盖原版 Team 开关及停用确认、成员树、右侧成员聊天和任务详情。真实 Codex 创建、认领并完成共享任务；重启工作台后，同一 reviewer 沿用原 Codex 线程，通过官方工具回读同一项任务。取消、未知派发不重发、父进程通道断开后的退出与恢复已由集成测试覆盖。App 门禁、WebUI 构建及 DSH 来源校验通过；安装和产品发布另行执行。
+
+## 与 OPL Flow 总控的三层心智边界与防混淆规则
+
+随着 OPL Flow 引入面向个人多载体（Codex / AntiGravity / OPL DSH）的统一零 Token 事件路由与控制塔规划（详见 [`opl-flow-workbench-plugin-plan.md`](https://github.com/gaofeng21cn/opl-flow/blob/main/docs/opl-flow-workbench-plugin-plan.md)），OPL App 侧栏「更多」菜单中可能同时存在三个与“多智能体/自动化编排”相关的可选工作面。三者解决完全不同的问题，必须保持清晰命名、条件显隐与零状态重叠：
+
+| 侧栏「更多」/ 入口展示名称 | 实现来源 | 服务对象与核心模型 | 默认暴露策略与边界 |
+| :--- | :--- | :--- | :--- |
+| **运行状态**（主侧栏） | `opl-runtime-status` | **本机 Framework `Runway`** 的领域阶段任务与服务恢复状态 | 主侧栏固定入口；只看本机受管领域工作项，不接管个人跨工具总账 |
+| **智能体协作**（侧栏「更多」） | `opl-team-bots`（官方 DSH Team 工作台） | **单次会话内**的多角色组队分工：`Lead → Teammates + 会话共享任务板` | 默认收于「更多」；普通 OPL 对话不受影响，关闭协作后保留成员与任务历史 |
+| **OPL Flow 总控**（侧栏「更多」） | `opl-flow` Package + `@gaofeng21cn/opl-flow-workbench`（Tier 2） | **个人跨载体、跨机器**长期目标总账、防撞车与自动路由：`Objective (Bead) → Slice/Attempt → Owner 验收` | 默认收于「更多」；**仅当用户已安装并启用 `opl-flow` Package 时显示**；只做控制塔/决策看板，按只读 `jump_mode` 切换或新建原生会话，绝不自建第二套聊天框 |
+| **Superagent 工单台**（侧栏「更多」） | `opl-superagent`（独立 DSH 原型 profile） | **外部来源来单**（GitHub / 飞书）无人值守自动接单值班：`Source → Policy → Ticket → Assignment` | 默认收于「更多」；默认停机、按需启停，未配置来源与授权策略时不接单 |
+
+防混淆硬性约束：
+1. **禁止裸露易混淆英文简称**：面向用户界面一律使用带场景定语的中文名称（「运行状态」「智能体协作」「OPL Flow 总控」「Superagent 工单台」），并在各工作面空态或页头用一句话说明适用场景与相邻入口；同时对跨载体会话严格遵循只读 `jump_mode`（`native_switch | launch_new | external_focus_only`），不渲染无反应的假切换按钮。
+2. **数据真相彻底正交**：`运行状态` 归本机 `opld` `Runway`；`智能体协作` 数据归 `$DSH_HOME/opl-collaboration` 与 Codex 线程；`Superagent 工单台` 数据归 `$DSH_HOME/opl-superagent`；`OPL Flow 总控` 数据归用户绑定的 Beads/Dolt Ledger，四者不得互相复制或同步第二份状态库。

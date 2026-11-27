@@ -53,6 +53,7 @@ export const appOwnedActiveStudioPrimaryNavigation = {
     ],
     "default_unpinned_panel_ids": [
       "schedules",
+      "opl-flow",
       "teams",
       "superagent"
     ],
