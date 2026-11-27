@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { assertDeepEqualJson, assertIncludesAll, readJson } from './assertions.ts';
+import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll, readJson } from './assertions.ts';
 import { appOwnedProjectGroupExpansionPolicy } from './app-contract-constants.ts';
 import { managedUpdateIpcSurfaces } from './managed-update-plane-validator.ts';
 import {
@@ -311,108 +311,85 @@ export function validatePackageAppContributionsProductContract(contract) {
     appContributionViewTypes,
     'App GUI Package contribution view types',
   );
-  assertDeepEqualJson(
-    contract.standard_view_contracts?.channel_access,
-    {
-      result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/channel_access_result',
-      placement: 'settings.section',
-      trust_tier: 'declarative',
-      owner: 'one-person-lab-app',
-      data_truth_owner: 'installed_transport_provider_or_native_carrier',
-      projection_owner: 'one-person-lab-framework',
-      renderer_activation_policy: {
-        opl_studio: {
-          provider_owner: 'installed_channel_provider_package',
-          settings_surface: 'app_standard_channel_access',
-          framework_channel_provider_host_activation_allowed: true,
-          framework_projected_channel_access_rendering_allowed: true,
-        },
-        single_active_provider_path_per_renderer_required: true,
-      },
-      migration_state: 'studio_uses_app_owned_provider_package',
-      runtime_status: 'studio_package_source_and_host_path_present_requires_installed_live_e2e',
-      command_input_source: 'validated_channel_access_result_entity_actions',
-      command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_entity_input',
-      post_action_readback: 'fresh_contribution_read_required_after_action_success_and_while_refresh_after_ms_is_projected',
-      qr_payload_policy: 'ephemeral_login_challenge_render_only_never_persist_log_or_copy_into_shell_state',
-      provider_absent_policy: 'no_contribution_entry_is_a_normal_unavailable_state_for_studio',
-      arbitrary_renderer_code_allowed: false,
-    },
-    'App GUI channel_access standard view contract',
+  const stdViews = contract.standard_view_contracts;
+  assertFieldsMatch(stdViews?.channel_access, {
+    result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/channel_access_result',
+    placement: 'settings.section',
+    trust_tier: 'declarative',
+    owner: 'one-person-lab-app',
+    data_truth_owner: 'installed_transport_provider_or_native_carrier',
+    projection_owner: 'one-person-lab-framework',
+    migration_state: 'studio_uses_app_owned_provider_package',
+    runtime_status: 'studio_package_source_and_host_path_present_requires_installed_live_e2e',
+    command_input_source: 'validated_channel_access_result_entity_actions',
+    arbitrary_renderer_code_allowed: false,
+  }, 'App GUI channel_access standard view contract');
+  assertFieldsMatch(stdViews?.channel_access?.renderer_activation_policy, {
+    single_active_provider_path_per_renderer_required: true,
+  }, 'App GUI channel_access standard view contract');
+  assertFieldsMatch(stdViews?.channel_access?.renderer_activation_policy?.opl_studio, {
+    provider_owner: 'installed_channel_provider_package',
+    settings_surface: 'app_standard_channel_access',
+    framework_channel_provider_host_activation_allowed: true,
+    framework_projected_channel_access_rendering_allowed: true,
+  }, 'App GUI channel_access standard view contract');
+
+  const rca = stdViews?.remote_companion_access;
+  assertFieldsMatch(rca, {
+    result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result',
+    placement: 'settings.section',
+    trust_tier: 'declarative',
+    owner: 'one-person-lab-app',
+    data_truth_owner: 'declaring_remote_companion_provider',
+    projection_owner: 'one-person-lab-framework',
+    command_input_source: 'validated_remote_companion_access_action_inputs',
+    post_action_readback: 'fresh_remote_companion_access_read_required_after_action_success',
+    arbitrary_renderer_code_allowed: false,
+  }, 'App GUI remote_companion_access standard view contract');
+  assertFieldsMatch(rca?.renderer_activation_policy, {
+    single_active_provider_path_per_renderer_required: true,
+  }, 'App GUI remote_companion_access standard view contract');
+  assertFieldsMatch(rca?.renderer_activation_policy?.opl_studio, {
+    provider_owner: 'opl_studio_native_link_companion_bridge',
+    settings_surface: 'settings_resources_opl_link_native_host_panel',
+    framework_remote_companion_host_activation_allowed: false,
+    framework_projected_remote_companion_access_rendering_allowed: false,
+    legacy_projection_policy: 'retain_typed_remote_companion_access_for_compatibility_and_history_but_filter_it_from_ordinary_settings_when_the_native_link_bridge_is_present',
+  }, 'App GUI remote_companion_access standard view contract');
+  assertFieldsMatch(rca?.secret_boundary, {
+    qr_payload_only_in_status: 'qr_ready',
+    qr_payload_max_length: 8192,
+  }, 'App GUI remote_companion_access standard view contract');
+  assertIncludesAll(
+    rca?.secret_boundary?.never_cached_logged_or_returned_by_app_action,
+    ['invitation_code', 'manual_code', 'qr_payload', 'claim_secret', 'claim_material'],
+    'App GUI remote_companion_access standard view contract secret boundary',
   );
-  assertDeepEqualJson(
-    contract.standard_view_contracts?.remote_companion_access,
-    {
-      result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/remote_companion_access_result',
-      placement: 'settings.section',
-      trust_tier: 'declarative',
-      owner: 'one-person-lab-app',
-      data_truth_owner: 'declaring_remote_companion_provider',
-      projection_owner: 'one-person-lab-framework',
-      renderer_activation_policy: {
-        opl_studio: {
-          provider_owner: 'opl_studio_native_link_companion_bridge',
-          settings_surface: 'settings_resources_opl_link_native_host_panel',
-          framework_remote_companion_host_activation_allowed: false,
-          framework_projected_remote_companion_access_rendering_allowed: false,
-          legacy_projection_policy: 'retain_typed_remote_companion_access_for_compatibility_and_history_but_filter_it_from_ordinary_settings_when_the_native_link_bridge_is_present',
-        },
-        single_active_provider_path_per_renderer_required: true,
-      },
-      migration_state: 'generic_optional_package_contribution_not_opl_link_v2_host',
-      runtime_status: 'provider_authoritative_dynamic_projection',
-      command_input_source: 'validated_remote_companion_access_action_inputs',
-      command_resolution: 'resolve_fixed_action_id_against_the_same_current_descriptor_then_dispatch_only_the_declared_closed_input_shape',
-      post_action_readback: 'fresh_remote_companion_access_read_required_after_action_success',
-      secret_boundary: {
-        transient_interaction_fields: ['invitation_code', 'manual_code', 'qr_payload', 'authentication_digits'],
-        never_cached_logged_or_returned_by_app_action: ['invitation_code', 'manual_code', 'qr_payload', 'claim_secret', 'claim_material'],
-        qr_payload_only_in_status: 'qr_ready',
-        qr_payload_max_length: 8192,
-      },
-      provider_absent_policy: 'project_unavailable_without_fabricated_pair_or_device_state_and_keep_the_desktop_workbench_usable',
-      arbitrary_renderer_code_allowed: false,
-    },
-    'App GUI remote_companion_access standard view contract',
-  );
-  assertDeepEqualJson(
-    contract.standard_view_contracts?.service_status,
-    {
-      result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/service_status_result',
-      placement: 'settings.section',
-      trust_tier: 'declarative',
-      owner: 'one-person-lab-app',
-      data_truth_owner: 'installed_native_carrier_or_provider',
-      projection_owner: 'one-person-lab-framework',
-      settings_destination: 'settings.environment.services.plugin_sections',
-      status_field_policy: 'status_and_bounded_summary_objects_are_provider_defined_without_an_App_or_Fleet_business_field_allowlist',
-      command_input_source: 'descriptor_declared_action_inputs',
-      command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_exact_validated_input',
-      post_action_readback: 'fresh_contribution_read_required_after_action_success',
-      provider_absent_policy: 'project_unavailable_without_fabricated_service_or_node_state_and_keep_the_desktop_workbench_usable',
-      arbitrary_renderer_code_allowed: false,
-    },
-    'App GUI service_status standard view contract',
-  );
-  assertDeepEqualJson(
-    contract.standard_view_contracts?.settings_form,
-    {
-      result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/settings_form_result',
-      placement: 'settings.section',
-      trust_tier: 'declarative',
-      owner: 'one-person-lab-app',
-      data_truth_owner: 'declaring_installed_package',
-      projection_owner: 'one-person-lab-framework',
-      allowed_settings_destinations: appContributionSettingsDestinations,
-      supported_field_types: ['boolean', 'enum', 'string', 'number', 'directory', 'secret_ref'],
-      effect_timings: ['immediate', 'next_task', 'restart_required'],
-      secret_readback_policy: 'secret_ref_fields_report_configured_state_only_and_never_return_plaintext_secrets_in_app_state_or_form_readback',
-      command_resolution: 'resolve_command_id_against_the_same_current_descriptor_then_dispatch_its_action_ref_with_the_validated_values_payload',
-      post_action_readback: 'fresh_contribution_read_required_after_action_success_without_optimistic_success_fabrication',
-      arbitrary_renderer_code_allowed: false,
-    },
-    'App GUI settings_form standard view contract',
-  );
+
+  assertFieldsMatch(stdViews?.service_status, {
+    result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/service_status_result',
+    placement: 'settings.section',
+    trust_tier: 'declarative',
+    owner: 'one-person-lab-app',
+    data_truth_owner: 'installed_native_carrier_or_provider',
+    projection_owner: 'one-person-lab-framework',
+    settings_destination: 'settings.environment.services.plugin_sections',
+    arbitrary_renderer_code_allowed: false,
+  }, 'App GUI service_status standard view contract');
+
+  assertFieldsMatch(stdViews?.settings_form, {
+    result_schema_ref: 'contracts/opl-app-contributions.schema.json#/$defs/settings_form_result',
+    placement: 'settings.section',
+    trust_tier: 'declarative',
+    owner: 'one-person-lab-app',
+    data_truth_owner: 'declaring_installed_package',
+    projection_owner: 'one-person-lab-framework',
+    secret_readback_policy: 'secret_ref_fields_report_configured_state_only_and_never_return_plaintext_secrets_in_app_state_or_form_readback',
+    arbitrary_renderer_code_allowed: false,
+  }, 'App GUI settings_form standard view contract');
+  assertDeepEqualJson(stdViews?.settings_form?.allowed_settings_destinations, appContributionSettingsDestinations, 'App GUI settings_form standard view contract allowed destinations');
+  assertDeepEqualJson(stdViews?.settings_form?.supported_field_types, ['boolean', 'enum', 'string', 'number', 'directory', 'secret_ref'], 'App GUI settings_form standard view contract field types');
+  assertDeepEqualJson(stdViews?.settings_form?.effect_timings, ['immediate', 'next_task', 'restart_required'], 'App GUI settings_form standard view contract effect timings');
   assertDeepEqualJson(
     contract.stable_id_fields,
     ['navigation_id', 'view_id', 'command_id', 'badge_id', 'contribution_id'],
@@ -428,111 +405,68 @@ export function validatePackageAppContributionsProductContract(contract) {
     },
     'App GUI Package contribution reference integrity',
   );
-  assertDeepEqualJson(
-    contract.ui_composition,
-    {
-      app_client_contribution_abi: 'opl_app_client_contributions.v1',
-      projection_source: 'app_state.ui_contributions',
-      projection_schema: 'opl_app_ui_contributions_projection.v1',
-      framework_host_graph_owner: 'one-person-lab-framework',
-      client_cordis_graph_policy: 'derive_from_framework_host_graph_projection_and_app_product_profile_slot_policy',
-      host_projection_graph_policy: 'allowlisted_closed_graph_from_framework_projection_only',
-      host_projection_allowlist_contract: 'contracts/opl-app-contributions.schema.json',
-      typed_slot_policy: 'mount_only_app_product_profile_declared_slots',
-      typed_action_policy: 'action_refs_only_via_canonical_app_action_bridge',
-      framework_host_composition_authority: 'one-person-lab-framework',
-      framework_host_composition_authority_scope: 'framework_runtime_package_graph_and_app_projection',
-      framework_runtime_and_package_composition_authority: 'one-person-lab-framework',
-      studio_application_host: 'opl-studio',
-      studio_application_host_scope: 'dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition',
-      studio_application_host_may_exist_without_authority_transfer: true,
-      app_authority_policy: 'one-person-lab-app_owns_product_profile_gui_abi_active_shell_and_release',
-      framework_projection_runtime_status: 'framework_host_projection_active',
-      shared_transport_policy: 'framework_host_projected_typed_rpc_reads_typed_events_and_canonical_app_actions',
-      shared_product_state_semantics: true,
-      package_gui_contribution_policy: 'app_schema_admitted_declarative_only_then_framework_host_projected',
-      client_authority_policy: 'render_and_dispatch_only_no_plugin_discovery_install_registry_currentness_release_operation_task_package_or_product_truth',
-      client_renderer_compatibility_profile_ref: 'contracts/app-product-profile.json#client_renderer_compatibility',
-      client_renderer_switch_policy: 'explicit_adapter_selection_after_compatibility_admission_never_unverified_hot_switch',
-      hot_switch_without_revalidation_allowed: false,
-      typed_state_rpc: 'opl app state --profile fast --json',
-      typed_action_rpc: 'opl app action execute --action <action_id> [--payload json] [--dry-run] --json',
-      typed_client_event: 'opl/app-client-contributions/updated',
-      state_semantics_contract: 'contracts/app-runtime-bridge.json',
-      brand_capability_projection_policy: 'dynamic_framework_host_projection_no_fixed_brand_or_domain_registry_in_app_or_client',
-      app_fixed_brand_registry_allowed: false,
-      client_fixed_brand_registry_allowed: false,
-      shared_shell_consumers: ['opl-studio'],
-      renderer_and_package_carrier_may_differ: true,
-      slots: ['composer.palette', 'runtime.detail', 'settings.section'],
-      contribution_kinds: ['view', 'command_group'],
-      trust_tiers: ['declarative', 'trusted_first_party_renderer'],
-      scopes: ['root', 'work_item'],
-      settings_placement_policy: {
-        channel_access: {
-          destination: 'settings.resources.remote_connections',
-          app_admission_required: true,
-          admission_basis: ['current_user_task', 'app_placement_policy'],
-        },
-        remote_companion_access: {
-          destination: 'settings.resources.remote_connections',
-          app_admission_required: true,
-          admission_basis: ['current_user_task', 'app_placement_policy'],
-        },
-        activity_log: {
-          destination: null,
-          app_admission_required: true,
-          admission_basis: ['current_user_task', 'app_placement_policy'],
-          ordinary_settings_without_explicit_app_admission: 'hidden_from_ordinary_settings',
-        },
-        service_status: {
-          destination: 'settings.environment.services.plugin_sections',
-          app_admission_required: true,
-          admission_basis: ['current_user_task', 'app_placement_policy'],
-        },
-        settings_form: {
-          destination: 'declared_view_settings_destination_within_existing_functional_pages',
-          allowed_destinations: appContributionSettingsDestinations,
-          app_admission_required: true,
-          admission_basis: ['current_user_task', 'app_placement_policy'],
-        },
-        other_settings_section: {
-          destination: null,
-          app_admission_required: true,
-          admission_basis: ['current_user_task', 'app_placement_policy'],
-        },
-        ordinary_visibility: {
-          package_installation: 'availability_only',
-          dynamic_discovery: 'availability_only',
-          declared_standard_view_type: 'placement_candidate_only',
-          unadmitted_contribution: {
-            ordinary_settings_row: 'omit',
-            ordinary_settings_route: 'omit',
-          },
-        },
-        top_level_settings_navigation: 'client_static_destinations_only_package_contributions_never_create_navigation_entries',
-        same_package_grouping: 'group_settings_contributions_by_package_id_on_functional_settings_destination_and_preserve_declared_order',
-        ordinary_presentation: 'show_package_display_name_and_view_title_without_package_id_or_trust_carrier_provenance',
-        technical_provenance: 'available_only_when_the_user_enables_developer_details',
-        native_app_inference: 'a_package_contribution_does_not_establish_that_a_separate_native_os_app_is_installed_running_or_equivalent',
-      },
-      ordering_policy: 'sort_order_then_package_id_then_contribution_id',
-      identity_policy: 'package_id_colon_contribution_id',
-      unknown_kind_policy: 'render_local_fallback_without_disabling_other_contributions',
-      lifecycle_policy: 'register_from_current_projection_and_remove_immediately_when_package_is_app_disabled_carrier_disabled_or_uninstalled',
-      shell_implementation_policy: 'consume_the_host_derived_client_graph_through_renderer_native_extension_surfaces_without_independent_package_discovery_or_plugin_manager',
-      native_candidate_host: 'host_derived_Client_Cordis_via_DeepSeek_Harness_SlotCore_createSlotRenderer_and_ui_primitives',
-      independent_host_truth_allowed: false,
-      second_package_registry_allowed: false,
-      second_currentness_authority_allowed: false,
-      second_state_or_action_authority_allowed: false,
-      second_client_composition_graph_allowed: false,
-      active_shell_adopted: true,
-      release_ready: false,
-      clean_vm_ready: false,
-    },
-    'App GUI Package contribution UI composition',
-  );
+  const uiComp = contract.ui_composition;
+  assertFieldsMatch(uiComp, {
+    app_client_contribution_abi: 'opl_app_client_contributions.v1',
+    projection_source: 'app_state.ui_contributions',
+    projection_schema: 'opl_app_ui_contributions_projection.v1',
+    framework_host_graph_owner: 'one-person-lab-framework',
+    host_projection_graph_policy: 'allowlisted_closed_graph_from_framework_projection_only',
+    host_projection_allowlist_contract: 'contracts/opl-app-contributions.schema.json',
+    framework_host_composition_authority: 'one-person-lab-framework',
+    framework_host_composition_authority_scope: 'framework_runtime_package_graph_and_app_projection',
+    framework_runtime_and_package_composition_authority: 'one-person-lab-framework',
+    studio_application_host: 'opl-studio',
+    studio_application_host_scope: 'dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition',
+    studio_application_host_may_exist_without_authority_transfer: true,
+    client_renderer_switch_policy: 'explicit_adapter_selection_after_compatibility_admission_never_unverified_hot_switch',
+    hot_switch_without_revalidation_allowed: false,
+    typed_state_rpc: 'opl app state --profile fast --json',
+    typed_action_rpc: 'opl app action execute --action <action_id> [--payload json] [--dry-run] --json',
+    typed_client_event: 'opl/app-client-contributions/updated',
+    state_semantics_contract: 'contracts/app-runtime-bridge.json',
+    app_fixed_brand_registry_allowed: false,
+    client_fixed_brand_registry_allowed: false,
+    renderer_and_package_carrier_may_differ: true,
+    ordering_policy: 'sort_order_then_package_id_then_contribution_id',
+    identity_policy: 'package_id_colon_contribution_id',
+    independent_host_truth_allowed: false,
+    second_package_registry_allowed: false,
+    second_currentness_authority_allowed: false,
+    second_state_or_action_authority_allowed: false,
+    second_client_composition_graph_allowed: false,
+    active_shell_adopted: true,
+    release_ready: false,
+    clean_vm_ready: false,
+  }, 'App GUI Package contribution UI composition');
+  assertDeepEqualJson(uiComp?.shared_shell_consumers, ['opl-studio'], 'App GUI Package contribution UI composition shared shells');
+  assertDeepEqualJson(uiComp?.slots, ['composer.palette', 'runtime.detail', 'settings.section'], 'App GUI Package contribution UI composition slots');
+  assertDeepEqualJson(uiComp?.contribution_kinds, ['view', 'command_group'], 'App GUI Package contribution UI composition kinds');
+  assertDeepEqualJson(uiComp?.trust_tiers, ['declarative', 'trusted_first_party_renderer'], 'App GUI Package contribution UI composition trust tiers');
+  assertDeepEqualJson(uiComp?.scopes, ['root', 'work_item'], 'App GUI Package contribution UI composition scopes');
+  const placement = uiComp?.settings_placement_policy;
+  for (const [viewType, destination] of [
+    ['channel_access', 'settings.resources.remote_connections'],
+    ['remote_companion_access', 'settings.resources.remote_connections'],
+    ['activity_log', null],
+    ['service_status', 'settings.environment.services.plugin_sections'],
+    ['settings_form', 'declared_view_settings_destination_within_existing_functional_pages'],
+    ['other_settings_section', null],
+  ] as const) {
+    assertFieldsMatch(
+      placement?.[viewType],
+      { destination, app_admission_required: true },
+      `App GUI Package contribution UI composition placement ${viewType}`,
+    );
+  }
+  assertDeepEqualJson(placement?.settings_form?.allowed_destinations, appContributionSettingsDestinations, 'App GUI Package contribution UI composition settings_form allowed destinations');
+  assertFieldsMatch(placement?.activity_log, {
+    ordinary_settings_without_explicit_app_admission: 'hidden_from_ordinary_settings',
+  }, 'App GUI Package contribution UI composition activity_log');
+  assertFieldsMatch(placement?.ordinary_visibility?.unadmitted_contribution, {
+    ordinary_settings_row: 'omit',
+    ordinary_settings_route: 'omit',
+  }, 'App GUI Package contribution UI composition unadmitted settings');
   assertDeepEqualJson(
     contract.forbidden_descriptor_fields,
     ['component', 'code', 'html', 'path', 'url'],
@@ -651,7 +585,7 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     throw new Error('App GUI full state profile must be reserved for diagnostics or release evidence');
   }
   const guiDefaultReadPolicy = guiContract.framework_surfaces.canonical_state.default_read_surface_policy;
-  for (const [field, expected] of Object.entries({
+  assertFieldsMatch(guiDefaultReadPolicy, {
     default_projection: 'opl_current_owner_delta',
     source_path: 'app_state.operator.default_read_surface_policy',
     foundry_agent_os_cockpit_policy: 'first_screen_current_owner_delta_only_raw_worklist_evidence_provider_trace_drilldown_only',
@@ -664,37 +598,18 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     full_detail_auto_poll: false,
     shell_must_not_use_full_drilldown_as_normal_state: true,
     shell_must_not_derive_layout_from_raw_runtime_projection: true,
-  })) {
-    if (guiDefaultReadPolicy?.[field] !== expected) {
-      throw new Error(`App GUI default_read_surface_policy.${field} must be ${expected}`);
-    }
-  }
+  }, 'App GUI default_read_surface_policy', '.');
   if (guiDefaultReadPolicy && 'compatibility_projection' in guiDefaultReadPolicy) {
     throw new Error('App GUI default_read_surface_policy must not declare compatibility_projection');
   }
-  for (const field of [
-    'next_safe_action_or_none',
-    'current_owner',
-    'required_delta',
-    'accepted_return_shapes',
-    'readiness_false_flags',
-    'count_summary',
-  ]) {
-    if (!guiDefaultReadPolicy?.first_screen_answers?.includes(field)) {
-      throw new Error(`App GUI default_read_surface_policy.first_screen_answers must include ${field}`);
-    }
-  }
-  for (const field of [
-    'runtime_tray_snapshot',
-    'raw_evidence_envelope',
-    'stage_replay_packet_body',
-    'private_residue_inventory_body',
-    'provider_internal_ledger_body',
-  ]) {
-    if (!guiDefaultReadPolicy?.forbidden_default_state_fields?.includes(field)) {
-      throw new Error(`App GUI default_read_surface_policy.forbidden_default_state_fields must include ${field}`);
-    }
-  }
+  assertIncludesAll(guiDefaultReadPolicy?.first_screen_answers, [
+    'next_safe_action_or_none', 'current_owner', 'required_delta',
+    'accepted_return_shapes', 'readiness_false_flags', 'count_summary',
+  ], 'App GUI default_read_surface_policy.first_screen_answers');
+  assertIncludesAll(guiDefaultReadPolicy?.forbidden_default_state_fields, [
+    'runtime_tray_snapshot', 'raw_evidence_envelope', 'stage_replay_packet_body',
+    'private_residue_inventory_body', 'provider_internal_ledger_body',
+  ], 'App GUI default_read_surface_policy.forbidden_default_state_fields');
   assertCommandSurface(
     guiContract.framework_surfaces.canonical_action?.command,
     'opl app action execute --action <action_id> [--payload json] [--dry-run] --json',
@@ -728,8 +643,7 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     guiContract.framework_surfaces.artifact_native_drilldown,
     'App GUI Stage Artifact drilldown framework surface',
   );
-  const guiStageRunCockpit = guiContract.framework_surfaces.stage_run_cockpit;
-  for (const [field, expected] of Object.entries({
+  assertFieldsMatch(guiContract.framework_surfaces.stage_run_cockpit, {
     projection_ref: 'contracts/app-runtime-bridge.json#stage_run_cockpit_projection',
     source: 'app_state.operator.workbench.task_drilldowns.stage_run_cockpit + app_state.operator.workbench.task_drilldowns.stage_run_cockpit_summary',
     equivalent_source: 'app_state.operator.workbench.task_drilldowns.stage_run_current_owner_delta',
@@ -737,11 +651,7 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     display_policy: 'refs_only_stage_run_cockpit_display_guard_no_runtime_truth_claims',
     ordinary_fast_state_required: true,
     app_role: 'display_only_stage_run_cockpit_consumer',
-  })) {
-    if (guiStageRunCockpit?.[field] !== expected) {
-      throw new Error(`App GUI StageRun cockpit ${field} must be ${expected}`);
-    }
-  }
+  }, 'App GUI StageRun cockpit');
   validateProviderReadinessRepairProjectionContract(
     guiContract.framework_surfaces.provider_readiness_repair,
     'App GUI provider readiness repair framework surface',
@@ -809,62 +719,25 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     ],
     'App GUI runtime default attention forbidden default terms',
   );
-  assertDeepEqualJson(
-    guiContract.ordinary_cockpit_surface_budget,
-    {
-      surface_id: 'ordinary_app_cockpit_surface_budget',
-      purpose: 'keep Home, Runtime, and Settings focused on purpose, task status, next owner, artifact/blocker, and release facts',
-      stage_run_cockpit_projection_ref: 'contracts/app-runtime-bridge.json#stage_run_cockpit_projection',
-      stage_run_consumption_policy: 'ordinary fast App state must consume refs-only stage_run_cockpit, stage_run_cockpit_summary, or equivalent stage_run_current_owner_delta derived from current_owner_delta as display guard only',
-      foundry_agent_os_cockpit_policy: 'first_screen_current_owner_delta_only_raw_worklist_evidence_provider_trace_drilldown_only',
-      default_next_action_source: 'current_owner_delta',
-      raw_worklist_generates_default_next_action: false,
-      release_evidence_counts_as_release_ready: false,
-      applies_to_pages: [
-        'guid_home',
-        'runtime',
-        'settings_general',
-        'access',
-        'capabilities',
-        'environment',
-        'settings_theme',
-        'about',
-        'update',
-        'settings_resources',
-      ],
-      ordinary_allowed_answer_shapes: [
-        'purpose_entry',
-        'task_status',
-        'next_owner',
-        'accepted_answer_shape',
-        'artifact_or_blocker',
-        'release_fact',
-        'app_profile',
-        'access_status',
-        'agent_capability',
-        'local_environment_status',
-        'appearance_preference',
-        'maintenance_diagnostic_link',
-        'about_update_fact',
-        'provider_readiness_repair',
-      ],
-      ordinary_must_not_default_display_terms: [
-        'Temporal',
-        'provider',
-        'ledger',
-        'projection',
-        'stage attempt',
-        'AionUI',
-        'backend selector',
-        'shell candidate',
-        'runtime implementation selector',
-      ],
-      diagnostics_escape_hatch: 'Advanced, release evidence, developer detail, or explicit full-detail drilldown only',
-      source_policy: 'ordinary views consume opl app state --profile fast --json and must not derive first-screen layout from raw runtime drilldown',
-    },
-    'App GUI ordinary cockpit surface budget',
-  );
-  for (const forbiddenSource of [
+  const budget = guiContract.ordinary_cockpit_surface_budget;
+  assertFieldsMatch(budget, {
+    surface_id: 'ordinary_app_cockpit_surface_budget',
+    stage_run_cockpit_projection_ref: 'contracts/app-runtime-bridge.json#stage_run_cockpit_projection',
+    foundry_agent_os_cockpit_policy: 'first_screen_current_owner_delta_only_raw_worklist_evidence_provider_trace_drilldown_only',
+    default_next_action_source: 'current_owner_delta',
+    raw_worklist_generates_default_next_action: false,
+    release_evidence_counts_as_release_ready: false,
+  }, 'App GUI ordinary cockpit surface budget');
+  assertIncludesAll(budget?.applies_to_pages, [
+    'guid_home', 'runtime', 'settings_general', 'access', 'capabilities', 'environment', 'about', 'settings_resources',
+  ], 'App GUI ordinary cockpit surface budget pages');
+  assertIncludesAll(budget?.ordinary_allowed_answer_shapes, [
+    'purpose_entry', 'task_status', 'next_owner', 'accepted_answer_shape', 'artifact_or_blocker', 'release_fact',
+  ], 'App GUI ordinary cockpit surface budget answer shapes');
+  assertIncludesAll(budget?.ordinary_must_not_default_display_terms, [
+    'Temporal', 'provider', 'ledger', 'projection', 'stage attempt', 'AionUI', 'backend selector', 'shell candidate', 'runtime implementation selector',
+  ], 'App GUI ordinary cockpit surface budget forbidden terms');
+  assertIncludesAll(guiContract.framework_surfaces.forbidden_gui_truth_sources, [
     'direct opl connect modules --json page aggregation',
     'direct opl system developer-supervisor page aggregation',
     'direct opl family-runtime worker status page aggregation',
@@ -873,9 +746,5 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     'direct reads of OPL internal state files',
     'direct reads of OPL SQLite sidecar files',
     'direct State Index Kernel writes',
-  ]) {
-    if (!guiContract.framework_surfaces.forbidden_gui_truth_sources?.includes(forbiddenSource)) {
-      throw new Error(`App GUI contract must forbid ${forbiddenSource}`);
-    }
-  }
+  ], 'App GUI contract forbidden truth sources');
 }

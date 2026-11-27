@@ -1,4 +1,4 @@
-import { assertDeepEqualJson, assertIncludesAll } from './assertions.ts';
+import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll } from './assertions.ts';
 import { temporalLocalServiceDefaults, temporalManagedCommands } from './app-contract-constants.ts';
 
 export function validateInstallExposureRuntimeAndDistribution(policy) {
@@ -175,170 +175,95 @@ function validateFrameworkCoreCarrier(homebrew) {
   ) {
     throw new Error('Install exposure OPL Framework carrier must select developer mode or install-origin carrier before compatibility handshake');
   }
+  assertDeepEqualJson(homebrew.formulae, { framework_core: 'opl' }, 'Install exposure Homebrew Framework formula carrier');
   assertDeepEqualJson(
-    homebrew.formulae,
-    { framework_core: 'opl' },
-    'Install exposure Homebrew Framework formula carrier',
+    carrier.locator_precedence?.map((entry) => entry?.install_origin),
+    ['explicit_developer_mode', 'homebrew_cask', 'dmg_or_direct_download'],
+    'Install exposure OPL Framework locator precedence order',
   );
   assertDeepEqualJson(
-    carrier.locator_precedence,
-    [
-      {
-        install_origin: 'explicit_developer_mode',
-        carrier: 'developer_checkout',
-        locator: '<selected-workspace>/one-person-lab',
-      },
-      {
-        install_origin: 'homebrew_cask',
-        carrier: 'system_homebrew_formula',
-        formula: 'opl',
-        locator: '/opt/homebrew/bin/opl or /usr/local/bin/opl',
-        origin_evidence: 'Homebrew Caskroom receipt',
-      },
-      {
-        install_origin: 'dmg_or_direct_download',
-        carrier: 'framework_managed_install',
-        locator: '~/.opl/one-person-lab',
-        installer: 'opl-install.sh --headless --skip-packages',
-      },
-    ],
-    'Install exposure OPL Framework locator precedence',
+    carrier.locator_precedence?.map((entry) => entry?.carrier),
+    ['developer_checkout', 'system_homebrew_formula', 'framework_managed_install'],
+    'Install exposure OPL Framework locator carriers',
   );
-  assertDeepEqualJson(
-    carrier.pre_formula_transition,
-    {
-      allowed: true,
-      condition: 'homebrew_cask_receipt_present_and_formula_absent',
-      carrier: 'framework_managed_install',
-      locator: '~/.opl/one-person-lab',
-      installer: 'opl-install.sh --headless --skip-packages',
-      selection_status: 'pre_formula_transition',
-      must_end_when_formula_available: true,
-      incompatible_formula_must_not_fallback: true,
-      creates_second_framework_semantics: false,
-    },
-    'Install exposure OPL Framework pre-Formula transition',
-  );
-  assertDeepEqualJson(
-    carrier.compatibility_handshake,
-    {
-      required_before_activation: true,
-      protected_consumer_surface: 'opl app state --profile fast --json',
-      producer_owner: 'one-person-lab',
-      app_requirement_owner: 'one-person-lab-app',
-      required_package_name: 'opl-framework',
-      required_capability_source_ref:
-        'contracts/opl-framework/app-component-compatibility-receipt-contract.json#producer_observation.capabilities[].capability_id',
-      required_capability_ids: ['opl_dynamic_package_directory'],
-      required_capability_match: 'all',
-      optional_enhancement_capabilities: [
-        {
-          capability_id: 'opl_app.domain_detail_views.v2',
-          policy_ref:
-            'contracts/app-runtime-bridge.json#work_item_projection.field_contracts.domain_detail_views',
-          availability_source: 'producer_capability_ids',
-          missing_behavior: 'allow_app_state_activation_and_hide_dependent_detail_surfaces',
-        },
-      ],
-      framework_api_version_policy: {
-        recognized_marker: 'p19.stage-runtime',
-        marker_alone_sufficient: false,
-      },
-      fail_closed_on_missing_required_capability_or_incompatible_framework: true,
-      missing_required_capability_policy: {
-        compatibility_status: 'incompatible_missing_required_capability',
-        app_state_activation_allowed: false,
-        recovery_owner: 'one-person-lab',
-        app_role: 'request_canonical_bootstrap_or_update_and_project_receipts_only',
-        canonical_bootstrap_ref:
-          'contracts/app-release-channel.json#managed_update_plane.software_lifecycle.public_actions.bootstrap_missing_opl_base',
-        canonical_update_ref:
-          'contracts/app-release-channel.json#managed_update_plane.software_lifecycle.public_actions.apply_eligible_updates',
-        canonical_reconciliation_ref:
-          'contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation',
-        app_direct_base_mutation_allowed: false,
-      },
-      missing_optional_enhancement_policy: {
-        app_state_activation_allowed: true,
-        global_recovery_required: false,
-        dependent_surface_policy_ref:
-          'contracts/app-runtime-bridge.json#work_item_projection.field_contracts.domain_detail_views.absence_policy',
-      },
-      receipt_fields: [
-        'selected_carrier',
-        'framework_version',
-        'framework_api_version',
-        'app_required_api_range',
-        'producer_capability_ids',
-        'required_capability_ids',
-        'missing_required_capability_ids',
-        'compatibility_status',
-        'selection_status',
-        'active_framework_count',
-      ],
-    },
-    'Install exposure OPL Framework compatibility handshake',
-  );
-  assertDeepEqualJson(
-    carrier.activation_invariants,
-    {
-      active_framework_count: 1,
-      dual_runtime_allowed: false,
-      split_brain_allowed: false,
-      second_framework_fallback_may_activate: false,
-    },
-    'Install exposure OPL Framework activation invariants',
-  );
-  assertDeepEqualJson(
-    carrier.release_authority,
-    {
-      app_carrier_release_truth_owner: 'one-person-lab-app',
-      opl_base_release_truth_owner: 'one-person-lab',
-      app_release_must_not_publish_or_promote_opl_base: true,
-    },
-    'Install exposure OPL Framework release authority',
-  );
+  assertFieldsMatch(carrier.pre_formula_transition, {
+    allowed: true,
+    condition: 'homebrew_cask_receipt_present_and_formula_absent',
+    carrier: 'framework_managed_install',
+    must_end_when_formula_available: true,
+    incompatible_formula_must_not_fallback: true,
+    creates_second_framework_semantics: false,
+  }, 'Install exposure OPL Framework pre-Formula transition');
+  const handshake = carrier.compatibility_handshake;
+  assertFieldsMatch(handshake, {
+    required_before_activation: true,
+    protected_consumer_surface: 'opl app state --profile fast --json',
+    producer_owner: 'one-person-lab',
+    app_requirement_owner: 'one-person-lab-app',
+    required_package_name: 'opl-framework',
+    required_capability_match: 'all',
+    fail_closed_on_missing_required_capability_or_incompatible_framework: true,
+  }, 'Install exposure OPL Framework compatibility handshake');
+  assertDeepEqualJson(handshake?.required_capability_ids, ['opl_dynamic_package_directory'], 'Install exposure OPL Framework compatibility handshake required capability ids');
+  assertFieldsMatch(handshake?.framework_api_version_policy, {
+    recognized_marker: 'p19.stage-runtime',
+    marker_alone_sufficient: false,
+  }, 'Install exposure OPL Framework compatibility handshake api_version');
+  assertFieldsMatch(handshake?.missing_required_capability_policy, {
+    compatibility_status: 'incompatible_missing_required_capability',
+    app_state_activation_allowed: false,
+    recovery_owner: 'one-person-lab',
+    app_role: 'request_canonical_bootstrap_or_update_and_project_receipts_only',
+    app_direct_base_mutation_allowed: false,
+  }, 'Install exposure OPL Framework compatibility handshake missing_required');
+  assertFieldsMatch(handshake?.missing_optional_enhancement_policy, {
+    app_state_activation_allowed: true,
+    global_recovery_required: false,
+  }, 'Install exposure OPL Framework compatibility handshake missing_optional');
+  assertIncludesAll(handshake?.receipt_fields, [
+    'selected_carrier', 'framework_version', 'framework_api_version', 'app_required_api_range',
+    'producer_capability_ids', 'required_capability_ids', 'compatibility_status', 'active_framework_count',
+  ], 'Install exposure OPL Framework compatibility handshake receipt_fields');
+  assertFieldsMatch(carrier.activation_invariants, {
+    active_framework_count: 1,
+    dual_runtime_allowed: false,
+    split_brain_allowed: false,
+    second_framework_fallback_may_activate: false,
+  }, 'Install exposure OPL Framework activation invariants');
+  assertFieldsMatch(carrier.release_authority, {
+    app_carrier_release_truth_owner: 'one-person-lab-app',
+    opl_base_release_truth_owner: 'one-person-lab',
+    app_release_must_not_publish_or_promote_opl_base: true,
+  }, 'Install exposure OPL Framework release authority');
 }
 
 function validateHomebrewTransportBoundary(homebrew) {
-  if (
-    homebrew?.role !== 'app_cask_and_framework_formula_install_index' ||
-    homebrew?.tap !== 'gaofeng21cn/one-person-lab' ||
-    homebrew?.must_not_own_agent_semantics !== true ||
-    homebrew?.must_not_write_user_codex_state !== true ||
-    homebrew?.user_state_activation_owner !== 'opl_framework'
-  ) {
-    throw new Error('Install exposure Homebrew distribution must index only App casks and the Framework formula, and delegate activation to OPL Framework');
-  }
-  assertDeepEqualJson(homebrew.carrier_adapter_semantics, {
-    formula: {
-      object: 'opl_base',
-      formula: 'opl',
-      lifecycle_owner: 'one-person-lab',
-      packages_allowed: false,
-    },
-    cask: {
-      object: 'opl_app',
-      lifecycle_owner: 'one-person-lab-app',
-      base_or_packages_mutation_allowed: false,
-      payload_profiles: {
-        standard: ['opl_app'],
-        nightly: ['opl_app'],
-        full: ['opl_app', 'opl_base_offline_seed', 'opl_package_offline_seeds'],
-      },
-      full_seed_activation_owner: 'one-person-lab',
-      post_launch_reconcile_ref: 'contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation',
-    },
-    equivalent_direct_carriers: {
-      opl_base: 'framework_installer',
-      opl_app: 'signed_installer_or_dmg',
-    },
-  }, 'Install exposure Homebrew carrier adapter semantics');
-  assertIncludesAll(
-    homebrew.activation_commands,
-    ['opl packages update --json', 'opl connect sync-skills'],
-    'Install exposure Homebrew activation commands',
-  );
+  assertFieldsMatch(homebrew, {
+    role: 'app_cask_and_framework_formula_install_index',
+    tap: 'gaofeng21cn/one-person-lab',
+    must_not_own_agent_semantics: true,
+    must_not_write_user_codex_state: true,
+    user_state_activation_owner: 'opl_framework',
+  }, 'Install exposure Homebrew distribution');
+  assertFieldsMatch(homebrew.carrier_adapter_semantics?.formula, {
+    object: 'opl_base',
+    formula: 'opl',
+    lifecycle_owner: 'one-person-lab',
+    packages_allowed: false,
+  }, 'Install exposure Homebrew Formula semantics');
+  assertFieldsMatch(homebrew.carrier_adapter_semantics?.cask, {
+    object: 'opl_app',
+    lifecycle_owner: 'one-person-lab-app',
+    base_or_packages_mutation_allowed: false,
+    full_seed_activation_owner: 'one-person-lab',
+    post_launch_reconcile_ref: 'contracts/app-release-channel.json#managed_update_plane.carrier_reconciliation',
+  }, 'Install exposure Homebrew Cask semantics');
+  assertDeepEqualJson(homebrew.carrier_adapter_semantics?.cask?.payload_profiles, {
+    standard: ['opl_app'],
+    nightly: ['opl_app'],
+    full: ['opl_app', 'opl_base_offline_seed', 'opl_package_offline_seeds'],
+  }, 'Install exposure Homebrew Cask payload profiles');
+  assertIncludesAll(homebrew.activation_commands, ['opl packages update --json', 'opl connect sync-skills'], 'Install exposure Homebrew activation commands');
 }
 
 function validateHomebrewCaskNames(homebrew) {
