@@ -18,6 +18,28 @@
 
 11 月 26 日首个云端候选的 macOS 构建 job 含签名、公证及上传共耗时 32 分钟。两次缓存保存合计 3 秒，主制品和 DMG 专用制品分别上传 11 秒和 5 秒。封存通过后，本机 runner 下载源码交接包用时 15 秒，随后在导入 Studio 验收脚本时因 npm 依赖缺失退出，尚未创建 VM。这次运行验证了云端构建与交接的耗时，并定位了一个独立的源码交接故障。 [云端候选](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45731928065) · [Tart 作业](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45731928065/job/139630485097)
 
+#### `v26.11.26` Stable 正式发布实测分阶段耗时
+
+以下数据采集自 `v26.11.26`（`Standard` + `WebUI` + `Linux` + `Windows` + `Full`）正式发布的 GitHub Actions 实时统计（`npm run release:actions-timing` 与 job 元数据）：
+
+| 阶段 / 作业 | 运行标识 | Runner 池 | 实测耗时 | 关键子步骤拆解与观测 |
+| --- | --- | --- | --- | --- |
+| Standard macOS ARM64 构建与公证 | [45810342836](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45810342836) | `macos-latest` | `33m45s` (`2025s`) | 队列 `3s`；`electron-builder` `14m40s`，active Shell 校验 `9m21s`，Developer ID 签名/Apple 公证 `6m31s` |
+| Standard Clean-VM 首启验收 | [45810342836](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45810342836) | `self-hosted` (`opl-cert-mac-tart`) | `6m14s` (`374s`) | 仅运行 VM 门禁；`Run clean VM first launch smoke` `4m24s` (`264s`) |
+| Standard Release 与 Homebrew Cask 发布 | [45810342836](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45810342836) | `ubuntu-latest` | `2m53s` + `15s` | `publish-standard-nonlatest` `173s`；`publish-standard-cask` `15s` |
+| WebUI / Docker 多架构构建与发布 | [45810342836](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45810342836) | `ubuntu-24.04` / `-arm` / `ubuntu-latest` | `3m30s` / `5m07s` / `3m40s` | `amd64` `210s`、`arm64` `307s` 并行构建与验证，随后 `publish-carrier` `220s` |
+| Linux x64 `.deb` 构建 | [45810342836](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45810342836) | `ubuntu-latest` | `5m54s` (`354s`) | `electron-builder (Linux)` `2m56s` (`176s`) |
+| Windows x64 `.exe` 构建与追加 | [45834020995](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45834020995) | `ubuntu-latest` + `windows-latest` | 墙钟 `26m47s` (`1607s`) | 队列 `4s`；Guest Host 预备 `4m47s`，`Build windows-x64` `17m44s`（`electron-builder` `14m38s`），`append-platform` `1m44s`；发布后认证 [45838497362](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45838497362) `17s` |
+| Full macOS ARM64 全量构建、签名与公证 | [45930131237](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45930131237) | `macos-latest` + `ubuntu-latest` | `43m16s` (`2596s`) | Shell 依赖 `2m07s`、Full payload 打包 `17m35s`、ARM 终态校验 `2m00s`、签名/公证/staple `17m02s`；`full-qualification` `3m19s`、`checkpoint-full` `1m06s` |
+| Full Checkpoint 复用恢复、Clean-VM 与发布 | [45943716661](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45943716661) | 混合池 | 墙钟 `24m15s` (`1455s`) | 队列 `3s`；`restore-standard` `1m02s`，`materialize-full-build` **`2m01s`**（较重打节省 **`~41m15s`**；[45939506164](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45939506164) 为 `54s`），`Clean VM first launch` `15m38s` (`938s`，含 7 包首装与 Temporal 生命周期），`publish-full` `1m24s`，`publish-homebrew-full` `30s`；联动 follow-up [45946149897](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45946149897) `24s` |
+
+#### `v26.11.26` 发布实战复盘与左移改进结论
+
+- **Harness 修复优先走 `--smoke-harness-ref` 复用已签 Checkpoint**：当 Clean-VM 失败仅源于 `shellHarnessMechanicsPaths`（如 `qualify-clean-vm.mjs`、`stable-smoke.mjs`）而非 DMG 本体时，使用 `--smoke-harness-ref` 直接复用已签名公证的 Full checkpoint（[45930131237](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45930131237) -> [45943716661](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45943716661)），单次恢复仅需 `2m01s` 恢复制品、免去 `43m16s` 重编与 Apple 公证。
+- **macOS 大体积包签名必须限制并发文件句柄**：Full 包内含海量运行期小文件，`@electron/osx-sign` 并发扫描曾导致 [45924560645](https://github.com/gaofeng21cn/one-person-lab-app/actions/runs/45924560645) 在 `14m27s` 触发 `EMFILE`；统一配置 `ulimit -S -n 65536` 与 `graceful-fs`/`p-limit(32)` 预加载后，签名阶段稳定通过。
+- **将种子载荷与序列化驱动校验前置到本地**：打包阶段新增 `assertPackagedCatalogSeedPayloadsComplete` 校验 `modules/*/runtime/` 声明文件完整性，并在单测中直接以无外部依赖的 `new Function` / 独立模块形态验证传入 VM 的序列化驱动（如 `collectTemporalServiceSupervisorProof`），避免跑完 40 分钟构建后才在 VM 末尾暴露静态缺漏。
+- **冻结候选的 Clean-VM 必须关闭后台自动更新**：联网 Clean-VM 阶段显式注入 `OPL_STUDIO_MANAGED_UPDATES=0` 并为 `runFrameworkReadiness` 透传完整超时预算，防止远端已发布的新版 Framework 镜像在验收过程中触发后台更新并独占写锁，影响冻结候选本身的一致性判定。
+
 ---
 
 ## 2. 混合 Runner 五大工程标准
