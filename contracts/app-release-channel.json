@@ -4183,7 +4183,12 @@
           "persistent_database_argument": "--db-filename",
           "configuration_current_required": true
         },
-        "verification": "Full manifest runtime_assertions.temporal_core_bridge_releases must be exactly aarch64-apple-darwin, runtime_assertions.offline_required_payloads must prove the macOS arm64 SWC native binding, wrapper must export local Temporal defaults, and the same-run Full qualification receipt must bind a passed opl_temporal_service_supervisor_proof.v1"
+        "framework_api_version": "1.0",
+        "verification": "For Framework v1, Full manifest runtime_assertions.temporal_core_bridge_releases must be exactly aarch64-apple-darwin, runtime_assertions.offline_required_payloads must prove the macOS arm64 SWC native binding, wrapper must export local Temporal defaults, and the same-run Full qualification receipt must bind a passed opl_temporal_service_supervisor_proof.v1"
+      },
+      "framework_daemon_runtime": {
+        "framework_api_version": "2.0",
+        "verification": "Full runs the packaged built CLI and daemon, verifies their versions, SQLite migrations and Pack readback in an isolated state directory. The v2 workspace does not ship the retired Temporal worker bridge or require its SWC binding. The standalone Temporal CLI archive remains available."
       }
     },
     "optional_payloads": {

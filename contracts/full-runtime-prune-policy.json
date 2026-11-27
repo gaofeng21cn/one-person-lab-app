@@ -77,6 +77,7 @@
       "^modules\\/[^/]+\\/tests?(?:\\/|$)",
       "^modules\\/[^/]+\\/(?:build|dist|htmlcov|docs\\/_build|notebooks|playwright-report|runtime|runtime-state|runs|sessions|test-results|\\.ds)(?:\\/|$)",
       "^modules\\/[^/]+\\/(?:cache|logs?|tmp|temp)(?:\\/|$)",
+      "^opl\\/packages\\/daemon\\/src(?:\\/|$)",
       "^opl\\/node_modules(?:\\/|$)",
       "^opl\\/.*\\/\\.venv(?:\\/|$)",
       "^opl\\/(?:build|playwright-report|test-results)(?:\\/|$)",
@@ -213,6 +214,7 @@
   "validation_examples": {
     "runtime_tree": {
       "excluded": [
+        "opl/packages/daemon/src/cli/bin-opld.ts",
         "modules/mas/.venv/lib/python3.12/site-packages/numpy/core.so",
         "modules/med-autocast/.local/first-run-acceptance/.venv/lib/python3.12/site-packages/PIL/.dylibs/libjpeg.62.4.0.dylib",
         "modules/med-autocast/.local/overview-update/.venv/lib/python3.12/site-packages/PIL/.dylibs/libjpeg.62.4.0.dylib",
@@ -235,6 +237,7 @@
         "opl/dist",
         "opl/dist/host",
         "opl/dist/host/composition-profiles.js",
+        "opl/packages/daemon/dist/cli/bin-opld.js",
         "opl/dist/host/plugins/cordis-channel-provider-host.js",
         "opl/dist/read-models/catalog/index.js",
         "opl/dist/adapters/integration/index.js",

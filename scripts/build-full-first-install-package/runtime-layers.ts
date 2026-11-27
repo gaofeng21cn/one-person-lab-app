@@ -557,7 +557,9 @@ export function collectRuntimeAssertions(runtimeRoot) {
     offline_required_payloads: [
       runtimePayloadStatus(runtimeRoot, 'bin/temporal', { executable: true }),
       runtimePayloadStatus(runtimeRoot, 'vendor/temporal/temporal_cli_darwin_arm64.tar.gz'),
-      runtimePayloadStatus(runtimeRoot, 'opl/node_modules/@swc/core-darwin-arm64/swc.darwin-arm64.node'),
+      ...(fullFrameworkApiVersion(path.join(runtimeRoot, 'opl')) === '1.0'
+        ? [runtimePayloadStatus(runtimeRoot, 'opl/node_modules/@swc/core-darwin-arm64/swc.darwin-arm64.node')]
+        : []),
       runtimePayloadStatus(runtimeRoot, 'node/bin/node', { executable: true }),
       runtimePayloadStatus(runtimeRoot, 'node/bin/npm', { executable: true }),
       runtimePayloadStatus(runtimeRoot, 'node/bin/npx', { executable: true }),

@@ -789,6 +789,18 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
       `# ${label} authority function inventory\n`,
     );
   }
+  writeJson(path.join(runtimeRoot, "opl/package.json"), { bin: { opld: "./packages/daemon/bin/opld" } });
+  writeJson(path.join(runtimeRoot, "opl/packages/daemon/package.json"), { exports: { ".": "./dist/index.js" } });
+  writeFile(path.join(runtimeRoot, "opl/packages/daemon/dist/index.js"), "export {};\n");
+  fs.rmSync(path.join(runtimeRoot, "opl/node_modules/@swc"), { recursive: true });
+  const v2Manifest = writeFullRuntimeManifest(
+    runtimeRoot, { version: "26.7.7-test" }, "2026-07-07T00:00:00.000Z",
+    { opl: { framework_api_version: "2.0", framework_daemon_version: "2.0.0" } }, {},
+  );
+  assert.equal(v2Manifest.components.opl.framework_api_version, "2.0");
+  const v2Payloads = v2Manifest.runtime_assertions.offline_required_payloads;
+  assert.ok(v2Payloads.some((entry) => entry.path === "opl/packages/daemon/dist/index.js" && entry.exists));
+  assert.ok(!v2Payloads.some((entry) => entry.path.includes("/@swc/")));
   fs.rmSync(path.join(runtimeRoot, "modules", "opl-flow", "skills"), {
     recursive: true,
     force: true,

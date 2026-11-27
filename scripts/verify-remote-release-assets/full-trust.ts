@@ -347,12 +347,12 @@ export function assertFullSizeBudget(manifest, fullDmgAssetSize) {
       "Full manifest runtime_assertions.temporal_core_bridge_releases must be an array.",
     );
   }
-  if (
-    runtimeAssertions.temporal_core_bridge_releases.length !== 1 ||
-    runtimeAssertions.temporal_core_bridge_releases[0] !== "aarch64-apple-darwin"
-  ) {
+  const expectedBridgeReleases = manifest.components?.opl?.framework_api_version === "2.0"
+    ? []
+    : ["aarch64-apple-darwin"];
+  if (JSON.stringify(runtimeAssertions.temporal_core_bridge_releases) !== JSON.stringify(expectedBridgeReleases)) {
     throw new Error(
-      `Full runtime Temporal core-bridge releases must be only aarch64-apple-darwin; got ${runtimeAssertions.temporal_core_bridge_releases.join(", ")}`,
+      `Full runtime Temporal core-bridge releases must match the selected Framework: expected ${JSON.stringify(expectedBridgeReleases)}, got ${JSON.stringify(runtimeAssertions.temporal_core_bridge_releases)}`,
     );
   }
   if (runtimeAssertions.excluded_module_venv_count !== 0) {
