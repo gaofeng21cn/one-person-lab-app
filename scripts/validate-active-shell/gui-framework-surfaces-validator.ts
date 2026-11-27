@@ -4,9 +4,9 @@ import { appOwnedProjectGroupExpansionPolicy } from './app-contract-constants.ts
 import { managedUpdateIpcSurfaces } from './managed-update-plane-validator.ts';
 import {
   validateArtifactNativeDrilldownProjectionContract,
-  validateProviderReadinessRepairProjectionContract,
   validateStateIndexSidecarProjectionContract,
 } from './shared-contract-validators.ts';
+import { runwayHealthProjectionRef } from './settings-and-provider.ts';
 import { root } from './validation-config.ts';
 import { assertCommandSurface } from './value-helpers.ts';
 
@@ -652,11 +652,9 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     ordinary_fast_state_required: true,
     app_role: 'display_only_stage_run_cockpit_consumer',
   }, 'App GUI StageRun cockpit');
-  validateProviderReadinessRepairProjectionContract(
-    guiContract.framework_surfaces.provider_readiness_repair,
-    'App GUI provider readiness repair framework surface',
-    { requireProjectionRef: true },
-  );
+  assertFieldsMatch(guiContract.framework_surfaces.runway_health, {
+    projection_ref: runwayHealthProjectionRef,
+  }, 'App GUI Runway health framework surface');
   const runtimeDefaultAttention = guiContract.framework_surfaces.runtime_default_attention;
   if (runtimeDefaultAttention?.default_mode !== 'user_task_status_first') {
     throw new Error('App GUI runtime default attention must be user_task_status_first');

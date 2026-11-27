@@ -1974,7 +1974,7 @@ function Write-WebUiAccessReceipt {
   $retryErrors = New-Object System.Collections.Generic.List[string]
   $responseStatus = $null
   $responseSuccess = $false
-  $command = "opl system configure-codex --api-key-stdin --json"
+  $command = "opl connect configure-codex --api-key-stdin --json"
   $stdinTransport = $false
   $responseText = ""
   $accessReceiptAttempt = 0

@@ -3188,7 +3188,7 @@
             "value_type": "credential_handle",
             "sensitivity": "secret_ref_only",
             "current_value_source_ref": "app_state.access.api_key_present + app_state.core.codex.model_access_source",
-            "write_route": "opl system configure-codex --api-key-stdin",
+            "write_route": "opl connect configure-codex --api-key-stdin",
             "persistence_target_ref": "credential_owner_storage",
             "verify_ref": "app_state.core.codex.model_access_ready",
             "risk": "sensitive",
@@ -5192,19 +5192,17 @@
               "necessary Codex and Gateway technical rows remain directly visible after duplicate fields are removed"
             ],
             "background_services_summary": {
-              "dependency_role": "required_for_complete_opl_durable_workflow",
-              "detail_components": ["temporal_server", "temporal_worker", "temporal_scheduler"],
+              "source": "app_state.settings_control_center.status_summary.runway",
+              "status_values": [
+                "stopped",
+                "degraded",
+                "running"
+              ],
               "overview_visible_unit": "background_tasks",
               "overview_label_zh": "后台任务",
               "overview_label_en": "Background tasks",
-              "component_status_policy": "derive_one_truthful_background_tasks_summary_from_explicit_server_worker_and_scheduler_fields_without_rendering_component_rows_on_Overview",
-              "projection_policy": "server_worker_and_scheduler_readiness_require_explicit_component_fields_must_never_be_inferred_from_provider_ready_and_take_precedence_over_aggregate_provider_status",
-              "normal_state_policy": "when_server_worker_and_scheduler_are_all_explicitly_ready_show_one_quiet_localized_ready_summary_without_attention_emphasis",
-              "attention_state_policy": "when_any_required_component_is_unready_unknown_or_stale_add_one_background_tasks_item_to_the_attention_queue_and_link_to_Service_Status",
               "component_detail_visibility": "service_status_destination_only",
-              "copy_policy": "localized_user_language_status_and_reason_never_raw_enum_or_blocker_id",
-              "attention_route": "/settings/environment#services",
-              "recommended_action_policy": "real_projected_Temporal_action_or_Maintenance_route_never_settings_sync_capabilities"
+              "attention_route": "/settings/environment?section=services"
             },
             "first_viewport_groups": ["system_status", "attention_queue", "codex_and_gateway"],
             "surface_inventory": {
@@ -5969,7 +5967,10 @@
               "record_eligibility": "canonical_record_exists_and_contains_at_least_one_resource_source_owner_or_route_ref",
               "group_visibility": "render_each_resource_category_only_when_that_category_has_at_least_one_eligible_record",
               "empty_projection_policy": "render_no_external_resource_group_anchor_or_placeholder",
-              "excluded_builtin_ids": ["opl_gateway", "gateway"],
+              "excluded_builtin_ids": [
+                "opl_gateway",
+                "gateway"
+              ],
               "ordinary_display_fields": [
                 "status",
                 "management_mode",
@@ -5984,7 +5985,9 @@
                 "credential_ownership",
                 "storage_execution",
                 "provider_truth"
-              ]
+              ],
+              "knowledge_sources_ref": "contracts/app-runtime-bridge.json#v2_resource_and_runway_actions.resource_sources",
+              "action_contract_ref": "contracts/app-runtime-bridge.json#v2_resource_and_runway_actions"
             },
             "layout_policy": {
               "section_presentation": "unframed_heading_plus_flat_rows",
@@ -6094,7 +6097,7 @@
                 "primary_question": "Are Codex and the required background services available now?",
                 "owns": [
                   "health_summary",
-                  "temporal_server_worker_scheduler_status",
+                  "runway_and_schedule_runner_health",
                   "service_check_start_and_restart_actions"
                 ],
                 "display_policy": "show_one_availability_summary_then_flat_component_rows;_healthy_components_are_muted_and_attention_components_expand",
@@ -6116,7 +6119,7 @@
                   "check_apply_repair_rollback_and_package_maintenance"
                 ],
                 "display_policy": "lead_with_attention_and_one_recommended_action;_collapse_healthy_components_into_a_compact_summary",
-                "must_not_show": ["Temporal component topology", "App log directory controls", "raw paths or receipts"]
+                "must_not_show": ["Runway service health", "App log directory controls", "raw paths or receipts"]
               },
               "logs_diagnostics": {
                 "anchor": "diagnostics",
@@ -6196,37 +6199,8 @@
               "managed_dependency_presentation": "shared_column_headers_and_flat_component_rows",
               "nested_card_or_border_wall_allowed": false
             },
-            "temporal_service_management": {
-              "contract_ref": "contracts/app-gui-product-contract.json#pages.settings_environment.temporal_maintenance_contract",
-              "dependency_role": "required_for_complete_opl_durable_workflow",
-              "visible_components": ["temporal_server", "temporal_worker", "temporal_scheduler"],
-              "component_status_policy": "server_worker_and_scheduler_have_independent_status_reason_and_action_rows",
-              "component_projection_policy": "server_worker_and_scheduler_readiness_require_explicit_component_fields_must_never_be_inferred_from_provider_ready_and_take_precedence_over_aggregate_provider_status",
-              "service_supervisor_state_source": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor",
-              "service_supervisor_policy": "desktop_macos_local_managed_service_requires_login_resident_run_at_load_keep_alive_stable_launcher_persistent_store_and_idempotent_provider_service_start_repair_while_external_container_and_non_macos_foreground_services_report_supervisor_not_applicable",
-              "ready_state_policy": "server_worker_and_scheduler_all_explicitly_ready_is_muted_normal_state_while_check_and_maintenance_actions_remain_reachable",
-              "worker_mutation_guard_policy": {
-                "blocked_status": "blocked_developer_checkout_shared_state",
-                "applies_when": "the_fresh_projected_mutation_guard_status_is_blocked_developer_checkout_shared_state",
-                "localized_reason_zh": "当前 OPL CLI 指向开发源码，已阻止它接管共享的托管 Worker。",
-                "localized_reason_en": "The active OPL CLI points to a developer checkout, so it cannot take over the shared managed worker.",
-                "allowed_next_steps": [
-                  "switch_to_managed_runtime",
-                  "explicitly_enable_authorized_developer_maintenance"
-                ],
-                "environment_bypass_guidance_allowed": false
-              },
-              "action_ids": {
-                "detect": ["provider_service_status", "provider_scheduler_status", "provider_worker_status"],
-                "install_or_configure": ["provider_service_start", "provider_scheduler_install"],
-                "start": ["provider_service_start", "provider_worker_start"],
-                "restart": ["provider_service_restart", "provider_worker_restart"],
-                "run_now": ["provider_scheduler_trigger"]
-              },
-              "runtime_dependency_action_source": "managed_dependency_summary[dependency_id=temporal-runtime].update_action",
-              "mutation_readback": "single_force_fresh_fast_app_state_executes_and_projects_temporal_server_worker_scheduler_component_readback",
-              "success_policy": "service_ready_and_required_platform_supervisor_ready_and_worker_ready_and_scheduler_ready_and_fresh_no_error_readback_only",
-              "failure_policy": "failed_stale_or_guidance_only_results_never_show_success_or_route_to_settings_sync_capabilities"
+            "runway_service_health": {
+              "projection_ref": "contracts/app-runtime-bridge.json#runway_health_projection"
             },
             "primary_action": {
               "id": "run_recommended_maintenance",
@@ -6253,10 +6227,6 @@
                   "when": "attention_only"
                 },
                 {
-                  "testid": "settings-maintenance-temporal-action",
-                  "when": "temporal_attention_or_user_requested_maintenance"
-                },
-                {
                   "testid": "settings-maintenance-technical-details",
                   "when": "diagnostics_open"
                 }
@@ -6264,11 +6234,7 @@
             },
             "destination_dom": {
               "runtime_services": [
-                "settings-maintenance-service-status",
-                "settings-maintenance-temporal",
-                "settings-maintenance-temporal-server",
-                "settings-maintenance-temporal-worker",
-                "settings-maintenance-temporal-scheduler"
+                "settings-maintenance-service-status"
               ],
               "updates_repairs": [
                 "settings-maintenance-updates-repairs",

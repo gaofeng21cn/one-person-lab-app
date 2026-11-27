@@ -4,7 +4,7 @@ import {
   validateArtifactProvenanceBundleProjectionContract,
   validateAgentAvailabilityProjectionContract,
   validateOpenScienceConsoleProjectionContract,
-  validateProviderReadinessRepairProjectionContract,
+  validateRunwayHealthProjectionContract,
   validateProgressDeltaDisplayContract,
   validateProjectProgressDisplayContract,
   validateRefLevelFollowUpProjectionContract,
@@ -33,10 +33,7 @@ export function validateRuntimeBridgeProjectionContracts(runtimeBridge) {
     runtimeBridge.progress_delta_projection,
     'Runtime bridge progress delta projection',
   );
-  validateProviderReadinessRepairProjectionContract(
-    runtimeBridge.provider_readiness_repair_projection,
-    'Runtime bridge provider readiness repair projection',
-  );
+  validateRunwayHealthProjectionContract(runtimeBridge.runway_health_projection);
   validateStateIndexSidecarProjectionContract(
     runtimeBridge.state_index_sidecar_projection,
     'Runtime bridge State Index sidecar projection',

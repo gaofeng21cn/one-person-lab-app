@@ -278,107 +278,27 @@ export function validateProgressDeltaDisplayContract(progressDelta, label) {
   }
 }
 
-function assertRepairCase(cases, blocker, fields, label) {
-  const repairCase = cases.find((candidate) => candidate?.blocker === blocker);
-  if (!repairCase) {
-    throw new Error(`${label} must declare ${blocker} repair case`);
-  }
-  assertProjectionFields(repairCase, fields, `${label} ${blocker}`, ".");
-  return repairCase;
-}
+export const runwayHealthProjectionRef = "contracts/app-runtime-bridge.json#runway_health_projection";
+export const runwayStatusValues = ["stopped", "degraded", "running"];
+export const runwaySummarySource = "app_state.settings_control_center.status_summary.runway";
 
-export function validateProviderReadinessRepairProjectionContract(projection, label, options = {}) {
+export function validateRunwayHealthProjectionContract(projection) {
+  const label = "Runtime bridge Runway health projection";
   if (!projection || typeof projection !== "object") {
     throw new Error(`${label} must be declared`);
   }
   assertProjectionFields(projection, {
-    source:
-      "app_state.provider + app_state.actions + app_state.operator.default_read_surface_policy",
-    authority: "opl_framework_provider_readiness_refs_projection",
-    display_policy: "settings_environment_provider_readiness_repair_without_current_owner_delta_override",
-    settings_owner_surface: "/settings/environment?section=services",
+    source: "app_state.services.runway",
+    summary_source: runwaySummarySource,
+    transport: "opld app.state.get",
     consumer_surface: "/settings/environment?section=services",
-    runtime_page_visible: false,
-    provider_kind: "temporal",
-    current_owner_delta_policy:
-      "never_replace_default_operator_payload_or_owner_delta_show_as_provider_readiness_repair_only",
-    app_role: "display_only_provider_repair_path_consumer",
+    schedule_management_route: "/scheduled",
+    status_policy: "use_owner_status_even_when_schedule_runner_is_running",
   }, label);
-  if (
-    options.requireProjectionRef &&
-    projection.projection_ref !==
-      "contracts/app-runtime-bridge.json#provider_readiness_repair_projection"
-  ) {
-    throw new Error(
-      `${label} projection_ref must point at app-runtime-bridge provider readiness repair projection`,
-    );
-  }
-  if (projection.domain_readiness_authority !== false) {
-    throw new Error(`${label} domain_readiness_authority must be false`);
-  }
-  if (projection.provider_readiness_authority !== false) {
-    throw new Error(`${label} provider_readiness_authority must be false`);
-  }
-  const cases = projection.repair_cases ?? [];
-  assertRepairCase(cases, "service_supervisor_not_ready", {
-    source_status:
-      "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor.ready=false_or_error",
-    display_state: "temporal_service_supervisor_not_ready",
-    next_repair_command_source:
-      "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.repair_action.next_command",
-    safe_action_id: "provider_service_start",
-    runtime_action_id: null,
-    command_role: "provider_server_restart_self_healing_repair_only",
-  }, label);
-  assertRepairCase(cases, "worker_not_ready", {
-    source_status: "temporal_worker_readiness.readiness_status=worker_not_ready",
-    display_state: "provider_worker_not_ready",
-    next_repair_command: "opl family-runtime worker start --provider temporal",
-    safe_action_id: "provider_worker_start",
-    runtime_action_id: "provider-worker:temporal:start",
-    command_role: "provider_liveness_repair_only",
-  }, label);
-  const searchAttributesMissing = assertRepairCase(cases, "missing_search_attributes", {
-    source_status: "temporal_visibility_readiness.readiness_status=missing_search_attributes",
-    display_state: "temporal_search_attributes_missing",
-    next_repair_command: "opl family-runtime provider repair --provider temporal",
-    command_role: "provider_visibility_repair_only",
-  }, label);
-  if (
-    searchAttributesMissing.safe_action_id !== null ||
-    searchAttributesMissing.runtime_action_id !== null
-  ) {
-    throw new Error(
-      `${label} missing_search_attributes must be surfaced as a repair command, not a shell-owned safe action`,
-    );
-  }
-  const searchAttributesCapacity = assertRepairCase(cases, "search_attribute_capacity_exceeded", {
-    source_status: "temporal_visibility_readiness.readiness_status=search_attribute_capacity_exceeded",
-    display_state: "temporal_search_attributes_capacity_exceeded",
-    command_role: "provider_visibility_migration_readback_only",
-  }, label);
-  if (searchAttributesCapacity.safe_action_id !== null || searchAttributesCapacity.runtime_action_id !== null) {
-    throw new Error(`${label} search_attribute_capacity_exceeded must not expose a shell-owned action`);
-  }
-  const visibilityDegraded = assertRepairCase(cases, "visibility_degraded", {
-    source_status: "temporal_visibility_readiness.indexing_ready=false_and_execution_ready=true",
-    display_state: "temporal_visibility_degraded_unindexed",
-    command_role: "provider_visibility_optional_degradation",
-  }, label);
-  if (visibilityDegraded.safe_action_id !== null || visibilityDegraded.runtime_action_id !== null) {
-    throw new Error(`${label} visibility_degraded must not expose a shell-owned action`);
-  }
-  assertIncludesAll(
-    projection.forbidden_claims,
-    [
-      "domain_ready",
-      "domain_readiness",
-      "owner_receipt_authority",
-      "typed_blocker_authority",
-      "current_owner_delta_override",
-      "app_release_readiness",
-      "family_production_readiness",
-    ],
-    `${label} forbidden_claims`,
-  );
+  assertDeepEqualJson(projection.status_values, runwayStatusValues, `${label} statuses`);
+  assertDeepEqualJson(projection.schedule_runner_fields, {
+    running: "boolean",
+    tick_interval_ms: "number",
+  }, `${label} schedule runner fields`);
+  assertDeepEqualJson(projection.available_actions, [], `${label} read-only actions`);
 }

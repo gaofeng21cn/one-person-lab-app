@@ -191,16 +191,24 @@ test('Framework release CLI consumer validates the exact archive while preservin
     git('init', '-q');
     git('config', 'user.name', 'OPL Release Test');
     git('config', 'user.email', 'release-test@example.invalid');
-    const sourceProbe = path.join(frameworkRoot, 'scripts', 'verify-package-source-artifacts.ts');
-    fs.writeFileSync(sourceProbe, `
-      import fs from 'node:fs';
+    const packSrc = path.join(frameworkRoot, 'packages/pack/src');
+    fs.mkdirSync(path.join(packSrc, 'distribution'), { recursive: true });
+    fs.mkdirSync(path.join(packSrc, 'manifest'), { recursive: true });
+    fs.mkdirSync(path.join(frameworkRoot, 'contracts'), { recursive: true });
+    const schemaPath = path.join(frameworkRoot, 'contracts/opl-package.v2.schema.json');
+    fs.writeFileSync(schemaPath, '{"title":"fixture schema"}');
+    fs.writeFileSync(path.join(packSrc, 'manifest/generate-schema.ts'),
+      `export const renderPackageManifestV2JsonSchemaText = () => '{"title":"fixture schema"}';`);
+    fs.writeFileSync(path.join(packSrc, 'distribution/official-package-catalog.ts'), `
       if (!process.cwd().includes('opl-framework-release-cli-consumer-')) throw new Error('must use exact archive');
-      const ids = process.argv.slice(2).filter((_, i) => i % 2 === 1);
-      console.log(JSON.stringify({ schema: 'opl_package_source_artifact_preflight.v1', status: 'passed',
-        root_package_ids: ids, items: ids.map(id => ({package_id: id, status: 'passed'})),
-        native_carrier_mutation: false, scope: 'selected_root_payloads_only' }));
+      export async function readOfficialPackageCatalog({ runtimeRoot, db }) {
+        if (runtimeRoot !== null || db) throw new Error('must not use runtime seed or daemon cache');
+        return new Map([['fixture-root', { manifest: { version: '1.0.0' } }]]);
+      }
+      export function officialPackageInstallSource() { return { kind: 'oci', version: '2.0.0' }; }
+      export async function readOfficialV2Source() { return { version: '2.0.0', commit: 'cccccccccccccccccccccccccccccccccccccccc' }; }
     `);
-    git('add', '.gitignore', 'package.json', 'package-lock.json', 'bin/opl', 'scripts/prepare.mjs', 'scripts/verify-package-source-artifacts.ts');
+    git('add', '.gitignore', 'package.json', 'package-lock.json', 'bin/opl', 'scripts/prepare.mjs', 'contracts', 'packages');
     git('commit', '-qm', 'fixture');
     const expectedFrameworkSha = git('rev-parse', 'HEAD');
     const localCli = '#!/bin/sh\nexit 99\n';
@@ -229,12 +237,19 @@ test('Framework release CLI consumer validates the exact archive while preservin
     assert.equal(report.release_status_surface, 'typed_contract_file_missing');
     assert.deepEqual(report.package_source_preflight?.root_package_ids, ['fixture-root']);
     assert.equal(fs.existsSync(path.join(frameworkRoot, 'prepare-ran')), false);
-    fs.writeFileSync(sourceProbe, "console.log(JSON.stringify({ schema: 'opl_package_source_artifact_preflight.v1', status: 'passed', root_package_ids: ['fixture-root'], items: [], native_carrier_mutation: false, scope: 'selected_root_payloads_only' }));");
-    git('add', 'scripts/verify-package-source-artifacts.ts');
-    git('commit', '-qm', 'incomplete source proof fixture');
+    assert.equal(report.package_source_preflight?.schema, 'opl_package_catalog_preflight.v1');
+    assert.deepEqual(report.package_source_preflight?.items, [{
+      package_id: 'fixture-root', status: 'passed', package_format: 'v2', version: '2.0.0', source_commit: 'c'.repeat(40),
+    }]);
+    assert.throws(() => runFrameworkReleaseCliConsumerGate({
+      frameworkRoot, expectedFrameworkSha, packageIds: ['fixture-root', 'missing-root'],
+    }), /Official Catalog has no selected Package missing-root/);
+    fs.writeFileSync(schemaPath, '{}');
+    git('add', 'contracts/opl-package.v2.schema.json');
+    git('commit', '-qm', 'incomplete package schema fixture');
     assert.throws(() => runFrameworkReleaseCliConsumerGate({
       frameworkRoot, expectedFrameworkSha: git('rev-parse', 'HEAD'), packageIds: ['fixture-root'],
-    }), /did not verify every selected/);
+    }), /Framework v2 Package manifest schema differs/);
     // Standard ships a host, so unavailable optional packages cannot block its
     // CLI consumer. An explicit package selection above still fails closed.
     const hostOnly = runFrameworkReleaseCliConsumerGate({

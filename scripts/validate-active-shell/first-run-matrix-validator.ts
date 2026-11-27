@@ -236,7 +236,7 @@ function validateProviderConfigurationQualification(qualification, scenarioById)
     || connectedDiagnostic?.missing_or_incompatible_host_credential !== 'diagnostic_skipped_without_artifact_gate_failure'
     || compatibilityLane?.requires_explicit_request !== true
     || compatibilityLane?.explicit_credential_file_role !== 'optional_manual_override_only'
-    || compatibilityLane?.provider_command !== 'opl system configure-codex --api-key-stdin --json'
+    || compatibilityLane?.provider_command !== 'opl connect configure-codex --api-key-stdin --json'
     || compatibilityLane?.provider_command_role !== 'new_or_rotated_provider_credential_only'
     || compatibilityLane?.package_reconciliation_performed !== false
     || compatibilityLane?.package_lifecycle_mutation_allowed !== false

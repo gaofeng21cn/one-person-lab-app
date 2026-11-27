@@ -3110,75 +3110,8 @@
       "ordinary_fast_state_required": true,
       "app_role": "display_only_stage_run_cockpit_consumer"
     },
-    "provider_readiness_repair": {
-      "projection_ref": "contracts/app-runtime-bridge.json#provider_readiness_repair_projection",
-      "source": "app_state.provider + app_state.actions + app_state.operator.default_read_surface_policy",
-      "authority": "opl_framework_provider_readiness_refs_projection",
-      "display_policy": "settings_environment_provider_readiness_repair_without_current_owner_delta_override",
-      "settings_owner_surface": "/settings/environment?section=services",
-      "consumer_surface": "/settings/environment?section=services",
-      "runtime_page_visible": false,
-      "provider_kind": "temporal",
-      "repair_cases": [
-        {
-          "blocker": "service_supervisor_not_ready",
-          "source_status": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor.ready=false_or_error",
-          "display_state": "temporal_service_supervisor_not_ready",
-          "next_repair_command_source": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.repair_action.next_command",
-          "safe_action_id": "provider_service_start",
-          "runtime_action_id": null,
-          "command_role": "provider_server_restart_self_healing_repair_only"
-        },
-        {
-          "blocker": "worker_not_ready",
-          "source_status": "temporal_worker_readiness.readiness_status=worker_not_ready",
-          "display_state": "provider_worker_not_ready",
-          "next_repair_command": "opl family-runtime worker start --provider temporal",
-          "safe_action_id": "provider_worker_start",
-          "runtime_action_id": "provider-worker:temporal:start",
-          "command_role": "provider_liveness_repair_only"
-        },
-        {
-          "blocker": "missing_search_attributes",
-          "source_status": "temporal_visibility_readiness.readiness_status=missing_search_attributes",
-          "display_state": "temporal_search_attributes_missing",
-          "next_repair_command": "opl family-runtime provider repair --provider temporal",
-          "safe_action_id": null,
-          "runtime_action_id": null,
-          "command_role": "provider_visibility_repair_only"
-        },
-        {
-          "blocker": "search_attribute_capacity_exceeded",
-          "source_status": "temporal_visibility_readiness.readiness_status=search_attribute_capacity_exceeded",
-          "display_state": "temporal_search_attributes_capacity_exceeded",
-          "next_repair_command_source": "app_state.provider.temporal.details.worker_readiness.visibility_readiness.repair_action.next_check",
-          "safe_action_id": null,
-          "runtime_action_id": null,
-          "command_role": "provider_visibility_migration_readback_only"
-        },
-        {
-          "blocker": "visibility_degraded",
-          "source_status": "temporal_visibility_readiness.indexing_ready=false_and_execution_ready=true",
-          "display_state": "temporal_visibility_degraded_unindexed",
-          "next_repair_command_source": "app_state.provider.temporal.details.worker_readiness.visibility_readiness.repair_action.next_check",
-          "safe_action_id": null,
-          "runtime_action_id": null,
-          "command_role": "provider_visibility_optional_degradation"
-        }
-      ],
-      "current_owner_delta_policy": "never_replace_default_operator_payload_or_owner_delta_show_as_provider_readiness_repair_only",
-      "domain_readiness_authority": false,
-      "provider_readiness_authority": false,
-      "app_role": "display_only_provider_repair_path_consumer",
-      "forbidden_claims": [
-        "domain_ready",
-        "domain_readiness",
-        "owner_receipt_authority",
-        "typed_blocker_authority",
-        "current_owner_delta_override",
-        "app_release_readiness",
-        "family_production_readiness"
-      ]
+    "runway_health": {
+      "projection_ref": "contracts/app-runtime-bridge.json#runway_health_projection"
     },
     "forbidden_gui_truth_sources": [
       "direct opl connect modules --json page aggregation",
@@ -7169,7 +7102,8 @@
         "remote_environment_truth"
       ],
       "section_sources": {
-        "applications": "app_state.agent_packages.directory.entries + app_state.agent_packages.sources.installed_products + app_state.agent_packages.sources.entries[].native_items",
+        "applications": "app_state.agent_packages.directory.entries",
+        "runtime_components": "app_state.managed_update.components",
         "updates": "app_state.managed_update + contracts/app-settings-control-plane.json#app_update_state_policy",
         "activity": "Framework package_operation_status through the existing App action bridge",
         "resources": "app_state.application_management",
@@ -7223,10 +7157,10 @@
           "package_id_or_product_id"
         ],
         "version_fields": [
-          "local_installation_version",
-          "selected_source_version"
+          "installed_version",
+          "selected_version"
         ],
-        "version_policy": "show the owner-selected active installation version and the owner-selected obtainable target for its release track; default to the publisher recommended release; missing versions render an em dash with a specific reason in details, never multiple channels or a guessed highest version",
+        "version_policy": "show the installed and selected versions projected by the owner; missing versions render as unknown",
         "maturity_policy": "only an explicit product-owner declaration establishes maturity; development_only admission never implies preview and admitted never implies stable",
         "distribution_field": "app_state.agent_packages.directory.entries[].distribution_channel",
         "distribution_values": [
@@ -7294,7 +7228,6 @@
           "publisher",
           "catalog_source",
           "installation_mode",
-          "installation_instances",
           "lifecycle_owner",
           "installation_location",
           "source_revision",
@@ -7330,59 +7263,30 @@
         },
         "ordinary_use_entry": "Start using opens the declared task or UI entry; an update is a separate secondary action"
       },
-      "installation_instance_policy": {
-        "identity_policy": "one product in one environment can retain multiple installations and has at most one active runtime instance; integration entrypoints refer to that runtime rather than establishing another activation",
-        "package_plugin_fields": "installed and installed_version describe the configured Package carrier; local_installations describe other verified owner installations",
-        "package_instance_source": "app_state.agent_packages.directory.entries[].installations",
-        "native_instance_source": "app_state.agent_packages.sources.installed_products + app_state.agent_packages.sources.entries[].native_items",
-        "installed_product_policy": "merge verified owner installations and source carrier options by owner product_id; installed_products stays available independently of Homebrew or tap availability",
-        "installed_product_adapter_scope": "Framework installed-owner readback; other products appear only when their own adapter supplies verified evidence",
-        "presence_policy": "a missing receipt from one carrier does not prove that the product is absent from the machine",
-        "instance_details": [
-          "installation_id",
-          "version",
-          "available_version",
-          "mode",
-          "manager",
-          "location",
-          "active",
-          "evidence_source",
-          "available_actions"
+      "framework_base_component": {
+        "source": "app_state.managed_update.components[component_id=opl_base]",
+        "version_source": "current.installed_version",
+        "available_actions": []
+      },
+      "package_installation_policy": {
+        "source": "app_state.agent_packages.directory.entries",
+        "action_source": "app_state.agent_packages.directory.entries[].available_actions",
+        "version_fields": [
+          "installed_version",
+          "selected_version"
         ],
-        "installation_mode_policy": "distinguish installed from development using owner receipts and effective source policy; an ordinary checkout or git_checkout label alone proves neither",
-        "effective_source_policy": "all product entrypoints use the owner active runtime; use active_installation_id and active_installation_status without guessing from version order or discovery",
-        "action_policy": "dispatch only actions projected by the owner of the selected installation instance; never apply Homebrew or Codex-plugin lifecycle to another owner installation",
-        "homebrew_policy": "homebrew_installed describes Homebrew custody; installation_owner describes the detected product installation",
-        "path_policy": "show actual owner-verified software code paths on the current local host; preserve native installer roots; keep source checkouts and user data separate",
-        "implicit_path_migration_allowed": false,
-        "second_installation_registry_allowed": false,
-        "unknown_instance_policy": "show not observed or unknown for that carrier; do not claim machine-wide absence",
-        "list_version_policy": "use the owner-selected active installation only; inactive or unresolved activation has its own visible status; expose all installed locations in details",
-        "development_presentation": "development is an installation-mode badge; it does not create a separate product category, maturity label or update authority",
-        "activation_policy": "explicit owner action switches the active installation after revision and identity checks; retain inactive installations and do not create a UI activation registry",
-        "default_activation_policy": "choose the publisher recommended release on first install; development requires explicit registration and activation; preserve existing owner selection until an explicit switch",
-        "development_lifecycle_policy": "register inspect activate and unlink through the owner; never upgrade checkout source or delete it through release update or uninstall",
-        "source_option_is_installation": false,
-        "first_installation_action_source": "app_state.agent_packages.directory.entries[].installation_actions",
-        "first_installation_policy": "the owner offers an exact published version bound to fresh inventory revision; creating an installation has no existing installation_id and cannot overwrite an existing target"
+        "second_installation_registry_allowed": false
       },
       "software_source_management": {
-        "access_contract_ref": "one-person-lab/contracts/opl-framework/package-access-contract.json",
-        "operation_spec_ref": "one-person-lab/docs/specs/software-sources.md",
         "source": "app_state.agent_packages.sources",
-        "native_catalog_policy": "render owner-projected native products and carrier options; Homebrew owns its recipes and receipts while each detected installation retains its lifecycle owner",
-        "native_catalog_source": "app_state.agent_packages.sources.entries[].native_items",
-        "installed_product_source": "app_state.agent_packages.sources.installed_products",
-        "native_lifecycle_policy": "show actual local and selected source versions with per-carrier ownership; execute only the projected actions for that installation and verify through the same owner",
         "catalog_access_policy": "filter_private_metadata_by_current_owner_authorization_before_rendering_or_counting",
         "count_policy": "unknown_or_unread_entry_count_stays_unknown_never_zero",
-        "action_policy": "owner_projected_configure_check_disconnect_actions;_never_accept_or_store_credential_values",
+        "action_policy": "execute only owner-projected source actions using credential references",
         "revocation_policy": "hide_uninstalled_private_metadata;_retain_minimum_local_installation_facts_and_available_local_actions;_block_remote_download_actions_until_reauthorized",
         "source_admission": {
           "managed_sources": [
             "public_package_distribution",
-            "authorized_private_package_distribution",
-            "declared_native_application_and_cli_carriers"
+            "authorized_private_package_distribution"
           ],
           "component_sources": "only owner-declared runtime dependencies; optional Host-bundled extensions belong to their external source",
           "excluded_sources": [
@@ -7396,9 +7300,24 @@
           ],
           "development_source_policy": "explicit developer override only; never a normal install update or repair source"
         },
-        "presentation_policy": "one OPL software catalog with public, authorized-private and Homebrew delivery channels; channel details do not become competing product catalogs",
+        "presentation_policy": "one OPL software catalog with public and authorized-private Framework Package sources; native carrier channels stay outside Software Center",
         "external_manager_policy": "external Codex plugins, standalone skills and other sources retain their native discovery and management routes; a plugin list does not claim complete skill coverage",
-        "selection_policy": "Framework selects exactly one source target per product using an explicit installed receipt, publisher default, or sole verified source; the renderer does not rank names or version strings"
+        "selection_policy": "Framework selects exactly one source target per product using an explicit installed receipt, publisher default, or sole verified source; the renderer does not rank names or version strings",
+        "surface_kind": "opl_software_sources_projection.v1",
+        "public_catalog": {
+          "source_id": "public-registry:opl",
+          "available_actions": [
+            "source_refresh"
+          ]
+        },
+        "authorized_private_catalog": {
+          "provider_id": "github_packages",
+          "available_actions": [
+            "source_configure",
+            "source_check",
+            "source_disconnect"
+          ]
+        }
       },
       "state_feedback_policy": {
         "initial_loading": "show_loading_without_zero_inventory_no_problem_or_disconnected_claims",
@@ -7432,7 +7351,7 @@
         "setup_continuity": "retain the selected product while installing or granting shared-resource access; fresh owner readback exposes Continue using",
         "resource_navigation": "one shared-resource management surface; settings aliases and product details deep-link to it and retain a return route",
         "attention_policy": "group only proven shared causes by owner identity; include affected products and one recovery route; unknown, unconfigured optional resources and updates are not failures",
-        "installation_disclosure": "current installation with version, mode and location first; other installations and delivery choices are progressively disclosed",
+        "installation_disclosure": "show installed version, mode, source and owner-projected details",
         "knowledge_connection": "native folder selection where supported; scope choices use readable labels and owner defaults; existing knowledge and credential owners retain authority",
         "identity_policy": "display name, purpose, artwork and launch entry derive from owner product metadata; bundled artwork is a generated offline projection, not another product inventory"
       },
@@ -8050,34 +7969,21 @@
         "one card per Settings page",
         "workspace path as a primary card",
         "Gateway login, key management, refresh, or disconnect controls",
-        "raw attention_needed, provider_code_landed_unconfigured, temporal_runtime_not_configured, or other machine status tokens",
+        "raw attention_needed or other machine status tokens",
         "raw paths, receipts, payloads, or full owner-page details"
       ],
       "background_services_summary": {
-        "dependency_role": "required_for_complete_opl_durable_workflow",
-        "plain_codex_boundary": "plain_Codex_chat_can_remain_available_but_must_not_hide_or_downgrade_a_Temporal_dependency_problem",
-        "state_sources": [
-          "app_state.provider.temporal",
-          "app_state.provider.temporal.details.worker_readiness",
-          "app_state.provider.temporal.details.scheduler",
-          "settings_control_center.status_summary.temporal_provider"
-        ],
-        "detail_components": [
-          "temporal_server",
-          "temporal_worker",
-          "temporal_scheduler"
+        "source": "app_state.settings_control_center.status_summary.runway",
+        "status_values": [
+          "stopped",
+          "degraded",
+          "running"
         ],
         "overview_visible_unit": "background_tasks",
         "overview_label_zh": "后台任务",
         "overview_label_en": "Background tasks",
-        "component_status_policy": "derive_one_truthful_background_tasks_summary_from_explicit_server_worker_and_scheduler_fields_without_rendering_component_rows_on_Overview",
-        "projection_policy": "server_worker_and_scheduler_readiness_require_explicit_component_fields_must_never_be_inferred_from_provider_ready_and_take_precedence_over_aggregate_provider_status",
-        "normal_state_policy": "when_server_worker_and_scheduler_are_all_explicitly_ready_show_one_quiet_localized_ready_summary_without_attention_emphasis",
-        "attention_state_policy": "when_any_required_component_is_unready_unknown_or_stale_add_one_background_tasks_item_to_the_attention_queue_and_link_to_Service_Status",
         "component_detail_visibility": "service_status_destination_only",
-        "copy_policy": "localized_user_language_status_and_reason_never_raw_enum_or_blocker_id",
-        "attention_route": "/settings/environment#services",
-        "action_policy": "route_to_Maintenance_and_only_use_real_projected_Temporal_actions_never_settings_sync_capabilities"
+        "attention_route": "/settings/environment?section=services"
       },
       "ia_group": "overview",
       "product_page_id": "overview",
@@ -8087,7 +7993,7 @@
         "settings_control_center.status_summary",
         "settings_control_center.issue_queue",
         "core.codex",
-        "provider.temporal",
+        "services.runway",
         "settings_control_center.app_settings_read_model.opl_gateway_account"
       ],
       "required_anchors": [
@@ -8415,7 +8321,9 @@
           "credential_ownership",
           "storage_execution",
           "provider_truth"
-        ]
+        ],
+        "knowledge_sources_ref": "contracts/app-runtime-bridge.json#v2_resource_and_runway_actions.resource_sources",
+        "action_contract_ref": "contracts/app-runtime-bridge.json#v2_resource_and_runway_actions"
       },
       "ia_group": "connections_deployment",
       "product_page_id": "resources",
@@ -9423,7 +9331,7 @@
         "three independent second-level destinations: Service Status, Updates & Repair, and Logs & Diagnostics",
         "exactly one selected destination presented as the ordinary page purpose",
         "active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI with version, source, currentness, and update guidance on the main Maintenance surface",
-        "Temporal server, worker, and scheduler detail only under Service Status",
+        "Runway status and schedule runner health under Service Status",
         "update channel as an inline persistent configuration",
         "single recommended repair or maintenance action",
         "check, apply, repair, rollback, and package maintenance directly on the daily Maintenance page with progressive confirmation and fresh readback",
@@ -9643,235 +9551,8 @@
           "confirmation"
         ]
       },
-      "temporal_maintenance_contract": {
-        "dependency_role": "required_for_complete_opl_durable_workflow",
-        "plain_codex_boundary": "plain_Codex_chat_availability_is_reported_separately_and_does_not_reclassify_Temporal_as_optional",
-        "status_source": "opl app state --profile fast --json#app_state.provider.temporal",
-        "visible_components": [
-          "temporal_server",
-          "temporal_worker",
-          "temporal_scheduler"
-        ],
-        "user_mental_model": {
-          "surface_label_zh": "持久任务运行（Temporal）",
-          "surface_label_en": "Durable tasks (Temporal)",
-          "surface_question": "can_opl_durable_tasks_run_now",
-          "component_labels": {
-            "temporal_server": {
-              "label_zh": "Temporal 基础服务",
-              "label_en": "Temporal service",
-              "role": "single_required_temporal_dependency_substrate"
-            },
-            "temporal_worker": {
-              "label_zh": "OPL 任务执行器",
-              "label_en": "OPL task worker",
-              "role": "opl_owned_workflow_and_activity_executor"
-            },
-            "temporal_scheduler": {
-              "label_zh": "周期计划",
-              "label_en": "Scheduled runs",
-              "role": "temporal_schedule_cadence_not_a_second_scheduler_service"
-            }
-          },
-          "dependency_topology": [
-            "temporal_server",
-            "temporal_worker",
-            "temporal_scheduler"
-          ],
-          "causal_blocking_policy": "downstream_unready_due_to_an_upstream_component_must_show_waiting_for_the_named_upstream_not_generic_attention",
-          "aggregate_status_policy": "show_the_root_cause_and_user_impact_once_never_repeat_one_generic_attention_label_for_every_component",
-          "overview_issue_policy": "merge_initialize_family_runtime_provider_and_fast_runtime_readiness_into_one_actionable_issue",
-          "user_visible_statuses": [
-            "ready",
-            "setup_required",
-            "checking",
-            "waiting_for_temporal_service",
-            "waiting_for_task_worker",
-            "paused",
-            "repair_required",
-            "check_failed",
-            "stale"
-          ],
-          "primary_action_policy": "show_exactly_one_safe_action_for_the_first_actionable_root_cause_plus_one_recheck_action",
-          "diagnostic_action_policy": "component_checks_and_secondary_operations_live_inside_technical_details_and_do_not_compete_with_the_primary_action",
-          "disabled_action_policy": "hide_blocked_downstream_actions_or_explain_their_named_prerequisite_with_focusable_accessible_help",
-          "technical_detail_policy": "address_namespace_task_queue_supervisor_and_component_timestamps_are_collapsed_by_default",
-          "plain_codex_impact_policy": "state_that_plain_Codex_chat_remains_available_while_durable_scheduled_and_recoverable_background_tasks_are_unavailable"
-        },
-        "visible_fields": [
-          "localized_status",
-          "localized_reason",
-          "service_ready",
-          "server_reachable",
-          "service_supervisor_supported",
-          "service_supervisor_applicable",
-          "service_supervisor_required",
-          "service_supervisor_installed",
-          "service_supervisor_loaded",
-          "service_supervisor_ready",
-          "service_supervisor_observed_at",
-          "service_supervisor_error",
-          "worker_ready",
-          "scheduler_status",
-          "scheduler_ready",
-          "scheduler_observed_at",
-          "observed_at"
-        ],
-        "component_status_policy": "server_worker_and_temporal_schedule_keep_independent_readback_but_render_as_one_causal_dependency_chain_with_one_root_action",
-        "component_projection_policy": "server_worker_and_scheduler_readiness_require_explicit_component_fields_must_never_be_inferred_from_provider_ready_and_take_precedence_over_aggregate_provider_status",
-        "service_supervisor_policy": {
-          "role": "login_resident_temporal_server_supervisor_required_for_restart_self_healing",
-          "platform_scope": {
-            "required_on": [
-              "desktop_macos_local_managed_service"
-            ],
-            "not_applicable_on": [
-              "webui_container_managed_service",
-              "explicit_external_temporal_service",
-              "non_macos_foreground_service"
-            ],
-            "not_applicable_readiness_policy": "supervisor_ready_is_not_required_but_server_worker_scheduler_and_fresh_no_error_readback_remain_required"
-          },
-          "state_source": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor",
-          "required_summary_fields": [
-            "supported",
-            "applicable",
-            "required",
-            "installed",
-            "loaded",
-            "ready",
-            "observed_at",
-            "error"
-          ],
-          "diagnostic_fields": [
-            "status",
-            "configuration_current",
-            "pid",
-            "process_state",
-            "last_exit_status",
-            "last_exit_signal",
-            "run_at_load",
-            "keep_alive",
-            "throttle_interval_seconds",
-            "address",
-            "launcher_source"
-          ],
-          "launcher_policy": "bind_a_discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_a_repo_TypeScript_checkout",
-          "persistent_store_policy": {
-            "required_for_desktop_macos_local_managed_service": true,
-            "default_database_path": "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",
-            "required_launcher_argument": "--db-filename <absolute_database_path>",
-            "configuration_current_requires": [
-              "database_path_matches_family_runtime_root",
-              "launcher_args_bind_exact_database_path",
-              "launchd_plist_binds_exact_database_path"
-            ],
-            "prior_in_memory_history_migration_policy": "not_available_and_must_be_reported_without_lossless_migration_claim"
-          },
-          "login_reconciliation_order": [
-            "temporal_service_supervisor",
-            "temporal_worker_supervisor",
-            "temporal_scheduler"
-          ],
-          "framework_cli": [
-            "opl family-runtime service supervisor status --provider temporal",
-            "opl family-runtime service supervisor install --provider temporal",
-            "opl family-runtime service supervisor trigger --provider temporal",
-            "opl family-runtime service supervisor remove --provider temporal"
-          ],
-          "ordinary_app_action_policy": "provider_service_status_reads_supervisor_state_provider_service_start_idempotently_installs_or_repairs_it_and_provider_service_restart_performs_a_real_bounded_restart",
-          "repair_source": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.repair_action",
-          "repair_action_ids": [
-            "install_temporal_service_supervisor",
-            "trigger_temporal_service_supervisor",
-            "none"
-          ]
-        },
-        "scheduler_status_source": "app_state.provider.temporal.details.scheduler.{status,ready,observed_at} with details.scheduler_status as display-only compatibility fallback",
-        "ready_state_policy": "server_worker_and_scheduler_all_explicitly_ready_is_muted_normal_state_while_check_and_maintenance_actions_remain_reachable",
-        "worker_mutation_guard_policy": {
-          "source": "app_state.provider.temporal.details.worker_readiness.worker_mutation_guard",
-          "applies_when": "the_fresh_projected_mutation_guard_status_is_blocked_developer_checkout_shared_state",
-          "blocked_status": "blocked_developer_checkout_shared_state",
-          "localized_reason_zh": "当前 OPL CLI 指向开发源码，已阻止它接管共享的托管 Worker。",
-          "localized_reason_en": "The active OPL CLI points to a developer checkout, so it cannot take over the shared managed worker.",
-          "allowed_next_steps": [
-            "switch_to_managed_runtime",
-            "explicitly_enable_authorized_developer_maintenance"
-          ],
-          "environment_bypass_guidance_allowed": false
-        },
-        "raw_status_token_visibility": "diagnostics_only",
-        "action_roles": {
-          "detect": {
-            "action_ids": [
-              "provider_service_status",
-              "provider_scheduler_status",
-              "provider_worker_status"
-            ],
-            "mutates": false
-          },
-          "install_or_configure": {
-            "action_sources": [
-              "managed_dependency_summary[dependency_id=temporal-runtime].update_action",
-              "provider_service_start",
-              "provider_scheduler_install"
-            ],
-            "selection_policy": "use_the_real_executable_projected_Temporal_runtime_action_then_start_or_configure_the_managed_service_and_install_scheduler_only_after_provider_readiness",
-            "missing_executable_route_policy": "show_exact_Framework_owner_guidance_and_block_the_control_without_claiming_installation_or_configuration"
-          },
-          "start": {
-            "action_ids": [
-              "provider_service_start",
-              "provider_worker_start"
-            ],
-            "order": "service_then_worker"
-          },
-          "restart": {
-            "action_ids": [
-              "provider_service_restart",
-              "provider_worker_restart"
-            ],
-            "order": "bounded_service_restart_then_supervisor_aware_worker_restart"
-          },
-          "run_now": {
-            "action_ids": [
-              "provider_scheduler_trigger"
-            ],
-            "order": "trigger_scheduler_then_single_force_fresh_component_readback"
-          }
-        },
-        "post_action_readback": {
-          "required_after_mutation": true,
-          "execution": "single_force_fresh_fast_app_state_load",
-          "component_readback_semantics": "fresh_fast_app_state_executes_and_projects_explicit_temporal_server_worker_scheduler_component_readback",
-          "component_field_paths": {
-            "server": "app_state.provider.temporal.details.worker_readiness.service_ready",
-            "server_supervisor": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor.ready",
-            "worker": "app_state.provider.temporal.details.worker_readiness.worker_ready",
-            "scheduler": "app_state.provider.temporal.details.scheduler.ready"
-          },
-          "ordinary_and_post_action_readback_command_count": 1,
-          "shell_must_not_fan_out_delegated_status_cli": true,
-          "manual_component_check_policy": "explicit_user_diagnostic_only_not_final_state_source",
-          "legacy_or_aggregate_ready_policy": "null_legacy_server_reachable_and_aggregate_provider_ready_must_not_infer_component_ready",
-          "manual_component_check_action_ids": [
-            "provider_service_status",
-            "provider_scheduler_status",
-            "provider_worker_status"
-          ],
-          "final_state_source": "opl app state --profile fast --json#app_state.provider.temporal",
-          "freshness_required": true,
-          "success_requires": [
-            "service_ready_true",
-            "service_supervisor_ready_true_when_required",
-            "worker_ready_true",
-            "scheduler_ready_true",
-            "no_error",
-            "fresh_observation"
-          ]
-        },
-        "failure_semantics": "failed_stale_or_guidance_only_results_never_show_success_and_never_route_to_settings_sync_capabilities"
+      "runway_service_health": {
+        "projection_ref": "contracts/app-runtime-bridge.json#runway_health_projection"
       },
       "ia_group": "runtime_maintenance",
       "product_page_id": "maintenance",
@@ -10267,7 +9948,7 @@
       "appearance_preference",
       "maintenance_diagnostic_link",
       "about_update_fact",
-      "provider_readiness_repair"
+      "runway_health"
     ],
     "ordinary_must_not_default_display_terms": [
       "Temporal",

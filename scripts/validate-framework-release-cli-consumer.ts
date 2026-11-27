@@ -11,6 +11,47 @@ const fullShaPattern = /^[0-9a-f]{40}$/i;
 const defaultAppRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const releaseBundleCliRelPath = path.join('scripts', 'release-bundle-cli.ts');
 const releaseCliArgs = ['--experimental-strip-types', releaseBundleCliRelPath, 'checkpoint', 'import', '--help'] as const;
+const packageCatalogPreflight = `
+import fs from 'node:fs';
+import { renderPackageManifestV2JsonSchemaText } from './packages/pack/src/manifest/generate-schema.ts';
+import {
+  officialPackageInstallSource, readOfficialPackageCatalog, readOfficialV2Source,
+} from './packages/pack/src/distribution/official-package-catalog.ts';
+
+const schema = fs.readFileSync('contracts/opl-package.v2.schema.json', 'utf8');
+if (schema !== renderPackageManifestV2JsonSchemaText()) {
+  throw new Error('Framework v2 Package manifest schema differs from its shipped validator.');
+}
+
+// Use the archived Framework reader with no local seed, daemon cache or install.
+const catalog = await readOfficialPackageCatalog({ runtimeRoot: null });
+const items = [];
+for (const packageId of process.argv.slice(2)) {
+  const entry = catalog.get(packageId);
+  if (!entry) throw new Error('Official Catalog has no selected Package ' + packageId + '.');
+  const source = officialPackageInstallSource(entry, null, { allowAuthorizedOnly: true });
+  const manifest = entry.manifest;
+  if (['retired', 'development_only'].includes(manifest.publication_channel_admission)) {
+    throw new Error('Official Catalog Package is not admitted for publication: ' + packageId);
+  }
+  const release = await readOfficialV2Source(entry);
+  const payload = entry.payload;
+  if (!release && ((payload?.package_format ?? 'v1') !== 'v1'
+    || manifest.version !== source.version || payload?.package_id !== packageId
+    || payload.package_version !== source.version || typeof payload.source_repo !== 'string'
+    || payload.source_repo !== manifest.source_repo
+    || !/^[a-f0-9]{40}$/.test(payload.source_commit ?? '')
+    || payload.source_commit !== manifest.codex_surface?.carrier_source_commit
+    || !/^sha256:[a-f0-9]{64}$/.test(payload.content_lock?.digest ?? ''))) {
+    throw new Error('Official Catalog has an incomplete legacy release for ' + packageId + '.');
+  }
+  items.push({
+    package_id: packageId, status: 'passed', package_format: release ? 'v2' : 'v1',
+    version: release?.version ?? source.version, source_commit: release?.commit ?? payload.source_commit,
+  });
+}
+console.log(JSON.stringify(items));
+`;
 
 type CommandResult = {
   status: number | null;
@@ -163,20 +204,24 @@ export function runFrameworkReleaseCliConsumerGate(
     }
     if (options.packageIds?.length) {
       const packageIds = [...new Set(options.packageIds)];
+      const preflightPath = path.join(archiveRoot, '.opl-release-package-preflight.mjs');
+      fs.writeFileSync(preflightPath, packageCatalogPreflight, { flag: 'wx' });
       const output = commandOutput(process.execPath, [
-        '--experimental-strip-types', 'scripts/verify-package-source-artifacts.ts',
-        ...packageIds.flatMap((id) => ['--package-id', id]),
-      ], archiveRoot, 5 * 60_000);
-      const proof = JSON.parse(output);
-      if (proof?.schema !== 'opl_package_source_artifact_preflight.v1'
-        || proof.status !== 'passed' || proof.native_carrier_mutation !== false
-        || proof.scope !== 'selected_root_payloads_only'
-        || JSON.stringify(proof.root_package_ids) !== JSON.stringify(packageIds)
-        || !Array.isArray(proof.items) || proof.items.length !== packageIds.length
-        || proof.items.some((item: any, index: number) => item?.package_id !== packageIds[index] || item.status !== 'passed')) {
-        throw new Error('Framework Package source preflight did not verify every selected Official Profile root.');
+        '--conditions=opl-source', '--experimental-strip-types', preflightPath, ...packageIds,
+      ], archiveRoot, 5 * 60_000, quietEnv);
+      const items = JSON.parse(output) as { package_id: string; status: string }[];
+      if (!Array.isArray(items) || items.length !== packageIds.length
+        || items.some((item, index) => item?.package_id !== packageIds[index] || item.status !== 'passed')) {
+        throw new Error('Framework Package catalog preflight did not verify every selected Official Profile root.');
       }
-      packageSourcePreflight = proof;
+      packageSourcePreflight = {
+        schema: 'opl_package_catalog_preflight.v1',
+        status: 'passed',
+        scope: 'selected_root_catalog_releases_only',
+        root_package_ids: packageIds,
+        native_carrier_mutation: false,
+        items,
+      };
     }
   } catch (error) {
     consumerFailure = error;
@@ -223,7 +268,7 @@ if (isMainModule()) {
     });
     if (!values['framework-root'] || !values['expected-framework-sha']) {
       throw new Error(
-        'Usage: validate-framework-release-cli-consumer.ts --framework-root <path> --expected-framework-sha <sha> [--output <path>].',
+        'Usage: validate-framework-release-cli-consumer.ts --framework-root <path> --expected-framework-sha <sha> [--app-profile <path>] [--output <path>].',
       );
     }
     let packageIds: string[] | undefined;

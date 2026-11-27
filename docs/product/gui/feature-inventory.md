@@ -97,7 +97,7 @@ adapter、ordinary activity UI、pixel、install 和 release 分账，见
 | --- | --- | --- | --- | --- | --- | --- |
 | `U1-01` | Agent Package 目录与 lifecycle | 无直接对应；Codex 仅有通用 Plugins/Skills。 | 统一查看、安装、独立静默更新、启停、隐藏和卸载 OPL Agent Packages。 | OPL App 的核心定位是方便调用和管理自己的智能体账号/包。 | `P1` | 平台原生 manager拥有 bytes；Framework仅 discovery/presence/status/action adapter；App无 resolver/lock/payload/receipt state。 |
 | `U1-02` | Purpose/Starter 与 active context | 无直接对应；最接近 Codex New task/prompt 入口。 | 从用户目标直接选择专业 Agent，并以低权重 active context 表达当前能力。 | 用户不应先配置技术组件才能调用专业 Agent。 | `P1` | Starter 可选择、active context 可见、管理入口可达，并绑定真实 package identity。 |
-| `U1-03` | 弹性 Agent 对话与业务 runtime | 无直接对应。 | Agent Package拥有业务 task lifecycle；Temporal拥有 execution；普通对话和其他 Agent不被单包故障阻断。 | 既要显示真实推进，也不能把平台执行或 Package readiness冒充领域状态。 | `P1` | Agent/Temporal分别投影，Framework join unknown，Shell不推断；failure局部化。 |
+| `U1-03` | 弹性 Agent 对话与业务 runtime | 无直接对应。 | Agent Package拥有业务 task lifecycle；Runway/Ledger拥有执行与人工审批门禁；普通对话和其他 Agent不被单包故障阻断。 | 既要显示真实推进，也不能把平台执行或 Package readiness冒充领域状态。 | `P1` | Agent与Runway分别投影，Framework join unknown，Shell不推断；failure局部化。 |
 | `U1-04` | App / OPL Base / Packages 三对象 lifecycle | 无直接对应；Codex 只有自身 App 更新。 | 三对象分别由 App carrier、Base route 和各 Package native platform维护，App统一呈现。 | 统一 UI 不能变成统一自研 updater。 | `P2` | 三对象均可见，各走 owner route；Package逐包更新和fresh readback，不强求共用 mutation API或rollback state。 |
 | `U1-04a` | 应用管理统一入口 | 无直接对应；Codex Settings 只管理自身设置。 | `/apps` 提供软件、更新及软件源管理入口，资料与连接配置归 Settings，汇总共用基座的授权知识来源、连接和生命周期状态；公共与获授权的私有软件共用目录与操作。 | Agent 原生 App 需要一个稳定的安装、可用性、更新和资料与连接认知入口，同时保留各 owner 的真实状态。 | `P2` | 安装、运行可用性和更新状态分轴显示；动作走 owner projection 并 fresh readback；旧 Settings 路由深链到同一 projection；不复制 Package registry、凭据秘密或知识正文。 |
 | `U1-05` | Docker/WebUI 同产品语义 | 无直接对应。 | Desktop 与 Docker/WebUI 共享核心 route、状态、action、错误和 authority 语义。 | WebUI 是 OPL 的部署与远程使用入口，不能成为另一个产品。 | `P2` | 核心语义一致；transport 和 Desktop-only 安全能力可明确不同。 |
@@ -170,7 +170,7 @@ App 不以 allowlist 删除 capability，只应用窄 Team/internal negative pol
 | Additional Package shortcuts | 用户可按安装状态和个人选择显示任何 compliant `kind=agent` Package。 | Installed Agent descriptors + user preference。 |
 | Package directory | 查看 discoverable/installed Package、enabled/callable/update/attention 和推荐动作。 | Native platform state + Framework generic aggregation。 |
 | Package lifecycle actions | 安装、独立更新、启用/禁用、显示/隐藏或卸载，并 fresh readback。高级 repair/rollback打开 native owner。 | Native platform manager；Framework薄 action adapter；App/Shell只渲染。 |
-| 弹性 Agent 对话与 runtime | Shell消费 minimum Package/task projection；missing capability只阻止对应 Agent。真实 task business lifecycle归 Agent，execution归Temporal。 | Agent + Temporal + Framework join；App不构造 activation/package payload。 |
+| 弹性 Agent 对话与 runtime | Shell消费 minimum Package/task projection；missing capability只阻止对应 Agent。真实 task business lifecycle归 Agent，后台执行与人工审批归 Runway。 | Agent + Runway + Framework join；App不构造 activation/package payload。 |
 
 Purpose shortcut 只改变 route context 和 capability selection，不定义 domain workflow、
 artifact schema、quality verdict 或 readiness。普通用户标签描述工作目的；Package id 和
@@ -208,7 +208,7 @@ GUI contract 与 Settings Control Plane 拥有。
 
 | 一级组 > 二级目的地 | 用户结果 | Authority / machine owner |
 | --- | --- | --- |
-| 概览 > 概览 | 判断 App 当前是否可用、后台任务是否正常，以及最重要的下一步。Temporal 明细不在这里展开。 | Settings Control Plane、fast App state。 |
+| 概览 > 概览 | 判断 App 当前是否可用、后台任务是否正常，以及最重要的下一步。Runway 详细指标不在这里展开。 | Settings Control Plane、fast App state。 |
 | 账户与模型 > 账户与访问 | 登录 OPL Gateway 或配置手工 API Key；账户连接时查看脱敏身份、余额、Token/实际成本、专用 Key 状态和数据新鲜度。 | Framework Gateway account projection/secret bridge；密码不进入 App state 或 generic action。 |
 | 账户与模型 > 模型 | 查看模型访问来源、默认模型、推理偏好与 Codex CLI 可用性，不复制 Gateway 账户和凭据控制；版本与更新策略统一在运行与维护查看。 | Framework model access projection、App model/reasoning preference。 |
 | 连接与部署 > 资源与连接 | 查看真实存在的本机访问、WebUI 和外部连接 refs；内置 OPL Gateway 不在这里重复。Hosted Workspace、Fabric/HPC、Console 仅在稳定 owner/backend 存在时出现。 | Framework/Connect refs；X0-03/X0-04 owner routes 条件启用，App 不拥有资源 truth。 |
@@ -217,7 +217,7 @@ GUI contract 与 Settings Control Plane 拥有。
 | 智能体与能力 > 智能体 | 管理可运行 Agent Packages、presence依赖、独立静默更新、Home shortcuts 与 lifecycle。 | Native platform lifecycle + Framework discovery/status/action adapter；Official Profile只用于first install/restore。 |
 | 智能体与能力 > 能力 | 动态查看 Package暴露的 Skill/Tool/Plugin/MCP/producer/view capability；不维护App allowlist。 | Package/native discovery + user presentation preference。 |
 | 智能体与能力 > 指令与上下文 | 编辑用户 `AGENTS.md` 和新对话附加说明；复用 Workspace carrier，但不属于工作区导航。 | App personalization contract、typed host actions。 |
-| 运行与维护 > 服务状态 | 查看 Codex、Temporal server/worker/scheduler 的可用性及对应检查、启动或重启动作。 | Runtime/provider state and action projection。 |
+| 运行与维护 > 服务状态 | 查看 Codex CLI 与 Framework Runway（`app_state.services.runway`）及 `schedule_runner` 的只读健康状态。 | Framework runtime state projection。 |
 | 运行与维护 > 更新与修复 | 查看 Base/App currentness 和 Package聚合状态；Package具体动作链接到 Agents/native owner。 | App/Base updater + per-Package native status aggregation。 |
 | 运行与维护 > 日志与诊断 | Desktop 打开或更改 App 日志目录；standalone WebUI 只读显示 systemInfo 日志投影，Docker WebUI 只读显示 `/data/logs`；raw paths、receipts 和诊断信息默认折叠。 | App typed log action、Maintenance diagnostic projection。 |
 | 偏好 > 偏好 | 配置语言、主题、通知、启动、密度、字体和 motion。 | App settings/profile；不承载 runtime diagnostics。 |

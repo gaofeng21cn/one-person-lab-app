@@ -30,7 +30,7 @@ test("Settings product profile mirrors the control-plane page adapter claims", (
     /Product profile Settings page adapter policy projection/,
   );
 });
-test("Settings optional resource groups stay owner-projected and absent by default", () => {
+test("Settings optional resource groups stay owner-projected", () => {
   const values = contracts();
   const fastFixture = readJson(
     "contracts/fixtures/opl-app-state-fast.fixture.json",
@@ -38,10 +38,25 @@ test("Settings optional resource groups stay owner-projected and absent by defau
   const runtimeBridge = readJson("contracts/app-runtime-bridge.json");
 
   assert.doesNotThrow(() => validate(values));
-  assert.deepStrictEqual(
-    fastFixture.app_state.settings_control_center.app_settings_read_model
-      .resource_sources,
-    {},
+  const resourceSources = fastFixture.app_state.settings_control_center.app_settings_read_model
+    .resource_sources;
+  assert.equal(resourceSources.surface_kind, "opl_knowledge_sources_projection.v1");
+  assert.ok(Array.isArray(resourceSources.entries));
+  assert.deepStrictEqual(resourceSources.available_actions.map((action) => action.action_id), [
+    "knowledge_source_list",
+    "knowledge_source_check",
+    "knowledge_source_connect",
+    "knowledge_source_configure",
+    "knowledge_source_disconnect",
+  ]);
+  const softwareSources = fastFixture.app_state.agent_packages.sources.entries;
+  assert.equal(
+    softwareSources.find((source) => source.source_id === "public-registry:opl")?.status,
+    "ready",
+  );
+  assert.equal(
+    softwareSources.find((source) => source.source_id === "github-packages:gaofeng21cn")?.status,
+    "signed_out",
   );
   assert.equal(
     runtimeBridge.task_awareness_projection.resource_context_policy.app_role,
