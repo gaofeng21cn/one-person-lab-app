@@ -690,20 +690,60 @@ export function buildReleaseSourceGateReport(
       const appProviders = managedUpdateProviderMap(
         readJson(path.join(options.repoRoot, 'contracts', 'app-release-channel.json')),
       );
-      const frameworkProviders = frameworkManagedUpdateProviderMap(
-        readJson(path.join(frameworkRoot, 'contracts', 'opl-framework', 'managed-update-kernel-contract.json')),
-      );
-      const aligned = Object.keys(appProviders).length === Object.keys(frameworkProviders).length
-        && Object.entries(appProviders).every(([componentId, providerId]) => frameworkProviders[componentId] === providerId);
-      addCheck(checks, {
-        id: 'managed_update_provider_contract_aligned',
-        status: aligned ? 'passed' : 'failed',
-        message: aligned
-          ? 'App managed update lifecycle objects match Framework provider identities.'
-          : 'App managed update lifecycle provider identities drift from the Framework contract.',
-        expected: JSON.stringify(appProviders),
-        actual: JSON.stringify(frameworkProviders),
-      });
+      const frameworkManifest = readJson(path.join(frameworkRoot, 'package.json'));
+      const isFrameworkV2 = frameworkManifest?.bin?.opld === './packages/daemon/bin/opld';
+      if (isFrameworkV2) {
+        const dependencySources = readJson(
+          path.join(frameworkRoot, 'contracts', 'opl-framework', 'dependency-release-sources.json'),
+        );
+        const packageSchema = readJson(
+          path.join(frameworkRoot, 'contracts', 'opl-package.v2.schema.json'),
+        );
+        const dependencySourcesValid = dependencySources?.schema_version === 'opl.dependency-release-sources.v1'
+          && typeof dependencySources?.sources === 'object'
+          && dependencySources.sources !== null
+          && !Array.isArray(dependencySources.sources);
+        const packageSchemaValid = typeof packageSchema === 'object'
+          && packageSchema !== null
+          && !Array.isArray(packageSchema);
+        const appProvidersValid = Object.keys(appProviders).length === 3
+          && ['opl_base', 'opl_app', 'opl_packages'].every(
+            (key) => typeof appProviders[key] === 'string' && appProviders[key].length > 0,
+          );
+        const aligned = dependencySourcesValid && packageSchemaValid && appProvidersValid;
+        addCheck(checks, {
+          id: 'managed_update_provider_contract_aligned',
+          status: aligned ? 'passed' : 'failed',
+          message: aligned
+            ? 'App managed update lifecycle keys and Framework v2 dependency/package contracts are aligned (Framework v2 retired managed-update-kernel-contract.json).'
+            : 'Framework v2 managed update / dependency / package contracts are incomplete or invalid.',
+          expected: JSON.stringify({
+            app_providers: appProviders,
+            framework_api_version: '2.0',
+            dependency_sources_schema: 'opl.dependency-release-sources.v1',
+          }),
+          actual: JSON.stringify({
+            framework_api_version: '2.0',
+            dependency_sources_schema: dependencySources?.schema_version ?? null,
+            package_schema_present: packageSchemaValid,
+          }),
+        });
+      } else {
+        const frameworkProviders = frameworkManagedUpdateProviderMap(
+          readJson(path.join(frameworkRoot, 'contracts', 'opl-framework', 'managed-update-kernel-contract.json')),
+        );
+        const aligned = Object.keys(appProviders).length === Object.keys(frameworkProviders).length
+          && Object.entries(appProviders).every(([componentId, providerId]) => frameworkProviders[componentId] === providerId);
+        addCheck(checks, {
+          id: 'managed_update_provider_contract_aligned',
+          status: aligned ? 'passed' : 'failed',
+          message: aligned
+            ? 'App managed update lifecycle objects match Framework provider identities.'
+            : 'App managed update lifecycle provider identities drift from the Framework contract.',
+          expected: JSON.stringify(appProviders),
+          actual: JSON.stringify(frameworkProviders),
+        });
+      }
     } catch (error) {
       addCheck(checks, {
         id: 'managed_update_provider_contract_aligned',
