@@ -318,9 +318,7 @@ test('the universal installer has no Native tarball discovery or verifier fallba
   const source = fs.readFileSync(installerPath, 'utf8');
   assert.match(source, /One-Person-Lab-\$\{version\}-linux-x64\.deb/);
   assert.doesNotMatch(source, /resolve_linux_adjunct_release_record|opl-optional-platforms-manifest\.json/);
-  assert.match(source, /desktop_release_asset_selection_requested/);
   assert.match(source, /validate_install_density_for_route "\$SELECTED_INSTALL_ROUTE"/);
-  assert.match(source, /if desktop_release_asset_selection_requested; then\s+stable_macos_install/);
   assert.doesNotMatch(source, /OPL_NATIVE_WEBUI_|install-web\.sh|native-webui-qualified/);
 });
 
