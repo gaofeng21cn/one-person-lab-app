@@ -186,6 +186,15 @@ test("Full domain copy keeps only contract-declared authority inventories from r
       writeFile(path.join(moduleRoot, "runtime", "legacy-state.json"), "{}\n");
       writeFile(path.join(moduleRoot, "src", "index.py"), 'print("ready")\n');
     }
+    writeFile(path.join(options.masRoot, "runtime", "artifact_locator", "workspace-runtime-artifact-root.locator.json"), "{}\n");
+    writeFile(path.join(options.magRoot, "runtime", "README.md"), "# mag runtime\n");
+    writeFile(path.join(options.magRoot, "runtime", "app_contribution.py"), "print('ok')\n");
+    writeFile(path.join(options.bookforgeRoot, "runtime", "fixtures", "README.md"), "# fixtures\n");
+    writeFile(path.join(options.bookforgeRoot, "runtime", "native_helpers", "bookforge_app_review.py"), "print('ok')\n");
+    writeFile(path.join(options.bookforgeRoot, "runtime", "native_helpers", "pdf_export", "__init__.py"), "# pdf\n");
+    writeFile(path.join(options.bookforgeRoot, "runtime", "native_helpers", "__pycache__", "helper.cpython-312.pyc"), "pyc");
+    writeFile(path.join(options.rcaRoot, "runtime", "README.md"), "# rca runtime\n");
+    writeFile(path.join(options.macRoot, "runtime", "workbench", "package-lock.json"), "{}\n");
     writeJson(path.join(options.metaAgentRoot, "contracts", "pack_compiler_input.json"), {
       source_refs: {},
     });
@@ -205,10 +214,19 @@ test("Full domain copy keeps only contract-declared authority inventories from r
     buildDomainLayer(layerRoot, options);
     assert.equal(fs.existsSync(path.join(layerRoot, "modules/mac-media-assets")), false);
 
-    for (const relativePath of declaredModules.flatMap(([, moduleName]) => [
-      `modules/${moduleName}/runtime/authority_functions/README.md`,
-      `modules/${moduleName}/src/index.py`,
-    ])) {
+    for (const relativePath of [
+      ...declaredModules.flatMap(([, moduleName]) => [
+        `modules/${moduleName}/runtime/authority_functions/README.md`,
+        `modules/${moduleName}/src/index.py`,
+      ]),
+      "modules/mas/runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",
+      "modules/mag/runtime/README.md",
+      "modules/mag/runtime/app_contribution.py",
+      "modules/bookforge/runtime/fixtures/README.md",
+      "modules/bookforge/runtime/native_helpers/bookforge_app_review.py",
+      "modules/bookforge/runtime/native_helpers/pdf_export/__init__.py",
+      "modules/rca/runtime/README.md",
+    ]) {
       assert.equal(fs.existsSync(path.join(layerRoot, relativePath)), true, relativePath);
     }
     assert.equal(fs.existsSync(path.join(layerRoot, "modules/med-autocast/src/med_autocast/__init__.py")), true);
@@ -221,6 +239,8 @@ test("Full domain copy keeps only contract-declared authority inventories from r
         `modules/${moduleName}/runtime/authority_functions/debug-cache.json`,
         `modules/${moduleName}/runtime/legacy-state.json`,
       ]),
+      "modules/bookforge/runtime/native_helpers/__pycache__/helper.cpython-312.pyc",
+      "modules/med-autocast/runtime/workbench/package-lock.json",
       "modules/mas/runtime-state/checkpoint.json",
       "modules/mas/runs/latest.json",
       "modules/mas/sessions/current.json",
@@ -229,6 +249,61 @@ test("Full domain copy keeps only contract-declared authority inventories from r
     ]) {
       assert.equal(fs.existsSync(path.join(layerRoot, relativePath)), false, relativePath);
     }
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("assertPackagedCatalogSeedPayloadsComplete verifies catalog files against packaged module markers", async () => {
+  const { assertPackagedCatalogSeedPayloadsComplete } =
+    await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-catalog-payload-check-"));
+  const commit = "a".repeat(40);
+  try {
+    writeJson(path.join(tempRoot, "opl", "catalog-seed", "catalog-index.json"), {
+      schema_version: "opl_software_catalog_index.v1",
+      packages: [
+        {
+          package_id: "mas",
+          manifest_path: "packages/agents/mas.json",
+          payload_manifest_path: "packages/payloads/mas-0.3.3.json",
+        },
+      ],
+    });
+    writeJson(path.join(tempRoot, "opl", "catalog-seed", "packages", "agents", "mas.json"), {
+      package_id: "mas",
+      version: "0.3.3",
+      source_repo: "https://github.com/gaofeng21cn/med-autoscience.git",
+    });
+    writeJson(path.join(tempRoot, "opl", "catalog-seed", "packages", "payloads", "mas-0.3.3.json"), {
+      package_id: "mas",
+      package_version: "0.3.3",
+      source_commit: commit,
+      files: [
+        {
+          path: "runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",
+          source_url: `https://raw.githubusercontent.com/gaofeng21cn/med-autoscience/${commit}/runtime/artifact_locator/workspace-runtime-artifact-root.locator.json`,
+        },
+      ],
+    });
+    writeJson(path.join(tempRoot, "modules", "mas", "opl-runtime-module.json"), {
+      module_id: "medautoscience",
+      repo_name: "med-autoscience",
+      packaged_runtime: true,
+      source_git: { head_sha: commit },
+    });
+    assert.throws(
+      () => assertPackagedCatalogSeedPayloadsComplete(tempRoot),
+      /mas \(1 missing\): runtime\/artifact_locator\/workspace-runtime-artifact-root\.locator\.json/,
+    );
+    writeFile(
+      path.join(tempRoot, "modules", "mas", "runtime", "artifact_locator", "workspace-runtime-artifact-root.locator.json"),
+      "{}\n",
+    );
+    assert.deepEqual(assertPackagedCatalogSeedPayloadsComplete(tempRoot), {
+      checked_packages: 1,
+      checked_files: 1,
+    });
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

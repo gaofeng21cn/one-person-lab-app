@@ -22,6 +22,7 @@ import {
 } from './runtime-cache.ts';
 import {
   assertOplRuntimeProductionDependencies,
+  assertPackagedCatalogSeedPayloadsComplete,
   assertTemporalCoreBridgeMacosArm64Only,
   buildDomainLayer,
   buildOplLayer,
@@ -71,6 +72,7 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
   assertOplRuntimeProductionDependencies(path.join(runtimeRoot, 'opl'));
   assertTemporalCoreBridgeMacosArm64Only(path.join(runtimeRoot, 'opl', 'node_modules'));
   writeDomainMarkers(runtimeRoot, options, packagedAt);
+  assertPackagedCatalogSeedPayloadsComplete(runtimeRoot);
   const nativeTrust = ensureFullRuntimeNativeTrust(runtimeRoot);
   const flowCapabilityAssembly = assertMaterializedFlowCapabilityBuildLock(runtimeRoot);
   const selectedFlowCapabilities = new Set(

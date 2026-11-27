@@ -666,6 +666,82 @@ export function writeDomainMarkers(runtimeRoot, options, packagedAt) {
   }));
 }
 
+function repoBaseName(sourceRepo: unknown) {
+  if (typeof sourceRepo !== 'string' || !sourceRepo.trim()) return null;
+  try {
+    return path.posix.basename(new URL(sourceRepo).pathname.replace(/\/$/, '').replace(/\.git$/, ''));
+  } catch {
+    return null;
+  }
+}
+
+export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string) {
+  const catalogSeedRoot = path.join(runtimeRoot, 'opl', 'catalog-seed');
+  const catalogIndexPath = path.join(catalogSeedRoot, 'catalog-index.json');
+  const modulesRoot = path.join(runtimeRoot, 'modules');
+  if (!fs.existsSync(catalogIndexPath) || !fs.existsSync(modulesRoot)) {
+    return { checked_packages: 0, checked_files: 0 };
+  }
+  const index = JSON.parse(fs.readFileSync(catalogIndexPath, 'utf8'));
+  const markersByRepo = new Map<string, { moduleDir: string; commit: string }>();
+  for (const entry of fs.readdirSync(modulesRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const moduleDir = path.join(modulesRoot, entry.name);
+    const markerPath = path.join(moduleDir, PACKAGED_MODULE_MARKER_FILE);
+    if (!fs.existsSync(markerPath)) continue;
+    const marker = JSON.parse(fs.readFileSync(markerPath, 'utf8'));
+    if (marker?.packaged_runtime === true && typeof marker.repo_name === 'string' && typeof marker.source_git?.head_sha === 'string') {
+      markersByRepo.set(marker.repo_name, { moduleDir, commit: marker.source_git.head_sha });
+    }
+  }
+  let checkedPackages = 0;
+  let checkedFiles = 0;
+  const failures: string[] = [];
+  for (const pkg of index.packages ?? []) {
+    if (typeof pkg.manifest_path !== 'string') continue;
+    const ownerPath = path.join(catalogSeedRoot, pkg.manifest_path);
+    if (!fs.existsSync(ownerPath)) continue;
+    const owner = JSON.parse(fs.readFileSync(ownerPath, 'utf8'));
+    const repoName = repoBaseName(owner.source_repo);
+    if (!repoName) continue;
+    const marker = markersByRepo.get(repoName);
+    if (!marker) continue;
+    const payloadRel = pkg.payload_manifest_path ?? pkg.payload_path ?? `packages/payloads/${pkg.package_id}-${owner.version}.json`;
+    const payloadPath = path.join(catalogSeedRoot, payloadRel);
+    if (!fs.existsSync(payloadPath)) continue;
+    const payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
+    if (payload.source_commit !== marker.commit) continue;
+    checkedPackages += 1;
+    const expectedPrefix = `${new URL(String(owner.source_repo)).pathname.replace(/\/$/, '').replace(/\.git$/, '')}/${marker.commit}/`;
+    const missing: string[] = [];
+    for (const file of payload.files ?? []) {
+      checkedFiles += 1;
+      try {
+        const parsed = new URL(String(file.source_url));
+        if (parsed.protocol !== 'https:' || parsed.hostname !== 'raw.githubusercontent.com' || !parsed.pathname.startsWith(expectedPrefix)) {
+          missing.push(`${String(file.path ?? file.source_url)} (invalid source_url)`);
+          continue;
+        }
+        const relativePath = decodeURIComponent(parsed.pathname.slice(expectedPrefix.length));
+        const resolvedModule = fs.realpathSync(marker.moduleDir);
+        const resolvedTarget = path.resolve(resolvedModule, relativePath);
+        if (!resolvedTarget.startsWith(`${resolvedModule}${path.sep}`) || !fs.existsSync(resolvedTarget)) {
+          missing.push(relativePath);
+        }
+      } catch {
+        missing.push(String(file.path ?? file.source_url));
+      }
+    }
+    if (missing.length > 0) {
+      failures.push(`${pkg.package_id} (${missing.length} missing): ${missing.slice(0, 10).join(', ')}`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`Packaged Full modules are missing catalog payload files:\n  - ${failures.join('\n  - ')}`);
+  }
+  return { checked_packages: checkedPackages, checked_files: checkedFiles };
+}
+
 export function buildOplLayer(layerRoot, options) {
   const targetRoot = path.join(layerRoot, 'opl');
   copyTreeFiltered(options.frameworkRoot, targetRoot, 'opl');

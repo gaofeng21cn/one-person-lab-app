@@ -86,6 +86,7 @@
     ],
     "included_path_patterns": [
       "^modules\\/[^/]+\\/runtime(?:$|\\/authority_functions(?:$|\\/readme\\.md$))",
+      "^modules\\/(?:mas|mag|bookforge|rca)\\/runtime(?!(?:.*\\/(?:__pycache__|\\.ds_store)(?:\\/|$)|.*\\.py[co]$))\\/(?:readme\\.md$|app_contribution\\.py$|(?:artifact_locator|fixtures|native_helpers)(?:\\/|$))",
       "^modules\\/mas-scholar-skills\\/runtime(?:\\/|$)"
     ]
   },
@@ -216,6 +217,8 @@
         "modules/mas/cache/result.json",
         "modules/mag/runtime/authority_functions/debug-cache.json",
         "modules/mas/src/generated/client.js.map",
+        "modules/bookforge/runtime/native_helpers/__pycache__/helper.cpython-312.pyc",
+        "modules/med-autocast/runtime/workbench/package-lock.json",
         "python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/test/test_os.py",
         "python/cpython-3.12.12-macos-aarch64-none/lib/python3.12/site-packages/pip/_vendor/distlib/t32.exe",
         "python/cpython-3.12.12-macos-aarch64-none/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/pip/_vendor/distlib/w64-arm.exe"
@@ -229,9 +232,16 @@
         "opl/dist/adapters/integration/index.js",
         "modules/mas/src/med_autoscience/__init__.py",
         "modules/mas/runtime/authority_functions/README.md",
+        "modules/mas/runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",
         "modules/mag/runtime/authority_functions/README.md",
+        "modules/mag/runtime/README.md",
+        "modules/mag/runtime/app_contribution.py",
         "modules/rca/runtime/authority_functions/README.md",
+        "modules/rca/runtime/README.md",
         "modules/bookforge/runtime/authority_functions/README.md",
+        "modules/bookforge/runtime/fixtures/README.md",
+        "modules/bookforge/runtime/native_helpers/bookforge_app_review.py",
+        "modules/bookforge/runtime/native_helpers/pdf_export/__init__.py",
         "modules/mas-scholar-skills/runtime/reference-provider-adapters/index.ts",
         "modules/rca/contracts/runtime-program/schema.json",
         "modules/meta-agent/contracts/foundry_provider.json",
