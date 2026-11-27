@@ -1,4 +1,4 @@
-import { assertDeepEqualJson, assertIncludesAll } from "../assertions.ts";
+import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll } from "../assertions.ts";
 import {
   appOwnedSecondarySettingsPages,
   appOwnedSettingsCompatibilityRedirects,
@@ -32,56 +32,40 @@ export function validateSettingsPageStateMatrix(
     "Page-state Settings compatibility redirects",
   );
   for (const [pageId, expected] of Object.entries(matrixRouteScopes)) {
-    const page = pageById(pageStateMatrix, pageId);
-    if (page.settings_ia_ref !== settingsIaRef) {
-      throw new Error(`${pageId} must reference ${settingsIaRef}`);
-    }
-    if (page.route_id !== expected.route_id) {
-      throw new Error(`${pageId} route_id must be ${expected.route_id}`);
-    }
-    if (page.route_scope !== expected.route_scope) {
-      throw new Error(`${pageId} route_scope must be ${expected.route_scope}`);
-    }
-    if (page.ia_group !== expectedIaGroupByMatrixPageId[pageId]) {
-      throw new Error(
-        `${pageId} ia_group must be ${expectedIaGroupByMatrixPageId[pageId]}`,
-      );
-    }
+    assertFieldsMatch(pageById(pageStateMatrix, pageId), {
+      settings_ia_ref: settingsIaRef,
+      route_id: expected.route_id,
+      route_scope: expected.route_scope,
+      ia_group: expectedIaGroupByMatrixPageId[pageId],
+    }, pageId);
   }
-  assertDeepEqualJson(
-    pageById(pageStateMatrix, "update").compatibility_redirect,
-    compatibilityRedirects.update,
-    "Update compatibility redirect page state",
-  );
-  assertDeepEqualJson(
-    pageById(pageStateMatrix, "settings_local_services").compatibility_redirect,
-    compatibilityRedirects["local-services"],
-    "Local Services compatibility redirect page state",
-  );
-  assertDeepEqualJson(
-    pageById(pageStateMatrix, "settings_personalization").compatibility_redirect,
-    compatibilityRedirects.personalization,
-    "Personalization compatibility redirect page state",
-  );
+  for (const [matrixId, redirectKey, label] of [
+    ["update", "update", "Update"],
+    ["settings_local_services", "local-services", "Local Services"],
+    ["settings_personalization", "personalization", "Personalization"],
+  ]) {
+    assertDeepEqualJson(
+      pageById(pageStateMatrix, matrixId).compatibility_redirect,
+      compatibilityRedirects[redirectKey],
+      `${label} compatibility redirect page state`,
+    );
+  }
   if (!experienceContract) return;
   for (const [productPageId, contract] of Object.entries(
     experienceContract.page_contracts ?? {},
   )) {
     const page = pageById(pageStateMatrix, contract.matrix_page_id);
-    const expectedTechnicalDetailsDefault =
-      appOwnedSettingsTechnicalDetailsDefault[productPageId];
-    if (
-      page.product_page_id !== productPageId ||
-      page.experience_contract_ref !==
-        `contracts/app-settings-control-plane.json#experience_contract.page_contracts.${productPageId}` ||
-      page.primary_action_id !== contract.primary_action.id ||
-      page.technical_details_default !== expectedTechnicalDetailsDefault ||
-      page.exception_emphasis !== "attention_only"
-    ) {
-      throw new Error(
-        `Page-state ${contract.matrix_page_id} must mirror ${productPageId} experience semantics`,
-      );
-    }
+    assertFieldsMatch(
+      page,
+      {
+        product_page_id: productPageId,
+        experience_contract_ref: `contracts/app-settings-control-plane.json#experience_contract.page_contracts.${productPageId}`,
+        primary_action_id: contract.primary_action.id,
+        technical_details_default: appOwnedSettingsTechnicalDetailsDefault[productPageId],
+        exception_emphasis: "attention_only",
+      },
+      `Page-state ${contract.matrix_page_id} must mirror ${productPageId} experience semantics:`,
+    );
     assertDeepEqualJson(
       page.required_dom,
       contract.required_dom,
@@ -229,72 +213,31 @@ export function validateHydratedSettingsRegistry(controlPlane) {
       );
     }
   }
-  const assistantsResolution = resolveSettingsControlPlaneRoute(
-    controlPlane,
-    "assistants",
+  assertFieldsMatch(
+    resolveSettingsControlPlaneRoute(controlPlane, "assistants"),
+    { target_id: "capabilities", path: "/settings/capabilities?section=third-party", anchor: "third-party" },
+    "Settings legacy assistants route",
   );
-  if (
-    assistantsResolution.target_id !== "capabilities" ||
-    assistantsResolution.path !== "/settings/capabilities?section=third-party" ||
-    assistantsResolution.anchor !== "third-party"
-  ) {
-    throw new Error(
-      "Settings legacy assistants route must open the OPL capability directory",
-    );
-  }
-  const unknownResolution = resolveSettingsControlPlaneRoute(
-    controlPlane,
-    "unknown-settings-route",
+  assertFieldsMatch(
+    resolveSettingsControlPlaneRoute(controlPlane, "unknown-settings-route"),
+    { route_scope: "unknown_redirect", target_id: "general", path: "/settings/general" },
+    "Unknown Settings routes fallback",
   );
-  if (
-    unknownResolution.route_scope !== "unknown_redirect" ||
-    unknownResolution.target_id !== "general" ||
-    unknownResolution.path !== "/settings/general"
-  ) {
-    throw new Error(
-      "Unknown Settings routes must fall back to the Overview default route",
-    );
-  }
 }
 
 export function validateSettingsShellAdapterSlotContract(controlPlane) {
   const slot = controlPlane.shell_adapter_slot;
-  if (slot?.host_component !== "SettingsHost") {
-    throw new Error(
-      "Settings control plane shell adapter slot must declare SettingsHost",
-    );
-  }
-  if (slot?.adapter_slot !== "SettingsShellAdapterSlot") {
-    throw new Error(
-      "Settings control plane shell adapter slot must declare SettingsShellAdapterSlot",
-    );
-  }
-  if (slot?.registry_source !== settingsControlPlaneContractRef) {
-    throw new Error(
-      "SettingsHost must consume the App Settings control plane contract",
-    );
-  }
-  assertDeepEqualJson(
-    slot?.shell_may_own,
-    [
-      "container layout",
-      "tab switching",
-      "extension tab mount/keep-alive",
-      "route sync",
-    ],
-    "SettingsShellAdapterSlot shell_may_own",
+  assertFieldsMatch(
+    slot,
+    {
+      host_component: "SettingsHost",
+      adapter_slot: "SettingsShellAdapterSlot",
+      registry_source: settingsControlPlaneContractRef,
+    },
+    "Settings control plane shell adapter slot",
   );
-  assertDeepEqualJson(
-    slot?.app_owns,
-    [
-      "tab order",
-      "user semantics",
-      "OPL page slots",
-      "state/action sources",
-      "upstream intake classification",
-    ],
-    "SettingsShellAdapterSlot app_owns",
-  );
+  assertDeepEqualJson(slot?.shell_may_own, ["container layout", "tab switching", "extension tab mount/keep-alive", "route sync"], "SettingsShellAdapterSlot shell_may_own");
+  assertDeepEqualJson(slot?.app_owns, ["tab order", "user semantics", "OPL page slots", "state/action sources", "upstream intake classification"], "SettingsShellAdapterSlot app_owns");
 }
 
 export function validateSettingsModelReasoningPolicy(
@@ -316,43 +259,17 @@ export function validateSettingsModelReasoningPolicy(
     ],
     "Settings model/reasoning policy source refs",
   );
-  if (
-    policy.default_model_ref !==
-    "contracts/app-product-profile.json#codex.default_model"
-  ) {
-    throw new Error(
-      "Settings default model must be derived from the App product profile",
-    );
-  }
-  if (
-    policy.default_reasoning_effort_ref !==
-    "contracts/app-product-profile.json#codex.default_reasoning_effort"
-  ) {
-    throw new Error(
-      "Settings default reasoning effort must be derived from the App product profile",
-    );
-  }
-  if (
-    policy.auto_model_policy_ref !==
-    "contracts/app-product-profile.json#codex.auto_model_policy"
-  ) {
-    throw new Error(
-      "Settings Auto model policy must be derived from the App product profile",
-    );
-  }
-  if (policy.settings_surface !== "settings_access.model_access") {
-    throw new Error(
-      "Settings model/reasoning policy must surface through the Access model section",
-    );
-  }
-  if (
-    policy.adapter_policy !==
-    "GUI shells render App-derived model and reasoning policy only"
-  ) {
-    throw new Error(
-      "Settings model/reasoning policy must keep shells as adapters only",
-    );
-  }
+  assertFieldsMatch(
+    policy,
+    {
+      default_model_ref: "contracts/app-product-profile.json#codex.default_model",
+      default_reasoning_effort_ref: "contracts/app-product-profile.json#codex.default_reasoning_effort",
+      auto_model_policy_ref: "contracts/app-product-profile.json#codex.auto_model_policy",
+      settings_surface: "settings_access.model_access",
+      adapter_policy: "GUI shells render App-derived model and reasoning policy only",
+    },
+    "Settings model/reasoning policy",
+  );
   assertIncludesAll(
     policy.shell_must_not_own,
     [
@@ -396,109 +313,76 @@ export function validateSettingsModelReasoningPolicy(
 
 export function validateSettingsSurfaceModel(surfaceModel) {
   const surfaceTypes = ["configuration", "status", "action", "diagnostic"];
-  assertDeepEqualJson(
-    surfaceModel?.surface_types,
-    surfaceTypes,
-    "Settings surface types",
+  assertDeepEqualJson(surfaceModel?.surface_types, surfaceTypes, "Settings surface types");
+  assertFieldsMatch(
+    surfaceModel,
+    {
+      classification_policy: "every_page_surface_has_exactly_one_type_and_one_page_owner",
+      advanced_page_type: "retired_redirect_to_maintenance_diagnostics",
+      desktop_layout_policy: "use_columns_only_for_independent_groups_with_comparable_density",
+      default_layout_policy: "full_width_vertical_groups",
+    },
+    "Settings strict four-surface model:",
   );
-  if (
-    surfaceModel?.classification_policy !==
-      "every_page_surface_has_exactly_one_type_and_one_page_owner" ||
-    surfaceModel?.advanced_page_type !==
-      "retired_redirect_to_maintenance_diagnostics"
-  ) {
-    throw new Error(
-      "Settings surfaces must have exactly one of four types and retired Advanced must redirect to Maintenance diagnostics",
-    );
-  }
   assertDeepEqualJson(
     Object.keys(surfaceModel ?? {}),
-    [
-      "surface_types",
-      "classification_policy",
-      ...surfaceTypes,
-      "advanced_page_type",
-      "desktop_layout_policy",
-      "default_layout_policy",
-    ],
+    ["surface_types", "classification_policy", ...surfaceTypes, "advanced_page_type", "desktop_layout_policy", "default_layout_policy"],
     "Settings strict four-surface model keys",
   );
   for (const surfaceType of surfaceTypes) {
-    for (const field of [
-      "presentation",
-      "interaction",
-      "visual_rule",
-      "ownership_rule",
-    ]) {
-      if (
-        typeof surfaceModel?.[surfaceType]?.[field] !== "string" ||
-        surfaceModel[surfaceType][field].trim() === ""
-      ) {
-        throw new Error(
-          `Settings ${surfaceType} surface must declare ${field}`,
-        );
+    for (const field of ["presentation", "interaction", "visual_rule", "ownership_rule"]) {
+      if (typeof surfaceModel?.[surfaceType]?.[field] !== "string" || surfaceModel[surfaceType][field].trim() === "") {
+        throw new Error(`Settings ${surfaceType} surface must declare ${field}`);
       }
     }
   }
   assertDeepEqualJson(
     surfaceModel?.configuration?.card_eligibility_any_of,
-    [
-      "two_or_more_related_controls",
-      "one_consequential_persistent_setting",
-      "exception_or_recovery_workflow",
-      "independent_user_decision_boundary",
-    ],
+    ["two_or_more_related_controls", "one_consequential_persistent_setting", "exception_or_recovery_workflow", "independent_user_decision_boundary"],
     "Settings configuration-group card eligibility",
   );
-  if (
-    surfaceModel?.configuration?.interaction !==
-      "persistent_value_controls_only" ||
-    surfaceModel?.configuration?.pure_state_card_allowed !== false ||
-    surfaceModel?.configuration?.one_time_action_allowed !== false ||
-    surfaceModel?.status?.standalone_card_allowed !== false ||
-    surfaceModel?.status?.presentation !==
-      "muted_row_inside_owning_page_section_or_configuration_group"
-  ) {
-    throw new Error(
-      "Settings configuration must be persistent and pure status must remain a muted owning-page row",
-    );
-  }
-  if (
-    surfaceModel?.action?.interaction !==
-      "explicit_one_time_command_with_confirmation_progress_and_receipt_as_required" ||
-    surfaceModel?.action?.persistent_value_allowed !== false ||
-    surfaceModel?.action?.maintenance_and_storage_are_settings !== false
-  ) {
-    throw new Error(
-      "Settings one-time actions must be independent from persistent configuration",
-    );
-  }
-  if (
-    surfaceModel?.diagnostic?.ordinary_page_inline_allowed !== false ||
-    surfaceModel?.diagnostic?.entry_presentation !==
-      "explicit_diagnostics_action" ||
-    surfaceModel?.diagnostic?.container !== "modal_or_drawer" ||
-    surfaceModel?.diagnostic?.summary_first !== true ||
-    surfaceModel?.diagnostic?.raw_details_secondary !== true
-  ) {
-    throw new Error(
-      "Settings diagnostics must open explicitly in a summary-first modal or drawer",
-    );
-  }
+  assertFieldsMatch(
+    surfaceModel?.configuration,
+    {
+      interaction: "persistent_value_controls_only",
+      pure_state_card_allowed: false,
+      one_time_action_allowed: false,
+    },
+    "Settings configuration must be persistent:",
+  );
+  assertFieldsMatch(
+    surfaceModel?.status,
+    {
+      standalone_card_allowed: false,
+      presentation: "muted_row_inside_owning_page_section_or_configuration_group",
+    },
+    "Settings pure status must remain an owning-page row:",
+  );
+  assertFieldsMatch(
+    surfaceModel?.action,
+    {
+      interaction: "explicit_one_time_command_with_confirmation_progress_and_receipt_as_required",
+      persistent_value_allowed: false,
+      maintenance_and_storage_are_settings: false,
+    },
+    "Settings one-time actions:",
+  );
+  assertFieldsMatch(
+    surfaceModel?.diagnostic,
+    {
+      ordinary_page_inline_allowed: false,
+      entry_presentation: "explicit_diagnostics_action",
+      container: "modal_or_drawer",
+      summary_first: true,
+      raw_details_secondary: true,
+    },
+    "Settings diagnostics must open explicitly in a modal or drawer:",
+  );
   assertIncludesAll(
     surfaceModel?.diagnostic?.raw_fields,
     ["paths", "refs", "action_ids", "receipts", "runtime_enums", "payloads", "logs"],
     "Settings diagnostic raw fields",
   );
-  if (
-    surfaceModel?.desktop_layout_policy !==
-      "use_columns_only_for_independent_groups_with_comparable_density" ||
-    surfaceModel?.default_layout_policy !== "full_width_vertical_groups"
-  ) {
-    throw new Error(
-      "Settings layout must default to full-width groups and use columns only for comparable independent decisions",
-    );
-  }
 }
 
 export function validatePageSurfaceInventory(pageId, inventory) {
