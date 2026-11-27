@@ -29,6 +29,7 @@ export const appOwnedOfficialProfileRestoreAction = {
   },
   post_success_readback: {
     source: 'opl app state --profile fast --json',
+    framework_v2_source: 'pack.ensure',
     force_fresh: true,
   },
   required_dom_testid: 'settings-agents-restore-official-profile',
