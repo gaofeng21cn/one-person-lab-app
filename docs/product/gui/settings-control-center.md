@@ -438,11 +438,10 @@ Account & Access is the single owner for:
 - refresh, connection completion or repair when required, and disconnect.
 
 The account card appears only for an account connection. Manual-Key-only and
-disconnected states do not render account balance or usage. Passwords use the
-typed `loginGatewayAccount` IPC bridge and
-`opl connect gateway login --credentials-stdin --json`; they never enter a
-generic action payload, App state, logs, errors, receipts, diagnostics, or
-renderer persistence.
+disconnected states do not render account balance or usage. Desktop and WebUI submit the email and password to the trusted Host. The Host
+calls the Framework `connect.gateway.login` RPC. CLI callers can use
+`opl connect gateway login --credentials-stdin --json`. The renderer receives
+only the login result, refresh instruction, and any public error code.
 
 The renderer may keep only the declared public projection as a derived
 last-known-good cache. It shows that cache immediately, executes

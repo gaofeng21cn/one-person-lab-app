@@ -3646,7 +3646,7 @@
         "workspace root readiness restricts only project selection and OPL workspace controls while plain conversation and send-scoped local inputs remain available",
         "Desktop and WebUI model access default to OPL Gateway account login with email and password while API Key remains a compatibility choice",
         "existing Codex recheck remains a secondary action outside the account and API Key method switch",
-        "WebUI Gateway account login reuses the existing OPL runtime HTTP proxy and dedicated credentials stdin bridge",
+        "WebUI Gateway account login uses the existing OPL runtime HTTP proxy and the trusted connect.gateway.login RPC",
         "model access method switching and alternate actions disabled while a request is active",
         "pending state without premature ready or no-blocker claims",
         "required Core checklist items reject disabled status as ready",
@@ -3776,7 +3776,7 @@
             ],
             "gateway_password_login": true,
             "gateway_login_route": "/api/opl-runtime/gateway-account-login",
-            "transport": "existing_opl_runtime_http_proxy_to_credentials_stdin"
+            "transport": "existing_opl_runtime_http_proxy_to_trusted_gateway_login_rpc"
           }
         },
         "completion_transition_policy": "replace_current_task_in_place",

@@ -156,6 +156,7 @@
       "managed_key",
       "installation",
       "available_groups",
+      "resolved_group_id",
       "freshness",
       "capabilities",
       "actions"
@@ -201,6 +202,7 @@
       "forbidden_normal_controls": ["group_selector", "complete_setup", "repair", "use_for_model_access"]
     },
     "group_resolution_policy": {
+      "result_field": "resolved_group_id",
       "default_group_match": "single_case_insensitive_label_containing_Codex_then_single_available_group_fallback",
       "ordinary_user_selector": "not_rendered",
       "managed_key_setup_action": "auto_execute_complete_setup_once_when_action_exposed_managed_key_missing_and_default_group_resolves_without_rendering_control",
@@ -253,7 +255,7 @@
     ],
     "error_code_mapping_policy": {
       "producer_owner": "one-person-lab",
-      "producer_vocabulary_source": "one-person-lab reason_code values emitted by src/adapters/integration/opl-gateway-account*.ts and the connect gateway login credentials-stdin guard",
+      "producer_vocabulary_source": "one-person-lab connect.gateway.login reason codes and connect gateway login CLI input errors",
       "requirement": "every_producer_reason_code_maps_to_one_declared_error_codes_entry",
       "unmapped_fallback": "gateway_account_failed",
       "unmapped_fallback_is_user_actionable": false,
@@ -274,16 +276,17 @@
     "desktop_only": false,
     "webui_password_login_allowed": true,
     "webui_route": "/api/opl-runtime/gateway-account-login",
+    "rpc_method": "connect.gateway.login",
     "command": "opl connect gateway login --credentials-stdin --json",
-    "transport": "runtime_provider_via_desktop_typed_ipc_or_existing_webui_http_proxy_to_dedicated_stdin_no_generic_app_action_payload",
-    "request_fields": ["email", "password", "deviceLabel"],
-    "optional_request_fields": ["deviceLabel"],
+    "transport": "desktop_typed_ipc_or_authenticated_webui_http_proxy_to_trusted_opld_rpc",
+    "request_fields": ["email", "password"],
+    "optional_request_fields": [],
     "response_fields": ["ok", "errorCode", "stateRefreshRequired"],
     "secret_fields": ["password"],
     "secret_persistence": false,
     "secret_diagnostics": false,
     "secret_receipt_fields": false,
-    "shell_fail_closed_policy": "reject_unexpected_cli_fields_and_never_return_raw_stdout_stderr_or_secret_material"
+    "shell_fail_closed_policy": "reject_unexpected_request_fields_and_never_return_raw_rpc_errors_or_secret_material"
   },
   "connection_access_approval_bridge": {
     "bridge_id": "approveConnectionAccess",

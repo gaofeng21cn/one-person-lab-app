@@ -22,6 +22,7 @@ const gatewayAccountTopLevelFields = [
   'managed_key',
   'installation',
   'available_groups',
+  'resolved_group_id',
   'freshness',
   'capabilities',
   'actions',
@@ -79,7 +80,7 @@ const gatewayAccountErrorCodes = [
 const gatewayAccountErrorCodeMappingPolicy = {
   producer_owner: 'one-person-lab',
   producer_vocabulary_source:
-    'one-person-lab reason_code values emitted by src/adapters/integration/opl-gateway-account*.ts and the connect gateway login credentials-stdin guard',
+    'one-person-lab connect.gateway.login reason codes and connect gateway login CLI input errors',
   requirement: 'every_producer_reason_code_maps_to_one_declared_error_codes_entry',
   unmapped_fallback: 'gateway_account_failed',
   unmapped_fallback_is_user_actionable: false,
@@ -105,6 +106,7 @@ const gatewayAccountDisplayPolicy = {
   forbidden_normal_controls: ['group_selector', 'complete_setup', 'repair', 'use_for_model_access'],
 };
 const gatewayAccountGroupResolutionPolicy = {
+  result_field: 'resolved_group_id',
   default_group_match: 'single_case_insensitive_label_containing_Codex_then_single_available_group_fallback',
   ordinary_user_selector: 'not_rendered',
   managed_key_setup_action:
@@ -149,6 +151,11 @@ export function validateGatewayAccountFixture(fixture) {
         : projection[field];
     if (field === 'available_groups[]') {
       if (!Array.isArray(value)) throw new Error('Gateway account fixture available_groups must be an array');
+      const resolvedGroupId = projection.resolved_group_id;
+      if (resolvedGroupId !== null && (typeof resolvedGroupId !== 'string' || !resolvedGroupId.trim()
+        || !value.some((group) => group.group_id === resolvedGroupId))) {
+        throw new Error('Gateway account fixture resolved_group_id must be null or identify an available group');
+      }
       for (const group of value) {
         assertDeepEqualJson(Object.keys(group), expectedFields, 'Gateway account fixture available group fields');
       }
@@ -226,17 +233,18 @@ export function validateOplGatewayAccountContract(runtimeBridge) {
     || secretBridge.desktop_only !== false
     || secretBridge.webui_password_login_allowed !== true
     || secretBridge.webui_route !== '/api/opl-runtime/gateway-account-login'
+    || secretBridge.rpc_method !== 'connect.gateway.login'
     || secretBridge.command !== 'opl connect gateway login --credentials-stdin --json'
     || secretBridge.transport !==
-      'runtime_provider_via_desktop_typed_ipc_or_existing_webui_http_proxy_to_dedicated_stdin_no_generic_app_action_payload'
+      'desktop_typed_ipc_or_authenticated_webui_http_proxy_to_trusted_opld_rpc'
     || secretBridge.secret_persistence !== false
     || secretBridge.secret_diagnostics !== false
     || secretBridge.secret_receipt_fields !== false
   ) {
-    throw new Error('Gateway account login must use the runtime provider and dedicated stdin-only secret bridge');
+    throw new Error('Gateway account login must use the trusted Framework login RPC and preserve its stdin CLI entry');
   }
-  assertDeepEqualJson(secretBridge.request_fields, ['email', 'password', 'deviceLabel'], 'Gateway login request fields');
-  assertDeepEqualJson(secretBridge.optional_request_fields, ['deviceLabel'], 'Gateway login optional request fields');
+  assertDeepEqualJson(secretBridge.request_fields, ['email', 'password'], 'Gateway login request fields');
+  assertDeepEqualJson(secretBridge.optional_request_fields, [], 'Gateway login optional request fields');
   assertDeepEqualJson(secretBridge.response_fields, ['ok', 'errorCode', 'stateRefreshRequired'], 'Gateway login response fields');
   assertDeepEqualJson(secretBridge.secret_fields, ['password'], 'Gateway login secret fields');
 }

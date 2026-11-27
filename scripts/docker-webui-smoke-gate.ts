@@ -300,7 +300,7 @@ function makeOrdinaryUserStatus(input: {
     },
     runtime_proxy: {
       status: accessStatus,
-      summary: 'Gateway account sign-in and API Key configuration reuse the existing OPL runtime provider and dedicated stdin commands.',
+      summary: 'Gateway account sign-in and API Key configuration reuse the existing OPL runtime provider and its dedicated credential methods.',
       next_action: accessStatus === 'passed' ? null : 'Collect or rerun the API key flow receipt after WebUI health passes.',
       evidence_ref: input.apiKeyReceiptPath,
     },

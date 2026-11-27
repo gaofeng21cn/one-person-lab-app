@@ -1776,6 +1776,7 @@
             "short_id": "7F31A9C2"
           },
           "available_groups": [],
+          "resolved_group_id": null,
           "freshness": {
             "observed_at": "2026-07-13T09:00:00+08:00",
             "stale_after": "2026-07-13T09:15:00+08:00",

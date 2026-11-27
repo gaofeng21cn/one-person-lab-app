@@ -108,7 +108,7 @@ Full 的本机首次安装独立于自动更新偏好；待激活更新失败后
 模型访问是唯一需要用户输入的常见首启步骤。Desktop 与 WebUI 都提供两条真实路径，并默认选择账户登录：
 
 - `OPL Gateway 账户`：输入邮箱和密码。Desktop 通过 typed IPC，WebUI 通过既有 `/api/opl-runtime/*`
-  HTTP proxy，二者最终都调用 `opl connect gateway login --credentials-stdin --json`；首启不显示设备名称，使用 Framework 默认值。
+  HTTP proxy，二者经受信任的 Host 调用 Framework 的 `connect.gateway.login`。首启使用 Framework 默认设备名称。
 - `API Key`：保留现有 `configureCodex` stdin bridge，作为兼容方式。
 
 账户登录和 API Key 使用分段控件切换。`已有 Codex 配置` 不再占用分段控件，而是在其外提供独立次要重检入口。
@@ -118,8 +118,8 @@ Desktop 不注入 App 私有 `CODEX_HOME`。进程已有显式 `CODEX_HOME` 时�
 `~/.codex`。启动检测和“已有 Codex 配置”重检均为只读；只有用户显式选择 Gateway 或 API Key 后，才允许 Framework
 通过带备份与恢复能力的原子合并修改相关配置字段。
 
-账户登录成功后必须读取 `opl app state --profile fast --json`。未发现 managed key 时，只有唯一解析出 Codex 分组才执行
-`gateway_account_complete_setup`；无法唯一解析时显示本地化 `group_selection_required`，不得宣称模型访问已就绪。完成设置后必须
+账户登录成功后必须读取 `opl app state --profile fast --json`。Framework 在 `resolved_group_id` 返回名称含 Codex 的唯一分组（忽略大小写），或仅有的可用分组。
+缺少 managed key 且投影提供设置动作时，App 使用该 ID 执行 `gateway_account_complete_setup`。字段为 `null` 或缺失时，App 显示本地化的分组提示，保留当前设置。完成设置后必须
 重新读取 fast state；若仍暴露 `gateway_account_use_for_model_access`，必须显示独立的“设为模型访问方式”确认动作。账户登录不构成
 这项 medium-impact 本机 Codex provider mutation 的确认。登录成功后，凭据字段必须替换为明确的本地化成功状态，并把键盘焦点移到
 “设为模型访问方式”；在用户确认前仍保持 `codex_config` 未就绪。只有用户显式确认后才允许执行，并在执行前后都读取 fresh state。每次成功的权威读取都发布

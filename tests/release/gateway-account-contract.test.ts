@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import { validateGatewayAccountFixture } from '../../scripts/validate-active-shell/runtime-bridge-validator/gateway-account.ts';
 import { validatePageStateMatrix } from '../../scripts/validate-active-shell/page-state-matrix-validator.ts';
 import {
   validateOplAppStateFastAgentPackageDirectoryFixture,
@@ -106,7 +107,7 @@ test('Gateway account contracts keep the canonical projection, actions, and runt
     webuiAllowedMethods: ['gateway_account', 'api_key'],
     webuiPasswordLogin: true,
     webuiGatewayLoginRoute: '/api/opl-runtime/gateway-account-login',
-    webuiTransport: 'existing_opl_runtime_http_proxy_to_credentials_stdin',
+    webuiTransport: 'existing_opl_runtime_http_proxy_to_trusted_gateway_login_rpc',
   };
   for (const setup of [
     guiContract.first_launch_readiness_policy.beginner_presentation.model_access_setup,
@@ -179,6 +180,20 @@ test('Gateway account contracts keep the canonical projection, actions, and runt
   ));
 });
 
+test('Gateway group resolution points to an available group or remains unresolved', () => {
+  const fixture = readJson('contracts/fixtures/opl-app-state-fast.fixture.json');
+  const account = fixture.app_state.settings_control_center.app_settings_read_model.opl_gateway_account;
+  account.available_groups = [{ group_id: 'group-1', label: 'Codex' }];
+  account.resolved_group_id = 'group-1';
+  assert.doesNotThrow(() => validateGatewayAccountFixture(fixture));
+  account.resolved_group_id = null;
+  assert.doesNotThrow(() => validateGatewayAccountFixture(fixture));
+  for (const invalid of ['not-available', '', 1]) {
+    account.resolved_group_id = invalid;
+    assert.throws(() => validateGatewayAccountFixture(fixture), /resolved_group_id/);
+  }
+});
+
 test('Gateway account runtime bridge rejects secret leakage and generic-action login', () => {
   for (const mutate of [
     (bridge: any) => {
@@ -190,6 +205,9 @@ test('Gateway account runtime bridge rejects secret leakage and generic-action l
     (bridge: any) => {
       bridge.opl_gateway_account_secret_bridge.command =
         'opl app action execute --action gateway_account_login --payload <json> --json';
+    },
+    (bridge: any) => {
+      bridge.opl_gateway_account_secret_bridge.rpc_method = 'connect.add';
     },
     (bridge: any) => {
       bridge.opl_gateway_account_secret_bridge.webui_password_login_allowed = false;

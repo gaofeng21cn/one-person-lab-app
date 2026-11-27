@@ -1133,7 +1133,7 @@
             "one_click_install": "Run the one-click installer to create compose.yaml, data/projects directories, and start the WebUI image.",
             "browser_webui": "Open http://localhost:3000/ or the administrator-provided WebUI URL.",
             "access_key_settings": "Sign in to OPL Gateway or enter an API Key in WebUI first-run or Settings -> Account & Access.",
-            "runtime_proxy": "Gateway account sign-in and API Key configuration reuse the existing OPL runtime provider and dedicated stdin commands.",
+            "runtime_proxy": "Gateway account sign-in and API Key configuration reuse the existing OPL runtime provider and its dedicated credential methods.",
             "startup_recovery": "If startup fails, collect the redacted startup diagnostics and rerun after the Docker, port, image, or data issue is fixed.",
             "data_preservation": "Keep host OnePersonLab/data and OnePersonLab/projects mounted and preserved across image/container replacement.",
             "host_update": "Update the WebUI image from the host by rerunning the installer, using its explicit update mode, or enabling the user-scoped Windows scheduled task; the browser WebUI must not self-update containers through a Docker socket."

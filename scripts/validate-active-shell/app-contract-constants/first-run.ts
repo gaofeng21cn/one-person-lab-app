@@ -118,7 +118,7 @@ export const firstRunModelAccessSetupPolicy = {
     allowed_methods: ["gateway_account", "api_key"],
     gateway_password_login: true,
     gateway_login_route: "/api/opl-runtime/gateway-account-login",
-    transport: "existing_opl_runtime_http_proxy_to_credentials_stdin",
+    transport: "existing_opl_runtime_http_proxy_to_trusted_gateway_login_rpc",
   },
 };
 export const progressiveFirstRunRecoveryTestIds = [
