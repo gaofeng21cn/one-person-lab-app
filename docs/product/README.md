@@ -24,6 +24,7 @@ domain engine.
 | --- | --- |
 | [`codex-configuration.md`](codex-configuration.md) | Codex user configuration ownership and Skill scope; model policy remains in its focused GUI reference. |
 | [`opl-link.md`](opl-link.md) | OPL Link 对话优先产品基线、任务/对话边界、跨仓 authority 和当前实现缺口。 |
+| [`opl-link-android-plan.md`](opl-link-android-plan.md) | OPL Link Android 原生端与可选本机 Codex 节点的架构规划、技术选型、多形态适配与分阶段路线（重构收尾后启动）。 |
 | [`opl-persona-integration.md`](opl-persona-integration.md) | OPL Persona Package contribution, App consumer boundary, and production mount gates. |
 | [`gui/ideal-interaction-spec.md`](gui/ideal-interaction-spec.md) | Shell-independent target interaction model for the OPL App. |
 | [`gui/element-audit.md`](gui/element-audit.md) | Human review of ordinary user GUI elements, placement, gaps, and interaction logic. |
