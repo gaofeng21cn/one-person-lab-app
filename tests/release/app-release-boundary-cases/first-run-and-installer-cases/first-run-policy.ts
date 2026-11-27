@@ -344,7 +344,8 @@ test("one-shot App installer boundary is enforced by release-boundary checks", (
       linux_x86_64: "standard_only_and_explicit_full_fails_closed_before_release_asset_lookup",
       frozen_macos_default:
         "prefer_full_and_fallback_to_standard_only_when_full_is_confirmed_absent",
-      source_checkout_default_without_explicit_density: "framework_with_app_compatibility",
+      source_checkout_default_without_explicit_density:
+        "prefer_full_and_fallback_to_standard_only_when_full_is_confirmed_absent",
     },
   );
   assert.equal(

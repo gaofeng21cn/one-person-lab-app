@@ -423,22 +423,6 @@ print_resolved_install_route() {
   printf '%s\n' "$selected_route"
 }
 
-desktop_release_asset_selection_requested() {
-  [ "$STABLE_MACOS_PACKAGE_PROFILE_EXPLICIT" = "1" ] \
-    || [ -n "$OPL_FROZEN_RELEASE_TAG" ] \
-    || [ -n "$STABLE_MACOS_RELEASE_TAG" ] \
-    || [ -n "$STABLE_MACOS_DMG_URL" ] \
-    || [ -n "$STABLE_MACOS_DMG_PATH" ]
-}
-
-install_desktop_bootstrap() {
-  if ! arg_present "--with-app"; then
-    INSTALL_ARGS+=("--with-app")
-  fi
-  export OPL_RELEASE_VERSION OPL_RELEASE_REPO
-  curl -fsSL "$OPL_INSTALL_SCRIPT_URL" | bash -s -- "${INSTALL_ARGS[@]}"
-}
-
 find_linux_desktop_executable() {
   local package_name="$1"
   local candidate selected=''
@@ -1847,11 +1831,7 @@ fi
 
 case "$SELECTED_INSTALL_ROUTE" in
   desktop)
-    if desktop_release_asset_selection_requested; then
-      stable_macos_install
-    else
-      install_desktop_bootstrap
-    fi
+    stable_macos_install
     ;;
   desktop-webui)
     STABLE_MACOS_WEBUI_MODE=1

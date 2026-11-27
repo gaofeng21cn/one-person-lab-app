@@ -26,7 +26,7 @@ const registerInstallerTest = (groups: string[], name: string, body: () => void)
 
 registerInstallerTest(
   ["basics"],
-  "one-shot App installer defaults to the shared base plus optional GUI without Agents",
+  "headless App installer delegates only the Framework bootstrap",
   () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-app-installer-args-"));
   const fakeCurl = path.join(tempRoot, "curl");
@@ -52,7 +52,7 @@ fi
   );
 
   try {
-    const result = spawnSync("/bin/bash", [path.join(appRoot, "install.sh")], {
+    const result = spawnSync("/bin/bash", [path.join(appRoot, "install.sh"), "--headless"], {
       cwd: appRoot,
       encoding: "utf8",
       env: {
@@ -62,7 +62,7 @@ fi
       },
     });
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.equal(fs.readFileSync(capturePath, "utf8").trim(), "--with-app");
+    assert.equal(fs.readFileSync(capturePath, "utf8").trim(), "--headless --skip-packages");
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -598,6 +598,13 @@ exit 1
     };
 
     if (isInstallerScenarioGroup("routing")) {
+    const defaultDesktopResult = runInstaller([], { stableMacosInstall: false, releaseTag: false });
+    assert.notEqual(defaultDesktopResult.status, 0, "fake hdiutil should stop after the default Desktop download");
+    const defaultDesktopCurlArgs = fs.readFileSync(curlArgsPath, "utf8");
+    assert.match(defaultDesktopCurlArgs, /api\.github\.com\/repos\/gaofeng21cn\/one-person-lab-app\/releases\/latest/);
+    assert.ok(defaultDesktopCurlArgs.includes(`/releases/download/${tag}/${fullName}`));
+    assert.match(fs.readFileSync(hdiutilArgsPath, "utf8"), /attach/);
+
     const availableFullResult = runInstaller([]);
     assert.notEqual(
       availableFullResult.status,

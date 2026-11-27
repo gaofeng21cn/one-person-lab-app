@@ -1244,12 +1244,11 @@
       "package_type": "source_installer",
       "release_gate": false,
       "post_publication_optional_certification": true,
-      "command": "OPL_INSTALL_SCRIPT_URL=file://<framework-checkout>/install.sh ./install.sh --with-app --skip-packages",
+      "command": "./install.sh --desktop --yes --no-open",
       "expects": [
         "App root install.sh remains the public one-shot entrypoint",
-        "Framework installer performs complete One Person Lab setup",
-        "managed Node or archive fallback handles clean macOS paths without requiring manual Homebrew setup first",
-        "opl system initialize runs after install"
+        "The App installer selects and verifies the exact macOS Desktop release asset",
+        "The installed App starts its bundled or pinned Framework through its own first-run flow"
       ]
     },
     {
