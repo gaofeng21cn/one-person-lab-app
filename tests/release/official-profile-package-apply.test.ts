@@ -528,6 +528,53 @@ test('Official Profile preserves Framework JSON errors on nonzero exit with empt
   assert.ok(!JSON.stringify(result).includes('private-response-body'));
 });
 
+test('Framework v2 reads installed required closure, skips optional dependencies, and never guesses an install source', () => {
+  const calls: string[][] = [];
+  const installed = (id: string, dependencies: object[] = [], enabled = true) => ({
+    installed: { package_id: id, enabled },
+    manifest: { schema_version: 'opl.package.v2', identity: { id }, dependencies: { packages: dependencies } },
+  });
+  const inventory: Record<string, object> = {
+    mas: installed('mas', [{ id: 'scholar-skills' }, { id: 'optional-helper', presence: 'optional' }]),
+    'scholar-skills': installed('scholar-skills', [{ id: 'scholar-runtime', version: '^3.0.0' }]),
+    'scholar-runtime': installed('scholar-runtime'),
+    mag: installed('mag', [{ id: 'disabled-helper' }]),
+    'disabled-helper': installed('disabled-helper', [], false),
+    rca: installed('rca', [{ id: 'scholar-runtime', required_capabilities: ['fixture-capability'] }]),
+  };
+  const result = applyOfficialProfilePackages({
+    intent: 'first_install',
+    rootPackageIds: ['mas', 'mag', 'oma', 'rca'],
+    runtime: {
+      execute(args) {
+        calls.push(args);
+        if (args[0] === 'app') {
+          return { status: 2, stderr: '', stdout: JSON.stringify({ error: { code: 'METHOD_NOT_FOUND', message: 'No app namespace.' } }) };
+        }
+        if (args[0] === '--version') {
+          return { status: 0, stderr: '', stdout: JSON.stringify({ version: '2.0.0', api_version: '2.0' }) };
+        }
+        assert.deepEqual(args, ['pack', 'inspect', args[2], '--json']);
+        const record = inventory[args[2]];
+        if (record) return { status: 0, stderr: '', stdout: JSON.stringify(record) };
+        return { status: 1, stderr: '', stdout: JSON.stringify({ error: { code: 'PACK_NOT_FOUND', message: 'Package is not installed.' } }) };
+      },
+    },
+  }).official_profile_package_apply;
+  assert.equal(result.status, 'partial_failure');
+  assert.deepEqual(result.items.map(({ package_id, status, changed, error }) => [package_id, status, changed, error?.code]), [
+    ['mas', 'already_present', false, undefined],
+    ['mag', 'failed', false, 'OFFICIAL_PROFILE_PACKAGE_SOURCE_UNAVAILABLE'],
+    ['oma', 'failed', false, 'OFFICIAL_PROFILE_PACKAGE_SOURCE_UNAVAILABLE'],
+    ['rca', 'failed', false, 'OFFICIAL_PROFILE_PACKAGE_CAPABILITIES_UNVERIFIED'],
+  ]);
+  assert.match(result.items[1].error.message, /disabled-helper/);
+  assert.equal(result.projection_boundary.action_executor, null);
+  assert.equal(result.projection_boundary.readback_scope, 'enabled_required_package_identity_presence');
+  assert.equal(calls.filter((args) => args[0] === 'app').length, 1);
+  assert.equal(calls.some((args) => args.includes('optional-helper')), false);
+});
+
 test('Official Profile reports a safe exit fallback instead of empty stderr or raw JSON', () => {
   for (const stdout of ['', 'private-response-body', JSON.stringify({ body: 'private-response-body' })]) {
     const result = applyOfficialProfilePackages({

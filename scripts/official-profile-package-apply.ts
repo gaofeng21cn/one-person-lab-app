@@ -117,6 +117,62 @@ function fastAppState(runtime: OfficialProfileApplyRuntime) {
   return parseJsonResult(runtime.execute(args), args);
 }
 
+// Old releases still project Package actions through the App CLI. Only switch
+// to v2 after its exact method error and version handshake.
+function isFrameworkV2(runtime: OfficialProfileApplyRuntime, error: unknown) {
+  if (!(error instanceof OplCommandFailure) || error.code !== 'METHOD_NOT_FOUND') return false;
+  const args = ['--version', '--json'];
+  try {
+    return parseJsonResult(runtime.execute(args), args).api_version === '2.0';
+  } catch {
+    return false;
+  }
+}
+
+// Pack v2 can verify presence but does not yet project an install action from a
+// root ID. The App must not select substitute artifacts or claim convergence.
+function requireInstalledV2Closure(runtime: OfficialProfileApplyRuntime, packageId: string, seen = new Set<string>()) {
+  if (seen.has(packageId)) return;
+  if (packageId.length > 128 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(packageId)) {
+    throw new Error('Framework v2 Package inspection requires a valid Package identity.');
+  }
+  const args = ['pack', 'inspect', packageId, '--json'];
+  let inspected: JsonRecord;
+  try {
+    inspected = parseJsonResult(runtime.execute(args), args);
+  } catch (error) {
+    if (!(error instanceof OplCommandFailure) || error.code !== 'PACK_NOT_FOUND') throw error;
+    inspected = {};
+  }
+  if (!inspected.installed || inspected.installed.enabled === false) {
+    const failure = new OplCommandFailure(
+      `Package ${packageId} is missing or disabled. Framework v2 does not yet provide an Official Profile install action for this Package.`
+    );
+    failure.code = 'OFFICIAL_PROFILE_PACKAGE_SOURCE_UNAVAILABLE';
+    throw failure;
+  }
+  const manifest = inspected.manifest;
+  if (inspected.installed.enabled !== true || inspected.installed.package_id !== packageId
+    || manifest?.schema_version !== 'opl.package.v2' || manifest.identity?.id !== packageId) {
+    throw new Error(`Framework v2 returned invalid installed Package identity for ${packageId}.`);
+  }
+  seen.add(packageId);
+  for (const dependency of manifest.dependencies?.packages ?? []) {
+    if (dependency.optional === true || dependency.presence === 'optional') continue;
+    if (typeof dependency.id !== 'string') {
+      throw new Error(`Framework v2 returned an invalid required dependency for ${packageId}.`);
+    }
+    requireInstalledV2Closure(runtime, dependency.id, seen);
+    if (dependency.required_capabilities?.length) {
+      const failure = new OplCommandFailure(
+        `Framework v2 does not yet report the required capabilities of Package ${dependency.id} for ${packageId}.`
+      );
+      failure.code = 'OFFICIAL_PROFILE_PACKAGE_CAPABILITIES_UNVERIFIED';
+      throw failure;
+    }
+  }
+}
+
 function appStateRecord(payload: JsonRecord) {
   if (isRecord(payload.app_state)) return payload.app_state;
   if (isRecord(payload.opl_app_state) && isRecord(payload.opl_app_state.app_state)) {
@@ -304,6 +360,7 @@ export function applyOfficialProfilePackages(input: {
   }
   const roots = normalizeRoots(input.rootPackageIds);
   const items: JsonRecord[] = [];
+  let useV2Readback = false;
   const report = (packageId: string, status: string) => input.onProgress?.({
     schema: 'opl_official_profile_install_progress.v1', package_id: packageId, status,
     root_package_ids: roots, completed: items.filter(item => item.status !== 'failed').length,
@@ -312,9 +369,19 @@ export function applyOfficialProfilePackages(input: {
   for (const packageId of roots) {
     report(packageId, 'installing');
     try {
-      const state = fastAppState(input.runtime);
-      const before = packageSnapshot(state, packageId);
-      if (before.installed && before.requiredClosurePresent) {
+      let before;
+      if (!useV2Readback) {
+        try {
+          before = packageSnapshot(fastAppState(input.runtime), packageId);
+        } catch (error) {
+          if (!isFrameworkV2(input.runtime, error)) throw error;
+          useV2Readback = true;
+        }
+      }
+      if (!before) {
+        requireInstalledV2Closure(input.runtime, packageId);
+      }
+      if (!before || (before.installed && before.requiredClosurePresent)) {
         items.push({
           package_id: packageId,
           status: 'already_present',
@@ -395,9 +462,10 @@ export function applyOfficialProfilePackages(input: {
         automatic_reapply_allowed: false,
       },
       projection_boundary: {
-        state_source: 'opl app state --profile fast --json',
-        action_source: 'directory.entries[].recommended_action_ref+available_actions[]',
-        action_executor: 'opl app action execute --action <projected-action-id> --json',
+        state_source: useV2Readback ? 'opl pack inspect <package-id> --json' : 'opl app state --profile fast --json',
+        action_source: useV2Readback ? null : 'directory.entries[].recommended_action_ref+available_actions[]',
+        action_executor: useV2Readback ? null : 'opl app action execute --action <projected-action-id> --json',
+        ...(useV2Readback ? { readback_scope: 'enabled_required_package_identity_presence' } : {}),
         direct_package_lifecycle_command_used: false,
         package_action_allowlist_owned: false,
         carrier_selection_owned: false,
