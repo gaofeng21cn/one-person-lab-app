@@ -19,7 +19,7 @@ export {
   validateRefLevelFollowUpProjectionContract,
   validateWorkflowSkillCandidateProjectionContract,
   validateProgressDeltaDisplayContract,
-  validateProviderReadinessRepairProjectionContract,
+  validateRunwayHealthProjectionContract,
 } from "./settings-and-provider.ts";
 
 export {

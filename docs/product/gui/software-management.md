@@ -94,26 +94,19 @@ GitHub Release、源码分支和提交属于来源详情。它们是不同的发
 安装分别保留原生布局。源码、版本缓存和用户数据分开。软件中心统一发现、呈现和
 动作入口，复用安装证据，不复制一份会漂移的安装数据库，也不隐式迁移现有目录。
 
-## 多份安装，一个激活实例
+## 单一运行态与软件源收敛
 
-同一软件在同一环境中可以保留多份安装，只有一个激活的运行实例。安装回答“代码放在哪里”，激活回答“OPL App 和 Agent 实际使用哪一份”。插件、CLI 和桌面入口若指向同一 runtime，是这份实例的不同入口，不重复计算为多份激活的软件。
-
-软件详情的“本机安装”逐项显示版本、发布版或开发版、实际路径、安装器和激活状态。切换由软件 owner 或原生载体执行，带精确安装身份与当前 revision；结果重新读取。UI 不保存一份独立的激活选择，不按最大版本、最短名称或目录存在猜测当前实例。未知或冲突要显示原因。
-
-默认安装推荐发布版。开发版只在显式接入后可选择激活；源码更新仍由 Git 和开发工具负责。软件中心提供查看、激活、解除接入等 owner 支持的操作，解除接入保留 checkout 与数据。已存在的开发选择保持真实回读，目录刷新不会擅自切换。
-
-发布版、开发源码、用户资料保持独立路径。安装、更新、卸载的确认中写明目标实例和位置，动作只作用于该实例。非激活版本可保留作回退；卸载激活实例前须由 owner 确定后继或停用，不暗中启用另一份代码。
+在 Framework v2 下，软件中心直接消费 `agent_packages`（含 `package_currentness`、`presence.callable` 及安装进度）与软件来源目录，不再维护独立的多安装实例切换 UI（`SoftwareInstallations` / `SoftwareReleaseOptions`）或 Homebrew Tap 原生软件管理（`native_items` / `source_setup`）。安装、更新、启用、停用与卸载均通过 Framework owner 投影的 `available_actions` 执行并回读最新状态；源码 checkout 只通过开发者显式接入表达，不作为可切换的普通多实例来源。
 
 ## 一个 OPL 目录，多种交付渠道
 
-官方软件目录 `opl-catalog` 提供可独立刷新的软件元数据。公开下载、授权下载和 Homebrew tap 可以交付同一软件。Stable/Nightly 表示更新轨道，Standard/Full 表示安装规格，本机安装实例由实际载体回读。主列表使用发布者推荐目标或用户已选轨道，详情中的“获取其他版本”提供其它目标。软件源页集中连接、检查和刷新来源。[OPL 软件目录](https://github.com/gaofeng21cn/opl-catalog)
+官方软件目录 `opl-catalog` 提供可独立刷新的软件元数据。公共源 `public-registry:opl` 与已授权的私有 GitHub Packages 源（`github-packages:<owner>`）在同一个目录与更新流程中展示；Stable/Nightly 表示 App 发布轨道，Standard/Full 表示安装包规格，本机安装状态由 Framework Package 与载体回读。公共源通过 `source_refresh` 刷新目录后单次回读，私有源逐项校验访问权限，不在无凭据时匿名请求私有制品。[OPL 软件目录](https://github.com/gaofeng21cn/opl-catalog)
 
-进入软件中心或刷新目录时，若 Framework 标记已连接的软件源需要刷新访问状态，界面复用该来源无需确认的 `source_check` 动作，再读取目录。没有凭据、来源停用或动作需要确认时保留用户操作入口。同一待刷新状态自动检查一次，检查失败后显示恢复入口。官方公共目录允许展示需授权条目的已公开字段。制品下载、安装和更新仍由 GHCR 等发布源重新校验权限。未获授权时，软件中心显示连接授权源的入口。
+进入软件中心或刷新目录时，公共目录支持 owner 投影的无确认 `source_refresh` 动作刷新目录索引；私有软件源继续由用户显式触发 `source_check`、`source_configure` 或 `source_disconnect` 管理凭据与权限。公共目录允许展示授权条目的已公开字段；制品下载、安装和更新仍由发布源重新校验权限，未获授权时在软件详情或软件源页引导授权连接。
 
-Framework 汇总独立软件源和原生载体投影，Studio 额外提供随 profile 装载的原生插件。App 消费两类投影并派发动作。安装记录和版本决策由其实际管理器提供。
+Framework 汇总 Package 目录与来源投影，Studio 额外提供随 profile 装载的原生插件。App 消费两类投影并派发动作。
 
-应用使用的资料库、业务账号及其授权集中在“设置 → 资料与连接”。模型账号与默认模型留在设置，OPL Link 与消息通道留在远程连接设置，运行组件与工具维护使用既有管理入口。Obsidian 正文和
-凭据仍由已有系统持有，软件源只保存必要引用。底层合同见 Framework 的
+应用使用的资料库、业务账号及其授权集中在“设置 → 资料与连接”（`knowledge_source_*` 与 `connection_*`）。模型账号与默认模型留在设置，OPL Link 与消息通道留在远程连接设置，运行组件与工具维护使用既有管理入口。Obsidian 正文和凭据仍由已有系统持有，软件源只保存必要引用。底层合同见 Framework 的
 [软件源规范](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/specs/software-sources.md)
 和 [Package 目录规范](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/specs/package-directory.md)。
 
@@ -151,6 +144,6 @@ Framework 汇总独立软件源和原生载体投影，Studio 额外提供随 pr
 
 自有软件的品牌与 README 入口遵循 Framework 的[Agent App 品牌规范](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/agent-native-app-policy.md#品牌与公开入口)。新图稿先保存于产品 owner 仓库，再同步既有离线资产清单、摘要与 Studio 构建资源；同一产品的 Package 图标与离线图稿保持一致。新增 `opl-image` 继续使用稳定身份，显示为 **OPL Image Lab**，不创建第二个软件条目。
 
-运行组件复用 `managed_update` 的 `dependency_catalog`，展示实际版本、安装位置、维护方和所属产品。Codex CLI、Temporal、Python、uv 等仅在 owner 已声明依赖并回读时出现；不扫描或接管全机开发环境。系统命令行工具与 OPL 托管运行时分组展示，保留各自的版本、安装位置和维护方。Temporal SDK 随 OPL 基座更新，系统 Temporal CLI 由其原安装器维护。版本检查待完成或组件缺失时，直接显示对应状态。
+运行组件仅在 owner 声明并回读依赖目录时展示实际版本、安装位置、维护方和所属产品（`managed_update.components` 中的 `opl_base` 在更新页以只读方式展示当前运行版本，不再由宿主触发通用升级或回滚）；不扫描或接管全机开发环境。系统命令行工具与 OPL 托管运行时按各自实际维护者展示，版本检查待完成或组件缺失时直接显示对应状态。
 
 设置由 App 静态定义目的地。资源 owner 或插件声明设置能力、标准 view type、读取与动作引用；Framework 验证并投影，Studio 在统一 App 设置容器中渲染。插件不创建顶层导航，也不复制凭据存储或绕过 App action bridge。知识来源继续由 Framework 的 Profile/Workspace owner 提供，接入不要求另外创建插件。

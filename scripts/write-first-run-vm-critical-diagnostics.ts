@@ -197,7 +197,7 @@ function classifyFailure(): {
   }
   if (
     failureStage === 'run_guest_smoke' &&
-    includesAny(errorText, ['opl system configure-codex', "'system' 'configure-codex'"])
+    includesAny(errorText, ['opl connect configure-codex', "'connect' 'configure-codex'"])
   ) {
     return {
       type: 'opl_configure_codex_failed',

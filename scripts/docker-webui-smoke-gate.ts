@@ -411,7 +411,7 @@ function validateApiKeyFlowEvidence(filePath: string) {
     if (payload.schema !== apiKeyFlowEvidenceSchema) errors.push(`api_key_flow.schema must be ${apiKeyFlowEvidenceSchema}`);
     if (payload.status !== 'passed') errors.push('api_key_flow.status must be passed');
     if (payload.mode !== 'webui_proxy_configure_codex') errors.push('api_key_flow.mode must be webui_proxy_configure_codex');
-    if (payload.command !== 'opl system configure-codex --api-key-stdin --json') {
+    if (payload.command !== 'opl connect configure-codex --api-key-stdin --json') {
       errors.push('api_key_flow.command must be the redacted configure-codex stdin command');
     }
     if (payload.stdin_transport !== true) errors.push('api_key_flow.stdin_transport must be true');
@@ -503,7 +503,7 @@ function inspectConfigureCodexResponse(response: ReturnType<typeof runNodeHttpPo
   const errors: string[] = [];
   let responseStatus: number | null = null;
   let responseSuccess = false;
-  let command = 'opl system configure-codex --api-key-stdin --json';
+  let command = 'opl connect configure-codex --api-key-stdin --json';
   let stdinTransport = false;
   let responseErrorCode: string | null = null;
   let responseErrorMessage: string | null = null;

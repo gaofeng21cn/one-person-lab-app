@@ -131,7 +131,7 @@ test('VM critical diagnostics classify OPL configure-codex failures before App r
     (cwd) => writeJson(cwd, 'artifacts/opl-first-run-vm/tart-smoke-summary.json', {
       status: 'failed',
       failure_stage: 'run_guest_smoke',
-      error: 'opl system configure-codex --api-key-stdin --json failed before bootstrap readiness',
+      error: 'opl connect configure-codex --api-key-stdin --json failed before bootstrap readiness',
     }),
   );
 

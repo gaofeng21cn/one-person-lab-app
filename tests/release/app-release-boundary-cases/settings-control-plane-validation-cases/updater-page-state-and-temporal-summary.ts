@@ -186,7 +186,7 @@ test("Settings validator rejects page-state DOM and search-entry drift", () => {
     /Capabilities source-group tab contract/,
   );
 });
-test("Settings keeps a compact background-task summary while Service Status owns Temporal detail", () => {
+test("Settings keeps a compact background-task summary while Service Status owns Runway detail", () => {
   const values = contracts();
   assert.doesNotThrow(() => validate(values));
 
@@ -195,213 +195,23 @@ test("Settings keeps a compact background-task summary while Service Status owns
   const pageById = (id: string) =>
     values.pageStateMatrix.pages.find((page) => page.id === id);
 
-  assert.equal(
-    guiPages.settings_general.background_services_summary.dependency_role,
-    "required_for_complete_opl_durable_workflow",
-  );
-  const expectedTemporalComponents = [
-    "temporal_server",
-    "temporal_worker",
-    "temporal_scheduler",
-  ];
-  assert.deepStrictEqual(
-    guiPages.settings_general.background_services_summary.detail_components,
-    expectedTemporalComponents,
-  );
-  assert.deepStrictEqual(
-    experiencePages.overview.background_services_summary.detail_components,
-    expectedTemporalComponents,
-  );
-  assert.match(
-    experiencePages.overview.background_services_summary.projection_policy,
-    /must_never_be_inferred_from_provider_ready/,
-  );
-  assert.match(
-    experiencePages.overview.background_services_summary.projection_policy,
-    /take_precedence_over_aggregate_provider_status/,
-  );
-  assert.ok(
-    guiPages.settings_general.must_not_show.some((item: string) =>
-      item.includes("raw attention_needed"),
-    ),
-  );
-  assert.equal(
-    pageById("settings_general").background_services_summary.attention_route,
-    "/settings/environment#services",
-  );
-  assert.deepStrictEqual(
-    pageById("settings_general").required_dom.always.filter((id: string) =>
-      id === "settings-overview-background-tasks",
-    ),
-    ["settings-overview-background-tasks"],
-  );
-  assert.equal(
-    experiencePages.overview.background_services_summary
-      .component_detail_visibility,
-    "service_status_destination_only",
-  );
-
-  const guiTemporal = guiPages.settings_environment.temporal_maintenance_contract;
-  const controlTemporal = experiencePages.maintenance.temporal_service_management;
-  const pageTemporal = pageById("environment").temporal_maintenance_contract;
-  const temporalMentalModel = guiTemporal.user_mental_model;
-  assert.deepStrictEqual(guiTemporal.visible_components, expectedTemporalComponents);
-  assert.deepStrictEqual(controlTemporal.visible_components, expectedTemporalComponents);
-  assert.deepStrictEqual(pageTemporal.visible_components, expectedTemporalComponents);
-  assert.deepStrictEqual(controlTemporal.user_mental_model, temporalMentalModel);
-  assert.equal(
-    pageById("environment").temporal_service_user_mental_model_ref,
-    "contracts/app-gui-product-contract.json#pages.settings_environment.temporal_maintenance_contract.user_mental_model",
-  );
-  assert.equal(
-    temporalMentalModel.component_labels.temporal_server.label_zh,
-    "Temporal 基础服务",
-  );
-  assert.equal(
-    temporalMentalModel.component_labels.temporal_worker.label_zh,
-    "OPL 任务执行器",
-  );
-  assert.equal(
-    temporalMentalModel.component_labels.temporal_scheduler.label_zh,
-    "周期计划",
-  );
-  assert.match(
-    temporalMentalModel.component_labels.temporal_scheduler.role,
-    /not_a_second_scheduler_service/,
-  );
-  assert.match(
-    temporalMentalModel.causal_blocking_policy,
-    /waiting_for_the_named_upstream_not_generic_attention/,
-  );
-  assert.deepStrictEqual(guiTemporal.post_action_readback.success_requires, [
-    "service_ready_true",
-    "service_supervisor_ready_true_when_required",
-    "worker_ready_true",
-    "scheduler_ready_true",
-    "no_error",
-    "fresh_observation",
-  ]);
-  assert.match(guiTemporal.scheduler_status_source, /details\.scheduler/);
-  assert.match(guiTemporal.component_projection_policy, /explicit_component_fields/);
-  assert.match(guiTemporal.component_projection_policy, /take_precedence_over_aggregate_provider_status/);
-  assert.equal(
-    guiTemporal.service_supervisor_policy.state_source,
-    "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor",
-  );
-  assert.deepStrictEqual(guiTemporal.service_supervisor_policy.required_summary_fields, [
-    "supported",
-    "applicable",
-    "required",
-    "installed",
-    "loaded",
-    "ready",
-    "observed_at",
-    "error",
-  ]);
-  assert.deepStrictEqual(guiTemporal.service_supervisor_policy.login_reconciliation_order, [
-    "temporal_service_supervisor",
-    "temporal_worker_supervisor",
-    "temporal_scheduler",
-  ]);
-  assert.deepStrictEqual(guiTemporal.service_supervisor_policy.platform_scope.required_on, [
-    "desktop_macos_local_managed_service",
-  ]);
-  assert.equal(
-    guiTemporal.service_supervisor_policy.persistent_store_policy.default_database_path,
-    "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",
-  );
-  assert.equal(
-    controlTemporal.success_policy,
-    "service_ready_and_required_platform_supervisor_ready_and_worker_ready_and_scheduler_ready_and_fresh_no_error_readback_only",
-  );
-  assert.equal(pageTemporal.success_policy, controlTemporal.success_policy);
-  const expectedActionIds = {
-    detect: [
-      "provider_service_status",
-      "provider_scheduler_status",
-      "provider_worker_status",
-    ],
-    install_or_configure: [
-      "provider_service_start",
-      "provider_scheduler_install",
-    ],
-    start: ["provider_service_start", "provider_worker_start"],
-    restart: ["provider_service_restart", "provider_worker_restart"],
-    run_now: ["provider_scheduler_trigger"],
+  const summary = guiPages.settings_general.background_services_summary;
+  assert.equal(summary.source, "app_state.settings_control_center.status_summary.runway");
+  assert.deepStrictEqual(summary.status_values, ["stopped", "degraded", "running"]);
+  assert.equal(summary.component_detail_visibility, "service_status_destination_only");
+  assert.deepStrictEqual(experiencePages.overview.background_services_summary, summary);
+  assert.deepStrictEqual(pageById("settings_general").background_services_summary, summary);
+  const serviceHealth = {
+    projection_ref: "contracts/app-runtime-bridge.json#runway_health_projection",
   };
-  assert.deepStrictEqual(controlTemporal.action_ids, expectedActionIds);
-  assert.deepStrictEqual(pageTemporal.action_ids, expectedActionIds);
-  assert.deepStrictEqual(guiTemporal.action_roles.detect.action_ids, expectedActionIds.detect);
-  assert.deepStrictEqual(guiTemporal.action_roles.start.action_ids, expectedActionIds.start);
-  assert.deepStrictEqual(guiTemporal.action_roles.restart.action_ids, expectedActionIds.restart);
-  assert.deepStrictEqual(guiTemporal.action_roles.run_now.action_ids, expectedActionIds.run_now);
-  assert.equal(
-    guiTemporal.post_action_readback.execution,
-    "single_force_fresh_fast_app_state_load",
-  );
-  assert.match(
-    guiTemporal.post_action_readback.component_readback_semantics,
-    /explicit_temporal_server_worker_scheduler_component_readback/,
-  );
-  assert.deepStrictEqual(guiTemporal.post_action_readback.component_field_paths, {
-    server: "app_state.provider.temporal.details.worker_readiness.service_ready",
-    server_supervisor:
-      "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor.ready",
-    worker: "app_state.provider.temporal.details.worker_readiness.worker_ready",
-    scheduler: "app_state.provider.temporal.details.scheduler.ready",
-  });
-  assert.equal(guiTemporal.post_action_readback.ordinary_and_post_action_readback_command_count, 1);
-  assert.equal(guiTemporal.post_action_readback.shell_must_not_fan_out_delegated_status_cli, true);
-  assert.equal(
-    guiTemporal.post_action_readback.manual_component_check_policy,
-    "explicit_user_diagnostic_only_not_final_state_source",
-  );
-  assert.match(guiTemporal.post_action_readback.legacy_or_aggregate_ready_policy, /must_not_infer_component_ready/);
-  assert.deepStrictEqual(guiTemporal.post_action_readback.manual_component_check_action_ids, [
-    "provider_service_status",
-    "provider_scheduler_status",
-    "provider_worker_status",
-  ]);
-  assert.equal(
-    controlTemporal.mutation_readback,
-    "single_force_fresh_fast_app_state_executes_and_projects_temporal_server_worker_scheduler_component_readback",
-  );
-  assert.equal(pageTemporal.mutation_readback, controlTemporal.mutation_readback);
-  assert.equal(guiTemporal.post_action_readback.freshness_required, true);
-  assert.match(guiTemporal.failure_semantics, /never_route_to_settings_sync_capabilities/);
-  assert.equal(
-    guiTemporal.worker_mutation_guard_policy.environment_bypass_guidance_allowed,
-    false,
-  );
-  assert.deepStrictEqual(
-    guiTemporal.worker_mutation_guard_policy.allowed_next_steps,
-    [
-      "switch_to_managed_runtime",
-      "explicitly_enable_authorized_developer_maintenance",
-    ],
-  );
-  const genericAttention = contracts();
-  genericAttention.controlPlane.experience_contract.page_contracts.maintenance.temporal_service_management.user_mental_model.causal_blocking_policy =
-    "repeat_generic_attention_for_every_component";
-  assert.throws(
-    () => validate(genericAttention),
-    /Temporal service user mental model/,
-  );
-  assert.ok(
-    experiencePages.maintenance.destination_dom.runtime_services.includes(
-      "settings-maintenance-temporal-server",
-    ),
-  );
-  assert.ok(
-    experiencePages.maintenance.destination_dom.runtime_services.includes(
-      "settings-maintenance-temporal-worker",
-    ),
-  );
-  assert.ok(
-    experiencePages.maintenance.destination_dom.runtime_services.includes(
-      "settings-maintenance-temporal-scheduler",
-    ),
-  );
+  assert.deepStrictEqual(guiPages.settings_environment.runway_service_health, serviceHealth);
+  assert.deepStrictEqual(experiencePages.maintenance.runway_service_health, serviceHealth);
+  assert.deepStrictEqual(pageById("environment").runway_service_health, serviceHealth);
+
+  const staleSummary = contracts();
+  staleSummary.controlPlane.experience_contract.page_contracts.overview.background_services_summary.source =
+    "app_state.provider.temporal";
+  assert.throws(() => validate(staleSummary), /Settings Overview background_services_summary/);
 
   assert.equal(
     guiPages.settings_gateway.opl_gateway_account.disconnect_placement,

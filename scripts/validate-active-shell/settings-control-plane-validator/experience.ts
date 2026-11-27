@@ -1,3 +1,4 @@
+import { runwayHealthProjectionRef, runwayStatusValues, runwaySummarySource } from "../settings-and-provider.ts";
 import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll } from "../assertions.ts";
 import {
   appOwnedSecondarySettingsPages,
@@ -304,6 +305,7 @@ export function validateSettingsExperienceContract(experience, guiContract) {
   assertFieldsMatch(
     backgroundTasks,
     {
+      source: runwaySummarySource,
       overview_visible_unit: "background_tasks",
       overview_label_zh: "后台任务",
       overview_label_en: "Background tasks",
@@ -311,36 +313,17 @@ export function validateSettingsExperienceContract(experience, guiContract) {
     },
     "Settings Overview background_services_summary",
   );
-  if (
-    !pageContracts.overview.required_dom.always.includes("settings-overview-background-tasks") ||
-    pageContracts.overview.required_dom.always.some((id) => id.startsWith("settings-overview-temporal-"))
-  ) {
-    throw new Error(
-      "Settings Overview must keep one persistent Background tasks summary and leave Temporal component detail on Service Status",
-    );
-  }
-  const temporalMentalModel = pageContracts.maintenance?.temporal_service_management?.user_mental_model;
-  assertFieldsMatch(
-    temporalMentalModel,
-    {
-      surface_label_zh: "持久任务运行（Temporal）",
-      surface_label_en: "Durable tasks (Temporal)",
-      causal_blocking_policy: "downstream_unready_due_to_an_upstream_component_must_show_waiting_for_the_named_upstream_not_generic_attention",
-      aggregate_status_policy: "show_the_root_cause_and_user_impact_once_never_repeat_one_generic_attention_label_for_every_component",
-      primary_action_policy: "show_exactly_one_safe_action_for_the_first_actionable_root_cause_plus_one_recheck_action",
-      disabled_action_policy: "hide_blocked_downstream_actions_or_explain_their_named_prerequisite_with_focusable_accessible_help",
-      technical_detail_policy: "address_namespace_task_queue_supervisor_and_component_timestamps_are_collapsed_by_default",
-    },
-    "Settings Temporal service user mental model",
+  assertDeepEqualJson(backgroundTasks.status_values, runwayStatusValues, "Settings Overview Runway statuses");
+  assertDeepEqualJson(
+    backgroundTasks,
+    guiContract?.pages?.settings_general?.background_services_summary,
+    "Settings Overview Runway summary",
   );
   assertDeepEqualJson(
-    temporalMentalModel?.dependency_topology,
-    ["temporal_server", "temporal_worker", "temporal_scheduler"],
-    "Settings Temporal service user mental model dependency_topology",
+    pageContracts.maintenance?.runway_service_health,
+    { projection_ref: runwayHealthProjectionRef },
+    "Settings Maintenance Runway health",
   );
-  assertFieldsMatch(temporalMentalModel?.component_labels?.temporal_server, { label_zh: "Temporal 基础服务", role: "single_required_temporal_dependency_substrate" }, "Settings Temporal service user mental model server label");
-  assertFieldsMatch(temporalMentalModel?.component_labels?.temporal_worker, { label_zh: "OPL 任务执行器" }, "Settings Temporal service user mental model worker label");
-  assertFieldsMatch(temporalMentalModel?.component_labels?.temporal_scheduler, { label_zh: "周期计划", role: "temporal_schedule_cadence_not_a_second_scheduler_service" }, "Settings Temporal service user mental model scheduler label");
   assertSettingsRules(
     pageContracts.workspace.surface_rules,
     {

@@ -270,7 +270,7 @@ before accepting an artifact:
 - `data_preservation.status`, `data_preservation.verdict`, and
   `data_preservation.summary` summarize old-data behavior.
 - `api_key_flow.status` proves the WebUI/API proxy accepted the first-run API
-  key action and called `opl system configure-codex --api-key-stdin --json`
+  key action and called `opl connect configure-codex --api-key-stdin --json`
   without putting key material in the command line or artifact.
 - `secret_scan.status` is `passed` and
   `secret_scan.forbidden_secret_markers` is empty.
@@ -451,7 +451,7 @@ operator must either grant runner inventory read access or provide
 `-EvidenceDir` defaults diagnostics into `windows-clean-evidence/diagnostics`
 and writes `windows-clean-evidence/windows-smoke-evidence.json`. It also calls
 the WebUI access backend to write `api-key-flow-evidence.json`, proving the UI
-path reaches `opl system configure-codex --api-key-stdin --json` without putting
+path reaches `opl connect configure-codex --api-key-stdin --json` without putting
 access material in installer arguments or diagnostics. If that receipt cannot
 be collected, the installer fails the evidence package instead of producing a
 placeholder that could be mistaken for pass evidence.
@@ -496,7 +496,7 @@ to the installer. A passed smoke gate must therefore include
 The evidence must prove only the safe transport shape:
 
 - the WebUI endpoint is `/api/opl-runtime/configure-codex`;
-- the command is the redacted `opl system configure-codex --api-key-stdin
+- the command is the redacted `opl connect configure-codex --api-key-stdin
   --json`;
 - `stdin_transport` is `true`;
 - `key_material_recorded` is `false`;

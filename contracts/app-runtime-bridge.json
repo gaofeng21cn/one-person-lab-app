@@ -292,7 +292,7 @@
     "bridge_id": "approveConnectionAccess",
     "desktop_only": false,
     "webui_route": "/api/opl-runtime/connection-access-approve",
-    "command": "opl connect authorization approve --request-id <requestId> --json",
+    "command": "opl connect grants approve <requestId> --json",
     "transport": "runtime_provider_via_desktop_typed_ipc_or_existing_authenticated_webui_http_proxy_to_dedicated_owner_command_no_generic_app_action_payload",
     "request_fields": ["requestId"],
     "response_success_fields": ["ok", "stateRefreshRequired"],
@@ -2463,74 +2463,135 @@
     "forbidden_delivery_claim_for_platform_repair": true,
     "app_role": "display_only_projection_consumer"
   },
-  "provider_readiness_repair_projection": {
-    "source": "app_state.provider + app_state.actions + app_state.operator.default_read_surface_policy",
-    "authority": "opl_framework_provider_readiness_refs_projection",
-    "display_policy": "settings_environment_provider_readiness_repair_without_current_owner_delta_override",
-    "settings_owner_surface": "/settings/environment?section=services",
-    "consumer_surface": "/settings/environment?section=services",
-    "runtime_page_visible": false,
-    "provider_kind": "temporal",
-    "repair_cases": [
-      {
-        "blocker": "service_supervisor_not_ready",
-        "source_status": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.supervisor.ready=false_or_error",
-        "display_state": "temporal_service_supervisor_not_ready",
-        "next_repair_command_source": "app_state.provider.temporal.details.worker_readiness.temporal_service_lifecycle.repair_action.next_command",
-        "safe_action_id": "provider_service_start",
-        "runtime_action_id": null,
-        "command_role": "provider_server_restart_self_healing_repair_only"
-      },
-      {
-        "blocker": "worker_not_ready",
-        "source_status": "temporal_worker_readiness.readiness_status=worker_not_ready",
-        "display_state": "provider_worker_not_ready",
-        "next_repair_command": "opl family-runtime worker start --provider temporal",
-        "safe_action_id": "provider_worker_start",
-        "runtime_action_id": "provider-worker:temporal:start",
-        "command_role": "provider_liveness_repair_only"
-      },
-      {
-        "blocker": "missing_search_attributes",
-        "source_status": "temporal_visibility_readiness.readiness_status=missing_search_attributes",
-        "display_state": "temporal_search_attributes_missing",
-        "next_repair_command": "opl family-runtime provider repair --provider temporal",
-        "safe_action_id": null,
-        "runtime_action_id": null,
-        "command_role": "provider_visibility_repair_only"
-      },
-      {
-        "blocker": "search_attribute_capacity_exceeded",
-        "source_status": "temporal_visibility_readiness.readiness_status=search_attribute_capacity_exceeded",
-        "display_state": "temporal_search_attributes_capacity_exceeded",
-        "next_repair_command_source": "app_state.provider.temporal.details.worker_readiness.visibility_readiness.repair_action.next_check",
-        "safe_action_id": null,
-        "runtime_action_id": null,
-        "command_role": "provider_visibility_migration_readback_only"
-      },
-      {
-        "blocker": "visibility_degraded",
-        "source_status": "temporal_visibility_readiness.indexing_ready=false_and_execution_ready=true",
-        "display_state": "temporal_visibility_degraded_unindexed",
-        "next_repair_command_source": "app_state.provider.temporal.details.worker_readiness.visibility_readiness.repair_action.next_check",
-        "safe_action_id": null,
-        "runtime_action_id": null,
-        "command_role": "provider_visibility_optional_degradation"
-      }
+  "runway_health_projection": {
+    "source": "app_state.services.runway",
+    "summary_source": "app_state.settings_control_center.status_summary.runway",
+    "status_values": [
+      "stopped",
+      "degraded",
+      "running"
     ],
-    "current_owner_delta_policy": "never_replace_default_operator_payload_or_owner_delta_show_as_provider_readiness_repair_only",
-    "domain_readiness_authority": false,
-    "provider_readiness_authority": false,
-    "app_role": "display_only_provider_repair_path_consumer",
-    "forbidden_claims": [
-      "domain_ready",
-      "domain_readiness",
-      "owner_receipt_authority",
-      "typed_blocker_authority",
-      "current_owner_delta_override",
-      "app_release_readiness",
-      "family_production_readiness"
-    ]
+    "schedule_runner_fields": {
+      "running": "boolean",
+      "tick_interval_ms": "number"
+    },
+    "status_policy": "use_owner_status_even_when_schedule_runner_is_running",
+    "available_actions": [],
+    "transport": "opld app.state.get",
+    "consumer_surface": "/settings/environment?section=services",
+    "schedule_management_route": "/scheduled"
+  },
+  "v2_resource_and_runway_actions": {
+    "transport": "opld app.action.execute",
+    "catalog_source": "app_state.actions",
+    "resource_sources": {
+      "source": "app_state.settings_control_center.app_settings_read_model.resource_sources",
+      "surface_kind": "opl_knowledge_sources_projection.v1",
+      "collection": "entries",
+      "entry_identity": "source_id",
+      "row_action_source": "entries[].available_actions",
+      "row_action_binding": "payload.source_id",
+      "scopes": [
+        "project_local",
+        "personal_profile",
+        "long_term_topic"
+      ],
+      "actions": {
+        "knowledge_source_list": {
+          "payload_fields": [
+            "workspace_id"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        },
+        "knowledge_source_check": {
+          "payload_fields": [
+            "source_id"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        },
+        "knowledge_source_connect": {
+          "payload_fields": [
+            "source_id",
+            "workspace_id",
+            "root_path",
+            "scope",
+            "adapter_kind",
+            "accepted_revision"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        },
+        "knowledge_source_configure": {
+          "payload_fields": [
+            "source_id",
+            "workspace_id",
+            "root_path",
+            "scope",
+            "adapter_kind",
+            "accepted_revision"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        },
+        "knowledge_source_disconnect": {
+          "payload_fields": [
+            "source_id",
+            "workspace_id",
+            "revoke"
+          ],
+          "confirmation_required": true,
+          "dry_run_supported": false
+        }
+      }
+    },
+    "connections": {
+      "source": "app_state.connections",
+      "actions": {
+        "connection_test": {
+          "payload_fields": [
+            "connection_id"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        },
+        "connection_update": {
+          "payload_fields": [
+            "connection_id",
+            "status"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        },
+        "connection_delete": {
+          "payload_fields": [
+            "connection_id",
+            "purge_secret",
+            "reason"
+          ],
+          "confirmation_required": true,
+          "dry_run_supported": false
+        }
+      }
+    },
+    "human_gate": {
+      "action_ref": "app_state.actions#runway_human_gate_resolve",
+      "delegated_surface": "runway.humanGate.resolve",
+      "actions": {
+        "runway_human_gate_resolve": {
+          "payload_fields": [
+            "stage_run_id",
+            "expected_revision",
+            "decision",
+            "notes",
+            "waived_debt_ids"
+          ],
+          "confirmation_required": false,
+          "dry_run_supported": false
+        }
+      }
+    }
   },
   "state_index_sidecar_projection": {
     "source": "app_state.operator.workbench.task_drilldowns.state_index_sidecar_projection",

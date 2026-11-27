@@ -259,7 +259,7 @@
     "api_key_compatibility_lane": {
       "requires_explicit_request": true,
       "explicit_credential_file_role": "optional_manual_override_only",
-      "provider_command": "opl system configure-codex --api-key-stdin --json",
+      "provider_command": "opl connect configure-codex --api-key-stdin --json",
       "provider_command_role": "new_or_rotated_provider_credential_only",
       "package_reconciliation_performed": false,
       "package_lifecycle_mutation_allowed": false,

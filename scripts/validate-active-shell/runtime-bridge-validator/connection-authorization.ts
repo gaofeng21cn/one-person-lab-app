@@ -7,7 +7,7 @@ export function validateConnectionAuthorizationApprovalBridge(runtimeBridge) {
       bridge_id: 'approveConnectionAccess',
       desktop_only: false,
       webui_route: '/api/opl-runtime/connection-access-approve',
-      command: 'opl connect authorization approve --request-id <requestId> --json',
+      command: 'opl connect grants approve <requestId> --json',
       transport: 'runtime_provider_via_desktop_typed_ipc_or_existing_authenticated_webui_http_proxy_to_dedicated_owner_command_no_generic_app_action_payload',
       request_fields: ['requestId'],
       response_success_fields: ['ok', 'stateRefreshRequired'],

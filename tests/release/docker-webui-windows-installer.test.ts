@@ -76,7 +76,7 @@ function writeWindowsEvidence(root: string, overrides: Record<string, unknown> =
         endpoint: 'http://127.0.0.1:3000/api/opl-runtime/configure-codex',
         response_http_status: 200,
         response_success: true,
-        command: 'opl system configure-codex --api-key-stdin --json',
+        command: 'opl connect configure-codex --api-key-stdin --json',
         stdin_transport: true,
         key_material_recorded: false,
         errors: [],

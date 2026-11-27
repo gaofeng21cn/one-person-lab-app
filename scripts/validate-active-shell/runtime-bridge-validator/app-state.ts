@@ -12,7 +12,6 @@ import {
   validateAgentAvailabilityProjectionContract,
   validateOpenScienceAcceptedItemsFixture,
   validateOpenScienceConsoleProjectionContract,
-  validateProviderReadinessRepairProjectionContract,
   validateProgressDeltaDisplayContract,
   validateProjectProgressDisplayContract,
   validateRefLevelFollowUpProjectionContract,

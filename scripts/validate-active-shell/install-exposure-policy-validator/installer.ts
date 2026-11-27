@@ -193,7 +193,7 @@ function validateInstallerSurfaces(policy) {
   assertFieldsMatch(model?.runtime_proxy_smoke, {
     mode: 'webui_proxy_configure_codex',
     endpoint: '/api/opl-runtime/configure-codex',
-    command: 'opl system configure-codex --api-key-stdin --json',
+    command: 'opl connect configure-codex --api-key-stdin --json',
     secret_transport: 'stdin_only',
     key_material_recorded: false,
   }, 'Docker/WebUI runtime_proxy_smoke');

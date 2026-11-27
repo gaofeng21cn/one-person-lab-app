@@ -82,7 +82,8 @@ export function validateAppSettingsPages(matrix, guiContract) {
     'section_sources',
     'shared_resource_management',
     'software_catalog_policy',
-    'installation_instance_policy',
+    'package_installation_policy',
+    'framework_base_component',
     'software_source_management',
     'state_feedback_policy',
     'settings_integration',
@@ -91,6 +92,15 @@ export function validateAppSettingsPages(matrix, guiContract) {
   ]) {
     assertDeepEqualJson(applicationManagementPage[field], applicationManagementContract[field], `app_management ${field}`);
   }
+  assertDeepEqualJson(applicationManagementPage.framework_base_component, {
+    source: 'app_state.managed_update.components[component_id=opl_base]',
+    version_source: 'current.installed_version',
+    available_actions: [],
+  }, 'app_management read-only Framework Base component');
+  assertDeepEqualJson(applicationManagementPage.software_source_management?.public_catalog, {
+    source_id: 'public-registry:opl',
+    available_actions: ['source_refresh'],
+  }, 'app_management public catalog');
   const officialUiReuse = applicationManagementContract.official_ui_reuse;
   if (
     officialUiReuse?.page_identity !== '软件中心' ||
@@ -539,6 +549,16 @@ function validateResourcesPage(matrix, guiContract) {
 
 function validateEnvironmentPage(matrix, guiContract) {
   const environmentPage = pageById(matrix, 'environment');
+  assertDeepEqualJson(
+    environmentPage.runway_service_health,
+    guiContract.pages.settings_environment.runway_service_health,
+    'Maintenance Runway health',
+  );
+  assertDeepEqualJson(
+    pageById(matrix, 'settings_general').background_services_summary,
+    guiContract.pages.settings_general.background_services_summary,
+    'Overview Runway summary',
+  );
   if (environmentPage.module_path_source_policy_ref !== 'contracts/app-gui-product-contract.json#module_path_source_policy') {
     throw new Error('Environment page must reference the App GUI module path source policy');
   }

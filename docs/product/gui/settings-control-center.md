@@ -119,20 +119,12 @@ remote update remain distinct operations. A missing optional application is an
 available choice; an installed failure or missing required resource is an item
 needing attention.
 
-A Homebrew source exposes native App and CLI distribution options through
-`app_state.agent_packages.sources.entries[].native_items`. Homebrew owns its
-recipes, installation receipts and lifecycle actions. Framework also reports
-verified installations owned by other installers. No Homebrew receipt means
-“not managed by Homebrew”; it does not establish that the software is absent.
-The selected installation's owner supplies its update and uninstall actions.
-
-`app_state.agent_packages.sources.installed_products` provides verified owner
-installations independently of a software source. The UI merges these products
-with source carrier options by owner-projected `product_id`. The current
-Framework installation adapter can therefore report Framework and its update
-owner even when Homebrew is absent, its tap is missing, or source inspection
-fails. This field does not claim automatic discovery for every product or
-installer; other installations require their own adapter evidence.
+Public and authorized private sources use the same Framework catalog and lifecycle
+controls (`agent_packages`, `public-registry:opl`, and authorized `github-packages:<owner>`
+sources). Legacy Homebrew Tap `native_items`, `source_setup`, and multi-installation
+switching are retired. Public `public-registry:opl` refreshes catalog metadata through
+owner-projected `source_refresh`; authorized private sources continue owner-gated
+check, configure, and disconnect actions without exposing credential values.
 
 ### Software catalog
 
@@ -144,8 +136,8 @@ compatibility routes (`/settings/agents`, `/settings/capabilities`, `/settings/e
   and runtime dependencies (including optional bundled Codex extensions such as PDF);
 - maintenance origin is projected by Framework rather than publisher strings or carrier paths;
 - development access counts as installed without implying preview maturity;
-- public Package, authorized private, and Homebrew channels share one OPL catalog and
-  owner-action model without displacing native package roots, Obsidian vaults, or credentials.
+- public Package, authorized private, and Studio external capability channels share one OPL
+  catalog and owner-action model without displacing native package roots, Obsidian vaults, or credentials.
 
 ### DSH-derived Studio Settings
 
@@ -660,36 +652,28 @@ three destinations into one long “Services & Maintenance” page.
 
 1. **Service Status** (`environment#services`) answers whether Codex and the
    required background services are available now. It starts with one
-   availability summary. The Temporal area is titled **Durable tasks
-   (Temporal)** and presents **Temporal service**, **OPL task worker**, and
-   **Scheduled runs** as the causal chain service -> worker -> Temporal
-   Schedule, not as three peer services. It states the user impact once,
-   emphasizes one safe action for the first actionable root cause, and renders
-   downstream failures as waiting states. Address, namespace, task queue,
-   supervisor, component timestamps, and secondary checks stay in technical
-   details.
-   Overview consumes these same component fields but renders only one persistent
-   **Background tasks** summary. It never duplicates Temporal topology.
-   Scheduled tasks belong in the main workbench (compact searchable list, status/time
-   metadata, on-demand detail/history, Framework/Temporal execution); Settings only
-   reports background-task readiness and links to Service Status or the workbench.
-   `opl system initialize` normal/event reads skip network Codex latest-version lookups,
-   and bundled wrappers preserve explicit `OPL_TEMPORAL_NAMESPACE` or let Framework
-   resolve a live matching worker namespace.
+   availability summary. The Runway area presents **Runway** runtime health
+   and **Schedule runner** readiness (`app_state.services.runway` and
+   `status_summary.runway`) instead of deprecated Temporal provider controls.
+   It states the user impact once without claiming generic `opld` service recovery
+   or rollback actions.
+   Overview consumes these same summary fields and renders only one persistent
+   **Background tasks** summary.
+   Scheduled tasks and Runway human gate decisions (`runway_human_gate_resolve`)
+   belong in the main workbench (compact searchable list, status/time metadata,
+   on-demand detail/history, Framework Runway execution); Settings only
+   reports Runway and schedule-runner readiness and links to Service Status or the workbench.
    Memory remains a workbench service reached contextually from Instructions & Context
    rather than a top-level Settings tab.
 2. **Updates & Repair** (`environment#updates`) answers what is outdated or
    damaged and what the safest next action is. It owns the update channel,
-   Base/App currentness, Desktop App update state, Check, Apply, progressive
-   confirmation, progress, and fresh readback. Packages appear only as one
-   aggregate summary with a link to Agents; per-Package actions stay on that
-   Package row. OPL-managed Base and capability updates use the Framework's
-   default silent background policy. The page reports that policy once and
-   hides a manual Apply action while the component is in its normal managed
-   path; an explicit action appears only for an owner-reported repair or other
-   attention state. Native repair/rollback opens the owning platform's advanced
-   route and never becomes an App state machine. Healthy components collapse
-   into a compact summary; at most one recommended action is emphasized.
+   read-only `opl_base` current-version projection (`managed_update.components`),
+   Desktop App update state, Check, Apply, progressive confirmation, progress, and
+   fresh readback. Packages appear only as one aggregate summary with a link to Agents;
+   per-Package actions stay on that Package row. `opl_base` stays read-only on Updates;
+   Desktop App and managed Package updates follow their own owner policies and
+   progressive confirmation flows. Healthy components collapse into a compact summary;
+   at most one recommended action is emphasized.
 3. **Logs & Diagnostics** (`environment#diagnostics`) answers where App logs are
    stored and which technical evidence can be inspected or copied. On Desktop,
    it reuses `application.setLogDirectory` to open or change the App log root,
@@ -838,10 +822,10 @@ anchor is a stable, focusable section id.
 
 ## State And Action Boundary
 
-Default reads use `opl app state --profile fast --json`. Explicit detail reads
-use `opl app state --profile full --json`. Mutations use
-`opl app action execute --action <action_id> [--payload <json>] [--dry-run]
---json`.
+Default reads use `opld` `app.state.get` (`profile: "fast"`, with `opl app state --profile fast --json`
+as the CLI equivalent). Explicit detail reads use `profile: "full"`. Mutations use
+`opld` `app.action.execute` (or `opl app action execute --action <action_id> [--payload <json>]
+[--dry-run] --json`).
 
 Mutation-capable surfaces are single-flight. Competing actions and pending
 confirmations remain disabled while a read, precheck, mutation, doctor, or
