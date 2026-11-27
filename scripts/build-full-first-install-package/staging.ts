@@ -28,6 +28,7 @@ import {
   buildOplLayer,
   buildSkillsLayer,
   buildToolchainLayer,
+  fullFrameworkApiVersion,
   writeDomainMarkers,
 } from './runtime-layers.ts';
 
@@ -69,8 +70,12 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
       buildSkillsLayer(layerRoot, options, resolvedSelectedBundleDescriptor);
     }),
   ];
-  assertOplRuntimeProductionDependencies(path.join(runtimeRoot, 'opl'));
-  assertTemporalCoreBridgeMacosArm64Only(path.join(runtimeRoot, 'opl', 'node_modules'));
+  const framework = path.join(runtimeRoot, 'opl');
+  const frameworkApiVersion = fullFrameworkApiVersion(framework);
+  assertOplRuntimeProductionDependencies(framework);
+  if (frameworkApiVersion === '1.0') {
+    assertTemporalCoreBridgeMacosArm64Only(path.join(framework, 'node_modules'));
+  }
   writeDomainMarkers(runtimeRoot, options, packagedAt);
   assertPackagedCatalogSeedPayloadsComplete(runtimeRoot);
   const nativeTrust = ensureFullRuntimeNativeTrust(runtimeRoot);
@@ -91,7 +96,13 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
         size_bytes: directorySizeBytes(path.join(runtimeRoot, 'modules', 'mac-media-assets')) },
     } : {}),
     med_autocast: { source_path: options.macRoot, git_commit: readGitHead(options.macRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'modules', 'med-autocast')) },
-    opl: { source_path: options.frameworkRoot, git_commit: readGitHead(options.frameworkRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'opl')) },
+    opl: {
+      source_path: options.frameworkRoot, git_commit: readGitHead(options.frameworkRoot), size_bytes: directorySizeBytes(framework),
+      ...(frameworkApiVersion === '2.0' ? {
+        framework_api_version: frameworkApiVersion,
+        framework_daemon_version: JSON.parse(fs.readFileSync(path.join(framework, 'packages', 'daemon', 'package.json'), 'utf8')).version,
+      } : {}),
+    },
     mas: { source_path: options.masRoot, git_commit: readGitHead(options.masRoot), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'modules', 'mas')) },
     mas_scholar_skills: {
       source_path: options.masScholarSkillsRoot,

@@ -42,6 +42,28 @@ export function assertFullRuntimeCurrentnessProbe(downloadDir, manifest) {
   if (probe.status !== "passed") {
     throw new Error(`Full runtime currentness probe did not pass: ${probe.status || "(empty)"}`);
   }
+  const expectedCommit =
+    manifest?.components?.opl?.git_commit ||
+    manifest?.resolved_refs?.opl_framework?.resolved_commit;
+  if (expectedCommit && probe.framework_commit !== expectedCommit) {
+    throw new Error(
+      `Full runtime currentness probe Framework commit mismatch: expected ${expectedCommit}, got ${probe.framework_commit || "(empty)"}`,
+    );
+  }
+  if (probe.framework_runtime !== undefined) {
+    const runtime = probe.framework_runtime;
+    if (manifest?.components?.opl?.framework_api_version !== "2.0" || runtime?.api_version !== "2.0"
+      || typeof runtime.version !== "string" || !runtime.version.trim()
+      || runtime.version !== manifest.components.opl.framework_daemon_version
+      || !Number.isSafeInteger(runtime.sqlite_schema_version) || runtime.sqlite_schema_version < 1
+      || runtime.isolated_state !== true || runtime.initial_installed_package_count !== 0) {
+      throw new Error("Full runtime currentness probe must record the selected v2 daemon and clean Package state.");
+    }
+    return;
+  }
+  if (manifest?.components?.opl?.framework_api_version === "2.0") {
+    throw new Error("Full runtime currentness probe is missing v2 daemon evidence.");
+  }
   if (probe.managed_update_surface_id !== "opl_managed_updater_kernel") {
     throw new Error(
       `Full runtime currentness probe used unexpected managed update surface: ${probe.managed_update_surface_id || "(empty)"}`,
@@ -62,14 +84,6 @@ export function assertFullRuntimeCurrentnessProbe(downloadDir, manifest) {
     if (probe.managed_update_component_providers?.[componentId] !== providerId) {
       throw new Error(`Full runtime currentness probe provider mismatch for ${componentId}.`);
     }
-  }
-  const expectedCommit =
-    manifest?.components?.opl?.git_commit ||
-    manifest?.resolved_refs?.opl_framework?.resolved_commit;
-  if (expectedCommit && probe.framework_commit !== expectedCommit) {
-    throw new Error(
-      `Full runtime currentness probe Framework commit mismatch: expected ${expectedCommit}, got ${probe.framework_commit || "(empty)"}`,
-    );
   }
   if (probe.app_state_schema_version !== "opl_app_state.v1") {
     throw new Error(

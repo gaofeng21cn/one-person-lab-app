@@ -134,6 +134,8 @@ type ComponentSnapshot = Partial<{
   binary_path: string | null;
   archive_path: string | null;
   archive_size_bytes: number | null;
+  framework_api_version: string;
+  framework_daemon_version: string;
   required: boolean;
   status: string;
 }>;
@@ -457,6 +459,10 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
     components: {
       opl: {
         ...normalizeComponent(components.opl),
+        ...(components.opl?.framework_api_version ? {
+          framework_api_version: components.opl.framework_api_version,
+          framework_daemon_version: components.opl.framework_daemon_version,
+        } : {}),
         role: 'framework_cli_and_shared_contracts_payload_source',
         required: true,
       },

@@ -890,7 +890,11 @@ jobs:
           if [ "$(node -p "require('./package.json').scripts?.prepare || ''")" != 'npm run build' ]; then
             npm run build
           fi
-          test -d dist
+          if [ "$(node -p "require('./package.json').bin?.opld || ''")" = './packages/daemon/bin/opld' ]; then
+            test -f packages/daemon/dist/index.js
+          else
+            test -d dist
+          fi
           {
             echo "OPL_FULL_FRAMEWORK_DEPS_READY_AT=$(date +%s)"
             echo "OPL_FULL_FRAMEWORK_BUILD_READY_AT=$(date +%s)"

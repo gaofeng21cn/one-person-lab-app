@@ -38,6 +38,13 @@ import {
 } from './resolved-selected-bundle-descriptor.ts';
 
 
+export function fullFrameworkApiVersion(oplRoot: string): '1.0' | '2.0' {
+  const manifestPath = path.join(oplRoot, 'package.json');
+  if (!fs.existsSync(manifestPath)) return '1.0';
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  return manifest.bin?.opld === './packages/daemon/bin/opld' ? '2.0' : '1.0';
+}
+
 export function assertOplRuntimeProductionDependencies(oplRoot) {
   const packageJsonPath = path.join(oplRoot, 'package.json');
   const packageLockPath = path.join(oplRoot, 'package-lock.json');
@@ -54,7 +61,9 @@ export function assertOplRuntimeProductionDependencies(oplRoot) {
     '@temporalio/worker',
     '@temporalio/workflow',
   ];
-  const missingDeclared = requiredTemporalPackages.filter((packageName) => typeof dependencies[packageName] !== 'string');
+  const missingDeclared = fullFrameworkApiVersion(oplRoot) === '1.0'
+    ? requiredTemporalPackages.filter((packageName) => typeof dependencies[packageName] !== 'string')
+    : [];
   if (missingDeclared.length > 0) {
     throw new Error(
       `Full runtime OPL payload has Temporal runtime packages outside dependencies: ${missingDeclared.join(', ')}`,
@@ -225,6 +234,7 @@ function normalizePublicExportKey(value) {
     throw new Error('Full runtime required built export export_key must be a non-empty string.');
   }
   const normalized = path.posix.normalize(value).replace(/^\.\//, '');
+  if (normalized === '.') return normalized;
   if (
     normalized === ''
     || normalized.includes('..')
@@ -241,7 +251,8 @@ function requiredBuiltExportPayloadStatuses(runtimeRoot, { strict = false } = {}
     throw new Error('Full runtime prune policy required_built_exports must be an array.');
   }
 
-  return declarations.map((declaration) => {
+  const apiVersion = fullFrameworkApiVersion(path.join(runtimeRoot, 'opl'));
+  return declarations.filter((declaration) => (declaration?.framework_api_version ?? '1.0') === apiVersion).map((declaration) => {
     if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) {
       throw new Error('Full runtime required built export declaration must be an object.');
     }
@@ -808,6 +819,7 @@ export function buildRuntimeLayerImplementationHash(layerId: FullRuntimeCacheLay
       pruneTemporalCoreBridgeReleases,
       copyTreeFiltered,
       copyProductionNodeModules,
+      fullFrameworkApiVersion,
       publicExportTarget,
       normalizeRequiredRuntimePath,
       normalizePublicExportKey,

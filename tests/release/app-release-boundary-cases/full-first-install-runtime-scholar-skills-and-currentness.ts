@@ -1,3 +1,4 @@
+import os from "node:os";
 import {
   assert,
   fs,
@@ -212,6 +213,42 @@ test("Full runtime currentness consumes the Framework managed update component a
       }),
     /expected array at managed_update.components/,
   );
+});
+
+test("Full runtime currentness checks and stops the isolated Framework v2 daemon", async () => {
+  const { probeFullFrameworkDaemon } = await import("../../../scripts/build-full-first-install-package/runtime-currentness.ts");
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-daemon-probe-"));
+  const command = path.join(stateDir, "opl");
+  const calls = path.join(stateDir, "calls");
+  try {
+    fs.writeFileSync(command, `#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const args = process.argv.slice(2, -1).join(' ');
+const state = process.env.OPL_STATE_DIR;
+fs.appendFileSync(path.join(state, 'calls'), args + '\\n');
+const version = { api_version: '2.0', version: '2.0.0' };
+const replies = {
+  '--version': version,
+  'daemon doctor --include-first-run': { ...version, ok: true,
+    paths: { state_dir: state }, sqlite: { db_file: path.join(state, 'opl.db'), schema_version: 4001 },
+    first_run: { needs_onboarding: true, installed_package_count: 0 } },
+  'pack list': { packages: process.env.OPL_PROBE_DIRTY === '1' ? [{ package_id: 'unexpected' }] : [] },
+  'daemon stop': { ok: true, stopped: true },
+};
+process.stdout.write(JSON.stringify(replies[args]));
+`, { mode: 0o755 });
+    const env = { ...process.env, OPL_STATE_DIR: stateDir };
+    const receipt = probeFullFrameworkDaemon(command, env, "2.0.0");
+    assert.equal(receipt.sqlite_schema_version, 4001);
+    assert.equal(receipt.initial_installed_package_count, 0);
+    assert.equal(fs.readFileSync(calls, "utf8"), "--version\ndaemon doctor --include-first-run\npack list\ndaemon stop\n");
+    fs.writeFileSync(calls, "");
+    assert.throws(() => probeFullFrameworkDaemon(command, { ...env, OPL_PROBE_DIRTY: "1" }, "2.0.0"), /clean v2 state/);
+    assert.match(fs.readFileSync(calls, "utf8"), /daemon stop\n$/);
+  } finally {
+    fs.rmSync(stateDir, { recursive: true, force: true });
+  }
 });
 
 test("Full runtime currentness consumes the canonical runtime source carrier projection", async () => {
