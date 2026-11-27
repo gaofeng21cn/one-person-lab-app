@@ -47,7 +47,10 @@ export function validateNightlyReleaseTopology(appRoot: string): number {
       devConfirm?.required !== false || devConfirm?.type !== 'string' ||
       controlRun?.required !== false || controlRun?.type !== 'string' ||
       !exactObject(release.workflow.permissions, exactReadPermissions) ||
-      !exactObject(release.workflow.concurrency, { group: 'opl-standard-nightly', 'cancel-in-progress': false }) ||
+      !exactObject(release.workflow.concurrency, {
+        group: "${{ github.event_name == 'schedule' && vars.OPL_RELEASE_CENTRAL_DAILY == 'true' && format('opl-standard-nightly-disabled-{0}', github.run_id) || 'opl-standard-nightly' }}",
+        'cancel-in-progress': false,
+      }) ||
       !sameJson(Object.keys(releaseJobs), ['admission', 'standard-build', 'qualify-and-publish']),
     'Nightly requires the local schedule, the controller correlation input, and explicit development validation on one Standard prerelease lane',
   );

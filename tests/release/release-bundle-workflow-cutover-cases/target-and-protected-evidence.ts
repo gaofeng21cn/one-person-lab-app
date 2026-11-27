@@ -157,7 +157,7 @@ test('Stable and protected Manual Preview are isolated from daily-default Nightl
   assert.match(nightly['run-name'], /scheduled-production/);
   assert.match(nightly['run-name'], /development-validation/);
   assert.deepEqual(nightly.concurrency, {
-    group: 'opl-standard-nightly',
+    group: "${{ github.event_name == 'schedule' && vars.OPL_RELEASE_CENTRAL_DAILY == 'true' && format('opl-standard-nightly-disabled-{0}', github.run_id) || 'opl-standard-nightly' }}",
     'cancel-in-progress': false,
   });
   assert.equal(nightly.jobs['standard-build'].uses, './.github/workflows/_build-reusable.yml');

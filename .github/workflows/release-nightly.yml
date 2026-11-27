@@ -27,7 +27,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: opl-standard-nightly
+  # A skipped native run must not replace a pending release in GitHub's queue.
+  group: ${{ github.event_name == 'schedule' && vars.OPL_RELEASE_CENTRAL_DAILY == 'true' && format('opl-standard-nightly-disabled-{0}', github.run_id) || 'opl-standard-nightly' }}
   cancel-in-progress: false
 
 jobs:
