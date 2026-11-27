@@ -117,20 +117,34 @@ function fastAppState(runtime: OfficialProfileApplyRuntime) {
   return parseJsonResult(runtime.execute(args), args);
 }
 
-// Old releases still project Package actions through the App CLI. Only switch
-// to v2 after its exact method error and version handshake.
-function isFrameworkV2(runtime: OfficialProfileApplyRuntime, error: unknown) {
-  if (!(error instanceof OplCommandFailure) || error.code !== 'METHOD_NOT_FOUND') return false;
+// The version handshake advertises the CLI surface, independently from the
+// daemon. Older v2 clients can still inspect packages when paired with this App.
+function v2PackageMode(runtime: OfficialProfileApplyRuntime): 'ensure' | 'inspect' | null {
   const args = ['--version', '--json'];
   try {
-    return parseJsonResult(runtime.execute(args), args).api_version === '2.0';
+    const version = parseJsonResult(runtime.execute(args), args);
+    if (version.api_version !== '2.0') return null;
+    return Array.isArray(version.features) && version.features.includes('pack.ensure') ? 'ensure' : 'inspect';
   } catch {
-    return false;
+    return null;
   }
 }
 
-// Pack v2 can verify presence but does not yet project an install action from a
-// root ID. The App must not select substitute artifacts or claim convergence.
+function ensureV2Package(runtime: OfficialProfileApplyRuntime, packageId: string, dryRun: boolean) {
+  const args = ['pack', 'ensure', packageId, ...(dryRun ? ['--dry-run'] : []), '--json'];
+  const result = parseJsonResult(runtime.execute(args), args);
+  const allowed = dryRun ? ['validated', 'already_present'] : ['installed', 'reconciled', 'already_present'];
+  if (result.package_id !== packageId || !allowed.includes(result.status)
+    || result.changed !== (result.status === 'installed' || result.status === 'reconciled')) {
+    throw new Error(`Framework returned an invalid Package convergence result for ${packageId}.`);
+  }
+  return {
+    package_id: packageId, status: result.status, changed: result.changed, error: null,
+    action: result.status === 'already_present' ? null : 'pack.ensure',
+    action_ref: null,
+  };
+}
+
 function requireInstalledV2Closure(runtime: OfficialProfileApplyRuntime, packageId: string, seen = new Set<string>()) {
   if (seen.has(packageId)) return;
   if (packageId.length > 128 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(packageId)) {
@@ -360,7 +374,7 @@ export function applyOfficialProfilePackages(input: {
   }
   const roots = normalizeRoots(input.rootPackageIds);
   const items: JsonRecord[] = [];
-  let useV2Readback = false;
+  let v2Mode: ReturnType<typeof v2PackageMode> = null;
   const report = (packageId: string, status: string) => input.onProgress?.({
     schema: 'opl_official_profile_install_progress.v1', package_id: packageId, status,
     root_package_ids: roots, completed: items.filter(item => item.status !== 'failed').length,
@@ -370,12 +384,26 @@ export function applyOfficialProfilePackages(input: {
     report(packageId, 'installing');
     try {
       let before;
-      if (!useV2Readback) {
+      if (v2Mode === null) {
         try {
-          before = packageSnapshot(fastAppState(input.runtime), packageId);
+          const state = fastAppState(input.runtime);
+          // v2 app state can also be reached through a compatibility CLI.
+          if (state.daemon?.api_version === '2.0') v2Mode = v2PackageMode(input.runtime);
+          if (v2Mode === null) before = packageSnapshot(state, packageId);
         } catch (error) {
-          if (!isFrameworkV2(input.runtime, error)) throw error;
-          useV2Readback = true;
+          if (!(error instanceof OplCommandFailure) || error.code !== 'METHOD_NOT_FOUND') throw error;
+          v2Mode = v2PackageMode(input.runtime);
+          if (v2Mode === null) throw error;
+        }
+      }
+      if (v2Mode === 'ensure') {
+        try {
+          items.push(ensureV2Package(input.runtime, packageId, input.dryRun === true));
+          continue;
+        } catch (error) {
+          // An older daemon may serve the socket of a newer CLI.
+          if (!(error instanceof OplCommandFailure) || error.code !== 'METHOD_NOT_FOUND') throw error;
+          v2Mode = 'inspect';
         }
       }
       if (!before) {
@@ -462,10 +490,10 @@ export function applyOfficialProfilePackages(input: {
         automatic_reapply_allowed: false,
       },
       projection_boundary: {
-        state_source: useV2Readback ? 'opl pack inspect <package-id> --json' : 'opl app state --profile fast --json',
-        action_source: useV2Readback ? null : 'directory.entries[].recommended_action_ref+available_actions[]',
-        action_executor: useV2Readback ? null : 'opl app action execute --action <projected-action-id> --json',
-        ...(useV2Readback ? { readback_scope: 'enabled_required_package_identity_presence' } : {}),
+        state_source: v2Mode === 'ensure' ? 'pack.ensure' : v2Mode === 'inspect' ? 'opl pack inspect <package-id> --json' : 'opl app state --profile fast --json',
+        action_source: v2Mode === 'ensure' ? 'pack.ensure' : v2Mode === 'inspect' ? null : 'directory.entries[].recommended_action_ref+available_actions[]',
+        action_executor: v2Mode === 'ensure' ? 'opl pack ensure <package-id> --json' : v2Mode === 'inspect' ? null : 'opl app action execute --action <projected-action-id> --json',
+        ...(v2Mode ? { readback_scope: v2Mode === 'ensure' ? 'required_packages_and_capabilities' : 'enabled_required_package_identity_presence' } : {}),
         direct_package_lifecycle_command_used: false,
         package_action_allowlist_owned: false,
         carrier_selection_owned: false,

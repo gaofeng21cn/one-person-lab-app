@@ -60,9 +60,9 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
   Package 声明补齐 required identity。
   例如 MAS 需要 `capability:mas-scholar-skills`，但 ScholarSkills 不必重复列为
   Official root。
-- Framework v2 使用 `opl pack inspect` 回读已启用的 root 和必需依赖。缺失或停用的
-  Package 需要 Framework 提供按官方 Package ID 的首装动作。依赖声明了必需能力时，
-  还需要 Framework 回读对应能力。
+- Framework v2 提供 `opl pack ensure <package-id>`。Framework 从官方软件目录或 Full
+  离线种子补齐缺失的 Package，恢复已停用的必要项，并回读依赖声明的能力。
+  显式恢复的预览使用 `--dry-run`。仅支持 `pack inspect` 的早期 v2 仍可回读已有组合。
 - Package 依赖只检查 presence 和 callability，不以 version、ABI、lock、payload、
   digest、receipt 或 Release Set 作为首启门禁。
 - 每个 root 独立显示 `waiting / installing / ready / attention`。一个 root 或依赖失败
@@ -71,9 +71,8 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
   Settings > Agents 显示。自动安装不能变成新的全屏等待门。
 - Profile 只在 first install 或用户显式选择“恢复官方组合”时执行。用户后来卸载
   官方 Package 后，首启检查、普通启动、日更和 App update 都不得重新安装它。
-- helper 只读取 `opl app state --profile fast --json` 并调用 directory entry 提供的
-  opaque action ref；它不调用私有 Package lifecycle 命令，也不决定 Codex Plugin
-  Manager、Git 或其它 carrier。
+- 旧版 Framework 通过 `opl app state --profile fast --json` 提供 directory entry 与
+  action ref。两代接口均由 Framework 选择相应载体并执行具体安装。
 - 首次安装完成状态必须来自 configured carrier 的 installed/callable fresh
   aggregation，不能来自 OPL lock、payload、receipt 或下载成功。该 installed
   outcome 仍需对应 carrier 的安装用户路径验收。

@@ -575,6 +575,49 @@ test('Framework v2 reads installed required closure, skips optional dependencies
   assert.equal(calls.some((args) => args.includes('optional-helper')), false);
 });
 
+test('Framework v2 performs first install and previews restore through the owner by ID', () => {
+  const ok = (value: unknown) => ({ status: 0, stderr: '', stdout: JSON.stringify(value) });
+  for (const dryRun of [true, false]) {
+    const calls: string[][] = [];
+    const result = applyOfficialProfilePackages({
+      intent: dryRun ? 'explicit_restore' : 'first_install',
+      rootPackageIds: ['mas', 'mag'], dryRun,
+      runtime: { execute(args) {
+        calls.push(args);
+        if (args[0] === 'app') return ok({ daemon: { api_version: '2.0' }, app_state: { packages: [] } });
+        if (args[0] === '--version') return ok({ api_version: '2.0', features: ['pack.ensure'] });
+        assert.deepEqual(args, ['pack', 'ensure', args[2], ...(dryRun ? ['--dry-run'] : []), '--json']);
+        if (args[2] === 'mag') return ok({ package_id: 'mas', status: 'already_present', changed: false });
+        return ok({ package_id: 'mas', status: dryRun ? 'validated' : 'installed', changed: !dryRun });
+      } },
+    }).official_profile_package_apply;
+    assert.equal(result.status, 'partial_failure');
+    assert.equal(result.items[0].status, dryRun ? 'validated' : 'installed');
+    assert.equal(result.items[0].changed, !dryRun);
+    assert.match(result.items[1].error.message, /invalid Package convergence result/);
+    assert.equal(calls.filter((args) => args.includes('--version')).length, 1);
+    assert.equal(result.projection_boundary.action_executor, 'opl pack ensure <package-id> --json');
+  }
+});
+
+test('a new CLI paired with an older daemon reads existing v2 packages after method discovery fails', () => {
+  const missing = { status: 2, stderr: '', stdout: JSON.stringify({ error: { code: 'METHOD_NOT_FOUND', message: 'Method not found' } }) };
+  const calls: string[][] = [];
+  const result = applyOfficialProfilePackages({
+    intent: 'explicit_restore', rootPackageIds: ['mas', 'oma'],
+    runtime: { execute(args) {
+      calls.push(args);
+      if (args[0] === 'app' || args.includes('ensure')) return missing;
+      if (args.includes('--version')) return { status: 0, stderr: '', stdout: '{"api_version":"2.0","features":["pack.ensure"]}' };
+      assert.deepEqual(args, ['pack', 'inspect', args[2], '--json']);
+      return { status: 0, stderr: '', stdout: JSON.stringify({ installed: { package_id: args[2], enabled: true }, manifest: { schema_version: 'opl.package.v2', identity: { id: args[2] } } }) };
+    } },
+  }).official_profile_package_apply;
+  assert.equal(result.status, 'completed');
+  assert.equal(calls.filter((args) => args.includes('ensure')).length, 1);
+  assert.equal(result.projection_boundary.action_executor, null);
+});
+
 test('Official Profile reports a safe exit fallback instead of empty stderr or raw JSON', () => {
   for (const stdout of ['', 'private-response-body', JSON.stringify({ body: 'private-response-body' })]) {
     const result = applyOfficialProfilePackages({
