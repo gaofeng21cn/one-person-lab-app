@@ -123,6 +123,7 @@
             "dockerfile",
             "framework_seed",
             "codex_cli",
+            "codex_platform",
             "base_image",
             "qualification_harness"
           ]
@@ -170,8 +171,8 @@
         },
         "inputs": {
           "type": "array",
-          "minItems": 9,
-          "maxItems": 9,
+          "minItems": 7,
+          "maxItems": 8,
           "items": {
             "$ref": "#/$defs/input"
           }

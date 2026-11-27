@@ -25,7 +25,7 @@ import {
   requiredAssetNames,
   sha256File,
   standardInstallerSidecarAssetNames,
-  verifyCodexTarball,
+  codexArchiveDescriptor,
   type AdapterOptionValues,
   type JsonRecord,
   type StableReleaseOperation,
@@ -64,6 +64,7 @@ export function parseCommon(argv: string[]) {
       'base-image-index': { type: 'string' },
       architecture: { type: 'string' },
       'frozen-codex-tarball': { type: 'string' },
+      'frozen-codex-platform-tarball': { type: 'string' },
       'resolved-dependency-manifest': { type: 'string' },
       'standard-identity': { type: 'string' },
       'source-authority': { type: 'string' },
@@ -168,15 +169,17 @@ function frozenBuildInputs(input: {
   const dockerfile = dockerfileBytes.toString('utf8');
   pinnedNodeBaseImage(dockerfile);
   const intake = readJson(path.resolve(requireOption(input.values, 'resolved-dependency-manifest')));
-  const codexVersion = String(intake.runtime_payloads?.codex_cli?.version ?? '');
-  if (intake.runtime_payloads?.codex_cli?.package !== '@openai/codex'
-    || !/^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(codexVersion)) {
+  const codex = intake.runtime_payloads?.codex_cli;
+  if (codex?.package !== '@openai/codex' || typeof codex.version !== 'string'
+    || !/^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(codex.version)) {
     throw new Error('App runtime input contract must bind an exact Codex version.');
   }
-  const codexBytes = verifyCodexTarball(
-    path.resolve(requireOption(input.values, 'frozen-codex-tarball')),
-    codexVersion,
-  );
+  const cpu = input.architecture === 'amd64' ? 'x64' : 'arm64';
+  const platformVersion = `${codex.version}-linux-${cpu}`;
+  if (codex.platform?.package !== codex.package || codex.platform.version !== platformVersion
+    || codex.platform.os !== 'linux' || codex.platform.cpu !== cpu) {
+    throw new Error('Framework Codex resolution does not match the WebUI target platform.');
+  }
   const qualificationHarnessRef = 'scripts/validate-webui-runtime-image.ts';
   const qualificationHarnessBytes = gitFileBytes(
     input.appRoot,
@@ -187,7 +190,8 @@ function frozenBuildInputs(input: {
   const descriptors = [
     gitArchiveDescriptor(input.appRoot, input.appRef, 'app_source'),
     frozenBaseImageDescriptor(requireOption(input.values, 'base-image-index'), input.architecture),
-    fileDescriptor('codex_cli', `@openai/codex@${codexVersion}`, codexBytes),
+    codexArchiveDescriptor('codex_cli', requireOption(input.values, 'frozen-codex-tarball'), codex, cpu, platformVersion),
+    codexArchiveDescriptor('codex_platform', requireOption(input.values, 'frozen-codex-platform-tarball'), codex.platform, cpu, platformVersion),
     fileDescriptor('dockerfile', 'shells/studio/Dockerfile', dockerfileBytes),
     gitArchiveDescriptor(input.frameworkRoot, input.frameworkRef, 'framework_seed'),
     fileDescriptor('qualification_harness', qualificationHarnessRef, qualificationHarnessBytes),
@@ -195,7 +199,7 @@ function frozenBuildInputs(input: {
   ];
   const ids = descriptors.map((descriptor) => descriptor.id);
   if (ids.some((id, index) => id !== frozenBuildInputIds[index]) || new Set(ids).size !== ids.length) {
-    throw new Error('Frozen WebUI build inputs are not the canonical exact-seven ordered set.');
+    throw new Error('Frozen WebUI build inputs are not the canonical ordered set.');
   }
   for (const descriptor of descriptors) {
     if (typeof descriptor.ref !== 'string' || descriptor.ref.length === 0

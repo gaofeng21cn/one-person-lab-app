@@ -221,7 +221,13 @@ function bridgeFixture() {
   });
   const codexSource = path.join(root, 'codex-source', 'package');
   fs.mkdirSync(codexSource, { recursive: true });
-  writeJson(path.join(codexSource, 'package.json'), { name: '@openai/codex', version: '1.2.3' });
+  writeJson(path.join(codexSource, 'package.json'), {
+    name: '@openai/codex', version: '1.2.3',
+    optionalDependencies: {
+      '@openai/codex-linux-x64': 'npm:@openai/codex@1.2.3-linux-x64',
+      '@openai/codex-linux-arm64': 'npm:@openai/codex@1.2.3-linux-arm64',
+    },
+  });
   const codexTarball = path.join(root, 'codex-cli.tgz');
   const tar = spawnSync('tar', ['-czf', codexTarball, 'package'], {
     cwd: path.dirname(codexSource),
@@ -365,8 +371,26 @@ test('Standard freeze request contains only Desktop Standard and optional Full t
 test('WebUI build input derives only from independent source authority', () => {
   const fixture = bridgeFixture();
   const output = path.join(fixture.root, 'webui-build-input-draft.json');
-  const resolvedManifest = path.join(fixture.root, 'resolved-qualification.json');
-  writeJson(resolvedManifest, { runtime_payloads: { codex_cli: { package: '@openai/codex', version: '1.2.3' } } });
+  const writeResolvedInput = (cpu: 'x64' | 'arm64') => {
+    const version = `1.2.3-linux-${cpu}`;
+    const platformRoot = path.join(fixture.root, cpu);
+    const archive = path.join(platformRoot, 'codex-platform.tgz');
+    fs.mkdirSync(path.join(platformRoot, 'package'), { recursive: true });
+    writeJson(path.join(platformRoot, 'package/package.json'), { name: '@openai/codex', version, os: ['linux'], cpu: [cpu] });
+    assert.equal(spawnSync('tar', ['-czf', archive, 'package'], { cwd: platformRoot }).status, 0);
+    const frozen = (file: string) => ({
+      tarball_size_bytes: fs.statSync(file).size,
+      tarball_sha256: crypto.hash('sha256', fs.readFileSync(file)),
+    });
+    const manifest = path.join(platformRoot, 'qualification.json');
+    writeJson(manifest, { runtime_payloads: { codex_cli: {
+      package: '@openai/codex', version: '1.2.3', ...frozen(fixture.codexTarball),
+      platform: { package: '@openai/codex', version, os: 'linux', cpu, ...frozen(archive) },
+    } } });
+    return { manifest, archive };
+  };
+  const x64 = writeResolvedInput('x64');
+  const arm = writeResolvedInput('arm64');
   const authority = createWebuiSourceAuthority({
     version,
     appSha: fixture.app.sha,
@@ -386,7 +410,8 @@ test('WebUI build input derives only from independent source authority', () => {
     '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z',
     '--base-image-index', fixture.baseImageIndex,
     '--frozen-codex-tarball', fixture.codexTarball,
-    '--resolved-dependency-manifest', resolvedManifest,
+    '--frozen-codex-platform-tarball', x64.archive,
+    '--resolved-dependency-manifest', x64.manifest,
     '--architecture', 'amd64',
     '--output', output,
   ]);
@@ -405,7 +430,7 @@ test('WebUI build input derives only from independent source authority', () => {
   });
   assert.deepEqual(
     buildInput.inputs.map((input: { id: string }) => input.id),
-    ['app_source', 'base_image', 'codex_cli', 'dockerfile', 'framework_seed', 'qualification_harness', 'shell_webui_source'],
+    ['app_source', 'base_image', 'codex_cli', 'codex_platform', 'dockerfile', 'framework_seed', 'qualification_harness', 'shell_webui_source'],
   );
   assert.deepEqual(buildInput.platform, { os: 'linux', architecture: 'amd64' });
 
@@ -419,7 +444,8 @@ test('WebUI build input derives only from independent source authority', () => {
     '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z',
     '--base-image-index', fixture.baseImageIndex,
     '--frozen-codex-tarball', fixture.codexTarball,
-    '--resolved-dependency-manifest', resolvedManifest,
+    '--frozen-codex-platform-tarball', arm.archive,
+    '--resolved-dependency-manifest', arm.manifest,
     '--architecture', 'arm64',
     '--output', arm64Output,
   ]);
@@ -431,6 +457,32 @@ test('WebUI build input derives only from independent source authority', () => {
     `sha256:${'c'.repeat(64)}`,
   );
 
+  const platformInput = arm64BuildInput.inputs.find((entry: { id: string }) => entry.id === 'codex_platform');
+  assert.deepEqual(platformInput, {
+    id: 'codex_platform', ref: '@openai/codex@1.2.3-linux-arm64',
+    digest: digest(fs.readFileSync(arm.archive)), size_bytes: fs.statSync(arm.archive).size,
+  });
+  const args = [
+    'webui-build-input', '--source-authority', authorityPath, '--app-root', fixture.app.root,
+    '--shell-root', fixture.shell.root, '--framework-root', fixture.framework.root,
+    '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z', '--base-image-index', fixture.baseImageIndex,
+    '--frozen-codex-tarball', fixture.codexTarball, '--frozen-codex-platform-tarball', arm.archive,
+    '--resolved-dependency-manifest', arm.manifest, '--architecture', 'arm64', '--output', arm64Output,
+  ];
+  const manifest = JSON.parse(fs.readFileSync(arm.manifest, 'utf8'));
+  for (const [label, edit, error] of [
+    ['platform target', (item: any) => { item.platform.cpu = 'x64'; }, /does not match the WebUI target/],
+    ['launcher digest', (item: any) => { item.tarball_sha256 = '0'.repeat(64); }, /codex_cli bytes differ/],
+    ['platform size', (item: any) => { item.platform.tarball_size_bytes += 1; }, /codex_platform bytes differ/],
+  ] as const) {
+    const changed = structuredClone(manifest);
+    edit(changed.runtime_payloads.codex_cli);
+    writeJson(arm.manifest, changed);
+    const result = runAdapter(args);
+    assert.notEqual(result.status, 0, label);
+    assert.match(result.stderr, error);
+  }
+  writeJson(arm.manifest, manifest);
   const unsupported = runAdapter([
     'webui-build-input',
     '--source-authority', authorityPath,
@@ -440,7 +492,8 @@ test('WebUI build input derives only from independent source authority', () => {
     '--source-cutoff-observed-at', '2026-07-24T00:00:00.000Z',
     '--base-image-index', fixture.baseImageIndex,
     '--frozen-codex-tarball', fixture.codexTarball,
-    '--resolved-dependency-manifest', resolvedManifest,
+    '--frozen-codex-platform-tarball', arm.archive,
+    '--resolved-dependency-manifest', arm.manifest,
     '--architecture', 's390x',
     '--output', path.join(fixture.root, 'unsupported.json'),
   ]);

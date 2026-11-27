@@ -201,20 +201,21 @@ function sealBuildInput(root: string, draft = draftBuildInput()): string {
   return outputPath;
 }
 
-function writeCodexTarball(root: string, identity: { name?: string; version?: string } = {}): string {
+function writeCodexTarball(root: string, identity: { name?: string; version?: string; os?: string[]; cpu?: string[] } = {}, artifactName = 'codex-cli.tgz'): string {
   const sourceRoot = path.join(root, 'codex-package-source');
   const packageRoot = path.join(sourceRoot, 'package');
   fs.mkdirSync(packageRoot, { recursive: true });
   fs.writeFileSync(
     path.join(packageRoot, 'package.json'),
     `${JSON.stringify({
-      name: identity.name ?? '@openai/codex',
-      version: identity.version ?? '1.2.3',
+      name: '@openai/codex',
+      version: '1.2.3',
+      ...identity,
     })}\n`,
   );
   const artifactDirectory = path.join(root, 'frozen-codex');
   fs.mkdirSync(artifactDirectory, { recursive: true });
-  const artifactPath = path.join(artifactDirectory, 'codex-cli.tgz');
+  const artifactPath = path.join(artifactDirectory, artifactName);
   const packed = spawnSync('tar', ['-czf', artifactPath, '-C', sourceRoot, 'package'], { encoding: 'utf8' });
   assert.equal(packed.status, 0, packed.stderr || packed.stdout);
   return artifactPath;
@@ -594,6 +595,45 @@ test('frozen Codex artifact verification binds exact tgz bytes and package ident
   });
 });
 
+test('frozen platform archive must match the sealed Linux binary for the image architecture', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-platform-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const cliPath = writeCodexTarball(root);
+  for (const architecture of ['amd64', 'arm64'] as const) {
+    const cpu = architecture === 'amd64' ? 'x64' : 'arm64';
+    const lane = path.join(root, architecture);
+    const version = `1.2.3-linux-${cpu}`;
+    const identity = { version, os: ['linux'], cpu: [cpu] };
+    const platformPath = writeCodexTarball(lane, identity, 'codex-platform.tgz');
+    const platformDescriptor = {
+      id: 'codex_platform', ref: `@openai/codex@${version}`,
+      digest: sha256(fs.readFileSync(platformPath)), size_bytes: fs.statSync(platformPath).size,
+    };
+    const draft = draftBuildInput(architecture);
+    const cli = draft.inputs.find((input) => input.id === 'codex_cli')!;
+    cli.digest = sha256(fs.readFileSync(cliPath));
+    cli.size_bytes = fs.statSync(cliPath).size;
+    draft.inputs.push(platformDescriptor);
+    const sealed = sealBuildInput(lane, draft);
+    const args = ['verify-codex-artifact', '--build-input', sealed, '--artifact-dir', path.dirname(cliPath)];
+    assert.match(runCli(args).stderr, /requires --platform-artifact-dir/);
+    args.push('--platform-artifact-dir', path.dirname(platformPath));
+    const passed = runCli(args);
+    assert.equal(passed.status, 0, passed.stderr);
+    assert.equal(JSON.parse(passed.stdout).platform.digest, platformDescriptor.digest);
+
+    writeCodexTarball(lane, { ...identity, cpu: ['s390x'] }, 'codex-platform.tgz');
+    assert.match(runCli(args).stderr, /artifact digest expected/);
+    platformDescriptor.digest = sha256(fs.readFileSync(platformPath));
+    platformDescriptor.size_bytes = fs.statSync(platformPath).size;
+    sealBuildInput(lane, draft);
+    assert.match(runCli(args).stderr, /platform package metadata must target/);
+    draft.platform.architecture = architecture === 'amd64' ? 'arm64' : 'amd64';
+    const invalidDraft = writeJson(lane, 'wrong-architecture.json', draft);
+    assert.match(runCli(['seal-build-input', '--input', invalidDraft, '--output', sealed]).stderr, /inputs.codex_platform.ref expected/);
+  }
+});
+
 test('Docker context policy requires recursive tgz exclusion and the sole frozen Codex exception', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-docker-context-'));
   const recursiveRule = '**/*.tgz';
@@ -830,6 +870,8 @@ test('WebUI carrier schema closes both sealed artifacts', () => {
   assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema');
   assert.equal(schema.oneOf.length, 2);
   assert.equal(schema.$defs.build_input.additionalProperties, false);
+  assert.equal(schema.$defs.build_input.properties.inputs.minItems, 7);
+  assert.equal(schema.$defs.build_input.properties.inputs.maxItems, 8);
   assert.equal(schema.$defs.carrier_receipt.additionalProperties, false);
   assert.equal(schema.$defs.carrier.properties.carrier_id.const, 'docker_webui');
   assert.equal(schema.$defs.carrier.properties.carrier_kind.const, 'oci_image');

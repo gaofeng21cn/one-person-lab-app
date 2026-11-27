@@ -69,6 +69,7 @@ export const frozenBuildInputIds = [
   'app_source',
   'base_image',
   'codex_cli',
+  'codex_platform',
   'dockerfile',
   'framework_seed',
   'qualification_harness',
@@ -223,8 +224,18 @@ export function fileDescriptor(id: string, ref: string, bytes: Buffer): JsonReco
   return { id, ref, digest: digestRef(sha256Bytes(bytes)), size_bytes: bytes.byteLength };
 }
 
-export function verifyCodexTarball(tarballPath: string, expectedVersion: string): Buffer {
+export function codexArchiveDescriptor(
+  id: 'codex_cli' | 'codex_platform',
+  tarballPath: string,
+  resolved: JsonRecord,
+  cpu: 'x64' | 'arm64',
+  platformVersion: string,
+): JsonRecord {
   const bytes = regularFileBytes(tarballPath, 'Frozen Codex tarball');
+  const descriptor = fileDescriptor(id, `${resolved.package}@${resolved.version}`, bytes);
+  if (descriptor.digest !== `sha256:${resolved.tarball_sha256}` || descriptor.size_bytes !== resolved.tarball_size_bytes) {
+    throw new Error(`Frozen ${id} bytes differ from the Framework-resolved archive digest or size.`);
+  }
   const listing = spawnSync('tar', ['-tzf', tarballPath], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   if (listing.status !== 0) throw new Error(`Frozen Codex tarball is unreadable: ${listing.stderr.trim()}`);
   const identities = listing.stdout
@@ -238,10 +249,19 @@ export function verifyCodexTarball(tarballPath: string, expectedVersion: string)
   });
   if (identity.status !== 0) throw new Error(`Cannot read frozen Codex package identity: ${identity.stderr.trim()}`);
   const packageJson = JSON.parse(identity.stdout) as JsonRecord;
-  if (packageJson.name !== '@openai/codex' || packageJson.version !== expectedVersion) {
-    throw new Error('Frozen Codex tarball package identity does not match the exact Shell intake contract.');
+  if (packageJson.name !== resolved.package || packageJson.version !== resolved.version) {
+    throw new Error(`Frozen ${id} package identity differs from Framework dependency resolution.`);
   }
-  return bytes;
+  if (id === 'codex_cli') {
+    const platformAlias = packageJson.optionalDependencies?.[`@openai/codex-linux-${cpu}`];
+    if (platformAlias !== `npm:@openai/codex@${platformVersion}`) {
+      throw new Error('Frozen Codex launcher does not declare the resolved Linux platform package.');
+    }
+  } else if (!Array.isArray(packageJson.os) || packageJson.os.length !== 1 || packageJson.os[0] !== 'linux'
+    || !Array.isArray(packageJson.cpu) || packageJson.cpu.length !== 1 || packageJson.cpu[0] !== cpu) {
+    throw new Error('Frozen Codex platform archive does not support the requested Linux architecture.');
+  }
+  return descriptor;
 }
 
 export function digestRef(digest: string): string {

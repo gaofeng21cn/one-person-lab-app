@@ -148,14 +148,14 @@ function verifyDockerContextPolicy(dockerIgnorePath: string): JsonRecord {
   };
 }
 
-function verifyCodexArtifact(buildInputPath: string, artifactDirectory: string): JsonRecord {
-  const input = validateBuildInput(readJson(buildInputPath, 'build input'));
-  const inputs = input.inputs as JsonRecord[];
-  const codexInput = inputs.find((candidate) => candidate.id === 'codex_cli');
-  if (!codexInput) fail('build input has no codex_cli input');
-  const codexRef = stringValue(codexInput.ref, 'inputs.codex_cli.ref');
+function verifyCodexArchive(
+  codexInput: JsonRecord,
+  artifactDirectory: string,
+  artifactName: string,
+  platformCpu?: string,
+): JsonRecord {
+  const codexRef = stringValue(codexInput.ref, 'Codex artifact ref');
   const codexVersion = codexRef.slice('@openai/codex@'.length);
-
   const directoryPath = path.resolve(artifactDirectory);
   let directoryStat: fs.Stats;
   try {
@@ -167,13 +167,13 @@ function verifyCodexArtifact(buildInputPath: string, artifactDirectory: string):
     fail('frozen Codex artifact path must be a real directory');
   }
   const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
-  if (entries.length !== 1 || entries[0].name !== 'codex-cli.tgz') {
-    fail('frozen Codex artifact must contain exactly one entry named codex-cli.tgz');
+  if (entries.length !== 1 || entries[0].name !== artifactName) {
+    fail(`frozen Codex artifact must contain exactly one entry named ${artifactName}`);
   }
   const artifactPath = path.join(directoryPath, entries[0].name);
   const artifactStat = fs.lstatSync(artifactPath);
   if (!entries[0].isFile() || entries[0].isSymbolicLink() || !artifactStat.isFile() || artifactStat.isSymbolicLink()) {
-    fail('frozen Codex artifact codex-cli.tgz must be a regular file, never a symlink');
+    fail(`frozen Codex artifact ${artifactName} must be a regular file, never a symlink`);
   }
   const artifactDigest = fileDigest(artifactPath);
   exactString(artifactDigest, String(codexInput.digest), 'frozen Codex artifact digest');
@@ -211,16 +211,40 @@ function verifyCodexArtifact(buildInputPath: string, artifactDirectory: string):
   }
   exactString(packageJson.name, '@openai/codex', 'frozen Codex package name');
   exactString(packageJson.version, codexVersion, 'frozen Codex package version');
+  if (platformCpu && (
+    !Array.isArray(packageJson.os) || packageJson.os.length !== 1 || packageJson.os[0] !== 'linux' ||
+    !Array.isArray(packageJson.cpu) || packageJson.cpu.length !== 1 || packageJson.cpu[0] !== platformCpu
+  )) {
+    fail(`frozen Codex platform package metadata must target linux/${platformCpu}`);
+  }
   return {
-    schema: 'opl_app_webui_codex_artifact_verification.v1',
-    status: 'passed',
-    artifact_name: 'codex-cli.tgz',
+    artifact_name: artifactName,
     ref: codexRef,
     digest: artifactDigest,
     size_bytes: artifactSize,
     package_name: packageJson.name,
     package_version: packageJson.version,
   };
+}
+
+function verifyCodexArtifact(buildInputPath: string, artifactDirectory: string, platformDirectory: string): JsonRecord {
+  const input = validateBuildInput(readJson(buildInputPath, 'build input'));
+  const inputs = input.inputs as JsonRecord[];
+  const cli = inputs.find((candidate) => candidate.id === 'codex_cli');
+  if (!cli) fail('build input has no codex_cli input');
+  const platform = inputs.find((candidate) => candidate.id === 'codex_platform');
+  if (platform && !platformDirectory) fail('frozen Codex platform artifact requires --platform-artifact-dir');
+  if (!platform && platformDirectory) fail('build input has no sealed codex_platform artifact');
+
+  const summary = {
+    schema: 'opl_app_webui_codex_artifact_verification.v1',
+    status: 'passed',
+    ...verifyCodexArchive(cli, artifactDirectory, 'codex-cli.tgz'),
+  };
+  if (!platform) return summary;
+  const lane = record(input.platform, 'build input platform');
+  const cpu = lane.architecture === 'amd64' ? 'x64' : 'arm64';
+  return { ...summary, platform: verifyCodexArchive(platform, platformDirectory, 'codex-platform.tgz', cpu) };
 }
 
 function validateRelease(value: unknown): JsonRecord {
@@ -276,20 +300,20 @@ function validateSourceCutoff(value: unknown): JsonRecord {
   };
 }
 
-function validatePlatform(value: unknown): JsonRecord {
+function validatePlatform(value: unknown): { os: 'linux'; architecture: WebuiArchitecture } {
   const platform = record(value, 'platform');
   exactKeys(platform, ['os', 'architecture'], 'platform');
   exactString(platform.os, 'linux', 'platform.os');
   return { os: 'linux', architecture: architectureValue(platform.architecture, 'platform.architecture') };
 }
 
-function validateInputs(value: unknown, cohort: JsonRecord): JsonRecord[] {
+function validateInputs(value: unknown, cohort: JsonRecord, architecture: WebuiArchitecture): JsonRecord[] {
   if (!Array.isArray(value)) fail('inputs must be an array');
   const inputs = value.map((candidate, index) => {
     const input = record(candidate, `inputs[${index}]`);
     exactKeys(input, ['id', 'ref', 'digest', 'size_bytes'], `inputs[${index}]`);
     const id = stringValue(input.id, `inputs[${index}].id`);
-    if (!requiredInputIds.includes(id as (typeof requiredInputIds)[number])) {
+    if (id !== 'codex_platform' && !requiredInputIds.includes(id as (typeof requiredInputIds)[number])) {
       fail(`inputs[${index}].id is not an allowed frozen WebUI input: ${id}`);
     }
     return {
@@ -301,7 +325,7 @@ function validateInputs(value: unknown, cohort: JsonRecord): JsonRecord[] {
   });
   inputs.sort((left, right) => String(left.id).localeCompare(String(right.id)));
   const ids = inputs.map((input) => String(input.id));
-  if (ids.length !== requiredInputIds.length || ids.some((id, index) => id !== requiredInputIds[index])) {
+  if (new Set(ids).size !== ids.length || requiredInputIds.some((id) => !ids.includes(id))) {
     fail(`inputs must contain each required id exactly once: ${requiredInputIds.join(', ')}`);
   }
   const byId = new Map(inputs.map((input) => [String(input.id), input]));
@@ -322,6 +346,11 @@ function validateInputs(value: unknown, cohort: JsonRecord): JsonRecord[] {
   if (!/^@openai\/codex@[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(codexRef)) {
     fail('inputs.codex_cli.ref must be an exact @openai/codex version, never latest or a range');
   }
+  const platformPackage = byId.get('codex_platform');
+  if (platformPackage) {
+    const cpu = architecture === 'amd64' ? 'x64' : 'arm64';
+    exactString(platformPackage.ref, `${codexRef}-linux-${cpu}`, 'inputs.codex_platform.ref');
+  }
   return inputs;
 }
 
@@ -332,13 +361,14 @@ function buildInputCore(raw: unknown): JsonRecord {
   exactKeys(input, allowedKeys, 'build input');
   exactString(input.schema, 'opl_app_webui_build_input.v1', 'build input.schema');
   const cohort = validateCohort(input.cohort);
+  const platform = validatePlatform(input.platform);
   return {
     schema: 'opl_app_webui_build_input.v1',
     release: validateRelease(input.release),
     source_cutoff: validateSourceCutoff(input.source_cutoff),
     cohort,
-    platform: validatePlatform(input.platform),
-    inputs: validateInputs(input.inputs, cohort),
+    platform,
+    inputs: validateInputs(input.inputs, cohort, platform.architecture),
   };
 }
 
@@ -693,6 +723,7 @@ function main(
       'build-input': { type: 'string' },
       'platform-evidence-root': { type: 'string' },
       'artifact-dir': { type: 'string' },
+      'platform-artifact-dir': { type: 'string' },
       dockerignore: { type: 'string' },
       'image-inspect': { type: 'string' },
       'runtime-summary': { type: 'string' },
@@ -752,6 +783,7 @@ function main(
     const summary = verifyCodexArtifact(
       requiredOption(values, 'build-input'),
       requiredOption(values, 'artifact-dir'),
+      option(values, 'platform-artifact-dir'),
     );
     printSummary(summary);
     return;
