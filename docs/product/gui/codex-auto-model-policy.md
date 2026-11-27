@@ -121,8 +121,8 @@ npm run validate:candidate
 ```
 
 `scripts/app-product-profile.ts` 处理当前 adapter 对应的 App profile projection；Studio 在
-build/validation 时直接读取指定 App checkout 的 profile，不维护独立产品副本。Framework 的安装默认值来自 Flow 策略，只提交生成器产出的
-`contracts/opl-framework/codex-default-profile.json`；App 默认优先于 Flow 推荐；Flow 自身的工作负载策略保持其 owner 管理。
+build/validation 时直接读取指定 App checkout 的 profile，不维护独立产品副本。App 的内置模型与默认值由
+[`app-product-profile.json`](../../../contracts/app-product-profile.json) 投影持有，App 默认优先于 Flow 推荐；Flow 自身的工作负载策略保持其 owner 管理。
 
 若新推理档只是 Codex CLI 未来新增的非空字符串，消费者不得扩展本地 enum/allowlist；
 运行时 Auto 会直接使用 CLI 广告的最后一个支持档位。只有要改变已知模型的产品默认、

@@ -70,9 +70,9 @@ Host 插件、客户端插件和独立软件 Package 各有交付入口。软件
 | --- | --- | --- |
 | Studio 内置 Host 与客户端插件 | `opl-studio/plugins/{core,extensions,channels}/<plugin-id>/`。共享协议与工具归 `packages/host-contracts/`、`packages/host-kit/`，Workbench、slots 和客户端组合归 `opl-studio-client` | `src/host/dsh/cordis.yml` 与 `web.patch.yml` 提供基线，官方 Host 发现启用插件的 `dsh.client`。兼容包通过原生 profile 独立更新，Electron、DSH cohort 和 boot shell 通过 App 更新 |
 | DSH 官方和社区 UI | Studio 的 npm 依赖、`vendor/deepseek-harness/` | 固定 DSH cohort、npm lock 与第三方原包溯源；随 App/Shell 更新 |
-| Framework 内置服务与 Package Host | `one-person-lab/src/host/`、`packages/package-host/` 等 | Framework 公开组合入口与插件描述；随 Framework runtime 更新 |
+| Framework 内置服务与 Package 核心 | `one-person-lab/packages/{core,ledger,workspace,pack,runway,connect,daemon}/` 与 `contracts/opl-package.v2.schema.json` | Framework v2 公开 RPC/CLI 入口与 package descriptor；随 Framework runtime 更新 |
 | 微信远程 | 新版位于 `opl-studio/plugins/channels/opl-channel-weixin/`，旧版采用 App 内同名 Package | 新版随 Studio profile 装载。尚未采用新版的 App 继续使用原有载体 |
-| 独立软件 Package | 对应产品仓库，例如 `med-autocast/plugins/med-autocast/`、`opl-relay/plugins/opl-relay/` | 各 owner 的 manifest 与原生载体，官方条目由 `opl-catalog` 提供，Framework 聚合发现、状态和操作 |
+| 独立软件 Package | 对应产品仓库的 `opl-package.json`（未迁 v2 的 `v1-final` 包暂保留 `plugins/<slug>/`） | 各 owner 的 manifest 与原生载体，官方条目由 `opl-catalog` 提供，Framework 聚合发现、状态和操作 |
 
 App 的 [Shell contract](../../../contracts/app-shell-adapter.json) 把 Studio 定义为外部
 仓库 checkout，默认位于 `shells/opl-studio`。开发机可有相邻的 `opl-studio` 工作目录，

@@ -9,9 +9,9 @@ Machine boundary: 当前合同、真实调用链和 fresh carrier readback 决�
 ## 当前基线
 
 Framework 的显式 Package install/update/uninstall/repair/enable/disable 已经通过
-`public-command-specs-parts/packages.ts`、`registry-lifecycle-actions.ts` 路由到
-配置的原生 carrier；不再把旧 lock、payload 或 LKG 当作备用生命周期实现。
-不能继续把这条 successor 路由写成待建设方案。
+Framework v2 (`opld` `app.state.get` / `app.action.execute`、`packages/pack/` 与
+`opl-package.v2.schema.json`) 路由到配置的原生 carrier；不再把旧 lock、payload 或 LKG
+当作备用生命周期实现。不能继续把这条 successor 路由写成待建设方案。
 
 不带 Package identity 的聚合 maintenance 必须沿实际分支检查最终 carrier 调用，
 不能仅因 `managed-update` 名称判定其过时。Home preference transaction 保存用户

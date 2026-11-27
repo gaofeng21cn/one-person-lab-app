@@ -285,7 +285,7 @@ test("Bundle freeze gate installs frozen App and Framework dependencies before v
   const installFramework = job.indexOf("npm --prefix framework-source ci --ignore-scripts");
   const validation = job.indexOf("- name: Validate Bundle contracts before paid work");
   const frameworkSourceTest = job.indexOf(
-    "node --conditions=opl-source --experimental-strip-types --test ../framework-source/tests/src/cli/cases/release-bundle.test.ts",
+    "(cd ../framework-source && node --conditions=opl-source --experimental-strip-types --test packages/runway/tests/cross-engine-handoff.test.ts packages/runway/tests/reconcile-and-lease.test.ts packages/pack/tests/content-lock-and-build.test.ts)",
   );
 
   assert.ok(jobStart >= 0 && jobEnd > jobStart, "missing Bundle freeze job");

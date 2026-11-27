@@ -53,8 +53,9 @@ export function validateReleaseBundleCanaryTopology(appRoot: string): number {
     id,
     !framework || framework['runs-on'] !== 'ubuntu-latest' || framework['timeout-minutes'] !== 20 ||
       !exactObject(framework.permissions, exactReadPermissions) ||
-      !jobRuns(framework).includes("--test-name-pattern='portable checkpoint switches executors|elapsed absolute deadline blocks'") ||
-      !jobRuns(framework).includes('tests/src/cli/cases/release-bundle.test.ts') ||
+      !jobRuns(framework).includes('packages/runway/tests/cross-engine-handoff.test.ts') ||
+      !jobRuns(framework).includes('packages/runway/tests/reconcile-and-lease.test.ts') ||
+      !jobRuns(framework).includes('packages/pack/tests/content-lock-and-build.test.ts') ||
       !contract || contract['runs-on'] !== 'ubuntu-latest' || requestsWritePermission(contract.permissions) ||
       !jobRuns(contract).includes('tests/release/release-bundle-workflow-cutover.test.ts') ||
       !jobRuns(contract).includes('tests/release/release-control-plane-boundary.test.ts'),

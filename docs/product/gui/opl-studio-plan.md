@@ -49,7 +49,7 @@ Studio Application Host scope
   = dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition
 
 Bridge
-  = opl app state/action + authentication + channel callbacks
+  = opld app.state.get / app.action.execute (v1: opl app state/action) + authentication + channel callbacks
 ```
 
 scope 分离保证 Studio 可以使用 DSH plugin ecosystem，同时不会创建第二套 OPL runtime、Package
