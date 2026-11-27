@@ -1,3 +1,5 @@
+import { actionReadback, drilldownReadback, stateReadback, validateV2ReleaseReadback } from '../../../scripts/framework-v2-release-evidence.ts';
+import { resolveFrameworkV2Action } from '../../../scripts/framework-v2-evidence.ts';
 import {
   assert,
   fs,
@@ -169,6 +171,7 @@ test('release evidence collector captures live OPL runtime refs and keeps missin
 
   const actionArgs = fs.readFileSync(actionLog, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
   assert.deepEqual(actionArgs, [
+    ['--version', '--json'],
     ['app', 'state', '--profile', 'fast', '--json'],
     ['app', 'state', '--profile', 'full', '--json'],
     ['runtime', 'app-operator-drilldown', '--detail', 'full', '--json'],
@@ -314,4 +317,51 @@ test('release evidence bundle validator rejects non-canonical typed blocker path
 
   assert.notEqual(validation.status, 0);
   assert.match(validation.stderr, /typed_blocker_path must match typed-blockers\/<artifact_id>\.json/);
+});
+
+test('v2 evidence matches an enabled declared action and keeps only refs from the daemon and Package', () => {
+  const actionId = 'example#inspect';
+  const packageId = 'evidence-test';
+  const collections = {
+    packages: [{
+      package_id: packageId, enabled: true, provides: { contribution_handler: {kind: 'cli'} },
+      ui: { declarative: {views: [{actions: [{action_ref: actionId}]}]} },
+    }],
+    workspaces: [], connections: [], tasks: [], schedules: [],
+  };
+  const full = {
+    profile: 'full', revision: 2, daemon: {api_version: '2.0'}, ...collections, app_state: collections,
+    grants: [], invocations: [{input: 'private-input'}], recent_operations: [],
+  };
+  const state = stateReadback(full, 'full');
+  assert.equal(validateV2ReleaseReadback('app_state_full', state), true);
+  assert.doesNotMatch(JSON.stringify(state), /private-input/);
+  assert.deepEqual(resolveFrameworkV2Action(full, actionId), {packageId, actionId});
+  assert.equal(resolveFrameworkV2Action(full, 'undeclared'), null);
+  assert.equal(resolveFrameworkV2Action({...full, packages: [{...collections.packages[0], enabled: false}]}, actionId), null);
+
+  const reply = {ok: true, dry_run: false, action_id: actionId, authorityBoundary: 'app_bridge_no_domain_authority'};
+  assert.throws(() => actionReadback({...reply, status: 'executed'}, packageId, actionId, false));
+  assert.throws(() => actionReadback({...reply, result: {ref: actionId, ok: false, operation: 'execute'}}, packageId, actionId, false));
+  const checked = actionReadback({...reply, result: {ok: true, operation: 'execute', ref: actionId, data: 'private-result'}}, packageId, actionId, false);
+  assert.equal(validateV2ReleaseReadback('action_execute_result', checked), true);
+  assert.doesNotMatch(JSON.stringify(checked), /private-result/);
+  assert.throws(() => validateV2ReleaseReadback('action_dry_run_result', checked));
+
+  const view = {
+    schema: 'opl.operator_drilldown.v2', detail: 'full', api_version: '2.0', daemon: {version: '2.0.0'},
+    summary: {task_count: 2, stage_run_count: 0, attempt_count: 0, ledger_entry_count: 1, package_operation_count: 0},
+    tasks: [{task_id:'first'}, {task_id:'second'}], stage_runs: [], attempts: [], ledger_refs: [{}], package_operations: [],
+  };
+  assert.equal(validateV2ReleaseReadback('drilldown_full', drilldownReadback(view)), true);
+  assert.throws(() => drilldownReadback({...view, summary: {...view.summary, task_count:1}}));
+});
+
+test('recollecting a preview removes the previous execution receipt and its manifest entry', () => {
+  const {bundleDir, collect} = collectorFixture('opl-app-release-evidence-repeat-');
+  assert.equal(parseCollectedPayload(collect(['--execute-action'])).action_execute_collected, true);
+  const refreshed = parseCollectedPayload(collect());
+  assert.equal(refreshed.action_execute_collected, false);
+  assert.ok(refreshed.missing_artifacts.includes('action_execute_result'));
+  assert.equal(fs.existsSync(path.join(bundleDir, 'action-execute-result.json')), false);
 });

@@ -34,3 +34,12 @@ drilldown, safe-action catalogs, provider repair, software update controls, or
 operator receipts.
 It does not make the App the owner of runtime truth, domain truth, artifact
 authority, or quality/readiness verdicts.
+
+The corresponding runtime artifacts come from the selected Framework. With API
+2.0, `release:collect-evidence` reads both state profiles and the operator
+drilldown through the daemon. Supply an enabled qualification Package's declared
+`action_ref` as `--action-id`. The default captures its preview.
+`--execute-action` also calls the Package and checks its execution receipt.
+The bundle records the owner, counts or disposition, and response digest.
+Older daemons without the drilldown method produce a typed blocker for that
+artifact. Version 1 continues to use its state, drilldown, and action CLI.

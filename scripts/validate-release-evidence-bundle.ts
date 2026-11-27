@@ -39,6 +39,7 @@ type EvidenceArtifact = {
   path: string;
   kind: 'json' | 'image' | 'log';
   producer: string;
+  frameworkV2Producer?: string;
   source_kind: string;
 };
 
@@ -77,6 +78,7 @@ type AppReleaseEvidenceBundleContract = {
   refs_only?: unknown;
   surface_ownership?: Record<string, unknown>;
   required_artifacts?: unknown;
+  framework_v2_producers?: Record<string, string>;
   conditional_artifacts?: unknown;
   optional_diagnostic_artifacts?: unknown;
   forbidden_authority?: unknown;
@@ -371,7 +373,9 @@ function validateContractBoundary(bundle: unknown): EvidenceContract {
   }
   return {
     manifestPath: record.manifest_path,
-    artifacts: record.required_artifacts as EvidenceArtifact[],
+    artifacts: (record.required_artifacts as EvidenceArtifact[]).map(artifact => ({
+      ...artifact, frameworkV2Producer: record.framework_v2_producers?.[artifact.id],
+    })),
     conditionalArtifacts: (conditionalArtifacts ?? []) as EvidenceArtifact[],
     optionalDiagnostics: (optionalDiagnostics ?? []) as EvidenceArtifact[],
     imageEvidencePolicy,
@@ -416,7 +420,7 @@ function validateManifestArtifact(manifestArtifact: unknown, expected: EvidenceA
       throw new Error(`Manifest artifact ${expected.id} not_applicable must include not_applicable_reason.`);
     }
   }
-  return artifact as ManifestArtifact;
+  return { ...artifact, frameworkV2Producer: expected.frameworkV2Producer } as ManifestArtifact;
 }
 
 function validateDiagnosticArtifact(manifestArtifact: unknown, expected: EvidenceArtifact): ManifestArtifact {
@@ -437,6 +441,7 @@ function validateArtifactContractFields(
 ): Record<string, unknown> {
   const artifact = asRecord(manifestArtifact, `${labels.recordLabel} ${expected.id}`);
   for (const key of ['id', 'path', 'kind', 'producer', 'source_kind'] as const) {
+    if (key === 'producer' && expected.frameworkV2Producer && artifact.producer === expected.frameworkV2Producer) continue;
     if (artifact[key] !== expected[key]) {
       throw new Error(`${labels.errorLabel} ${expected.id}.${key} must match release contract.`);
     }
@@ -594,7 +599,14 @@ function validatePresentEvidenceArtifactFile(
 ) {
   const filePath = resolveBundlePath(bundleDir, artifact.path);
   if (artifact.kind === 'json') {
-    validateJsonEvidenceShape(artifact, assertJsonFile(filePath, artifact.id), releaseCohort);
+    const value = assertJsonFile(filePath, artifact.id);
+    if (artifact.frameworkV2Producer) {
+      const v2 = asRecord(value, artifact.id).api_version === '2.0';
+      if (v2 !== (artifact.producer === artifact.frameworkV2Producer)) {
+        throw new Error(`Manifest producer does not match the Framework response for ${artifact.id}.`);
+      }
+    }
+    validateJsonEvidenceShape(artifact, value, releaseCohort);
   } else if (artifact.kind === 'image') {
     assertImageFile(filePath, artifact.id, imageEvidencePolicy);
   } else if (artifact.kind === 'log') {

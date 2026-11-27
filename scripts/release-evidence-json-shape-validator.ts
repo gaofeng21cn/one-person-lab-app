@@ -1,4 +1,5 @@
 import { assertRemoteReleaseCohortMatches } from './release-evidence-cohort.ts';
+import { validateV2ReleaseReadback } from './framework-v2-release-evidence.ts';
 import { asRecord } from './release-json-helpers.ts';
 import type { ReleaseEvidenceCohort, UnknownReleaseEvidenceCohort } from './release-evidence-cohort.ts';
 import { compileCurrentFirstRunExpectations } from './compile-first-run-expectations.ts';
@@ -346,6 +347,7 @@ export function validateJsonEvidenceShape(
   releaseCohort: KnownOrUnknownReleaseCohort,
 ) {
   const record = asRecord(payload, artifact.id);
+  if (validateV2ReleaseReadback(artifact.id, record)) return;
   if (artifact.id === 'app_state_summary' || artifact.id === 'app_state_full') {
     validateAppStateEvidence(artifact, record);
   }

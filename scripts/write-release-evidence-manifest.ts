@@ -244,14 +244,19 @@ function main() {
   ];
   const artifacts = activeArtifacts.map((artifact) => {
     const classification = classifications.get(artifact.id);
-    const exists = fs.existsSync(resolveBundlePath(options.bundleDir, artifact.path));
+    const artifactPath = resolveBundlePath(options.bundleDir, artifact.path);
+    const exists = fs.existsSync(artifactPath);
+    const v2Producer = bundle.framework_v2_producers?.[artifact.id];
+    const frameworkReadback = exists && v2Producer ? readJsonFile(artifactPath) : null;
+    const producer = frameworkReadback?.api_version === '2.0' && frameworkReadback.method
+      ? v2Producer : artifact.producer;
     const typedBlocker = readTypedBlocker(options.bundleDir, artifact);
     if (classification) {
       return {
         id: artifact.id,
         path: artifact.path,
         kind: artifact.kind,
-        producer: artifact.producer,
+        producer,
         source_kind: artifact.source_kind,
         status: classification.status,
         reason: classification.reason,
@@ -270,7 +275,7 @@ function main() {
       id: artifact.id,
       path: artifact.path,
       kind: artifact.kind,
-      producer: artifact.producer,
+      producer,
       source_kind: artifact.source_kind,
       status: exists ? 'present' : typedBlocker ? 'typed_blocker' : 'missing',
       ...(exists

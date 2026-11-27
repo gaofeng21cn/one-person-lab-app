@@ -10,7 +10,11 @@ import {
   resolveEvidenceBundlePath,
   resolveRequiredReleaseEvidenceBundleDir,
 } from './release-evidence-paths.ts';
-import { readJsonFile } from './release-json-helpers.ts';
+import { readJsonFile, recordOrNull } from './release-json-helpers.ts';
+import {
+  isFrameworkV2Evidence, openFrameworkV2Evidence, resolveFrameworkV2Action, validateFrameworkV2State,
+} from './framework-v2-evidence.ts';
+import { stateReadback, drilldownReadback, actionReadback } from './framework-v2-release-evidence.ts';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const commandMaxBuffer = 128 * 1024 * 1024;
@@ -291,7 +295,7 @@ function discoverEvidenceSourceArtifacts(options: Options, artifacts: EvidenceAr
   return discovered;
 }
 
-function attachExternalArtifacts(options: Options): string[] {
+function attachExternalArtifacts(options: Options, protectedIds: ReadonlySet<string>): string[] {
   if (
     Object.keys(options.artifacts).length === 0
     && options.evidenceSourceDirs.length === 0
@@ -315,6 +319,12 @@ function attachExternalArtifacts(options: Options): string[] {
   }
   for (const artifact of releaseEvidenceArtifacts) {
     const artifactId = artifact.id;
+    if (protectedIds.has(artifactId)) {
+      if (Object.hasOwn(options.artifacts, artifactId) || Object.hasOwn(options.typedBlockers, artifactId)) {
+        throw new Error(`The selected Framework provides runtime evidence for ${artifactId}; use the collector's live result.`);
+      }
+      continue;
+    }
     const sourcePath = options.artifacts[artifactId] ?? discoveredArtifacts[artifactId];
     if (!sourcePath) {
       continue;
@@ -418,6 +428,49 @@ function validateGeneratedBundle(options: Options): void {
   }
 }
 
+function writeRuntimeBlocker(options: Options, artifact: CollectedArtifactId, reason: string, nextAction: string) {
+  writeJsonArtifact(options.bundleDir, `typed-blockers/${artifact}.json`, {
+    artifact_id: artifact, owner: 'one-person-lab', blocker_kind: 'framework_evidence_unavailable',
+    typed_blocker_ref: `typed_blocker_ref://one-person-lab-app/framework-v2/${artifact}`,
+    reason, next_action: nextAction, evidence_refs: ['app-state-summary.json', 'app-state-full.json'],
+  });
+}
+
+async function collectFrameworkV2Evidence(options: Options): Promise<CollectedArtifactId[]> {
+  const rpc = await openFrameworkV2Evidence(options.oplBin);
+  const fast = validateFrameworkV2State(await rpc('app.state.get', { profile: 'fast' }), 'fast');
+  writeJsonArtifact(options.bundleDir, 'app-state-summary.json', stateReadback(fast, 'fast'));
+  writeJsonArtifact(options.bundleDir, 'app-state-full.json', stateReadback(await rpc('app.state.get', { profile: 'full' }), 'full'));
+  const collected: CollectedArtifactId[] = ['app_state_summary', 'app_state_full'];
+  try {
+    const drilldown = await rpc('app.operatorDrilldown.get', {});
+    writeJsonArtifact(options.bundleDir, 'drilldown-full.json', drilldownReadback(drilldown));
+    collected.push('drilldown_full');
+  } catch (error) {
+    const rpcError = recordOrNull(error);
+    if (rpcError?.rpcCode !== -32601 || rpcError.errorCode !== 'METHOD_NOT_FOUND') throw error;
+    writeRuntimeBlocker(options, 'drilldown_full', 'The selected Framework does not implement app.operatorDrilldown.get.',
+      'Use a Framework version that provides the full operator drilldown.');
+  }
+  const target = resolveFrameworkV2Action(fast, options.actionId);
+  if (!target) {
+    const reason = 'No enabled Package with a contribution handler declares the selected action ref.';
+    const next = 'Select a declared action ref from an installed qualification Package.';
+    writeRuntimeBlocker(options, 'action_dry_run_result', reason, next);
+    if (options.executeAction) writeRuntimeBlocker(options, 'action_execute_result', reason, next);
+    return collected;
+  }
+  for (const dryRun of options.executeAction ? [true, false] : [true]) {
+    const response = await rpc('app.action.execute', {
+      package_id: target.packageId, action_id: target.actionId, dry_run: dryRun,
+    });
+    const readback = actionReadback(response, target.packageId, target.actionId, dryRun);
+    writeJsonArtifact(options.bundleDir, dryRun ? 'action-dry-run-result.json' : 'action-execute-result.json', readback);
+    collected.push(dryRun ? 'action_dry_run_result' : 'action_execute_result');
+  }
+  return collected;
+}
+
 function collectRuntimeEvidence(options: Options): CollectedArtifactId[] {
   const collected: CollectedArtifactId[] = [];
   writeJsonArtifact(
@@ -460,15 +513,28 @@ function collectRuntimeEvidence(options: Options): CollectedArtifactId[] {
   return collected;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   if (fs.existsSync(options.bundleDir) && !options.overwrite) {
     throw new Error(`Bundle directory already exists: ${options.bundleDir}. Pass --overwrite to refresh it.`);
   }
   fs.mkdirSync(options.bundleDir, { recursive: true });
 
-  const collectedArtifacts = collectRuntimeEvidence(options);
-  const attachedArtifacts = attachExternalArtifacts(options);
+  // A repeated capture must not reuse an earlier action receipt or a retired
+  // producer's output if the selected runtime can no longer supply it.
+  const runtimeArtifacts = new Set(['app_state_summary', 'app_state_full', 'drilldown_full', 'action_dry_run_result', 'action_execute_result']);
+  if (options.overwrite) {
+    for (const artifact of readReleaseEvidenceArtifacts().filter(entry => runtimeArtifacts.has(entry.id))) {
+      fs.rmSync(resolveBundlePath(options.bundleDir, artifact.path), { force: true });
+      fs.rmSync(resolveBundlePath(options.bundleDir, `typed-blockers/${artifact.id}.json`), { force: true });
+    }
+    fs.rmSync(resolveBundlePath(options.bundleDir, 'evidence-manifest.json'), { force: true });
+  }
+  const frameworkV2 = isFrameworkV2Evidence(options.oplBin);
+  const collectedArtifacts = frameworkV2
+    ? await collectFrameworkV2Evidence(options)
+    : collectRuntimeEvidence(options);
+  const attachedArtifacts = attachExternalArtifacts(options, frameworkV2 ? runtimeArtifacts : new Set());
   const manifest = runNodeScript([
     'scripts/write-release-evidence-manifest.ts',
     '--bundle-dir',
@@ -506,7 +572,7 @@ function main(): void {
     required_conditionals: [...new Set(options.requiredConditionals)],
     refs_only: true,
     action_id: options.actionId,
-    action_execute_collected: options.executeAction,
+    action_execute_collected: collectedArtifacts.includes('action_execute_result'),
     collected_artifacts: collectedArtifacts,
     attached_artifacts: attachedArtifacts,
     blocked_artifact_count: blockedArtifacts.length,
@@ -517,7 +583,7 @@ function main(): void {
 }
 
 try {
-  main();
+  await main();
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
