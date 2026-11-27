@@ -50,8 +50,9 @@ jobs:
         working-directory: framework
         run: |
           node --experimental-strip-types --test \
-            --test-name-pattern='portable checkpoint switches executors|elapsed absolute deadline blocks' \
-            tests/src/cli/cases/release-bundle.test.ts
+            packages/runway/tests/cross-engine-handoff.test.ts \
+            packages/runway/tests/reconcile-and-lease.test.ts \
+            packages/pack/tests/content-lock-and-build.test.ts
 
   contract:
     runs-on: ubuntu-latest
