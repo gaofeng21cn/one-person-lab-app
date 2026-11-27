@@ -300,10 +300,13 @@ test("assertPackagedCatalogSeedPayloadsComplete verifies catalog files against p
       path.join(tempRoot, "modules", "mas", "runtime", "artifact_locator", "workspace-runtime-artifact-root.locator.json"),
       "{}\n",
     );
-    assert.deepEqual(assertPackagedCatalogSeedPayloadsComplete(tempRoot), {
-      checked_packages: 1,
-      checked_files: 1,
-    });
+    const expected = { checked_packages: 1, checked_files: 1 };
+    assert.deepEqual(assertPackagedCatalogSeedPayloadsComplete(tempRoot), expected);
+    fs.rmSync(path.join(tempRoot, "modules", "mas", "opl-runtime-module.json"));
+    const selected = { package_id: "mas", source_commit: commit, runtime_module_relative_path: "modules/mas" };
+    assert.deepEqual(assertPackagedCatalogSeedPayloadsComplete(tempRoot, [selected]), expected);
+    assert.throws(() => assertPackagedCatalogSeedPayloadsComplete(tempRoot, [{ ...selected, source_commit: "b".repeat(40) }]),
+      /no catalog payload for the selected commit/);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

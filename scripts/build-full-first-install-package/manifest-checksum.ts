@@ -518,13 +518,17 @@ function assertDeclaredPrunedPathsAbsent(runtimeAssertions) {
   }
 }
 
-export function writeFullRuntimeManifest(runtimeRoot, options, packagedAt, components, resolvedRefs, optionalComponents = {}, nativeTrust = undefined) {
+export function writeFullRuntimeManifest(runtimeRoot, options, packagedAt, components, resolvedRefs, optionalComponents = {}, nativeTrust = undefined, selectedPackageSet?: object) {
   const carrier = resolveFullCarrierProfile({ carrierId: options.carrierId });
   const manifestDir = path.join(runtimeRoot, 'manifest');
   const manifestPath = path.join(manifestDir, 'full-package-manifest.json');
   fs.mkdirSync(manifestDir, { recursive: true });
 
-  const runtimeAssertions = collectRuntimeAssertions(runtimeRoot);
+  const readAssertions = () => ({
+    ...collectRuntimeAssertions(runtimeRoot),
+    ...(selectedPackageSet ? { selected_package_set: selectedPackageSet } : {}),
+  });
+  const runtimeAssertions = readAssertions();
   assertOfflineRequiredPayloadsPresent(runtimeAssertions);
   assertDeclaredPrunedPathsAbsent(runtimeAssertions);
   let manifest = buildFullPackageManifest({
@@ -541,7 +545,7 @@ export function writeFullRuntimeManifest(runtimeRoot, options, packagedAt, compo
   for (let attempt = 0; attempt < 8; attempt += 1) {
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
     const sizeBreakdown = collectFullRuntimeSizeBreakdown(runtimeRoot);
-    const nextRuntimeAssertions = collectRuntimeAssertions(runtimeRoot);
+    const nextRuntimeAssertions = readAssertions();
     assertOfflineRequiredPayloadsPresent(nextRuntimeAssertions);
     assertDeclaredPrunedPathsAbsent(nextRuntimeAssertions);
     const nextManifest = buildFullPackageManifest({

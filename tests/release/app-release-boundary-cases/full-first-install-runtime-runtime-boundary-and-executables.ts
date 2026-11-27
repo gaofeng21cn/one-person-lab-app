@@ -445,6 +445,7 @@ test("real Full domain and prepareRuntime builders package the current MAS Schol
       else process.env.OPL_STATE_DIR = hostState;
       delete process.env.TEST_FULL_PROBE_OBSERVATION_FILE;
     }
+    assert.deepEqual(prepared.manifest.runtime_assertions.selected_package_set, prepared.runtime_cache.selected_package_set);
     const probeStateRoots = fs.readFileSync(probeObservationFile, "utf8").trim().split("\n");
     assert.equal(probeStateRoots.length, 2);
     assert.ok(probeStateRoots[0]);

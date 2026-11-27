@@ -77,7 +77,7 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
     assertTemporalCoreBridgeMacosArm64Only(path.join(framework, 'node_modules'));
   }
   writeDomainMarkers(runtimeRoot, options, packagedAt);
-  assertPackagedCatalogSeedPayloadsComplete(runtimeRoot);
+  assertPackagedCatalogSeedPayloadsComplete(runtimeRoot, selectedPackageSet.packages);
   const nativeTrust = ensureFullRuntimeNativeTrust(runtimeRoot);
   const flowCapabilityAssembly = assertMaterializedFlowCapabilityBuildLock(runtimeRoot);
   const selectedFlowCapabilities = new Set(
@@ -178,6 +178,7 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
     resolvedRefs,
     optionalComponents,
     nativeTrust,
+    selectedPackageSet,
   );
   const currentness = assertFullRuntimeCurrentness(runtimeRoot, {
     frameworkRoot: options.frameworkRoot,
