@@ -1,0 +1,26 @@
+{
+  "schema_version": "opl.product-release.v1",
+  "product_id": "opl-app",
+  "repository": "gaofeng21cn/one-person-lab-app",
+  "strategy": "owner_schedule",
+  "trigger": "owner_schedule",
+  "publisher_workflow": "release-nightly.yml",
+  "primary_lane": "nightly",
+  "channel": {
+    "kind": "github_prerelease",
+    "tag_pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+-nightly(\\.r[0-9]+)?"
+  },
+  "observed_publishers": [
+    {
+      "lane": "stable",
+      "workflow": "release-stable.yml",
+      "title_pattern": " (standard operation:|resume_standard source:|Studio release ref:)",
+      "channel": { "kind": "github_release" }
+    },
+    {
+      "lane": "stable-full",
+      "workflow": "release-stable.yml",
+      "title_pattern": " (append_full source:|Studio Full append ref:)"
+    }
+  ]
+}
