@@ -144,6 +144,7 @@ export function validateLiveConformanceContract(gate) {
     opl_root_env: 'OPL_APP_LIVE_OPL_ROOT',
     action_fixture_env: 'OPL_APP_LIVE_ACTION_FIXTURE',
     opl_bin: './bin/opl',
+    v2_transport_ref: 'framework_v2_transport',
     fast_state_command: './bin/opl app state --profile fast --json',
     full_state_command: './bin/opl app state --profile full --json',
     action_dry_run_command: './bin/opl app action execute --action <fixture> --dry-run --json',
@@ -423,7 +424,7 @@ function validateCurrentOwnerDeltaCockpitFixture(fixture) {
   }
 }
 
-export function validateLiveOplConformance(runtimeBridge) {
+export async function validateLiveOplConformance(runtimeBridge) {
   const gate = runtimeBridge.live_conformance_gate;
   validateLiveConformanceContract(gate);
   if (!resolveLiveGateEnabled(gate)) {
@@ -440,6 +441,31 @@ export function validateLiveOplConformance(runtimeBridge) {
   const actionFixture = process.env[gate.action_fixture_env]?.trim();
   if (!actionFixture) {
     throw new Error(`Set ${gate.action_fixture_env} to a safe OPL App action id when ${gate.enable_env}=1.`);
+  }
+
+  const {
+    isFrameworkV2Evidence, openFrameworkV2Evidence, resolveFrameworkV2Action,
+    validateFrameworkV2State, validateFrameworkV2ActionResult,
+  } = await import('../../framework-v2-evidence.ts');
+  const oplBin = path.join(resolvedOplRoot, 'bin', 'opl');
+  if (await isFrameworkV2Evidence(oplBin)) {
+    const transport = runtimeBridge[gate.v2_transport_ref];
+    const rpc = await openFrameworkV2Evidence(oplBin);
+    const fast = validateFrameworkV2State(await rpc(transport.state_method, { profile: 'fast' }), 'fast');
+    if (Buffer.byteLength(JSON.stringify(fast), 'utf8') >= gate.fast_state_max_bytes) {
+      throw new Error(`Live OPL fast App state must stay below ${gate.fast_state_max_bytes} bytes.`);
+    }
+    validateFrameworkV2State(await rpc(transport.state_method, { profile: 'full' }), 'full');
+    const target = resolveFrameworkV2Action(fast, actionFixture);
+    if (!target) {
+      throw new Error(`The live action fixture '${actionFixture}' is absent from enabled Package contributions.`);
+    }
+    const preview = await rpc(transport.action_method, {
+      package_id: target.packageId, action_id: target.actionId, dry_run: true,
+    });
+    validateFrameworkV2ActionResult(preview, target.actionId, true);
+    console.log('Live Framework v2 App state and Package action preview passed.');
+    return;
   }
 
   const fast = runLiveJsonCommand(

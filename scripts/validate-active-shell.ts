@@ -95,7 +95,7 @@ validateReleaseChannelContract(
 validateReleaseEvidenceBundle(releaseChannel, firstRunMatrix);
 validateStudioImplementation(shellPaths);
 validateStudioThreadCoordination(shellPaths);
-validateLiveOplConformance(runtimeBridge);
+await validateLiveOplConformance(runtimeBridge);
 
 if (args.quick) {
   console.log('Active shell contract is structurally valid.');

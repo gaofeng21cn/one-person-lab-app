@@ -82,6 +82,16 @@
       "image_command_policy": "append_exact_OCI_CMD_to_declared_entrypoint_no_Host_or_package_install_command_replacement"
     }
   },
+  "framework_v2_transport": {
+    "api_version": "2.0",
+    "endpoint": "opld",
+    "state_method": "app.state.get",
+    "state_profiles": ["fast", "full"],
+    "action_method": "app.action.execute",
+    "contribution_read_method": "app.contribution.read",
+    "action_identity": "Resolve the installed, enabled Package and its declared action before preview or execution.",
+    "legacy_command_fields": "The CLI command examples below describe Framework v1. Studio uses authenticated local JSON-RPC with Framework v2."
+  },
   "summary_command": "opl app state --profile fast --json",
   "refresh_command": "opl app state --profile fast --json",
   "default_operator_payload": "current_owner_delta",
@@ -1006,6 +1016,7 @@
     "opl_root_env": "OPL_APP_LIVE_OPL_ROOT",
     "action_fixture_env": "OPL_APP_LIVE_ACTION_FIXTURE",
     "opl_bin": "./bin/opl",
+    "v2_transport_ref": "framework_v2_transport",
     "fast_state_command": "./bin/opl app state --profile fast --json",
     "full_state_command": "./bin/opl app state --profile full --json",
     "action_dry_run_command": "./bin/opl app action execute --action <fixture> --dry-run --json",

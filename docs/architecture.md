@@ -22,8 +22,9 @@ App owns product semantics, first-run behavior, GUI contracts, accessibility,
 carrier qualification, release policy and user documentation. Framework owns
 generic discovery, presence checks, runtime aggregation and action producers.
 Agent Packages own business task lifecycle, domain schemas, artifacts and quality
-verdicts. Temporal owns execution facts; Codex App Server owns thread identity,
-history, permissions and execution protocol.
+verdicts. In Framework v2, Runway records execution in SQLite and recovers work
+under the local `opld` service. Codex App Server owns thread identity, history,
+permissions and the Codex execution protocol.
 
 Persistent service launchers retain discovered absolute carrier entrypoints,
 including stable executable symlinks. They do not turn those links into saved
@@ -74,11 +75,11 @@ role. Local references must resolve inside the contribution block. Arbitrary
 React, JavaScript, HTML, executable paths, URLs and handlers are not contributions.
 Invalid blocks fail locally without hiding other Packages.
 
-Reads go through `opl app contribution read`. Shell validates the broker's
-identity, schema and success envelope; the current descriptor chooses the standard
-view renderer. Writes go only through `opl app action execute --action
-package_contribution_execute`, with the corresponding broker envelope in the action
-result. A missing projected action disables only its command, preserving valid reads.
+On Framework v2, Studio reads contributions with `app.contribution.read` and
+sends the selected Package and action to `app.action.execute` on the authenticated
+local socket. The Shell validates the response and renders the view declared by
+the Package. Framework v1 uses the equivalent contribution-read CLI and the
+`package_contribution_execute` App action. A missing projected action disables only its command, preserving valid reads.
 App/Shell do not call a Package execute broker as an independent mutation route.
 
 ## Package Composition
@@ -118,17 +119,19 @@ are deletion gaps, not recommended alternative interfaces.
 
 ## State, Actions And Tasks
 
-Ordinary reads use `opl app state --profile fast --json`; writes use
-`opl app action execute ... --json`. Full state and operator drilldown are explicit
-Maintenance/release diagnostics. Unknown mutation outcomes require fresh owner
-inspection rather than replay. The bridge and owner matrix live in
+Studio requests the `fast` profile from `app.state.get` on Framework v2 and sends
+writes through `app.action.execute`. The `full` profile adds diagnostic state.
+Framework v1 installations use `opl app state --profile fast --json` and
+`opl app action execute ... --json`. The opt-in live check selects the transport
+from the installed Framework version and previews a declared action. When a write
+loses its response, read the result from its owner. The bridge and owner matrix live in
 [`app-runtime-bridge.json`](../contracts/app-runtime-bridge.json).
 
 Runtime is a required core dynamic Agent task surface in current contracts.
 Framework discovers task producers from installed Agent descriptors and joins
 business, execution, visibility and observed telemetry without guessing. Shell
 renders Agent -> Project scope and canonical work items; unavailable producers,
-Temporal bindings or views degrade locally. Missing Token values stay unknown.
+execution bindings or views degrade locally. Missing Token values stay unknown.
 Typed views use `opl_app.typed_domain_views.v3`: domain owners supply schema and
 rendering extensions admitted into a trusted Shell build; selection uses `view_kind`,
 not Agent-id branches or App-owned scientific schemas. Runtime detail remains
