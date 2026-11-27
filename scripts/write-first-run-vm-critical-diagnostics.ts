@@ -298,12 +298,12 @@ function typedControllerAction(
   return {
     action,
     scope: action === 'none' ? 'none' : 'framework_checkpoint_read_only',
-    controller: action === 'none' ? null : 'framework_opl_release',
+    controller: action === 'none' ? null : 'app_release_bundle_cli',
     controller_subcommand: action === 'none' ? null : 'status',
     state_ref: action === 'none' ? null : 'framework_portable_checkpoint',
     command_template: action === 'none'
       ? ''
-      : 'opl release status --bundle <sha256:bundle> --store <bundle-store> --json',
+      : 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:bundle> --store <bundle-store> --json',
     execution_mode: 'read_only',
     execute_flag_included: false,
     mutation_authorized: false,

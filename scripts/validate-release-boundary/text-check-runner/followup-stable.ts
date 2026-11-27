@@ -214,7 +214,7 @@ export function validateStableFollowupTopology(appRoot: string): number {
   ], 'Optional certification is missing');
   failures += failIf(
     id,
-    /contents: write|packages: write|gh workflow run|gh run (?:rerun|cancel)|gh release (?:create|edit|upload|delete)|opl release (?:build|publish|reconcile)|codesign|notarize/.test(optionalCertification.text),
+    /contents: write|packages: write|gh workflow run|gh run (?:rerun|cancel)|gh release (?:create|edit|upload|delete)|(?:opl release|release-bundle-cli\.ts) (?:build|publish|reconcile)|codesign|notarize/.test(optionalCertification.text),
     'Optional certification must not dispatch, rebuild, sign, or publish',
   );
   failures += requireSubstrings(id, optionalCertificationVm.text, [

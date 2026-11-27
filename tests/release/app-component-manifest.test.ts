@@ -252,7 +252,7 @@ test('Bundle topology binds the component manifest before remote digest verifica
   const admission = publishWorkflow.slice(prePublication, publish);
   assert.match(admission, /opl-release-standard-pre-publication-admission-/);
   assert.doesNotMatch(admission, /restore-release-checkpoint/);
-  assert.doesNotMatch(admission, /gh release (?:create|upload|edit)|opl release publish/);
+  assert.doesNotMatch(admission, /gh release (?:create|upload|edit)|(?:opl release|release-bundle-cli\.ts) publish/);
   assert.match(publishWorkflow.slice(publish, remoteVerify), /needs: \[restore, pre-publication-admission\]/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /write-opl-app-component-manifest\.ts/);
   assert.match(bundleWorkflow.slice(sealIdentity, checkpoint), /--updater-version '\$\{\{ needs\.freeze\.outputs\.updater_version \}\}'/);

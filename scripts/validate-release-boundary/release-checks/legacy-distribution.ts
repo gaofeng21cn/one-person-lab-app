@@ -185,7 +185,7 @@ export const releaseDistributionChecks: ReleaseBoundaryCheck[] = [
       "framework_opl_release_portable_checkpoint_and_receipt",
       "opl_release_bundle_checkpoint.v1",
       "opl_release_bundle_executor_receipt.v1",
-      "opl release status --bundle <sha256:digest> --store <directory>",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> --store <directory>",
       "inspect_framework_checkpoint_and_receipts",
       "--promote-ready",
       "--status",

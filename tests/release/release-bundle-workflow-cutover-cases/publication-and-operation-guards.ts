@@ -49,7 +49,7 @@ test('mutation unknown states persist evidence and only use bounded read-only re
     assert.match(source, /release_bundle_status\.active_unknown_markers/);
     assert.match(source, /prior_mutation_attempt_id/);
     assert.match(source, /publication_scope/);
-    assert.match(source, /outcome_unknown[\s\S]*--outcome unknown[\s\S]*opl release publish[\s\S]*opl release status[\s\S]*opl release reconcile/);
+    assert.match(source, /outcome_unknown[\s\S]*--outcome unknown[\s\S]*release-bundle-cli\.ts publish[\s\S]*release-bundle-cli\.ts status[\s\S]*release-bundle-cli\.ts reconcile/);
     assert.match(source, /deadline_elapsed[\s\S]*reconcile is not authorized without a persisted unknown outcome/);
   }
   const activationJobs = Object.entries(parseWorkflow('_release-standard-publish.yml').jobs)

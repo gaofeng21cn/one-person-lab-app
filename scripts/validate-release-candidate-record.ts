@@ -18,7 +18,7 @@ const frameworkHandoff = {
     'opl_release_bundle_operation_receipt.v1',
     'opl_release_bundle_qualification_receipt.v1',
   ],
-  status_command: 'opl release status --bundle <sha256:digest> --store <directory>',
+  status_command: 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> --store <directory>',
   required_handoff: ['portable_framework_checkpoint', 'original_framework_receipts'],
   inspect_only: true,
   mutation_authorized: false,

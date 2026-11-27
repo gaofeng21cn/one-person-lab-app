@@ -110,6 +110,7 @@
     "release:component-manifest": "node --experimental-strip-types scripts/write-opl-app-component-manifest.ts",
     "release:historical-candidate-record:status": "node --experimental-strip-types scripts/validate-release-candidate-record.ts --status",
     "release:historical-bundle:status": "node --experimental-strip-types scripts/release-bundle.ts status",
+    "release:bundle-cli": "node --experimental-strip-types scripts/release-bundle-cli.ts",
     "release:collect-evidence": "node --experimental-strip-types scripts/collect-release-evidence.ts",
     "release:evidence:manifest": "node --experimental-strip-types scripts/write-release-evidence-manifest.ts",
     "release:evidence:validate": "node --experimental-strip-types scripts/validate-release-evidence-bundle.ts",

@@ -14,21 +14,21 @@ const rejected = readJson(
   "docs/delivery/release/incidents/2026-07-20-v26.7.20-full-catalog-mismatch.json",
 );
 
-test("Framework owns the live immutable Release Bundle and App remains a product adapter", () => {
+test("App owns the live immutable Release Bundle while Framework v2 owns runtime and Packages", () => {
   assert.equal(control.schema, "opl_app_release_bundle_control_plane.v1");
   assert.equal(control.contract_status, "active");
   assert.equal(
     control.implementation_status,
-    "framework_bundle_authority_active_event_projection_available",
+    "app_owned_bundle_authority_active_event_projection_available",
   );
   assert.deepEqual(control.framework_authority, {
-    owner: "gaofeng21cn/one-person-lab",
+    owner: "gaofeng21cn/one-person-lab-app",
     bundle_schema: "opl_release_bundle.v1",
-    bundle_schema_owner: "OPL Framework",
+    bundle_schema_owner: "one-person-lab-app",
     app_may_redefine_framework_bundle_closed_shape: false,
-    store_owner: "OPL Framework",
-    canonical_digest_owner: "OPL Framework",
-    cli: "opl release",
+    store_owner: "one-person-lab-app",
+    canonical_digest_owner: "one-person-lab-app",
+    cli: "node --experimental-strip-types scripts/release-bundle-cli.ts",
     commands: [
       "freeze",
       "operation admit",
@@ -43,17 +43,17 @@ test("Framework owns the live immutable Release Bundle and App remains a product
       "consumer envelope",
     ],
     command_forms: [
-      "opl release freeze --request <request.json> [--source-root <directory>] [--store <directory>]",
-      "opl release operation admit --bundle <sha256:digest> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-      "opl release build --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-      "opl release checkpoint export --bundle <sha256:digest> --output <directory> [--store <directory>]",
-      "opl release checkpoint import --checkpoint <checkpoint.json> [--store <directory>]",
-      "opl release verify --bundle <sha256:digest> --qualification-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--track standard|full] [--store <directory>]",
-      "opl release publish --bundle <sha256:digest> --executor-receipt <remote-inspect.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-      "opl release reconcile --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
-      "opl release status --bundle <sha256:digest> [--store <directory>]",
-      "opl release events --bundle <sha256:digest> [--after-event <sha256:event>] [--store <directory>]",
-      "opl release consumer envelope --bundle <sha256:digest> --track <standard|full> [--source-checkpoint-run-id <run-id>] [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts freeze --request <request.json> [--source-root <directory>] [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts operation admit --bundle <sha256:digest> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts build --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint export --bundle <sha256:digest> --output <directory> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint import --checkpoint <checkpoint.json> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts verify --bundle <sha256:digest> --qualification-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--track standard|full] [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts publish --bundle <sha256:digest> --executor-receipt <remote-inspect.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts reconcile --bundle <sha256:digest> --executor-receipt <receipt.json> --operation <standard|resume_standard|append_full> --operation-id <id> --operation-started-at <timestamp> --operation-deadline-at <timestamp> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts events --bundle <sha256:digest> [--after-event <sha256:event>] [--store <directory>]",
+      "node --experimental-strip-types scripts/release-bundle-cli.ts consumer envelope --bundle <sha256:digest> --track <standard|full> [--source-checkpoint-run-id <run-id>] [--store <directory>]",
     ],
     receipt_schemas: [
       "opl_release_bundle_executor_receipt.v1",
@@ -65,7 +65,7 @@ test("Framework owns the live immutable Release Bundle and App remains a product
     operation_event_schema: "opl_release_bundle_operation_event.v1",
     consumer_envelope_schema: "opl_release_bundle_consumer_envelope.v1",
     unknown_outcome_schema: "opl_release_bundle_unknown_outcome.v1",
-    live_mutation_authority: "framework_release_bundle_executor",
+    live_mutation_authority: "app_release_bundle_executor",
     checkpoint_and_receipt_state_authority_exclusive: true,
     app_may_define_checkpoint_or_receipt_schema: false,
     app_may_derive_or_project_release_stage_state: false,
@@ -100,6 +100,7 @@ test("Framework owns the live immutable Release Bundle and App remains a product
   });
   assert.deepEqual(control.app_authority.owns, [
     "product_release_adapter",
+    "release_bundle_schema_store_digest_and_executor_state_machine",
     "public_asset_policy",
     "prepared_ai_release_notes_policy",
     "installed_app_acceptance",
@@ -108,8 +109,8 @@ test("Framework owns the live immutable Release Bundle and App remains a product
     "homebrew_cask_publication_and_readback",
     "post_publication_optional_certification_policy",
   ]);
-  assert.ok(control.app_authority.does_not_own.includes("generic_release_bundle_schema"));
-  assert.ok(control.app_authority.does_not_own.includes("generic_publisher_ledger"));
+  assert.ok(control.app_authority.does_not_own.includes("framework_runtime_and_package_graph"));
+  assert.ok(control.app_authority.does_not_own.includes("framework_dependency_release_resolution"));
 });
 
 test("release progress is event-driven and conversations never become durable controllers", () => {

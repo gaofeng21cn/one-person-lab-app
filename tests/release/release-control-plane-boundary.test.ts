@@ -333,12 +333,12 @@ test('Bundle, Standard publish, and Full append responsibilities cannot collapse
   const bundleFile = workflowPath(root, '_release-bundle.yml');
   fs.writeFileSync(
     bundleFile,
-    fs.readFileSync(bundleFile, 'utf8').replace('opl release checkpoint export', 'opl release checkpoint inspect'),
+    fs.readFileSync(bundleFile, 'utf8').replace('release-bundle-cli.ts checkpoint export', 'release-bundle-cli.ts checkpoint inspect'),
   );
   const standardFile = workflowPath(root, '_release-standard-publish.yml');
   fs.writeFileSync(
     standardFile,
-    `${fs.readFileSync(standardFile, 'utf8')}\n# opl release build\n`,
+    `${fs.readFileSync(standardFile, 'utf8')}\n# release-bundle-cli.ts build\n`,
   );
   const fullFile = workflowPath(root, '_release-full-addon.yml');
   fs.writeFileSync(

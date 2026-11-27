@@ -73,4 +73,5 @@ jobs:
         run: |
           node --experimental-strip-types --test \
             tests/release/release-bundle-workflow-cutover.test.ts \
-            tests/release/release-control-plane-boundary.test.ts
+            tests/release/release-control-plane-boundary.test.ts \
+            tests/release/release-bundle-authority.test.ts

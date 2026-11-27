@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const appRoot = path.resolve(import.meta.dirname, '../..');
-const statusCommand = 'opl release status --bundle <sha256:digest> --store <directory>';
+const statusCommand = 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <sha256:digest> --store <directory>';
 
 function runScript(script: string, args: string[]) {
   return spawnSync(process.execPath, ['--experimental-strip-types', script, ...args], {

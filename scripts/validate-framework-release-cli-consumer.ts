@@ -4,11 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 const fullShaPattern = /^[0-9a-f]{40}$/i;
-const releaseCliArgs = ['release', 'checkpoint', 'import', '--help'] as const;
+const defaultAppRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const releaseBundleCliRelPath = path.join('scripts', 'release-bundle-cli.ts');
+const releaseCliArgs = ['--experimental-strip-types', releaseBundleCliRelPath, 'checkpoint', 'import', '--help'] as const;
 
 type CommandResult = {
   status: number | null;
@@ -21,6 +23,7 @@ export type FrameworkReleaseCliConsumerOptions = {
   frameworkRoot: string;
   expectedFrameworkSha: string;
   packageIds?: string[];
+  appRoot?: string;
 };
 
 export type FrameworkReleaseCliConsumerReport = {
@@ -30,8 +33,10 @@ export type FrameworkReleaseCliConsumerReport = {
   dependency_install: 'npm ci --ignore-scripts';
   command_surface_source: 'executable_command_specs';
   surface_generation: 'not_invoked';
-  release_cli_command: 'bin/opl release checkpoint import --help';
-  release_status_canary: 'bin/opl release status --bundle <zero-digest> --store <temporary-store> --json';
+  release_cli_command: 'node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint import --help';
+  release_status_canary: 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <zero-digest> --store <temporary-store> --json';
+  framework_cli_command: 'bin/opl --version';
+  framework_version: string;
   release_status_exit_code: 3;
   release_status_surface: 'typed_contract_file_missing';
   projection: 'temporary_exact_framework_archive';
@@ -61,8 +66,14 @@ function run(
   };
 }
 
-function commandOutput(command: string, args: readonly string[], cwd: string, timeoutMs?: number): string {
-  const result = run(command, args, cwd, timeoutMs);
+function commandOutput(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+  timeoutMs?: number,
+  env?: NodeJS.ProcessEnv,
+): string {
+  const result = run(command, args, cwd, timeoutMs, env);
   if (result.status !== 0) {
     const detail = [result.stderr, result.stdout, result.error?.message].filter(Boolean).join('\n').trim();
     throw new Error(`${command} ${args.join(' ')} failed${detail ? `:\n${detail}` : ''}`);
@@ -82,6 +93,7 @@ function commandResult(
 export function runFrameworkReleaseCliConsumerGate(
   options: FrameworkReleaseCliConsumerOptions,
 ): FrameworkReleaseCliConsumerReport {
+  const appRoot = fs.realpathSync(options.appRoot ?? defaultAppRoot);
   const frameworkRoot = fs.realpathSync(options.frameworkRoot);
   const expectedFrameworkSha = options.expectedFrameworkSha.trim().toLowerCase();
   if (!fullShaPattern.test(expectedFrameworkSha)) {
@@ -97,19 +109,16 @@ export function runFrameworkReleaseCliConsumerGate(
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-framework-release-cli-consumer-'));
   let consumerFailure: unknown = null;
   let packageSourcePreflight: Record<string, unknown> | null = null;
+  let frameworkVersion = '';
   try {
-    const archivePath = path.join(temporaryRoot, 'framework.tar');
-    const archiveRoot = path.join(temporaryRoot, 'framework');
-    fs.mkdirSync(archiveRoot);
-    commandOutput('git', ['archive', '--format=tar', '--output', archivePath, expectedFrameworkSha], frameworkRoot);
-    commandOutput('tar', ['-xf', archivePath, '-C', archiveRoot], frameworkRoot);
-    commandOutput('npm', ['ci', '--ignore-scripts'], archiveRoot);
-    commandOutput(path.join(archiveRoot, 'bin', 'opl'), releaseCliArgs, archiveRoot);
+    const quietEnv = { ...process.env, NODE_NO_WARNINGS: '1' };
+    commandOutput(process.execPath, releaseCliArgs, appRoot, undefined, quietEnv);
     const statusStore = path.join(temporaryRoot, 'release-status-store');
     const status = commandResult(
-      path.join(archiveRoot, 'bin', 'opl'),
+      process.execPath,
       [
-        'release',
+        '--experimental-strip-types',
+        releaseBundleCliRelPath,
         'status',
         '--bundle',
         `sha256:${'0'.repeat(64)}`,
@@ -117,23 +126,40 @@ export function runFrameworkReleaseCliConsumerGate(
         statusStore,
         '--json',
       ],
-      archiveRoot,
+      appRoot,
       {
-        env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        env: quietEnv,
       },
     );
     if (status.status !== 3) {
-      throw new Error(`Framework release status canary must return typed read-only exit 3, got ${String(status.status)}: ${status.stderr || status.stdout}`);
+      throw new Error(`App release bundle status canary must return typed read-only exit 3, got ${String(status.status)}: ${status.stderr || status.stdout}`);
     }
     if (status.stdout.trim()) {
-      throw new Error(`Framework release status canary wrote failure output to stdout: ${status.stdout}`);
+      throw new Error(`App release bundle status canary wrote failure output to stdout: ${status.stdout}`);
     }
     const statusPayload = JSON.parse(status.stderr) as { error?: { code?: string } };
     if (statusPayload.error?.code !== 'contract_file_missing') {
-      throw new Error(`Framework release status canary returned an unexpected error: ${status.stderr}`);
+      throw new Error(`App release bundle status canary returned an unexpected error: ${status.stderr}`);
     }
     if (fs.existsSync(statusStore)) {
-      throw new Error('Framework release status canary must not create a release store for a missing Bundle.');
+      throw new Error('App release bundle status canary must not create a release store for a missing Bundle.');
+    }
+
+    const archivePath = path.join(temporaryRoot, 'framework.tar');
+    const archiveRoot = path.join(temporaryRoot, 'framework');
+    fs.mkdirSync(archiveRoot);
+    commandOutput('git', ['archive', '--format=tar', '--output', archivePath, expectedFrameworkSha], frameworkRoot);
+    commandOutput('tar', ['-xf', archivePath, '-C', archiveRoot], frameworkRoot);
+    commandOutput('npm', ['ci', '--ignore-scripts'], archiveRoot);
+    frameworkVersion = commandOutput(
+      path.join(archiveRoot, 'bin', 'opl'),
+      ['--version'],
+      archiveRoot,
+      undefined,
+      quietEnv,
+    ).trim();
+    if (!frameworkVersion) {
+      throw new Error('Framework archive bin/opl --version returned an empty version.');
     }
     if (options.packageIds?.length) {
       const packageIds = [...new Set(options.packageIds)];
@@ -167,8 +193,10 @@ export function runFrameworkReleaseCliConsumerGate(
     dependency_install: 'npm ci --ignore-scripts',
     command_surface_source: 'executable_command_specs',
     surface_generation: 'not_invoked',
-    release_cli_command: 'bin/opl release checkpoint import --help',
-    release_status_canary: 'bin/opl release status --bundle <zero-digest> --store <temporary-store> --json',
+    release_cli_command: 'node --experimental-strip-types scripts/release-bundle-cli.ts checkpoint import --help',
+    release_status_canary: 'node --experimental-strip-types scripts/release-bundle-cli.ts status --bundle <zero-digest> --store <temporary-store> --json',
+    framework_cli_command: 'bin/opl --version',
+    framework_version: frameworkVersion,
     release_status_exit_code: 3,
     release_status_surface: 'typed_contract_file_missing',
     projection: 'temporary_exact_framework_archive',

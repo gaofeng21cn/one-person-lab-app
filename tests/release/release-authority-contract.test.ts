@@ -10,7 +10,7 @@ const releaseContract = JSON.parse(
 const control = releaseContract.release_bundle_control_plane;
 
 test('release contract keeps Framework checkpoint as the only live release state authority', () => {
-  assert.equal(control.framework_authority.cli, 'opl release');
+  assert.equal(control.framework_authority.cli, 'node --experimental-strip-types scripts/release-bundle-cli.ts');
   assert.equal(control.framework_authority.checkpoint_and_receipt_state_authority_exclusive, true);
   assert.equal(control.framework_authority.app_may_define_checkpoint_or_receipt_schema, false);
   assert.equal(control.live_authority.single_live_mutation_authority, true);
