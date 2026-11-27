@@ -70,6 +70,59 @@ test('Full release-gate diagnostics pass the exact MAS ref to the VM harness', (
     '${{ inputs.release_artifact_run_id != \'\' && inputs.release_artifact_run_id || inputs.release_run_id }}');
 });
 
+test('the Full-only VM dispatch verifies an exact existing cohort and binds both verification sources', (t) => {
+  const source = fs.readFileSync(path.join(appRoot, '.github/workflows/release-full-vm-diagnostics.yml'), 'utf8');
+  const workflow = YAML.parse(source);
+  const { inputs } = workflow.on.workflow_dispatch;
+  const { with: harness, needs, uses } = workflow.jobs['full-vm'];
+  assert.deepEqual(workflow.permissions, { actions: 'read', contents: 'read' });
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.jobs), ['validate-inputs', 'full-vm']);
+  assert.equal(uses, './.github/workflows/opl-first-run-vm.yml');
+  assert.equal(needs, 'validate-inputs');
+  assert.equal(harness.package_profile, 'full');
+  assert.equal(harness.diagnostic_scope, 'release_gate');
+  assert.equal(harness.require_macos_gatekeeper, true);
+  assert.equal(harness.operation, undefined);
+  assert.equal(harness.release_cohort_ref, harness.release_bundle_digest);
+  assert.equal(harness.release_artifact_name, '${{ needs.validate-inputs.outputs.artifact_name }}');
+  for (const input of Object.keys(inputs)) {
+    assert.equal(inputs[input].required, true);
+    assert.equal(harness[input], `\${{ inputs.${input} }}`);
+  }
+
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-vm-diagnostics-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const output = path.join(directory, 'github-output');
+  const validation = workflow.jobs['validate-inputs'].steps[0];
+  const environment = Object.fromEntries(Object.keys(validation.env).map((key) => [key, 'a'.repeat(40)]));
+  const validate = (overrides: NodeJS.ProcessEnv) => spawnSync('bash', ['-c', validation.run], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...environment,
+      GITHUB_OUTPUT: output,
+      GITHUB_REF: 'refs/heads/main',
+      RELEASE_TAG: 'v26.11.26-r2',
+      RELEASE_ARTIFACT_RUN_ID: '12345',
+      RELEASE_BUNDLE_DIGEST: `sha256:${'b'.repeat(64)}`,
+      ...overrides,
+    },
+  });
+  const valid = validate({});
+  assert.equal(valid.status, 0, valid.stderr || valid.stdout);
+  assert.equal(fs.readFileSync(output, 'utf8'), 'artifact_name=opl-full-first-install-dmg-26.11.26-r2-mac-arm64\n');
+  for (const invalid of [
+    { GITHUB_REF: 'refs/heads/topic' },
+    { RELEASE_TAG: 'v26.11.26-nightly' },
+    { RELEASE_ARTIFACT_RUN_ID: '0' },
+    { RELEASE_BUNDLE_DIGEST: 'latest' },
+    { MAS_SCHOLAR_SKILLS_REF: '' },
+    { SMOKE_HARNESS_REF: 'main' },
+    { VERIFICATION_APP_REF: 'main' },
+  ]) assert.equal(validate(invalid).status, 1, JSON.stringify(invalid));
+});
+
 test('Standard VM diagnostics require and inject an exact Framework SHA', () => {
   const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
   const validation = workflow.jobs['diagnostic-inputs'].steps.find(
