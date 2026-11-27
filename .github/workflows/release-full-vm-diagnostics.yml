@@ -1,0 +1,113 @@
+name: OPL Full Release VM Diagnostics
+run-name: Full VM diagnostics for ${{ inputs.release_tag }} from run ${{ inputs.release_artifact_run_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Exact Stable candidate tag.
+        required: true
+        type: string
+      release_artifact_run_id:
+        description: Original producer run containing the Full DMG and its build cohort.
+        required: true
+        type: string
+      release_bundle_digest:
+        description: Exact Bundle sha256 recorded in the original build cohort.
+        required: true
+        type: string
+      artifact_app_ref:
+        description: Exact App SHA recorded in the build cohort.
+        required: true
+        type: string
+      verification_app_ref:
+        description: Exact App SHA for the qualification verifier.
+        required: true
+        type: string
+      shell_ref:
+        description: Exact Studio SHA recorded in the build cohort.
+        required: true
+        type: string
+      smoke_harness_ref:
+        description: Exact Studio SHA for the qualification harness.
+        required: true
+        type: string
+      framework_ref:
+        description: Exact Framework SHA recorded in the build cohort.
+        required: true
+        type: string
+      framework_executor_ref:
+        description: Exact Framework SHA for the qualification executor.
+        required: true
+        type: string
+      mas_ref:
+        description: Exact MAS SHA frozen with the Full candidate.
+        required: true
+        type: string
+      mas_scholar_skills_ref:
+        description: Exact MAS Scholar Skills SHA frozen with the Full candidate.
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate-inputs:
+    name: Validate Full VM diagnostic inputs
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.validate.outputs.artifact_name }}
+    steps:
+      - id: validate
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_ARTIFACT_RUN_ID: ${{ inputs.release_artifact_run_id }}
+          RELEASE_BUNDLE_DIGEST: ${{ inputs.release_bundle_digest }}
+          ARTIFACT_APP_REF: ${{ inputs.artifact_app_ref }}
+          VERIFICATION_APP_REF: ${{ inputs.verification_app_ref }}
+          SHELL_REF: ${{ inputs.shell_ref }}
+          SMOKE_HARNESS_REF: ${{ inputs.smoke_harness_ref }}
+          FRAMEWORK_REF: ${{ inputs.framework_ref }}
+          FRAMEWORK_EXECUTOR_REF: ${{ inputs.framework_executor_ref }}
+          MAS_REF: ${{ inputs.mas_ref }}
+          MAS_SCHOLAR_SKILLS_REF: ${{ inputs.mas_scholar_skills_ref }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]] || { echo "::error::Full VM diagnostics run from App main."; exit 1; }
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-r[1-9][0-9]*)?$ ]] || { echo "::error::release_tag must be an exact Stable tag."; exit 1; }
+          [[ "$RELEASE_ARTIFACT_RUN_ID" =~ ^[1-9][0-9]*$ ]] || { echo "::error::release_artifact_run_id must be an exact producer run ID."; exit 1; }
+          [[ "$RELEASE_BUNDLE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::release_bundle_digest must be an exact sha256."; exit 1; }
+          for field in ARTIFACT_APP_REF VERIFICATION_APP_REF SHELL_REF SMOKE_HARNESS_REF \
+            FRAMEWORK_REF FRAMEWORK_EXECUTOR_REF MAS_REF MAS_SCHOLAR_SKILLS_REF; do
+            [[ "${!field}" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::$field must be an exact Git SHA."; exit 1; }
+          done
+          printf 'artifact_name=opl-full-first-install-dmg-%s-mac-arm64\n' "${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+  full-vm:
+    name: Run exact Full artifact in the clean VM
+    needs: validate-inputs
+    uses: ./.github/workflows/opl-first-run-vm.yml
+    with:
+      release_tag: ${{ inputs.release_tag }}
+      release_artifact_name: ${{ needs.validate-inputs.outputs.artifact_name }}
+      release_artifact_run_id: ${{ inputs.release_artifact_run_id }}
+      release_bundle_digest: ${{ inputs.release_bundle_digest }}
+      release_cohort_ref: ${{ inputs.release_bundle_digest }}
+      artifact_app_ref: ${{ inputs.artifact_app_ref }}
+      verification_app_ref: ${{ inputs.verification_app_ref }}
+      shell_ref: ${{ inputs.shell_ref }}
+      smoke_harness_ref: ${{ inputs.smoke_harness_ref }}
+      framework_ref: ${{ inputs.framework_ref }}
+      framework_executor_ref: ${{ inputs.framework_executor_ref }}
+      mas_ref: ${{ inputs.mas_ref }}
+      mas_scholar_skills_ref: ${{ inputs.mas_scholar_skills_ref }}
+      package_profile: full
+      diagnostic_scope: release_gate
+      require_macos_gatekeeper: true
+    secrets: inherit

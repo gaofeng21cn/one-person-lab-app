@@ -108,6 +108,7 @@ uv 用于建立环境和安装依赖，不再用其另一个下载目录重新�
 | 仅改验收脚本 | 保留产物源 SHA；仅通过受限的 `verification_app_ref` / `smoke_harness_ref` 指定准确验证提交，须通过现有作用域检查，不能直接用已包含其他改动的最新 main |
 | 仅修复公开安装器 | follow-up 的 `repair_additive`；只适用于合同允许的 `opl-install.sh` CAS，不替代应用或平台包替换 |
 | 首装、诊断及补充认证 | `opl-first-run-vm.yml`、`release-diagnostics.yml`、`release-post-publication-certification.yml`；分别按准确候选和 profile 执行；可选公开后认证不取代 Stable 必需的公开前首装 |
+| 单独复验 Full DMG | 从 App `main` 手动运行 `release-full-vm-diagnostics.yml`，传入候选标签、原构建 run、该构建 cohort 的 Bundle 摘要与精确源码，以及 App 验证器、Studio smoke harness、Framework executor 的精确 SHA。使用已有 DMG 执行 Full clean VM 验收，产出本次验收回执 |
 | Windows 升级资格 | `windows-updater-upgrade-vm-preflight.yml`；隔离环境、身份、签名状态及兼容性条件按 Windows 合同读取，未验收要明确保留缺口 |
 | 本地 Full App / DMG | `npm run manual:local-app` / `npm run manual:full-dmg`；Studio native Codex 与正式 Full builder 共用；前者实际替换本机 App，仅在要求本机安装时执行 |
 | 本地 Full 临时公开预览 | `release-manual-full-preview.yml` 的受保护 handoff；详见 [独立手册](manual-full-preview-handoff.md)，不自动升级为 Stable 或 Full 追加 |
