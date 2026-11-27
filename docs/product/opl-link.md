@@ -85,6 +85,7 @@ flowchart LR
 | 文件内容、真实工作区及路径准入 | Workspace / Framework / 领域 owner |
 
 - **当前成熟度与待验证边界**：已完成本地 LAN/TURN/Relay 全业务路径、Studio + 原生 iOS 客户端 + iPhone Duo 适配及真机配对/续聊/预览/前后台恢复与切网闭环、单容器一体化服务端（含双账号隔离与撤销）以及同账号发现与并发多电脑连接设计/服务验证。**尚未声明完成**：公网 P2P 尚未实际选中（按字节直连比例仍待实测）、一体化容器拓扑下的公网原生 TURN 仍需重验、后台推送（APNs）超出当前范围、公开 TestFlight/App Store 分发仍须独立回读。
+- **Android 端规划**：Android 原生伴侣与可选本机 Codex 节点的路线、技术选型与阶段门禁见 [OPL Link Android 与本机 Codex 节点规划](opl-link-android-plan.md)（`planned_pre_kickoff`，当前不改变既有 iOS 机器合同与发布范围）。
 
 ## 固定开源来源与许可
 
