@@ -7,6 +7,16 @@ import { pathToFileURL } from 'node:url';
 
 type Json = Record<string, any>;
 
+// Paths used by the official Codex npm launcher inside its native archives.
+const codexTargetTriples: Record<string, string> = {
+  'darwin-arm64': 'aarch64-apple-darwin',
+  'darwin-x64': 'x86_64-apple-darwin',
+  'linux-arm64': 'aarch64-unknown-linux-musl',
+  'linux-x64': 'x86_64-unknown-linux-musl',
+  'win32-arm64': 'aarch64-pc-windows-msvc',
+  'win32-x64': 'x86_64-pc-windows-msvc',
+};
+
 // Discovery belongs to Framework. App only projects its frozen result into
 // existing build/qualification inputs; no provider or latest-version algorithm.
 export function projectResolvedBuildDependencies(resolved: Json, fullPolicy: Json, qualificationPolicy: Json) {
@@ -50,18 +60,22 @@ export function projectResolvedBuildDependencies(resolved: Json, fullPolicy: Jso
   };
   const qualification = structuredClone(qualificationPolicy);
   if (byId.has('codex-cli')) {
-  const codex = archive('codex-cli');
-  const platform = codex.install_metadata?.npm_platform;
-  if (!codex.npm_integrity || !platform?.package || !platform.version || !platform.npm_integrity || !platform.tarball_url || !/^[a-f0-9]{64}$/.test(platform.tarball_sha256 ?? '')) {
-    throw new Error('Framework Codex resolution lacks npm/platform qualification identity.');
-  }
-  qualification.runtime_payloads.codex_cli = {
-    ...qualification.runtime_payloads.codex_cli,
-    version: codex.version, npm_integrity: codex.npm_integrity,
-    tarball_url: codex.archive_url, tarball_sha256: codex.archive_sha256,
-    tarball_size_bytes: codex.archive_size_bytes,
-    platform: { ...qualification.runtime_payloads.codex_cli.platform, ...platform },
-  };
+    const codex = archive('codex-cli');
+    const platform = codex.install_metadata?.npm_platform;
+    if (!codex.npm_integrity || !platform?.package || !platform.version || !platform.npm_integrity || !platform.tarball_url || !/^[a-f0-9]{64}$/.test(platform.tarball_sha256 ?? '')) {
+      throw new Error('Framework Codex resolution lacks npm/platform qualification identity.');
+    }
+    const { platform: os, architecture: cpu } = codex;
+    const triple = codexTargetTriples[`${os}-${cpu}`];
+    if (!triple) throw new Error(`Unsupported Codex archive target: ${os}/${cpu}.`);
+    const executable = os === 'win32' ? 'codex.exe' : 'codex';
+    qualification.runtime_payloads.codex_cli = {
+      ...qualification.runtime_payloads.codex_cli,
+      version: codex.version, npm_integrity: codex.npm_integrity,
+      tarball_url: codex.archive_url, tarball_sha256: codex.archive_sha256,
+      tarball_size_bytes: codex.archive_size_bytes,
+      platform: { ...platform, os, cpu, binary_path: `package/vendor/${triple}/bin/${executable}` },
+    };
   }
   return { full, qualification };
 }

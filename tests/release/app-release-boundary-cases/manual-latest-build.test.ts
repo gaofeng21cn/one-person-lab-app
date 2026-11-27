@@ -751,10 +751,10 @@ test('manual build freezes official Node and the Codex input required by Studio'
       archive_url: 'https://nodejs.org/dist/v26.13.1/node-v26.13.1-darwin-arm64.tar.gz',
       archive_sha256: 'd'.repeat(64), archive_size_bytes: 10,
       install_metadata: { format: 'tar.gz', strip_components: 1 } },
-    { dependency_id: 'codex-cli', version: '1.0.0', source_ref: '1.0.0',
+    { dependency_id: 'codex-cli', version: '1.0.0', platform: 'darwin', architecture: 'arm64', source_ref: '1.0.0',
       archive_url: 'https://example.invalid/codex.tgz', archive_sha256: 'b'.repeat(64), archive_size_bytes: 10,
       npm_integrity: 'sha512-Y29kZXg=', install_metadata: { npm_platform: {
-        package: '@openai/codex-darwin-arm64', version: '1.0.0', npm_integrity: 'sha512-cGxhdGZvcm0=',
+        package: '@openai/codex', version: '1.0.0-darwin-arm64', npm_integrity: 'sha512-cGxhdGZvcm0=',
         tarball_url: 'https://example.invalid/platform.tgz', tarball_sha256: 'c'.repeat(64), tarball_size_bytes: 10,
       } } },
   ];
