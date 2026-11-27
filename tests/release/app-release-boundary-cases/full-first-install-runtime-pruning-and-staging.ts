@@ -37,6 +37,10 @@ test("Full runtime pruning keeps macOS arm64 launch payloads without development
   for (const relativePath of policy.validation_examples.node_toolchain_global_packages.retained) {
     assert.equal(mod.shouldExcludeNodeToolchainPackagePath(relativePath), false, relativePath);
   }
+  assert.equal(mod.shouldExcludeNodeToolchainPackagePath("dist/doc/directives.js"), false);
+  assert.equal(mod.shouldExcludeNodeToolchainPackagePath("lib/test/helper.js"), false);
+  assert.equal(mod.shouldExcludeNodeToolchainPackagePath("docs/output/config.md"), true);
+  assert.equal(mod.shouldExcludeNodeToolchainPackagePath("tests/corepack.test.js"), true);
 
   assert.equal(mod.FULL_RUNTIME_PRUNE_POLICY.schema, "opl_full_runtime_prune_policy.v1");
   assert.equal(mod.FULL_RUNTIME_PRUNE_POLICY.id, "full_runtime_offline_first_install_slim_v1");
@@ -347,12 +351,21 @@ test("Studio Full App bundle trim preserves its runtime and native Codex composi
   );
   fs.rmSync(path.join(appPath, "Contents", "Resources", "bundled-aioncore"), { recursive: true, force: true });
 
+  writeFile(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "yaml", "docs", "readme.md"), "docs");
+  writeFile(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "yaml", "dist", "doc", "directives.js"), "directives");
+  writeFile(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "@scope", "pkg", "tests", "spec.js"), "spec");
+  writeFile(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "@scope", "pkg", "lib", "test", "helper.js"), "helper");
+
   const { trimReport, boundaryAudit: sharedBoundary } = optimizeFullAppBundleForDmg(appPath);
   assert.deepEqual(sharedBoundary, auditFullPackageBundleBoundaries(appPath));
   assert.equal(trimReport.schema, "opl_full_app_bundle_trim_report.v1");
   assert.equal(trimReport.required_payload_boundary.preserved, true);
   assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "app.asar.map")), false);
   assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "test-results")), false);
+  assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "yaml", "docs")), false);
+  assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "yaml", "dist", "doc", "directives.js")), true);
+  assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "@scope", "pkg", "tests")), false);
+  assert.equal(fs.existsSync(path.join(appPath, "Contents", "Resources", "extra", "node_modules", "@scope", "pkg", "lib", "test", "helper.js")), true);
   assert.equal(
     fs.existsSync(
       path.join(

@@ -36,8 +36,13 @@ function appRelativePath(appPath: string, candidatePath: string) {
   return normalizeBundleRelativePath(path.relative(appPath, candidatePath));
 }
 
-function pathHasSegment(relativePath: string, segment: string) {
-  return relativePath.split('/').includes(segment);
+function isPackageRootNodeModuleDirectory(relativePath: string, basenames: readonly string[]) {
+  const segments = relativePath.split('/');
+  const lastNodeModulesIndex = segments.lastIndexOf('node_modules');
+  if (lastNodeModulesIndex === -1) return false;
+  const after = segments.slice(lastNodeModulesIndex + 1);
+  const targetIndex = after[0]?.startsWith('@') ? 2 : 1;
+  return after.length === targetIndex + 1 && basenames.includes(after[targetIndex]);
 }
 
 function isInsideProtectedAppBundlePayload(relativePath: string, protectedPayloads: string[]) {
@@ -63,8 +68,7 @@ function trimReason(relativePath: string, stat: fs.Stats, protectedPayloads: str
   }
   if (
     stat.isDirectory()
-    && pathHasSegment(relativePath, 'node_modules')
-    && STAGED_APP_TRIM_NODE_MODULE_DIRECTORY_BASENAMES.includes(baseName)
+    && isPackageRootNodeModuleDirectory(relativePath, STAGED_APP_TRIM_NODE_MODULE_DIRECTORY_BASENAMES)
   ) {
     return 'staged_app_node_module_non_runtime_directory';
   }

@@ -103,7 +103,8 @@
       "corepack"
     ],
     "excluded_path_patterns": [
-      "(?:^|\\/)(?:__fixtures__|__mocks__|__snapshots__|benchmarks?|coverage|docs?|examples?|fixtures?|man|playwright-report|tap-snapshots|test-results|tests?)(?:\\/|$)",
+      "(?:^|\\/)(?:__fixtures__|__mocks__|__snapshots__|benchmarks?|coverage|examples?|fixtures?|man|playwright-report|tap-snapshots|test-results)(?:\\/|$)",
+      "^(?:docs?|tests?)(?:\\/|$)",
       "(?:^|\\/)(?:\\.cache|\\.github|\\.nyc_output|\\.tap|\\.turbo)(?:\\/|$)"
     ]
   },
@@ -266,6 +267,8 @@
       "retained": [
         "lib/cli.js",
         "dist/corepack.js",
+        "dist/doc/directives.js",
+        "lib/test/helper.js",
         "node_modules/@npmcli/arborist/lib/index.js"
       ]
     }

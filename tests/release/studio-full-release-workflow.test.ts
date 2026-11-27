@@ -118,6 +118,19 @@ test('Studio Full reusable workflow has one build, one append, and one anonymous
   assert.doesNotMatch(String(anonymousReadback?.run), /select\(any\(\$standard\[\]; \.name == \.name\)\)/);
   assert.doesNotMatch(String(anonymousReadback?.run), /\(\[\.assets\[\] \| \{name, size_bytes: \.size, sha256: \.digest\}\] \| sort_by\(\.name\)\) ==/);
 
+  const sourceRefs = build.steps.find((step: Record<string, any>) => step.id === 'source-refs');
+  assert.ok(sourceRefs);
+  assert.match(String(sourceRefs?.run), /scripts\/resolve-build-dependencies\.ts/);
+  assert.match(String(sourceRefs?.run), /zstd_url=/);
+  assert.match(String(sourceRefs?.run), /zstd_sha256=/);
+  assert.doesNotMatch(String(sourceRefs?.run), /jq -er "\$query" "\$third_party"/);
+
+  const installTools = build.steps.find((step: Record<string, any>) => step.name === 'Install exact Full native tools');
+  assert.ok(installTools);
+  assert.doesNotMatch(String(installTools?.run), /brew install zstd/);
+  assert.match(String(installTools?.run), /zstd-release/);
+  assert.match(String(installTools?.run), /\$HOME\/\.local\/bin\/zstd/);
+
   const notarize = build.steps.find((step: Record<string, any>) => step.name === 'Notarize and staple the final Studio Full DMG');
   assert.equal(notarize?.id, 'notarize-studio-full');
   assert.match(String(notarize?.run), /--submitted-candidate-output/);
