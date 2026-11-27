@@ -60,6 +60,9 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
   Package 声明补齐 required identity。
   例如 MAS 需要 `capability:mas-scholar-skills`，但 ScholarSkills 不必重复列为
   Official root。
+- Framework v2 使用 `opl pack inspect` 回读已启用的 root 和必需依赖。缺失或停用的
+  Package 需要 Framework 提供按官方 Package ID 的首装动作。依赖声明了必需能力时，
+  还需要 Framework 回读对应能力。
 - Package 依赖只检查 presence 和 callability，不以 version、ABI、lock、payload、
   digest、receipt 或 Release Set 作为首启门禁。
 - 每个 root 独立显示 `waiting / installing / ready / attention`。一个 root 或依赖失败
