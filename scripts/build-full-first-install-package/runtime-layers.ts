@@ -688,7 +688,9 @@ function repoBaseName(sourceRepo: unknown) {
   }
 }
 
-export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string) {
+type CatalogPackageSource = { package_id: string; source_commit: string; runtime_module_relative_path: string };
+
+export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string, selectedPackages?: CatalogPackageSource[]) {
   const catalogSeedRoot = path.join(runtimeRoot, 'opl', 'catalog-seed');
   const catalogIndexPath = path.join(catalogSeedRoot, 'catalog-index.json');
   const modulesRoot = path.join(runtimeRoot, 'modules');
@@ -707,7 +709,8 @@ export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string) {
       markersByRepo.set(marker.repo_name, { moduleDir, commit: marker.source_git.head_sha });
     }
   }
-  let checkedPackages = 0;
+  const selectedById = new Map(selectedPackages?.map(pkg => [pkg.package_id, pkg]));
+  const checkedIds = new Set<string>();
   let checkedFiles = 0;
   const failures: string[] = [];
   for (const pkg of index.packages ?? []) {
@@ -717,15 +720,18 @@ export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string) {
     const owner = JSON.parse(fs.readFileSync(ownerPath, 'utf8'));
     const repoName = repoBaseName(owner.source_repo);
     if (!repoName) continue;
-    const marker = markersByRepo.get(repoName);
-    if (!marker) continue;
+    const selected = selectedById.get(pkg.package_id);
+    const source = selected
+      ? { moduleDir: path.join(runtimeRoot, selected.runtime_module_relative_path), commit: selected.source_commit }
+      : markersByRepo.get(repoName);
+    if (!source) continue;
     const payloadRel = pkg.payload_manifest_path ?? pkg.payload_path ?? `packages/payloads/${pkg.package_id}-${owner.version}.json`;
     const payloadPath = path.join(catalogSeedRoot, payloadRel);
     if (!fs.existsSync(payloadPath)) continue;
     const payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
-    if (payload.source_commit !== marker.commit) continue;
-    checkedPackages += 1;
-    const expectedPrefix = `${new URL(String(owner.source_repo)).pathname.replace(/\/$/, '').replace(/\.git$/, '')}/${marker.commit}/`;
+    if (payload.source_commit !== source.commit) continue;
+    checkedIds.add(pkg.package_id);
+    const expectedPrefix = `${new URL(String(owner.source_repo)).pathname.replace(/\/$/, '').replace(/\.git$/, '')}/${source.commit}/`;
     const missing: string[] = [];
     for (const file of payload.files ?? []) {
       checkedFiles += 1;
@@ -736,7 +742,7 @@ export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string) {
           continue;
         }
         const relativePath = decodeURIComponent(parsed.pathname.slice(expectedPrefix.length));
-        const resolvedModule = fs.realpathSync(marker.moduleDir);
+        const resolvedModule = fs.realpathSync(source.moduleDir);
         const resolvedTarget = path.resolve(resolvedModule, relativePath);
         if (!resolvedTarget.startsWith(`${resolvedModule}${path.sep}`) || !fs.existsSync(resolvedTarget)) {
           missing.push(relativePath);
@@ -749,10 +755,13 @@ export function assertPackagedCatalogSeedPayloadsComplete(runtimeRoot: string) {
       failures.push(`${pkg.package_id} (${missing.length} missing): ${missing.slice(0, 10).join(', ')}`);
     }
   }
+  for (const packageId of selectedById.keys()) {
+    if (!checkedIds.has(packageId)) failures.push(`${packageId} (no catalog payload for the selected commit)`);
+  }
   if (failures.length > 0) {
     throw new Error(`Packaged Full modules are missing catalog payload files:\n  - ${failures.join('\n  - ')}`);
   }
-  return { checked_packages: checkedPackages, checked_files: checkedFiles };
+  return { checked_packages: checkedIds.size, checked_files: checkedFiles };
 }
 
 export function buildOplLayer(layerRoot, options) {
