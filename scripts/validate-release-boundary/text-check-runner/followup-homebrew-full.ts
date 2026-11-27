@@ -108,9 +108,9 @@ export function validateHomebrewFullPromotionTopology(appRoot: string): number {
   const vmWorkflow = parseWorkflow(appRoot, '.github/workflows/opl-first-run-vm.yml', id);
   const activeShell = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), 'utf8')).active_shell;
   const carriesOfficialProfile = activeShell === 'opl-studio'
-    ? Boolean(vmWorkflow?.text.includes('--product-profile "${{ github.workspace }}/contracts/app-product-profile.json"')
+    ? Boolean(vmWorkflow?.text.includes('--product-profile "${{ github.workspace }}/.opl-vm-product/app-product-profile.json"')
       && vmWorkflow.text.includes('scripts/desktop/stable-clean-vm.mjs')
-      && vmWorkflow.text.includes("'${{ steps.verification_app.outputs.app_sha }}'"))
+      && vmWorkflow.text.includes('git -C "$artifact_app" show "$ARTIFACT_APP_SHA:contracts/app-product-profile.json"'))
     : Boolean(vmWorkflow?.text.includes('oplProductProfile/oplProductProfile.generated.json'));
   failures += failIf(
     id,

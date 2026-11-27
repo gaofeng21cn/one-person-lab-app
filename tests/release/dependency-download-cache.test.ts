@@ -87,6 +87,7 @@ test('release workflows and scripts avoid Homebrew zstd, stale codesign requirem
   const vmWorkflow = parse(fs.readFileSync(path.join(appRoot, '.github/workflows/opl-first-run-vm.yml'), 'utf8'));
   const vmStep = vmWorkflow.jobs['clean-vm-first-run'].steps.find((step: any) => step.id === 'mas_qualification_provisioning');
   assert.ok(vmStep);
+  assert.match(vmStep.if, /framework_executor_api == '1\.0'/);
   assert.match(vmStep.run, /OPL_CATALOG_SEED_DIR/);
   assert.match(vmStep.run, /UV_PROJECT_ENVIRONMENT/);
   assert.match(vmStep.run, /OPL_STANDARD_AGENT_PYTHON/);

@@ -97,7 +97,7 @@ on:
         required: false
         type: string
       framework_executor_ref:
-        description: 'Exact one-person-lab Framework executor ref used only for host-side qualification provisioning.'
+        description: 'Exact Framework executor ref bound to the qualification cohort. Legacy executors also provision a host-side MAS workspace.'
         required: false
         default: ''
         type: string
@@ -253,6 +253,7 @@ jobs:
       qualification_scope_base64: ${{ steps.qualification_scope.outputs.proof_base64 }}
       framework_sha: ${{ steps.framework_ref.outputs.framework_sha }}
       framework_executor_sha: ${{ steps.framework_executor_ref.outputs.framework_sha }}
+      framework_executor_api: ${{ steps.framework_executor_ref.outputs.api_version }}
       mas_sha: ${{ steps.mas_ref.outputs.mas_sha }}
       mas_scholar_skills_sha: ${{ steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha }}
       diagnostic_scope: ${{ steps.diagnostic_inputs.outputs.diagnostic_scope }}
@@ -809,6 +810,8 @@ jobs:
           framework_sha="$(git -C "$tmp_dir" rev-parse FETCH_HEAD)"
           test "$framework_sha" = "$FRAMEWORK_EXECUTOR_REF" || { echo "::error::Resolved Framework executor SHA does not match framework_executor_ref."; exit 1; }
           echo "framework_sha=$framework_sha" >> "$GITHUB_OUTPUT"
+          api_version="$(git -C "$tmp_dir" show "$framework_sha:package.json" | jq -er 'if .bin.opld == "./packages/daemon/bin/opld" then "2.0" else "1.0" end')"
+          echo "api_version=$api_version" >> "$GITHUB_OUTPUT"
 
       - name: Download build artifact cohort manifest
         if: ${{ inputs.release_artifact_name != '' }}
@@ -869,7 +872,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout exact MAS source for VM handoff
-        if: ${{ steps.mas_ref.outputs.mas_sha != '' }}
+        if: ${{ steps.framework_executor_ref.outputs.api_version == '1.0' && steps.mas_ref.outputs.mas_sha != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/med-autoscience
@@ -879,7 +882,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout exact MAS Scholar Skills source for VM handoff
-        if: ${{ steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha != '' }}
+        if: ${{ steps.framework_executor_ref.outputs.api_version == '1.0' && steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/mas-scholar-skills
@@ -889,7 +892,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout exact Framework executor for VM handoff
-        if: ${{ steps.framework_executor_ref.outputs.framework_sha != '' }}
+        if: ${{ steps.framework_executor_ref.outputs.api_version == '1.0' && steps.framework_executor_ref.outputs.framework_sha != '' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/one-person-lab
@@ -898,14 +901,16 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Checkout the frozen product App catalog pin
+      - name: Checkout the frozen product App profile and catalog pin
         id: artifact-app
-        if: ${{ steps.diagnostic_inputs.outputs.profile == 'full' && steps.diagnostic_inputs.outputs.diagnostic_scope == 'release_gate' && steps.mas_ref.outputs.mas_sha != '' && steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha != '' }}
+        if: ${{ steps.diagnostic_inputs.outputs.artifact_app_sha != steps.verification_app.outputs.app_sha || (steps.framework_executor_ref.outputs.api_version == '1.0' && steps.mas_ref.outputs.mas_sha != '' && steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha != '') }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.diagnostic_inputs.outputs.artifact_app_sha }}
           path: .opl-vm-source-checkouts/artifact-app
-          sparse-checkout: /contracts/app-software-catalog-source.json
+          sparse-checkout: |
+            /contracts/app-product-profile.json
+            /contracts/app-software-catalog-source.json
           sparse-checkout-cone-mode: false
           fetch-depth: 1
           persist-credentials: false
@@ -914,6 +919,7 @@ jobs:
         shell: bash
         env:
           ARTIFACT_APP_CHECKED_OUT: ${{ steps.artifact-app.outcome == 'success' }}
+          LEGACY_MAS_SEED: ${{ steps.framework_executor_ref.outputs.api_version == '1.0' && steps.mas_ref.outputs.mas_sha != '' && steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha != '' }}
           ARTIFACT_APP_SHA: ${{ steps.diagnostic_inputs.outputs.artifact_app_sha }}
           MAS_SHA: ${{ steps.mas_ref.outputs.mas_sha }}
           SCHOLAR_SKILLS_SHA: ${{ steps.mas_scholar_skills_ref.outputs.mas_scholar_skills_sha }}
@@ -973,12 +979,15 @@ jobs:
               '${{ steps.framework_executor_ref.outputs.framework_sha }}'
           fi
 
-          artifact_app="$GITHUB_WORKSPACE/.opl-vm-source-checkouts/artifact-app"
+          artifact_app="$GITHUB_WORKSPACE"
           if [ "$ARTIFACT_APP_CHECKED_OUT" = true ]; then
-            test "$(git -C "$artifact_app" rev-parse HEAD)" = "$ARTIFACT_APP_SHA"
+            artifact_app="$GITHUB_WORKSPACE/.opl-vm-source-checkouts/artifact-app"
           fi
+          test "$(git -C "$artifact_app" rev-parse HEAD)" = "$ARTIFACT_APP_SHA"
+          mkdir -p "$workspace_root/.opl-vm-product"
+          git -C "$artifact_app" show "$ARTIFACT_APP_SHA:contracts/app-product-profile.json" > "$workspace_root/.opl-vm-product/app-product-profile.json"
           # Cohorts before the catalog cutover use Framework's bundled projections.
-          if [ "$ARTIFACT_APP_CHECKED_OUT" = true ] && [ -n "$(git -C "$artifact_app" ls-tree "$ARTIFACT_APP_SHA" -- contracts/app-software-catalog-source.json)" ]; then
+          if [ "$LEGACY_MAS_SEED" = true ] && [ -n "$(git -C "$artifact_app" ls-tree "$ARTIFACT_APP_SHA" -- contracts/app-software-catalog-source.json)" ]; then
             catalog_pin="$RUNNER_TEMP/opl-clean-vm-catalog-pin.json"
             git -C "$artifact_app" show "$ARTIFACT_APP_SHA:contracts/app-software-catalog-source.json" > "$catalog_pin"
             export OPL_CLEAN_VM_CATALOG_PIN="$catalog_pin"
@@ -2141,7 +2150,8 @@ jobs:
 
       - name: Provision Framework-owned MAS qualification workspace
         id: mas_qualification_provisioning
-        if: ${{ steps.package_profile.outputs.runtime_profile == 'full' && needs.validate-vm-inputs.outputs.diagnostic_scope == 'release_gate' }}
+        # Studio verifies v2 package presence inside the installed Full guest.
+        if: ${{ needs.validate-vm-inputs.outputs.framework_executor_api == '1.0' && steps.package_profile.outputs.runtime_profile == 'full' && needs.validate-vm-inputs.outputs.diagnostic_scope == 'release_gate' }}
         shell: bash
         env:
           OPL_STATE_DIR: ${{ runner.temp }}/opl-mas-qualification-state-${{ github.run_id }}-${{ github.job }}
@@ -2327,7 +2337,7 @@ jobs:
             --artifacts artifacts/opl-first-run-vm
             --timeout-ms "${{ steps.operation_smoke_budget.outputs.smoke_timeout_ms || steps.vm_timeouts.outputs.smoke_timeout_ms }}"
             --runtime-profile "${{ steps.package_profile.outputs.runtime_profile }}"
-            --product-profile "${{ github.workspace }}/contracts/app-product-profile.json"
+            --product-profile "${{ github.workspace }}/.opl-vm-product/app-product-profile.json"
             --dmg "${{ steps.dmg.outputs.dmg_path }}"
             --expected-sha256 "$dmg_sha256"
             --expected-version "$machine_version"

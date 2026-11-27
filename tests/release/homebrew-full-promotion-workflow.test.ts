@@ -317,6 +317,6 @@ test('Studio VM fails closed for an unsupported Full Homebrew installation outsi
   assert.match(source, /package_profile=homebrew-full requires an exact pre-publication Cask artifact/);
   assert.match(source, /Studio Homebrew VM qualification requires a dedicated Cask installation harness/);
   assert.match(source, /install_mode \}\}" = dmg/);
-  assert.match(source, /--product-profile "\$\{\{ github\.workspace \}\}\/contracts\/app-product-profile\.json"/);
+  assert.match(source, /--product-profile "\$\{\{ github\.workspace \}\}\/\.opl-vm-product\/app-product-profile\.json"/);
   assert.match(source, /inputs\.package_profile != 'homebrew-full'/);
 });
