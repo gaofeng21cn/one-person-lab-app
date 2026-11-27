@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
+import { validateFullFrameworkDaemonProof } from './full-framework-daemon-proof.ts';
 import type { BuildArtifactCohortV2 } from './build-artifact-cohort.ts';
 import { sha256File, validateFrozenCodexCliIdentity } from './build-artifact-cohort.ts';
 import {
@@ -62,6 +64,7 @@ export type ArtifactQualificationReceiptV1 = {
     path: string | null;
     sha256: string | null;
     temporal_service_supervisor_proof: TemporalServiceSupervisorProofV1 | null;
+    framework_daemon_proof?: Record<string, unknown>;
   };
 };
 
@@ -410,10 +413,12 @@ export function buildArtifactQualificationReceipt(input: {
     throw new Error('Qualification receipt requires a release-bound artifact manifest with stable session and cohort refs.');
   }
   const smokeSummaryExists = Boolean(input.smokeSummaryPath && fs.existsSync(input.smokeSummaryPath));
+  let frameworkDaemonProof: Record<string, unknown> | undefined;
   let temporalServiceSupervisorProof: TemporalServiceSupervisorProofV1 | null = null;
   if (smokeSummaryExists) {
     try {
       const smokeSummary = JSON.parse(fs.readFileSync(input.smokeSummaryPath!, 'utf8')) as Record<string, unknown>;
+      if (isRecord(smokeSummary.framework_daemon_proof)) frameworkDaemonProof = smokeSummary.framework_daemon_proof;
       temporalServiceSupervisorProof = isRecord(smokeSummary.temporal_service_supervisor_proof)
         ? smokeSummary.temporal_service_supervisor_proof as TemporalServiceSupervisorProofV1
         : null;
@@ -422,13 +427,14 @@ export function buildArtifactQualificationReceipt(input: {
     }
   }
   const fullPassed = input.result === 'passed' && ['full', 'homebrew-full'].includes(input.packageProfile);
-  if (fullPassed) {
-    const temporalProofErrors = validateTemporalServiceSupervisorProof(temporalServiceSupervisorProof);
-    if (temporalProofErrors.length > 0) {
-      throw new Error(
-        `Passed Full qualification requires a valid Temporal service supervisor proof: ${temporalProofErrors.join('; ')}`,
-      );
-    }
+  const framework = input.manifest.qualification_runtime.framework;
+  if (fullPassed && framework !== undefined) {
+    const errors = validateFullFrameworkDaemonProof(frameworkDaemonProof, framework, input.manifest.cohort.framework_sha,
+      input.manifest.digests.full_package_manifest_sha256 ?? null);
+    if (errors.length > 0) throw new Error(errors.join('; '));
+  } else if (fullPassed) {
+    const errors = validateTemporalServiceSupervisorProof(temporalServiceSupervisorProof);
+    if (errors.length > 0) throw new Error(`Passed Full qualification requires a valid Temporal service supervisor proof: ${errors.join('; ')}`);
   }
   const verificationSmokeHarnessSha256 = input.verificationHarness
     ? sha256File(input.verificationHarness.smokeHarnessPath)
@@ -500,6 +506,7 @@ export function buildArtifactQualificationReceipt(input: {
       path: smokeSummaryExists ? input.smokeSummaryPath! : null,
       sha256: smokeSummaryExists ? sha256File(input.smokeSummaryPath!) : null,
       temporal_service_supervisor_proof: temporalServiceSupervisorProof,
+      ...(frameworkDaemonProof ? { framework_daemon_proof: frameworkDaemonProof } : {}),
     },
   };
 }
@@ -526,6 +533,7 @@ export function validateArtifactQualificationReceipt(
     fullInputManifestDigest?: string;
     fullPackageManifestDigest?: string;
     qualificationInputManifestDigest?: string;
+    qualificationRuntime?: BuildArtifactCohortV2['qualification_runtime'];
     fullToolchainObservationReceiptDigest?: string;
   },
 ): string[] {
@@ -547,6 +555,9 @@ export function validateArtifactQualificationReceipt(
   if (!digestPattern.test(receipt.artifact.sha256) || !digestPattern.test(receipt.build_manifest.sha256) || !digestPattern.test(receipt.build_manifest.smoke_harness_sha256) || !digestPattern.test(receipt.build_manifest.qualification_input_manifest_sha256)) errors.push('qualification receipt contains an invalid digest');
   if (expected.qualificationInputManifestDigest && receipt.build_manifest.qualification_input_manifest_sha256 !== expected.qualificationInputManifestDigest) errors.push('Qualification input manifest digest does not match');
   errors.push(...validateFrozenCodexCliIdentity(receipt.qualification_runtime?.codex_cli));
+  if (expected.qualificationRuntime && !isDeepStrictEqual(expected.qualificationRuntime, receipt.qualification_runtime)) {
+    errors.push('Qualification runtime does not match the frozen build');
+  }
   const fullProfile = receipt.package_profile === 'full' || receipt.package_profile === 'homebrew-full';
   if (fullProfile && (
     !digestPattern.test(receipt.build_manifest.full_input_manifest_sha256 || '') ||
@@ -618,7 +629,11 @@ export function validateArtifactQualificationReceipt(
     }
   }
   const fullPassed = passed && (receipt.package_profile === 'full' || receipt.package_profile === 'homebrew-full');
-  if (fullPassed) {
+  const framework = receipt.qualification_runtime?.framework;
+  if (fullPassed && framework !== undefined) {
+    errors.push(...validateFullFrameworkDaemonProof(receipt.smoke_summary?.framework_daemon_proof, framework,
+      receipt.cohort.framework_sha, receipt.build_manifest.full_package_manifest_sha256));
+  } else if (fullPassed) {
     errors.push(...validateTemporalServiceSupervisorProof(
       receipt.smoke_summary?.temporal_service_supervisor_proof,
     ));

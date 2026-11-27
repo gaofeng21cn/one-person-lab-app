@@ -354,6 +354,7 @@ function assembleBoundTrack(
     appSha: input.cohort.app_sha,
     shellSha: input.cohort.shell_sha,
     frameworkSha: input.cohort.framework_sha,
+    qualificationRuntime: cohort.qualification_runtime,
     qualificationInputManifestDigest: cohort.digests.qualification_input_manifest_sha256,
     ...(kind === 'full' ? {
       fullInputManifestDigest: cohort.digests.full_input_manifest_sha256,

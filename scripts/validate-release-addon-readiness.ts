@@ -177,6 +177,7 @@ export function validateFullQualificationOverride(options: FullQualificationOver
     result: 'passed',
     sourceArtifactRunId: options.sourceArtifactRunId,
     sourceArtifactName: options.sourceArtifactName,
+    qualificationRuntime: manifest.qualification_runtime,
     artifactSha256: manifest.artifact?.sha256,
     appSha: manifest.cohort?.app_sha,
     shellSha: manifest.cohort?.shell_sha,

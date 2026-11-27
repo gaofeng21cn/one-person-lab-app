@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isFullFrameworkIdentity, type FullFrameworkIdentity } from './full-framework-daemon-proof.ts';
 
 export type BuildArtifactCohortV2 = {
   schema: 'opl_app_build_artifact_cohort.v2';
@@ -41,6 +42,7 @@ export type BuildArtifactCohortV2 = {
   };
   qualification_runtime: {
     codex_cli: FrozenCodexCliIdentityV1;
+    framework?: FullFrameworkIdentity;
   };
 };
 
@@ -153,6 +155,23 @@ export function buildArtifactCohortV2(input: {
   const codexCli = qualificationInput?.runtime_payloads?.codex_cli as FrozenCodexCliIdentityV1;
   const codexErrors = validateFrozenCodexCliIdentity(codexCli);
   if (codexErrors.length > 0) throw new Error(`Release qualification inputs are invalid: ${codexErrors.join('; ')}`);
+  let framework: FullFrameworkIdentity | undefined;
+  if (input.kind === 'full') {
+    const component = JSON.parse(fs.readFileSync(input.fullPackageManifestPath!, 'utf8')).components?.opl;
+    if (component?.framework_api_version === '2.0') {
+      const appProfile = JSON.parse(fs.readFileSync(input.appProductProfilePath, 'utf8'));
+      framework = {
+        api_version: '2.0',
+        version: component.framework_daemon_version,
+        official_root_package_ids: appProfile.official_profile?.desired_root_package_ids,
+      };
+      if (!isFullFrameworkIdentity(framework) || !input.frameworkSha || component.git_commit !== input.frameworkSha) {
+        throw new Error('Full Framework identity must bind the selected commit, daemon version and Official Profile.');
+      }
+    } else if (component?.framework_api_version != null && component.framework_api_version !== '1.0') {
+      throw new Error(`Unsupported Full Framework API version: ${component.framework_api_version}`);
+    }
+  }
   return {
     schema: 'opl_app_build_artifact_cohort.v2',
     release: {
@@ -189,7 +208,7 @@ export function buildArtifactCohortV2(input: {
         full_toolchain_observation_receipt_sha256: sha256File(input.fullToolchainObservationReceiptPath!),
       } : {}),
     },
-    qualification_runtime: { codex_cli: codexCli },
+    qualification_runtime: { codex_cli: codexCli, ...(framework ? { framework } : {}) },
   };
 }
 
@@ -251,6 +270,10 @@ export function validateArtifactCohortV2(
   }
   if (!digestPattern.test(manifest.digests.qualification_input_manifest_sha256 || '')) errors.push('Qualification input manifest digest is missing');
   errors.push(...validateFrozenCodexCliIdentity(manifest.qualification_runtime.codex_cli));
+  if (manifest.qualification_runtime.framework !== undefined
+    && (manifest.build.kind !== 'full' || !isFullFrameworkIdentity(manifest.qualification_runtime.framework))) {
+    errors.push('Invalid Full Framework qualification identity');
+  }
   if (expected.artifactPath) {
     const actualSize = fs.statSync(expected.artifactPath).size;
     const actualSha = sha256File(expected.artifactPath);

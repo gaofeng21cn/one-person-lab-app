@@ -334,6 +334,50 @@ test('passed Full qualification receipt fails closed without the Temporal superv
   }
 });
 
+test('Full v2 requires persistence and enabled Profile packages from the installed build after a daemon restart', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-qualification-daemon-proof-'));
+  try {
+    const fixture = writeFixture(root);
+    const manifest: BuildArtifactCohortV2 = JSON.parse(fs.readFileSync(fixture.manifestPath, 'utf8'));
+    manifest.qualification_runtime.framework = { api_version: '2.0', version: '2.0.3', official_root_package_ids: ['first'] };
+    fs.writeFileSync(fixture.manifestPath, JSON.stringify(manifest));
+    const initial = { sqlite_schema_version: 4001, database_path: '/Users/test/Library/Application Support/OPL/state/opl.db',
+      database_file_identity: '1:422', packages: [{ package_id: 'first', version: '0.4' }], pid: 101 };
+    const proof = {
+      schema: 'opl_framework_daemon_proof.v1', status: 'passed', network_mode: 'offline', api_version: '2.0', version: '2.0.3',
+      framework_sha: manifest.cohort.framework_sha, full_package_manifest_sha256: manifest.digests.full_package_manifest_sha256,
+      before_restart: initial, after_restart: { ...initial, pid: 104 },
+    };
+    const build = () => buildArtifactQualificationReceipt({
+      manifest, manifestPath: fixture.manifestPath, result: 'passed', packageProfile: 'full',
+      qualificationRunId: '202', sourceArtifactRunId: '101', sourceArtifactName, evidenceRef: 'vm-202',
+      smokeSummaryPath: fixture.smokeSummaryPath,
+    });
+    assert.throws(build, /Full Framework daemon proof/);
+    fs.writeFileSync(fixture.smokeSummaryPath, JSON.stringify({ framework_daemon_proof: proof }));
+    const receipt = build();
+    fs.writeFileSync(fixture.receiptPath, JSON.stringify(receipt));
+    const verify = (candidate: typeof receipt) => validateArtifactQualificationReceipt(candidate, {
+      stableSessionId, releaseCohortRef, version: '26.7.13', packageProfile: 'full',
+      qualificationRuntime: manifest.qualification_runtime,
+    });
+    assert.deepEqual(verify(receipt), []);
+    for (const failed of [
+      { ...proof, full_package_manifest_sha256: '0'.repeat(64) },
+      { ...proof, before_restart: { ...initial, pid: 104 } },
+      { ...proof, network_mode: 'online' },
+      { ...proof, after_restart: { ...proof.after_restart, database_file_identity: '1:423' } },
+      { ...proof, before_restart: { ...initial, packages: [] }, after_restart: { ...proof.after_restart, packages: [] } },
+    ]) {
+      assert.ok(verify({ ...receipt, smoke_summary: { ...receipt.smoke_summary, framework_daemon_proof: failed } }).length);
+    }
+    assert.ok(verify({ ...fixture.receipt, qualification_runtime: { codex_cli: manifest.qualification_runtime.codex_cli } })
+      .includes('Qualification runtime does not match the frozen build'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('Standard qualification receipt does not require the Full-only Temporal supervisor proof', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-qualification-standard-'));
   try {

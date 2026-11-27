@@ -12,7 +12,7 @@ const appSha = 'a'.repeat(40);
 const shellSha = 'b'.repeat(40);
 const frameworkSha = 'c'.repeat(40);
 
-function fixture() {
+function fixture(frameworkV2 = false) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-build-cohort-'));
   const artifact = path.join(root, 'One-Person-Lab-Full.dmg');
   const tree = path.join(root, 'One Person Lab.app');
@@ -32,8 +32,16 @@ function fixture() {
     standard: { semantic_digest: '1'.repeat(64), probe_digest: '2'.repeat(64) },
     full: { semantic_digest: '3'.repeat(64), probe_digest: '4'.repeat(64) },
   } }));
+  if (frameworkV2) {
+    fs.writeFileSync(appProfile, JSON.stringify({ official_profile: { desired_root_package_ids: ['first', 'second'] } }));
+  }
   fs.writeFileSync(fullInputManifest, '{"schema":"test-full-inputs"}\n');
   fs.writeFileSync(fullPackageManifest, '{"schema":"test-full-package-manifest","resolved_refs":{}}\n');
+  if (frameworkV2) {
+    fs.writeFileSync(fullPackageManifest, JSON.stringify({ components: { opl: {
+      framework_api_version: '2.0', framework_daemon_version: '2.0.4', git_commit: frameworkSha,
+    } } }));
+  }
   fs.writeFileSync(fullToolchainReceipt, '{"schema":"test-full-toolchain-receipt"}\n');
   fs.writeFileSync(qualificationInputManifest, JSON.stringify({
     schema: 'opl_app_release_qualification_input_manifest.v1',
@@ -119,6 +127,18 @@ test('rejects the legacy v1 manifest before VM allocation', () => {
     const result = validate(input);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /unsupported schema/);
+  } finally {
+    fs.rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('Full v2 qualification freezes the daemon version and Official Profile from the packaged inputs', () => {
+  const input = fixture(true);
+  try {
+    assert.deepEqual(input.manifest.qualification_runtime.framework, {
+      api_version: '2.0', version: '2.0.4', official_root_package_ids: ['first', 'second'],
+    });
+    assert.equal(validate(input).status, 0);
   } finally {
     fs.rmSync(input.root, { recursive: true, force: true });
   }
