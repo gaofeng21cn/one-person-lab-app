@@ -229,7 +229,7 @@ jobs:
           test "$(jq -er '.release.bundle_digest // .source_authority_digest' webui-carrier/source-authority.json)" = '${{ inputs.release_bundle_digest }}'
           test "$(jq -er '.release.cohort_ref // .source_authority_digest' webui-carrier/source-authority.json)" = '${{ inputs.release_cohort_ref }}'
           test "$(jq -er .release.version webui-carrier/source-authority.json)" = '${{ inputs.opl_version }}'
-          mkdir -p webui-carrier/frozen-codex
+          mkdir -p webui-carrier/frozen-codex webui-carrier/frozen-codex-platform
           node_base_image="$(node --experimental-strip-types --input-type=module -e '
             import fs from "node:fs";
             import { pinnedNodeBaseImage } from "./scripts/framework-release-adapter-plan.ts";
@@ -238,12 +238,13 @@ jobs:
           oras manifest fetch \
             --output webui-carrier/base-image-index.json \
             "$node_base_image"
-          codex_version="$(jq -er '.runtime_payloads.codex_cli.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"))' \
-            webui-carrier/dependency-resolution/qualification-input-manifest.json)"
-          codex_tarball_url="$(npm view --json "@openai/codex@${codex_version}" dist.tarball \
-            | jq -er 'select(type == "string" and startswith("https://"))')"
+          qualification=webui-carrier/dependency-resolution/qualification-input-manifest.json
+          codex_tarball_url="$(jq -er '.runtime_payloads.codex_cli.tarball_url | select(startswith("https://"))' "$qualification")"
+          platform_tarball_url="$(jq -er '.runtime_payloads.codex_cli.platform.tarball_url | select(startswith("https://"))' "$qualification")"
           curl -L --fail --silent --show-error "$codex_tarball_url" \
             --output webui-carrier/frozen-codex/codex-cli.tgz
+          curl -L --fail --silent --show-error "$platform_tarball_url" \
+            --output webui-carrier/frozen-codex-platform/codex-platform.tgz
           source_cutoff_observed_at='${{ inputs.source_cutoff_observed_at }}'
           node --experimental-strip-types scripts/framework-release-adapter.ts webui-build-input \
             --source-authority "webui-carrier/source-authority.json" \
@@ -253,6 +254,7 @@ jobs:
             --source-cutoff-observed-at "$source_cutoff_observed_at" \
             --base-image-index webui-carrier/base-image-index.json \
             --frozen-codex-tarball webui-carrier/frozen-codex/codex-cli.tgz \
+            --frozen-codex-platform-tarball webui-carrier/frozen-codex-platform/codex-platform.tgz \
             --resolved-dependency-manifest webui-carrier/dependency-resolution/qualification-input-manifest.json \
             --architecture '${{ matrix.architecture }}' \
             --output webui-carrier/build-input-draft.json
@@ -287,6 +289,7 @@ jobs:
             verify-codex-artifact \
             --build-input webui-carrier/build-input.json \
             --artifact-dir webui-carrier/frozen-codex \
+            --platform-artifact-dir webui-carrier/frozen-codex-platform \
             > webui-carrier/codex-artifact-verification.json
           node --experimental-strip-types scripts/release-webui-carrier.ts \
             verify-docker-context-policy \
@@ -326,13 +329,27 @@ jobs:
           const dockerfile = fs.readFileSync('shells/studio/Dockerfile', 'utf8');
           const marker = /^ARG NODE_IMAGE=.+$/m;
           const onlineCodexInstall = 'npm install --global --prefix /opt/codex "${OPL_CODEX_NPM_SPEC}"';
-          if (!marker.test(dockerfile) || dockerfile.split(onlineCodexInstall).length !== 2) {
+          const stages = dockerfile.split(/(?=^FROM )/m);
+          const codexStages = stages.filter((stage) => /^FROM \S+ AS codex-builder$/m.test(stage));
+          const codexStage = codexStages[0] ?? '';
+          const installArg = /^ARG OPL_CODEX_NPM_SPEC$/m;
+          const installRun = /^RUN /m;
+          if (dockerfile.split(marker).length !== 2 || codexStages.length !== 1 ||
+              codexStage.split(installArg).length !== 2 || codexStage.split(installRun).length !== 2 ||
+              codexStage.split(onlineCodexInstall).length !== 2 || dockerfile.split(onlineCodexInstall).length !== 2) {
             throw new Error('Studio Dockerfile frozen input seam changed');
           }
-          fs.writeFileSync('webui-carrier/Dockerfile.frozen', dockerfile
-            .replace(marker, `ARG NODE_IMAGE=${baseRef}`)
-            .replace('RUN ' + onlineCodexInstall,
-              'COPY .opl-frozen-inputs/codex-cli.tgz /tmp/codex-cli.tgz\nRUN npm install --global --prefix /opt/codex /tmp/codex-cli.tgz'));
+          const copies = [
+            'ARG OPL_CODEX_NPM_SPEC',
+            'COPY .opl-frozen-inputs/codex-cli.tgz /tmp/codex-cli.tgz',
+            'COPY --from=codex-platform /codex-platform.tgz /tmp/codex-platform.tgz',
+          ];
+          const frozenStage = codexStage.replace(installArg, copies.join('\n'))
+            .replace(installRun, 'RUN --network=none ')
+            .replace(onlineCodexInstall, 'npm install --offline --omit=optional --ignore-scripts --global --prefix /opt/codex /tmp/codex-cli.tgz "@openai/codex-linux-$(node -p process.arch)@file:/tmp/codex-platform.tgz"');
+          const frozenDockerfile = dockerfile.replace(codexStage, () => frozenStage)
+            .replace(marker, `ARG NODE_IMAGE=${baseRef}`);
+          fs.writeFileSync('webui-carrier/Dockerfile.frozen', frozenDockerfile);
           const outputs = {
             base_ref: baseRef,
             codex_ref: inputs.get('codex_cli').ref,
@@ -351,6 +368,7 @@ jobs:
           docker build \
             --platform 'linux/${{ matrix.architecture }}' \
             --file webui-carrier/Dockerfile.frozen \
+            --build-context codex-platform=webui-carrier/frozen-codex-platform \
             --build-arg 'OPL_FRAMEWORK_REF=${{ inputs.framework_ref }}' \
             --build-arg 'OPL_APP_REF=${{ inputs.app_ref }}' \
             --build-arg 'OPL_SOURCE_REVISION=${{ inputs.shell_ref }}' \
@@ -374,7 +392,7 @@ jobs:
       - name: Remove frozen Codex Docker context input
         if: ${{ always() }}
         shell: bash
-        run: rm -rf shells/studio/.opl-frozen-inputs
+        run: rm -rf shells/studio/.opl-frozen-inputs webui-carrier/frozen-codex-platform
 
       - name: Qualify legacy cloud login against the same Studio image
         shell: bash

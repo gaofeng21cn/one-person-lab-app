@@ -533,6 +533,48 @@ test('WebUI carrier rejects a platform without persisted restart evidence', () =
   assert.match(result.stderr, /runtime summary\.persistence_restart must be an object/);
 });
 
+test('the release workflow installs the verified Codex archive in its builder stage', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-frozen-dockerfile-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const workflow = YAML.parse(fs.readFileSync(workflowPath, 'utf8'));
+  const render = workflow.jobs['build-and-qualify'].steps.find((step: any) => step.id === 'build-inputs');
+  const online = 'npm install --global --prefix /opt/codex "${OPL_CODEX_NPM_SPEC}"';
+  const baseRef = `node@sha256:${'b'.repeat(64)}`;
+  const harness = Buffer.from('fixture');
+  const dockerfile = [
+    'ARG NODE_IMAGE=source', 'FROM ${NODE_IMAGE} AS codex-builder', 'ARG OPL_CODEX_NPM_SPEC',
+    'RUN test -n "${OPL_CODEX_NPM_SPEC}" \\', `  && ${online} \\`, '  && npm cache clean --force',
+    'FROM ${NODE_IMAGE} AS final', 'ARG OPL_CODEX_NPM_SPEC',
+  ].join('\n');
+  for (const dir of ['webui-carrier', 'scripts', 'shells/studio']) fs.mkdirSync(path.join(root, dir), { recursive: true });
+  fs.writeFileSync(path.join(root, 'scripts/validate-webui-runtime-image.ts'), harness);
+  const dockerfilePath = path.join(root, 'shells/studio/Dockerfile');
+  const run = (source: string) => {
+    fs.writeFileSync(dockerfilePath, source);
+    fs.writeFileSync(path.join(root, 'webui-carrier/build-input.json'), JSON.stringify({ inputs: [
+      { id: 'base_image', ref: baseRef }, { id: 'codex_cli', ref: '@openai/codex@1.2.3' },
+      { id: 'dockerfile', digest: sha256(source), size_bytes: Buffer.byteLength(source) },
+      { id: 'qualification_harness', digest: sha256(harness), size_bytes: harness.byteLength },
+    ] }));
+    return spawnSync(process.execPath, ['--input-type=module', '-e', extractHeredoc(render.run, 'NODE')], {
+      cwd: root, env: { ...process.env, GITHUB_OUTPUT: path.join(root, 'outputs') }, encoding: 'utf8',
+    });
+  };
+  const result = run(dockerfile);
+  assert.equal(result.status, 0, result.stderr);
+  const frozen = fs.readFileSync(path.join(root, 'webui-carrier/Dockerfile.frozen'), 'utf8');
+  const expected = dockerfile.replace('ARG NODE_IMAGE=source', `ARG NODE_IMAGE=${baseRef}`)
+    .replace('ARG OPL_CODEX_NPM_SPEC\nRUN', [
+      'ARG OPL_CODEX_NPM_SPEC',
+      'COPY .opl-frozen-inputs/codex-cli.tgz /tmp/codex-cli.tgz',
+      'COPY --from=codex-platform /codex-platform.tgz /tmp/codex-platform.tgz',
+      'RUN --network=none',
+    ].join('\n'))
+    .replace(online, 'npm install --offline --omit=optional --ignore-scripts --global --prefix /opt/codex /tmp/codex-cli.tgz "@openai/codex-linux-$(node -p process.arch)@file:/tmp/codex-platform.tgz"');
+  assert.equal(frozen, expected);
+  assert.notEqual(run(dockerfile.replace('AS codex-builder', 'AS different-builder')).status, 0);
+});
+
 test('frozen Codex artifact verification binds exact tgz bytes and package identity', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-webui-codex-artifact-'));
   const artifactPath = writeCodexTarball(root);
@@ -924,10 +966,12 @@ test('reusable WebUI workflow qualifies both architectures before the public ver
   assert.match(buildRun, /docker-context-policy-verification\.json/);
   assert.match(buildRun, /\.opl-frozen-inputs\/codex-cli\.tgz/);
   assert.match(buildRun, /COPY \.opl-frozen-inputs\/codex-cli\.tgz \/tmp\/codex-cli\.tgz/);
-  assert.match(buildRun, /npm install --global --prefix \/opt\/codex \/tmp\/codex-cli\.tgz/);
+  assert.match(buildRun, /npm install --offline --omit=optional --ignore-scripts --global --prefix \/opt\/codex \/tmp\/codex-cli\.tgz/);
   assert.match(buildRun, /framework-release-adapter\.ts webui-build-input/);
   assert.match(buildRun, /oras manifest fetch/);
-  assert.match(buildRun, /npm view/);
+  assert.match(buildRun, /--build-context codex-platform=webui-carrier\/frozen-codex-platform/);
+  assert.match(buildRun, /--frozen-codex-platform-tarball/);
+  assert.doesNotMatch(buildRun, /npm view/);
   assert.doesNotMatch(buildRun, /npm pack/);
   assert.match(buildRun, /Dockerfile\.frozen/);
   assert.match(buildRun, /--build-arg 'OPL_FRAMEWORK_REF=/);
