@@ -96,6 +96,7 @@ export const expectedFrameworkSurfaces: Record<string, string> = {
   refresh: 'opl app state --profile fast --json',
   full_state: 'opl app state --profile full --json',
   full_drilldown: 'opl runtime app-operator-drilldown --detail full --json',
+  full_drilldown_rpc: 'app.operatorDrilldown.get',
   action: 'opl app action execute --action <action_id> [--payload json] [--dry-run] --json',
 };
 export const requiredSeriesProgressFields = [
