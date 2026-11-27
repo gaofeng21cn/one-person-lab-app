@@ -131,7 +131,7 @@ function executableCandidates(name: string, env: NodeJS.ProcessEnv): string[] {
     .map((entry) => path.join(entry, name));
 }
 
-function resolveExecutable(name: string, env: NodeJS.ProcessEnv): string {
+export function resolveExecutable(name: string, env: NodeJS.ProcessEnv): string {
   for (const candidate of executableCandidates(name, env)) {
     try {
       fs.accessSync(candidate, fs.constants.X_OK);
