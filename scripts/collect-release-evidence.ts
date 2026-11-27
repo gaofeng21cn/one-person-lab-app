@@ -12,7 +12,7 @@ import {
 } from './release-evidence-paths.ts';
 import { readJsonFile, recordOrNull } from './release-json-helpers.ts';
 import {
-  isFrameworkV2Evidence, openFrameworkV2Evidence, resolveFrameworkV2Action, validateFrameworkV2State,
+  frameworkV2ActionRequest, isFrameworkV2Evidence, openFrameworkV2Evidence, resolveFrameworkV2Action, validateFrameworkV2State,
 } from './framework-v2-evidence.ts';
 import { stateReadback, drilldownReadback, actionReadback } from './framework-v2-release-evidence.ts';
 
@@ -461,10 +461,8 @@ async function collectFrameworkV2Evidence(options: Options): Promise<CollectedAr
     return collected;
   }
   for (const dryRun of options.executeAction ? [true, false] : [true]) {
-    const response = await rpc('app.action.execute', {
-      package_id: target.packageId, action_id: target.actionId, dry_run: dryRun,
-    });
-    const readback = actionReadback(response, target.packageId, target.actionId, dryRun);
+    const response = await rpc('app.action.execute', frameworkV2ActionRequest(target, dryRun));
+    const readback = actionReadback(response, target, dryRun);
     writeJsonArtifact(options.bundleDir, dryRun ? 'action-dry-run-result.json' : 'action-execute-result.json', readback);
     collected.push(dryRun ? 'action_dry_run_result' : 'action_execute_result');
   }

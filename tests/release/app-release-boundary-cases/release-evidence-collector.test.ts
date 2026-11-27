@@ -1,5 +1,5 @@
 import { actionReadback, drilldownReadback, stateReadback, validateV2ReleaseReadback } from '../../../scripts/framework-v2-release-evidence.ts';
-import { resolveFrameworkV2Action } from '../../../scripts/framework-v2-evidence.ts';
+import { frameworkV2ActionRequest, resolveFrameworkV2Action, validateFrameworkV2ActionResult } from '../../../scripts/framework-v2-evidence.ts';
 import {
   assert,
   fs,
@@ -336,14 +336,28 @@ test('v2 evidence matches an enabled declared action and keeps only refs from th
   const state = stateReadback(full, 'full');
   assert.equal(validateV2ReleaseReadback('app_state_full', state), true);
   assert.doesNotMatch(JSON.stringify(state), /private-input/);
-  assert.deepEqual(resolveFrameworkV2Action(full, actionId), {packageId, actionId});
+  const legacy = {packageId, actionId, actionRef: actionId};
+  assert.deepEqual(resolveFrameworkV2Action(full, actionId), legacy);
+  const wrapper = 'package_contribution_execute';
+  const current = {...full, app_state: {...collections, actions: [{action_id: wrapper, dry_run_supported: true}]}};
+  const selected = resolveFrameworkV2Action(current, actionId)!;
+  assert.deepEqual(frameworkV2ActionRequest(selected, true), {
+    action_id: wrapper, package_id: packageId, dry_run: true, payload: {package_id: packageId, ref: actionId, input: {}},
+  });
+  assert.equal(resolveFrameworkV2Action({...current, app_state: {...current.app_state, actions: []}}, actionId), null);
+  const wrapperReply = {ok: true, dry_run: false, status: 'executed', action_id: wrapper,
+    authorityBoundary: 'app_bridge_no_domain_authority', result: {ref: actionId, operation:'execute', ok:true},
+    opl_app_contribution: {package_id: packageId, ref: actionId, operation:'execute'}};
+  assert.equal(actionReadback(wrapperReply, selected, false).rpc_action_id, wrapper);
+  assert.throws(() => validateFrameworkV2ActionResult({...wrapperReply, opl_app_contribution:{...wrapperReply.opl_app_contribution, package_id:'wrong'}}, selected, false));
+  assert.throws(() => validateFrameworkV2ActionResult({...wrapperReply, result:{...wrapperReply.result, ref:'wrong'}}, selected, false));
   assert.equal(resolveFrameworkV2Action(full, 'undeclared'), null);
   assert.equal(resolveFrameworkV2Action({...full, packages: [{...collections.packages[0], enabled: false}]}, actionId), null);
 
   const reply = {ok: true, dry_run: false, action_id: actionId, authorityBoundary: 'app_bridge_no_domain_authority'};
-  assert.throws(() => actionReadback({...reply, status: 'executed'}, packageId, actionId, false));
-  assert.throws(() => actionReadback({...reply, result: {ref: actionId, ok: false, operation: 'execute'}}, packageId, actionId, false));
-  const checked = actionReadback({...reply, result: {ok: true, operation: 'execute', ref: actionId, data: 'private-result'}}, packageId, actionId, false);
+  assert.throws(() => actionReadback({...reply, status: 'executed'}, legacy, false));
+  assert.throws(() => actionReadback({...reply, result: {ref: actionId, ok: false, operation: 'execute'}}, legacy, false));
+  const checked = actionReadback({...reply, result: {ok: true, operation: 'execute', ref: actionId, data: 'private-result'}}, legacy, false);
   assert.equal(validateV2ReleaseReadback('action_execute_result', checked), true);
   assert.doesNotMatch(JSON.stringify(checked), /private-result/);
   assert.throws(() => validateV2ReleaseReadback('action_dry_run_result', checked));

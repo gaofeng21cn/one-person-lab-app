@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { asRecord, objectField } from './release-json-helpers.ts';
-import { validateFrameworkV2ActionResult, validateFrameworkV2State } from './framework-v2-evidence.ts';
+import { validateFrameworkV2ActionResult, validateFrameworkV2State, type FrameworkV2Action } from './framework-v2-evidence.ts';
 
 const stateSchema = 'opl_app_release_state_readback.v2';
 const actionSchema = 'opl_app_release_action_readback.v2';
@@ -46,12 +46,12 @@ export function drilldownReadback(payload: unknown) {
   };
 }
 
-export function actionReadback(payload: unknown, packageId: string, actionId: string, dryRun: boolean) {
-  const response = validateFrameworkV2ActionResult(payload, actionId, dryRun);
+export function actionReadback(payload: unknown, target: FrameworkV2Action, dryRun: boolean) {
+  const response = validateFrameworkV2ActionResult(payload, target, dryRun);
   const result = objectField(response, 'result');
   return {
     schema: actionSchema, method: 'app.action.execute', api_version: '2.0',
-    package_id: packageId, action_id: actionId, dry_run: dryRun,
+    package_id: target.packageId, action_id: target.actionRef, rpc_action_id: target.actionId, dry_run: dryRun,
     authority_boundary: response.authorityBoundary,
     response_sha256: digest(response),
     ...(dryRun ? { status: response.status } : {

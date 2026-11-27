@@ -444,7 +444,7 @@ export async function validateLiveOplConformance(runtimeBridge) {
   }
 
   const {
-    isFrameworkV2Evidence, openFrameworkV2Evidence, resolveFrameworkV2Action,
+    frameworkV2ActionRequest, isFrameworkV2Evidence, openFrameworkV2Evidence, resolveFrameworkV2Action,
     validateFrameworkV2State, validateFrameworkV2ActionResult,
   } = await import('../../framework-v2-evidence.ts');
   const oplBin = path.join(resolvedOplRoot, 'bin', 'opl');
@@ -460,10 +460,8 @@ export async function validateLiveOplConformance(runtimeBridge) {
     if (!target) {
       throw new Error(`The live action fixture '${actionFixture}' is absent from enabled Package contributions.`);
     }
-    const preview = await rpc(transport.action_method, {
-      package_id: target.packageId, action_id: target.actionId, dry_run: true,
-    });
-    validateFrameworkV2ActionResult(preview, target.actionId, true);
+    const preview = await rpc(transport.action_method, frameworkV2ActionRequest(target, true));
+    validateFrameworkV2ActionResult(preview, target, true);
     console.log('Live Framework v2 App state and Package action preview passed.');
     return;
   }

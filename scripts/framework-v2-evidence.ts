@@ -46,26 +46,54 @@ export function validateFrameworkV2State(payload: unknown, profile: 'fast' | 'fu
   return state;
 }
 
-export function resolveFrameworkV2Action(state: RecordValue, actionRef: string) {
+const packageActionId = 'package_contribution_execute';
+export type FrameworkV2Action = { packageId: string; actionRef: string; actionId: string };
+
+export function resolveFrameworkV2Action(state: RecordValue, actionRef: string): FrameworkV2Action | null {
+  const appState = objectField(state, 'app_state');
+  const actions = appState?.actions;
+  // Early v2 daemons directly dispatch a declared ref. The newer router
+  // advertises its generic Package action in the live state projection.
+  if (actions !== undefined && (!Array.isArray(actions) || !actions.some(action =>
+    recordOrNull(action)?.action_id === packageActionId && recordOrNull(action)?.dry_run_supported === true))) return null;
+  const actionId = actions === undefined ? actionRef : packageActionId;
+  const directory = objectField(objectField(appState, 'agent_packages'), 'directory');
+  const disabled = new Set(arrayField(directory, 'entries').map(recordOrNull)
+    .filter(entry => entry?.app_enabled === false).map(entry => entry?.package_id));
   const matches = new Set<string>();
   for (const candidate of arrayField(state, 'packages')) {
     const pkg = recordOrNull(candidate);
-    if (!pkg || pkg.enabled !== true || typeof pkg.package_id !== 'string'
+    if (!pkg || pkg.enabled !== true || typeof pkg.package_id !== 'string' || disabled.has(pkg.package_id)
         || !objectField(objectField(pkg, 'provides'), 'contribution_handler')) continue;
-    const views = arrayField(objectField(objectField(pkg, 'ui'), 'declarative'), 'views');
-    if (views.some(view => arrayField(recordOrNull(view), 'actions')
-      .some(action => recordOrNull(action)?.action_ref === actionRef))) {
+    const declarations = objectField(objectField(pkg, 'ui'), 'declarative');
+    const forms = arrayField(declarations, 'settings_forms');
+    const surfaces = [...arrayField(declarations, 'views'), ...forms];
+    if (surfaces.some(view => arrayField(recordOrNull(view), 'actions')
+      .some(action => recordOrNull(action)?.action_ref === actionRef))
+      || forms.some(form => recordOrNull(form)?.submit_action_ref === actionRef)) {
       matches.add(pkg.package_id);
     }
   }
   if (matches.size > 1) throw new Error(`Multiple installed Packages declare action ref ${actionRef}.`);
   const [packageId] = matches;
-  return packageId ? { packageId, actionId: actionRef } : null;
+  return packageId ? { packageId, actionRef, actionId } : null;
 }
 
-export function validateFrameworkV2ActionResult(payload: unknown, actionId: string, dryRun: boolean): RecordValue {
+export function frameworkV2ActionRequest(target: FrameworkV2Action, dryRun: boolean) {
+  return {
+    package_id: target.packageId, action_id: target.actionId, dry_run: dryRun,
+    ...(target.actionId === packageActionId ? {
+      payload: { package_id: target.packageId, ref: target.actionRef, input: {} },
+    } : {}),
+  };
+}
+
+export function validateFrameworkV2ActionResult(payload: unknown, target: FrameworkV2Action, dryRun: boolean): RecordValue {
   const response = asRecord(payload, 'opld app.action.execute result');
-  if (response.ok !== true || response.action_id !== actionId || response.dry_run !== dryRun
+  if (response.ok !== true || response.action_id !== target.actionId || response.dry_run !== dryRun
+      || (response.dryRun !== undefined && response.dryRun !== dryRun)
+      || (response.package_id !== undefined && response.package_id !== target.packageId)
+      || (response.ref !== undefined && response.ref !== target.actionRef)
       || response.authorityBoundary !== 'app_bridge_no_domain_authority') {
     throw new Error('Unexpected opld action identity, mode or authority.');
   }
@@ -73,7 +101,13 @@ export function validateFrameworkV2ActionResult(payload: unknown, actionId: stri
     if (response.status !== 'preview') throw new Error('Missing opld action preview.');
   } else {
     const result = asRecord(response.result, 'opld Package action result');
-    if (result.ok !== true || result.operation !== 'execute' || result.ref !== actionId) {
+    const binding = objectField(response, 'opl_app_contribution');
+    if (target.actionId === packageActionId && (response.status !== 'executed' || binding?.package_id !== target.packageId
+        || binding.ref !== target.actionRef || binding.operation !== 'execute')) {
+      throw new Error('The opld execution receipt did not match the selected Package and action ref.');
+    }
+    if (result.ok !== true || result.operation !== 'execute' || result.ref !== target.actionRef
+        || (result.package_id !== undefined && result.package_id !== target.packageId)) {
       throw new Error('The Package did not return a successful execution receipt for the selected action.');
     }
   }
