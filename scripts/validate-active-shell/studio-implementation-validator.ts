@@ -65,7 +65,7 @@ export function validateStudioImplementation(shellPaths): void {
   assertShellTextIncludesAll(shellPaths, 'electron-builder.stable.yml', ['protocols:', '      - opl'], 'Studio packaged branded protocol');
   assertShellTextIncludesAll(shellPaths, 'desktop/main.mjs', ['electron-updater', 'createDesktopUpdater', 'runWhenIdle'], 'Studio idle updater handoff');
   assertShellTextIncludesAll(shellPaths, 'desktop/updater.mjs', ['beforeRestart', 'quitAndInstall', 'app_server_busy'], 'Studio guarded updater installation');
-  assertShellTextIncludesAll(shellPaths, studioSourceRefForCheckout(shellPaths.shellRoot, 'plugins/core/opl-framework-bridge/src/opl-passthrough.mjs'), ['state', 'action', 'execute'], 'Framework-owned state/action bridge');
+  assertShellTextIncludesAll(shellPaths, studioSourceRefForCheckout(shellPaths.shellRoot, 'plugins/core/opl-framework-bridge/src/service.mjs'), ['app.state.get', 'app.action.execute'], 'Framework-owned state/action bridge');
 }
 
 export function validateStudioThreadCoordination(shellPaths): void {
