@@ -244,6 +244,28 @@ jobs:
           set -euo pipefail
           security unlock-keychain -p "$STUDIO_RELEASE_KEYCHAIN_PASSWORD" "$STUDIO_RELEASE_KEYCHAIN"
           npm run build:desktop
+          ulimit -S -n 65536 || {
+            echo "::error::macOS signing requires an open-file limit of at least 65536."
+            exit 1
+          }
+          echo "macOS build open-file limit: $(ulimit -S -n)"
+          signing_fs_preload="$RUNNER_TEMP/opl-macos-signing-fs.cjs"
+          node - "$signing_fs_preload" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const anchor = JSON.stringify(path.resolve('package.json'));
+          fs.writeFileSync(process.argv[2], `
+          const fromShell = require('node:module').createRequire(${anchor});
+          fromShell('graceful-fs').gracefulify(require('node:fs'));
+          const fromSign = require('node:module').createRequire(fromShell.resolve('@electron/osx-sign'));
+          const binary = fromSign('isbinaryfile');
+          const limitModule = fromShell('p-limit');
+          const limit = (limitModule.default || limitModule)(32);
+          const original = binary.isBinaryFile;
+          binary.isBinaryFile = (...args) => limit(() => original(...args));
+          `);
+          NODE
+          export NODE_OPTIONS="${NODE_OPTIONS:-} --require=\"$signing_fs_preload\""
           npx electron-builder --mac --arm64 --dir --config electron-builder.yml --publish never
           app_paths=()
           while IFS= read -r candidate; do app_paths+=("$candidate"); done < <(
