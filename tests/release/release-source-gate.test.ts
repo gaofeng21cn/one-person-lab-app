@@ -968,6 +968,63 @@ test('release source gate rejects managed update provider contract drift before 
   assert.equal(checkStatus(report, 'managed_update_provider_contract_aligned'), 'failed');
 });
 
+test('release source gate admits Framework v2 cohorts without managed-update-kernel-contract.json', () => {
+  const report = buildReleaseSourceGateReport(
+    options(),
+    runner(),
+    '2026-06-30T00:00:00.000Z',
+    {
+      variables: {},
+      pathExists: (candidatePath) => candidatePath === shellRoot || candidatePath === frameworkRoot,
+      readJson: (candidatePath) => {
+        if (candidatePath === path.join(frameworkRoot, 'package.json')) {
+          return { name: 'opl-framework', bin: { opl: './bin/opl', opld: './packages/daemon/bin/opld' } };
+        }
+        if (candidatePath.endsWith('dependency-release-sources.json')) {
+          return { schema_version: 'opl.dependency-release-sources.v1', sources: {} };
+        }
+        if (candidatePath.endsWith('opl-package.v2.schema.json')) {
+          return { $schema: 'https://json-schema.org/draft/2020-12/schema' };
+        }
+        if (candidatePath.endsWith('managed-update-kernel-contract.json')) {
+          throw new Error('ENOENT: managed-update-kernel-contract.json retired in Framework v2');
+        }
+        return readSourceJson(candidatePath);
+      },
+    },
+  );
+
+  assert.equal(report.status, 'passed');
+  assert.equal(checkStatus(report, 'managed_update_provider_contract_aligned'), 'passed');
+});
+
+test('release source gate rejects Framework v2 cohorts with invalid dependency-release-sources contract', () => {
+  const report = buildReleaseSourceGateReport(
+    options(),
+    runner(),
+    '2026-06-30T00:00:00.000Z',
+    {
+      variables: {},
+      pathExists: (candidatePath) => candidatePath === shellRoot || candidatePath === frameworkRoot,
+      readJson: (candidatePath) => {
+        if (candidatePath === path.join(frameworkRoot, 'package.json')) {
+          return { name: 'opl-framework', bin: { opl: './bin/opl', opld: './packages/daemon/bin/opld' } };
+        }
+        if (candidatePath.endsWith('dependency-release-sources.json')) {
+          return { schema_version: 'unexpected', sources: {} };
+        }
+        if (candidatePath.endsWith('opl-package.v2.schema.json')) {
+          return { $schema: 'https://json-schema.org/draft/2020-12/schema' };
+        }
+        return readSourceJson(candidatePath);
+      },
+    },
+  );
+
+  assert.equal(report.status, 'failed');
+  assert.equal(checkStatus(report, 'managed_update_provider_contract_aligned'), 'failed');
+});
+
 test('release source gate blocks pre-admission when required shell format is not enabled', () => {
   const policyOnly = reportFor({ requireShellFormat: false });
   const requiredGate = policyOnly.required_gates.find((gate) => gate.id === 'active_shell_format_check');
