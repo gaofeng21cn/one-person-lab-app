@@ -50,6 +50,7 @@ Host Core 通过 Cordis 获取 Codex、Framework 和 MCP Apps 服务。更新 CL
 | 连接、权限、持久配置、服务就绪 | 设置 | DSH Client、Framework projection |
 | 智能体、项目运行总览与阶段进度 | 运行状态（`opl-runtime-status`） | Framework `work_item_projection_v2`、Tier 2 DSH 插件、`opl-mcp-apps` 详情抽屉 |
 | 已注册智能体项目交付材料预览 | 资料空间（`opl-materials-space`） | `@gaofeng21cn/opl-materials-space` Host 服务与 Client、Framework 项目目录索引、`workspace-preview` |
+| 跨载体长期目标与自动路由总控（区分本机 Runway「运行状态」） | OPL Flow 总控（可选，默认收于侧栏更多） | Studio Tier 2 控制塔扩展 `@gaofeng21cn/opl-flow-workbench` + `opl-flow` Package（安装与同步走 `opl pack ensure` / `opl pack sync`），状态与动作（`dashboard` / `send` / `approve` / `tick` / `service`）经本机 `opld` 公开 RPC（`app.state.get` / `app.contribution.read` / `app.action.execute`）流转至 `opl_app_contribution.py`（[规划文档](https://github.com/gaofeng21cn/opl-flow/blob/main/docs/opl-flow-workbench-plugin-plan.md)） |
 | 收件箱、审阅、制作、发布、设备操作 | 应用工作台或专用 MCP App | Framework Package contribution、MCP App、Studio client |
 | 当前任务的阶段、产物、证据 | 任务详情 | Framework runtime view、Package contribution、MCP App |
 | 底层 provider、carrier、诊断 | 运行与维护 | Framework projection、Studio host adapter |
