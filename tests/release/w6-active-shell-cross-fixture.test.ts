@@ -89,12 +89,22 @@ test('W6 Studio consumes canonical App fixture bytes through its actual Host and
   fs.writeFileSync(file, `
     import assert from 'node:assert/strict';
     import fs from 'node:fs';
-    import { compactFastState } from ${JSON.stringify(resolveStudioSourcePath(studioRoot, 'plugins/core/opl-framework-bridge/src/opl-passthrough.mjs'))};
+    import { createOplPassthrough } from ${JSON.stringify(resolveStudioSourcePath(studioRoot, 'plugins/core/opl-framework-bridge/src/index.mjs'))};
     import { deriveWorkbenchModelFromState } from ${JSON.stringify(resolveStudioSourcePath(studioRoot, 'plugins/core/opl-studio-client/src/client/workbench/workbenchModel.ts'))};
     for (const relative of ${JSON.stringify(appFixturePaths)}) {
       const fixture = JSON.parse(fs.readFileSync(${JSON.stringify(appRoot)} + '/' + relative, 'utf8'));
-      const compacted = compactFastState(fixture);
-      const model = deriveWorkbenchModelFromState(compacted);
+      const calls = [];
+      const bridge = createOplPassthrough({
+        client: {
+          async call(method, params) {
+            calls.push({ method, params });
+            return fixture;
+          },
+        },
+      });
+      const state = await bridge.readState('fast');
+      assert.deepEqual(calls, [{ method: 'app.state.get', params: { profile: 'fast' } }]);
+      const model = deriveWorkbenchModelFromState(state);
       for (const entry of fixture.app_state?.agent_packages?.directory?.entries ?? []) {
         const actual = model.packageLifecycle.find(item => item.packageId === entry.package_id);
         assert.ok(actual, 'Missing canonical package ' + entry.package_id);
