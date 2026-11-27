@@ -200,6 +200,14 @@
       "export_key": "./cordis-profiles",
       "runtime_path": "opl/dist/host/composition-profiles.js",
       "role": "framework_cordis_profile_bootstrap"
+    },
+    {
+      "framework_api_version": "2.0",
+      "package_root": "opl/packages/daemon",
+      "package_json": "opl/packages/daemon/package.json",
+      "export_key": ".",
+      "runtime_path": "opl/packages/daemon/dist/index.js",
+      "role": "framework_daemon_runtime"
     }
   ],
   "validation_examples": {

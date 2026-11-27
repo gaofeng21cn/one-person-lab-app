@@ -10,6 +10,7 @@ import {
   resolveMasScholarSkillsFullRuntimeSource,
 } from "./manifest-checksum.ts";
 import { assertMaterializedResolvedSelectedBundleDescriptor } from "./resolved-selected-bundle-descriptor.ts";
+import { fullFrameworkApiVersion } from "./runtime-layers.ts";
 
 const REQUIRED_MANAGED_UPDATE_COMPONENTS = readManagedUpdateLifecycleProviderMap();
 const RUNTIME_PROBE_TIMEOUT_MS = 60_000;
@@ -345,6 +346,30 @@ export function assertAppStateProbe(payload: unknown): Record<string, unknown> {
   return appState;
 }
 
+export function probeFullFrameworkDaemon(command: string, env: NodeJS.ProcessEnv, expectedVersion: string) {
+  const version = objectValue(parseJsonCommand(command, ["--version", "--json"], env), "Framework CLI version");
+  if (version.api_version !== "2.0" || version.version !== expectedVersion) {
+    throw new Error("Packaged Framework CLI version differs from the selected v2 daemon package.");
+  }
+  try {
+    const doctor = objectValue(parseJsonCommand(command, ["daemon", "doctor", "--include-first-run", "--json"], env), "Framework daemon doctor");
+    const sqlite = objectValue(doctor.sqlite, "Framework daemon SQLite");
+    const paths = objectValue(doctor.paths, "Framework daemon paths");
+    const firstRun = objectValue(doctor.first_run, "Framework daemon first run");
+    const list = objectValue(parseJsonCommand(command, ["pack", "list", "--json"], env), "Framework installed packages");
+    const installed = arrayValue(list.packages, "Framework installed package list");
+    if (doctor.ok !== true || doctor.api_version !== "2.0" || doctor.version !== expectedVersion
+      || paths.state_dir !== env.OPL_STATE_DIR || sqlite.db_file !== path.join(String(env.OPL_STATE_DIR), "opl.db")
+      || typeof sqlite.schema_version !== "number" || !Number.isSafeInteger(sqlite.schema_version) || sqlite.schema_version < 1
+      || firstRun.needs_onboarding !== true || firstRun.installed_package_count !== 0 || installed.length !== 0) {
+      throw new Error("Packaged Framework daemon did not prove a clean v2 state and Package readback.");
+    }
+    return { api_version: "2.0", version: expectedVersion, sqlite_schema_version: sqlite.schema_version, isolated_state: true, initial_installed_package_count: installed.length };
+  } finally {
+    parseJsonCommand(command, ["daemon", "stop", "--json"], env);
+  }
+}
+
 export function assertFullRuntimeCurrentness(
   runtimeRoot: string,
   options: {
@@ -389,21 +414,38 @@ export function assertFullRuntimeCurrentness(
   } else if (options.resolvedSelectedBundleDescriptor) {
     throw new Error("Full runtime selected Bundle descriptor input was not recorded in the manifest.");
   }
-  const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-currentness-"));
-  let managedUpdate: ReturnType<typeof assertManagedUpdateProbe>;
-  let appState: ReturnType<typeof assertAppStateProbe>;
+  const apiVersion = fullFrameworkApiVersion(options.frameworkRoot);
+  if (fullFrameworkApiVersion(path.join(runtimeRoot, "opl")) !== apiVersion) {
+    throw new Error("Full runtime Framework API differs from the selected source.");
+  }
+  const stateRoot = fs.realpathSync(fs.mkdtempSync(path.join(process.platform === "darwin" ? "/tmp" : os.tmpdir(), "opl-full-currentness-")));
+  let runtimeEvidence: Record<string, unknown>;
   try {
     const env = { ...runtimeProbeEnv(runtimeRoot), OPL_STATE_DIR: stateRoot };
-    managedUpdate = assertManagedUpdateProbe(
-      parseJsonCommand(command, ["update", "status", "--json"], env),
-    );
-    appState = assertAppStateProbe(
-      parseJsonCommand(command, ["app", "state", "--profile", "fast", "--json"], env),
-    );
+    if (apiVersion === "2.0") {
+      const metadata = objectValue(JSON.parse(fs.readFileSync(path.join(options.frameworkRoot, "packages", "daemon", "package.json"), "utf8")), "selected Framework daemon manifest");
+      const expectedVersion = stringValue(metadata.version, "selected Framework daemon version");
+      runtimeEvidence = { framework_runtime: probeFullFrameworkDaemon(command, {
+        ...env, HOME: stateRoot, CODEX_HOME: path.join(stateRoot, "codex"),
+        OPL_HOME: path.join(stateRoot, "opl"), OPL_CODEX_MARKETPLACE_DIR: path.join(stateRoot, "marketplace"),
+      }, expectedVersion) };
+    } else {
+      const managedUpdate = assertManagedUpdateProbe(parseJsonCommand(command, ["update", "status", "--json"], env));
+      const appState = assertAppStateProbe(parseJsonCommand(command, ["app", "state", "--profile", "fast", "--json"], env));
+      const runtimeSourceCarrierCount = runtimeSourceCarrierItems(appState).length;
+      runtimeEvidence = {
+        managed_update_surface_id: managedUpdate.surface_id,
+        managed_update_components: Object.keys(REQUIRED_MANAGED_UPDATE_COMPONENTS),
+        managed_update_component_providers: REQUIRED_MANAGED_UPDATE_COMPONENTS,
+        app_state_schema_version: appState.schema_version,
+        app_state_surface_ref: "app_state.runtime_source_carriers",
+        app_state_runtime_source_carrier_count: runtimeSourceCarrierCount,
+        app_state_module_count: runtimeSourceCarrierCount,
+      };
+    }
   } finally {
     fs.rmSync(stateRoot, { recursive: true, force: true });
   }
-  const runtimeSourceCarrierCount = runtimeSourceCarrierItems(appState).length;
 
   return {
     schema: "opl_full_runtime_currentness_probe.v1",
@@ -424,12 +466,6 @@ export function assertFullRuntimeCurrentness(
     resolved_selected_bundle_package_count: resolvedSelectedBundle?.assertion.package_count ?? 0,
     resolved_selected_bundle_skill_count: resolvedSelectedBundle?.assertion.owner_declared_skill_count ?? 0,
     resolved_selected_bundle_checksum_status: resolvedSelectedBundle ? "verified" : "not_provided",
-    managed_update_surface_id: managedUpdate.surface_id,
-    managed_update_components: Object.keys(REQUIRED_MANAGED_UPDATE_COMPONENTS),
-    managed_update_component_providers: REQUIRED_MANAGED_UPDATE_COMPONENTS,
-    app_state_schema_version: appState.schema_version,
-    app_state_surface_ref: "app_state.runtime_source_carriers",
-    app_state_runtime_source_carrier_count: runtimeSourceCarrierCount,
-    app_state_module_count: runtimeSourceCarrierCount,
+    ...runtimeEvidence,
   };
 }

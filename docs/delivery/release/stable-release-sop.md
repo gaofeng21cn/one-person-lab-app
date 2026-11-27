@@ -163,6 +163,8 @@ Standard 首装的 Framework 源码必须与 DMG 内 bootstrap manifest 的产�
 
 Full deep／strict 签名验证保留必要诊断，避免逐个嵌套对象的 verbose 输出耗尽子进程捕获缓冲。
 
+Full 构建按所选 Framework 源码核对运行时。Framework v2 从包内启动 daemon，在隔离状态目录检查 CLI／daemon 版本、SQLite 初始化及 `opl pack list`，退出探测时关闭 daemon。零安装项只证明干净的 Package 读取入口可用。所选离线载荷与首装 presence 仍由各自现有检查证明。历史 Full 的 managed-update 和 App 状态回执继续按对应格式验证。
+
 Linux x64 桌面构建在遇到 Ubuntu 托管 runner 的镜像配置时，先从 HTTPS 镜像下载签名归档，索引更新或下载失败时在同一 job 切到 Ubuntu 官方归档。两条路径沿用发行版套件和签名 keyring，在临时配置中执行，包下载齐后才安装。其他 runner 沿用自己的源。两条可用路径都失败时，只恢复该平台。 [Linux 依赖安装入口](../../../scripts/install-linux-desktop-build-dependencies.sh)
 
 macOS Standard 在启动构建子进程前将 open-file soft limit 设为 65536 并回读；不足时在打包前明确失败。签名器加载前用现有 `graceful-fs.gracefulify` 为构建进程启用文件句柄排队，并用现有 `p-limit` 将签名器实际解析到的 `isbinaryfile` 探测限制为 32 个并发，避免整棵依赖树同时等待句柄；不修改依赖源码或跳过签名文件。上游扫描提供并发限制后移除此构建适配。

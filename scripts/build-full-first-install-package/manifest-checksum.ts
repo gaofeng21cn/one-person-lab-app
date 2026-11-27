@@ -300,7 +300,7 @@ export function buildResolvedFullPayloadRefs(options, sources, components, sourc
       requested_ref: options.frameworkRef || 'main',
       resolved_commit: components.opl?.git_commit ?? readGitHead(options.frameworkRoot),
     },
-    opl_runtime_environment_substrate: {
+    ...(components.opl?.framework_api_version !== '2.0' ? { opl_runtime_environment_substrate: {
       label: 'OPL Runtime Environment Substrate',
       source_path: path.join(options.frameworkRoot, 'contracts', 'opl-framework', 'runtime-environment-substrate-contract.json'),
       repository: readGitOriginUrl(options.frameworkRoot) || 'gaofeng21cn/one-person-lab',
@@ -311,7 +311,7 @@ export function buildResolvedFullPayloadRefs(options, sources, components, sourc
         'opl env prepare --domain <domain> --profile <profile> --requirement-profile <path> --artifact-root <path> --apply --json',
         'opl env run --domain <domain> --profile <profile> --artifact-root <path> -- <command...>',
       ],
-    },
+    } } : {}),
     med_autocast: { source_path: options.macRoot, repository: readGitOriginUrl(options.macRoot), resolved_commit: components.med_autocast?.git_commit ?? readGitHead(options.macRoot) },
     ...(components.mac_media_assets ? { mac_media_assets: { source_path: options.macMediaAssetsRoot,
       repository: readGitOriginUrl(options.macMediaAssetsRoot), resolved_commit: components.mac_media_assets.git_commit } } : {}),
