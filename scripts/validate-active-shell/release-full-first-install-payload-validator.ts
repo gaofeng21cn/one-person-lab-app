@@ -1,12 +1,6 @@
 import { assertDeepEqualJson, assertIncludesAll } from './assertions.ts';
-import { temporalLocalServiceDefaults, temporalManagedCommands } from './app-contract-constants.ts';
-
 export function validateReleaseFullFirstInstallPayloads(releaseChannel) {
   validateReleaseFullCodexCliPayload(releaseChannel.full_first_install?.required_payloads?.codex_cli);
-  validateReleaseFullTemporalCliPayload(releaseChannel.full_first_install?.required_payloads?.temporal_cli);
-  validateReleaseFullTemporalRuntimeProvider(
-    releaseChannel.full_first_install?.required_payloads?.temporal_runtime_provider,
-  );
   validateReleaseFullSizeOptimizationPolicy(releaseChannel.full_first_install?.size_policy);
 }
 
@@ -39,87 +33,6 @@ function validateReleaseFullCodexCliPayload(codexCli) {
     ['bin/codex', 'bin/rg', 'vendor/codex', '.runtime-cache/codex-cli'],
     'Release channel forbidden Framework Codex paths',
   );
-}
-
-function validateReleaseFullTemporalCliPayload(temporalCli) {
-  if (
-    temporalCli?.compatibility_mode !== 'minimum_version_plus_capability_smoke' ||
-    temporalCli?.minimum_version_source !== 'distribution cohort manifest components.temporal_cli.minimum_version' ||
-    temporalCli?.fallback_version_source !== 'distribution cohort manifest components.temporal_cli.fallback_version' ||
-    temporalCli?.fallback_runtime_path !== 'runtime/current/bin/temporal' ||
-    temporalCli?.fallback_payload_path !== 'runtime/current/vendor/temporal/temporal_cli_darwin_arm64.tar.gz' ||
-    temporalCli?.must_prefer_valid_newer_user_version !== false ||
-    temporalCli?.system_sources_visible_as_diagnostics !== true ||
-    temporalCli?.system_sources_require_expert_opt_in !== true ||
-    !/offline from the packaged archive wrapper/.test(temporalCli?.verification ?? '')
-  ) {
-    throw new Error('Release channel Full Temporal CLI payload must default to the App-owned offline archive-wrapper runtime');
-  }
-  assertDeepEqualJson(
-    temporalCli.preferred_sources,
-    ['app_owned_archive_wrapper'],
-    'Release channel Temporal CLI preferred sources',
-  );
-}
-
-function validateReleaseFullTemporalRuntimeProvider(temporalRuntimeProvider) {
-  if (
-    temporalRuntimeProvider?.provider_env_default !== 'OPL_FAMILY_RUNTIME_PROVIDER=temporal' ||
-    temporalRuntimeProvider?.must_prefer_valid_newer_user_version === true
-  ) {
-    throw new Error('Release channel Full Temporal runtime provider must declare the Temporal provider env default');
-  }
-  assertDeepEqualJson(
-    temporalRuntimeProvider?.local_service_defaults,
-    temporalLocalServiceDefaults,
-    'Release channel Full Temporal local service defaults',
-  );
-  assertDeepEqualJson(
-    temporalRuntimeProvider?.managed_commands,
-    temporalManagedCommands,
-    'Release channel Full Temporal managed commands',
-  );
-  assertIncludesAll(
-    temporalRuntimeProvider?.required_packages,
-    ['@temporalio/activity', '@temporalio/client', '@temporalio/common', '@temporalio/worker', '@temporalio/workflow'],
-    'Release channel Full Temporal runtime packages',
-  );
-  assertDeepEqualJson(
-    temporalRuntimeProvider?.forbidden_packages,
-    ['@temporalio/testing'],
-    'Release channel Full Temporal forbidden packages',
-  );
-  assertDeepEqualJson(
-    temporalRuntimeProvider?.required_native_node_module_paths,
-    ['node_modules/@swc/core-darwin-arm64/swc.darwin-arm64.node'],
-    'Release channel Full Temporal native workflow bundler dependencies',
-  );
-  assertDeepEqualJson(
-    temporalRuntimeProvider?.native_core_bridge_releases,
-    ['aarch64-apple-darwin'],
-    'Release channel Full Temporal core bridge target',
-  );
-  if (
-    temporalRuntimeProvider?.service_supervisor?.required !== true ||
-    temporalRuntimeProvider?.service_supervisor?.platform_scope !== 'desktop_macos_local_managed_service' ||
-    temporalRuntimeProvider?.service_supervisor?.login_resident !== true ||
-    temporalRuntimeProvider?.service_supervisor?.run_at_load !== true ||
-    temporalRuntimeProvider?.service_supervisor?.keep_alive !== true ||
-    temporalRuntimeProvider?.service_supervisor?.launcher_policy !==
-      'discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout' ||
-    temporalRuntimeProvider?.service_supervisor?.persistent_database_path !==
-      '${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite' ||
-    temporalRuntimeProvider?.service_supervisor?.persistent_database_argument !== '--db-filename' ||
-    temporalRuntimeProvider?.service_supervisor?.configuration_current_required !== true
-  ) {
-    throw new Error('Release channel Full Temporal provider must require a stable login-resident service supervisor');
-  }
-  if (
-    !/macOS arm64 SWC native binding/.test(temporalRuntimeProvider?.verification ?? '')
-    || !/wrapper must export local Temporal defaults/.test(temporalRuntimeProvider?.verification ?? '')
-  ) {
-    throw new Error('Release channel Full Temporal provider verification must include native workflow bundler and wrapper proofs');
-  }
 }
 
 function validateReleaseFullSizeOptimizationPolicy(sizePolicy) {

@@ -147,7 +147,7 @@ function validateExposureClasses(policy) {
   }
   assertIncludesAll(
     packagedRuntimeClass?.members,
-    ['embedded_codex_executor', 'temporal_cli_archive', 'opl_framework_runtime', 'officecli', 'mineru_open_api'],
+    ['embedded_codex_executor', 'opl_framework_runtime', 'officecli', 'mineru_open_api'],
     'Install exposure OPL Base payload members',
   );
   if (!packagedRuntimeClass?.must_not_sync_to?.includes('implicit_user_codex_skill_install_without_managed_sync')) {

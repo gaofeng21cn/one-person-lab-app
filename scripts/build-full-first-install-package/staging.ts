@@ -23,7 +23,6 @@ import {
 import {
   assertOplRuntimeProductionDependencies,
   assertPackagedCatalogSeedPayloadsComplete,
-  assertTemporalCoreBridgeMacosArm64Only,
   buildDomainLayer,
   buildOplLayer,
   buildSkillsLayer,
@@ -73,9 +72,6 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
   const framework = path.join(runtimeRoot, 'opl');
   const frameworkApiVersion = fullFrameworkApiVersion(framework);
   assertOplRuntimeProductionDependencies(framework);
-  if (frameworkApiVersion === '1.0') {
-    assertTemporalCoreBridgeMacosArm64Only(path.join(framework, 'node_modules'));
-  }
   writeDomainMarkers(runtimeRoot, options, packagedAt);
   assertPackagedCatalogSeedPayloadsComplete(runtimeRoot, selectedPackageSet.packages);
   const nativeTrust = ensureFullRuntimeNativeTrust(runtimeRoot);
@@ -117,13 +113,6 @@ export function prepareRuntime(options, sources, sourceResolutions = {}) {
     node: { source_path: sources.nodeToolchain.nodeBin, version: commandOutput(path.join(runtimeRoot, 'node', 'bin', 'node'), ['--version']), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'node')) },
     python: { source_path: sources.pythonRoot, version: commandOutput(path.join(runtimeRoot, 'python', path.basename(sources.pythonRoot), 'bin', 'python3'), ['--version']), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'python')) },
     uv: { source_path: sources.uvBin, version: commandOutput(path.join(runtimeRoot, 'uv', 'bin', 'uv'), ['--version']), size_bytes: directorySizeBytes(path.join(runtimeRoot, 'uv')) },
-    temporal_cli: {
-      source_path: sources.temporalCliBin,
-      version: commandOutput(path.join(runtimeRoot, 'bin', 'temporal'), ['--version']),
-      size_bytes: directorySizeBytes(path.join(runtimeRoot, 'bin', 'temporal')),
-      archive_path: 'runtime/current/vendor/temporal/temporal_cli_darwin_arm64.tar.gz',
-      archive_size_bytes: fs.statSync(sources.temporalCliArchive).size,
-    },
     ...(selectedFlowCapabilities.has('cli:officecli')
       ? {
           officecli: {

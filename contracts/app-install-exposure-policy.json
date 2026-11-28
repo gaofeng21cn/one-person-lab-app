@@ -835,7 +835,6 @@
       "visibility_scope": "base_dependency_status_only_not_software_object",
       "members": [
         "embedded_codex_executor",
-        "temporal_cli_archive",
         "node_runtime",
         "python_runtime",
         "uv_runtime",
@@ -1515,87 +1514,6 @@
       "repo_sync",
       "command_line_tools_install",
       "ecosystem_module_updates"
-    ]
-  },
-  "temporal_auto_configuration": {
-    "owner": "one-person-lab",
-    "app_role": "configure_defaults_and_surface_readiness_not_provider_implementation",
-    "deployment_scope": {
-      "desktop_macos_local_managed_service": "launchd_service_supervisor_required",
-      "webui_container_managed_service": "container_service_lifecycle_required_launchd_not_applicable",
-      "explicit_external_temporal_service": "external_service_reachability_required_local_supervisor_not_applicable",
-      "non_macos_foreground_service": "foreground_or_platform_service_manager_required_launchd_not_applicable"
-    },
-    "provider_env_default": "OPL_FAMILY_RUNTIME_PROVIDER=temporal",
-    "local_service_defaults": {
-      "address_env": "OPL_TEMPORAL_ADDRESS",
-      "default_address": "127.0.0.1:7233",
-      "namespace_env": "OPL_TEMPORAL_NAMESPACE",
-      "namespace_resolution": "framework_explicit_environment_then_live_address_matched_worker_then_framework_default",
-      "task_queue_env": "OPL_TEMPORAL_TASK_QUEUE",
-      "default_task_queue": "opl-stage-attempts"
-    },
-    "managed_commands": [
-      "opl family-runtime service start --provider temporal",
-      "opl family-runtime service restart --provider temporal",
-      "opl family-runtime service supervisor status --provider temporal",
-      "opl family-runtime service supervisor install --provider temporal",
-      "opl family-runtime service supervisor trigger --provider temporal",
-      "opl family-runtime worker status --provider temporal",
-      "opl family-runtime worker start --provider temporal",
-      "opl family-runtime residency proof --provider temporal --production"
-    ],
-    "auto_configuration_entrypoints": [
-      "opl install",
-      "opl system initialize --json",
-      "opl system startup-maintenance"
-    ],
-    "startup_maintenance_policy": {
-      "must_export_local_defaults_before_provider_checks": true,
-      "must_surface_service_worker_and_dependency_diagnostics": true,
-      "must_reconcile_temporal_service_supervisor_before_worker": true,
-      "login_reconciliation_order": [
-        "temporal_service_supervisor",
-        "temporal_worker_supervisor",
-        "temporal_scheduler"
-      ],
-      "must_not_block_ready_to_launch_on_worker_residency": true,
-      "must_fail_closed_when_packaged_temporal_payload_is_missing": true
-    },
-    "first_run_policy": {
-      "ready_to_launch_blocking": false,
-      "full_readiness_item": "family_runtime_provider",
-      "background_maintenance_owner": "app_or_cli_managed_background_maintenance",
-      "required_diagnostics": [
-        "temporal_cli_version",
-        "temporal_service_lifecycle",
-        "temporal_service_supervisor_state",
-        "temporal_worker_lifecycle_status",
-        "worker_dependency_health"
-      ]
-    },
-    "packaged_runtime_policy": {
-      "full_wrapper_must_export_defaults": true,
-      "full_wrapper_must_not_freeze_worker_namespace": true,
-      "must_include_temporal_cli_wrapper": true,
-      "temporal_cli_wrapper_must_execute_offline_archive": true,
-      "must_include_temporal_node_runtime_packages": true,
-      "must_exclude_temporal_testing_package": true,
-      "service_supervisor_launcher_policy": "discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout",
-      "service_supervisor_platform_scope": "desktop_macos_local_managed_service",
-      "service_supervisor_persistent_database_path": "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",
-      "service_supervisor_persistent_database_argument": "--db-filename",
-      "native_core_bridge_target": "aarch64-apple-darwin"
-    },
-    "fail_closed_states": [
-      "missing_temporal_cli_wrapper",
-      "missing_temporal_node_runtime_package",
-      "temporal_worker_dependency_unavailable",
-      "temporal_service_supervisor_unready",
-      "temporal_service_supervisor_configuration_drift",
-      "temporal_local_service_stale_state",
-      "temporal_worker_process_exited",
-      "temporal_worker_source_stale"
     ]
   },
   "distribution_channels": {

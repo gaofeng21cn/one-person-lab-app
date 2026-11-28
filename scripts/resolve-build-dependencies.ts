@@ -50,10 +50,6 @@ export function projectResolvedBuildDependencies(resolved: Json, fullPolicy: Jso
     const entry = dependency(policy.dependency_id ?? key.replaceAll('_', '-'));
     full.runtime_payloads[key] = { ...policy, version: entry.version, archive_url: entry.archive_url, archive_sha256: entry.archive_sha256, archive_size_bytes: entry.archive_size_bytes };
   }
-  if (byId.has('temporal-cli')) {
-  const temporal = archive('temporal-cli');
-  full.runtime_payloads.temporal_cli.darwin_arm64_archive_sha256 = temporal.archive_sha256;
-  }
   if (byId.has('officecli')) full.runtime_payloads.officecli = {
     ...(full.runtime_payloads.officecli ?? {}),
     darwin_arm64_asset_sha256: archive('officecli').archive_sha256,
@@ -99,7 +95,7 @@ function main() {
   if (values['resolved-input']) resolved = JSON.parse(fs.readFileSync(path.resolve(values['resolved-input']), 'utf8'));
   else {
     if (!values['framework-root']) throw new Error('--framework-root or --resolved-input is required.');
-    const ids = new Set<string>(values.dependency ?? ['node', 'mineru-open-api', 'officecli', 'temporal-cli', 'codex-cli', 'playwright-mcp']);
+    const ids = new Set<string>(values.dependency ?? ['node', 'mineru-open-api', 'officecli', 'codex-cli', 'playwright-mcp']);
     if (!values.dependency) for (const [key, policy] of Object.entries<Json>(fullPolicy.toolchain ?? {})) ids.add(policy.dependency_id ?? key);
     const result = spawnSync(process.execPath, [path.resolve(values['framework-root'], 'scripts/resolve-dependency-releases.mjs'),
       ...[...ids].flatMap((id) => ['--dependency', id]), '--platform', values.platform, '--arch', values.arch,
@@ -115,7 +111,7 @@ function main() {
     const outputs: Record<string, string> = { qualification_manifest: path.join(output, 'qualification-input-manifest.json'), full_manifest: path.join(output, 'full-input-manifest.json') };
     for (const [key, entry] of Object.entries<Json>(projected.full.toolchain)) if (entry.version) outputs[`${key}_version`] = entry.version;
     for (const key of ['officecli', 'mineru']) if (projected.full.sources[key].ref) outputs[`${key}_ref`] = projected.full.sources[key].ref;
-    for (const [key, id] of [['temporal', 'temporal-cli'], ['officecli', 'officecli'], ['node', 'node'], ['python', 'python']]) {
+    for (const [key, id] of [['officecli', 'officecli'], ['node', 'node'], ['python', 'python']]) {
       const entry = resolved.dependencies.find((entry: Json) => entry.dependency_id === id);
       if (!entry) continue;
       outputs[`${key}_version`] = entry.version;

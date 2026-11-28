@@ -8,4 +8,3 @@ export { homeActivityCenterForbiddenDisplays, appOwnedActiveStudioPrimaryNavigat
 export { appOwnedSessionWorkspaceModel, appOwnedDirectoryGroupPolicy, appOwnedExplicitSessionInputPolicy, appOwnedUnifiedContextMenu } from './app-contract-constants/session.ts';
 export { appOwnedAgentPackageOrdinaryStatusInputMapping, appOwnedAgentPackageUserStatusProjection, appOwnedSendFailureInputPolicy, appOwnedCodexSubagentActivityPolicy } from './app-contract-constants/ordinary-chat.ts';
 export { appOwnedTranscriptExport, appOwnedArtifactPreview, appOwnedCurrentTaskSlice, appOwnedRightContextInspectorPolicy, appOwnedReviewSurfaceSourceEvidence, appOwnedRightContextInspectorForbiddenOwners } from './app-contract-constants/conversation.ts';
-export { temporalLocalServiceDefaults, temporalManagedCommands } from './app-contract-constants/temporal.ts';

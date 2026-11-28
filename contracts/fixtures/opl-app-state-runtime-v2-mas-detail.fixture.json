@@ -16,8 +16,7 @@
       "elapsed_ms": 0,
       "read_policy": "local_inventory_and_execution_session_sqlite_plus_fresh_cached_runtime_observation_only",
       "network_access_allowed": false,
-      "mutation_allowed": false,
-      "temporal_reconciliation_mode": "background_updates_local_runtime_observation_gui_reads_cache_only"
+      "mutation_allowed": false
     },
     "operator": {
       "workbench": {
@@ -326,8 +325,7 @@
             "can_write_domain_truth": false,
             "can_create_owner_receipt": false,
             "can_create_typed_blocker": false,
-            "can_authorize_quality_verdict": false,
-            "temporal_is_work_item_inventory": false
+            "can_authorize_quality_verdict": false
           }
         }
       }

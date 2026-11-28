@@ -67,7 +67,7 @@ test("Full first-install manifest consumes execution environment refs and preser
   );
 });
 
-test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace resolution to Framework", async () => {
+test("Full runtime wrapper preserves Shell Codex without injecting legacy provider defaults", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-wrapper-"));
   const runtimeRoot = path.join(tempRoot, "runtime");
   const runtimeCommand = path.join(runtimeRoot, "opl", "bin", "opl");
@@ -75,7 +75,7 @@ test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace r
     runtimeCommand,
     [
       "#!/bin/bash",
-      "printf '%s|%s|%s|%s\\n' \"${OPL_TEMPORAL_ADDRESS:-unset}\" \"${OPL_TEMPORAL_ADDRESS_SOURCE:-unset}\" \"${OPL_CODEX_BIN:-unset}\" \"${OPL_TEMPORAL_NAMESPACE:-unset}\"",
+      "printf '%s|%s\\n' \"${OPL_FAMILY_RUNTIME_PROVIDER:-unset}\" \"${OPL_CODEX_BIN:-unset}\"",
       "",
     ].join("\n"),
   );
@@ -86,9 +86,7 @@ test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace r
     writeRuntimeWrappers(runtimeRoot);
     const wrapperPath = path.join(runtimeRoot, "bin", "opl");
     const baseEnv = { ...process.env };
-    delete baseEnv.OPL_TEMPORAL_ADDRESS;
-    delete baseEnv.OPL_TEMPORAL_ADDRESS_SOURCE;
-    delete baseEnv.OPL_TEMPORAL_NAMESPACE;
+    delete baseEnv.OPL_FAMILY_RUNTIME_PROVIDER;
     delete baseEnv.OPL_CODEX_BIN;
 
     const runWrapper = (overrides = {}) => {
@@ -100,32 +98,12 @@ test("Full runtime wrapper preserves Shell Codex and defers Temporal namespace r
       return result.stdout.trim();
     };
 
-    assert.equal(runWrapper(), "127.0.0.1:7233|packaged_local_default|unset|unset");
-    assert.equal(
-      runWrapper({ OPL_TEMPORAL_NAMESPACE: "operator-namespace" }),
-      "127.0.0.1:7233|packaged_local_default|unset|operator-namespace",
-    );
-    assert.equal(
-      runWrapper({ OPL_TEMPORAL_NAMESPACE: "default" }),
-      "127.0.0.1:7233|packaged_local_default|unset|default",
-    );
+    assert.equal(runWrapper(), "unset|unset");
     assert.equal(
       runWrapper({
-        OPL_TEMPORAL_ADDRESS: "temporal.example:7233",
         OPL_CODEX_BIN: "/shell/managed-resources/codex",
       }),
-      "temporal.example:7233|unset|/shell/managed-resources/codex|unset",
-    );
-    assert.equal(
-      runWrapper({ OPL_TEMPORAL_ADDRESS: "127.0.0.1:7233" }),
-      "127.0.0.1:7233|unset|unset|unset",
-    );
-    assert.equal(
-      runWrapper({
-        OPL_TEMPORAL_ADDRESS: "temporal.example:7233",
-        OPL_TEMPORAL_ADDRESS_SOURCE: "operator_environment",
-      }),
-      "temporal.example:7233|operator_environment|unset|unset",
+      "unset|/shell/managed-resources/codex",
     );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -353,34 +331,12 @@ test("Full runtime OPL layer fails closed when required Framework export metadat
   }
 });
 
-test("Full runtime executable discovery fails closed on duplicate Temporal or Python candidates", async () => {
+test("Full runtime executable discovery fails closed on duplicate Python candidates", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-runtime-duplicate-candidates-"));
   const runtimeRoot = path.join(tempRoot, "runtime");
   try {
-    const { writeTemporalCliWrapper } =
-      await import("../../../scripts/build-full-first-install-package/runtime-layers.ts");
     const { writeRuntimeWrappers } =
       await import("../../../scripts/full-first-install-runtime-wrappers.ts");
-
-    const makeDuplicateArchive = (archivePath, relativePaths) => {
-      const sourceRoot = fs.mkdtempSync(path.join(tempRoot, "archive-source-"));
-      for (const relativePath of relativePaths) {
-        writeExecutable(path.join(sourceRoot, relativePath), "#!/bin/sh\nexit 0\n");
-      }
-      fs.mkdirSync(path.dirname(archivePath), { recursive: true });
-      const result = spawnSync("tar", ["-czf", archivePath, "-C", sourceRoot, "."], { encoding: "utf8" });
-      assert.equal(result.status, 0, result.stderr);
-    };
-
-    const temporalWrapper = path.join(runtimeRoot, "bin", "temporal");
-    writeTemporalCliWrapper(temporalWrapper, "temporal 1.0.0");
-    makeDuplicateArchive(
-      path.join(runtimeRoot, "vendor", "temporal", "temporal_cli_darwin_arm64.tar.gz"),
-      ["one/temporal", "two/temporal"],
-    );
-    const temporal = spawnSync(temporalWrapper, ["server"], { encoding: "utf8" });
-    assert.notEqual(temporal.status, 0);
-    assert.match(temporal.stderr, /multiple executable temporal binaries/);
 
     writeExecutable(path.join(runtimeRoot, "opl", "bin", "opl"), "#!/bin/sh\nexit 0\n");
     fs.mkdirSync(path.join(runtimeRoot, "python", "3.11", "bin"), { recursive: true });
@@ -599,7 +555,6 @@ test("real Full domain and prepareRuntime builders package the current MAS Schol
       "offline required payload assertions must have unique paths",
     );
     for (const entryPath of [
-      "opl/node_modules/@swc/core-darwin-arm64/swc.darwin-arm64.node",
       "modules/mas-scholar-skills/.codex-plugin/plugin.json",
       "modules/mas-scholar-skills/contracts/opl_capability_package_manifest.json",
       "modules/mas-scholar-skills/runtime/reference-provider-adapters/index.ts",

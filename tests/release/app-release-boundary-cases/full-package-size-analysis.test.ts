@@ -41,7 +41,7 @@ function sizeManifest(version: string, totalRuntimeBytes: number) {
     sizeBreakdown: {
       total_runtime_uncompressed_bytes: totalRuntimeBytes,
       layers: {
-        toolchain: { size_bytes: 200, children: { vendor: { size_bytes: 150, children: { temporal: { size_bytes: 150 } } } } },
+        toolchain: { size_bytes: 200, children: { vendor: { size_bytes: 150, children: { officecli: { size_bytes: 150 } } } } },
         'domain-runtime': { size_bytes: 180 },
         'opl-runtime': { size_bytes: 100 },
         skills: { size_bytes: 20 },
@@ -79,7 +79,7 @@ test('Full package size analyzer reports component, layer, and runtime budgets',
     summary.optimization_candidates[0].id,
   ], ['mas', 'toolchain', 'mas', 'toolchain', 'toolchain']);
   assert.deepEqual(summary.opl_layer_taxonomy, manifest.opl_execution_environment_consumer.layer_taxonomy);
-  assert.equal(summary.manifest_size_hotspots[3].path, 'toolchain/vendor/temporal');
+  assert.equal(summary.manifest_size_hotspots[3].path, 'toolchain/vendor/officecli');
 });
 
 test('Full package size analyzer separates review threshold from hard limit', () => {

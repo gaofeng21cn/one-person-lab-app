@@ -600,7 +600,7 @@ function validateEnvironmentPage(matrix, guiContract) {
   }
   if (
     !environmentPage.must_show?.includes(
-      'active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI with version, source, currentness, and update guidance on the main Maintenance surface',
+      'active Codex CLI with version, source, currentness, and update guidance on the main Maintenance surface',
     ) ||
     !environmentPage.must_show?.includes(
       'Framework working paths inside the single read-only Maintenance diagnostics disclosure',

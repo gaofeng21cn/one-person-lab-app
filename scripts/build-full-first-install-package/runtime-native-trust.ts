@@ -152,89 +152,6 @@ function signMacosRuntimeExecutable(filePath, relativePath, identity) {
   assertSignedRuntimeExecutableSmoke(filePath, relativePath);
 }
 
-function listEmbeddedTemporalExecutables(root) {
-  const results = [];
-  const stack = [root];
-  while (stack.length > 0) {
-    const current = stack.pop();
-    const stat = fs.lstatSync(current);
-    if (stat.isDirectory()) {
-      for (const entry of fs.readdirSync(current)) {
-        stack.push(path.join(current, entry));
-      }
-      continue;
-    }
-    if (
-      !stat.isSymbolicLink()
-      && stat.isFile()
-      && path.basename(current) === 'temporal'
-      && (stat.mode & 0o111) !== 0
-    ) {
-      results.push(current);
-    }
-  }
-  return results.sort();
-}
-
-export function signEmbeddedTemporalCliArchive(runtimeRoot, identity) {
-  const archivePath = path.join(
-    runtimeRoot,
-    'vendor',
-    'temporal',
-    'temporal_cli_darwin_arm64.tar.gz',
-  );
-  if (!fs.existsSync(archivePath)) {
-    throw new Error(`Full runtime Temporal CLI archive is missing: ${archivePath}`);
-  }
-
-  const extractRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-temporal-sign-'));
-  const verifyRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-temporal-verify-'));
-  const signedArchivePath = `${archivePath}.signed-${process.pid}-${Date.now()}`;
-  const archiveRelativePath = relativeRuntimePath(runtimeRoot, archivePath);
-  try {
-    run('tar', ['-xzf', archivePath, '-C', extractRoot]);
-    const candidates = listEmbeddedTemporalExecutables(extractRoot);
-    if (candidates.length !== 1) {
-      throw new Error(
-        `Full runtime Temporal CLI archive must contain exactly one executable temporal binary; found ${candidates.length}.`,
-      );
-    }
-
-    const embeddedRelativePath = path.relative(extractRoot, candidates[0]).split(path.sep).join('/');
-    const receiptRelativePath = `${archiveRelativePath}/${embeddedRelativePath}`;
-    signMacosRuntimeExecutable(candidates[0], receiptRelativePath, identity);
-    run('tar', ['-czf', signedArchivePath, '-C', extractRoot, '.'], {
-      env: {
-        ...process.env,
-        COPYFILE_DISABLE: '1',
-      },
-    });
-
-    run('tar', ['-xzf', signedArchivePath, '-C', verifyRoot]);
-    const repackedCandidates = listEmbeddedTemporalExecutables(verifyRoot);
-    if (repackedCandidates.length !== 1) {
-      throw new Error(
-        `Signed Full runtime Temporal CLI archive must contain exactly one executable temporal binary; found ${repackedCandidates.length}.`,
-      );
-    }
-    const verification = verifyMacosRuntimeExecutable(repackedCandidates[0], {
-      strict: true,
-      requiresSpctl: true,
-      assessSpctl: false,
-    });
-    fs.renameSync(signedArchivePath, archivePath);
-    return {
-      relative_path: receiptRelativePath,
-      archive_path: archiveRelativePath,
-      ...verification,
-    };
-  } finally {
-    fs.rmSync(signedArchivePath, { force: true });
-    fs.rmSync(extractRoot, { recursive: true, force: true });
-    fs.rmSync(verifyRoot, { recursive: true, force: true });
-  }
-}
-
 function verifyMacosRuntimeExecutable(filePath, options) {
   const codesignResult = runCapture('codesign', ['--verify', '--strict', '--verbose=2', filePath]);
   const shouldAssessSpctl = options.requiresSpctl && options.assessSpctl === true;
@@ -315,9 +232,6 @@ export function ensureFullRuntimeNativeTrust(runtimeRoot) {
     };
   }
 
-  const embeddedTemporal = identity
-    ? signEmbeddedTemporalCliArchive(runtimeRoot, identity)
-    : null;
   const executables = listFullRuntimeNativeExecutables(runtimeRoot);
 
   for (const executable of executables) {
@@ -334,10 +248,6 @@ export function ensureFullRuntimeNativeTrust(runtimeRoot) {
       assessSpctl: false,
     }),
   }));
-  if (embeddedTemporal) {
-    verified.push(embeddedTemporal);
-    verified.sort((left, right) => left.relative_path.localeCompare(right.relative_path));
-  }
   const signed = verified.every((entry) => (
     entry.codesign_status === 'passed'
     && entry.quarantine_status === 'absent'

@@ -631,7 +631,7 @@
         "product_policy_ref": "contracts/app-gui-product-contract.json#scheduled_tasks_policy",
         "active_adapter_contract_ref": "contracts/app-shell-adapter.json#scheduled_tasks_adapter",
         "route": "/scheduled",
-        "scheduler_authority": "framework_temporal_schedule_and_history",
+        "scheduler_authority": "framework_workbench_schedule_and_history",
         "ordinary_sider_entry_visible": true,
         "primary_view": "schedules",
         "executor": "codex_cli",
@@ -2452,7 +2452,6 @@
         "summary_source": "app_state.operator.workbench.work_item_projection_v2",
         "full_detail_source": "selected_work_item_from_work_item_projection_v2_plus_item_scoped_domain_detail_view",
         "must_not_default_display_terms": [
-          "Temporal",
           "provider",
           "ledger",
           "projection",
@@ -2524,7 +2523,6 @@
         "raw refs",
         "receipt refs",
         "workflow IDs and historical attempt IDs",
-        "Temporal",
         "raw projection",
         "evidence ledger",
         "current_control_state",
@@ -2568,7 +2566,7 @@
       "must_show": [
         "three independent second-level destinations: Service Status, Updates & Repair, and Logs & Diagnostics",
         "exactly one selected destination presented as the ordinary page purpose",
-        "active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI with version, source, currentness, and update guidance on the main Maintenance surface",
+        "active Codex CLI with version, source, currentness, and update guidance on the main Maintenance surface",
         "Runway status and schedule runner health under Service Status",
         "update channel as an inline persistent configuration",
         "single recommended repair or maintenance action",
@@ -2661,9 +2659,7 @@
       "managed_dependency_summary": {
         "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.dependencies[]",
         "required_ids": [
-          "codex-cli",
-          "temporal-runtime",
-          "temporal-system-cli"
+          "codex-cli"
         ],
         "required_fields": [
           "dependency_id",
@@ -2686,24 +2682,12 @@
         "optional_fields_by_dependency_id": {
           "codex-cli": [
             "external_installations"
-          ],
-          "temporal-runtime": [],
-          "temporal-system-cli": [
-            "note"
           ]
         },
         "localized_display_names": {
           "codex-cli": {
             "label_zh": "Codex CLI",
             "label_en": "Codex CLI"
-          },
-          "temporal-runtime": {
-            "label_zh": "OPL 托管 Temporal 运行时",
-            "label_en": "OPL-managed Temporal Runtime"
-          },
-          "temporal-system-cli": {
-            "label_zh": "系统 Temporal CLI",
-            "label_en": "System Temporal CLI"
           }
         },
         "currentness_values": [
@@ -2717,7 +2701,7 @@
           "explicit_owner_delegated",
           "detect_only_guidance"
         ],
-        "display_policy": "show active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
+        "display_policy": "show active Codex CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
         "path_deduplication_policy": "deduplicate Codex PATH candidates by normalized real_path when present otherwise binary_path and retain shadowed candidates in diagnostics",
         "path_identity_precedence": [
           "real_path",
@@ -2750,11 +2734,6 @@
             "real_path"
           ],
           "path_policy": "normalize_real_path_when_present_otherwise_binary_path_before_deduplication_and_keep_shadowed_rows_in_diagnostics"
-        },
-        "temporal_component_version_policy": {
-          "runtime_component_id": "temporal-runtime",
-          "cli_component_id": "temporal-system-cli",
-          "normalization": "normalize_semver_without_v_prefix_and_never_compare_runtime_bundle_version_to_system_cli_version"
         }
       },
       "ordinary_layout_policy": {

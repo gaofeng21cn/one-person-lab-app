@@ -468,7 +468,7 @@
         {
           "feature_id": "B0-12",
           "capability_id": "background_turn_continuity_notifications_and_scheduled_tasks",
-          "owner": "codex_app_server_and_framework_temporal",
+          "owner": "codex_app_server_and_framework_workbench_services",
           "disposition": "required",
           "cutover_blocking": true,
           "components": [
@@ -564,7 +564,7 @@
         {
           "feature_id": "U1-03",
           "capability_id": "agent_conversation_and_business_runtime",
-          "owner": "agent_packages_temporal_and_framework_projection",
+          "owner": "agent_packages_runway_and_framework_projection",
           "disposition": "required",
           "cutover_blocking": true
         },
@@ -2054,7 +2054,7 @@
       "ecosystem_module_updates"
     ],
     "runtime_provider": {
-      "full_readiness_provider": "temporal",
+      "full_readiness_provider": "runway",
       "ready_to_launch_blocking": false
     },
     "full_runtime_package_qualification": {
@@ -2379,7 +2379,6 @@
     },
     "environment_items": [
       "codex",
-      "temporal",
       "med-autoscience",
       "med-autogrant",
       "redcube-ai",
@@ -2787,7 +2786,7 @@
           "label_en": "Local Environment",
           "label_zh": "本机环境",
           "managed_objects": ["opl_base", "opl_app", "opl_packages"],
-          "base_dependency_examples": ["codex_cli", "temporal_js_runtime", "officecli_cli", "mineru_cli"],
+          "base_dependency_examples": ["codex_cli", "officecli_cli", "mineru_cli"],
           "must_not_create_fourth_updater": true
         }
       },
@@ -2818,17 +2817,12 @@
           "codex_cli": {
             "opl_managed": "silent_managed",
             "external": "explicit_owner_delegated_or_detect_only_guidance"
-          },
-          "temporal": {
-            "opl_managed_js_runtime": "silent_managed_with_opl_base_generation",
-            "external_server_cli_or_sdk": "explicit_owner_delegated_or_detect_only_guidance"
           }
         },
         "forbidden": [
           "silent_external_overwrite",
           "delegated_update_without_confirmation",
-          "guessing_external_owner",
-          "independent_temporal_updater_claim"
+          "guessing_external_owner"
         ]
       },
       "app_update_state_policy": {
@@ -4027,7 +4021,7 @@
             "managed_update_repair_availability_policy_ref": "contracts/app-gui-product-contract.json#framework_surfaces.managed_update_plane.repair_availability_policy",
             "managed_dependency_summary": {
               "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.dependencies[]",
-              "required_ids": ["codex-cli", "temporal-runtime", "temporal-system-cli"],
+              "required_ids": ["codex-cli"],
               "required_fields": [
                 "dependency_id",
                 "dependency_kind",
@@ -4045,27 +4039,17 @@
               ],
               "optional_fields": ["real_path"],
               "optional_fields_by_dependency_id": {
-                "codex-cli": ["external_installations"],
-                "temporal-runtime": [],
-                "temporal-system-cli": ["note"]
+                "codex-cli": ["external_installations"]
               },
               "localized_display_names": {
                 "codex-cli": {
                   "label_zh": "Codex CLI",
                   "label_en": "Codex CLI"
-                },
-                "temporal-runtime": {
-                  "label_zh": "OPL 托管 Temporal 运行时",
-                  "label_en": "OPL-managed Temporal Runtime"
-                },
-                "temporal-system-cli": {
-                  "label_zh": "系统 Temporal CLI",
-                  "label_en": "System Temporal CLI"
                 }
               },
               "currentness_values": ["current", "update_available", "unknown", "missing"],
               "update_mode_values": ["silent_managed", "explicit_owner_delegated", "detect_only_guidance"],
-              "display_policy": "show active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
+              "display_policy": "show active Codex CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
               "path_deduplication_policy": "deduplicate Codex PATH candidates by normalized real_path when present otherwise binary_path and retain shadowed candidates in diagnostics",
               "path_identity_precedence": ["real_path", "binary_path"],
               "external_update_policy": "OPL-managed roots use the existing OPL Base update route; identified external owners require confirmation; unknown owners receive guidance only",
@@ -4093,11 +4077,6 @@
                 ],
                 "optional_fields": ["real_path"],
                 "path_policy": "normalize_real_path_when_present_otherwise_binary_path_before_deduplication_and_keep_shadowed_rows_in_diagnostics"
-              },
-              "temporal_component_version_policy": {
-                "runtime_component_id": "temporal-runtime",
-                "cli_component_id": "temporal-system-cli",
-                "normalization": "normalize_semver_without_v_prefix_and_never_compare_runtime_bundle_version_to_system_cli_version"
               }
             }
           },
@@ -4685,11 +4664,10 @@
           {
             "id": "managed_dependency_currentness",
             "track": "user_task_ux",
-            "goal": "Maintenance shows managed Codex and Temporal currentness with stable external installation rows.",
+            "goal": "Maintenance shows managed Codex currentness with stable external installation rows.",
             "evidence_required": [
-              "Codex CLI and both Temporal components use canonical ids",
+              "Codex CLI uses canonical ids",
               "external rows have stable identity and required fields",
-              "Temporal runtime and CLI versions are normalized but never compared across components",
               "manual actions remain owner-routed"
             ]
           },
@@ -6824,8 +6802,8 @@
               "anchor": "managed-dependencies",
               "label_zh": "托管依赖",
               "label_en": "Managed dependencies",
-              "keywords_zh": ["Codex CLI", "Temporal", "依赖", "更新"],
-              "keywords_en": ["codex cli", "temporal", "dependencies", "updates"]
+              "keywords_zh": ["Codex CLI", "依赖", "更新"],
+              "keywords_en": ["codex cli", "dependencies", "updates"]
             },
             {
               "id": "maintenance.updates",
@@ -7110,7 +7088,7 @@
       "product_policy_ref": "contracts/app-gui-product-contract.json#scheduled_tasks_policy",
       "active_adapter_contract_ref": "contracts/app-shell-adapter.json#scheduled_tasks_adapter",
       "route": "/scheduled",
-      "scheduler_authority": "framework_temporal_schedule_and_history",
+      "scheduler_authority": "framework_workbench_schedule_and_history",
       "single_scheduler_store_required": true,
       "ordinary_sider_entry_visible": true,
       "executor": "codex_cli",

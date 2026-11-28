@@ -703,7 +703,6 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
   assertDeepEqualJson(
     runtimeDefaultAttention?.must_not_default_display_terms,
     [
-      'Temporal',
       'provider',
       'projection',
       'ref',
@@ -733,7 +732,7 @@ export function validateGuiFrameworkSurfaces(guiContract, releaseChannel, instal
     'purpose_entry', 'task_status', 'next_owner', 'accepted_answer_shape', 'artifact_or_blocker', 'release_fact',
   ], 'App GUI ordinary cockpit surface budget answer shapes');
   assertIncludesAll(budget?.ordinary_must_not_default_display_terms, [
-    'Temporal', 'provider', 'ledger', 'projection', 'stage attempt', 'AionUI', 'backend selector', 'shell candidate', 'runtime implementation selector',
+    'provider', 'ledger', 'projection', 'stage attempt', 'AionUI', 'backend selector', 'shell candidate', 'runtime implementation selector',
   ], 'App GUI ordinary cockpit surface budget forbidden terms');
   assertIncludesAll(guiContract.framework_surfaces.forbidden_gui_truth_sources, [
     'direct opl connect modules --json page aggregation',

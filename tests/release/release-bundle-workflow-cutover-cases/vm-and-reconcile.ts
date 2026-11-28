@@ -442,12 +442,11 @@ test('release helpers reject duplicate mounted Apps and packaged runtime executa
     'utf8',
   );
 
-  for (const source of [installer, runtimeLayers, runtimeWrappers]) {
+  for (const source of [installer, runtimeWrappers]) {
     assert.doesNotMatch(source, /find[^\n]*(?:-print -quit|\|[^\n]*head\s+-n?\s*1)/);
     assert.match(source, /LC_ALL=C sort/);
   }
   assert.match(installer, /Mounted DMG must contain exactly one App bundle/);
-  assert.match(runtimeLayers, /multiple executable temporal binaries/);
   assert.match(runtimeWrappers, /multiple Python bin roots/);
   assert.match(codexCarrierValidator, /resolver_env !== 'OPL_CODEX_BIN'/);
   assert.match(

@@ -309,7 +309,6 @@ export function validateRuntimeCockpitProductContract(contract, label) {
     contract.work_item_inventory,
     {
       source: 'canonical_agent_work_item_inventory',
-      temporal_history_required: false,
       provider_attempt_history_required: false,
       fast_profile_must_preserve_every_work_item: true,
       missing_detail_may_drop_row: false,

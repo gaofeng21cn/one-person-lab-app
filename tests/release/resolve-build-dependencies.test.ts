@@ -8,23 +8,22 @@ test('projects one Framework resolution into Full and qualification inputs', () 
     dependencies: [
       { dependency_id: 'officecli', version: '2.0.0', source_ref: 'v2.0.0', resolved_commit: 'a'.repeat(40), archive_url: 'https://example.test/office', archive_sha256: 'a'.repeat(64), archive_size_bytes: 1 },
       { dependency_id: 'mineru-open-api', version: '3.0.0', source_ref: 'v3.0.0', resolved_commit: 'b'.repeat(40), archive_url: 'https://example.test/mineru', archive_sha256: 'b'.repeat(64), archive_size_bytes: 1 },
-      { dependency_id: 'temporal-cli', version: '1.9.0', source_ref: 'v1.9.0', archive_url: 'https://example.test/temporal', archive_sha256: 'c'.repeat(64), archive_size_bytes: 1 },
       { dependency_id: 'codex-cli', platform: 'darwin', architecture: 'arm64', version: '1.0.0', source_ref: '1.0.0', archive_url: 'https://example.test/codex', archive_sha256: 'e'.repeat(64), archive_size_bytes: 1, npm_integrity: 'sha512-codex', install_metadata: { npm_platform: { package: '@openai/codex', version: '1.0.0-darwin-arm64', npm_integrity: 'sha512-platform', tarball_url: 'https://example.test/platform', tarball_sha256: 'f'.repeat(64), tarball_size_bytes: 1 } } },
     ],
   };
-  const full = { sources: { officecli: {}, mineru: {} }, toolchain: {}, runtime_payloads: { temporal_cli: {} } };
+  const full = { sources: { officecli: {}, mineru: {} }, toolchain: {}, runtime_payloads: { officecli: {} } };
   const qualification = { runtime_payloads: { codex_cli: { package: '@openai/codex', platform: {} } } };
   const projected = projectResolvedBuildDependencies(resolved, full, qualification);
   assert.equal(projected.qualification.runtime_payloads.codex_cli.version, '1.0.0');
   assert.equal(projected.qualification.runtime_payloads.codex_cli.tarball_size_bytes, 1);
   assert.equal(projected.qualification.runtime_payloads.codex_cli.platform.tarball_sha256, 'f'.repeat(64));
   assert.equal(projected.qualification.runtime_payloads.kimi_cu, undefined);
-  assert.equal(projected.full.runtime_payloads.temporal_cli.version, '1.9.0');
+  assert.equal(projected.full.runtime_payloads.officecli.darwin_arm64_asset_sha256, 'a'.repeat(64));
   assert.equal(projected.full.sources.officecli.ref, 'a'.repeat(40));
 });
 
 test('rejects an unverified archive result', () => {
-  assert.throws(() => projectResolvedBuildDependencies({ dependencies: [{ dependency_id: 'temporal-cli', version: '1.9.0', source_ref: 'v1.9.0' }] }, { sources: {}, toolchain: {}, runtime_payloads: { temporal_cli: {} } }, { runtime_payloads: { codex_cli: { package: '@openai/codex', platform: {} } } }), /verified archive identity/);
+  assert.throws(() => projectResolvedBuildDependencies({ dependencies: [{ dependency_id: 'officecli', version: '2.0.0', source_ref: 'v2.0.0', resolved_commit: 'a'.repeat(40) }] }, { sources: { officecli: {} }, toolchain: {}, runtime_payloads: { officecli: {} } }, { runtime_payloads: { codex_cli: { package: '@openai/codex', platform: {} } } }), /verified archive identity/);
 });
 
 test('projects the selected Codex native archive over the macOS qualification template', () => {

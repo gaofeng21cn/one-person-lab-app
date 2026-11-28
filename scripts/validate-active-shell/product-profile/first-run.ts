@@ -92,10 +92,10 @@ function validateReadyToLaunchGate(profile) {
     }
   }
   if (
-    profile.first_run?.runtime_provider?.full_readiness_provider !== 'temporal'
+    profile.first_run?.runtime_provider?.full_readiness_provider !== 'runway'
     || profile.first_run.runtime_provider.ready_to_launch_blocking !== false
   ) {
-    throw new Error('Product profile full runtime provider must stay Temporal and non-blocking for ready_to_launch');
+    throw new Error('Product profile full runtime provider must stay Runway and non-blocking for ready_to_launch');
   }
 }
 

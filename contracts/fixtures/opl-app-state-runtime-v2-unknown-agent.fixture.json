@@ -405,8 +405,7 @@
             "can_write_domain_truth": false,
             "can_create_owner_receipt": false,
             "can_create_typed_blocker": false,
-            "can_authorize_quality_verdict": false,
-            "temporal_is_work_item_inventory": false
+            "can_authorize_quality_verdict": false
           }
         }
       }

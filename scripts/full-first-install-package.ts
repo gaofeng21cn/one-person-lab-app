@@ -45,9 +45,9 @@ export const FULL_RUNTIME_CACHE_LAYER_TAXONOMY = {
 const RUNTIME_FABRIC_BUNDLE_TAXONOMY = {
   'execution-core.bundle': {
     display_name: 'Agent Execution Core',
-    components: ['temporal_cli', 'opl'],
+    components: ['opl'],
     cache_layers: ['base-toolchain', 'opl-framework-runtime'],
-    smoke: 'Temporal wrapper version check plus OPL CLI startup smoke',
+    smoke: 'OPL Framework CLI and daemon startup smoke',
   },
   'environment-materializer.bundle': {
     display_name: 'Environment Materializer',
@@ -360,7 +360,6 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
     runtime_assertions: input.runtimeAssertions ?? {
       prune_policy_id: FULL_RUNTIME_PRUNE_POLICY.id,
       prune_policy_hash: buildFullRuntimePrunePolicyHash(),
-      temporal_core_bridge_releases: [],
       excluded_module_venv_count: 0,
       packaged_global_node_packages: [],
       offline_required_payloads: [],
@@ -530,15 +529,6 @@ export function buildFullPackageManifest(input: FullPackageManifestInput & { car
         ...normalizeComponent(components.uv),
         role: 'python_environment_manager',
         required: true,
-      },
-      temporal_cli: {
-        ...normalizeComponent(components.temporal_cli),
-        role: 'temporal_cli_offline_archive_wrapper',
-        required: true,
-        binary_path: components.temporal_cli?.binary_path ?? null,
-        archive_path: components.temporal_cli?.archive_path
-          ?? 'runtime/current/vendor/temporal/temporal_cli_darwin_arm64.tar.gz',
-        archive_size_bytes: components.temporal_cli?.archive_size_bytes ?? null,
       },
       officecli: {
         ...normalizeComponent(components.officecli),
@@ -837,7 +827,7 @@ export function buildFullFirstInstallReadme(input: {
     `5. The App shell resolves Codex from ${codexCarrier} and passes the exact executable through OPL_CODEX_BIN. ${codexBoundary}`,
     `6. Offline first launch and local Codex initialization require neither OPL Gateway nor a registry download. The bundled profile seeds ${codexProfile}; model requests require connectivity and usable model access.`,
     '7. The Full package only assembles and validates declared framework/runtime, domain module, and companion tool payloads. Runtime truth, provider implementation, domain truth, domain quality verdicts, and artifact authority remain owned by the OPL Framework and the domain agents.',
-    '8. The Full package includes local state and module material required by the family runtime provider. OPL Framework source and contracts are runtime payload inputs, not owners of the App release flow. Production durable stage attempts are governed by the Temporal provider contract.',
+    '8. The Full package includes local state and module material required by the OPL runtime. OPL Framework source and contracts are runtime payload inputs, not owners of the App release flow.',
     '9. After confirming model access in the App, open OPL initialization and confirm the Core ready, Domain modules ready, and family runtime provider ready states. Full readiness requires all three layers to pass.',
     '10. First launch reads provider-backed readiness through opl family-runtime doctor/status. The Full package no longer carries Hermes runtime payloads.',
     '11. Recommended smoke check: open Research Foundry and create or read a workspace status through MAS.',

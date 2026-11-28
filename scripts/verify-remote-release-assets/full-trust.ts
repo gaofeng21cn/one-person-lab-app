@@ -342,19 +342,6 @@ export function assertFullSizeBudget(manifest, fullDmgAssetSize) {
     manifest.runtime_assertions,
     "Full manifest runtime_assertions",
   );
-  if (!Array.isArray(runtimeAssertions.temporal_core_bridge_releases)) {
-    throw new Error(
-      "Full manifest runtime_assertions.temporal_core_bridge_releases must be an array.",
-    );
-  }
-  const expectedBridgeReleases = manifest.components?.opl?.framework_api_version === "2.0"
-    ? []
-    : ["aarch64-apple-darwin"];
-  if (JSON.stringify(runtimeAssertions.temporal_core_bridge_releases) !== JSON.stringify(expectedBridgeReleases)) {
-    throw new Error(
-      `Full runtime Temporal core-bridge releases must match the selected Framework: expected ${JSON.stringify(expectedBridgeReleases)}, got ${JSON.stringify(runtimeAssertions.temporal_core_bridge_releases)}`,
-    );
-  }
   if (runtimeAssertions.excluded_module_venv_count !== 0) {
     throw new Error(
       `Full runtime must not package modules/*/.venv directories; count=${runtimeAssertions.excluded_module_venv_count}`,
@@ -381,37 +368,6 @@ export function assertFullSizeBudget(manifest, fullDmgAssetSize) {
       );
     }
   }
-
-  const temporalCli = assertFullComponent(manifest, "temporal_cli");
-  if (
-    temporalCli.required !== true ||
-    temporalCli.role !== "temporal_cli_offline_archive_wrapper"
-  ) {
-    throw new Error(
-      "Full manifest components.temporal_cli must be a required temporal_cli_offline_archive_wrapper component.",
-    );
-  }
-  if (!String(temporalCli.version || "").startsWith("temporal version ")) {
-    throw new Error(
-      `Full manifest components.temporal_cli.version must record temporal --version; got ${temporalCli.version}`,
-    );
-  }
-  if (temporalCli.binary_path !== null) {
-    throw new Error(
-      `Full manifest components.temporal_cli.binary_path must be null for archive-only packaging; got ${temporalCli.binary_path}`,
-    );
-  }
-  if (
-    temporalCli.archive_path !== "runtime/current/vendor/temporal/temporal_cli_darwin_arm64.tar.gz"
-  ) {
-    throw new Error(
-      `Full manifest components.temporal_cli.archive_path is unexpected: ${temporalCli.archive_path}`,
-    );
-  }
-  assertSafePositiveInteger(
-    temporalCli.archive_size_bytes,
-    "Full manifest components.temporal_cli.archive_size_bytes",
-  );
 
   const bun = assertFullOptionalComponent(manifest, "bun");
   if (bun.required !== false || bun.role !== "optional_bun_cli_runtime_payload") {
@@ -466,16 +422,8 @@ export function assertFullSizeBudget(manifest, fullDmgAssetSize) {
     full_dmg_size_status: fullDmgSizeStatus,
     runtime_uncompressed_bytes: runtimeUncompressedBytes,
     warnings,
-    temporal_core_bridge_releases: runtimeAssertions.temporal_core_bridge_releases,
     excluded_module_venv_count: runtimeAssertions.excluded_module_venv_count,
-    required_components: {
-      temporal_cli: {
-        version: temporalCli.version,
-        size_bytes: temporalCli.size_bytes,
-        archive_path: temporalCli.archive_path,
-        archive_size_bytes: temporalCli.archive_size_bytes,
-      },
-    },
+    required_components: {},
     optional_components: {
       bun: {
         status: bun.status,

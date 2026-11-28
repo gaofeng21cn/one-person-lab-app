@@ -16,15 +16,6 @@ import {
 } from './common.ts';
 
 export type UpstreamInputs = {
-  temporal: {
-    tag: string;
-    version: string;
-    published_at: string;
-    archive: string;
-    archive_sha256: string;
-    binary: string;
-    binary_version: string;
-  };
   officecli: {
     tag: string;
     version: string;
@@ -107,47 +98,6 @@ function versionFromTag(tag: string, prefix: string, label: string) {
     throw new Error(`${label} has an unsupported stable tag: ${tag}`);
   }
   return tag.slice(prefix.length);
-}
-
-function prepareTemporal(cacheRoot: string) {
-  const release = githubApi<JsonRecord>('repos/temporalio/cli/releases/latest');
-  const tag = releaseTag(release, 'Temporal');
-  const version = versionFromTag(tag, 'v', 'Temporal');
-  const archiveName = `temporal_cli_${version}_darwin_arm64.tar.gz`;
-  const archiveAsset = releaseAsset(release, archiveName, 'Temporal');
-  const checksumsAsset = releaseAsset(release, 'checksums.txt', 'Temporal');
-  const releaseRoot = path.join(cacheRoot, 'temporal', tag);
-  const archive = downloadGithubAsset(
-    archiveAsset,
-    path.join(releaseRoot, archiveName),
-    `Temporal ${tag} macOS arm64 archive`,
-  );
-  const checksums = downloadGithubAsset(
-    checksumsAsset,
-    path.join(releaseRoot, 'checksums.txt'),
-    `Temporal ${tag} checksums`,
-  );
-  const expectedChecksumLine = `${archive.sha256}  ${archiveName}`;
-  const checksumLines = fs.readFileSync(checksums.path, 'utf8').split(/\r?\n/);
-  if (!checksumLines.includes(expectedChecksumLine)) {
-    throw new Error(`Temporal ${tag} official checksums do not bind ${archiveName}`);
-  }
-  const extracted = path.join(releaseRoot, 'extracted');
-  extractVerifiedTarGz(archive.path, extracted);
-  const binary = requireFile(path.join(extracted, 'temporal'), 'Temporal CLI');
-  const binaryVersion = verifyMacArm64Binary(binary, ['--version'], 'Temporal CLI');
-  if (!binaryVersion.includes(`temporal version ${version}`)) {
-    throw new Error(`Temporal binary version does not match ${tag}: ${binaryVersion}`);
-  }
-  return {
-    tag,
-    version,
-    published_at: releasePublishedAt(release),
-    archive: archive.path,
-    archive_sha256: archive.sha256,
-    binary,
-    binary_version: binaryVersion,
-  };
 }
 
 function prepareOfficeCli(cacheRoot: string) {
@@ -287,7 +237,6 @@ function prepareMineruOpenApi(cacheRoot: string) {
 export function prepareLatestUpstreams(cacheRoot: string): UpstreamInputs {
   fs.mkdirSync(cacheRoot, { recursive: true });
   return {
-    temporal: prepareTemporal(cacheRoot),
     officecli: prepareOfficeCli(cacheRoot),
     mineru_open_api: prepareMineruOpenApi(cacheRoot),
   };

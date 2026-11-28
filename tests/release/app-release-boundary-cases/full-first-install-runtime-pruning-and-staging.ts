@@ -79,11 +79,11 @@ test("Full runtime pruning keeps macOS arm64 launch payloads without development
   );
   writeFile(path.join(auditRuntimeRoot, "node", "bin", "node"), "node");
   writeFile(
-    path.join(auditRuntimeRoot, "opl", "node_modules", "@temporalio", "client", "docs", "api.md"),
+    path.join(auditRuntimeRoot, "opl", "node_modules", "zod", "docs", "api.md"),
     "docs",
   );
   writeFile(
-    path.join(auditRuntimeRoot, "opl", "node_modules", "@temporalio", "client", "lib", "index.js"),
+    path.join(auditRuntimeRoot, "opl", "node_modules", "zod", "lib", "index.js"),
     "client",
   );
   writeFlowCapabilityBuildLockFixture(auditRuntimeRoot);
@@ -116,21 +116,21 @@ test("Full runtime pruning keeps macOS arm64 launch payloads without development
     scanAudit.runtime_scan.excluded_paths.includes("node/lib/node_modules/npm/docs/readme.md"),
   );
   assert.ok(
-    scanAudit.runtime_scan.excluded_paths.includes("opl/node_modules/@temporalio/client/docs"),
+    scanAudit.runtime_scan.excluded_paths.includes("opl/node_modules/zod/docs"),
   );
   assert.ok(
     scanAudit.runtime_scan.excluded_paths.includes(
-      "opl/node_modules/@temporalio/client/docs/api.md",
+      "opl/node_modules/zod/docs/api.md",
     ),
   );
   assert.ok(
     !scanAudit.runtime_scan.excluded_paths.includes("node/lib/node_modules/npm/lib/cli.js"),
   );
   assert.ok(!scanAudit.runtime_scan.excluded_paths.includes("opl/node_modules"));
-  assert.ok(!scanAudit.runtime_scan.excluded_paths.includes("opl/node_modules/@temporalio/client"));
+  assert.ok(!scanAudit.runtime_scan.excluded_paths.includes("opl/node_modules/zod"));
   assert.ok(
     !scanAudit.runtime_scan.excluded_paths.includes(
-      "opl/node_modules/@temporalio/client/lib/index.js",
+      "opl/node_modules/zod/lib/index.js",
     ),
   );
   assert.ok(scanAudit.runtime_scan.excluded_bytes > 0);
@@ -611,15 +611,6 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
   }
 
   const runtimeRoot = path.join(tempRoot, "runtime");
-  writeExecutable(path.join(runtimeRoot, "bin", "temporal"), "#!/bin/sh\nexit 0\n");
-  writeFile(
-    path.join(runtimeRoot, "vendor", "temporal", "temporal_cli_darwin_arm64.tar.gz"),
-    "temporal archive",
-  );
-  writeFile(
-    path.join(runtimeRoot, "opl", "node_modules", "@swc", "core-darwin-arm64", "swc.darwin-arm64.node"),
-    "swc native binding",
-  );
   writeJson(path.join(runtimeRoot, "opl", "package.json"), {
     name: "opl-framework",
     exports: {
@@ -710,8 +701,6 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
   assert.match(assertions.prune_policy_hash, /^[a-f0-9]{64}$/);
   assert.deepEqual(assertions.packaged_global_node_packages, ["corepack", "npm"]);
   for (const [entryPath, field] of [
-    ["vendor/temporal/temporal_cli_darwin_arm64.tar.gz", "exists"],
-    ["opl/node_modules/@swc/core-darwin-arm64/swc.darwin-arm64.node", "exists"],
     ["node/bin/npm", "executable"],
     ...authorityFunctionModules.map(([modulePath]) => [
       `${modulePath}/runtime/authority_functions/README.md`,
@@ -795,7 +784,7 @@ test("Full runtime node payload prunes package-only docs while preserving offlin
   writeJson(path.join(runtimeRoot, "opl/package.json"), { bin: { opld: "./packages/daemon/bin/opld" } });
   writeJson(path.join(runtimeRoot, "opl/packages/daemon/package.json"), { exports: { ".": "./dist/index.js" } });
   writeFile(path.join(runtimeRoot, "opl/packages/daemon/dist/index.js"), "export {};\n");
-  fs.rmSync(path.join(runtimeRoot, "opl/node_modules/@swc"), { recursive: true });
+  fs.rmSync(path.join(runtimeRoot, "opl/node_modules/@swc"), { recursive: true, force: true });
   const v2Manifest = writeFullRuntimeManifest(
     runtimeRoot, { version: "26.7.7-test" }, "2026-07-07T00:00:00.000Z",
     { opl: { framework_api_version: "2.0", framework_daemon_version: "2.0.0" } }, {},

@@ -43,7 +43,6 @@ export function validateTaskAwarenessProjectionContract(projection, label) {
     action_receipt_policy: "dry_run_plan_and_execute_receipt_refs_only_via_opl_app_action",
     workflow_ref_policy: "capability_workflow_refs_only_no_app_skill_body_write",
     export_bundle_policy: "framework_domain_action_ref_only_app_displays_dry_run_execute_receipt",
-    temporal_policy: "diagnostics_only_never_user_task_model",
   }, label);
   assertDeepEqualJson(
     projection.current_task_surfaces,
@@ -95,7 +94,7 @@ export function validateTaskAwarenessProjectionContract(projection, label) {
   assertIncludesAll(
     projection.forbidden_claims,
     [
-      "new_task_dashboard", "shell_runtime_truth", "temporal_as_user_task_model",
+      "new_task_dashboard", "shell_runtime_truth",
       "artifact_body", "owner_receipt_authority", "domain_quality_verdict",
       "domain_readiness", "app_release_readiness", "family_production_readiness",
     ],

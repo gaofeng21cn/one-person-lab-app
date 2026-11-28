@@ -206,21 +206,11 @@ export function writeAuthorityFunctionInventory(root, label) {
 
 
 export function writeFrameworkRuntimeSource(frameworkRoot) {
-  const temporalPackages = [
-    "@temporalio/activity",
-    "@temporalio/client",
-    "@temporalio/common",
-    "@temporalio/worker",
-    "@temporalio/workflow",
-  ];
-  const dependencies = Object.fromEntries(temporalPackages.map((packageName) => [packageName, "1.0.0"]));
+  const productionPackages = ["zod"];
+  const dependencies = Object.fromEntries(productionPackages.map((packageName) => [packageName, "1.0.0"]));
   const lockPackages = {
     "": { dependencies },
-    ...Object.fromEntries(temporalPackages.map((packageName) => [`node_modules/${packageName}`, {}])),
-    "node_modules/@temporalio/core-bridge": {},
-    "node_modules/@swc/core": {},
-    "node_modules/@swc/core-darwin-arm64": { optional: true, os: ["darwin"], cpu: ["arm64"] },
-    "node_modules/@swc/core-linux-x64-gnu": { optional: true, os: ["linux"], cpu: ["x64"] },
+    ...Object.fromEntries(productionPackages.map((packageName) => [`node_modules/${packageName}`, {}])),
     "node_modules/e2b": { optional: true },
   };
   writeJson(path.join(frameworkRoot, "package.json"), {
@@ -241,36 +231,12 @@ export function writeFrameworkRuntimeSource(frameworkRoot) {
     path.join(frameworkRoot, "dist", "host", "composition-profiles.js"),
     "export const startCordisChannelProviderHost = () => ({ });\n",
   );
-  for (const packageName of temporalPackages) {
+  for (const packageName of productionPackages) {
     writeJson(path.join(frameworkRoot, "node_modules", ...packageName.split("/"), "package.json"), {
       name: packageName,
       version: "1.0.0",
     });
   }
-  writeFile(
-    path.join(
-      frameworkRoot,
-      "node_modules",
-      "@temporalio",
-      "core-bridge",
-      "releases",
-      "aarch64-apple-darwin",
-      "index.node",
-    ),
-    "fixture native module",
-  );
-  writeJson(path.join(frameworkRoot, "node_modules", "@swc", "core", "package.json"), {
-    name: "@swc/core",
-    version: "1.0.0",
-  });
-  writeJson(path.join(frameworkRoot, "node_modules", "@swc", "core-darwin-arm64", "package.json"), {
-    name: "@swc/core-darwin-arm64",
-    version: "1.0.0",
-  });
-  writeFile(
-    path.join(frameworkRoot, "node_modules", "@swc", "core-darwin-arm64", "swc.darwin-arm64.node"),
-    "fixture swc native module",
-  );
 
   const managedUpdate = {
     managed_update: {
@@ -358,8 +324,6 @@ function buildFixturePaths(tempRoot: string) {
   const npmRoot = path.join(nodeRoot, "lib", "node_modules", "npm");
   const pythonRoot = path.join(toolsRoot, "cpython-3.12-fixture-macos-aarch64-none");
   const uvBin = path.join(toolsRoot, "uv");
-  const temporalCliBin = path.join(toolsRoot, "temporal");
-  const temporalCliArchive = path.join(toolsRoot, "temporal.tar.gz");
   const officeCliBin = path.join(toolsRoot, "officecli");
   const mineruOpenApiBin = path.join(toolsRoot, "mineru-open-api");
 
@@ -407,8 +371,6 @@ function buildFixturePaths(tempRoot: string) {
     bunBin: null,
     pythonRoot,
     uvBin,
-    temporalCliBin,
-    temporalCliArchive,
     officeCliBin,
     mineruOpenApiBin,
     mineruRepoRoot: null,
@@ -581,8 +543,6 @@ function getFullRuntimeTemplate(): BaseFullRuntimeTemplate {
 
   writeVersionExecutable(path.join(sources.pythonRoot, "bin", "python3"), "Python 3.12.0");
   writeVersionExecutable(sources.uvBin, "uv 0.1.0");
-  writeVersionExecutable(sources.temporalCliBin, "temporal 1.0.0");
-  writeFile(sources.temporalCliArchive, "fixture temporal archive");
   writeVersionExecutable(sources.officeCliBin, "officecli 0.0.1");
   writeVersionExecutable(sources.mineruOpenApiBin, "mineru-open-api 0.0.1");
 

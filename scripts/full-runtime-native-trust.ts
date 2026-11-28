@@ -1,11 +1,5 @@
-function requiredFullRuntimeNativeTrustPaths(manifest: any): string[] {
-  const temporalBinaryPath = manifest?.components?.temporal_cli?.binary_path;
-  return [
-    'runtime/current/node/bin/node',
-    ...(typeof temporalBinaryPath === 'string' && temporalBinaryPath
-      ? [temporalBinaryPath]
-      : []),
-  ];
+function requiredFullRuntimeNativeTrustPaths(_manifest: any): string[] {
+  return ['runtime/current/node/bin/node'];
 }
 
 function productionSignatureKind(entry: any): string {

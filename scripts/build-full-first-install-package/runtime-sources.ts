@@ -50,20 +50,6 @@ function findMineruOpenApiBinary(explicitBin) {
   });
 }
 
-export function findTemporalCliBinary(explicitBin) {
-  return findCompanionBinary({
-    name: 'temporal',
-    explicitBin,
-    envBin: process.env.OPL_TEMPORAL_CLI_BIN || '',
-    flagName: '--temporal-cli-bin',
-    envName: 'OPL_FULL_TEMPORAL_CLI_BIN',
-  });
-}
-
-export function findTemporalCliArchive(explicitArchive) {
-  return requirePath(explicitArchive || process.env.OPL_FULL_TEMPORAL_CLI_ARCHIVE || '', 'Temporal CLI archive');
-}
-
 function requireNodeToolchainFile(nodeBinDir, name) {
   const filePath = path.join(nodeBinDir, name);
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
@@ -167,8 +153,6 @@ export function resolveRuntimeSources(options, selectedFlowCliIds) {
   const bunBin = options.includeBunRuntime ? findBunBinary(options.bunBin) : null;
   const pythonRoot = findPythonRoot(options.pythonRoot);
   const uvBin = requirePath(options.uvBin, 'uv binary');
-  const temporalCliBin = findTemporalCliBinary(options.temporalCliBin);
-  const temporalCliArchive = findTemporalCliArchive(options.temporalCliArchive);
   const officeCliBin = selected.has('officecli') ? findOfficeCliBinary(options.officeCliBin) : null;
   const mineruOpenApiBin = selected.has('mineru-open-api')
     ? findMineruOpenApiBinary(options.mineruOpenApiBin)
@@ -179,8 +163,6 @@ export function resolveRuntimeSources(options, selectedFlowCliIds) {
     bunBin,
     pythonRoot,
     uvBin,
-    temporalCliBin,
-    temporalCliArchive,
     officeCliBin,
     mineruOpenApiBin,
     mineruRepoRoot: fs.existsSync(path.join(options.mineruRoot, '.git')) ? options.mineruRoot : null,

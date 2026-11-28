@@ -124,27 +124,8 @@ test('remote release verifier validates standard and Full assets from GitHub rel
   assert.equal(summary.full_first_install_budget.full_dmg_size_status, 'passed');
   assert.equal(summary.full_first_install_budget.runtime_uncompressed_bytes, 128);
   assert.deepEqual(summary.full_first_install_budget.warnings, []);
-  assert.deepEqual(summary.full_first_install_budget.temporal_core_bridge_releases, ['aarch64-apple-darwin']);
   assert.equal(summary.full_first_install_budget.excluded_module_venv_count, 0);
-  assert.equal(summary.full_first_install_budget.required_components.temporal_cli.version, 'temporal version 1.7.0');
   assert.equal(summary.full_first_install_budget.optional_components.bun.status, 'not_packaged');
-});
-
-test('Full asset readback enforces the bridge inventory for each Framework generation', async () => {
-  const { assertFullSizeBudget } = await import('../../../scripts/verify-remote-release-assets/full-trust.ts');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-framework-bridge-'));
-  try {
-    writeFullRemoteAssets(root, '26.7.7');
-    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'opl-release-manifest.json'), 'utf8')).manifest;
-    manifest.runtime_assertions.temporal_core_bridge_releases = [];
-    assert.throws(() => assertFullSizeBudget(manifest, 8), /core-bridge releases/);
-    manifest.components.opl = { framework_api_version: '2.0' };
-    assert.equal(assertFullSizeBudget(manifest, 8).status, 'passed');
-    manifest.runtime_assertions.temporal_core_bridge_releases = ['aarch64-apple-darwin'];
-    assert.throws(() => assertFullSizeBudget(manifest, 8), /core-bridge releases/);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
 });
 
 test('remote release verifier preserves the unchanged v26.8.8 single-metadata release', () => {

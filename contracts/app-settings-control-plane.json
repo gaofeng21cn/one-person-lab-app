@@ -310,7 +310,6 @@
       ],
       "base_dependency_examples": [
         "codex_cli",
-        "temporal_js_runtime",
         "officecli_cli",
         "mineru_cli"
       ],
@@ -350,17 +349,12 @@
       "codex_cli": {
         "opl_managed": "silent_managed",
         "external": "explicit_owner_delegated_or_detect_only_guidance"
-      },
-      "temporal": {
-        "opl_managed_js_runtime": "silent_managed_with_opl_base_generation",
-        "external_server_cli_or_sdk": "explicit_owner_delegated_or_detect_only_guidance"
       }
     },
     "forbidden": [
       "silent_external_overwrite",
       "delegated_update_without_confirmation",
-      "guessing_external_owner",
-      "independent_temporal_updater_claim"
+      "guessing_external_owner"
     ]
   },
   "app_update_state_policy": {
@@ -1649,9 +1643,7 @@
         "managed_dependency_summary": {
           "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.dependencies[]",
           "required_ids": [
-            "codex-cli",
-            "temporal-runtime",
-            "temporal-system-cli"
+            "codex-cli"
           ],
           "required_fields": [
             "dependency_id",
@@ -1674,24 +1666,12 @@
           "optional_fields_by_dependency_id": {
             "codex-cli": [
               "external_installations"
-            ],
-            "temporal-runtime": [],
-            "temporal-system-cli": [
-              "note"
             ]
           },
           "localized_display_names": {
             "codex-cli": {
               "label_zh": "Codex CLI",
               "label_en": "Codex CLI"
-            },
-            "temporal-runtime": {
-              "label_zh": "OPL 托管 Temporal 运行时",
-              "label_en": "OPL-managed Temporal Runtime"
-            },
-            "temporal-system-cli": {
-              "label_zh": "系统 Temporal CLI",
-              "label_en": "System Temporal CLI"
             }
           },
           "currentness_values": [
@@ -1705,7 +1685,7 @@
             "explicit_owner_delegated",
             "detect_only_guidance"
           ],
-          "display_policy": "show active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
+          "display_policy": "show active Codex CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
           "path_deduplication_policy": "deduplicate Codex PATH candidates by normalized real_path when present otherwise binary_path and retain shadowed candidates in diagnostics",
           "path_identity_precedence": [
             "real_path",
@@ -1738,11 +1718,6 @@
               "real_path"
             ],
             "path_policy": "normalize_real_path_when_present_otherwise_binary_path_before_deduplication_and_keep_shadowed_rows_in_diagnostics"
-          },
-          "temporal_component_version_policy": {
-            "runtime_component_id": "temporal-runtime",
-            "cli_component_id": "temporal-system-cli",
-            "normalization": "normalize_semver_without_v_prefix_and_never_compare_runtime_bundle_version_to_system_cli_version"
           }
         }
       },
@@ -2386,11 +2361,10 @@
       {
         "id": "managed_dependency_currentness",
         "track": "user_task_ux",
-        "goal": "Maintenance shows managed Codex and Temporal currentness with stable external installation rows.",
+        "goal": "Maintenance shows managed Codex currentness with stable external installation rows.",
         "evidence_required": [
-          "Codex CLI and both Temporal components use canonical ids",
+          "Codex CLI uses canonical ids",
           "external rows have stable identity and required fields",
-          "Temporal runtime and CLI versions are normalized but never compared across components",
           "manual actions remain owner-routed"
         ]
       },
@@ -5097,13 +5071,11 @@
           "label_en": "Managed dependencies",
           "keywords_zh": [
             "Codex CLI",
-            "Temporal",
             "依赖",
             "更新"
           ],
           "keywords_en": [
             "codex cli",
-            "temporal",
             "dependencies",
             "updates"
           ]

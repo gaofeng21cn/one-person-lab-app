@@ -1,9 +1,6 @@
 import { assertDeepEqualJson, assertFieldsMatch, assertIncludesAll } from './assertions.ts';
-import { temporalLocalServiceDefaults, temporalManagedCommands } from './app-contract-constants.ts';
-
 export function validateInstallExposureRuntimeAndDistribution(policy) {
   validateSoftwareLifecycle(policy.software_lifecycle);
-  validateTemporalAutoConfiguration(policy.temporal_auto_configuration);
   validateHomebrewDistribution(policy.distribution_channels?.homebrew);
   validateReleaseValidation(policy.release_validation);
 }
@@ -80,83 +77,6 @@ function validateSoftwareLifecycle(lifecycle) {
   ) {
     throw new Error('Install exposure Full payload seeds must be activated by the Framework owner');
   }
-}
-
-function validateTemporalAutoConfiguration(temporalAutoConfig) {
-  if (
-    temporalAutoConfig?.owner !== 'one-person-lab' ||
-    temporalAutoConfig?.app_role !== 'configure_defaults_and_surface_readiness_not_provider_implementation' ||
-    temporalAutoConfig?.provider_env_default !== 'OPL_FAMILY_RUNTIME_PROVIDER=temporal'
-  ) {
-    throw new Error('Install exposure Temporal auto-configuration must keep OPL owner and App default configuration role');
-  }
-  assertDeepEqualJson(
-    temporalAutoConfig.local_service_defaults,
-    temporalLocalServiceDefaults,
-    'Install exposure Temporal local service defaults',
-  );
-  assertDeepEqualJson(
-    temporalAutoConfig.managed_commands,
-    temporalManagedCommands,
-    'Install exposure Temporal managed commands',
-  );
-  if (
-    temporalAutoConfig.first_run_policy?.ready_to_launch_blocking !== false ||
-    temporalAutoConfig.first_run_policy?.full_readiness_item !== 'family_runtime_provider' ||
-    temporalAutoConfig.first_run_policy?.background_maintenance_owner !== 'app_or_cli_managed_background_maintenance'
-  ) {
-    throw new Error('Install exposure Temporal first-run policy must keep provider readiness non-blocking and background-managed');
-  }
-  assertIncludesAll(
-    temporalAutoConfig.first_run_policy?.required_diagnostics,
-    [
-      'temporal_cli_version',
-      'temporal_service_lifecycle',
-      'temporal_service_supervisor_state',
-      'temporal_worker_lifecycle_status',
-      'worker_dependency_health',
-    ],
-    'Install exposure Temporal diagnostics',
-  );
-  if (
-    temporalAutoConfig.startup_maintenance_policy?.must_reconcile_temporal_service_supervisor_before_worker !== true ||
-    JSON.stringify(temporalAutoConfig.startup_maintenance_policy?.login_reconciliation_order) !==
-      JSON.stringify(['temporal_service_supervisor', 'temporal_worker_supervisor', 'temporal_scheduler'])
-  ) {
-    throw new Error('Install exposure Temporal startup maintenance must reconcile service, worker, then scheduler');
-  }
-  if (
-    temporalAutoConfig.packaged_runtime_policy?.full_wrapper_must_export_defaults !== true ||
-    temporalAutoConfig.packaged_runtime_policy?.full_wrapper_must_not_freeze_worker_namespace !== true ||
-    temporalAutoConfig.packaged_runtime_policy?.must_include_temporal_cli_wrapper !== true ||
-    temporalAutoConfig.packaged_runtime_policy?.temporal_cli_wrapper_must_execute_offline_archive !== true ||
-    temporalAutoConfig.packaged_runtime_policy?.must_include_temporal_node_runtime_packages !== true ||
-    temporalAutoConfig.packaged_runtime_policy?.must_exclude_temporal_testing_package !== true ||
-    temporalAutoConfig.packaged_runtime_policy?.service_supervisor_launcher_policy !==
-      'discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout' ||
-    temporalAutoConfig.packaged_runtime_policy?.service_supervisor_platform_scope !==
-      'desktop_macos_local_managed_service' ||
-    temporalAutoConfig.packaged_runtime_policy?.service_supervisor_persistent_database_path !==
-      '${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite' ||
-    temporalAutoConfig.packaged_runtime_policy?.service_supervisor_persistent_database_argument !== '--db-filename' ||
-    temporalAutoConfig.packaged_runtime_policy?.native_core_bridge_target !== 'aarch64-apple-darwin'
-  ) {
-    throw new Error('Install exposure Temporal packaged runtime policy must require wrapper defaults and macOS arm64 runtime payloads');
-  }
-  assertIncludesAll(
-    temporalAutoConfig.fail_closed_states,
-    [
-      'missing_temporal_cli_wrapper',
-      'missing_temporal_node_runtime_package',
-      'temporal_worker_dependency_unavailable',
-      'temporal_service_supervisor_unready',
-      'temporal_service_supervisor_configuration_drift',
-      'temporal_local_service_stale_state',
-      'temporal_worker_process_exited',
-      'temporal_worker_source_stale',
-    ],
-    'Install exposure Temporal fail-closed states',
-  );
 }
 
 function validateHomebrewDistribution(homebrew) {

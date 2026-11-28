@@ -83,7 +83,7 @@ function validateFullFirstInstallScenario(fullClean) {
     }
   }
   if (!fullClean?.expects?.some((entry) => /family runtime provider/.test(entry) && /background maintenance/.test(entry))) {
-    throw new Error('Full first-install scenario must keep Temporal family runtime provider in background maintenance after Core ready');
+    throw new Error('Full first-install scenario must keep Runway family runtime provider in background maintenance after Core ready');
   }
 }
 
