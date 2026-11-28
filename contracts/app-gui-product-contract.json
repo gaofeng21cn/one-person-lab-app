@@ -4933,8 +4933,8 @@
           "route_id": "resources",
           "route_scope": "ordinary",
           "visibility": "top_level_navigation",
-          "label_en": "Connections & Deployment",
-          "label_zh": "连接与部署",
+          "label_en": "Libraries & Connections",
+          "label_zh": "资料与连接",
           "scope": "resource",
           "intent": "configure",
           "risk": "confirmation_required",
@@ -5597,8 +5597,8 @@
         "ordinary_entry_policy": "filtered_agent_destination_under_agents_capabilities"
       },
       "capabilities": {
-        "label_zh": "扩展与应用",
-        "label_en": "Extensions & Apps",
+        "label_zh": "能力配置",
+        "label_en": "Capability settings",
         "role": "unified_package_installation_lifecycle_status_and_app_enablement",
         "primary_question": "Which extensions are installed, how are they managed, and which should appear in OPL App?",
         "ia_group": "agents_capabilities",
@@ -5680,8 +5680,8 @@
       },
       {
         "id": "connections_deployment",
-        "label_zh": "连接与部署",
-        "label_en": "Connections & Deployment",
+        "label_zh": "资料与连接",
+        "label_en": "Libraries & Connections",
         "role": "resource_connection_and_deployment_configuration",
         "ordinary_entries": [
           "settings_resources"
@@ -8380,8 +8380,8 @@
         "voice_input"
       ],
       "tab_contract": {
-        "surface_label_zh": "扩展与应用",
-        "surface_label_en": "Extensions & Apps",
+        "surface_label_zh": "能力配置",
+        "surface_label_en": "Capability settings",
         "tab_order": [
           "packages",
           "desktop",
@@ -9407,8 +9407,8 @@
           },
           {
             "id": "capabilities",
-            "label_en": "Extensions & Apps",
-            "label_zh": "扩展与应用"
+            "label_en": "Capability settings",
+            "label_zh": "能力配置"
           },
           {
             "id": "maintenance",

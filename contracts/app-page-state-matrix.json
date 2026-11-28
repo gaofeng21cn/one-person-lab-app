@@ -4556,8 +4556,8 @@
         "details"
       ],
       "tab_contract": {
-        "surface_label_zh": "扩展与应用",
-        "surface_label_en": "Extensions & Apps",
+        "surface_label_zh": "能力配置",
+        "surface_label_en": "Capability settings",
         "tab_order": [
           "packages",
           "desktop",

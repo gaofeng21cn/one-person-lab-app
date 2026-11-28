@@ -2480,8 +2480,8 @@
         },
         {
           "id": "connections_deployment",
-          "label_zh": "连接与部署",
-          "label_en": "Connections & Deployment",
+          "label_zh": "资料与连接",
+          "label_en": "Libraries & Connections",
           "role": "resource_connection_and_deployment_configuration",
           "ordinary_entries": ["settings_resources"],
           "primary_tasks": ["resources_connections", "remote_access", "advanced_deployment"]
@@ -2496,8 +2496,8 @@
         },
         {
           "id": "agents_capabilities",
-          "label_zh": "扩展与应用",
-          "label_en": "Extensions & Apps",
+          "label_zh": "能力与指令",
+          "label_en": "Capabilities & Instructions",
           "role": "agent_package_capability_and_instruction_management",
           "ordinary_entries": ["settings_agents", "settings_capabilities", "workspace#personalization"],
           "primary_tasks": [
@@ -3356,8 +3356,8 @@
           },
           {
             "id": "connections_deployment",
-            "label_zh": "连接与部署",
-            "label_en": "Connections & Deployment",
+            "label_zh": "资料与连接",
+            "label_en": "Libraries & Connections",
             "default_destination_id": "resources_connections",
             "destination_ids": ["resources_connections"]
           },
@@ -3631,8 +3631,8 @@
           "id": "capabilities",
           "path": "/settings/capabilities",
           "label_key": "settings.capabilities",
-          "default_label_en": "Extensions & Apps",
-          "default_label_zh": "扩展与应用",
+          "default_label_en": "Capability settings",
+          "default_label_zh": "能力配置",
           "icon_token": "capabilities",
           "ia_group": "agents_capabilities",
           "slot_id": "settings_capabilities",
@@ -5616,8 +5616,8 @@
             "product_page_id": "capabilities",
             "route_id": "capabilities",
             "matrix_page_id": "capabilities",
-            "label_zh": "扩展与应用",
-            "label_en": "Extensions & Apps",
+            "label_zh": "能力配置",
+            "label_en": "Capability settings",
             "primary_information": [
               "all dynamically discovered Packages, including private and local sources, with installation, version, source, lifecycle actions, independent App enablement and on-demand package status",
               "OPL Flow managed and recommended Skills and Plugins derived from installed package dependency closure",
@@ -5677,8 +5677,8 @@
               "label_en": "Install extension"
             },
             "tab_contract": {
-              "surface_label_zh": "扩展与应用",
-              "surface_label_en": "Extensions & Apps",
+              "surface_label_zh": "能力配置",
+              "surface_label_en": "Capability settings",
               "tab_order": [
                 "packages",
                 "desktop",

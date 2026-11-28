@@ -386,14 +386,14 @@ Settings 是 OPL Control Center，不是 upstream 配置列表：
 - 使用独立 Settings route：明确 return、search 和 grouped rows；不把 Settings 塞进
   Environment/details。
 - Ordinary navigation 按 App-owned Settings IA 组织七组：Overview；Account & Models；
-  Connections & Deployment；Workspace；Agents & Capabilities；Runtime & Maintenance；
+  Libraries & Connections；Workspace；Capabilities & Instructions；Runtime & Maintenance；
   Preferences。十个 carrier routes 作为二级 transport 保持稳定；About 是底部唯一辅助页；
   Advanced、Update、Theme、Local Services 和 Personalization 只作为 owner destination 的兼容重定向。
-- 每页先回答用户问题，再给 recommended action；raw ids、paths、receipts 和 JSON
-  默认折叠。
+- 多 Tab 分组头固定顺序为「主标题与刷新 -> 二级 Tab 切换条 -> 当前 Tab 说明」；每页先回答用户问题，
+  再给 recommended action，raw ids、paths、receipts 和 JSON 默认折叠（技术详情仅在开启后展示）。
 - Search 只帮助导航，不创建第二 status source。
-- 二元值用 toggle/checkbox，模式用 segmented control，选项用 menu，数值用合适的
-  input/stepper/slider。
+- 二元值、分段选择、按钮与确认弹窗统一复用官方 DSH 原语（Switch / SegmentedControl / Button / Modal）
+  及官方 Theme Token（`0.5px` hairline 与六档标准圆角）。
 - 状态改变或 destructive action 进入 confirmation surface，明确 will change、
   will not change、recovery/receipt 和 preview/proof。
 - Legacy/upstream route 只 redirect 到最近 App-owned page。
