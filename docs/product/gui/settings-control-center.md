@@ -167,7 +167,7 @@ Package 安装、更新和修复通过 Framework 后台入口执行。确认前�
 
 The first interactive Settings window renders from a persisted narrow snapshot
 or a stable loading shell. It never waits for the complete
-`opl app state --profile fast --json` payload or for page drilldowns. The full
+`opld` `app.state.get` (`profile: "fast"`, v1 CLI: `opl app state --profile fast --json`) payload or for page drilldowns. The full
 fast projection refreshes once in the background and is shared across routes;
 opening another Settings page does not restart the global read.
 
@@ -227,7 +227,7 @@ tab strip.
 | Primary group | Second-level destinations | Carrier route / anchor |
 | --- | --- | --- |
 | 概览 | 概览 | `general` |
-| 账户与模型 | 账户与访问；模型 | `gateway`; `access` |
+| 账户与模型 | 账户与访问；模型与执行 | `gateway`; `access` |
 | 资料与连接 | 资料与连接 | `resources` |
 | 工作区 | 工作目录；数据与存储 | `workspace#current-workspace`; `storage` |
 | 能力与指令 | 能力配置；指令与上下文 | `capabilities`; `workspace#personalization` |
@@ -293,7 +293,7 @@ and a path shown in diagnostics is not a second path configuration.
 | Where are App logs and diagnostics, and what needs maintenance? | Runtime & Maintenance > Logs & Diagnostics | Storage may link to the resolved log path read-only. | Presenting logs under Workspace or duplicating the log-directory setting in Storage. |
 | Which extensions and apps are installed, and where are their status and updates? | Software Center | Overview and Capabilities link directly to Software Center; Home may show an enabled shortcut. | A second Package manager, fixed package list, or package status sections scattered across Service Status and Resources. |
 | Which Skills and Plugins are available? | Capabilities & Instructions > Capability settings | Agent dependency readiness may link here; technical upstream integration rows disclose only when Technical details is enabled. | A hardcoded Flow list or a second lifecycle authority. |
-| Which external resources, connections, and deployment entry points are available? | Libraries & Connections > Resources & Connections | Other pages may link to a resource. | Built-in OPL Gateway connection or Gateway count; selected local workspace controls. |
+| Which external resources, connections, and deployment entry points are available? | Libraries & Connections | Other pages may link to a resource. | Built-in OPL Gateway connection or Gateway count; selected local workspace controls. |
 | Are Codex and background services available? | Runtime & Maintenance > Service Status | Overview shows one compact Background tasks summary. | Update controls, log configuration, raw paths, or receipts. |
 | Which managed dependencies need updates or repair? | Runtime & Maintenance > Updates & Repair | Overview, Models, and Service Status may show only a compact Codex readiness state. | Repeating Codex versions, update channels, update policy, or update actions on other pages. |
 | How much local and Docker data is used, where are deployment locations, and what can be cleaned safely? | Data & Storage | Updates & Repair may link to cleanup attention; the Logs & Diagnostics-owned log path may be referenced read-only. | Log-directory configuration, mount rewiring, or generic Docker prune. |
@@ -321,7 +321,7 @@ App and Studio do not maintain Vault copies or a second source registry.
 
 ### Connect authorization
 
-Resources & Connections renders Framework Connect's
+Libraries & Connections renders Framework Connect's
 `settings_control_center.app_settings_read_model.connections.authorization`
 projection. It shows a redacted connection status and account label, pending
 requests with their exact consumer identity and requested capabilities, grants
@@ -399,8 +399,8 @@ next useful action is. Its normal first viewport contains:
 - one overall usability summary led by Codex CLI and model-access readiness;
 - signed-in Gateway identity, connection and availability, plus compact today
   token, cost, and balance summary;
-- one persistent **Background tasks** summary derived from explicit Temporal
-  service, OPL task worker, and scheduled-run readiness;
+- one persistent **Background tasks** summary derived from explicit Framework
+  **Runway** (`app_state.services.runway`) and **Schedule runner** (`schedule_runner`) readiness;
 - an impact-ordered exception queue;
 - one next useful action.
 
@@ -493,9 +493,9 @@ The Workspace carrier route may continue to host the user-level
 compatibility, but visible navigation owns them under Instructions & Context.
 It no longer owns or renders the App log-directory control.
 
-### Agents
+### Agents (Projected into Software Center `/apps`)
 
-Agents is a compact installed/discoverable list for Agent and workflow Packages.
+In the active Studio hierarchy, Package lifecycle and discovery are presented on the primary **Software Center (`/apps`)** surface, with legacy `/settings/agents` acting only as a compatibility deep link. Within that projection, Agents is a compact installed/discoverable list for Agent and workflow Packages.
 It renders Framework entries projected as `standard_agent` or
 `workflow_profile`; it does not parse registry entries, manifests, checkouts,
 locks, payloads, receipts, physical paths, LKG, or rollback state to create rows.
@@ -596,7 +596,7 @@ producers, and typed views. These identities come from installed
 Package/native-platform and owner projections. Package remains the install unit;
 the page links to the owning Package instead of creating a second lifecycle
 registry. Credential connections and deployment resources remain under
-Resources & Connections.
+Libraries & Connections.
 
 - There is no App-owned packaged-skill, tool, plugin, or MCP allowlist.
 - Required/optional edges check identity presence and callability only.
@@ -618,10 +618,10 @@ Resources & Connections.
 Legacy assistant routes redirect without deleting user data, and external custom
 assistant catalogs remain outside the OPL Package surface.
 
-### Libraries & Connections > Resources & Connections
+### Libraries & Connections
 
-Resources & Connections hosts Libraries & Connections (knowledge vaults, business
-accounts, per-software grants), remote messaging channels (including the standard
+Libraries & Connections (`resources` carrier route) hosts knowledge vaults, business
+accounts, per-software grants, remote messaging channels (including the standard
 Weixin capability via `channel_access`), OPL Link, and standalone/Docker WebUI setup
 guidance and read-only diagnostics. The section remains visible when no provider is
 ready; ready `channel_access` and `remote_companion_access` projections render from
@@ -671,7 +671,7 @@ three destinations into one long “Services & Maintenance” page.
    current App version & update readiness summary alongside a direct jump to
    Software Center (`updates`), which owns update channels, read-only `opl_base` current-version projection (`managed_update.components`),
    Desktop App update state, Check, Apply, progressive confirmation, progress, and
-   fresh readback. Packages appear only as one aggregate summary with a link to Agents;
+   fresh readback. Packages appear only as one aggregate summary with a link to Software Center (`/apps`);
    per-Package actions stay on that Package row. `opl_base` stays read-only on Updates;
    Desktop App and managed Package updates follow their own owner policies and
    progressive confirmation flows. Healthy components collapse into a compact summary;
@@ -686,14 +686,13 @@ three destinations into one long “Services & Maintenance” page.
    shadowed installs and native diagnostic detail stay collapsed by
    default and contain no mutation controls.
 
-The active dependency summary includes Codex CLI, the OPL-managed Temporal
-JavaScript Runtime, and the optional system Temporal CLI with version,
-source/owner, currentness, and applicable update guidance. OPL-managed roots may
-update through their owner. Reliably identified external installs require an
-explicitly confirmed delegated update; unknown or unsupported owners receive
-detection and guidance only. OPL never silently overwrites Homebrew, npm, PATH,
-or system installs. The managed Temporal runtime moves with OPL Base; the system
-Temporal CLI remains external unless its owner explicitly manages it.
+The active dependency summary includes Codex CLI, the Framework Runway and Schedule
+runner health projections, and declared managed/external components with version,
+source/owner, currentness, and applicable guidance alongside the read-only `opl_base`
+projection. OPL-managed roots may update through their owner. Reliably identified
+external installs require an explicitly confirmed delegated update; unknown or
+unsupported owners receive detection and guidance only. OPL never silently
+overwrites Homebrew, npm, PATH, or system installs.
 
 Desktop App currentness comes from the same main-process updater store consumed
 by About and the Settings footer. WebUI alone falls back to the Framework-managed
@@ -794,7 +793,7 @@ remain on their owner pages.
 
 Settings exposes exactly one bilingual item-level search input,
 `settings-search-input`. Results use `{page_label} > {entry_label}` (including
-Instructions under Agents & Capabilities), support Arrow/Enter/Escape keyboard
+Instructions under Capabilities & Instructions), support Arrow/Enter/Escape keyboard
 navigation, navigate to the owner carrier route, expand any containing disclosure,
 and focus and briefly highlight the target anchor. Duplicate Settings search inputs
 are forbidden.
@@ -856,7 +855,7 @@ also requires:
   readback;
 - truthful dynamic capability projection including its empty state, third-party naming, and
   native/local capability ownership routing;
-- visible managed Codex/Temporal currentness and external-install guidance;
+- visible Codex/Runway readiness, managed component currentness, and external-install guidance;
 - persisted Storage snapshot, freshness, background event, manual refresh, and
   unknown-not-zero behavior (never authorizing cleanup from failed inventory or guessing
   unknown storage deltas);

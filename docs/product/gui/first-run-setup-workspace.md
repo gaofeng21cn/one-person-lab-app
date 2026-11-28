@@ -34,7 +34,7 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
 ## 普通启动边界
 
 - 认证后的根路由、登录成功、历史 `/startup-gate` 与 catch-all 都直接进入 `/guid`。
-- ordinary launch 不渲染等待 fast state 的 `StartupGate`。`opl app state --profile fast --json`、
+- ordinary launch 不渲染等待 fast state 的 `StartupGate`。本机 `opld` `app.state.get`（`fast`；v1 CLI: `opl app state --profile fast --json`）、
   managed-agent discovery 与其它局部状态在 Guid 已进入后后台刷新；失败只影响依赖该状态的局部能力。
 - 只有刚完成 WebUI 登录的导航携带一次性 `postLoginSetupCheck`。Home 读取到明确的
   Core 未完成状态后用 replace 进入 `/first-run`；readiness 未知、超时或读取失败时
@@ -68,7 +68,7 @@ clean-user installed/callable readback 为准；本文只定义首启体验，�
 - 每个 root 独立显示 `waiting / installing / ready / attention`。一个 root 或依赖失败
   只让该 Agent 不可用；普通 Codex、App、Base 与其他 Package 继续。
 - Codex Core 可用后用户仍可进入 `/guid`；Official Profile 安装继续后台执行并在
-  Settings > Agents 显示。自动安装不能变成新的全屏等待门。
+  软件中心（`/apps`）显示。自动安装不能变成新的全屏等待门。
 - Profile 只在 first install 或用户显式选择“恢复官方组合”时执行。用户后来卸载
   官方 Package 后，首启检查、普通启动、日更和 App update 都不得重新安装它。
 - 旧版 Framework 通过 `opl app state --profile fast --json` 提供 directory entry 与
@@ -118,7 +118,7 @@ Desktop 不注入 App 私有 `CODEX_HOME`。进程已有显式 `CODEX_HOME` 时�
 `~/.codex`。启动检测和“已有 Codex 配置”重检均为只读；只有用户显式选择 Gateway 或 API Key 后，才允许 Framework
 通过带备份与恢复能力的原子合并修改相关配置字段。
 
-账户登录成功后必须读取 `opl app state --profile fast --json`。Framework 在 `resolved_group_id` 返回名称含 Codex 的唯一分组（忽略大小写），或仅有的可用分组。
+账户登录成功后必须通过 `opld` `app.state.get` (`fast`；v1 CLI: `opl app state --profile fast --json`) 读取最新投影。Framework 在 `resolved_group_id` 返回名称含 Codex 的唯一分组（忽略大小写），或仅有的可用分组。
 缺少 managed key 且投影提供设置动作时，App 使用该 ID 执行 `gateway_account_complete_setup`。字段为 `null` 或缺失时，App 显示本地化的分组提示，保留当前设置。完成设置后必须
 重新读取 fast state；若仍暴露 `gateway_account_use_for_model_access`，必须显示独立的“设为模型访问方式”确认动作。账户登录不构成
 这项 medium-impact 本机 Codex provider mutation 的确认。登录成功后，凭据字段必须替换为明确的本地化成功状态，并把键盘焦点移到

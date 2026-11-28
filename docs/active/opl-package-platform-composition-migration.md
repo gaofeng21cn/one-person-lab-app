@@ -32,7 +32,7 @@ Runtime 和 typed-view envelope。具体 Shell source 状态归
 | 首装与卸载偏好 | App/Shell 验证 Standard 与 Full 消费同一个 Official Profile；Full 仅增加离线 bytes。用户移除 Package 后重启、普通维护和 App 更新均不回装，只有显式 Restore 恢复。 |
 | 动态安装与依赖 | Framework/carrier 验证 unknown Package 安装、发现、callability 和 required-presence 补齐；无需固定 Package/Agent 分支或 version/ABI composition gate。一个失败仅影响自身及真实 dependents。 |
 | Home 与 Settings consumer | Shell 验证动态入口、显隐、排序和维护动作均来自 current projection，动作后 fresh refresh；不解析 native carrier 的 lock、receipt、私有路径或物理数据库。 |
-| 通用 Runtime 与领域视图 | Agent 提供业务任务，Temporal 提供执行，Framework join，Shell 按 envelope/`view_kind` 渲染。新 Agent/view 不要求 App ID 分支；unknown/invalid producer 只局部降级，MAS 医学 schema 保持领域 owner。 |
+| 通用 Runtime 与领域视图 | Agent 提供业务任务，Framework Runway 提供执行，Framework join，Shell 按 envelope/`view_kind` 渲染。新 Agent/view 不要求 App ID 分支；unknown/invalid producer 只局部降级，MAS 医学 schema 保持领域 owner。 |
 | 独立维护与 carrier 缺失 | Framework/carrier 验证更新单包不更新 Base/App/其他 Package；普通 invocation 不推进 currentness。最后一个物理 carrier 消失时 fresh readback 报 `physical_unavailable`，不能由 UI metadata 维持 installed 假象。 |
 | Executor-neutral identity | 使用最小真实 Git/local carrier proof 验证同一 descriptor、依赖、偏好和业务状态不依赖 Codex 私有 ID/path/marketplace。缺失某 executor adapter 只影响该 route，不建设第二正式 executor。 |
 
@@ -46,7 +46,7 @@ domain schema，先定位当前 caller 并切到已有 owner 接口，再在同�
 实现、合同、fixture、测试与入链。不要保留双读、alias 或自动回退。
 
 删除依据是实际调用者归零、受影响构建和上述用户结果的前后验证。Release Bundle
-exact-byte evidence、Temporal durability、领域回执、偏好与配置原子写入保持各自
+exact-byte evidence、Framework Runway durability、领域回执、偏好与配置原子写入保持各自
 真实职责，不能凭 `receipt`、`transaction` 等词汇批量删除。
 
 Package owner publication、App Stable/latest 和 Docker WebUI promotion 是各自

@@ -44,7 +44,7 @@ specialized owners in the [documentation index](README.md).
 - Authenticated startup enters `/guid` while App state refresh runs in the
   background. Core readiness gates the first conversation; it is not a blocking
   pre-`/guid` state fetch. Installed timing claims require measured evidence.
-- Runtime is a required core dynamic Agent route. Agents own Work Items; Temporal
+- Runtime is a required core dynamic Agent route. Agents own Work Items; Framework Runway
   owns execution; Framework joins projections; Shell renders them without
   Agent-ID branches. Typed views dispatch by `view_kind`, with domain schemas
   owned by their producers. Diagnostics and software repair belong to Settings.

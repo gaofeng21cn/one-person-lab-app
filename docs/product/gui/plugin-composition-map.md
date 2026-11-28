@@ -10,7 +10,7 @@ Contract: [`app-plugin-composition-taxonomy.json`](../../../contracts/app-plugin
 
 官方软件源 `opl-catalog` 持有可独立刷新的目录、公开展示元数据和发布索引。条目按 `agents`、`applications`、`extensions`、`channels`、`dependencies` 存放。Framework 实现软件源协议、动态发现、状态投影和 Package 生命周期，产品实现和制品由各软件 owner 持有。需授权的软件可在公共目录展示，制品获取、安装与更新由发布源验权。[OPL 软件目录](https://github.com/gaofeng21cn/opl-catalog)
 
-`opl-studio` 承载 App 的 DSH Application Host。下一采用批次将标准 DSH npm/Cordis 插件归为 `plugins/core/`、`plugins/extensions/`、`plugins/channels/`，由 `cordis.yml` 和 `web.patch.yml` 按包名组合。微信远程在该批次迁为 Studio 内置连接通道。采用前的版本继续由 App 的微信包和 Framework 通道路由提供服务。实际采用批次以 App Shell 合同为准。[App Shell 合同](../../../contracts/app-shell-adapter.json)
+`opl-studio` 承载 App 的 DSH Application Host，并将标准 DSH npm/Cordis 插件归为 `plugins/core/`、`plugins/extensions/`、`plugins/channels/`，由 `cordis.yml` 和 `web.patch.yml` 按包名组合；微信远程已迁为 Studio 内置连接通道（`opl-channel-weixin`）。实际采纳组合以 App Shell 合同为准。[App Shell 合同](../../../contracts/app-shell-adapter.json)
 
 用组合盘点命令读取指定 Studio checkout 和 App 固定的官方软件源快照。
 

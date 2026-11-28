@@ -32,7 +32,7 @@ App 的 contribution schema、Framework state/action 和 Connect 授权合同描
 不为此新增平行 registry、版本兼容矩阵或审批流程。上游补齐等价能力后，在同一改动中
 迁移调用者并删除被替代实现。判断依据是接口、生命周期和实际行为，不是包名相似。
 
-DSH 官方源码及其构建链是升级兼容基准。Studio renderer 采用官方 `apps/web` 的 Vite 6.4.3 与 React 插件 4.7.0；不为本地 Bun 打包器限制改写官方 CSS 或时间规则源码。Bun 目前只承担既有测试、脚本和 OPL 自有 Host 插件打包，不能成为阻挡官方 UI 升级的前提。renderer 仍保留载体入口/文件名、tsconfig aliases、单 bundle 输出和已声明的依赖解析适配；上游配置变化时在既有入口核对并删去已不需要的差异。
+DSH 官方源码及其构建链是升级兼容基准。Studio renderer 采用官方 `apps/web` 的 Vite 6.4.6 与 React 插件 4.7.0；不为本地 Bun 打包器限制改写官方 CSS 或时间规则源码。Bun 目前只承担既有测试、脚本和 OPL 自有 Host 插件打包，不能成为阻挡官方 UI 升级的前提。renderer 仍保留载体入口/文件名、tsconfig aliases、单 bundle 输出和已声明的依赖解析适配；上游配置变化时在既有入口核对并删去已不需要的差异。
 
 当前 Host 使用官方 boot/profile 与 Cordis 插件机制；客户端在同一 Cordis context
 中使用官方 `SlotRegistry` 管理 slots、store、factory、声明依赖和卸载，每个客户端
@@ -71,8 +71,8 @@ Host 插件、客户端插件和独立软件 Package 各有交付入口。软件
 | Studio 内置 Host 与客户端插件 | `opl-studio/plugins/{core,extensions,channels}/<plugin-id>/`。共享协议与工具归 `packages/host-contracts/`、`packages/host-kit/`，Workbench、slots 和客户端组合归 `opl-studio-client` | `src/host/dsh/cordis.yml` 与 `web.patch.yml` 提供基线，官方 Host 发现启用插件的 `dsh.client`。兼容包通过原生 profile 独立更新，Electron、DSH cohort 和 boot shell 通过 App 更新 |
 | DSH 官方和社区 UI | Studio 的 npm 依赖、`vendor/deepseek-harness/` | 固定 DSH cohort、npm lock 与第三方原包溯源；随 App/Shell 更新 |
 | Framework 内置服务与 Package 核心 | `one-person-lab/packages/{core,ledger,workspace,pack,runway,connect,daemon}/` 与 `contracts/opl-package.v2.schema.json` | Framework v2 公开 RPC/CLI 入口与 package descriptor；随 Framework runtime 更新 |
-| 微信远程 | 新版位于 `opl-studio/plugins/channels/opl-channel-weixin/`，旧版采用 App 内同名 Package | 新版随 Studio profile 装载。尚未采用新版的 App 继续使用原有载体 |
-| 独立软件 Package | 对应产品仓库的 `opl-package.json`（未迁 v2 的 `v1-final` 包暂保留 `plugins/<slug>/`） | 各 owner 的 manifest 与原生载体，官方条目由 `opl-catalog` 提供，Framework 聚合发现、状态和操作 |
+| 微信远程 | 已迁入 `opl-studio/plugins/channels/opl-channel-weixin/`（App 标准功能以插件方式维护交付） | 随 Studio profile 装载并在 `设置 → 资料与连接` 绑定 |
+| 独立软件 Package | 对应产品仓库的 `opl-package.json`（`opl.package.v2`） | 各 owner 的 manifest 与原生载体，官方条目由 `opl-catalog` 提供，Framework 聚合发现、状态和操作 |
 
 App 的 [Shell contract](../../../contracts/app-shell-adapter.json) 把 Studio 定义为外部
 仓库 checkout，默认位于 `shells/opl-studio`。开发机可有相邻的 `opl-studio` 工作目录，
@@ -110,7 +110,7 @@ DSH 包。文档预览随固定 DSH cohort 携带官方源码和客户端载荷�
 `MarkdownText` primitive，其他已支持格式由 OPL workspace/thread 适配器呈现。接入官方
 完整 runtime 后应删除被替代的呈现代码。普通 GUI 源码复用不冒充已装载的 DSH 插件。
 
-内置微信通道由 Studio 的 DSH Host 插件持有连接、绑定与轮询生命周期，通过 `opl-codex-native` 回调驱动现有 Codex 线程。客户端复用远程连接页的 `settings.section` 与 `channel_access` 视图。采用前验证 Desktop、WebUI 和 Docker 上的设置挂载、状态回读、扫码、PIN、消息收发、服务重启与解绑，并验证已有线程绑定继续指向原线程、同一账号仅一个活动轮询实例。重启后按既有规则重新登录。采用后清退 App 旧微信 Package 和 Framework 旧路由。
+内置微信通道由 Studio 的 DSH Host 插件持有连接、绑定与轮询生命周期，通过 `opl-codex-native` 回调驱动现有 Codex 线程。客户端复用远程连接页的 `settings.section` 与 `channel_access` 视图。验证覆盖 Desktop、WebUI 和 Docker 上的设置挂载、状态回读、扫码、PIN、消息收发、服务重启与解绑，并确保已有线程绑定继续指向原线程、同一账号仅一个活动轮询实例。旧版 App 微信包与兼容路由已完成退场。
 
 微信绑定协议对齐腾讯 `@tencent-weixin/openclaw-weixin@3.0.0-beta-0`
 （官方 `beta`，稳定版 `latest` 仍为 `2.4.10`）。设置的“资料与连接 → 远程访问与网页端”提供
@@ -155,12 +155,12 @@ Studio 回到原生 Codex，并在设置中显示状态。 [Billion Context](htt
 | MCP Apps UI host | **已接入官方 MCP ext-apps SDK 与 OPL DSH 插件** | 当前 DSH master cohort 有 MCP client/tools/resources，尚无标准 MCP Apps UI 宿主；`opl-mcp-apps` 只增加临时 view binding 与 sandbox renderer。每次 DSH 升级重新核对，不另建 session/凭据 owner。 |
 | DSH host plugin inventory | **Host inventory 已加载；官方 PluginManagerPage 源码已接入应用管理** | 原生 inventory 管理 DSH 宿主插件元数据，不授予其 OPL Package authority。页面布局、卡片、详情、状态表现和导航复用 DSH 官方组件；OPL adapter 读取 Framework Package projection 并转发其 owner actions。 |
 | Session、Agent loop、LLM、Authorization/Credentials、Account | 按功能域装配 | 普通 Codex 对话保持现有 owner；Team 的逻辑 Session、成员、任务归官方 DSH，真实执行线程仍归 Codex；Superagent 独立配置与运行，保持原型 Source/Policy/Ticket/Assignment 语义。 |
-| `dsh-schedule`、`ui-schedule` | **本次迁移官方 TaskManagerPage/TaskDetail 组件；官方 Schedule Host 未加载** | 任务页复用固定 cohort 的官方组件，以 OPL owner adapter 提供 Framework/Temporal catalog、确认动作与运行历史，并补入 Codex permissions、timeout 和 thread/turn 结果。DSH Host 的 durable Session 投递、store 和 Agent executor 不进入 OPL profile；官方 inbox delivery receipt 与 OPL turn 完成仍分开表达。 |
-| DSH jobs | **官方能力存在，OPL 当前未装载** | 官方 jobs UI 观察 DSH Agent/Session 产生的后台 job；不能替代 OPL Temporal workflow 与 Codex turn history。可复用状态/列表交互，数据继续来自 Framework projection。 |
+| `dsh-schedule`、`ui-schedule` | **迁移使用官方 `TaskManagerPage` / `TaskDetail` 样式组件；官方 Schedule Host 未加载** | 任务页复用固定 cohort 的官方组件，以 OPL owner adapter 提供 Framework **Runway** 调度目录、确认动作与运行历史，并补入 Codex permissions、timeout 和 thread/turn 结果。DSH Host 的 durable Session 投递、store 和 Agent executor 不进入 OPL profile；官方 inbox delivery receipt 与 OPL turn 完成仍分开表达。 |
+| DSH jobs | **官方能力存在，OPL 当前未装载** | 官方 jobs UI 观察 DSH Agent/Session 产生的后台 job；不能替代 OPL Runway 执行记录与 Codex turn history。可复用状态/列表交互，数据继续来自 Framework projection。 |
 | Time context | **OPL 自有薄适配已接入；DSH 同名能力未装载** | OPL 在发起 Codex turn 时按产品偏好附加当前时间与时区，不读取日历；注入开关和实际作用范围归 App/Codex adapter。采用 DSH 的设置 primitive 和说明方式即可，不应启用竞争的 DSH Agent 后端。 |
 | Auto Review | **OPL Codex 设置已接入；DSH experimental Auto Review 未装载** | OPL 把选择映射到 Codex App Server 的 `approvalsReviewer`，审批与 turn 结果仍归 Codex。官方对应物是 `dsh-experimental-auto-review`；`ui-settings-agent-loop` 只设置单步并行工具调用上限。DSH 实验插件在 DSH Agent 的工具调用前审查，不能替代 Codex reviewer；可继续复用设置控件和状态表达。 |
 | Shortcuts | **OPL 自有 App-local 快捷键页已接入；官方 `ui-shortcuts` 未装载** | 当前页面用 DSH Button/Input/ShortcutKeys 等原语，但命令、按键绑定与存储仍由 OPL 持有。官方包提供更完整的目录、录制、冲突检查和本地偏好流程；在逐项映射 OPL 命令、平台行为、调用回调和偏好存储后，应改用官方包并删除重复设置组件。 |
-| Plugin Manager / plugin settings | **官方 `PluginManagerPage` 与样式已复用；DSH pluginManager Host 未加载** | 应用管理保持 OPL 产品名称与四个产品分区；应用目录直接使用固定 DSH cohort 的页面、导航 store、状态点、卡片、详情和官方原生控件。Framework projection/action adapter 保留 Package 安装、启停、currentness、权限确认和 fresh readback。禁止加载官方 `apply()`/`PluginManagerController`、profile 或 pnpm lifecycle，也不把 DSH Agent/Session inventory 当成 OPL Package registry。源码接入不等于本机已安装，安装版窗口验收单独记录。 |
+| Plugin Manager / plugin settings | **官方 `PluginManagerPage` 与样式已复用；DSH pluginManager Host 未加载** | 一级入口使用“软件中心”（`/apps`）及日常分区，应用目录直接使用固定 DSH cohort 的页面、导航 store、状态点、卡片、详情和官方原生控件。Framework projection/action adapter 保留 Package 安装、启停、currentness、权限确认和 fresh readback。禁止加载官方 `apply()`/`PluginManagerController`、profile 或 pnpm lifecycle，也不把 DSH Agent/Session inventory 当成 OPL Package registry。源码接入不等于本机已安装，安装版窗口验收单独记录。 |
 | Inspector | **OPL typed projection 详情面已接入；DSH experimental Inspector 未装载** | 继续复用 DSH sidebar tabs、折叠和状态原语；详情内容来自 OPL task/artifact owner。官方 Inspector 若仍绑定 DSH Agent/runtime 数据，只能复用其界面模式，不能用它建立第二份 thread/runtime store。 |
 | Voice input / speech-to-text | **OPL 浏览器语音适配已接入；DSH experimental voice bundle 未装载** | OPL 当前调用浏览器 `SpeechRecognition` 并把转写写入当前线程草稿。DSH 可选 bundle 提供本地 SenseVoice provider、准备/缓存流程和麦克风 UI；不能把其本地 provider 当作 OPL carrier 已就绪。可复用官方入口与未就绪体验；只有 OPL capability/connection owner 能提供安装、权限、语言和 readiness readback 后，才切换真实调用者并删除浏览器适配。 |
 | Web search/fetch、filesystem、sandbox | 只保留兼容边界 | DSH plugin 可注册 `ctx.tools` 时可被 MCP 暴露；权限、sandbox 和审批仍由 Codex/App Server owner。含 Session/Agent 依赖时按 Team 专域装配；含 provider/credential 依赖时进入独立 profile。 |
@@ -187,15 +187,15 @@ Cordis boot/profile、插件 metadata/inventory、Client Modules、SlotRegistry 
 | `opl-host-core` | Desktop/WebUI/Docker 共用的 OPL application host composition，组合 Codex、Framework 与 MCP Apps | 复用 Cordis、DSH webserver 与 AppFrame。只有三种载体都有同等官方 composition/lifecycle，且各自调用切换后，才可删除；普通 HTTP host 无法替代 OPL application services。 |
 | `opl-web-routes` | OPL authenticated HTTP/SSE routes 和 renderer static delivery | 复用 DSH webserver 生命周期。只有标准 DSH route extension 能覆盖全部 OPL 认证、SSE、static asset 行为并完成 WebUI/Docker 回归后，才能删路由适配。 |
 | `opl-studio-client` | OPL Client Plugin：产品导航与 typed projection 到 DSH slots 的适配 | 已通过 `dsh.client` 进入官方 Client Module graph；继续把 Framework/Codex 数据接入 OPL panels。只有 OPL 产品 surfaces 已迁到可保持 owner 的官方扩展点并移除真实 imports/callers 后，才可删除剩余适配。 |
-| `opl-workbench-services`（Framework plugin） | Framework/Temporal 计划与运行历史、Memory 纠错建议、受控存储清理 | 任务页复用官方 TaskManagerPage/TaskDetail，OPL adapter 保留 Temporal task owner、Codex executor、确认与 readback。服务由同等 owner API 接管且 Memory/Storage 调用者迁走后，才可删除。 |
+| Framework 工作台服务（`opld` 贡献接口） | Framework Runway 计划与运行历史、Memory 纠错建议、受控存储清理（经 `opld` `app.contribution.read` / `app.action.execute`） | 任务页复用官方 TaskManagerPage/TaskDetail，OPL adapter 保留 Runway task owner、Codex executor、确认与 readback。服务由同等 owner API 接管且 Memory/Storage 调用者迁走后，才可收敛/简化接口。 |
 | DSH `ui-sidebar-documentpreview` 官方来源 | 官方载荷随 cohort 提供，但当前文件面板没有启用其 `apply()`；OPL 适配器处理 Markdown、图片、媒体、PDF 与文本 | 文件路径和字节读取继续由 canonical workspace bridge 校验。删除 OPL renderer 的条件是官方 Remote/Resource/Sidebar runtime 已通过同一 owner 读取授权文件，并在 App 面板完成格式与生命周期验收。 |
 | `@objectivex666/dsh-settings-search` 1.14.0（GPL-3.0 社区包） | 当前 OPL 实际加载的全局设置搜索、结果定位与键盘交互 | Studio 直接依赖该社区实现，并把搜索结果映射为 App 设置 projection；authenticated log route 也调用该包。所审 DSH 官方 Settings cohort 未发现等价的全局设置搜索插件。删除条件：官方提供等价可组合的搜索 owner/slot，并能迁移结果定位、当前语言与日志读写的真实调用者。 |
 
-计划任务由 Framework 的现有 Temporal Schedule 和 workflow history 持有，Studio 通过 `opl-workbench-services` 读取任务与历史、预览并确认管理操作，使用当前 canonical Codex App Server 执行。DSH `dsh-schedule` 是另一套 Host-wide durable schedule：它可投递到已有、新建一次或每次新建的 DSH Session，并保留 delivery history；其成功回执表示目标 Session 持久化收件箱已接收消息，不代表模型 turn 完成。官方 `schedule/resolve-agent` hook 返回 DSH Agent，并非通用 executor 注入点。OPL 页面保留只读/工作区权限、超时和 Codex thread/turn 结果。整体删除 `opl-workbench-services` 不成立，因为其还持有 Memory 纠错建议与受控存储清理。
+计划任务由 Framework 的 **Runway** 调度与 SQLite（`opl.db`）运行历史持有，Studio 通过 `opld` 贡献接口（`app.contribution.read` / `app.action.execute`）及 `app_state.services.runway` 读取任务与历史、预览并确认管理操作，使用当前 canonical Codex App Server 执行。DSH `dsh-schedule` 是另一套 Host-wide durable schedule：它可投递到已有、新建一次或每次新建的 DSH Session，并保留 delivery history；其成功回执表示目标 Session 持久化收件箱已接收消息，不代表模型 turn 完成。官方 `schedule/resolve-agent` hook 返回 DSH Agent，并非通用 executor 注入点。OPL 页面保留只读/工作区权限、超时和 Codex thread/turn 结果。
 
-本次任务页迁移复用官方 `TaskManagerPage`/`TaskDetail` 组件及其列表、筛选、编辑与详情结构；OPL owner adapter 负责 catalog 和操作的映射，并通过有界组件扩展补入权限、超时及 Temporal run history。官方 Schedule Host 不加载，DSH Session target 不成为执行 owner。显示 Temporal 执行历史时保留 Codex status 与结果入口，不把它改名为 DSH inbox delivery receipt。该适配与 React 19 兼容改动一并进入 source manifest 和升级 replay。
+任务页复用官方 `TaskManagerPage`/`TaskDetail` 组件及其列表、筛选、编辑与详情结构；OPL owner adapter 负责 catalog 和操作的映射，并通过有界组件扩展补入权限、超时及 Runway 执行历史。官方 Schedule Host 不加载，DSH Session target 不成为执行 owner。显示 Runway 执行历史时保留 Codex status 与结果入口，不把它改名为 DSH inbox delivery receipt。该适配与 React 19 兼容改动一并进入 source manifest 和升级 replay。
 
-`/scheduled` 指向侧栏计划任务页；任务可设单次、每天、每周或固定间隔，写入明确时区、权限和用户指定的正整数分钟超时，不设固定两小时上限。修改单次任务的标题或提示词可以保留原执行时间，新建或改变执行时刻才要求未来时间。Temporal 持有补跑与重叠策略，已获准的持久运行不因等待 App worker 超过五分钟而再次跳过；App worker 运行时执行任务。源码实现与实际发布、安装验收分别记录，不以合同或源码状态替代安装后的服务回读。
+`/scheduled` 指向侧栏计划任务页；任务可设单次、每天、每周或固定间隔，写入明确时区、权限和用户指定的正整数分钟超时，不设固定两小时上限。修改单次任务的标题或提示词可以保留原执行时间，新建或改变执行时刻才要求未来时间。Framework Runway 持有补跑与重叠策略，在 `opld` 与应用运行期内执行调度。源码实现与实际发布、安装验收分别记录，不以合同或源码状态替代安装后的服务回读。
 
 ## 用户功能与工程模块的边界
 
@@ -248,10 +248,10 @@ DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础�
 | 当前状态 | 能力 | 需要补的 OPL 设置/适配 | 迁移或完成标志 |
 | --- | --- | --- | --- |
 | 已有 OPL owner | Auto Review、Time context | 审阅策略、时间上下文开关/间隔/作用域 | Codex owner 能返回启用状态、拒绝结果和当前策略；DSH Agent backend 不加载。 |
-| 本次迁移官方页面 | Plugin Manager | Framework Package snapshot、权限动作与 fresh readback adapter | 官方页面提供卡片、导航、详情、状态和原生控件；保留“应用管理”产品名及 OPL 四分区，不加载 DSH Plugin Manager Host 或 profile/pnpm lifecycle。源码、候选渲染与安装版验收分别记录。 |
+| 已接通官方组件 | Plugin Manager | Framework Package snapshot、权限动作与 fresh readback adapter | 官方页面承担卡片、导航、详情、状态和原生控件；使用“软件中心”产品名（日常分区为软件、更新、安装记录，资料与连接收口至设置），不加载 DSH Plugin Manager Host 或 profile/pnpm lifecycle。源码、候选渲染与安装版验收分别记录。 |
 | 目标为 UI 迁移 | Shortcuts、Inspector | 快捷键、详情栏布局/标签 | 先映射 App action/readback，再换官方 UI；真实调用者切换后删除重复 view。 |
-| 本次迁移官方组件 | Schedule | TaskManagerPage/TaskDetail 与 OPL catalog/action/history adapter | 官方组件承担任务页结构；权限、超时、确认和 Codex/Temporal 结果由 owner adapter 提供。官方 Schedule Host 未加载；构建/运行验收独立回读。 |
-| 候选复用交互 | Jobs | 后台 job 的列表、状态与运行观察 | 仅复用交互，不把 DSH Session jobs 当作 Temporal execution history。 |
+| 已接通官方组件 | Schedule | TaskManagerPage/TaskDetail 与 OPL catalog/action/history adapter | 官方组件承担任务页结构；权限、超时、确认和 Codex/Runway 结果由 owner adapter 提供。官方 Schedule Host 未加载；构建/运行验收独立回读。 |
+| 候选复用交互 | Jobs | 后台 job 的列表、状态与运行观察 | 仅复用交互，不把 DSH Session jobs 当作 Framework Runway execution history。 |
 | 待 capability owner | Voice input | 语音入口、设备权限、provider/语言和失败引导 | capability package 提供安装/授权/readiness projection 后，切换真实 carrier 并删除浏览器适配。 |
 | 候选能力 | Browser/computer use、Agent team | 能力启用、权限、审批和运行观察 | 每项都有独立 owner、取消路径和真实载体验收后再加载。 |
 
@@ -259,9 +259,9 @@ DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础�
 
 ### MCP App 宿主与任务工作台
 
-`opl-studio/plugins/opl-mcp-apps/` 是标准 DSH Host＋Client 插件：Host 注入
+`opl-studio/plugins/core/opl-mcp-apps/` 是标准 DSH Host＋Client 插件：Host 注入
 `oplCodexNative`，Client 提供通用 MCP App 组件，销毁时释放连接绑定。它随 App、
-WebUI、Docker 一起交付。业务 UI 位于 Framework 的 `src/mcp-app/`，可同时被
+WebUI、Docker 一起交付。共享业务 UI 由 Framework `packages/mcp-app-shared/`（及 `opl connect mcp-app-stdio`）承载，可同时被
 Codex 和 OPL App 使用；MAS 等领域包仅提供合同声明的数据与动作。
 
 运行总览保留简短阶段摘要，任务详情和科研地图进入共享 MCP 工作台。共享组件

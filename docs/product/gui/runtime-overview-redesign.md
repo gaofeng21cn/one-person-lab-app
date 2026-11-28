@@ -9,17 +9,17 @@ Machine boundary: 本文定义 Runtime 产品行为。当前机器合同归
 `contracts/app-runtime-bridge.json#work_item_projection`、
 `contracts/app-page-state-matrix.json#pages[id=runtime]`、validators、source 与 tests，
 当前合同要求核心 Runtime 路由及动态 Agent scope；实现与安装证据须分别核对。本文不拥有
-Framework runtime、Temporal execution truth、domain truth、artifact authority 或 release evidence。
+Framework runtime、Runway execution truth、domain truth、artifact authority 或 release evidence。
 
 ## 结论
 
 Runtime 是核心 App 能力：统一查看所有已安装 Agent Package 暴露的业务任务，
-同时展示 Temporal 提供的真实执行状态，并允许 Agent 通过 typed view 提供领域视图。
+同时展示 Framework Runway 提供的真实执行状态，并允许 Agent 通过 typed view 提供领域视图。
 它不是 observability dashboard 或平台运维控制台。
 
 ```text
 Agent Package -> business task inventory/lifecycle
-Temporal      -> queued/running/attempt/heartbeat/retry/terminal
+Framework Runway -> queued/running/attempt/heartbeat/retry/terminal (SQLite opl.db)
 Framework     -> validate + join + generic projection
 App/Shell     -> cross-Agent overview + DSH MCP App host
 Shared MCP App -> task workbench + view_kind renderer
@@ -27,14 +27,14 @@ Shared MCP App -> task workbench + view_kind renderer
 
 OPL 标准智能体只是 `kind=agent` 的 Package。Runtime scope 动态来自 installed Agent
 task providers，不维护五个、一组或任何固定 Agent ID。新 Agent 不修改 App 即可出现。
-一个 Agent producer、required capability 或 Temporal binding 失败，只降级该 Agent。
+一个 Agent producer、required capability 或 Runway binding 失败，只降级该 Agent。
 
-Codex/App 更新、Temporal/provider/platform repair、托管依赖与 raw diagnostics 归 Maintenance；
-Agent Package lifecycle 归 Agents；Skills/Plugins/Flow 和本机能力归 Capabilities；artifact
+Codex/App 更新、Runway/provider/platform repair、托管依赖与 raw diagnostics 归 Maintenance；
+Agent Package lifecycle 归一级“软件中心（`/apps`）”（`/settings/agents` 为兼容深链）；Skills/Plugins/Flow 和本机能力归 Capabilities；artifact
 provenance 归任务/会话 Inspector；同 cohort 完整证据归 release tooling。
 这些内容一律不进入 Runtime。
 
-Runtime 不直接拼接 Package、项目、Temporal 或领域文件。Framework 先生产稳定的
+Runtime 不直接拼接 Package、项目、Runway 或领域文件。Framework 先生产稳定的
 通用 task projection；App 定义用户语言、字段位置和验收；Shell 只渲染。
 
 项目名严格取 canonical `workspace_path` 的 basename；Framework 投出语言无关的 action
@@ -139,14 +139,14 @@ Framework 已确认的服务问题展示第一个因果原因，例如“后台�
 | --- | --- |
 | `identity` | Agent owns Package/task/project identity and user label. |
 | `business` | Agent owns business lifecycle, progress summary, next action, and user-facing reason. |
-| `execution` | Temporal owns queued/running/attempt/heartbeat/retry/terminal facts; Framework joins by opaque ref. |
+| `execution` | Framework Runway owns queued/running/attempt/heartbeat/retry/terminal facts; Framework joins by opaque ref. |
 | `visibility` | Framework exposes user archive/restore state without changing business or execution state. |
 | `telemetry` | Owner-observed elapsed/token/cost facts; missing remains unknown, never zero. |
 | `views[]` | Agent-owned `{view_id, view_kind, title, availability, read_action}` descriptors. |
 | `freshness` | Framework observation time and fresh/stale/unknown. |
 
-业务状态与执行状态不得互相推导：Temporal `running` 不等于科研工作“自动推进”，
-Temporal `terminal` 也不等于论文“已交付”；Agent business status 不得伪造 Temporal
+业务状态与执行状态不得互相推导：Runway `running` 不等于科研工作“自动推进”，
+Runway `terminal` 也不等于论文“已交付”；Agent business status 不得伪造 Runway
 heartbeat。Framework 只 join、validate 和公开 unknown。
 
 ### Typed Views
@@ -194,7 +194,7 @@ Stage 弹层或详情中按需显示；历史 Attempt 和其他 raw ID 只属于
 ### Dynamic Agent Availability
 
 当前 scope 从 installed Package descriptors 中动态发现
-`kind=agent && task_provider=true`；Package availability 在 Settings > Agents 显示，
+`kind=agent && task_provider=true`；Package availability 在软件中心（`/apps`，`/settings/agents` 为兼容深链）显示，
 Runtime 只显示可读取或局部 unavailable 的 producer/task 状态。
 
 MAS Scholar Skills 是 MAS 的 required capability Package，不是第二个 Agent。该关系只由
@@ -333,7 +333,7 @@ state 作为 visibility truth。
 1. payload 必须包含 `agent_id`、`project_id`、`work_item_id`、`visibility_state`。
 2. `reason`、`expected_generation` 可选；projection 有 `visibility.generation` 时 Shell 必须将其
    作为 `expected_generation` 发送。
-3. mutation 成功后立即读取 `opl app state --profile fast --json`。
+3. mutation 成功后立即通过 `opld` `app.state.get` 读取 fast 状态（v1 CLI 等价入口为 `opl app state --profile fast --json`）。
 4. readback 必须按 `agent_id + project_id + work_item_id` 完整 tuple 定位，并核对顶层 `item_id`、
    新 visibility 及原 lifecycle、execution、telemetry；不得只按 local `work_item_id` 匹配。
 5. `work_item_control_generation_conflict` 表示 stale generation。Shell 必须先刷新权威 projection，
@@ -373,9 +373,9 @@ Maintenance diagnostics 查看。
 
 | Surface | 拥有 | Runtime 中的处理 |
 | --- | --- | --- |
-| Runtime | Agent business task status、Temporal execution status、elapsed、owner progress/next action、typed views、archive/restore | 直接显示 owner projection |
-| Settings Maintenance | provider/platform repair、Temporal/worker readiness、Codex/App update、托管依赖、raw diagnostics 与维护 | 全面禁止 |
-| Settings Agents | Agent Package lifecycle、开发来源与 Home visibility | 全面禁止 |
+| Runtime | Agent business task status、Runway execution status、elapsed、owner progress/next action、typed views、archive/restore | 直接显示 owner projection |
+| Settings Maintenance | provider/platform repair、Runway/schedule readiness、Codex/App update、托管依赖、raw diagnostics 与维护 | 全面禁止 |
+| Software Center | Agent Package lifecycle、开发来源与 Home visibility | 全面禁止 |
 | Settings Capabilities | Skills、Plugins、OPL Flow、MCP、图像与语音能力 | 全面禁止 |
 | Task/Conversation Inspector | artifact provenance、preview、lineage、manifest/hash/receipt refs | 全面禁止 |
 | Release tooling | 同 cohort Runtime screenshot、full-state/operator capture、action receipt、VM/installed smoke、remote verification 与 manifest | 全面禁止 |
@@ -384,9 +384,9 @@ Maintenance diagnostics 查看。
 
 | 模块 | 负责 | 不负责 |
 | --- | --- | --- |
-| Agent Package | Project/task inventory、业务 lifecycle、progress/next action、领域 action refs、typed view schema/data。 | App copy/layout、Temporal execution truth、其他 Agent 状态。 |
-| Temporal | Workflow/activity queued/running/attempt/heartbeat/retry/terminal execution。 | 业务 progress、领域 stage、Package 安装状态。 |
-| OPL Framework | 动态发现 Agent producers，join business/Temporal/visibility/usage，校验通用 task/view envelope，提供共享 MCP App 工作台及 view_kind renderer。 | 固定 Agent 清单、领域 view schema、App 信息层级。 |
+| Agent Package | Project/task inventory、业务 lifecycle、progress/next action、领域 action refs、typed view schema/data。 | App copy/layout、Runway execution truth、其他 Agent 状态。 |
+| Framework Runway | SQLite-backed Stage/Attempt queued/running/attempt/heartbeat/retry/terminal execution。 | 业务 progress、领域 stage、Package 安装状态。 |
+| OPL Framework | 动态发现 Agent producers，join business/Runway/visibility/usage，校验通用 task/view envelope，提供共享 MCP App 工作台及 view_kind renderer。 | 固定 Agent 清单、领域 view schema、App 信息层级。 |
 | One Person Lab App | 产品语言、通用 task/view envelope、generic fallback、标准 MCP App 宿主合同、page-state 和证据分账。 | runtime/domain truth、MAS schema、Token 估算、owner receipt。 |
 | Shell | 按当前 locale 渲染 projection、级联筛选、语义重排、打开 task/typed view，并对允许动作执行 refresh/readback。 | 猜项目、状态、stage、owner、Token，以 localStorage 保存 truth，实现第二套去重，或按 Agent id 分支。 |
 

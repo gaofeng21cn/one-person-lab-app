@@ -54,10 +54,10 @@ source、pixel、install 和 release 状态分别验证，不从观察或协议�
 | Session 与工作目录分离 | Projectless 对话也能工作，显式文件输入不被目录成员关系限制 | Codex 拥有 thread；初始 cwd、Project affinity、turn cwd 与权限分别表达 |
 | Gateway 与模型访问 | 使用 OPL 账号、entitlement、余额与用量，同时保留既有合法访问方式 | Account & Access 拥有凭据和用量，composer 消费 App model policy |
 | 专业 Agent 与能力 | 从工作目的直接选择已安装、可调用的领域入口 | 新会话 starter、palette、显式 @ selector 共享 active Agent；既有会话调用只影响当前 turn |
-| Dynamic Agent Runtime | 了解跨项目 Agent tasks、stage、执行进度和下一步 | `U1-07` / `core_dynamic_agent_runtime`；domain 拥有业务，Temporal 拥有执行，Framework 投影 |
+| Dynamic Agent Runtime | 了解跨项目 Agent tasks、stage、执行进度和下一步 | `U1-07` / `core_dynamic_agent_runtime`；domain 拥有业务，Framework Runway 拥有执行，Framework 投影 |
 | Typed domain views | 通用工作区可展示领域深度信息且可局部降级 | `opl_app.typed_domain_views.v3`；view schema 与 verdict 仍归 domain owner |
 | Artifacts / evidence | 结果可以回到来源、审阅与动作 | Conversation/Inspector 按需展示 owner refs；App 不建立 artifact 或 annotation store |
-| Package lifecycle | 安装、更新、启停、隐藏与卸载各 Package | Settings Agents/Capabilities 消费动态 projection；native carrier 执行 lifecycle |
+| Package lifecycle | 安装、更新、启停、隐藏与卸载各 Package | 软件中心（`/apps`）与 Settings 能力配置消费动态 projection；native carrier 执行 lifecycle |
 | 非阻断首启 | 用户可以先进入工作区，逐项完成配置 | 显式 First Run 与能力级恢复；普通启动进入 Guid，不等待完整 App state |
 | 多 carrier | Desktop、standalone WebUI、Docker 使用同一产品语义 | App contract 共享，平台 transport 与 release evidence 各自归 owner |
 | 条件远程资源 | 使用真实可用的外部连接与资源 | Resources 仅显示真实 backend/owner projection；不创建占位状态、计费或资源调度 authority |

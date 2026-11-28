@@ -32,22 +32,22 @@ Codex 执行线程、领域结果与发布仍归各自 owner。详见 [Team、Bo
 
 ## 两个 Host，不是两套 OPL
 
-Framework 与 Studio 都是 Cordis Host，但 scope 不同：
+Framework 与 Studio 采用清晰的双进程分工，而非单一共享 Cordis 树：
 
-| Host | 唯一 authority scope | 明确不拥有 |
+| 运行实体 | 唯一 authority scope | 明确不拥有 |
 | --- | --- | --- |
-| OPL Framework Host | `framework_runtime_package_graph_and_app_projection` | Studio profile、Codex child lifecycle、Desktop/Web transport、App product/release truth |
-| OPL Studio Application Host | `dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition` | Framework runtime、Package registry/currentness、App state/action truth、domain/product/release authority |
+| OPL Framework (`opld`) | `framework_runtime_package_graph_and_app_projection`（本机 JSON-RPC + SQLite `opl.db`） | Studio profile、Codex child lifecycle、Desktop/Web transport、App product/release truth |
+| OPL Studio Application Host | `dsh_profile_plugin_lifecycle_codex_and_delivery_transport_composition`（DSH/Cordis 宿主） | Framework runtime、Package registry/currentness、App state/action truth、domain/product/release authority |
 
 `framework_host_unique_within_scope=true` 只表示 Framework 在自己的 runtime/Package/projection
-scope 内是唯一 Host，不表示 OPL 产品只能存在一个 Cordis process。Studio Host 可以并存，因为它
+scope 内是唯一 authority，不表示 OPL 产品只能存在一个宿主进程。Studio 的 DSH/Cordis Host 可以并存，因为它
 不创建第二套 OPL runtime、Package registry、Package currentness、App action 或产品 authority。
 
-两个 Host 通过公开边界连接：
+两者通过受信任的公开边界连接：
 
 ```text
-OPL Framework Host
-  -> opl app state/action
+OPL Framework opld (local JSON-RPC)
+  -> app.state.get / app.action.execute / app.contribution.read
   -> authentication projection
   -> channel callbacks
   -> opl-framework-bridge

@@ -185,12 +185,13 @@ policy. [OPL Link](product/opl-link.md) owns the remote-companion product bounda
 [Persona integration](product/opl-persona-integration.md) owns its Package view consumer.
 
 OPL Link is the native iPhone/iPad companion for the selected Studio Host. It
-uses companion-scoped HTTPS routes and SSE in that same DSH Host, forwarding
-conversation, approval and bounded workspace operations to the existing
-`opl-codex-native` instance. It neither launches another Codex runtime nor
-requires a separate pairing cloud, message provider or Framework Connector
-Package. Its phone-reachable HTTPS endpoint and TLS terminator belong to the
-user-trusted deployment boundary.
+uses Gateway same-account discovery (with a 120-second one-time pairing
+fallback) and adaptive `LAN/P2P → TURN → WSS Relay` transport (via the configured
+Relay origin such as `https://link.medopl.com`, with end-to-end `Noise`
+encryption), forwarding conversation, approval and bounded workspace operations
+to the existing `opl-codex-native` instance. Direct HTTPS remains only an
+explicit advanced endpoint option, and OPL Link neither launches another Codex
+runtime nor requires a Framework Connector Package.
 
 ## Evidence
 

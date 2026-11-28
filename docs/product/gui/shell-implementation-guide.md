@@ -152,10 +152,11 @@ Generated product profile 是 shell 的默认值入口：
 
 ## State / Action Bridge
 
-普通读取：
+默认通过本机 `opld` JSON-RPC 读取：
 
 ```text
-opl app state --profile fast --json
+opld: app.state.get (profile: "fast")
+# v1 兼容载体 CLI 等价入口：opl app state --profile fast --json
 ```
 
 显式刷新通常仍使用 fast profile。Runtime 只消费合同允许的 Work Item、Stage、Attempt、
@@ -170,16 +171,17 @@ domain-ready 或 release-ready。
 | Surface | Owns | Must not absorb |
 | --- | --- | --- |
 | Runtime | Agent/Project scope、Work Item status、running/elapsed、Stage/Attempt、Token、archive/restore | provider/platform repair、updates、module health、raw diagnostics、artifact provenance、release controls |
-| Settings Maintenance | provider/platform repair、Temporal/worker readiness、托管依赖、软件更新、raw diagnostics、State Index、operator drilldown、logs、command refs、safe-action catalog | Work Item lifecycle 或论文进度 |
-| Settings Agents | Agent Package 目录、安装/更新/修复、开发来源、Home visibility | Stage activation、Skills/Plugins/Flow、Gateway 或资源连接 |
+| Settings Maintenance | provider/platform repair、Runway/schedule readiness、托管依赖、软件更新、raw diagnostics、State Index、operator drilldown、logs、command refs、safe-action catalog | Work Item lifecycle 或论文进度 |
+| Software Center (`/apps`) | Agent Package 目录、安装/更新/修复、开发来源、Home visibility | Stage activation、Skills/Plugins/Flow、Gateway 或资源连接 |
 | Settings Capabilities | Skills、Plugins、OPL Flow、MCP、图像与语音能力 | Agent Package lifecycle、Gateway 或资源连接 |
 | Inspector | task/conversation artifact provenance、preview、lineage refs | artifact authority 或 Runtime status |
 | Release tooling | 同 cohort 的完整 evidence bundle | 普通用户 Runtime UI |
 
-Mutation 统一使用：
+Mutation 统一通过本机 `opld` JSON-RPC 执行：
 
 ```text
-opl app action execute --action <id> [--payload <json>] [--dry-run] --json
+opld: app.action.execute (action: <id>, payload?: <json>, dryRun?: boolean)
+# v1 兼容载体 CLI 等价入口：opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 ```
 
 实现要求：
@@ -232,12 +234,12 @@ opl app action execute --action <id> [--payload <json>] [--dry-run] --json
 [Framework active gap](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/active/current-state-vs-ideal-gap.md)
 归口，合同更新本身不表示每个领域页面已接入。
 
-- Package contribution 数据读取可调用 Framework-owned `opl app contribution read`，但必须验证
+- Package contribution 数据读取可调用 Framework-owned `opld` `app.contribution.read`（v1 CLI: `opl app contribution read`），但必须验证
   `opl_app_contribution` 包络、`opl_app_package_contribution.v1` surface、当前
   Package/ref/operation identity、`opl-package-app-contribution-response.v1`、`ok=true` 和
   App-owned standard renderer payload；renderer 只由当前 descriptor `view_type` 选择。
-- Package contribution 写入不得由 Shell 直接调用 `opl app contribution execute`。Shell 仅能调用
-  `opl app action execute --action package_contribution_execute --payload <json> --json`；Framework
+- Package contribution 写入不得由 Shell 直接调用私有或未受控 execute 入口。Shell 仅能调用
+  `opld` `app.action.execute`（`action: "package_contribution_execute"`, `payload: <json>`；v1 CLI: `opl app action execute --action package_contribution_execute`）；Framework
   可在 canonical action boundary 内部委派 execute broker 并重新校验 descriptor、carrier readiness、
   ref 与 confirmation。若 fast App state/action catalog 没有 exact action，页面保留 read-only view，
   command 隐藏或 disabled，并显示 projected disabled reason。
@@ -277,8 +279,8 @@ adapter slot 承接，而不是遍历 upstream settings pages 后临时隐藏。
 - Upstream 新增 Settings 页面必须先经过下面的 intake classification，不能自动进入
   ordinary navigation。
 - Capability 选择优先从 Home starter 进入，Home/new-session `+` palette 作为同一状态的备用入口；package 安装、Home visibility 和 lifecycle 进入
-  Settings → Agents 管理 package lifecycle，Settings → Capabilities 管理
-  Skills/Plugins/Flow 和本机能力；历史入口只允许 compatibility redirect。
+  软件中心（`/apps`；`/settings/agents` 只作兼容深链）管理，Settings → 能力配置（`/settings/capabilities`）管理
+  Skills/Plugins/Flow 和本机能力；其它历史入口只允许 compatibility redirect。
 
 ## Settings Upstream Intake 分类
 

@@ -43,8 +43,7 @@ Release 上存在文件，只能证明公开载体具有这些精确字节。是
 
 ## macOS arm64
 
-macOS 首次安装推荐同 tag 的 Full DMG。它预置 Base、Package seeds 和固定的 Computer Use
-归档，可减少首启在线下载；刚发布时如果 Assets 里还没有 Full，说明追加仍在进行，请等待完成后再下载。
+macOS 首次安装推荐同 tag 的 Full DMG。它预置 Base 与 Package seeds，可减少首启在线下载；刚发布时如果 Assets 里还没有 Full，说明追加仍在进行，请等待完成后再下载。
 
 已安装 Homebrew 且网络环境很好时，Standard 是最短的联网路径：
 
@@ -145,7 +144,7 @@ record 获取 Docker/WebUI installer，并保存绑定身份的本地缓存。�
 ## Headless 与更新责任
 
 `--headless` 只安装 OPL Framework Base/CLI，不安装 App。Headless 自动化应使用
-[OPL Framework 安装说明](https://github.com/gaofeng21cn/one-person-lab#installation)，
+[OPL Framework 安装说明](https://github.com/gaofeng21cn/one-person-lab#getting-started)，
 而不是 Desktop 或 Docker WebUI 教程。
 
 | 安装内容 | 更新责任方 |

@@ -16,12 +16,12 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 
 1. **能力与来源统一**
    - OPL 自有、社区 DSH 插件、Codex 插件、原生应用/CLI 与独立能力包在发现、安装、启停、更新检查、后台自动更新与异常聚合上适用一致规则。
-   - 来源（`OPL` / 第三方）与安装方式（OCI / Homebrew / npm / 离线载荷）仅作为信任标识、安全上下文与详情溯源字段，不构成功能限制或第二套交互流程，也不为单个第三方包在 App/Host 跨文件编写特例逻辑。
+   - 来源（`OPL` / 第三方）与安装方式（OCI / npm / 离线载荷；独立桌面客户端与外部 CLI 另经 Homebrew 分发）仅作为信任标识、安全上下文与详情溯源字段，不构成功能限制或第二套交互流程，也不为单个第三方包在 App/Host 跨文件编写特例逻辑。
 2. **UI 与设置接入统一**
    - 插件不自建顶层设置分类；所有能力设置按用户任务归属落入既有设置页（概览 / 账户与模型 / 资料与连接 / 工作区 / 能力与指令 / 运行与维护 / 偏好）。
    - 插件界面严格遵循「三级标准接入层（Tier 1 → Tier 2 → Tier 3）」，复用统一设计原语、明暗主题 CSS tokens、可访问性交互后校验、全局设置搜索、深链与运行时错误隔离边界（`ErrorBoundary`）。
 3. **软件中心心智统一**
-   - 默认「全部软件」按产品用途提供智能体、应用、效率扩展和连接通道四类筛选。运行底座与依赖在「运行组件」维护。DSH、Codex、OCI、Homebrew 等载体在软件详情展示。
+   - 默认「全部软件」按产品用途提供智能体、应用、效率扩展和连接通道四类筛选。运行底座与依赖在「运行组件」维护。DSH、Codex、OCI 等载体在软件详情展示（Homebrew 分发独立桌面应用与命令行）。
    - 软件目录与更新页覆盖全部来源，所有安装/更新/卸载动作尽量收敛到同一预检确认、实时进度、「安装记录」台账与失败重试链路；前置明示软件声明的权限范围与运行方式。
 4. **自动更新与演进统一**
    - 安装包只负责首次便捷安装；日常兼容插件、Framework runtime 与软件包均可在后台免令牌自动更新。
@@ -58,7 +58,7 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 - **零源码直连约束**：所有 `plugins/*` 包严禁使用 `../../../../vendor/deepseek-harness/...` 相对路径导入内部源码，严禁绕过 `SlotRegistry` 隐式读写全局变量。
 - **侧栏左下角账户展示规范**：连接 OPL Gateway 账号后，左下角设置/账户触发入口优先展示账号 `display_name`（如用户姓名），`email` 仅作无姓名时的回退与悬停提示补充；未登录或不可用时回退标准入口文案，不在设置弹窗内外制造第二个重复设置入口。
 - **受控设置子槽位**：开放 `settings.group.models`、`settings.group.resources`、`settings.group.workspace`、`settings.group.capabilities`、`settings.group.services`、`settings.group.preferences`。插件注册卡片必须提供稳定 `id`、`packageId`、`titleI18n` 与 `searchKeywords`（与全局设置搜索统一索引）。
-- 下一采用批次中的 Studio 内置微信通道使用 `settings.group.resources`，沿用远程连接入口。绑定、状态和动作由微信 Host 服务提供，线程和 turn 由现有 Codex App Server 持有。[微信设置与切换条件](dsh-plugin-and-settings-map.md#dsh-插件统一规范)
+- Studio 内置微信通道（`opl-channel-weixin`）使用 `settings.group.resources`，沿用远程连接入口。绑定、状态和动作由微信 Host 服务提供，线程和 turn 由现有 Codex App Server 持有。[微信设置与切换条件](dsh-plugin-and-settings-map.md#dsh-插件统一规范)
 - **错误边界隔离**：每个通过槽位挂载的独立面板与设置卡片必须包裹 `PluginErrorBoundary`。单个插件渲染异常时，向用户呈现可读降级卡片（「该扩展界面加载异常，已隔离不影响核心对话 · 重新加载 / 前往软件中心」），绝不白屏拖垮主工作台。
 
 ### 2.3 Tier 3 MCP App 视觉与授权回环规范
@@ -79,7 +79,7 @@ OPL App 的理想形态是：**一个极薄、极稳、极少需要重装的宿�
 
 ## 3. 软件中心与通用插件生命周期模型
 
-1. **统一目录与任务投影**。App 消费 Framework 动态软件源投影和 Studio 原生插件清单，以同一软件中心视图呈现。Framework 从独立官方目录 `opl-catalog` 和配置的软件源发现条目。Studio 从 DSH profile 提供内置插件。Framework、DSH、Homebrew 和 Codex 各自提供可信的安装状态与动作。[插件组合与仓库边界](plugin-composition-map.md)
+1. **统一目录与任务投影**。App 消费 Framework 动态软件源投影和 Studio 原生插件清单，以同一软件中心视图呈现。Framework 从独立官方目录 `opl-catalog` 和配置的软件源发现条目。Studio 从 DSH profile 提供内置插件。Framework、DSH 和 Codex 各自提供可信的安装状态与动作（Homebrew 仅用于 macOS Standard 桌面应用与独立 CLI 分发，已不再纳入软件中心原生目录管理）。[插件组合与仓库边界](plugin-composition-map.md)
 2. **通用与开放社区 DSH 插件生命周期服务**：以 `opl-host-core` / 通用 DSH 插件管理器结合 DSH 原生 `dsh-plugin-manager` 与公开/配置源清单，支持官方内置与开放 npm 社区 DSH 插件（`opl-external-dsh-plugins.json`，严格包名校验、全程 `--ignore-scripts` 禁用安装脚本、启动期自动对账 `reconcileUserExternalPluginsOnBoot`）的兼容检查、安装、启用/停用、版本更新与卸载；对运行中的插件支持「暂存目标版本/卸载标记 + 一次重启完成切换」，避免用户先停用重启再操作重启的两段式割裂。
 3. **可选能力与核心底座清晰分层**：`opl-team-bots`、`opl-superagent`、`opl-runtime-status`、`opl-materials-space` 等可独立开关的一级产品插件声明中文名称与用途说明，进入统一目录供按需启停；`opl-host-core`、`opl-codex-native` 等核心必需底座仅作为「运行环境 · 自动维护」透明呈现，不混淆日常软件选择。
 4. **按用途分类并展示权限**。软件中心按目录声明的 `software_type` 分类，DSH 原生插件提供同样的产品语义。软件详情展示载体。公共目录可显示需授权的软件，安装、下载与更新依据实际发布源的权限。各动作按确认规则明示包名、来源、目标版本、权限范围及生效方式。[软件中心](software-management.md)
