@@ -154,7 +154,7 @@ Codex 与生产由 Framework 选用的 Codex 是不同输入；涉及协议或�
   - 删除已退役的 Studio Preview 流水线（`_release-studio.yml`、`_release-studio-full.yml`、`opl-studio-preview-vm.yml`、`opl-studio-candidate-carriers.yml` 及 `release-stable.yml` 内 4 个 `studio-*` job，连带更新 `validate-release-boundary`）。
   - 保留 `opl-studio` 的 `studio-webui-preview.yml` 与 `studio-webui-latest.yml`（`contracts/opl-studio-cloud-workspace-image-handoff.schema.json` 强绑定 `ghcr.io/gaofeng21cn/opl-studio-webui`）。
 - **Wave 2B（App / Studio / Catalog）**：
-  - 在保持 `opl-studio` CI 固定 App cohort 查找与 `_build-reusable.yml` 可运行的前提下收口单壳候选脚手架（`contracts/app-shell-candidates.json`、`contracts/shell-adapters/opl-studio.json`、`opl-studio/src/candidateContractEvidence.json`、`scripts/validate-opl-studio-candidate.mjs`）。
+  - 在保持 `opl-studio` CI 固定 App cohort 查找与 `_build-reusable.yml` 可运行的前提下收口单壳候选脚手架（原 `contracts/app-shell-candidates.json` 与 `contracts/shell-adapters/opl-studio.json` 已合并进 `contracts/app-shell-adapter.json`，其余候选脚手架视后续收口推进）。
   - 消除 `app-product-profile.json` 等大块 JSON 互抄并精简重叠校验脚本；`opl-studio` 逐步移出 `vendor/dsh-remote/`、`vendor/dsh-superagent/` 与 DSH UI 补丁；`opl-catalog` 切换至纯净 `opl_software_catalog_index.v2`；Framework 剥离 `migrate-v1.ts` 出 `opld` 核心并退役 `opl_software_installation.v1`。
 - **锁定保留或单独立项**：
   - `opl-flow`：由用户单开专题对话重理设计目标，保持能力不降级，不在本轮收口裁剪。

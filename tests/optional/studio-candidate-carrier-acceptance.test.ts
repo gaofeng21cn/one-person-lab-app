@@ -15,10 +15,11 @@ import type {
 } from '../../scripts/validate-shell-candidates/types.ts';
 
 const registry = JSON.parse(
-  fs.readFileSync('contracts/app-shell-candidates.json', 'utf8'),
+  fs.readFileSync('contracts/app-shell-adapter.json', 'utf8'),
 ) as ShellCandidateRegistry;
 const candidate = registry.candidates.find((entry) => entry.id === 'opl-studio') as ShellCandidate;
-assert.ok(candidate.carrier_evidence_contract);
+assert.ok(registry.carrier_evidence_contract);
+const carrierEvidenceContract = registry.carrier_evidence_contract;
 
 const artifactPaths: Record<OPLStudioCarrierId, string> = {
   electron_desktop: 'out/mac-arm64/One Person Lab Preview.app',
@@ -38,7 +39,7 @@ function flatSourceRef(ref: string): string {
 
 function createCandidateTree(sourceRefForFixture = (ref: string) => ref): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-studio-carriers-'));
-  const contract = candidate.carrier_evidence_contract;
+  const contract = carrierEvidenceContract;
   assert.ok(contract);
   for (const expected of Object.values(contract.entries)) {
     for (const sourceRef of [...expected.source_refs, expected.update_adapter_source.ref]) {
@@ -57,7 +58,7 @@ function createCandidateTree(sourceRefForFixture = (ref: string) => ref): string
 }
 
 function carrierEntry(carrierId: OPLStudioCarrierId): OPLStudioCarrierEvidenceEntry {
-  const contract = candidate.carrier_evidence_contract;
+  const contract = carrierEvidenceContract;
   assert.ok(contract);
   const expected = contract.entries[carrierId];
   return {
@@ -90,7 +91,7 @@ function carrierEntry(carrierId: OPLStudioCarrierId): OPLStudioCarrierEvidenceEn
 }
 
 function carrierManifest(): OPLStudioCarrierEvidenceManifest {
-  const contract = candidate.carrier_evidence_contract;
+  const contract = carrierEvidenceContract;
   assert.ok(contract);
   return {
     schema: 'opl_studio_carrier_evidence.v1',

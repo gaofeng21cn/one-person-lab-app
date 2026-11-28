@@ -5,8 +5,8 @@ import { assertRepositoryRelativePath, assertStringArrayIncludes } from '../valu
 import type { ActiveProjectLineStateModel } from './types.ts';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const registryPath = path.join(root, 'contracts', 'app-shell-candidates.json');
 export const activeAdapterPath = path.join(root, 'contracts', 'app-shell-adapter.json');
+export const registryPath = activeAdapterPath;
 export const guiContractPath = path.join(root, 'contracts', 'app-gui-product-contract.json');
 export const runtimeBridgePath = path.join(root, 'contracts', 'app-runtime-bridge.json');
 

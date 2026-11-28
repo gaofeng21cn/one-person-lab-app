@@ -35,7 +35,7 @@ Studio Preview 保留独立身份，终结桥通过经过签名验证的目标�
 | `one-person-lab` | Framework runtime、installed Package discovery/graph/currentness、App projection、state/action/authentication/channel callback contracts |
 
 App repo 不复制 Studio source，Studio 也不复制 App product truth。App wrapper 通过
-`contracts/shell-adapters/opl-studio.json` 选择 Studio checkout，校验 App-owned compatibility，
+`contracts/app-shell-adapter.json` 选择 Studio checkout，校验 App-owned compatibility，
 并把当前 App checkout 的绝对 `OPL_APP_REPO_ROOT` 注入 Studio 命令。这样 task worktree、CI checkout
 和 sibling repo 都读取同一 App contract cohort，不会误用旁边另一个 App checkout。
 
@@ -79,7 +79,7 @@ browser-side Package discovery、arbitrary code plugin、第二 action bus 或�
 
 ## Carrier Evidence
 
-Source stage 从 `contracts/app-shell-candidates.json` 与 Studio adapter 读取，当前 source
+Source stage 从合并后的 `contracts/app-shell-adapter.json` 读取（含 candidate 与 adapter 语义），当前 source
 或本地 build 不外推 adoption/release。`npm run package:candidate:studio` 由 App wrapper
 将当前 App checkout 注入 Studio，在 committed/clean source 上产出 Desktop、standalone
 WebUI、Docker smoke 和 exact-commit carrier manifest。详细操作只维护在
@@ -154,7 +154,6 @@ Codex 原生线程、Framework runtime/Package/credentials、Workspace source �
 
 - [`app-product-profile.json`](../../../contracts/app-product-profile.json) 的 `delivery_topology`
 - [`app-gui-product-contract.json`](../../../contracts/app-gui-product-contract.json) 的 `ui_composition`
-- [`app-shell-candidates.json`](../../../contracts/app-shell-candidates.json) 的 candidate 与 carrier evidence contract
-- [`shell-adapters/opl-studio.json`](../../../contracts/shell-adapters/opl-studio.json) 的 Application Host adapter
+- [`app-shell-adapter.json`](../../../contracts/app-shell-adapter.json) 的 candidate、carrier evidence 与 Application Host adapter 合同
 - [`app-release-channel.json`](../../../contracts/app-release-channel.json) 的 shell transition policy
 - [`gui-shell-candidates.md`](gui-shell-candidates.md) 的 active/candidate selection

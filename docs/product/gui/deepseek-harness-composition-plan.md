@@ -5,7 +5,7 @@ Purpose: `dsh_application_host_and_plugin_composition_boundary`
 State: `active_architecture_truth`
 Machine boundary: 本文解释 App 已批准的 Studio Application Host 架构。机器真相归
 `contracts/app-product-profile.json`、`contracts/app-gui-product-contract.json`、
-`contracts/app-shell-candidates.json`、`contracts/app-shell-adapter.json`、Studio source/tests
+`contracts/app-shell-adapter.json`（含合并后的 candidate 与 adapter 合同）、Studio source/tests
 和真实 carrier evidence。本文不授权 active-shell 切换、发布、安装或 production-ready 声明。
 
 ## 结论
@@ -167,8 +167,7 @@ Repository relationship、candidate role 和 adoption 只维护在
 
 - [`app-product-profile.json`](../../../contracts/app-product-profile.json) 的 `delivery_topology`
 - [`app-gui-product-contract.json`](../../../contracts/app-gui-product-contract.json) 的 `ui_composition`
-- [`app-shell-candidates.json`](../../../contracts/app-shell-candidates.json) 的 `opl-studio` candidate
-- [`shell-adapters/opl-studio.json`](../../../contracts/shell-adapters/opl-studio.json) 的 `application_host`
+- [`app-shell-adapter.json`](../../../contracts/app-shell-adapter.json) 的 `opl-studio` candidate 与 `application_host` adapter 合同
 - [`opl-studio-plan.md`](opl-studio-plan.md) 的产品角色、adoption 与仓库关系
 - [`gui-shell-candidates.md`](gui-shell-candidates.md) 的 active/candidate Shell 选择
 

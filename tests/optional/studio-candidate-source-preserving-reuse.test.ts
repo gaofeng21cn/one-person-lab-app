@@ -9,7 +9,7 @@ import { validateDeepSeekHarnessSourceEvidence } from '../../scripts/validate-sh
 import type { ShellCandidateRegistry } from '../../scripts/validate-shell-candidates/types.ts';
 
 const registry = JSON.parse(
-  fs.readFileSync('contracts/app-shell-candidates.json', 'utf8'),
+  fs.readFileSync('contracts/app-shell-adapter.json', 'utf8'),
 ) as ShellCandidateRegistry;
 const policy = candidateValidationPolicyFromRegistry(registry);
 

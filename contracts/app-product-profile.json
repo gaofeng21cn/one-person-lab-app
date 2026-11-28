@@ -289,7 +289,7 @@
       "codex_state_volume_required": true,
       "multi_tenant_claim_allowed": false,
       "security_admission_ref": "contracts/app-install-exposure-policy.json#installer_surfaces.docker_webui.installer_model.cloud_deployment_model",
-      "preview_admission_ref": "contracts/app-shell-candidates.json#candidates/opl-studio/carrier_evidence_contract/preview_oci_admission",
+      "preview_admission_ref": "contracts/app-shell-adapter.json#carrier_evidence_contract/preview_oci_admission",
       "release_contract_ref": "contracts/app-release-channel.json#distribution_semantics.cohort_policy"
     },
     "mobile": {
@@ -322,7 +322,7 @@
       "release_blocking": false,
       "active_release_carrier": true,
       "release_qualification_remains_carrier_specific": true,
-      "candidate_policy_ref": "contracts/app-shell-candidates.json"
+      "candidate_policy_ref": "contracts/app-shell-adapter.json#candidate_policy"
     },
     "minimum_complete_product": {
       "schema": "opl_app_successor_minimum_complete_product.v3",

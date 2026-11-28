@@ -49,11 +49,11 @@ const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 
 export function validateGuiDesignSystem(root = defaultRoot): GuiDesignSystemValidation {
   const issues = new Set<string>();
-  const registry = readJson(root, 'contracts/app-shell-candidates.json', issues);
+  const shellAdapter = readJson(root, 'contracts/app-shell-adapter.json', issues);
+  const registry = shellAdapter;
   const profile = readJson(root, 'contracts/app-product-profile.json', issues);
   const guiContract = readJson(root, 'contracts/app-gui-product-contract.json', issues);
   const pageStateMatrix = readJson(root, 'contracts/app-page-state-matrix.json', issues);
-  const shellAdapter = readJson(root, 'contracts/app-shell-adapter.json', issues);
   const activeBuild = readActiveShellBuildProfile(root);
   const visualReferenceCohort = readJson(root, visualReferenceCohortPath, issues);
   const visualSourceCohort = readJson(root, visualSourceCohortPath, issues);

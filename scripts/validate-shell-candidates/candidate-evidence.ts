@@ -135,7 +135,10 @@ function runRequiredCommand(candidate: ShellCandidate, commandKind: string, entr
 export function validateOPLStudioCarrierEvidenceManifestFile(
   candidate: ShellCandidate,
 ): void {
-  const contract = candidate.carrier_evidence_contract;
+  const contract =
+    candidate.carrier_evidence_contract ??
+    readJson<{ carrier_evidence_contract?: OPLStudioCarrierEvidenceExpectation['carrier_evidence_contract'] }>(registryPath)
+      .carrier_evidence_contract;
   if (!contract) {
     throw new Error(`${candidate.id} must declare carrier_evidence_contract`);
   }
@@ -179,7 +182,10 @@ export function validateOPLStudioCarrierEvidenceManifest(
   manifest: OPLStudioCarrierEvidenceManifest,
   candidateRoot: string,
 ): void {
-  const contract = candidate.carrier_evidence_contract;
+  const contract =
+    candidate.carrier_evidence_contract ??
+    readJson<{ carrier_evidence_contract?: OPLStudioCarrierEvidenceExpectation['carrier_evidence_contract'] }>(registryPath)
+      .carrier_evidence_contract;
   if (!contract) {
     throw new Error(`${candidate.id} must declare carrier_evidence_contract`);
   }

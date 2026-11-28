@@ -240,7 +240,7 @@ export function validateDeliveryTopology(profile, releaseChannel = readJson(rele
       security_admission_ref:
         'contracts/app-install-exposure-policy.json#installer_surfaces.docker_webui.installer_model.cloud_deployment_model',
       preview_admission_ref:
-        'contracts/app-shell-candidates.json#candidates/opl-studio/carrier_evidence_contract/preview_oci_admission',
+        'contracts/app-shell-adapter.json#carrier_evidence_contract/preview_oci_admission',
       release_contract_ref: 'contracts/app-release-channel.json#distribution_semantics.cohort_policy',
     },
     'Product profile Docker WebUI topology',
@@ -260,7 +260,7 @@ export function validateDeliveryTopology(profile, releaseChannel = readJson(rele
       release_blocking: false,
       active_release_carrier: true,
       release_qualification_remains_carrier_specific: true,
-      candidate_policy_ref: 'contracts/app-shell-candidates.json',
+      candidate_policy_ref: 'contracts/app-shell-adapter.json#candidate_policy',
     },
     'Product profile successor product policy',
   );

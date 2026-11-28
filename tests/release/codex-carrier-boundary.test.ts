@@ -44,7 +44,7 @@ test('Full App contract delegates Codex to the Shell-composed carrier and omits 
 });
 
 test('Native adoption cannot inherit the AionCore carrier', () => {
-  const native = structuredClone(readAdapter('contracts/shell-adapters/opl-studio.json'));
+  const native = structuredClone(readAdapter('contracts/app-shell-adapter.json'));
   assert.ok(native.codex_executable_contract);
   native.codex_executable_contract.carrier = {
     kind: 'aioncore_managed_resources_manifest',
@@ -61,7 +61,7 @@ test('Native adoption cannot inherit the AionCore carrier', () => {
 });
 
 test('Studio clean VM qualification resolves its external Codex carrier at operation start', () => {
-  const native = readAdapter('contracts/shell-adapters/opl-studio.json');
+  const native = readAdapter('contracts/app-shell-adapter.json');
   const qualification = native.qualification_external_carrier;
   assert.equal(qualification?.schema, 'opl_studio_external_codex_qualification_input.v1');
   assert.equal(qualification?.owner, 'one-person-lab-app');

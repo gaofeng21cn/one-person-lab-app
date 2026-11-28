@@ -39,7 +39,7 @@ test('Scheduled Tasks contracts share one fail-open fixed-Codex composition', ()
     validateScheduledTasksAdapter(adapter, gui.scheduled_tasks_policy),
   );
   assert.doesNotThrow(() =>
-    validateScheduledTasksAdapter(readJson('contracts/shell-adapters/opl-studio.json'), gui.scheduled_tasks_policy),
+    validateScheduledTasksAdapter(readJson('contracts/app-shell-adapter.json'), gui.scheduled_tasks_policy),
   );
 });
 

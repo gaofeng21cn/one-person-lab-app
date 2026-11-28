@@ -19,10 +19,10 @@ export function validateRegistryShape(registry: ShellCandidateRegistry): void {
   if (registry.owner !== 'one-person-lab-app') {
     throw new Error(`Unexpected candidate registry owner: ${registry.owner}`);
   }
-  if (registry.purpose !== 'app_shell_candidate_registry') {
+  if (registry.purpose !== 'active_shell_adapter') {
     throw new Error(`Unexpected candidate registry purpose: ${registry.purpose}`);
   }
-  if (registry.state !== 'active_gui_route_policy') {
+  if (registry.state !== 'active') {
     throw new Error(`Unexpected candidate registry state: ${registry.state}`);
   }
   const activeBuild = readActiveShellBuildProfile(root);
@@ -106,7 +106,7 @@ export function validateRegistryShape(registry: ShellCandidateRegistry): void {
     throw new Error('candidate registry must point at scripts/validate-shell-candidates.ts');
   }
   assertStringArrayIncludes(policy.adoption_gate, [
-    'candidate is declared in contracts/app-shell-candidates.json',
+    'candidate is declared in contracts/app-shell-adapter.json#candidates',
     'candidate is the foreground alternative declared by alternative_gui_policy.only_foreground_alternative',
     'candidate implements contracts/app-gui-product-contract.json',
     'candidate uses one App-owned product renderer across claimed delivery surfaces without making the renderer a product truth owner',
@@ -229,7 +229,7 @@ function validateCandidateRoleEntries(registry: ShellCandidateRegistry): void {
     !native ||
     native.state !== 'active_product_development' ||
     native.foreground_alternative_role !== 'only_foreground_alternative' ||
-    native.adapter_contract !== 'contracts/shell-adapters/opl-studio.json' ||
+    native.adapter_contract !== 'contracts/app-shell-adapter.json' ||
     native.release_participation !== 'pre_adoption_explicit_build_only'
   ) {
     throw new Error('OPL Studio must remain the explicit foreground candidate');
@@ -288,7 +288,7 @@ function validateInteractiveLauncherPolicy(registry: ShellCandidateRegistry): vo
   }
   const successor = profiles['opl-studio'];
   if (
-    successor?.adapter_contract !== 'contracts/shell-adapters/opl-studio.json' ||
+    successor?.adapter_contract !== 'contracts/app-shell-adapter.json' ||
     successor.default_mode !== 'packaged' ||
     successor.bundle_id !== 'cn.onepersonlab.opl.studio.preview' ||
     successor.packaged_app_path !== '/Applications/One Person Lab Preview.app' ||

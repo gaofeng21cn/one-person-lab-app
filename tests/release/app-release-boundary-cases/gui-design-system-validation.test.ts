@@ -39,7 +39,7 @@ function createFixture(activeShell: 'opl-studio' = 'opl-studio'): string {
     'docs/product/gui/gui-maintenance-policy.md',
     'docs/product/gui/shell-implementation-guide.md',
     'docs/product/gui/shell-conformance-matrix.md',
-    'contracts/app-shell-candidates.json',
+    'contracts/app-shell-adapter.json',
     'contracts/app-product-profile.json',
     'contracts/app-gui-product-contract.json',
     'contracts/app-gui-visual-source-cohort.json',
@@ -51,15 +51,13 @@ function createFixture(activeShell: 'opl-studio' = 'opl-studio'): string {
     copyFixtureFile(root, relativePath);
   }
 
-  const shellAdapter = JSON.parse(fs.readFileSync(path.join(appRoot, `contracts/shell-adapters/${activeShell}.json`), 'utf8'));
+  const shellAdapter = JSON.parse(fs.readFileSync(path.join(appRoot, 'contracts/app-shell-adapter.json'), 'utf8'));
   shellAdapter.active_shell = activeShell;
+  shellAdapter.active_shell_unchanged = activeShell;
+  shellAdapter.active_gui_mainline.shell = activeShell;
+  shellAdapter.active_gui_mainline.shell_root = shellAdapter.shell_root;
+  shellAdapter.active_gui_mainline.source_repo = shellAdapter.shell_source.owner_repo;
   writeJson(root, 'contracts/app-shell-adapter.json', shellAdapter);
-  const registry = JSON.parse(fs.readFileSync(path.join(root, 'contracts/app-shell-candidates.json'), 'utf8'));
-  registry.active_shell_unchanged = activeShell;
-  registry.active_gui_mainline.shell = activeShell;
-  registry.active_gui_mainline.shell_root = shellAdapter.shell_root;
-  registry.active_gui_mainline.source_repo = shellAdapter.shell_source.owner_repo;
-  writeJson(root, 'contracts/app-shell-candidates.json', registry);
   return root;
 }
 
@@ -133,11 +131,11 @@ test('GUI design-system validator accepts active Studio without a legacy GUI anc
 test('GUI design-system validator rejects active registry identity drift for Studio', () => {
   for (const field of ['active_shell_unchanged', 'active_gui_mainline'] as const) {
     const root = createFixture();
-    const registryPath = path.join(root, 'contracts/app-shell-candidates.json');
+    const registryPath = path.join(root, 'contracts/app-shell-adapter.json');
     const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
     if (field === 'active_shell_unchanged') registry[field] = 'aionui';
     else registry[field].shell = 'aionui';
-    writeJson(root, 'contracts/app-shell-candidates.json', registry);
+    writeJson(root, 'contracts/app-shell-adapter.json', registry);
 
     assert.throws(() => validateGuiDesignSystem(root), /candidate registry must match the App-selected active Shell/);
   }
@@ -417,12 +415,12 @@ test('GUI design-system validator follows a changed App-profile reasoning defaul
 
 test('GUI design-system validator ignores explicit Native candidate detail drift', () => {
   const root = createFixture();
-  const registryPath = path.join(root, 'contracts/app-shell-candidates.json');
+  const registryPath = path.join(root, 'contracts/app-shell-adapter.json');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
   const native = registry.candidates.find((candidate) => candidate.id === 'opl-studio');
   native.dsh_source_reuse_contract.default_reasoning_effort = 'candidate-only-drift';
   native.required_capabilities = [];
-  writeJson(root, 'contracts/app-shell-candidates.json', registry);
+  writeJson(root, 'contracts/app-shell-adapter.json', registry);
 
   assert.equal(validateGuiDesignSystem(root).status, 'consistent');
 });
@@ -525,11 +523,11 @@ test('GUI design-system validator rejects making the core Runtime route optional
 
 test('GUI design-system validator rejects an active Codex visual baseline in candidate governance', () => {
   const root = createFixture();
-  const registryPath = path.join(root, 'contracts/app-shell-candidates.json');
+  const registryPath = path.join(root, 'contracts/app-shell-adapter.json');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
   registry.design_system_governance.interaction_reference.comparison_baseline =
     'ChatGPT Codex macOS 26.707.72221 build 5307';
-  writeJson(root, 'contracts/app-shell-candidates.json', registry);
+  writeJson(root, 'contracts/app-shell-adapter.json', registry);
   assert.throws(
     () => validateGuiDesignSystem(root),
     /Codex must remain only a historical workflow and spatial interaction reference/,
@@ -882,10 +880,10 @@ test('GUI design-system validator rejects a reintroduced managed Worktree lifecy
 
 test('GUI design-system validator rejects a candidate-owned ideal target', () => {
   const root = createFixture();
-  const registryPath = path.join(root, 'contracts', 'app-shell-candidates.json');
+  const registryPath = path.join(root, 'contracts', 'app-shell-adapter.json');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
   registry.design_system_governance.state_boundary.ideal_target.source_candidate = 'opl-studio';
-  writeJson(root, 'contracts/app-shell-candidates.json', registry);
+  writeJson(root, 'contracts/app-shell-adapter.json', registry);
   assert.throws(
     () => validateGuiDesignSystem(root),
     /ideal target must be App-owned and flow one-way to shells without a source candidate/,
@@ -894,10 +892,10 @@ test('GUI design-system validator rejects a candidate-owned ideal target', () =>
 
 test('GUI design-system validator rejects an App-owned ideal rail regression', () => {
   const root = createFixture();
-  const registryPath = path.join(root, 'contracts', 'app-shell-candidates.json');
+  const registryPath = path.join(root, 'contracts', 'app-shell-adapter.json');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
   registry.design_system_governance.state_boundary.ideal_target.workspace_session_rail_default_visible = false;
-  writeJson(root, 'contracts/app-shell-candidates.json', registry);
+  writeJson(root, 'contracts/app-shell-adapter.json', registry);
   assert.throws(
     () => validateGuiDesignSystem(root),
     /App-owned ideal target must keep the desktop workspace\/session rail visible/,

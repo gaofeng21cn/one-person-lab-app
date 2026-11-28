@@ -276,7 +276,7 @@
     "candidate_state": "candidate_until_contracts_and_tests_complete",
     "authority_transfer_allowed": false,
     "adoption_gate": [
-      "declare candidate in contracts/app-shell-candidates.json",
+      "declare candidate in contracts/app-shell-adapter.json#candidates",
       "implement contracts/app-gui-product-contract.json",
       "sync App product profile into the candidate shell target",
       "pass App page-state and first-run matrices",
@@ -627,5 +627,1287 @@
     },
     "private_coordination_layer_allowed": false
   },
-  "active_shell": "opl-studio"
+  "active_shell": "opl-studio",
+  "active_shell_unchanged": "opl-studio",
+  "active_gui_mainline": {
+    "shell": "opl-studio",
+    "shell_root": "shells/opl-studio",
+    "source_repo": "gaofeng21cn/opl-studio",
+    "role": "stable_app_gui_mainline",
+    "product_truth_owner": "one-person-lab-app"
+  },
+  "alternative_gui_policy": {
+    "only_foreground_alternative": "opl-studio",
+    "basis": "OPL Studio DSH Application Host and composition workbench",
+    "default_candidate_validation_scope": [],
+    "active_shell_switch_policy": "only_contracts/app-shell-adapter.json_can_switch_default_release_shell",
+    "explicit_candidate_validation_scope": [
+      "opl-studio"
+    ]
+  },
+  "interactive_launcher_policy": {
+    "state": "active_local_launcher_policy",
+    "topology": "single_control_plane_multiple_independent_gui_clients",
+    "selectable_shells": [
+      "opl-studio"
+    ],
+    "selection_scope": "per_local_launch_only",
+    "default_target_source": "contracts/app-shell-adapter.json#active_shell",
+    "target_interface": "app_root_gui_launcher_with_shell_and_mode",
+    "target_command": "npm run gui -- --shell <shell_id> [--mode dev|packaged]",
+    "release_adoption_contract": "contracts/app-shell-adapter.json",
+    "selection_mutates_release_adoption": false,
+    "candidate_launch_implies_adoption": false,
+    "selection_changes_updater_channel": false,
+    "side_by_side_bundle_identity_required": true,
+    "simultaneous_same_workspace_write_safety_claimed": false,
+    "concurrent_mainline_policy": "side_by_side_bundle_launch_allowed_candidate_actions_dry_run_by_default",
+    "candidate_default_mutation_policy": "dry_run_only_unless_explicit_allow_actions",
+    "missing_target_policy": "fail_closed_with_actionable_blocker",
+    "implementation_status": "implemented",
+    "launch_profiles": {
+      "opl-studio": {
+        "adapter_contract": "contracts/app-shell-adapter.json",
+        "default_mode": "packaged",
+        "supported_modes": [
+          "packaged"
+        ],
+        "bundle_id": "cn.onepersonlab.opl.studio.preview",
+        "packaged_app_path": "/Applications/One Person Lab Preview.app",
+        "bundle_relative_path": "out/mac-arm64/One Person Lab Preview.app",
+        "launcher_env_abi": [
+          "OPL_CODEX_BIN",
+          "OPL_APP_OPL_BIN",
+          "OPL_NATIVE_WORKBENCH_CODEX_CWD",
+          "OPL_NATIVE_WORKBENCH_READ_ONLY"
+        ],
+        "package_command": [
+          "npm",
+          "run",
+          "package"
+        ]
+      }
+    }
+  },
+  "release_shell_contract": "contracts/app-shell-adapter.json",
+  "shell_transition_policy_ref": "contracts/app-release-channel.json#shell_transition_policy",
+  "product_profile_contract": "contracts/app-product-profile.json",
+  "page_state_matrix": "contracts/app-page-state-matrix.json",
+  "first_run_matrix": "contracts/app-first-run-test-matrix.json",
+  "design_system_governance": {
+    "schema": "opl_app_gui_design_system_governance.v1",
+    "entry_doc": "docs/product/gui/README.md",
+    "foundation_docs": {
+      "readme": "docs/product/gui/README.md",
+      "visual_system": "docs/product/gui/visual-system.md",
+      "shell_implementation_guide": "docs/product/gui/shell-implementation-guide.md",
+      "shell_conformance_matrix": "docs/product/gui/shell-conformance-matrix.md"
+    },
+    "definition_stack": [
+      {
+        "id": "product_definition",
+        "priority": 1,
+        "entry_docs": [
+          "docs/product/gui/README.md",
+          "docs/product/gui/feature-inventory.md"
+        ],
+        "contract_refs": [
+          "contracts/app-gui-product-contract.json",
+          "contracts/app-product-profile.json",
+          "contracts/app-page-state-matrix.json",
+          "contracts/app-remote-companion.json"
+        ]
+      },
+      {
+        "id": "visual_system",
+        "priority": 2,
+        "entry_docs": [
+          "docs/product/gui/ideal-interaction-spec.md",
+          "docs/product/gui/visual-system.md",
+          "docs/product/gui/codex-to-opl-app-delta.md",
+          "docs/product/gui/element-audit.md"
+        ],
+        "contract_refs": [
+          "contracts/app-gui-product-contract.json",
+          "contracts/app-product-profile.json",
+          "contracts/app-page-state-matrix.json"
+        ]
+      },
+      {
+        "id": "shell_implementation_conformance",
+        "priority": 3,
+        "entry_docs": [
+          "docs/product/gui/shell-implementation-guide.md",
+          "docs/product/gui/shell-conformance-matrix.md"
+        ],
+        "contract_refs": [
+          "contracts/app-gui-product-contract.json",
+          "contracts/app-product-profile.json",
+          "contracts/app-page-state-matrix.json",
+          "contracts/app-shell-adapter.json"
+        ]
+      }
+    ],
+    "priority_order": [
+      "product_definition",
+      "visual_system",
+      "shell_implementation_conformance"
+    ],
+    "shell_authority": "implementation_only_cannot_redefine_product",
+    "conformance_status_vocabulary": {
+      "contract_status": [
+        "aligned_contract",
+        "current_contract_deviation",
+        "candidate_target",
+        "not_claimed"
+      ],
+      "source_status": [
+        "source_implemented",
+        "source_partial",
+        "source_missing",
+        "source_not_assessed"
+      ],
+      "pixel_status": [
+        "pixel_verified",
+        "pixel_unverified",
+        "pixel_blocked",
+        "not_applicable"
+      ],
+      "axis_policy": "contract_source_pixel_independent",
+      "matrix_row_policy": "every_implementation_requirement_has_both_shells_all_three_axes",
+      "pixel_verified_claim": "fresh_pixels_exist_not_visual_parity_or_release_readiness"
+    },
+    "visual_source": {
+      "cohort": "contracts/app-gui-visual-source-cohort.json",
+      "source_usage": "pinned_dsh_shell_components_theme_and_primitives_with_opl_owner_adapters",
+      "authority": "one-person-lab-app",
+      "forbidden_authority": [
+        "product_behavior",
+        "routes",
+        "framework_abi",
+        "app_state_or_actions",
+        "runtime",
+        "sessions",
+        "connections",
+        "release",
+        "pixel_acceptance"
+      ]
+    },
+    "interaction_reference": {
+      "comparison_baseline": "historical ChatGPT Codex macOS workflow and spatial interaction observation",
+      "source_usage": "historical_workflow_and_spatial_interaction_reference_only_no_code_brand_account_product_pixel_install_or_release_authority"
+    },
+    "state_boundary": {
+      "ideal_target": {
+        "owner": "one-person-lab-app",
+        "authority": "app_product_and_visual_system",
+        "conformance_direction": "ideal_target_to_shells",
+        "workspace_session_rail_default_visible": true,
+        "inspector_default_visible": false
+      },
+      "active_studio": {
+        "source": "contracts/app-product-profile.json#gui.home.home_layout",
+        "conformance_policy": "read_current_profile_state_and_compare_to_ideal_without_freezing_values"
+      }
+    },
+    "evidence_boundary": {
+      "validation_scope": "design_system_governance_consistency_only",
+      "docs_or_visual_qa_can_claim_release_ready": false,
+      "pixel_verified_implies_visual_parity": false,
+      "pixel_verified_implies_release_ready": false
+    }
+  },
+  "candidate_policy": {
+    "candidate_root_pattern": "shells/<candidate>",
+    "candidate_state": "foreground_alternative",
+    "release_participation_until_adopted": "explicit_candidate_build_only",
+    "authority_transfer_allowed": false,
+    "release_scripts_must_use_active_shell_adapter": true,
+    "candidate_validation_script": "scripts/validate-shell-candidates.ts",
+    "adoption_gate": [
+      "candidate is declared in contracts/app-shell-adapter.json#candidates",
+      "candidate is the foreground alternative declared by alternative_gui_policy.only_foreground_alternative",
+      "candidate implements contracts/app-gui-product-contract.json",
+      "candidate uses one App-owned product renderer across claimed delivery surfaces without making the renderer a product truth owner",
+      "candidate provides delivery-surface bridges that expose the same App-owned API shape without taking runtime authority",
+      "candidate passes WebUI smoke only when it explicitly claims WebUI delivery; otherwise WebUI remains explicitly deferred and non-claiming",
+      "candidate runs the pinned DeepSeek Harness Application Host and GUI source cohort with OPL-owned plugins while keeping product and runtime authorities at their declared owners",
+      "candidate keeps only projects, conversations, search, and Settings in the left rail and exposes run status, files and results, and agents and capabilities as user-requested right context",
+      "candidate maps App product profile without owning product truth",
+      "candidate consumes opl app state/action surfaces only",
+      "candidate passes state-model validation proving active project line projection consumption without taking runtime or domain authority",
+      "candidate passes page-state and first-run matrix mapping checks",
+      "candidate passes App-root candidate validation",
+      "candidate compiles a launchable .app bundle through the App wrapper when OPL_APP_SHELL_ADAPTER_CONTRACT selects its adapter contract",
+      "contracts/app-shell-adapter.json is changed only when candidate becomes active release shell",
+      "candidate enters App product truth only through App-owned contract updates and validation gates",
+      "candidate evidence remains technical verification until explicit active-shell adoption decision"
+    ],
+    "default_validation_scope": "role_registry_only",
+    "entry_route": "App_contract_gate_only",
+    "forbidden_entry_routes": [
+      "shell implementation roadmap copied into App truth",
+      "upstream GUI defaults treated as App product authority",
+      "candidate package evidence treated as active release adoption",
+      "release wrapper default switched without contracts/app-shell-adapter.json change"
+    ],
+    "default_validation_contract": "minimal_role_registry_only"
+  },
+  "design_reference_policy": {
+    "purpose": "External agent UI projects can inform OPL-owned information organization without becoming shell candidates, runtime sources, copied code, or default split-screen workbench assumptions.",
+    "source_code_use": "reference_only_no_vendoring_or_copying_without_license_decision",
+    "runtime_authority_transfer_allowed": false,
+    "license_gate_required_before_code_reuse": true,
+    "candidate_promotion_route": "external_checkout_under_shells/<candidate>_with_adapter_contract_and_App_owned_gates"
+  },
+  "design_references": [
+    {
+      "id": "stitch_one_lab_assistant",
+      "source_url": "https://stitch.withgoogle.com/projects/11170501787352919788",
+      "evaluated_at": "2026-06-02",
+      "source_usage": "visual_reference_only",
+      "reference_value": [
+        "Quiet Utility visual language for a professional AI work app",
+        "neutral tonal layers with 1px outline and low-shadow depth",
+        "fixed-width chat reading lane around 760px",
+        "bottom pinned composer with purpose chips, attach, and send controls",
+        "narrow icon rail and right-side inspector proportions",
+        "Inter typography with JetBrains Mono for technical text"
+      ],
+      "opl_mapping": [
+        "OPL ordinary home keeps the chat canvas as the visual center",
+        "OPL composer uses purpose chips, attach, and send controls without backend/provider selectors or runtime summaries while App-owned model/reasoning and permission/access controls remain visible",
+        "OPL context details remain in collapsible inspector tabs rather than first-screen panels",
+        "OPL visual tokens prefer gray tonal surfaces, 1px outlines, restrained shadows, and cards with radius no larger than 8px"
+      ],
+      "forbidden_reuse": [
+        "do not copy or vendor Stitch generated HTML, Tailwind classes, or demo source as App product code",
+        "do not treat Stitch demo data, local inference labels, model or VRAM status as OPL runtime truth",
+        "do not make the inspector default-open because the visual reference shows it",
+        "do not let Stitch override App-owned contracts, page-state matrices, or shell adapter boundaries"
+      ]
+    },
+    {
+      "id": "pilotdeck",
+      "source_repo": "https://github.com/OpenBMB/PilotDeck",
+      "evaluated_ref": "33394d1069c3528052c3f12eb1d905060b34cc2f",
+      "evaluated_at": "2026-05-30",
+      "license": "AGPL-3.0",
+      "source_usage": "design_reference_only",
+      "reference_value": [
+        "workspace/project sidebar pattern for lightweight rail organization",
+        "chat-first main pane with persistent composer",
+        "information grouping for Agent, Files, Skills, Routing, Memory, and Always-On",
+        "file, memory, routing, and always-on context surfaces",
+        "process/status traces kept near the conversation rather than hidden in logs"
+      ],
+      "opl_mapping": [
+        "OPL lightweight workspace rail should group work by workspace and conversation without exposing backend selection",
+        "OPL main surface should stay chat-first with MAS/MAG/RCA purpose tags in the composer",
+        "OPL right-side collapsible contextual tabs should map to Files, Runtime, Capabilities, Memory refs, Automations, and Settings using App-owned state/action surfaces",
+        "OPL long-running work should surface progress, queued actions, receipts, and deliverables as inspectable refs",
+        "OPL runtime and memory panels must consume OPL Framework/domain projections rather than PilotDeck state stores"
+      ],
+      "forbidden_reuse": [
+        "do not copy or vendor PilotDeck AGPL source into the Apache-2.0 App repo",
+        "do not adopt PilotDeck gateway, agent runtime, memory, router, or always-on stores as OPL authority",
+        "do not expose PilotDeck provider/model/backend selection as ordinary OPL App controls",
+        "do not replace Codex app-server as the primary OPL Codex backend because a reference UI supports other agents",
+        "do not treat PilotDeck screenshots, demo data, or WorkSpace model as App product truth"
+      ]
+    },
+    {
+      "id": "kdense-byok",
+      "source_repo": "https://github.com/K-Dense-AI/k-dense-byok",
+      "evaluated_ref": "dccc7ec4",
+      "evaluated_at": "2026-07-04",
+      "license": "MIT",
+      "source_usage": "experience_reference_only",
+      "reference_value": [
+        "project sandbox organization",
+        "result and artifact delivery panel",
+        "structured confirmation forms",
+        "rich file preview affordances",
+        "editable specialist roles and workflow templates"
+      ],
+      "opl_mapping": [
+        "OPL Studio should organize work by project, conversation, files, receipts, and delivery outputs",
+        "OPL result surfaces should make generated artifacts, previews, handoff receipts, and next actions scannable before raw logs",
+        "OPL confirmation flows should use structured App actions and dry-run receipts rather than ad hoc prompts",
+        "OPL specialist entries stay Codex Skill/Plugin references and App-owned capability summaries, not runtime authority"
+      ],
+      "forbidden_reuse": [
+        "do not adopt K-Dense runtime, agent authority, provider routing, or remote compute as OPL authority",
+        "do not copy source until a separate license and code-reuse decision is recorded",
+        "do not expose provider/backend marketplace controls as ordinary OPL App controls",
+        "do not treat K-Dense project, cost, or remote compute state as App runtime truth"
+      ]
+    },
+    {
+      "id": "openclaudescience",
+      "source_repo": "https://github.com/qzzqzzb/OpenClaudeScience",
+      "evaluated_at": "2026-07-04",
+      "license": "MIT",
+      "source_usage": "experience_reference_only",
+      "reference_value": [
+        "scientific workflow task awareness",
+        "result-first research progress presentation",
+        "deliverable-oriented session context",
+        "research artifact review and handoff patterns"
+      ],
+      "opl_mapping": [
+        "OPL Studio should show active scientific work as progress, result refs, artifact refs, and owner handoff state",
+        "OPL research UI should keep method/result/deliverable review close to the conversation without taking domain verdict authority",
+        "OPL scientific panels consume OPL Framework and domain projections rather than local GUI-owned research state"
+      ],
+      "forbidden_reuse": [
+        "do not adopt OpenClaudeScience runtime, domain verdicts, or research authority as OPL authority",
+        "do not copy source until a separate license and code-reuse decision is recorded",
+        "do not treat external scientific workflow state as OPL Framework runtime truth"
+      ]
+    },
+    {
+      "id": "open-science",
+      "source_repo": "https://github.com/ai4s-research/open-science",
+      "evaluated_ref": "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66",
+      "evaluated_at": "2026-07-04",
+      "license": "MIT",
+      "source_usage": "design_reference_only",
+      "reference_value": [
+        "artifact, provenance, and review surfaces kept close to the conversation",
+        "plain-language data-flow and safety presentation",
+        "workflow starters that turn broad research intents into concrete starts",
+        "scientific report, figure, notebook, and table preview affordances",
+        "local-first runtime isolation as a packaging reference only"
+      ],
+      "opl_mapping": [
+        "OPL Studio should keep the DeepSeek Harness chat-first source-reuse basis, not Open Science's three-column workbench default",
+        "OPL right context stays collapsed by default and opens only when the user asks to inspect files, artifacts, review refs, actions, runtime refs, memory refs, automations, or settings",
+        "MAS is autonomous research execution, not a co-scientist pair-work surface; the UI must not assume users monitor results beside chat while work runs",
+        "Open Science artifact/provenance/review ideas map to secondary refs, Runtime/delivery pages, and explicit inspector tabs without taking artifact body, domain verdict, or runtime authority",
+        "Open Science workflow starters map to OPL purpose entries and App action routes, not to a new workflow runtime"
+      ],
+      "forbidden_reuse": [
+        "do not adopt Open Science's OpenCode sidecar, runtime manager, provider model, or auth flow as OPL authority",
+        "do not copy or vendor Open Science source without a separate license and code-reuse decision",
+        "do not make a three-column scientific workbench, artifact inspector, or activity cockpit the ordinary default Home layout",
+        "do not treat Open Science screenshots, mock sessions, planned features, provenance records, or review outputs as OPL product or domain truth",
+        "do not convert MAS into a co-scientist monitor UI; MAS progress and results are inspect-on-demand refs"
+      ]
+    },
+    {
+      "id": "deepseek-harness",
+      "source_repo": "https://github.com/deepseek-ai/deepseek-harness",
+      "evaluated_ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+      "evaluated_at": "2026-11-10",
+      "evaluated_version": "0.2.3-alpha.2 Application Host and GUI source cohort",
+      "license": "MIT",
+      "source_usage": "approved_application_host_runtime_and_gui_source_reuse",
+      "adopted_packages": {
+        "@deepseek-ai/cordis": "4.2.0-alpha.1",
+        "@deepseek-ai/cordis-plugin-group": "1.2.0-alpha.1",
+        "@deepseek-ai/cordis-plugin-include": "1.2.0-alpha.1",
+        "@deepseek-ai/cordis-plugin-loader": "1.2.0-alpha.1",
+        "@deepseek-ai/dsh-client-connection": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-store": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-official-bundles": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-util-crypto": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-util-workspace-path": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-util-file-drag": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-util-values": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-util-code-language": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-app-boot": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-agent-preset-registry": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-brand": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-modules": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-ui-dockkit": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-ui-primitives": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-ui-slots": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-client-web": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-home-paths": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-host-frontend-static": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-host-plugin-inventory": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-host-webserver": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-launch-environment": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-llm": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-scope": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-sandbox": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-sandbox-policy": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-session": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-system-prompt": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-timeout": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-tool-executor-native": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-tools": "0.2.3-alpha.2",
+        "@deepseek-ai/dsh-typert-protocol": "0.2.3-alpha.2",
+        "use-sync-external-store": "1.7.0"
+      },
+      "adopted_source": {
+        "root": "vendor/deepseek-harness",
+        "ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+        "path_policy": "preserve_upstream_package_relative_paths",
+        "byte_policy": "pinned_upstream_plus_manifest_bound_reviewed_compatibility_patches",
+        "package_roots": [
+          "packages/client/ui-layout/src",
+          "packages/client/ui-sidebar/src",
+          "packages/client/ui-conversation/src",
+          "packages/client/ui-input-trigger/src",
+          "packages/client/ui-model-selection/src",
+          "packages/client/ui-agent-preset/src",
+          "packages/client/ui-workspace/src",
+          "packages/client/ui-settings-general/src",
+          "packages/client/ui-theme/src",
+          "packages/client/ui-primitives/src",
+          "packages/client/ui-context-menu/src",
+          "packages/client/ui-renderer/src",
+          "packages/client/ui-sidebar-files/src",
+          "packages/client/ui-sidebar-documentpreview/src",
+          "packages/client/ui-sidebar-right/src",
+          "packages/client/ui-slots/src",
+          "packages/client/ui-schedule/src",
+          "packages/client/ui-deliverables/src",
+          "packages/client/ui-open-in-app/src",
+          "packages/client/ui-dockkit/src",
+          "packages/client/ui-plugin-manager/src",
+          "packages/boot/plugin-manager/src",
+          "packages/util/official-bundles/src",
+          "packages/client/resources/src",
+          "packages/util/workspace-path/src"
+        ],
+        "files": [
+          "packages/client/ui-layout/src/client/AppFrame.tsx",
+          "packages/client/ui-layout/src/client/AppFrame.module.css",
+          "packages/client/ui-layout/src/client/columns.ts",
+          "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
+          "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
+          "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.tsx",
+          "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css",
+          "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
+          "packages/client/ui-conversation/src/client/skeleton/InputBar.module.css",
+          "packages/client/ui-conversation/src/client/skeleton/EmptyHero.tsx",
+          "packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css",
+          "packages/client/ui-input-trigger/src/client/MenuView.tsx",
+          "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
+          "packages/client/ui-agent-preset/src/client/AgentPresetSeat.tsx",
+          "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
+          "packages/client/ui-settings-general/src/client/SettingsRoot.tsx",
+          "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
+          "packages/client/ui-theme/src/styles/design-platform.css",
+          "packages/client/ui-theme/src/styles/base.css",
+          "packages/client/ui-theme/src/styles/scrollbar.css",
+          "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+          "packages/client/ui-primitives/src/Button.tsx",
+          "packages/client/ui-primitives/src/Button.module.css",
+          "packages/client/ui-primitives/src/Pill.tsx",
+          "packages/client/ui-primitives/src/Pill.module.css",
+          "packages/client/ui-primitives/src/Input.tsx",
+          "packages/client/ui-primitives/src/Input.module.css",
+          "packages/client/ui-primitives/src/StateDot.tsx",
+          "packages/client/ui-primitives/src/StateDot.module.css",
+          "packages/client/ui-primitives/src/Tooltip.tsx",
+          "packages/client/ui-primitives/src/Tooltip.module.css",
+          "packages/client/ui-primitives/src/markdown/MarkdownText.tsx",
+          "packages/client/ui-primitives/src/markdown/MarkdownText.module.css",
+          "packages/client/ui-renderer/src/client/scoped-slots.tsx",
+          "packages/client/ui-schedule/src/client/TaskManagerPage.tsx",
+          "packages/client/ui-schedule/src/client/TaskDetail.tsx",
+          "packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx",
+          "packages/client/ui-plugin-manager/src/client/PluginManagerPage.module.css",
+          "packages/client/ui-plugin-manager/src/client/manager-store.ts",
+          "packages/client/ui-plugin-manager/src/client/sanitize-install-input.ts",
+          "packages/client/ui-plugin-manager/src/client/presentation.ts",
+          "packages/client/ui-plugin-manager/src/client/config-ledger.ts",
+          "packages/client/ui-plugin-manager/src/client/tab-ledger.ts",
+          "packages/client/ui-plugin-manager/src/client/slot-contract.ts",
+          "packages/client/ui-plugin-manager/src/client/versions.tsx",
+          "packages/client/ui-plugin-manager/src/client/BundleDetailSection.tsx",
+          "packages/client/ui-plugin-manager/src/client/detail-store.ts",
+          "packages/client/ui-plugin-manager/src/client/navigation-store.ts",
+          "packages/client/ui-plugin-manager/src/client/header-scroll.ts",
+          "packages/client/ui-plugin-manager/src/client/locales.ts",
+          "packages/boot/plugin-manager/src/registry.ts",
+          "packages/boot/plugin-manager/src/types.ts",
+          "packages/util/official-bundles/src/index.ts"
+        ]
+      },
+      "adopted_surface": [
+        "SlotCore registration lifecycle",
+        "createSlotRenderer React composition and error isolation",
+        "AppFrame three-column composition and responsive column solver",
+        "SidebarRoot workspace and session rail composition",
+        "ConversationRoot InputBar EmptyHero and persistent composer composition",
+        "SettingsRoot navigation and modal composition",
+        "ui-theme design platform base scrollbar and gradient shadow styles",
+        "complete ui-primitives source tree with OPL brand overrides outside the vendor root",
+        "pinned ui-renderer scoped-slots createSlotRenderer implementation inside the Studio Client Cordis",
+        "DSH app boot profile loader overlay and Cordis plugin lifecycle",
+        "DSH native tools registry host webserver and plugin inventory",
+        "authenticated stateful loopback MCP from DSH ctx.tools to the persistent Codex App Server",
+        "pinned DSH brand attachment and workspace hooks satisfied by OPL-owned plugins without product authority transfer",
+        "PluginManagerPage cards detail navigation header scrolling and tabs with Framework-owned Package projections and actions"
+      ],
+      "upstream_intake": {
+        "mode": "pinned_application_host_packages_and_vendor_snapshot_with_opl_plugins",
+        "vendor_source_policy": "byte_identical_to_recorded_upstream_path_and_ref",
+        "opl_delta_policy": "profile_branding_bridge_codex_framework_state_and_custom_functions_live_outside_vendor_tree_as_plugins_and_adapters",
+        "update_policy": "update_one_pinned_ref_and_package_cohort_regenerate_vendor_manifest_replay_profile_patches_then_run_host_mcp_renderer_candidate_and_notice_gates",
+        "floating_ref_allowed": false,
+        "automatic_promotion_allowed": false,
+        "stop_condition": "large_private_vendor_delta_or_required_dsh_product_runtime_authority"
+      },
+      "reference_value": [
+        "quiet chat-first Web UI with workspace/session rail and persistent composer",
+        "typed UI slot registry with single, list, keyed, and chain composition kinds",
+        "client plugins discovered from package manifests and unloaded on the same lifecycle axis as registration",
+        "profile and bundle composition with explicit ordered layers and user patches",
+        "capability seams separating service definitions, providers, and consumers",
+        "dynamic plugin inventory and configuration rendered from installed deployment state"
+      ],
+      "opl_mapping": [
+        "OPL Studio runs the complete pinned DeepSeek Harness Application Host and selected GUI source with OPL-owned plugins; the retired AionUI source remains historical provenance and is never a runtime consumer",
+        "OPL App keeps product truth slot policy active-shell adoption and release authority while Framework projections and App actions remain the only OPL runtime state and mutation ABI",
+        "Agent Package descriptors may contribute typed view and slot declarations without owning runtime, domain truth, artifacts, credentials, or release state",
+        "slot contributions must be capability-gated, scope-bound, reversible, and absent without leaving placeholder navigation",
+        "OPL should reuse the smallest independently testable GUI packages and vendor selected source only when the published package boundary is broken or insufficient while preserving the exact ref and notices",
+        "Framework remains the authoritative OPL runtime Package graph and App projection Host; Studio separately owns its DSH Application Host lifecycle without receiving Framework runtime or Package authority",
+        "channel_access is the App-owned declarative standard view for Weixin/channel providers; OPL Studio's native Link companion owns ordinary OPL Link pairing/device Settings, while legacy remote_companion_access data remains typed compatibility input and must not be mounted beside the native surface"
+      ],
+      "forbidden_reuse": [
+        "do not adopt DeepSeek Harness session log, agent loop, provider routing, credential store, Package currentness, product, domain, or release authority",
+        "do not create a second OPL Package registry, runtime, settings store, action bus, or currentness plane",
+        "do not add DeepSeek Harness as a second foreground shell beside opl-studio",
+        "do not import DeepSeek Harness runtime, session, router, provider, credential, action, connection, complete renderer, product routes, or Framework ABI into the OPL Studio mainline",
+        "do not depend on floating npm latest tags while upstream is a developer preview with compatibility-breaking changes",
+        "do not assume the repository root license covers every selected package or third-party payload without per-package notices review",
+        "do not expose generic provider, backend, or arbitrary-code plugin controls as ordinary OPL App product surfaces",
+        "do not load dsh-base or create a second DSH session LLM provider agent loop or credential authority"
+      ]
+    }
+  ],
+  "carrier_evidence_contract": {
+    "schema": "opl_studio_carrier_evidence.v1",
+    "manifest_path": "out/opl-studio-carrier-evidence-manifest.json",
+    "candidate_only": true,
+    "release_authority": false,
+    "product_profile_owner": "one-person-lab-app",
+    "shared_renderer": "deepseek_harness_derived_react",
+    "shared_host_core": "plugins/core/opl-host-core/src/service.mjs",
+    "bridge_abi": "opl_app_host_bridge.v1",
+    "required_entries": [
+      "electron_desktop",
+      "standalone_headless_webui",
+      "docker_webui"
+    ],
+    "current_aionui_release_evidence_may_close_successor_entry": false,
+    "preview_oci_admission": {
+      "schema": "opl_studio_cloud_workspace_image_handoff.v1",
+      "schema_ref": "contracts/opl-studio-cloud-workspace-image-handoff.schema.json",
+      "validator": "scripts/validate-studio-cloud-handoff.ts",
+      "repository": "ghcr.io/gaofeng21cn/opl-studio-webui",
+      "workflow_identity": "https://github.com/gaofeng21cn/opl-studio/.github/workflows/studio-webui-preview.yml@refs/heads/main",
+      "oidc_issuer": "https://token.actions.githubusercontent.com",
+      "required_platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "immutable_tags": [
+        "v<studio_version>",
+        "sha-<studio_sha>"
+      ],
+      "channel_tag": "preview",
+      "forbidden_tags": [
+        "stable"
+      ],
+      "cloud_activation_owner": "opl-cloud",
+      "active_shell_adopted": false,
+      "release_ready": false
+    },
+    "entries": {
+      "electron_desktop": {
+        "source_refs": [
+          "plugins/core/opl-studio-client/src/client/workbench/App.tsx",
+          "plugins/core/opl-host-core/src/service.mjs",
+          "desktop/main.mjs",
+          "desktop/preload.cjs",
+          "electron-builder.yml"
+        ],
+        "package_artifact_kind": "electron_app_bundle",
+        "qualification_commands": [
+          "npm run test:desktop",
+          "npm run package:desktop",
+          "npm run smoke:desktop-live",
+          "npm run validate:package"
+        ],
+        "user_service_manager_source": {
+          "status": "not_applicable",
+          "platforms": []
+        },
+        "distribution_wiring_status": "not_wired",
+        "update_adapter_source": {
+          "status": "implemented",
+          "ref": "desktop/updater.mjs"
+        },
+        "update_wiring_status": "not_wired",
+        "release": {
+          "signed": "not_proven",
+          "notarized": "not_proven",
+          "public_feed": "not_published",
+          "release_admission": "not_admitted"
+        }
+      },
+      "standalone_headless_webui": {
+        "source_refs": [
+          "plugins/core/opl-studio-client/src/client/workbench/App.tsx",
+          "plugins/core/opl-host-core/src/service.mjs",
+          "scripts/headless/run.mjs",
+          "scripts/headless/server.mjs",
+          "scripts/headless/installer.mjs",
+          "scripts/headless/service-manager.mjs"
+        ],
+        "package_artifact_kind": "standalone_webui_bundle",
+        "qualification_commands": [
+          "npm run test:headless",
+          "npm run smoke:webui"
+        ],
+        "user_service_manager_source": {
+          "status": "implemented",
+          "platforms": [
+            "macos",
+            "linux",
+            "windows"
+          ]
+        },
+        "distribution_wiring_status": "not_wired",
+        "update_adapter_source": {
+          "status": "implemented",
+          "ref": "scripts/headless/update-runner.mjs"
+        },
+        "update_wiring_status": "not_wired",
+        "release": {
+          "signed": "not_applicable",
+          "notarized": "not_applicable",
+          "public_feed": "not_published",
+          "release_admission": "not_admitted"
+        }
+      },
+      "docker_webui": {
+        "source_refs": [
+          "plugins/core/opl-studio-client/src/client/workbench/App.tsx",
+          "plugins/core/opl-host-core/src/service.mjs",
+          "Dockerfile",
+          "docker-compose.distribution.yaml",
+          "scripts/oci/manage.mjs",
+          "scripts/oci/build-plan.mjs",
+          "scripts/oci/handoff.mjs",
+          "packages/host-kit/webui-auth.mjs",
+          "packages/host-kit/staged-inputs.mjs",
+          ".github/workflows/studio-webui-preview.yml"
+        ],
+        "package_artifact_kind": "local_oci_smoke_receipt",
+        "qualification_commands": [
+          "node --test tests/oci/*.test.mjs",
+          "npm run smoke:docker"
+        ],
+        "user_service_manager_source": {
+          "status": "not_applicable",
+          "platforms": []
+        },
+        "distribution_wiring_status": "not_wired",
+        "update_adapter_source": {
+          "status": "implemented",
+          "ref": "scripts/oci/manage.mjs"
+        },
+        "update_wiring_status": "not_wired",
+        "release": {
+          "signed": "not_applicable",
+          "notarized": "not_applicable",
+          "public_feed": "not_published",
+          "release_admission": "not_admitted"
+        },
+        "multi_arch_qualification": "plan_only_not_qualified",
+        "signature_verification": "not_implemented"
+      }
+    }
+  },
+  "candidates": [
+    {
+      "id": "opl-studio",
+      "state": "active_product_development",
+      "candidate_root": "shells/opl-studio",
+      "adapter_contract": "contracts/app-shell-adapter.json",
+      "source_topology": "external_checkout_linked_shell_repo",
+      "release_participation": "pre_adoption_explicit_build_only",
+      "foreground_alternative_role": "only_foreground_alternative",
+      "maintenance_policy": {
+        "mode": "active_product_development_release_admission_separate",
+        "automatic_or_scheduled_work_allowed": false,
+        "product_development_required": true,
+        "current_mainline": false,
+        "minimum_complete_product_obligation": true,
+        "aionui_feature_parity_obligation": false,
+        "release_blocking": false
+      },
+      "minimum_complete_contract_ref": "contracts/app-product-profile.json#delivery_topology.minimum_complete_product",
+      "runtime_dependency_policy": {
+        "aioncore_required": false,
+        "aionui_required": false,
+        "codex_app_server_source": "OPL_CODEX_BIN_or_exact_external_codex",
+        "opl_integration": "framework_app_state_action_authentication_and_channel_callbacks_only",
+        "multi_backend_abstraction_required": false,
+        "thread_store_owner": "codex_core_app_server",
+        "forbidden_dependencies": [
+          "AionUI runtime",
+          "AionCore runtime",
+          "AionCore managed-resources manifest",
+          "AionCore session or database state"
+        ]
+      },
+      "p1_baseline_contract": {
+        "runtime_bridge_ref": "contracts/app-runtime-bridge.json#native_minimum_product_bridge",
+        "adapter_binding_ref": "contracts/app-shell-adapter.json#p1_baseline_bridge",
+        "required_user_outcomes": [
+          "standard Agent selection launches a canonical Codex thread and first turn without a Framework activation action",
+          "the separate OPL standard Agent composer group includes only producer-declared first-party OPL professional Agents with package_role=standard_agent, selectable readiness, and a real Codex route; generic Skills and plugins remain separate even when a descriptor defaults to standard_agent, without a package-id allowlist",
+          "running-turn input uses Codex turn/steer while idle input uses turn/start and no persistent Shell queue exists",
+          "Gateway login uses the dedicated secret bridge while non-secret account actions use projected App actions",
+          "Agent Package lifecycle renders every complete projected available_action without an action-id allowlist",
+          "OPL Base and OPL Packages updates use Framework managed-update host capabilities and terminal readback",
+          "OPL App update check, apply, restart, and running-version readback stay App-owned behind carrier-specific adapters"
+        ],
+        "forbidden_parallel_control_planes": [
+          "shell_owned_action_bus",
+          "shell_owned_package_registry",
+          "shell_owned_persistent_turn_queue",
+          "second_agent_runtime",
+          "second_managed_updater"
+        ]
+      },
+      "source_upstream": {
+        "repo": "gaofeng21cn/opl-studio",
+        "app_path": ".",
+        "license": "Apache-2.0"
+      },
+      "implementation_basis": [
+        "one pinned DeepSeek Harness Cordis Application Host with a DSH-derived React renderer and shared Node service facade",
+        "Electron thin desktop carrier for macOS Windows and Linux plus HTTP/SSE standalone and Docker adapters",
+        "OPL App state/action contract first",
+        "opl-codex-native owns one persistent Codex App Server canonical threads approvals and live turn events",
+        "authenticated stateful loopback MCP exposes DSH ctx.tools to Codex",
+        "opl-framework-bridge consumes Framework state action authentication and channel callbacks without taking runtime or Package authority",
+        "DeepSeek Harness AppFrame sidebar conversation composer Settings theme SlotCore createSlotRenderer and primitives reused from one pinned MIT source cohort",
+        "OPL branding bridges and custom functions implemented outside the DSH vendor snapshot as adapters and slot plugins",
+        "independent Application Host repo mounted under shells/opl-studio"
+      ],
+      "codex_app_like_chat_target": {
+        "scope": "One Person Lab DSH-source chat-first desktop and WebUI product with contextual runtime, files, results, agents, and capabilities",
+        "primary_user_flow": "choose a project or conversation, work with Codex in the central timeline, and open run status, files and results, or agents and capabilities only when that context is needed",
+        "capability_inventory": [
+          "workspace directory picker",
+          "new conversation and lightweight thread history rail",
+          "Codex app-server backed chat turns",
+          "single Codex App Server thread directory, lifecycle actions, and standard subagent metadata and event projection",
+          "shared DSH-derived React renderer for Electron desktop standalone WebUI and Docker WebUI",
+          "shared Node host core with Electron IPC and HTTP/SSE transport adapters",
+          "pinned DeepSeek Harness AppFrame SidebarRoot conversation composer Settings theme and primitives used directly",
+          "chat-first main canvas with pinned composer",
+          "left rail limited to projects, conversations, search, and Settings",
+          "right-side on-demand Run status, Files and results, and Agents and capabilities modules",
+          "current Codex agent state and active project lines rendered as run status",
+          "hypotheses and roadmaps rendered from runtime.detail contribution readback",
+          "user-selected files only and owner-projected artifacts without action JSON masquerading as results",
+          "Agent Package lifecycle management remains in Settings",
+          "text-only One Person Lab identity without an in-app Logo",
+          "App-owned model access and Settings summaries",
+          "candidate Electron desktop packages through the App wrapper"
+        ]
+      },
+      "ai_first_interaction_model": {
+        "default_visual_basis": "deepseek_harness_direct_source_chat_first",
+        "primary_policy": "maximize_direct_ai_interaction_on_the_chat_canvas",
+        "right_context_policy": "collapsed_user_requested_secondary_layer",
+        "mas_autonomy_policy": "MAS_runs_as_autonomous_research_execution_not_co_scientist_pair_work",
+        "on_demand_context_policy": [
+          "run_status_from_current_thread_and_active_project_lines",
+          "hypotheses_and_roadmap_from_runtime_detail_contributions",
+          "files_and_results_open_only_on_user_request",
+          "agents_and_capabilities_render_as_a_searchable_live_catalog"
+        ],
+        "must_not": [
+          "default_three_column_scientific_workbench",
+          "default_open_artifact_inspector",
+          "co_scientist_side_by_side_monitoring_assumption",
+          "foreign_runtime_or_domain_authority_transfer"
+        ]
+      },
+      "webui_transport": {
+        "shared_renderer": true,
+        "shared_host_core": "plugins/core/opl-host-core/src/service.mjs",
+        "bridge_abi": "opl_app_host_bridge.v1",
+        "desktop_surface": "Electron preload window.oplStudio",
+        "web_surface": "browser window.oplStudio HTTP/SSE adapter",
+        "desktop_adapter": "desktop/main.mjs + desktop/preload.cjs",
+        "web_bridge": "src/bridge/webTransport.ts",
+        "event_stream": "SSE /api/opl-events",
+        "gateway": "scripts/dev-webui-server.mjs",
+        "desktop_picker_policy": "Electron desktop may use the platform directory picker; WebUI uses an explicit workspace path/action bridge without changing App product truth",
+        "electron_in_headless_or_container_allowed": false
+      },
+      "checkout_policy": {
+        "primary_path": "shells/opl-studio",
+        "accepted_alternate_path": "../opl-studio",
+        "missing_checkout_status": "blocked_missing_checkout"
+      },
+      "build_wrapper": {
+        "adapter_contract": "contracts/app-shell-adapter.json",
+        "app_root_command": "OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/app-shell-adapter.json npm run package",
+        "missing_checkout_blocker_allowed": true,
+        "sibling_checkout_command": "OPL_APP_SHELL_ROOT=../opl-studio OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/app-shell-adapter.json npm run package"
+      },
+      "candidate_stage": "opl_studio_dsh_application_host_candidate_only",
+      "application_host_contract": {
+        "role": "deepseek_harness_cordis_application_host",
+        "implementation_status": "source_implemented_release_admission_separate",
+        "upstream_version": "0.2.3-alpha.2",
+        "upstream_ref": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+        "profile": "opl-studio",
+        "profile_source": "src/host/dsh/cordis.yml",
+        "web_overlay": "src/host/dsh/web.patch.yml",
+        "profile_home": "$DSH_HOME/profiles/opl-studio",
+        "dsh_base_loaded": false,
+        "loaded_dsh_services": [
+          "system-prompt_without_harness_identity_or_runtime_context",
+          "tools_native_registry",
+          "host_webserver",
+          "host_plugin_inventory",
+          "frontend_static_primitive_behind_studio_auth_routes",
+          "client_modules_web_only"
+        ],
+        "studio_plugins": [
+          "opl-dsh-tool-mcp",
+          "opl-codex-native",
+          "opl-framework-bridge",
+          "opl-host-core",
+          "opl-web-routes"
+        ],
+        "codex_runtime_owner": "opl-codex-native",
+        "codex_owned_state": [
+          "persistent_app_server_process",
+          "canonical_threads_and_turns",
+          "approvals",
+          "live_turn_events"
+        ],
+        "dsh_tool_bridge": "authenticated_stateful_loopback_mcp",
+        "dsh_tool_plugin_compatibility": "plugins_registering_tools_in_ctx_tools_are_exposed_to_codex",
+        "excluded_upstream_authorities": [
+          "dsh_session",
+          "dsh_llm_provider_routing",
+          "dsh_agent_loop",
+          "dsh_credentials"
+        ],
+        "framework_bridge": "consume_framework_app_state_action_authentication_and_channel_callbacks_only",
+        "windows_startup_recovery": {
+          "owner": "opl-framework",
+          "command": "opl system startup-maintenance --scope runtime_recovery --json",
+          "configured_local_service_worker_scheduler_only": true,
+          "runs_when_automatic_updates_disabled": true,
+          "updates_or_activates_runtime_generations": false,
+          "read_only_host_mutation_allowed": false
+        },
+        "startup_order": [
+          "dsh_host_tree_and_tool_mcp",
+          "codex_app_server",
+          "framework_bridge"
+        ],
+        "shutdown_order": [
+          "framework_channel_callback",
+          "codex_app_server",
+          "dsh_cordis_tree"
+        ],
+        "upstream_upgrade_contract": "update_one_pinned_ref_and_package_cohort_then_regenerate_vendor_manifest_replay_profile_patches_and_run_host_mcp_renderer_candidate_gates",
+        "active_shell_adopted": true,
+        "release_ready": false,
+        "plugin_package_layout": {
+          "source_root": "plugins",
+          "package_format": "dsh_npm_package",
+          "host_entry": "exports[.]",
+          "client_entry": "exports[./client]",
+          "profile_module_reference": "npm_package_name",
+          "installed_location": "node_modules",
+          "third_party_policy": "pinned_native_package_or_provenance_preserving_adapter",
+          "codex_capability_packages_are_dsh_plugins": false
+        }
+      },
+      "dsh_source_reuse_contract": {
+        "source_cohort": "DeepSeek Harness 4b399c39a6d1479cd84ca591b4d7c88e24d38a96 Application Host and selected GUI source",
+        "vendor_byte_policy": "pinned_upstream_plus_manifest_bound_reviewed_compatibility_patches",
+        "contract_role": "application_host_and_source_preservation_with_opl_integration_regression_not_pixel_reimplementation",
+        "reuse_method": "pinned_dsh_application_host_packages_plus_source_preserving_gui_reuse_with_opl_plugins_and_adapters",
+        "visual_style_baseline": "DeepSeek Harness selected MIT GUI source preserved for DSH-covered modules plus semantically necessary One Person Lab integrations",
+        "visual_style_scope": "light_workbench_palette_system_font_stack_type_scale_weight_line_height_sidebar_density_and_composer_surface",
+        "visual_token_source": "deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css@4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+        "font_asset_policy": "reuse_deepseek_harness_system_font_behavior_without_copying_unrelated_assets",
+        "dsh_owned_visual_properties": [
+          "font_family_and_fallback_behavior",
+          "font_sizes_weights_line_heights_and_type_scale",
+          "spacing_density_and_geometry",
+          "colors_surfaces_borders_shadows_and_radii",
+          "component_rendering_and_interaction_states",
+          "responsive_layout_and_transitions"
+        ],
+        "opl_injection_boundary": [
+          "brand_text_through_public_props_or_slots",
+          "app_owned_data_through_the_host_bridge",
+          "capability_classification_through_typed_contributions",
+          "host_specific_behavior_through_external_adapters"
+        ],
+        "parallel_opl_visual_system_allowed": false,
+        "css_override_policy": "forbidden_for_dsh_covered_modules_unless_a_real_opl_semantic_host_accessibility_or_platform_boundary_requires_the_smallest_external_delta",
+        "pixel_evidence_role": "detect_regressions_after_source_reuse_and_opl_integration_not_reconstruct_or_approximate_dsh",
+        "current_reference_status": "pinned_application_host_runtime_and_gui_source_reuse",
+        "superseded_observations": [
+          "ChatGPT Codex macOS 26.707.31428 (2026-07-10)",
+          "ChatGPT Codex macOS 26.707.31123 (2026-07-10)"
+        ],
+        "regression_floor": "historical AionUI release evidence only",
+        "source_usage": "pinned_application_host_runtime_and_gui_source_reuse",
+        "application_host_runtime_adopted": true,
+        "dsh_product_runtime_authority_adopted": false,
+        "minimum_bar": "pinned_dsh_application_host_tools_mcp_codex_native_framework_bridge_and_direct_gui_source_reuse_with_declared_authorities",
+        "model_policy_source": "contracts/app-product-profile.json#gui.home.codex_model_display_options",
+        "default_model": "gpt-6.2-astra",
+        "default_reasoning_effort": "max",
+        "required_surfaces": [
+          "persistent_project_rail",
+          "single_conversation_timeline",
+          "composer_model_and_reasoning_controls",
+          "on_demand_dsh_details_column",
+          "settings_locale_surface",
+          "text_only_opl_product_identity"
+        ],
+        "required_evidence": [
+          "desktop source provenance review against the pinned DeepSeek Harness selected GUI source",
+          "vendor byte parity for every selected DeepSeek Harness GUI source file",
+          "desktop integration regression against the App-owned approved rendered baseline",
+          "persistent project rail and single conversation timeline regression capture",
+          "composer model and reasoning controls regression capture",
+          "on-demand DeepSeek Harness details column regression capture",
+          "Settings locale surface regression capture",
+          "WebUI rendered regression against the shared desktop renderer",
+          "packaged app screenshot or VM smoke artifact"
+        ],
+        "docs_or_contract_only_completion_allowed": false
+      },
+      "target_product_shape": {
+        "codex_cli_fixed_executor": true,
+        "workspace_directory_picker": true,
+        "new_conversation_resets_codex_thread": true,
+        "home_executor_selector_visible": false,
+        "home_backend_selector_visible": false,
+        "home_model_selector_visible": true,
+        "permission_mode_selector_visible": false,
+        "workspace_session_rail_default_visible": true,
+        "inspector_default_visible": false,
+        "default_visual_basis": "deepseek_harness_direct_source_chat_first",
+        "right_context_user_request_only": true,
+        "co_scientist_split_screen_default": false,
+        "mas_autonomous_research_default": true,
+        "left_rail_items": [
+          "projects",
+          "conversations",
+          "search",
+          "settings"
+        ],
+        "right_context_modules": [
+          "run_status",
+          "files_results",
+          "agents_capabilities"
+        ],
+        "right_context_default": "closed",
+        "runtime_status_sources": [
+          "codex_app_server_current_thread",
+          "opl_app_state_active_project_lines"
+        ],
+        "runtime_detail_slot": "ui_contributions.runtime.detail",
+        "files_input_policy": "user_selected_files_and_directories_only",
+        "results_policy": "owner_projected_artifacts_only_no_action_json",
+        "package_lifecycle_surface": "settings",
+        "product_identity": {
+          "visible_text": [
+            "One Person Lab"
+          ],
+          "logo_visible": false,
+          "bundle_icon_allowed": true
+        },
+        "purpose_entries": [
+          "research",
+          "grant",
+          "ppt"
+        ],
+        "settings_policy": "app_state_refs_only",
+        "account_footer_policy": {
+          "source_ref": "contracts/app-runtime-bridge.json#opl_gateway_account_projection",
+          "projection_path": "app_state.settings_control_center.app_settings_read_model.opl_gateway_account",
+          "connected_identity_source": "account.display_name",
+          "connected_visibility": "connection_mode_account_and_account_card_visible_and_connection_status_retains_account_identity",
+          "connected_statuses": [
+            "connected",
+            "setup_required",
+            "reauth_required",
+            "attention_needed",
+            "disconnect_pending"
+          ],
+          "connected_secondary_label": "OPL Gateway",
+          "fallback_display_name": "One Person Lab",
+          "fallback_secondary_label": "Settings localized label",
+          "interaction": "open_settings",
+          "forbidden_identity_sources": [
+            "masked_email",
+            "password",
+            "access_token",
+            "refresh_token",
+            "api_key",
+            "credential_path"
+          ]
+        }
+      },
+      "framework_surfaces": {
+        "state": "opl app state --profile fast --json",
+        "refresh": "opl app state --profile fast --json",
+        "full_state": "opl app state --profile full --json",
+        "full_drilldown": "opl runtime app-operator-drilldown --detail full --json",
+        "full_drilldown_rpc": "app.operatorDrilldown.get",
+        "action": "opl app action execute --action <action_id> [--payload json] [--dry-run] --json"
+      },
+      "active_project_line_state_model": {
+        "authority": "opl_framework_active_project_line_projection",
+        "validation_command": "npm run validate:state-model",
+        "consumed_projection": "opl app state --profile fast --json active_project_lines",
+        "required_fields": [
+          "status",
+          "active_run_id",
+          "next_visible_step",
+          "progress_delta_classification",
+          "deliverable_progress_delta",
+          "platform_repair_delta",
+          "next_forced_delta"
+        ],
+        "forbidden_claims": [
+          "domain_ready",
+          "production_ready",
+          "clean_vm_ready",
+          "full_release_ready",
+          "active_shell_adopted"
+        ]
+      },
+      "foundry_agent_series_display_contract": {
+        "authority": "opl_framework_shared_progress_projection",
+        "display_policy": "classification_only_no_domain_artifact_body",
+        "required_shared_progress_fields": [
+          "progress_delta_classification",
+          "deliverable_progress_delta",
+          "platform_repair_delta",
+          "next_forced_delta"
+        ],
+        "forbidden_domain_fields": [
+          "domain_body",
+          "artifact_body",
+          "memory_body",
+          "quality_verdict",
+          "export_verdict"
+        ]
+      },
+      "required_capabilities": [
+        "codex_cli_fixed_executor_home",
+        "codex_app_server_thread_turn_backend",
+        "native_react_workbench_renderer",
+        "opl_app_event_contract_map",
+        "opl_gateway_account_footer_projection",
+        "purpose_first_home_entries",
+        "workspace_directory_picker",
+        "new_conversation_thread_reset",
+        "source_renderer_build",
+        "source_ui_smoke",
+        "packaged_ui_smoke",
+        "webui_shared_renderer",
+        "web_transport_bridge",
+        "webui_smoke",
+        "chat_first_codex_app_surface",
+        "results_and_delivery_first_presentation",
+        "default_context_collapsed_chat_first_home",
+        "lightweight_workspace_session_rail",
+        "collapsible_contextual_tabs",
+        "app_product_profile_mapping",
+        "opl_app_state_bridge",
+        "active_project_line_state_model",
+        "opl_app_action_bridge",
+        "page_state_matrix_mapping",
+        "first_run_matrix_mapping",
+        "foundry_agent_series_shared_progress_display",
+        "app_owned_settings_information_architecture",
+        "secondary_runtime_context_refs",
+        "conversation_event_ref_rendering",
+        "webui_renderer_parity",
+        "release_isolation",
+        "candidate_app_bundle_package",
+        "single_codex_app_server_thread_adapter",
+        "thread_list_read_start_resume_fork_archive_unarchive",
+        "turn_start_steer",
+        "codex_subagent_event_projection",
+        "standard_agent_conversation_launch",
+        "active_turn_steer_and_ephemeral_queue",
+        "gateway_account_secret_bridge",
+        "dynamic_agent_package_lifecycle",
+        "managed_update_base_packages_bridge",
+        "app_carrier_update_and_restart",
+        "shared_node_host_core",
+        "electron_desktop_adapter",
+        "http_sse_web_adapter",
+        "dsh_cordis_application_host",
+        "dsh_profile_loader_and_overlay",
+        "dsh_host_plugin_inventory",
+        "dsh_tools_to_codex_mcp_bridge",
+        "dsh_tool_plugin_compatibility",
+        "opl_codex_native_plugin",
+        "opl_framework_bridge_plugin",
+        "upstream_dsh_upgrade_replay_contract",
+        "dsh_slot_core_composition_host",
+        "framework_ui_contributions_projection",
+        "framework_transport_bindings_projection",
+        "channel_access_standard_view",
+        "remote_companion_access_standard_view"
+      ],
+      "technical_verification": {
+        "app_root_commands": [
+          {
+            "id": "default_release_shell_guard",
+            "cwd": ".",
+            "command": "node --experimental-strip-types scripts/validate-active-shell.ts --quick"
+          },
+          {
+            "id": "candidate_registry",
+            "cwd": ".",
+            "command": "npm run validate:shell-candidates -- --candidate opl-studio"
+          },
+          {
+            "id": "candidate_adapter_quick",
+            "cwd": ".",
+            "command": "OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/app-shell-adapter.json node --experimental-strip-types scripts/validate-active-shell.ts --quick"
+          },
+          {
+            "id": "candidate_app_bundle_build",
+            "cwd": ".",
+            "command": "OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/app-shell-adapter.json npm run package"
+          }
+        ],
+        "candidate_shell_commands": [
+          {
+            "id": "source_self_check",
+            "cwd": "shells/opl-studio",
+            "command": "npm run validate:candidate"
+          },
+          {
+            "id": "state_model",
+            "cwd": "shells/opl-studio",
+            "command": "npm run validate:state-model"
+          },
+          {
+            "id": "webui_smoke",
+            "cwd": "shells/opl-studio",
+            "command": "npm run smoke:webui"
+          },
+          {
+            "id": "source_renderer_build",
+            "cwd": "shells/opl-studio",
+            "command": "npm run build"
+          }
+        ],
+        "minimum_acceptance": [
+          "default App release adapter validates as opl-studio",
+          "candidate registry validates without changing release_shell_contract",
+          "candidate adapter can be selected only through OPL_APP_SHELL_ADAPTER_CONTRACT",
+          "candidate consumes OPL App state/action contracts without owning runtime or domain truth",
+          "candidate state-model validation proves active project line projection consumption from opl app state without domain-ready, production-ready, clean-VM-ready, Full-release-ready, or active-shell-adopted claims",
+          "Electron desktop standalone WebUI and Docker WebUI use the same DSH-derived React renderer shared Node host core and App-owned bridge ABI",
+          "DSH-covered GUI modules preserve upstream font type scale spacing geometry rendering states responsive behavior and interactions instead of being recreated from pixels",
+          "OPL injects only brand text App-owned data capability classification and host behavior through public slots props typed contributions and external adapters without a parallel visual system or unearned CSS overrides",
+          "ordinary UI keeps only projects, conversations, search, and Settings in the left rail and opens run status, files and results, or agents and capabilities in the DSH details column on demand",
+          "runtime status consumes the current Codex thread and active_project_lines while hypotheses and roadmaps come from owner-projected runtime.detail contributions",
+          "Weixin/channel access renders only from a current channel_access contribution while the native OPL Studio Link surface renders pairing/device access from the Link bridge; legacy remote_companion_access is retained for typed compatibility and filtered from ordinary Settings when the native owner is present; each absent provider remains a local unavailable state",
+          "in-app identity is text-only One Person Lab while platform bundle icons remain allowed",
+          "WebUI parity evidence proves the same renderer host core and product semantics as Electron desktop",
+          "one Codex App Server adapter exposes canonical thread list, read, start, resume, fork, archive, unarchive, and ordinary turn start and steer",
+          "standard Agent selection binds package_id, shortcut_id, codex_visible_entry, and required_skill_ids to thread/start plus turn/start without creating a Framework activation action",
+          "OPL standard Agent palette membership combines producer-projected OPL publisher or ownership identity with package_role=standard_agent, selectable readiness, and a real Codex route; it uses no package-id allowlist and never folds generic Skills, plugins, or connections into that group",
+          "running-turn submissions use turn/steer and idle submissions use turn/start while queued input stays renderer-ephemeral until App Server acceptance",
+          "Gateway login uses loginGatewayAccount without generic action secret payloads and all other Gateway mutations use the projected action ids",
+          "Agent Package lifecycle actions come dynamically from complete directory available_actions entries without a Shell allowlist or inferred semantics",
+          "OPL Base and OPL Packages use Framework managed-update capabilities while OPL App uses one logical update contract with carrier-specific update and restart adapters plus fresh terminal readback",
+          "Codex subagent metadata, source kinds, and thread items remain read-only projections from Codex Core and App Server",
+          "successor source acceptance requires no private coordination host, model-triggered cross-thread tools, OPL-owned host queue, JSONL coordination ledger, bilateral receipts, write-set advisory, coordination idempotency, or cross-host handoff layer",
+          "candidate evidence must not claim release-ready, active-shell-adopted, production-ready, or full-release-ready from contract-only validation"
+        ]
+      },
+      "must_not_own": [
+        "App GUI product truth",
+        "App model-selection policy",
+        "App release gate policy",
+        "OPL runtime truth",
+        "provider implementation",
+        "domain truth",
+        "domain quality verdict",
+        "memory body",
+        "artifact body",
+        "artifact authority"
+      ],
+      "forbidden_home_controls": [
+        "Aion CLI backend choice",
+        "Claude Code backend choice",
+        "generic backend selector",
+        "non-App-owned model override selector",
+        "permission mode selector",
+        "provider marketplace"
+      ],
+      "validation_commands": [
+        {
+          "id": "candidate_contract",
+          "cwd": ".",
+          "command": "OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/app-shell-adapter.json node --experimental-strip-types scripts/validate-active-shell.ts --quick"
+        },
+        {
+          "id": "candidate_self_check",
+          "cwd": "shells/opl-studio",
+          "command": "npm run validate:candidate"
+        },
+        {
+          "id": "candidate_state_model",
+          "cwd": "shells/opl-studio",
+          "command": "npm run validate:state-model"
+        },
+        {
+          "id": "candidate_webui_smoke",
+          "cwd": "shells/opl-studio",
+          "command": "npm run smoke:webui"
+        },
+        {
+          "id": "candidate_app_bundle_build",
+          "cwd": ".",
+          "command": "OPL_APP_SHELL_ADAPTER_CONTRACT=contracts/app-shell-adapter.json npm run package"
+        }
+      ],
+      "non_goals": [
+        "do not switch active_shell away from opl-studio",
+        "do not enter default stable or nightly release packaging",
+        "do not introduce runtime or domain truth into the App repo",
+        "do not use same-agent-tree send_input as a cross-top-level message bus",
+        "do not add a private coordination host, model-triggered cross-thread tools, OPL-owned queue, coordination ledger, receipts, advisory, idempotency, or cross-host handoff layer",
+        "do not claim release-ready from contract-only evidence"
+      ],
+      "product_truth_policy": {
+        "entry_route": "contracts/app-shell-adapter.json plus validation gates",
+        "ordinary_product_copy_source": "contracts/app-gui-product-contract.json",
+        "implementation_roadmap_role": "candidate_shell_private_execution_plan_only",
+        "adoption_policy": "no_default_release_authority_until_contracts_app_shell_adapter_changes"
+      }
+    }
+  ]
 }

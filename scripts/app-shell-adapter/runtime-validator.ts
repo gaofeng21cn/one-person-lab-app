@@ -95,7 +95,7 @@ export function validateCodexExecutableContract(contract: ShellAdapterContract):
     throw new Error('Framework headless Codex carrier policy must remain outside the App bundle');
   }
 
-  if (contract.candidate_shell === 'opl-studio') {
+  if (contract.active_shell === 'opl-studio' || contract.candidate_shell === 'opl-studio') {
     if (
       executable.carrier.kind !== 'candidate_owned_or_exact_external_binary' ||
       executable.carrier.source_ref !== null ||
@@ -187,7 +187,7 @@ export function assertShellReplacementPolicy(contract: ShellAdapterContract): vo
     contract.release_role,
     contract.shell_replacement_policy.adoption_gate,
     (gate) => `active shell replacement policy missing gate ${gate}`,
-    'active shell replacement policy must not declare candidates inside contracts/app-shell-adapter.json',
+    'active shell replacement policy must not reference retired contracts/app-shell-candidates.json',
   );
 }
 

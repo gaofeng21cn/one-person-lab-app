@@ -25,8 +25,15 @@ function writeText(filePath: string, value: string): void {
 
 function carrierFixture(kind: 'opl-studio') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `opl-desktop-release-${kind}-`));
-  const contractPath = path.join(appRoot, 'contracts', 'shell-adapters', 'opl-studio.json');
-  const contract = readAppShellAdapterContract(contractPath);
+  const contractPath = path.join(appRoot, 'contracts', 'app-shell-adapter.json');
+  const contract = structuredClone(readAppShellAdapterContract(contractPath)) as any;
+  delete contract.active_shell;
+  contract.candidate_shell = 'opl-studio';
+  contract.client_renderer_admission = {
+    ...contract.client_renderer_admission,
+    implementation_role: 'foreground_alternative_candidate_renderer',
+    status: 'candidate_validation_only_not_active_shell_admitted',
+  };
   const paths = contract.shell_contract.paths;
   const productName = 'One Person Lab Preview';
   const bundleId = 'cn.onepersonlab.opl.studio.preview';

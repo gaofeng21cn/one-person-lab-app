@@ -154,7 +154,7 @@ test('Native P1 keeps App, Base, and Packages update ownership separate', () => 
 
 test('OPL Studio adapter and candidate expose the complete P1 baseline', () => {
   const adapter = readJson<{ p1_baseline_bridge: NativeP1BaselineBridge }>(
-    'contracts/shell-adapters/opl-studio.json',
+    'contracts/app-shell-adapter.json',
   );
   assert.doesNotThrow(() => validateNativeP1BaselineBridge(adapter.p1_baseline_bridge));
 
@@ -165,7 +165,7 @@ test('OPL Studio adapter and candidate expose the complete P1 baseline', () => {
     /without a parallel action bus, package registry, or persistent queue/,
   );
 
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   const candidate = registry.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(candidate);
   assert.doesNotThrow(() => validateCandidate(candidate, candidateValidationPolicyFromRegistry(registry)));

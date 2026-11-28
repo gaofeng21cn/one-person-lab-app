@@ -43,8 +43,8 @@
     {
       "surface": "shared-host",
       "package_id": "opl-apps",
-      "source": "one-person-lab/src/mcp-app",
-      "stylesheet": "src/mcp-app/dsh-theme.css"
+      "source": "one-person-lab/packages/mcp-app-shared/assets",
+      "stylesheet": "packages/mcp-app-shared/assets/dsh-theme.css"
     },
     {
       "surface": "dedicated-mcp-app",
@@ -62,6 +62,8 @@
   "visual_source": {
     "contract": "contracts/app-gui-visual-source-cohort.json",
     "stylesheet": "resources/miniapp-dsh/dsh-theme.css",
+    "stylesheet_sha256": "1add166796f6d857625b0ade9d4ff9d97b273f5ba6d8455d67f08e17c3a7495e",
+    "canonical_framework_stylesheet": "one-person-lab/packages/mcp-app-shared/assets/dsh-theme.css",
     "generation": "scripts/sync-miniapp-dsh-styles.mjs",
     "local_palette_or_scale_allowed": false
   }

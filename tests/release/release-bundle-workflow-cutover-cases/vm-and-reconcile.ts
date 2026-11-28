@@ -451,7 +451,7 @@ test('release helpers reject duplicate mounted Apps and packaged runtime executa
   assert.match(codexCarrierValidator, /resolver_env !== 'OPL_CODEX_BIN'/);
   assert.match(
     codexCarrierValidator,
-    /version_source !== 'contracts\/shell-adapters\/opl-studio\.json#qualification_external_carrier'/,
+    /version_source !== 'contracts\/app-shell-adapter\.json#qualification_external_carrier'/,
   );
   assert.match(
     codexCarrierValidator,

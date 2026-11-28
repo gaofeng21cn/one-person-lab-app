@@ -9,6 +9,8 @@ import type {
 import {
   assertFile,
   assertStringArrayIncludes,
+  readJson,
+  registryPath,
   requiredNativeP1Capabilities,
   resolveCandidateRoot,
 } from '../shared.ts';
@@ -170,8 +172,12 @@ const expectedCarrierEvidenceContract: OPLStudioCarrierEvidenceContract = {
 };
 
 export function validateCandidateCarrierEvidenceContract(candidate: ShellCandidate): void {
+  const contract =
+    candidate.carrier_evidence_contract ??
+    readJson<{ carrier_evidence_contract?: OPLStudioCarrierEvidenceContract }>(registryPath)
+      .carrier_evidence_contract;
   assertDeepEqualJson(
-    candidate.carrier_evidence_contract,
+    contract,
     expectedCarrierEvidenceContract,
     `${candidate.id}.carrier_evidence_contract`,
   );
@@ -218,7 +224,7 @@ export function validateOPLStudioCandidateContract(candidate: ShellCandidate): v
   const p1 = candidate.p1_baseline_contract;
   if (
     p1?.runtime_bridge_ref !== 'contracts/app-runtime-bridge.json#native_minimum_product_bridge' ||
-    p1.adapter_binding_ref !== 'contracts/shell-adapters/opl-studio.json#p1_baseline_bridge'
+    p1.adapter_binding_ref !== 'contracts/app-shell-adapter.json#p1_baseline_bridge'
   ) {
     throw new Error(`${candidate.id}.p1_baseline_contract must bind the App runtime bridge and Native adapter without creating a second control plane`);
   }
