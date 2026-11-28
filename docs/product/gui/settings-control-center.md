@@ -228,21 +228,21 @@ tab strip.
 | --- | --- | --- |
 | 概览 | 概览 | `general` |
 | 账户与模型 | 账户与访问；模型 | `gateway`; `access` |
-| 连接与部署 | 资料与连接 | `resources` |
+| 资料与连接 | 资料与连接 | `resources` |
 | 工作区 | 工作目录；数据与存储 | `workspace#current-workspace`; `storage` |
-| 扩展与应用 | 全部扩展；智能体；指令与上下文 | `capabilities`; `agents`; `workspace#personalization` |
+| 能力与指令 | 能力配置；指令与上下文 | `capabilities`; `workspace#personalization` |
 | 运行与维护 | 服务状态；更新与修复；日志与诊断 | `environment#services`; `environment#updates`; `environment#diagnostics` |
 | 偏好 | 偏好 | `appearance` |
 
 “关于”是七组之外唯一的侧栏底部辅助入口，与主组保持独立间距，不作为第八个普通设置类别。
 DSH 固定版本的原生 rail 只提供平铺注册行；About 仍使用该原生行及 store，仅由 OPL 的
 局部布局适配定位到底部。Advanced 退役并重定向到维护诊断。桌面端进入当前一级组后在
-内容标题区显示唯一的二级 tab list；移动端先显示纵向分类列表，再进入带可见返回控件的二级列表，
+内容标题区按「主标题与刷新 → 二级 tab list → 当前 tab 说明」顺序渲染；移动端先显示纵向分类列表，再进入带可见返回控件的二级列表，
 禁止把十个 carrier route 平铺成横向 tab strip。
 
 工作区只组织工作目录、权限、项目/任务产物位置和数据存储。用户级 `AGENTS.md` 与新对话附加说明
-归“扩展与应用 > 指令与上下文”；App 日志目录、服务证据和技术诊断归“运行与维护 > 日志与诊断”。
-资源、外部连接与部署入口只归“连接与部署”，不再借用“账户与模型”的语义。现有 route、anchor
+归“能力与指令 > 指令与上下文”；App 日志目录、服务证据和技术诊断归“运行与维护 > 日志与诊断”。
+资源、外部连接与部署入口只归“资料与连接”，不再借用“账户与模型”的语义。现有 route、anchor
 和 typed host action 继续作为兼容 transport，但不得反向定义可见归属。
 
 ## Redirects
@@ -289,11 +289,11 @@ and a path shown in diagnostics is not a second path configuration.
 | Who is connected to OPL Gateway and what account, usage, Key, or credential state applies? | Account & Access | Overview: signed-in identity, connection and availability, plus compact today token, cost, and balance summary. Models: access-source summary and owner link. | Full account card, total historical usage or cost, login, Key lifecycle, refresh, or disconnect outside Gateway. |
 | Which model source, default model, and reasoning preference apply? | Models | Overview: overall model-access readiness. Models may show Codex availability without its version. | Gateway account and credential controls, Codex version, or update actions on Models. |
 | Which workspace is active and writable, and where are project artifacts stored? | Workspace > Working Directory | Overview may count an actionable exception. | User instructions, App logs, Framework/raw paths, or four separate normal-state cards. |
-| What global instructions and new-conversation context apply? | Agents & Capabilities > Instructions & Context | The existing Workspace personalization route remains a carrier transport only. | Presenting either editor as a Workspace or Preferences child. |
+| What global instructions and new-conversation context apply? | Capabilities & Instructions > Instructions & Context | The existing Workspace personalization route remains a carrier transport only. | Presenting either editor as a Workspace or Preferences child. |
 | Where are App logs and diagnostics, and what needs maintenance? | Runtime & Maintenance > Logs & Diagnostics | Storage may link to the resolved log path read-only. | Presenting logs under Workspace or duplicating the log-directory setting in Storage. |
-| Which extensions and apps are installed, and where are their status and updates? | Extensions & Apps | Agents is a filtered view of the same Package catalog; Home may show an enabled shortcut. | A second Package manager, fixed package list, or package status sections scattered across Service Status and Resources. |
-| Which Skills and Plugins are available? | Extensions & Apps > Capability details | Agent dependency readiness may link here. | A hardcoded Flow list or a second lifecycle authority. |
-| Which external resources, connections, and deployment entry points are available? | Connections & Deployment > Resources & Connections | Other pages may link to a resource. | Built-in OPL Gateway connection or Gateway count; selected local workspace controls. |
+| Which extensions and apps are installed, and where are their status and updates? | Software Center | Overview and Capabilities link directly to Software Center; Home may show an enabled shortcut. | A second Package manager, fixed package list, or package status sections scattered across Service Status and Resources. |
+| Which Skills and Plugins are available? | Capabilities & Instructions > Capability settings | Agent dependency readiness may link here; technical upstream integration rows disclose only when Technical details is enabled. | A hardcoded Flow list or a second lifecycle authority. |
+| Which external resources, connections, and deployment entry points are available? | Libraries & Connections > Resources & Connections | Other pages may link to a resource. | Built-in OPL Gateway connection or Gateway count; selected local workspace controls. |
 | Are Codex and background services available? | Runtime & Maintenance > Service Status | Overview shows one compact Background tasks summary. | Update controls, log configuration, raw paths, or receipts. |
 | Which managed dependencies need updates or repair? | Runtime & Maintenance > Updates & Repair | Overview, Models, and Service Status may show only a compact Codex readiness state. | Repeating Codex versions, update channels, update policy, or update actions on other pages. |
 | How much local and Docker data is used, where are deployment locations, and what can be cleaned safely? | Data & Storage | Updates & Repair may link to cleanup attention; the Logs & Diagnostics-owned log path may be referenced read-only. | Log-directory configuration, mount rewiring, or generic Docker prune. |
@@ -340,9 +340,9 @@ actions. An import does not grant mailbox access to a consumer.
 
 ## Extensions and App visibility
 
-“扩展与应用”是全部动态 Package 的统一安装、管理、升级与状态入口，默认显示所有来源，
-包括私有和本地包。每项显示名称、版本、来源、安装状态与 Framework 提供的操作。
-页内“全部扩展”和“智能体”分别是同一目录的全部项目与智能体筛选视图；页面和主导航保持“扩展与应用”。
+“软件中心”是全部动态 Package 的统一安装、管理、升级与状态入口，默认显示所有来源，
+包括私有和本地包；设置“能力与指令 > 能力配置”承载技能、MCP、桌面操控（Computer Use）与伴随配置，并提供直达软件中心的紧凑入口。
+每项已装软件包显示名称、版本、来源、安装状态与 Framework 提供的操作。
 
 安装与 OPL App 使用是两个独立选择。“在 OPL App 中启用”默认开启；用户关闭后，
 Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的页面、导航和其他界面入口。
@@ -350,26 +350,26 @@ Framework 保留目录与安装状态，但移除该包在 OPL Desktop/WebUI 的
 插件启用、Skill、MCP App 调用或原生安装，也不因升级或重新发现而自动恢复。
 
 包提供的设置和状态统一放在该包的展开详情中，只有包已在 App 中启用且详情展开时读取。
-“服务状态”只保留 Codex、任务处理和定时等基础运行条件；“资料与连接”管理资料库和业务账号，远程访问与独立 WebUI 使用分开的设置分组。
+“服务状态”只保留 Codex、后台任务引擎（Runway）和已接入运行环境等基础运行条件；“资料与连接”通过页面分段分别承载资料库/外部服务与远程访问/独立 WebUI。
 所有安装、更新、修复和 App 开关都经现有 Framework 投影与 App action 执行，不维护额外注册表。
 
 列表直接提供“在 OPL App 中启用”开关；安装状态、已安装版本与来源保持可见，关闭后仍能在目录中找到并重新启用。
 普通可用包不在列表主动作位置重复显示“更新”；更新和修复保留在展开详情，没有新版本证据时不暗示存在待更新项。
 目录数量只在筛选结果摘要中出现一次。页头说明只解释本页用途；开关说明只解释影响范围，不重复安装说明或内部机制。
 
-设置页统一使用一条阅读列、同一组标题层级、对齐的设置行、控件与状态样式。每项主动作贴近对象，
-成功或失败反馈紧邻操作区域；技术字段和完整回执放入显式展开详情。
+设置页统一使用一条阅读列、同一组标题层级、对齐的设置行、DSH 官方控件原语（Switch / SegmentedControl / Button / Modal）与状态样式。每项主动作贴近对象，
+成功或失败反馈紧邻操作区域；技术字段、上游接入进度与完整回执只在显式展开或开启技术详情时展示。
 
 ## Visual Contract
 
 Settings keeps the OPL information architecture while using the current DSH visual
 source and App visual-system rules: a single reading lane, unframed sections,
-flat internal rows, monochrome utility icons, and color reserved for typed
-status or brand actions. It does not turn complex OPL controls into a page-wide
+flat internal rows, monochrome utility icons, `0.5px` hairlines, DSH standard radii/type tokens, and color reserved for typed
+status or brand actions (with DSH primary blue focus ring). It does not turn complex OPL controls into a page-wide
 list wall or nested cards.
 
 - the compact footer always shows the connected Gateway display name, otherwise
-  Settings; it opens Account & Access or Overview;
+  Settings; when connected in wide sidebar it preserves a single accessible text label while showing a subtle trailing Settings icon cue; it opens Account & Access or Overview;
 - only a confirmed newer App version adds a subtle trailing update action on
   that same account row; on desktop this reads the same main-process updater
   store as About and Maintenance, while WebUI falls back to the managed
@@ -618,7 +618,7 @@ Resources & Connections.
 Legacy assistant routes redirect without deleting user data, and external custom
 assistant catalogs remain outside the OPL Package surface.
 
-### Connections & Deployment > Resources & Connections
+### Libraries & Connections > Resources & Connections
 
 Resources & Connections hosts Libraries & Connections (knowledge vaults, business
 accounts, per-software grants), remote messaging channels (including the standard
@@ -652,9 +652,10 @@ three destinations into one long “Services & Maintenance” page.
 
 1. **Service Status** (`environment#services`) answers whether Codex and the
    required background services are available now. It starts with one
-   availability summary. The Runway area presents **Runway** runtime health
-   and **Schedule runner** readiness (`app_state.services.runway` and
-   `status_summary.runway`) instead of deprecated Temporal provider controls.
+   availability summary. The background-task area renders Framework **Runway**
+   health (localized as **后台任务引擎** / **Background task engine** in the Service Status
+   page) and **Schedule runner** readiness (`app_state.services.runway` and
+   `status_summary.runway`, with human-readable check intervals) instead of deprecated Temporal provider controls.
    It states the user impact once without claiming generic `opld` service recovery
    or rollback actions.
    Overview consumes these same summary fields and renders only one persistent
@@ -666,8 +667,9 @@ three destinations into one long “Services & Maintenance” page.
    Memory remains a workbench service reached contextually from Instructions & Context
    rather than a top-level Settings tab.
 2. **Updates & Repair** (`environment#updates`) answers what is outdated or
-   damaged and what the safest next action is. It owns the update channel,
-   read-only `opl_base` current-version projection (`managed_update.components`),
+   damaged and what the safest next action is. In active Studio, the tab displays
+   current App version & update readiness summary alongside a direct jump to
+   Software Center (`updates`), which owns update channels, read-only `opl_base` current-version projection (`managed_update.components`),
    Desktop App update state, Check, Apply, progressive confirmation, progress, and
    fresh readback. Packages appear only as one aggregate summary with a link to Agents;
    per-Package actions stay on that Package row. `opl_base` stays read-only on Updates;

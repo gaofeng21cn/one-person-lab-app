@@ -113,7 +113,7 @@ DSH 包。文档预览随固定 DSH cohort 携带官方源码和客户端载荷�
 内置微信通道由 Studio 的 DSH Host 插件持有连接、绑定与轮询生命周期，通过 `opl-codex-native` 回调驱动现有 Codex 线程。客户端复用远程连接页的 `settings.section` 与 `channel_access` 视图。采用前验证 Desktop、WebUI 和 Docker 上的设置挂载、状态回读、扫码、PIN、消息收发、服务重启与解绑，并验证已有线程绑定继续指向原线程、同一账号仅一个活动轮询实例。重启后按既有规则重新登录。采用后清退 App 旧微信 Package 和 Framework 旧路由。
 
 微信绑定协议对齐腾讯 `@tencent-weixin/openclaw-weixin@3.0.0-beta-0`
-（官方 `beta`，稳定版 `latest` 仍为 `2.4.10`）。设置的“连接与部署 → 远程连接与网页访问”提供
+（官方 `beta`，稳定版 `latest` 仍为 `2.4.10`）。设置的“资料与连接 → 远程访问与网页端”提供
 本人和他人两种连接动作：本人直接扫码，他人先由操作者扫描实名授权二维码，再由
 实际使用者扫描绑定二维码。服务端要求 PIN 时显示输入表单；输入错误后重新提示，
 被限制后停止本次绑定并说明原因。实名二维码、绑定二维码、PIN 与凭证仅用于当前
@@ -230,7 +230,7 @@ MCP Apps。设置贡献中的列表、时间线、审核、任务板及产物是
 
 DSH `SettingsRoot`、theme、locale、model/Agent UI 和 slots 是渲染基础；可见层级由 App 的 `settings_navigation.settings_ia` 决定。新上游设置先进入 intake，分类为 `accepted`、`adapted`、`redirected` 或 `rejected`，之后才允许进入 registry/slot。隐藏入口不删除插件数据。
 
-当前稳定的用户层级为：概览；账户与模型；连接与访问；工作区；扩展与应用；运行与维护；偏好；底部关于。旧 carrier route 只作为兼容 transport，不反向决定用户看到的分类。
+当前稳定的用户层级为：概览；账户与模型；资料与连接；工作区；能力与指令；运行与维护；偏好；底部关于。旧 carrier route 只作为兼容 transport，不反向决定用户看到的分类。
 
 ### 4.3 最低维护成本的新增设置流程
 

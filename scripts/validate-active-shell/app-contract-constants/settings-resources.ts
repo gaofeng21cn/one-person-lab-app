@@ -52,8 +52,8 @@ export const appOwnedSettingsTechnicalDetailsDefault = {
   about: "explicit_action_modal",
 };
 export const appOwnedSettingsCapabilitiesTabContract = {
-  surface_label_zh: "扩展与应用",
-  surface_label_en: "Extensions & Apps",
+  surface_label_zh: "能力配置",
+  surface_label_en: "Capability settings",
   tab_order: ["packages", "desktop", "opl_flow_managed", "manual_and_third_party", "image_voice"],
   default_tab: "packages",
   on_demand_tab_ids: [],

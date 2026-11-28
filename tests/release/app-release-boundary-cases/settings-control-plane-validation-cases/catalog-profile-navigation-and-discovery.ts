@@ -120,7 +120,7 @@ test("Settings exposes seven primary groups over ten stable carrier pages with b
       "模型",
       "工作区",
       "智能体",
-      "扩展与应用",
+      "能力配置",
       "资料与连接",
       "维护",
       "数据与存储",
