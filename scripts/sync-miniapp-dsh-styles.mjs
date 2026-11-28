@@ -55,7 +55,7 @@ h3 { font: var(--dsw-font-s-strong-14); }
 const license = await readFile(path.join(source, 'LICENSE'), 'utf8');
 const targets = [path.join(root, 'resources/miniapp-dsh')];
 for (const [flag, relative] of [
-  ['--framework-root', 'src/mcp-app'], ['--relay-root', 'workbench'],
+  ['--framework-root', 'packages/mcp-app-shared/assets'], ['--relay-root', 'workbench'],
   ['--mac-root', 'plugins/med-autocast/media-review']
 ]) { const repo = argument(flag); if (repo) targets.push(path.resolve(repo, relative)); }
 for (const target of targets) {

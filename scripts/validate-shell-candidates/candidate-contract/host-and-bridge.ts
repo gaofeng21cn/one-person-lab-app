@@ -110,6 +110,14 @@ const expectedDshApplicationHost: DSHApplicationHostContract = {
     'dsh_credentials',
   ],
   framework_bridge: 'consume_framework_app_state_action_authentication_and_channel_callbacks_only',
+  windows_startup_recovery: {
+    owner: 'opl-framework',
+    command: 'opl system startup-maintenance --scope runtime_recovery --json',
+    configured_local_service_worker_scheduler_only: true,
+    runs_when_automatic_updates_disabled: true,
+    updates_or_activates_runtime_generations: false,
+    read_only_host_mutation_allowed: false,
+  },
   startup_order: [
     'dsh_host_tree_and_tool_mcp',
     'codex_app_server',
@@ -121,7 +129,7 @@ const expectedDshApplicationHost: DSHApplicationHostContract = {
     'dsh_cordis_tree',
   ],
   upstream_upgrade_contract: 'update_one_pinned_ref_and_package_cohort_then_regenerate_vendor_manifest_replay_profile_patches_and_run_host_mcp_renderer_candidate_gates',
-  active_shell_adopted: false,
+  active_shell_adopted: true,
   release_ready: false,
   plugin_package_layout: {"source_root": "plugins", "package_format": "dsh_npm_package", "host_entry": "exports[.]", "client_entry": "exports[./client]", "profile_module_reference": "npm_package_name", "installed_location": "node_modules", "third_party_policy": "pinned_native_package_or_provenance_preserving_adapter", "codex_capability_packages_are_dsh_plugins": false},
 };
@@ -232,7 +240,7 @@ export function validateCandidateRegistryEntry(candidate: ShellCandidate, policy
   const isDefaultCandidate = policy.defaultCandidateValidationScope.includes(candidate.id);
   const isExplicitCandidate = policy.explicitCandidateValidationScope.includes(candidate.id);
   if (candidate.state !== 'active_product_development') {
-    throw new Error(`${candidate.id} must stay in active_product_development according to app-shell-candidates alternative_gui_policy`);
+    throw new Error(`${candidate.id} must stay in active_product_development according to app-shell-adapter alternative_gui_policy`);
   }
   if (!isForegroundAlternative) {
     throw new Error(`${candidate.id} must be the foreground alternative`);
@@ -369,25 +377,14 @@ export function validateCandidateAdapterContract(
   if (candidate.id !== policy.onlyForegroundAlternative) {
     throw new Error(`${candidate.id} detailed candidate contract must be the explicit foreground alternative`);
   }
-  if ('active_shell' in adapterContract) {
-    throw new Error(`${candidate.id} foreground candidate adapter must use candidate_shell, not active_shell; active release shell remains contracts/app-shell-adapter.json`);
-  }
   if (
-    adapterContract.adapter_id !== candidate.id ||
-    adapterContract.candidate_shell !== candidate.id ||
-    adapterContract.adapter_role !== 'foreground_alternative_candidate_adapter'
-  ) {
-    throw new Error(`${candidate.id} foreground candidate adapter must declare candidate_shell adapter identity`);
-  }
-  if (
+    adapterContract.active_shell !== candidate.id ||
     adapterContract.purpose !== 'active_shell_adapter' ||
     adapterContract.state !== 'active' ||
-    adapterContract.candidate_stage !==
-      'opl_studio_dsh_application_host_candidate_only' ||
     adapterContract.gui_authority?.implementation_role !==
-      'foreground_alternative_candidate_implementation_carrier'
+      'active_shell_implementation_carrier'
   ) {
-    throw new Error(`${candidate.id} adapter must preserve the shared adapter schema and DSH Application Host candidate stage`);
+    throw new Error(`${candidate.id} adapter must declare active_shell identity and active Application Host implementation role`);
   }
   if (adapterContract.shell_root !== candidate.candidate_root) {
     throw new Error(`${candidate.id} adapter contract must point at ${candidate.candidate_root}`);
@@ -398,8 +395,8 @@ export function validateCandidateAdapterContract(
   if (adapterContract.shell_source.history_policy !== 'external_checkout_not_merged_into_app_default_branch') {
     throw new Error(`${candidate.id} adapter must keep external checkout history policy`);
   }
-  if (adapterContract.release_role !== 'experimental_candidate_shell') {
-    throw new Error(`${candidate.id} adapter release_role must be experimental_candidate_shell`);
+  if (adapterContract.release_role !== 'stable_app_shell') {
+    throw new Error(`${candidate.id} adapter release_role must be stable_app_shell`);
   }
   if (
     adapterContract.codex_executable_contract?.resolver_env !== 'OPL_CODEX_BIN' ||
@@ -498,11 +495,11 @@ export function validateCandidateAdapterContract(
         },
       },
       aionui_or_aioncore_dependency_allowed: false,
-      active_release_carrier: false,
+      active_release_carrier: true,
     },
     `${candidate.id} adapter delivery topology`,
   );
-  if (!adapterContract.validation_commands.some((entry) => entry.id === 'candidate_app_bundle_build')) {
-    throw new Error(`${candidate.id} adapter validation_commands must include candidate_app_bundle_build`);
+  if (!adapterContract.validation_commands.some((entry) => entry.id === 'studio_app_contract_conformance')) {
+    throw new Error(`${candidate.id} adapter validation_commands must include studio_app_contract_conformance`);
   }
 }

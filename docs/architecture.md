@@ -43,8 +43,7 @@ Neither Shell becomes another Framework runtime, Package manager or release owne
 ## Shell Selection And Client Composition
 
 [`app-shell-adapter.json`](../contracts/app-shell-adapter.json) selects the active
-release Shell. [`app-shell-candidates.json`](../contracts/app-shell-candidates.json)
-owns candidate selection and adoption gates. Per-launch GUI selection is independent
+release Shell, candidate policy, and adoption gates in one consolidated adapter contract. Per-launch GUI selection is independent
 of release adoption. Stable Studio preserves the canonical OPL App identity,
 installation path and update feed. Studio Preview keeps its separate identity
 until a signed terminal handoff installs the exact Stable target and imports

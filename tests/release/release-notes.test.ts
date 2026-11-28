@@ -706,7 +706,7 @@ test('Full notes derive only selected prebuild input refs from exact App, Shell,
   assert.deepEqual(authority.components.codex, { version: `codex-cli ${fixture.codexVersion}-darwin-arm64` });
   assert.equal(authority.runtime_authority.codex_cli.shell_source_commit, fixture.shell.ref);
   assert.equal(authority.runtime_authority.codex_cli.source, 'studio_opl_codex_native_external_binary_v1');
-  assert.equal(authority.runtime_authority.codex_cli.qualification_input_ref, 'contracts/shell-adapters/opl-studio.json#qualification_external_carrier');
+  assert.equal(authority.runtime_authority.codex_cli.qualification_input_ref, 'contracts/app-shell-adapter.json#qualification_external_carrier');
   assert.equal(authority.runtime_authority.codex_cli.qualification_input.version, `${fixture.codexVersion}-darwin-arm64`);
   assert.equal(authority.runtime_authority.codex_cli.app_bundle_codex_payload_forbidden, true);
   assert.equal(Object.hasOwn(authority.runtime_authority.codex_cli, 'claude_cli'), false);

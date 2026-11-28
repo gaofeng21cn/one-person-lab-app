@@ -3896,7 +3896,7 @@
           "studio_opl_codex_native_external_binary_v1"
         ],
         "resolver_env": "OPL_CODEX_BIN",
-        "version_source": "contracts/shell-adapters/opl-studio.json#qualification_external_carrier",
+        "version_source": "contracts/app-shell-adapter.json#qualification_external_carrier",
         "projection_schema": "opl_codex_native_external_binary.v1",
         "producer_schema_version": 1,
         "forbidden_cli_names": [

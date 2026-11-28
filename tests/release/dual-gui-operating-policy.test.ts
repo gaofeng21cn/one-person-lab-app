@@ -67,7 +67,7 @@ test('Studio minimum-complete baseline keeps core switching outcomes and require
 });
 
 test('dual GUI launcher selection stays separate from release adoption', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   assert.doesNotThrow(() => validateRegistryShape(registry));
 
   const invalid = structuredClone(registry);
@@ -122,15 +122,35 @@ test('shell transition preserves the active App identity and uses an exact Previ
 
 });
 
-test('explicit Studio adapter keeps its candidate implementation role', () => {
-  const contract = readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json');
-  const admission = resolveClientRendererAdmission(contract);
+test('explicit Studio adapter keeps its active implementation role and preserves candidate admission check', () => {
+  const contract = readAppShellAdapterContract('contracts/app-shell-adapter.json');
+  const activeAdmission = resolveClientRendererAdmission(contract);
+  const candidateContract = structuredClone(contract) as any;
+  delete candidateContract.active_shell;
+  candidateContract.adapter_id = 'opl-studio';
+  candidateContract.candidate_shell = 'opl-studio';
+  candidateContract.adapter_role = 'foreground_alternative_candidate_adapter';
+  candidateContract.client_renderer_admission = {
+    ...candidateContract.client_renderer_admission,
+    implementation_role: 'foreground_alternative_candidate_renderer',
+    status: 'candidate_validation_only_not_active_shell_admitted',
+  };
+  const admission = resolveClientRendererAdmission(candidateContract as any);
 
-  const adapter = readJson<any>('contracts/shell-adapters/opl-studio.json');
+  const adapter = readJson<any>('contracts/app-shell-adapter.json');
   assert.equal(
     adapter.gui_authority.implementation_role,
-    'foreground_alternative_candidate_implementation_carrier',
+    'active_shell_implementation_carrier',
   );
+  assert.deepEqual(activeAdmission && {
+    rendererId: activeAdmission.rendererId,
+    status: activeAdmission.status,
+    selectionMode: activeAdmission.selectionMode,
+  }, {
+    rendererId: 'opl-studio',
+    status: 'admitted_current_active_shell',
+    selectionMode: 'active_release_adapter',
+  });
   assert.deepEqual(admission && {
     rendererId: admission.rendererId,
     status: admission.status,
@@ -144,7 +164,7 @@ test('explicit Studio adapter keeps its candidate implementation role', () => {
 });
 
 test('retired Hermes and AGUI GUI candidate chains stay physically absent', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   assert.deepEqual(registry.candidates.map((candidate) => candidate.id), ['opl-studio']);
   for (const retiredField of ['archived_reason', 'default_update_policy', 'role_tombstone', 'replay']) {
     const restoredField = structuredClone(registry) as any;
@@ -170,7 +190,7 @@ test('retired Hermes and AGUI GUI candidate chains stay physically absent', () =
 });
 
 test('DeepSeek Harness Application Host and visual source reuse stay Studio-only after AionUI retirement', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   const reference = registry.design_references?.find(({ id }) => id === 'deepseek-harness');
   const visualCohort = readJson<any>('contracts/app-gui-visual-source-cohort.json');
   const governance = (registry as any).design_system_governance;
@@ -250,7 +270,7 @@ test('Framework transport binding projection and renderer-specific Weixin routes
   const profile = readJson<any>('contracts/app-product-profile.json');
   const runtimeBridge = readJson<any>('contracts/app-runtime-bridge.json');
   const activeAdapter = readJson<any>('contracts/app-shell-adapter.json');
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = activeAdapter as ShellCandidateRegistry;
   const studio = registry.candidates.find((candidate) => candidate.id === 'opl-studio');
 
   assert.equal(

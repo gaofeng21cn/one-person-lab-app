@@ -34,7 +34,7 @@ function fakeAppRoot(): { appRoot: string; cleanup: () => void } {
   const appRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-gui-launcher-app-"));
   const contractsDir = path.join(appRoot, "contracts");
   fs.mkdirSync(contractsDir);
-  for (const name of ["app-shell-candidates.json", "app-shell-adapter.json"]) {
+  for (const name of ["app-shell-adapter.json"]) {
     fs.copyFileSync(path.join(process.cwd(), "contracts", name), path.join(contractsDir, name));
   }
   const nativeRoot = path.join(appRoot, "shells", "opl-studio");

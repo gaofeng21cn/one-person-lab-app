@@ -416,6 +416,7 @@ export type ShellCandidateRegistry = {
     opl_mapping: string[];
     forbidden_reuse: string[];
   }>;
+  carrier_evidence_contract?: OPLStudioCarrierEvidenceContract;
   candidates: ShellCandidate[];
 };
 

@@ -15,7 +15,10 @@ import { resolveFullCarrierProfile } from '../../scripts/build-full-first-instal
 function buildManifestFixture(t: test.TestContext, carrierId: 'opl-studio' = 'opl-studio') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-public-manifest-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const carrier = resolveFullCarrierProfile({ carrierId, ...(carrierId === 'opl-studio' ? { contract: readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json') } : {}) });
+  const previewContract = structuredClone(readAppShellAdapterContract('contracts/app-shell-adapter.json'));
+  delete previewContract.active_shell;
+  previewContract.candidate_shell = 'opl-studio';
+  const carrier = resolveFullCarrierProfile({ carrierId, ...(carrierId === 'opl-studio' ? { contract: previewContract } : {}) });
   const dmgName = carrier.artifactNameTemplate
     .replace('${version}', '26.8.1-r5')
     .replace('${arch}', 'mac-arm64');
@@ -77,8 +80,14 @@ test('Studio Full public manifest keeps Studio identity as the only current carr
 
 test('Full carrier profiles reject retired AionUI and keep Studio numeric SemVer', () => {
   assert.throws(() => resolveFullCarrierProfile({ carrierId: 'aionui' }), /invalid schema|Unsupported Full payload carrier/);
-  const studio = resolveFullCarrierProfile({ carrierId: 'opl-studio', contract: readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json') });
+  const previewContract = structuredClone(readAppShellAdapterContract('contracts/app-shell-adapter.json'));
+  delete previewContract.active_shell;
+  previewContract.candidate_shell = 'opl-studio';
+  const studio = resolveFullCarrierProfile({ carrierId: 'opl-studio', contract: previewContract });
   assert.equal(studio.versionPolicy, 'numeric_semver');
+  const activeStable = resolveFullCarrierProfile({ carrierId: 'opl-studio' });
+  assert.equal(activeStable.bundleId, 'cn.onepersonlab.opl');
+  assert.equal(activeStable.versionPolicy, 'stable_calendar');
   assert.doesNotThrow(() => assertFullCarrierReleaseVersions(studio, '0.1.1', '0.1.1'));
   assert.throws(
     () => assertFullCarrierReleaseVersions(studio, '0.1.1-preview.1', '0.1.1-preview.1'),

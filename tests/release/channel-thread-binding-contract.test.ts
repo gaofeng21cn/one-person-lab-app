@@ -96,7 +96,7 @@ test('runtime bridge validation rejects inferred, unknown, or mismatched binding
 });
 
 test('both shell adapters persist exact bindings without owning thread or turn truth', () => {
-  const cases = [['opl-studio', readJson('contracts/shell-adapters/opl-studio.json')]] as const;
+  const cases = [['opl-studio', readJson('contracts/app-shell-adapter.json')]] as const;
 
   for (const [shellIdentity, adapter] of cases) {
     const boundary = adapter.channel_thread_binding_boundary;

@@ -9,7 +9,7 @@ function validateReleaseFullCodexCliPayload(codexCli) {
     codexCli?.compatibility_mode !== 'studio_native_exact_external_binary' ||
     codexCli?.carrier_contract_ref !== 'contracts/app-shell-adapter.json#codex_executable_contract' ||
     codexCli?.resolver_env !== 'OPL_CODEX_BIN' ||
-    codexCli?.version_source !== 'contracts/shell-adapters/opl-studio.json#qualification_external_carrier' ||
+    codexCli?.version_source !== 'contracts/app-shell-adapter.json#qualification_external_carrier' ||
     codexCli?.projection_schema !== 'opl_codex_native_external_binary.v1' ||
     codexCli?.producer_schema_version !== 1 ||
     codexCli?.aioncore_required !== false ||

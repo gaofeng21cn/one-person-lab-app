@@ -94,7 +94,7 @@ export const FORBIDDEN_SHELL_OWNED_SURFACES = [
 ] as const;
 
 const CANDIDATE_ADOPTION_GATES = [
-  'declare candidate in contracts/app-shell-candidates.json',
+  'declare candidate in contracts/app-shell-adapter.json#candidates',
   'implement contracts/app-gui-product-contract.json',
   'sync App product profile into the candidate shell target',
   'pass App page-state and first-run matrices',
@@ -107,15 +107,15 @@ export function assertShellReplacementAdoptionGates(
   releaseRole: string,
   adoptionGate: readonly string[] | undefined,
   missingGateMessage: (gate: string) => string,
-  forbiddenAdapterCandidateMessage = 'Shell replacement policy must not declare candidates inside contracts/app-shell-adapter.json',
+  forbiddenRetiredCandidateMessage = 'Shell replacement policy must not reference retired contracts/app-shell-candidates.json',
 ): void {
   for (const gate of CANDIDATE_ADOPTION_GATES) {
     if (!adoptionGate?.includes(gate)) {
       throw new Error(missingGateMessage(gate));
     }
   }
-  if (adoptionGate?.includes('declare candidate in contracts/app-shell-adapter.json')) {
-    throw new Error(forbiddenAdapterCandidateMessage);
+  if (adoptionGate?.includes('declare candidate in contracts/app-shell-candidates.json')) {
+    throw new Error(forbiddenRetiredCandidateMessage);
   }
 }
 

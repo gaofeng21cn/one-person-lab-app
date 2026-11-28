@@ -22,7 +22,7 @@ const readJson = <T>(relativePath: string): T =>
 
 const readAdapter = (): Record<string, unknown> & {
   thread_adapter_boundary: NativeThreadAdapterBoundary;
-} => readJson('contracts/shell-adapters/opl-studio.json');
+} => readJson('contracts/app-shell-adapter.json');
 
 test('OPL Studio candidate keeps one App Server thread adapter and Codex subagent projection', () => {
   const adapter = readAdapter();
@@ -104,7 +104,7 @@ test('OPL Studio candidate rejects removal of Codex subagent projections', () =>
 });
 
 test('OPL Studio candidate machine contract removes retired private capabilities', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   const policy = candidateValidationPolicyFromRegistry(registry);
   const candidate = registry.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(candidate);
@@ -135,7 +135,7 @@ test('OPL Studio candidate machine contract removes retired private capabilities
   assert.ok(candidate.required_capabilities.includes('dsh_cordis_application_host'));
   assert.ok(candidate.required_capabilities.includes('dsh_tools_to_codex_mcp_bridge'));
   assert.equal(candidate.application_host_contract?.codex_runtime_owner, 'opl-codex-native');
-  assert.equal(candidate.application_host_contract?.active_shell_adopted, false);
+  assert.equal(candidate.application_host_contract?.active_shell_adopted, true);
   assert.equal(candidate.application_host_contract?.release_ready, false);
   for (const retired of [
     'typed_cross_top_level_thread_host_bridge',
@@ -152,18 +152,19 @@ test('OPL Studio candidate machine contract removes retired private capabilities
 test('OPL Studio candidate mounts the shared renderer through the RC2 Cordis client plugin', () => {
   const studioRoot = resolveCandidateRoot('shells/opl-studio');
   const main = fs.readFileSync(path.join(studioRoot, 'src/main.tsx'), 'utf8');
-  const slotHost = fs.readFileSync(path.join(studioRoot, 'plugins/opl-studio-client/src/client/composition/dshSlotHost.tsx'), 'utf8');
+  const clientRuntime = fs.readFileSync(path.join(studioRoot, 'src/composition/dshClientModuleRuntime.ts'), 'utf8');
+  const slotHost = fs.readFileSync(path.join(studioRoot, 'plugins/core/opl-studio-client/src/client/composition/dshSlotHost.tsx'), 'utf8');
   const clientPlugin = fs.readFileSync(
-    path.join(studioRoot, 'plugins/opl-studio-client/src/client/composition/oplStudioClientPlugin.tsx'),
+    path.join(studioRoot, 'plugins/core/opl-studio-client/src/client/composition/oplStudioClientPlugin.tsx'),
     'utf8',
   );
 
-  assert.match(main, /globalThis\.__OPL_STUDIO_CLIENT__ = oplStudioClientPlugin/);
-  assert.match(main, /mountOplStudioClient\(rootElement\)/);
+  assert.match(main, /bootDesktopDshClient\(rootElement\)/);
   assert.match(main, /new AppWebEntry\(rootElement\)\.run\(\)/);
+  assert.match(clientRuntime, /new AppWebEntry\(container,/);
   assert.match(slotHost, /this\.core\.renderSlot\("root", \{\}\)/);
   assert.match(clientPlugin, /root\.render\(<McpAppsClientContext\.Provider value=\{mcpApps\}>\{slotHost\.renderRoot\(\)\}/);
-  assert.match(clientPlugin, /ctx\.plugin\(oplStudioClientPlugin\)/);
+  assert.match(clientPlugin, /export const oplStudioClientPlugin = \{ name, inject, apply \}/);
   assert.doesNotMatch(main, /createRoot\(rootElement\)\.render\(renderOplStudioRoot\(\)\)/);
 });
 
@@ -199,7 +200,7 @@ test('OPL Studio candidate evidence keeps the current user-centered Settings gro
 });
 
 test('OPL Studio candidate binds DSH-covered visuals to source-preserving reuse plus semantic App integrations', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   const policy = candidateValidationPolicyFromRegistry(registry);
   const candidate = registry.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(candidate);
@@ -266,7 +267,7 @@ test('OPL Studio candidate evidence binds layout and interaction semantics to pi
       product_layout_contract: alignment,
       primary_visual_reference: {
         reference_product: 'DeepSeek Harness',
-        reference_version: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
+        reference_version: '4b399c39a6d1479cd84ca591b4d7c88e24d38a96',
         reference_date: '2026-08-22',
         source_usage: 'direct_gui_source_reuse_with_application_host_cohort',
         left_side: 'persistent project and conversation rail with search and Settings only',
@@ -275,7 +276,7 @@ test('OPL Studio candidate evidence binds layout and interaction semantics to pi
       },
       visual_style_reference: {
         reference_product: 'DeepSeek Harness',
-        reference_version: 'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159',
+        reference_version: '4b399c39a6d1479cd84ca591b4d7c88e24d38a96',
         reference_date: '2026-08-22',
         scope: 'eleven_pinned_gui_package_source_trees_with_opl_slot_adapters',
         token_source: 'vendor/deepseek-harness/packages/client/ui-theme/src/styles/design-platform.css',
@@ -301,7 +302,7 @@ test('OPL Studio candidate evidence binds layout and interaction semantics to pi
 });
 
 test('OPL Studio keeps runtime work in the three-module on-demand context instead of a separate core route', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   const policy = candidateValidationPolicyFromRegistry(registry);
   const candidate = registry.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(candidate);
@@ -337,7 +338,7 @@ test('OPL Studio keeps runtime work in the three-module on-demand context instea
 });
 
 test('OPL Studio candidate account footer consumes only the canonical Gateway display name', () => {
-  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-candidates.json');
+  const registry = readJson<ShellCandidateRegistry>('contracts/app-shell-adapter.json');
   const candidate = registry.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(candidate);
   const footer = candidate.target_product_shape.account_footer_policy;

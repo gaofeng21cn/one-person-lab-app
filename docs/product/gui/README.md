@@ -5,9 +5,8 @@ Purpose: GUI 文档导航与职责分层。
 State: `active`
 
 App 拥有一个产品定义，Studio 实现当前 Desktop、WebUI 和 Docker；AionUI 与
-`opl-aion-shell` 已退役，历史源码与发布证据通过 Git 历史追溯。当前发布 Shell 由
-[`app-shell-adapter.json`](../../../contracts/app-shell-adapter.json) 决定；候选与采用条件由
-[`app-shell-candidates.json`](../../../contracts/app-shell-candidates.json) 决定。实现、候选构建或
+`opl-aion-shell` 已退役，历史源码与发布证据通过 Git 历史追溯。当前发布 Shell、候选策略与采用条件统一由 [`app-shell-adapter.json`](../../../contracts/app-shell-adapter.json)
+决定（历史拆分的 `app-shell-candidates.json` 与 `shell-adapters/opl-studio.json` 已合并至本文件）。实现、候选构建或
 截图通过不会自动改变发布身份。完整组件关系见 [Architecture](../../architecture.md)。
 
 ## 产品定义与实现分层

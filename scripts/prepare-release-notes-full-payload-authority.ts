@@ -341,7 +341,7 @@ export function buildReleaseNotesFullPayloadAuthority(
       codex_cli: {
         source: 'studio_opl_codex_native_external_binary_v1',
         shell_source_commit: shellRef,
-        qualification_input_ref: 'contracts/shell-adapters/opl-studio.json#qualification_external_carrier',
+        qualification_input_ref: 'contracts/app-shell-adapter.json#qualification_external_carrier',
         qualification_input: codexAuthority,
         version: codexVersion,
         app_bundle_codex_payload_forbidden: true,

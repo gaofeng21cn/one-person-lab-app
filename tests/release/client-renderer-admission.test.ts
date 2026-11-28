@@ -18,7 +18,16 @@ function readJson(relativePath: string): any {
 test('active Studio and candidate Studio resolve through one App-owned Client renderer admission profile', () => {
   const profile = readJson('contracts/app-product-profile.json');
   const activeContract = readAppShellAdapterContract();
-  const studioContract = readAppShellAdapterContract('contracts/shell-adapters/opl-studio.json');
+  const studioContract = structuredClone(activeContract) as any;
+  delete studioContract.active_shell;
+  studioContract.adapter_id = 'opl-studio';
+  studioContract.candidate_shell = 'opl-studio';
+  studioContract.adapter_role = 'foreground_alternative_candidate_adapter';
+  studioContract.client_renderer_admission = {
+    ...studioContract.client_renderer_admission,
+    implementation_role: 'foreground_alternative_candidate_renderer',
+    status: 'candidate_validation_only_not_active_shell_admitted',
+  };
 
   assert.deepEqual(resolveClientRendererAdmission(activeContract, profile), {
     schema: 'opl_app_client_renderer_admission.v1',
@@ -27,7 +36,7 @@ test('active Studio and candidate Studio resolve through one App-owned Client re
     selectionMode: 'active_release_adapter',
     compatibility: profile.client_renderer_compatibility,
   });
-  assert.deepEqual(resolveClientRendererAdmission(studioContract, profile), {
+  assert.deepEqual(resolveClientRendererAdmission(studioContract as any, profile), {
     schema: 'opl_app_client_renderer_admission.v1',
     rendererId: 'opl-studio',
     status: 'candidate_validation_only_not_active_shell_admitted',
@@ -36,7 +45,7 @@ test('active Studio and candidate Studio resolve through one App-owned Client re
   });
 
   assert.equal(resolveActiveShellPaths({ contract: activeContract, shellRoot: '/tmp/opl-studio-stable' }).clientRendererAdmission?.rendererId, 'opl-studio');
-  assert.equal(resolveActiveShellPaths({ contract: studioContract, shellRoot: '/tmp/opl-studio' }).clientRendererAdmission?.selectionMode, 'candidate_validation_only');
+  assert.equal(resolveActiveShellPaths({ contract: studioContract as any, shellRoot: '/tmp/opl-studio' }).clientRendererAdmission?.selectionMode, 'candidate_validation_only');
 });
 
 test('Client renderer admission rejects shared ABI and renderer-local authority drift', () => {

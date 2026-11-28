@@ -4,8 +4,7 @@ Owner: `one-person-lab-app`
 Purpose: `gui_shell_candidate_map`
 State: `active`
 Machine boundary: Human-readable map for active and candidate GUI shells.
-Machine truth lives in `contracts/app-shell-adapter.json`,
-`contracts/app-shell-candidates.json`, `contracts/shell-adapters/*.json`,
+Machine truth lives in consolidated `contracts/app-shell-adapter.json`,
 package scripts, validation output, and candidate package artifacts.
 
 ## Current Map
@@ -13,7 +12,7 @@ package scripts, validation output, and candidate package artifacts.
 | Role | Shell | Physical checkout | Adapter contract | Default scope |
 | --- | --- | --- | --- | --- |
 | Active App GUI | `opl-studio` | `shells/opl-studio` or `OPL_APP_SHELL_ROOT` | `contracts/app-shell-adapter.json` | App Stable, Nightly and default launcher |
-| Isolated Studio Preview | `opl-studio` | `shells/opl-studio` or `../opl-studio` | `contracts/shell-adapters/opl-studio.json` | Explicit Preview launch/build and candidate evidence; independent identity/feed |
+| Isolated Studio Preview | `opl-studio` | `shells/opl-studio` or `../opl-studio` | `contracts/app-shell-adapter.json` | Explicit Preview launch/build and candidate evidence; independent identity/feed |
 
 The active adapter selects Studio. The candidate registry retains an explicit
 Studio Preview path; a shared implementation id does not merge the two bundle

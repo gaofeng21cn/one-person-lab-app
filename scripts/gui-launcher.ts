@@ -261,9 +261,10 @@ export function createGuiLaunchPlan(options: {
 }): GuiLaunchPlan {
   const appRoot = path.resolve(options.appRoot ?? defaultAppRoot);
   const env = options.env ?? process.env;
-  const registry = readJson<ShellCandidateRegistry>(path.join(appRoot, 'contracts/app-shell-candidates.json'));
-  const activeAdapter = readJson<ActiveShellAdapter>(path.join(appRoot, 'contracts/app-shell-adapter.json'));
-  const profiles = validateLauncherContracts(registry, activeAdapter);
+  const activeAdapter = readJson<ShellCandidateRegistry & ActiveShellAdapter>(
+    path.join(appRoot, 'contracts/app-shell-adapter.json'),
+  );
+  const profiles = validateLauncherContracts(activeAdapter, activeAdapter);
   const shell = options.args.shell ?? activeAdapter.active_shell;
   assertGuiShell(shell);
   const activeStudioDefault = !options.args.shell && activeAdapter.active_shell === 'opl-studio';

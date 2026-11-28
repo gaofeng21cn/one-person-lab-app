@@ -39,8 +39,8 @@ policy 约束。缺少 App 清单项本身不是删除能力的授权。
 3. 页面状态与显示边界：`contracts/app-page-state-matrix.json`。
 4. 原生 iOS 伴侣端、传输与配对边界：`contracts/app-remote-companion.json`。
 5. Settings registry/route/action：`contracts/app-settings-control-plane.json`。
-6. Release-shell adoption 与 local launch selection：active/candidate adapter contract、
-   `contracts/app-shell-candidates.json#interactive_launcher_policy`。
+6. Release-shell adoption 与 local launch selection：consolidated adapter contract
+   `contracts/app-shell-adapter.json#interactive_launcher_policy`。
 7. 理想交互与视觉：[`ideal-interaction-spec.md`](ideal-interaction-spec.md)、
    [`visual-system.md`](visual-system.md)。
 8. 当前差距与验证入口：

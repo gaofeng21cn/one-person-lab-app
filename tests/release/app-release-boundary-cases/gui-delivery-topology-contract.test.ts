@@ -9,7 +9,7 @@ function readJson(relativePath: string) {
 test('App approves one DSH-derived renderer and Node host core across desktop, headless, and Docker', () => {
   const profile = readJson('contracts/app-product-profile.json');
   const release = readJson('contracts/app-release-channel.json');
-  const candidates = readJson('contracts/app-shell-candidates.json');
+  const candidates = readJson('contracts/app-shell-adapter.json');
   const gui = readJson('contracts/app-gui-product-contract.json');
 
   assert.deepEqual(profile.product.target_desktop_platforms, ['macos', 'windows', 'linux']);
@@ -139,15 +139,16 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
   assert.equal(candidates.active_shell_unchanged, 'opl-studio');
   const studio = candidates.candidates.find((entry) => entry.id === 'opl-studio');
   assert.ok(studio);
-  assert.deepEqual(studio.carrier_evidence_contract.required_entries, [
+  assert.ok(candidates.carrier_evidence_contract);
+  assert.deepEqual(candidates.carrier_evidence_contract.required_entries, [
     'electron_desktop',
     'standalone_headless_webui',
     'docker_webui',
   ]);
-  assert.equal(studio.carrier_evidence_contract.candidate_only, true);
-  assert.equal(studio.carrier_evidence_contract.release_authority, false);
-  assert.equal(studio.carrier_evidence_contract.current_aionui_release_evidence_may_close_successor_entry, false);
-  assert.deepEqual(studio.carrier_evidence_contract.preview_oci_admission, {
+  assert.equal(candidates.carrier_evidence_contract.candidate_only, true);
+  assert.equal(candidates.carrier_evidence_contract.release_authority, false);
+  assert.equal(candidates.carrier_evidence_contract.current_aionui_release_evidence_may_close_successor_entry, false);
+  assert.deepEqual(candidates.carrier_evidence_contract.preview_oci_admission, {
     schema: 'opl_studio_cloud_workspace_image_handoff.v1',
     schema_ref: 'contracts/opl-studio-cloud-workspace-image-handoff.schema.json',
     validator: 'scripts/validate-studio-cloud-handoff.ts',
@@ -163,7 +164,7 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
     release_ready: false,
   });
   assert.deepEqual(
-    studio.carrier_evidence_contract.entries.electron_desktop.qualification_commands,
+    candidates.carrier_evidence_contract.entries.electron_desktop.qualification_commands,
     [
       'npm run test:desktop',
       'npm run package:desktop',
@@ -171,7 +172,7 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
       'npm run validate:package',
     ],
   );
-  const studioAdapter = readJson('contracts/shell-adapters/opl-studio.json');
+  const studioAdapter = candidates;
   assert.equal(studioAdapter.delivery_topology.carrier_evidence_manifest.candidate_only, true);
   assert.equal(studioAdapter.delivery_topology.carrier_evidence_manifest.release_authority, false);
   assert.deepEqual(Object.keys(studioAdapter.delivery_topology.carrier_entries), [
