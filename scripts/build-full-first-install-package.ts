@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseDocument } from 'yaml';
 
 import { materializeStudioOfficialProfileResources } from './studio-official-profile-resources.ts';
 import { syncAppProductProfileToShell } from './app-product-profile.ts';
@@ -19,8 +18,7 @@ import {
   removeStandardGuiArtifacts,
   resolveFullDmgCompressionLevel,
   resolveFullDmgFormat,
-  syncRuntimePayloadToBuiltApp,
-  syncRuntimePayloadToBuildRoots,
+  syncOfflineSeedToBuiltApp,
 } from './build-full-first-install-package/archive-output.ts';
 import { parseArgs } from './build-full-first-install-package/env.ts';
 import { expectedStandardBase, materializeStandardBase, assertStandardBaseProductInputs } from './prepare-full-standard-base.ts';
@@ -63,10 +61,6 @@ import {
 const MANUAL_LOCAL_BUILD_ID_ENV = 'OPL_MANUAL_LOCAL_BUILD_ID';
 const MANUAL_LOCAL_SOURCE_PROVENANCE_ENV = 'OPL_MANUAL_LOCAL_SOURCE_PROVENANCE_SHA256';
 const MANUAL_LOCAL_SOURCE_LOCK_ENV = 'OPL_MANUAL_LOCAL_SOURCE_LOCK_SHA256';
-function fullRuntimeSignIgnorePattern() {
-  const carrier = resolveFullCarrierProfile();
-  return `/Contents/Resources/${carrier.runtimeResourceDir}(?:/|$)`;
-}
 
 export function assertFullCarrierReleaseVersions(carrier, version, updaterVersion) {
   if (carrier.versionPolicy === 'stable_calendar') {
@@ -191,82 +185,6 @@ export function shellBuildEnvironmentWithoutRedundantNotarization(env = process.
   return shellBuildEnv;
 }
 
-export function renderMacosSigningFsPreload(guiRoot: string): string {
-  const anchor = JSON.stringify(path.resolve(guiRoot, 'package.json'));
-  return [
-    `const fromShell = require('node:module').createRequire(${anchor});`,
-    `fromShell('graceful-fs').gracefulify(require('node:fs'));`,
-    `const fromSign = require('node:module').createRequire(fromShell.resolve('@electron/osx-sign'));`,
-    `const binary = fromSign('isbinaryfile');`,
-    `const limitModule = fromShell('p-limit');`,
-    `const limit = (limitModule.default || limitModule)(32);`,
-    `const original = binary.isBinaryFile;`,
-    `binary.isBinaryFile = (...args) => limit(() => original(...args));`,
-    '',
-  ].join('\n');
-}
-
-export function withShellMacosSigningFsPreload<T>(
-  guiRoot: string,
-  env: NodeJS.ProcessEnv,
-  build: (shellEnv: NodeJS.ProcessEnv) => T,
-  platform = process.platform,
-): T {
-  if (platform !== 'darwin' || (env.NODE_OPTIONS || '').includes('opl-macos-signing-fs.cjs')) {
-    return build({ ...env });
-  }
-  const preloadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-macos-signing-fs-'));
-  const preloadPath = path.join(preloadDir, 'opl-macos-signing-fs.cjs');
-  fs.writeFileSync(preloadPath, renderMacosSigningFsPreload(guiRoot), 'utf8');
-  const nodeOptions = [env.NODE_OPTIONS?.trim(), `--require=${JSON.stringify(preloadPath)}`]
-    .filter(Boolean)
-    .join(' ');
-  try {
-    return build({ ...env, NODE_OPTIONS: nodeOptions });
-  } finally {
-    fs.rmSync(preloadDir, { recursive: true, force: true });
-  }
-}
-
-export function withShellFullRuntimeSigningExcluded(guiRoot, build) {
-  const shellPaths = resolveActiveShellPaths({ shellRoot: guiRoot });
-  const configPath = shellPaths.electronBuilderConfigPath;
-  const originalConfig = fs.readFileSync(configPath, 'utf8');
-  const newline = originalConfig.includes('\r\n') ? '\r\n' : '\n';
-  const macHeaders = [...originalConfig.matchAll(/^mac:[ \t]*(?:#[^\r\n]*)?(?:\r?\n|$)/gm)];
-  if (macHeaders.length !== 1) {
-    throw new Error(`Shell electron-builder config must contain exactly one top-level mac block; found ${macHeaders.length}.`);
-  }
-  const config = parseDocument(originalConfig);
-  if (config.errors.length) throw new Error(`Invalid Shell electron-builder config: ${config.errors[0].message}`);
-  const declaredIgnore = config.toJS().mac?.signIgnore;
-  const signIgnore = declaredIgnore == null ? [] : Array.isArray(declaredIgnore) ? declaredIgnore : [declaredIgnore];
-  if (signIgnore.some(pattern => typeof pattern !== 'string')) {
-    throw new Error('Shell mac.signIgnore must be a regex string or an array of regex strings.');
-  }
-  config.setIn(['mac', 'signIgnore'], [...new Set([...signIgnore, fullRuntimeSignIgnorePattern()])]);
-  const releaseConfig = config.toString({ lineWidth: 0 }).replace(/\n/g, newline);
-
-  const runtimeRoot = shellPaths.packagedRuntimeRoot;
-  const parkedDir = fs.existsSync(runtimeRoot)
-    ? fs.mkdtempSync(path.join(path.dirname(runtimeRoot), '.opl-full-runtime-signing-'))
-    : null;
-  if (parkedDir) fs.renameSync(runtimeRoot, path.join(parkedDir, path.basename(runtimeRoot)));
-  try {
-    fs.writeFileSync(configPath, releaseConfig, 'utf8');
-    return build();
-  } finally {
-    try {
-      fs.writeFileSync(configPath, originalConfig, 'utf8');
-    } finally {
-      if (parkedDir) {
-        fs.renameSync(path.join(parkedDir, path.basename(runtimeRoot)), runtimeRoot);
-        fs.rmdirSync(parkedDir);
-      }
-    }
-  }
-}
-
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const carrier = resolveFullCarrierProfile({ carrierId: options.carrierId });
@@ -370,13 +288,8 @@ function main() {
     materializeFullCodexOfflineSeed(prepared);
 
     const cacheEventsWrittenAt = monotonicSeconds();
-    timing.start('payload_sync');
     const standardBaseDir = process.env.OPL_FULL_STANDARD_BASE_DIR?.trim();
     if (standardBaseDir) assertStandardBaseProductInputs(process.env.OPL_FULL_FROZEN_APP_ROOT || '', appRepoRoot);
-    let payloadRoots = {};
-    if (!standardBaseDir) payloadRoots = syncRuntimePayloadToBuildRoots(prepared.runtimeRoot, prepared.manifest, options.guiRoot);
-    const payloadSyncedAt = monotonicSeconds();
-    timings.payload_sync = durationSeconds(cacheEventsWrittenAt, payloadSyncedAt);
     const productProfileSync = syncAppProductProfileToShell(options.guiRoot);
     if (carrier.carrierId === 'opl-studio' && carrier.bundleId === 'cn.onepersonlab.opl') {
       materializeStudioOfficialProfileResources(options.guiRoot, appRepoRoot);
@@ -393,6 +306,14 @@ function main() {
     } else if (!options.skipGuiBuild) {
       timing.start('shell_build');
       const shellBuildStartedAt = monotonicSeconds();
+      fs.rmSync(path.join(appRepoRoot, 'packaged-runtimes', carrier.runtimeResourceDir), {
+        recursive: true,
+        force: true,
+      });
+      fs.rmSync(resolveActiveShellPaths({ shellRoot: options.guiRoot }).packagedRuntimeRoot, {
+        recursive: true,
+        force: true,
+      });
       const shellBuildArgs = ['run', 'build-mac:arm64', '--', '--dir-only'];
       if (options.reuseGuiViteOutput) {
         shellBuildArgs.push('--skip-vite');
@@ -403,15 +324,10 @@ function main() {
         OPL_DESKTOP_RELEASE_IDENTITY: carrier.bundleId === 'cn.onepersonlab.opl' ? 'stable' : 'preview',
         OPL_RELEASE_VERSION: options.version,
         OPL_UPDATER_VERSION: options.updaterVersion,
-        OPL_REQUIRE_FULL_RUNTIME: '1',
       };
-      withShellFullRuntimeSigningExcluded(options.guiRoot, () => {
-        withShellMacosSigningFsPreload(options.guiRoot, baseShellEnv, (shellEnv) => {
-          run('npm', shellBuildArgs, {
-            cwd: options.guiRoot,
-            env: shellEnv,
-          });
-        });
+      run('npm', shellBuildArgs, {
+        cwd: options.guiRoot,
+        env: baseShellEnv,
       });
       timings.shell_build = durationSeconds(shellBuildStartedAt, monotonicSeconds());
     } else {
@@ -424,14 +340,17 @@ function main() {
     process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = resolveFullDmgCompressionLevel();
     timing.metadata.dmg_compression_level = process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL;
     const builtApp = reusedStandardApp ?? findBuiltApp(options.guiRoot);
-    payloadRoots = {
-      ...payloadRoots,
-      builtAppPayloadRoot: syncRuntimePayloadToBuiltApp(
-        prepared.runtimeRoot,
-        prepared.manifest,
-        builtApp,
-      ),
+    const syncedSeed = syncOfflineSeedToBuiltApp(
+      prepared.runtimeRoot,
+      prepared.manifest,
+      builtApp,
+    );
+    prepared.manifest = syncedSeed.manifest;
+    const payloadRoots = {
+      builtAppPayloadRoot: syncedSeed.appPayloadRoot,
+      offlineSeedPath: syncedSeed.seedPath,
     };
+    timings.payload_sync = durationSeconds(cacheEventsWrittenAt, monotonicSeconds());
     if (manualLocalAppIdentity) {
       stampManualLocalAppIdentity(builtApp, manualLocalAppIdentity);
     }
@@ -442,6 +361,7 @@ function main() {
     const precompressionStartedAt = monotonicSeconds();
     const precompressionGate = runFullPackagePrecompressionGate({
       builtAppPath: builtApp,
+      runtimeRoot: prepared.runtimeRoot,
       resolvedRefs: prepared.resolved_refs,
       runtimeCurrentness: prepared.runtime_cache.currentness,
       reportPath: precompressionGatePath,
@@ -488,6 +408,7 @@ function main() {
       options.version,
       prepared.manifest,
       dmgFormat,
+      { runtimeRoot: prepared.runtimeRoot },
     );
     timing.metadata.dmg_compression_execution = optimizedPackage?.compression_execution ?? null;
     if (optimizedPackage?.manifest) {

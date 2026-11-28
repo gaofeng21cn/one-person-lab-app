@@ -319,69 +319,16 @@ test("Full Shell build skips the redundant inner App notarization without weaken
   }
 });
 
-test("Full Shell build preserves pre-signed runtime binaries instead of signing them twice", async (context) => {
-  const { withShellFullRuntimeSigningExcluded } = await import(
-    "../../../scripts/build-full-first-install-package.ts"
+test("Lightweight Full packaging reuses pure Shell build without secondary signing exclusions or fs preload", () => {
+  const source = fs.readFileSync(
+    path.join(appRoot, "scripts", "build-full-first-install-package.ts"),
+    "utf8",
   );
-  const shellRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-shell-signing-"));
-  const configDir = shellRoot;
-  const configPath = path.join(configDir, "electron-builder.stable.yml");
-  const originalConfig = [
-    "appId: cn.onepersonlab.opl",
-    "mac:",
-    "  hardenedRuntime: true",
-    "linux:",
-    "  target: deb",
-    "",
-  ].join("\n");
-  fs.mkdirSync(configDir, { recursive: true });
-  fs.writeFileSync(configPath, originalConfig);
-  const runtimeRoot = path.join(shellRoot, "packaged-runtimes", "opl-studio-full-runtime");
-  fs.mkdirSync(runtimeRoot, { recursive: true });
-  fs.writeFileSync(path.join(runtimeRoot, "manifest.json"), "preserve this payload");
-  context.after(() => fs.rmSync(shellRoot, { recursive: true, force: true }));
-
-  assert.throws(
-    () => withShellFullRuntimeSigningExcluded(shellRoot, () => {
-      const effective = parseYaml(fs.readFileSync(configPath, "utf8")) as Record<string, any>;
-      assert.deepEqual(effective.mac.signIgnore, [
-        "/Contents/Resources/opl-studio-full-runtime(?:/|$)",
-      ]);
-      assert.equal(effective.mac.hardenedRuntime, true);
-      assert.equal(effective.linux.target, "deb");
-      assert.equal(fs.existsSync(runtimeRoot), false);
-      throw new Error("test build failure");
-    }),
-    /test build failure/,
+  assert.match(source, /syncOfflineSeedToBuiltApp\(/);
+  assert.doesNotMatch(
+    source,
+    /withShellFullRuntimeSigningExcluded|withShellMacosSigningFsPreload|renderMacosSigningFsPreload|syncRuntimePayloadToBuildRoots|OPL_REQUIRE_FULL_RUNTIME/,
   );
-  assert.equal(fs.readFileSync(configPath, "utf8"), originalConfig);
-  assert.equal(fs.readFileSync(path.join(runtimeRoot, "manifest.json"), "utf8"), "preserve this payload");
-});
-
-test("Full Shell build preserves carrier resource exclusions and restores the exact YAML", async (context) => {
-  const { withShellFullRuntimeSigningExcluded } = await import(
-    "../../../scripts/build-full-first-install-package.ts"
-  );
-  const shellRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-shell-data-signing-"));
-  const configPath = path.join(shellRoot, "electron-builder.stable.yml");
-  context.after(() => fs.rmSync(shellRoot, { recursive: true, force: true }));
-  for (const declared of [
-    "  signIgnore: '/fonts/[^/]+[.]ttf$'",
-    "  signIgnore:\n    - '/fonts/[^/]+[.]ttf$'\n    - '/Contents/Resources/opl-studio-full-runtime(?:/|$)'",
-  ]) {
-    const original = `# carrier resource policy\nappId: cn.onepersonlab.opl\nmac:\n${declared}\n  hardenedRuntime: true\nlinux:\n  target: deb\n`;
-    fs.writeFileSync(configPath, original);
-    withShellFullRuntimeSigningExcluded(shellRoot, () => {
-      const effective = parseYaml(fs.readFileSync(configPath, "utf8")) as Record<string, any>;
-      assert.deepEqual(effective.mac.signIgnore, [
-        "/fonts/[^/]+[.]ttf$",
-        "/Contents/Resources/opl-studio-full-runtime(?:/|$)",
-      ]);
-      assert.equal(effective.mac.hardenedRuntime, true);
-      assert.equal(effective.linux.target, "deb");
-    });
-    assert.equal(fs.readFileSync(configPath, "utf8"), original);
-  }
 });
 
 test("Full workflow delegates Codex to the active Shell carrier without a Framework install", () => {
@@ -475,132 +422,7 @@ test("Full runtime cache classifies hit and miss modes from one canonical key", 
   );
 });
 
-test("Full Shell macOS build enforces open-file limit and throttles binary signing probes", async (context) => {
-  const { withShellMacosSigningFsPreload } = await import(
-    "../../../scripts/build-full-first-install-package.ts"
-  );
-  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-macos-signing-preload-"));
-  context.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
-
-  const guiRoot = path.join(fixtureRoot, "shell");
-  const nodeModules = path.join(guiRoot, "node_modules");
-  fs.mkdirSync(path.join(nodeModules, "graceful-fs"), { recursive: true });
-  fs.mkdirSync(path.join(nodeModules, "p-limit"), { recursive: true });
-  fs.mkdirSync(path.join(nodeModules, "@electron", "osx-sign", "node_modules", "isbinaryfile"), {
-    recursive: true,
-  });
-  fs.writeFileSync(path.join(guiRoot, "package.json"), JSON.stringify({ name: "mock-shell" }));
-  fs.writeFileSync(
-    path.join(nodeModules, "graceful-fs", "index.js"),
-    "exports.gracefulify = (fsMod) => { fsMod.__oplGracefulified = true; };\n",
-  );
-  fs.writeFileSync(
-    path.join(nodeModules, "p-limit", "index.js"),
-    [
-      "module.exports = function pLimit(concurrency) {",
-      "  let active = 0;",
-      "  const queue = [];",
-      "  const next = () => {",
-      "    if (active >= concurrency || queue.length === 0) return;",
-      "    active += 1;",
-      "    const { fn, resolve, reject } = queue.shift();",
-      "    Promise.resolve().then(fn).then(resolve, reject).finally(() => { active -= 1; next(); });",
-      "  };",
-      "  return (fn) => new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); next(); });",
-      "};",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(nodeModules, "@electron", "osx-sign", "index.js"),
-    "module.exports = {};\n",
-  );
-  fs.writeFileSync(
-    path.join(nodeModules, "@electron", "osx-sign", "node_modules", "isbinaryfile", "index.js"),
-    [
-      "let active = 0;",
-      "let peak = 0;",
-      "exports.getStats = () => ({ active, peak });",
-      "exports.isBinaryFile = async () => {",
-      "  active += 1;",
-      "  if (active > peak) peak = active;",
-      "  try { await new Promise((r) => setTimeout(r, 5)); return false; }",
-      "  finally { active -= 1; }",
-      "};",
-    ].join("\n"),
-  );
-
-  let nonDarwinEnv: NodeJS.ProcessEnv = {};
-  withShellMacosSigningFsPreload(
-    guiRoot,
-    { NODE_OPTIONS: "--max-old-space-size=8192" },
-    (shellEnv) => {
-      nonDarwinEnv = shellEnv;
-    },
-    "linux",
-  );
-  assert.equal(nonDarwinEnv.NODE_OPTIONS, "--max-old-space-size=8192");
-
-  let existingPreloadEnv: NodeJS.ProcessEnv = {};
-  withShellMacosSigningFsPreload(
-    guiRoot,
-    { NODE_OPTIONS: "--require=/tmp/opl-macos-signing-fs.cjs" },
-    (shellEnv) => {
-      existingPreloadEnv = shellEnv;
-    },
-    "darwin",
-  );
-  assert.equal(existingPreloadEnv.NODE_OPTIONS, "--require=/tmp/opl-macos-signing-fs.cjs");
-
-  let leakedPreloadPath = "";
-  assert.throws(
-    () =>
-      withShellMacosSigningFsPreload(
-        guiRoot,
-        { NODE_OPTIONS: "--max-old-space-size=8192" },
-        (shellEnv) => {
-          const match = String(shellEnv.NODE_OPTIONS).match(/--require="?([^"\s]+)"?/);
-          assert.ok(match?.[1], shellEnv.NODE_OPTIONS);
-          leakedPreloadPath = match[1];
-          assert.ok(fs.existsSync(leakedPreloadPath));
-          throw new Error("expected preload failure");
-        },
-        "darwin",
-      ),
-    /expected preload failure/,
-  );
-  assert.equal(fs.existsSync(path.dirname(leakedPreloadPath)), false);
-
-  withShellMacosSigningFsPreload(
-    guiRoot,
-    { NODE_OPTIONS: "--max-old-space-size=8192" },
-    (shellEnv) => {
-      assert.match(String(shellEnv.NODE_OPTIONS), /^--max-old-space-size=8192 --require="/);
-      const probe = spawnSync(
-        process.execPath,
-        [
-          "-e",
-          [
-            "const fsMod = require('node:fs');",
-            "const { createRequire } = require('node:module');",
-            `const fromShell = createRequire(${JSON.stringify(path.join(guiRoot, "package.json"))});`,
-            "const fromSign = createRequire(fromShell.resolve('@electron/osx-sign'));",
-            "const binary = fromSign('isbinaryfile');",
-            "Promise.all(Array.from({ length: 64 }, (_, i) => binary.isBinaryFile(`/tmp/file-${i}`))).then(() => {",
-            "  const stats = binary.getStats();",
-            "  console.log(JSON.stringify({ gracefulified: Boolean(fsMod.__oplGracefulified), peak: stats.peak }));",
-            "});",
-          ].join("\n"),
-        ],
-        { env: { ...process.env, ...shellEnv }, encoding: "utf8" },
-      );
-      assert.equal(probe.status, 0, probe.stderr);
-      const result = JSON.parse(probe.stdout.trim());
-      assert.equal(result.gracefulified, true);
-      assert.ok(result.peak > 0 && result.peak <= 32, `unexpected concurrency peak ${result.peak}`);
-    },
-    "darwin",
-  );
-
+test("Full macOS build workflow enforces the open-file limit before packaging", () => {
   const workflow = parseYaml(
     fs.readFileSync(path.join(appRoot, ".github/workflows/full-first-install-release.yml"), "utf8"),
   ) as Record<string, any>;

@@ -2,10 +2,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 import { resolveFullCarrierProfile, formatCarrierTemplate } from './carrier-profile.ts';
 import { resolveActiveShellPaths } from '../app-shell-adapter.ts';
-import { appRepoRoot } from './paths.ts';
+import { fileSha256 } from '../release-file-helpers.ts';
 import { assertNoExternalSymlinks, requirePath } from './filesystem.ts';
 import {
   canRunMacosSigningChecks,
@@ -18,6 +19,9 @@ import {
   writeFullPackageManifestIntoApp,
 } from './package-optimization.ts';
 import { findExecutable, run, runCapture } from './process.ts';
+
+export const FULL_OFFLINE_SEED_SCHEMA = 'opl_full_offline_seed.v1';
+export const FULL_OFFLINE_SEED_FILENAME = 'opl-offline-seed.tar.zst';
 
 function archiveSha256(archivePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(archivePath)).digest('hex');
@@ -88,14 +92,20 @@ export function withVerifiedPinnedArchive(input, consume) {
 }
 
 function createTarZst(archivePath, cwd, entries = ['.']) {
-  requirePath(findExecutable('zstd'), 'zstd');
   fs.mkdirSync(path.dirname(archivePath), { recursive: true });
   fs.rmSync(archivePath, { force: true });
   const tarPath = `${archivePath}.tar`;
   fs.rmSync(tarPath, { force: true });
   try {
-    run('tar', ['-cf', tarPath, '-C', cwd, ...entries]);
-    run('zstd', ['-q', '-T0', '-f', tarPath, '-o', archivePath]);
+    run('tar', ['-cf', tarPath, '-C', cwd, ...entries], {
+      env: { ...process.env, COPYFILE_DISABLE: '1' },
+    });
+    const zstdPath = findExecutable('zstd');
+    if (zstdPath) {
+      run(zstdPath, ['-q', '-T0', '-f', tarPath, '-o', archivePath]);
+    } else {
+      fs.writeFileSync(archivePath, zlib.zstdCompressSync(fs.readFileSync(tarPath)));
+    }
   } finally {
     fs.rmSync(tarPath, { force: true });
   }
@@ -128,19 +138,6 @@ export function copyRuntimePayloadTree(runtimeRoot, targetRuntimeRoot) {
   ensurePackagedRuntimeFilesOwnerWritable(targetRuntimeRoot);
 }
 
-function syncRuntimePayload(runtimeRoot, manifest, payloadRoot) {
-  fs.rmSync(path.join(payloadRoot, 'runtime'), { recursive: true, force: true });
-  fs.rmSync(path.join(payloadRoot, 'manifest'), { recursive: true, force: true });
-  fs.mkdirSync(path.join(payloadRoot, 'runtime'), { recursive: true });
-  copyRuntimePayloadTree(runtimeRoot, path.join(payloadRoot, 'runtime', 'current'));
-  fs.mkdirSync(path.join(payloadRoot, 'manifest'), { recursive: true });
-  fs.writeFileSync(
-    path.join(payloadRoot, 'manifest', 'full-package-manifest.json'),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-    'utf8',
-  );
-}
-
 export function ensurePackagedRuntimeFilesOwnerWritable(runtimeRoot) {
   const pending = [runtimeRoot];
   let scannedFiles = 0;
@@ -168,25 +165,40 @@ export function ensurePackagedRuntimeFilesOwnerWritable(runtimeRoot) {
   return { scanned_files: scannedFiles, updated_files: updatedFiles };
 }
 
-export function syncRuntimePayloadToBuildRoots(runtimeRoot, manifest, guiRoot) {
+export function syncOfflineSeedToBuiltApp(runtimeRoot, manifest, builtAppPath) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
-  const appPayloadRoot = path.join(appRepoRoot, 'packaged-runtimes', carrier.runtimeResourceDir);
-  const shellPayloadRoot = resolveActiveShellPaths({ shellRoot: guiRoot }).packagedRuntimeRoot;
-  syncRuntimePayload(runtimeRoot, manifest, appPayloadRoot);
-  syncRuntimePayload(runtimeRoot, manifest, shellPayloadRoot);
-  return { appPayloadRoot, shellPayloadRoot };
-}
+  assertNoExternalSymlinks(runtimeRoot, 'Packaged Full runtime');
+  ensurePackagedRuntimeFilesOwnerWritable(runtimeRoot);
 
-export function syncRuntimePayloadToBuiltApp(runtimeRoot, manifest, builtAppPath) {
-  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const appPayloadRoot = path.join(
     builtAppPath,
     'Contents',
     'Resources',
     carrier.runtimeResourceDir,
   );
-  syncRuntimePayload(runtimeRoot, manifest, appPayloadRoot);
-  return appPayloadRoot;
+  fs.rmSync(appPayloadRoot, { recursive: true, force: true });
+  fs.mkdirSync(path.join(appPayloadRoot, 'manifest'), { recursive: true });
+
+  const seedPath = path.join(appPayloadRoot, FULL_OFFLINE_SEED_FILENAME);
+  createTarZst(seedPath, runtimeRoot, ['.']);
+  const sizeBytes = fs.statSync(seedPath).size;
+  const sha256 = fileSha256(seedPath);
+  const updatedManifest = {
+    ...manifest,
+    offline_seed: {
+      schema: FULL_OFFLINE_SEED_SCHEMA,
+      format: 'tar.zst',
+      relative_path: FULL_OFFLINE_SEED_FILENAME,
+      sha256,
+      size_bytes: sizeBytes,
+    },
+  };
+  fs.writeFileSync(
+    path.join(appPayloadRoot, 'manifest', 'full-package-manifest.json'),
+    `${JSON.stringify(updatedManifest, null, 2)}\n`,
+    'utf8',
+  );
+  return { appPayloadRoot, seedPath, manifest: updatedManifest };
 }
 
 function removeBuiltDmgCandidates(guiRoot, version) {
@@ -327,7 +339,15 @@ export function createFullDmgImage(targetDmg, stagingRoot, volumeName, dmgFormat
   }
 }
 
-export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, version, manifest, dmgFormat = resolveFullDmgFormat()) {
+export function createFullDmgFromVerifiedApp(
+  guiRoot,
+  appPath,
+  targetDmg,
+  version,
+  manifest,
+  dmgFormat = resolveFullDmgFormat(),
+  options: { runtimeRoot?: string } = {},
+) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   removeBuiltDmgCandidates(guiRoot, version);
   const compressionLevel = resolveFullDmgCompressionLevel();
@@ -336,7 +356,9 @@ export function createFullDmgFromVerifiedApp(guiRoot, appPath, targetDmg, versio
   try {
     const stagedApp = path.join(stagingRoot, carrier.appBundleName);
     const stagingCopy = copyAppBundleForDmg(appPath, stagedApp);
-    const { trimReport, boundaryAudit } = optimizeFullAppBundleForDmg(stagedApp, manifest);
+    const { trimReport, boundaryAudit } = optimizeFullAppBundleForDmg(stagedApp, manifest, {
+      runtimeRoot: options.runtimeRoot,
+    });
     const optimizedManifest = manifest
       ? withFullPackageOptimization(manifest, { trimReport, boundaryAudit })
       : manifest;

@@ -131,9 +131,20 @@ export function trimFullAppBundleForDmg(appPath: string) {
   return trimWithInventory(appPath).trimReport;
 }
 
-export function optimizeFullAppBundleForDmg(appPath: string, manifest: Record<string, any> | null = null) {
+export function optimizeFullAppBundleForDmg(
+  appPath: string,
+  manifest: Record<string, any> | null = null,
+  options?: { runtimeRoot?: string },
+) {
   const { trimReport, sizes, carrier } = trimWithInventory(appPath);
-  return { trimReport, boundaryAudit: auditFullPackageBundleBoundaries(appPath, manifest, { sizes, carrier }) };
+  return {
+    trimReport,
+    boundaryAudit: auditFullPackageBundleBoundaries(appPath, manifest, {
+      sizes,
+      carrier,
+      runtimeRoot: options?.runtimeRoot,
+    }),
+  };
 }
 
 function bundleEntry(appPath: string, relativePath: string, owner: string, role: string, sizes?: Map<string, number>) {
@@ -167,13 +178,19 @@ function collectBundlePaths(root: string) {
   return entries;
 }
 
-export function auditFullPackageBundleBoundaries(appPath: string, manifest: Record<string, any> | null = null, inventory?: { sizes: Map<string, number>; carrier: ReturnType<typeof resolveFullCarrierProfile> }) {
+export function auditFullPackageBundleBoundaries(
+  appPath: string,
+  manifest: Record<string, any> | null = null,
+  inventory?: {
+    sizes?: Map<string, number>;
+    carrier?: ReturnType<typeof resolveFullCarrierProfile>;
+    runtimeRoot?: string;
+  },
+) {
   const carrier = inventory?.carrier ?? resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
-  const fullRuntimeRoot = path.join(
-    appPath,
-    'Contents',
-    'Resources',
-    carrier.runtimeResourceDir,
+  const resourceRoot = path.join(appPath, 'Contents', 'Resources', carrier.runtimeResourceDir);
+  const fullRuntimeRoot = inventory?.runtimeRoot ?? path.join(
+    resourceRoot,
     'runtime',
     'current',
   );
@@ -199,6 +216,13 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       `Contents/Resources/${carrier.runtimeResourceDir}`,
       'gaofeng21cn/one-person-lab',
       'Full offline first-install runtime payload assembled by the App repo as consumer/packager',
+      inventory?.sizes,
+    ),
+    offline_seed_archive: bundleEntry(
+      appPath,
+      `Contents/Resources/${carrier.runtimeResourceDir}/opl-offline-seed.tar.zst`,
+      'gaofeng21cn/one-person-lab',
+      'Single zstd offline first-install runtime archive attached to the Full App bundle',
       inventory?.sizes,
     ),
     studio_shell_runtime: bundleEntry(
@@ -230,6 +254,7 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
       inventory?.sizes,
     ),
   };
+  const looseRuntimeAbsent = !fs.existsSync(path.join(resourceRoot, 'runtime'));
   return {
     schema: PACKAGE_BOUNDARY_AUDIT_SCHEMA,
     app_bundle_path: appPath,
@@ -241,6 +266,8 @@ export function auditFullPackageBundleBoundaries(appPath: string, manifest: Reco
     },
     full_package_boundary: {
       contains_opl_full_runtime: entries.opl_full_runtime.exists,
+      offline_seed_archive_present: entries.offline_seed_archive.exists,
+      loose_runtime_absent: looseRuntimeAbsent,
       contains_shell_runtime: entries.studio_shell_runtime.exists,
       native_codex_external_carrier_present: carrier.codexCarrier === 'opl_codex_native',
       native_codex_embedded_payload_present: false,
@@ -265,6 +292,7 @@ function offlineFirstInstallCompletenessPreserved(args: {
   const boundary = args.boundaryAudit.full_package_boundary ?? {};
   return args.trimReport.required_payload_boundary?.preserved === true
     && boundary.contains_opl_full_runtime === true
+    && (!boundary.offline_seed_archive_present || boundary.loose_runtime_absent === true)
     && boundary.contains_shell_runtime === carrier.shellRuntimeRequired
     && boundary.native_codex_external_carrier_present === true
     && boundary.native_codex_embedded_payload_present === false
@@ -308,6 +336,8 @@ function buildFullPackageOptimizationSection(args: {
       standard_package_allowed_to_contain_full_runtime:
         args.boundaryAudit.standard_app_boundary?.standard_package_allowed_to_contain_full_runtime,
       contains_opl_full_runtime: args.boundaryAudit.full_package_boundary?.contains_opl_full_runtime,
+      offline_seed_archive_present: args.boundaryAudit.full_package_boundary?.offline_seed_archive_present,
+      loose_runtime_absent: args.boundaryAudit.full_package_boundary?.loose_runtime_absent,
       contains_shell_runtime: args.boundaryAudit.full_package_boundary?.contains_shell_runtime,
       native_codex_external_carrier_present:
         args.boundaryAudit.full_package_boundary?.native_codex_external_carrier_present,

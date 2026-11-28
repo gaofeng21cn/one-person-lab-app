@@ -254,6 +254,27 @@ export function assertSafePositiveInteger(value, label) {
   return value;
 }
 
+export function assertOfflineSeedMetadata(seed, label = "Full manifest offline_seed") {
+  const value = assertPlainObject(seed, label);
+  if (
+    value.schema !== "opl_full_offline_seed.v1"
+    || value.format !== "tar.zst"
+    || value.relative_path !== "opl-offline-seed.tar.zst"
+    || typeof value.sha256 !== "string"
+    || !/^[0-9a-f]{64}$/i.test(value.sha256)
+  ) {
+    throw new Error(`${label} metadata is invalid.`);
+  }
+  assertSafePositiveInteger(value.size_bytes, `${label}.size_bytes`);
+  return {
+    schema: value.schema,
+    format: value.format,
+    relative_path: value.relative_path,
+    sha256: value.sha256.toLowerCase(),
+    size_bytes: value.size_bytes,
+  };
+}
+
 export function parseSha256Sums(text) {
   const entries = new Map();
   for (const line of text.split(/\r?\n/)) {
@@ -492,6 +513,9 @@ export function assertFullAssets(downloadDir, version, verifiedAssets) {
   if (manifest?.package_kind !== "opl_full_first_install_macos_arm64") {
     throw new Error(`Unexpected Full manifest package_kind: ${manifest?.package_kind}`);
   }
+  const offlineSeed = manifest.offline_seed !== undefined
+    ? assertOfflineSeedMetadata(manifest.offline_seed, "Full manifest offline_seed")
+    : null;
   const fullDmgAsset = verifiedAssets.find((asset) => asset.name === fullDmgName);
   if (!fullDmgAsset) {
     throw new Error(`Verified assets are missing ${fullDmgName}.`);
@@ -549,6 +573,24 @@ export function assertFullAssets(downloadDir, version, verifiedAssets) {
         const result = runCapture(command, args);
         if (result.status !== 0) {
           throw new Error(`Downloaded Full App failed ${command} validation: ${result.stderr || result.stdout || result.status}`);
+        }
+      }
+      if (offlineSeed) {
+        const resourceDir = path.join(appPath, "Contents", "Resources", "opl-studio-full-runtime");
+        const seedPath = path.join(resourceDir, offlineSeed.relative_path);
+        if (!fs.existsSync(seedPath) || !fs.statSync(seedPath).isFile()) {
+          throw new Error(`Downloaded Full App is missing offline seed archive: ${seedPath}`);
+        }
+        const actualSeedSize = fs.statSync(seedPath).size;
+        if (actualSeedSize !== offlineSeed.size_bytes) {
+          throw new Error(`Downloaded Full App offline seed size mismatch: expected ${offlineSeed.size_bytes}, got ${actualSeedSize}`);
+        }
+        const actualSeedSha = fileSha256(seedPath);
+        if (actualSeedSha !== offlineSeed.sha256) {
+          throw new Error(`Downloaded Full App offline seed sha256 mismatch: expected ${offlineSeed.sha256}, got ${actualSeedSha}`);
+        }
+        if (fs.existsSync(path.join(resourceDir, "runtime"))) {
+          throw new Error("Downloaded Lightweight Full App must not contain a loose runtime directory.");
         }
       }
     } finally {
