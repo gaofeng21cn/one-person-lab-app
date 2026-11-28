@@ -63,8 +63,6 @@ export const nightlyReleaseWorkflowPath = '.github/workflows/release-nightly.yml
 export const nightlyFollowupWorkflowPath = '.github/workflows/release-nightly-followups.yml';
 export const previewLatestPointerWorkflowPath =
   '.github/workflows/_release-preview-latest-pointer.yml';
-export const studioReleaseWorkflowPath = '.github/workflows/_release-studio.yml';
-export const studioFullReleaseWorkflowPath = '.github/workflows/_release-studio-full.yml';
 export const exactWebuiStablePromotionPermissions = {
   actions: 'read',
   contents: 'read',
@@ -83,6 +81,8 @@ export const expectedWorkflowRunFollowers = new Map([
   ['release-stable-post-success-followups.yml', 'OPL Stable Release Bundle'],
 ]);
 export const retiredWorkflowEntries = new Set([
+  '_release-studio-full.yml',
+  '_release-studio.yml',
   'build-and-release.yml',
   'desktop-release-cleanup-drafts.yml',
   'desktop-release-diagnostics.yml',
@@ -95,6 +95,8 @@ export const retiredWorkflowEntries = new Set([
   'homebrew-tap-update.yml',
   'nightly-release-notes-check.yml',
   'nightly-standard-release.yml',
+  'opl-studio-candidate-carriers.yml',
+  'opl-studio-preview-vm.yml',
   'opl-updater-upgrade-vm.yml',
   'release-apple-credentials-preflight.yml',
   'release-attempt-observability.yml',
@@ -115,7 +117,6 @@ export const stableReleaseActionPaths = [...new Set([
   stableFollowupWorkflowPath,
   postPublicationOptionalCertificationWorkflowPath,
   '.github/workflows/release-source-qualification.yml',
-  studioReleaseWorkflowPath,
   ...releaseWorkflowPaths,
 ])];
 

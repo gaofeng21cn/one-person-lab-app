@@ -3,130 +3,18 @@ import { assertDeepEqualJson } from '../assertions.ts';
 import { sameStringSet } from './string-set.ts';
 
 function validateSuccessorProtectedReleaseAdmission(successor, fullFirstInstall) {
-  const admission = successor?.protected_release_admission;
-  const studioFullAppend = fullFirstInstall?.studio_same_tag_append;
   if (
     successor?.candidate_id !== 'opl-studio'
     || successor?.role !== 'next_stable_shell_release_pending'
     || successor?.active_shell_remains !== 'opl-studio'
     || successor?.active_release_carrier !== false
-    || admission?.schema !== 'opl_studio_protected_release_admission_policy.v1'
-    || admission?.source_admission_receipt_schema !== 'opl_studio_protected_release_admission.v2'
-    || admission?.authority_owner !== 'one-person-lab-app'
-    || admission?.workflow !== '.github/workflows/release-stable.yml'
-    || admission?.entry_selector !== 'studio_carrier_admission'
-    || admission?.framework_operation !== null
-    || admission?.environment !== 'release-stable'
-    || admission?.repository !== 'gaofeng21cn/opl-studio'
-    || admission?.carrier !== 'electron_desktop'
-    || admission?.framework_bootstrap?.schema !== 'opl_studio_standard_framework_bootstrap.v1'
-    || admission?.framework_bootstrap?.framework_ref_input !== 'framework_ref'
-    || admission?.framework_bootstrap?.installer_path !== 'resources/opl-framework-bootstrap/opl-install.sh'
-    || admission?.framework_bootstrap?.manifest_path !== 'resources/opl-framework-bootstrap/manifest.json'
-    || admission?.framework_bootstrap?.installer_url_template !== 'https://raw.githubusercontent.com/gaofeng21cn/one-person-lab/<framework-ref>/install.sh'
-    || admission?.framework_bootstrap?.archive_url_template !== 'https://github.com/gaofeng21cn/one-person-lab/archive/<framework-ref>.tar.gz'
-    || admission?.framework_bootstrap?.install_source_mode !== 'archive'
-    || admission?.framework_bootstrap?.active_shell_adopted !== false
-    || admission?.source_admission_is_release_ready !== false
-    || admission?.active_release_carrier_after_admission !== false
-    || admission?.framework_release_operation_created !== false
-    || admission?.second_release_owner_created !== false
-    || admission?.secret_custody?.source !== 'one-person-lab-app release-stable protected environment'
-    || admission?.secret_custody?.values_read_or_copied_by_admission !== false
-    || admission?.secret_custody?.studio_repository_secret_copy_allowed !== false
-    || admission?.secret_custody?.execution_capability_preflight_required_before_first_external_mutation !== true
-    || admission?.fail_closed_gates?.exact_commit_tree_and_tag_required !== true
-    || admission?.fail_closed_gates?.developer_id_application_required !== true
-    || admission?.fail_closed_gates?.notarization_status_required !== 'Accepted'
-    || admission?.fail_closed_gates?.stapler_validate_required !== true
-    || admission?.fail_closed_gates?.dedicated_release_repository_required !== 'gaofeng21cn/opl-studio'
-    || admission?.fail_closed_gates?.anonymous_public_byte_readback_required !== true
-    || admission?.fail_closed_gates?.any_failed_stage_blocks_later_stages !== true
-    || admission?.admission_mutation_policy?.secret_values_accessed !== false
-    || admission?.admission_mutation_policy?.notary_submission_allowed !== false
-    || admission?.admission_mutation_policy?.release_or_asset_mutation_allowed !== false
-    || admission?.admission_mutation_policy?.deployment_allowed !== false
-    || admission?.admission_mutation_policy?.publication_allowed !== false
-    || successor?.protected_release_execution?.schema !== 'opl_studio_protected_release_execution_policy.v2'
-    || successor?.protected_release_execution?.terminal_receipt_schema !== 'opl_studio_protected_release_receipt.v2'
-    || studioFullAppend?.schema !== 'opl_studio_full_same_tag_append_policy.v1'
-    || studioFullAppend?.authority_owner !== 'one-person-lab-app'
-    || studioFullAppend?.repository !== 'gaofeng21cn/opl-studio'
-    || studioFullAppend?.workflow !== '.github/workflows/_release-studio-full.yml'
-    || studioFullAppend?.entry_workflow !== '.github/workflows/release-stable.yml'
-    || studioFullAppend?.operation !== 'append_full'
-    || studioFullAppend?.carrier_id !== 'opl-studio'
-    || studioFullAppend?.target_release !== 'already_published_mutable_standard_release_same_tag'
-    || studioFullAppend?.concurrency_group !== 'opl-studio-publication-global'
-    || studioFullAppend?.same_name_same_digest !== 'idempotent_skip'
-    || studioFullAppend?.same_name_different_digest !== 'reject_without_mutation'
-    || studioFullAppend?.unknown_upload_result !== 'readback_only_no_retry'
-    || studioFullAppend?.standard_release_readback?.required !== true
-    || studioFullAppend?.standard_release_readback?.mutable !== true
-    || studioFullAppend?.standard_release_readback?.published !== true
-    || studioFullAppend?.standard_release_readback?.same_tag !== true
-    || studioFullAppend?.standard_release_readback?.updater_metadata_must_be_present_in_sealed_standard_assets !== true
-    || !sameStringSet(studioFullAppend?.forbidden_mutations, [
-      'release_create',
-      'release_edit',
-      'tag_create',
-      'tag_update',
-      'release_notes',
-      'latest_pointer',
-      'latest-mac.yml',
-      'latest-arm64-mac.yml',
-      'standard_asset_overwrite',
-      'standard_asset_delete',
-      'full_asset_overwrite',
-      'full_asset_delete',
-    ])
+    || successor?.protected_release_admission !== undefined
+    || successor?.protected_release_execution !== undefined
+    || successor?.public_clean_vm_qualification !== undefined
+    || fullFirstInstall?.studio_same_tag_append !== undefined
   ) {
-    throw new Error('Studio protected release admission and Full append policy must remain App-owned and fail closed');
+    throw new Error('Retired Studio Preview admission/execution/VM-qualification blocks must stay absent while active carrier metadata stays consistent');
   }
-  assertDeepEqualJson(
-    admission.identity_inputs,
-    ['studio_sha', 'studio_tree', 'studio_tag', 'framework_ref'],
-    'Studio protected release identity inputs',
-  );
-  assertDeepEqualJson(
-    admission.stage_order,
-    [
-      'exact_source_checkout',
-      'developer_id_signed_build',
-      'apple_notarization',
-      'staple_and_gatekeeper_validation',
-      'exact_tag_publication',
-      'anonymous_public_byte_readback',
-      'carrier_release_qualification',
-    ],
-    'Studio protected release stage order',
-  );
-  assertDeepEqualJson(
-    studioFullAppend.required_identity,
-    ['studio_sha', 'studio_tree', 'studio_tag', 'studio_version'],
-    'Studio Full append identity inputs',
-  );
-  assertDeepEqualJson(
-    studioFullAppend.allowed_assets,
-    [
-      'one-person-lab-preview-full-<version>-mac-arm64.dmg',
-      'opl-release-manifest.json',
-    ],
-    'Studio Full append allowed assets',
-  );
-  assertDeepEqualJson(
-    studioFullAppend.completion_evidence,
-    [
-      'exact_studio_full_manifest_identity',
-      'exact_full_asset_size_and_digest_readback',
-      'standard_asset_set_unchanged',
-      'release_notes_unchanged',
-      'latest_unchanged',
-      'updater_metadata_unchanged',
-      'anonymous_public_asset_readback',
-    ],
-    'Studio Full append completion evidence',
-  );
 }
 
 function validateDesktopReleaseKernel(kernel) {

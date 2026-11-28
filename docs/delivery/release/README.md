@@ -70,22 +70,13 @@ verification enabled; it does not alter the source VM or product bytes. The call
 the guest launch environment preserves both CA paths and still removes TLS-disable overrides
 before allocating a VM.
 
-Preview VM qualification also probes the runner Node TLS path using this same temporary CA bundle
-before downloading either public DMG. Missing runner trust or a failed Gateway TLS handshake now
-fails at the small input stage; the installed App still performs the real Gateway login in each VM.
-
-The Studio Preview clean-VM turn follows `successor_delivery_target.public_clean_vm_qualification.codex_turn_policy`
-in `contracts/app-release-channel.json`: it proves provider connectivity, accepting either a real
-completed turn or a structured `INSUFFICIENT_BALANCE` response. Generic authorization errors,
-transport failures, timeouts, missing turn identities and simulated turns fail. This policy does
-not require model generation from the release account. Standard first-install qualification checks
+Standard first-install qualification checks
 real account login, Core, Framework and Codex readiness without requiring a funded model turn.
 It records actual Official Profile background status and installed or missing roots; optional
 Package pending, failure or absence does not block the Standard host. Full additionally requires
 the dynamically selected Profile roots to be present after installing the verified offline seed.
 Exact versions and digests identify the selected payload bytes, not a Package combination matrix.
-Apply each lane's actual contract rather than transferring Preview turn requirements
-to every release or treating account balance as a packaging defect.
+(The independent Studio Preview release and Preview VM qualification workflows are retired.)
 
 Source checks and artifact construction run concurrently. The reusable build summary rejects
 any required check that failed, was cancelled, skipped or is missing, even when packaging succeeded.
@@ -313,30 +304,14 @@ Full checkpoint. Same-byte requalification uses `materialize-full-build` and ski
 `full-build`; an already `full_qualified` checkpoint can continue publication directly.
 (Historical release timing and incident retrospectives are preserved in Git history.)
 
-The three Framework-backed workflow mutation operations remain exactly:
+The three Framework-backed workflow mutation operations remain:
 
 - `standard`: build, qualify and publish the primary macOS arm64 Desktop release;
 - `resume_standard`: reconcile the same admitted Standard operation without a second mutation;
 - `append_full`: append Full macOS bytes to the same exact Release/tag.
 
-The protected workflow separately exposes `entry=studio_carrier_admission`, a plan-only source admission for the candidate
-Studio Electron carrier. It requires an exact `gaofeng21cn/opl-studio` commit, tree and tag, runs in
-the App-owned `release-stable` environment with read-only permissions, and writes
-`opl_studio_protected_release_admission.v2`. It does not map protected secret values into the job,
-create a Framework release operation, submit to Apple, mutate a GitHub Release, change the active
-shell, or make Studio the active release carrier.
-
-An admitted Studio plan runs as four independently recoverable layers: a Developer ID signed and
-notarized byte checkpoint, local distribution qualification, a thin protected GitHub Release
-mutation, and an unlocked public readback. `prior_studio_artifact_run_id` restores the last successful
-checkpoint and, when available, its qualification receipt; the current run re-materializes those
-bytes as its own recovery point before continuing. A release or readback failure therefore does not
-rebuild, re-sign, re-notarize, or allocate another product version. Same-tag repair may replace only
-the dedicated Studio assets after the tag target and source identities are revalidated. The
-publication mutex is held only by the `publish` job; build, qualification and public readback never
-hold it. Apple signing credentials are read only by the build layer, the dedicated GitHub token only
-by publication, and public readback uses no protected environment. None of these stages adopts
-Studio as the active shell or active Framework release carrier.
+Independent Studio Preview build/publish and Preview VM qualification workflows are retired;
+the final `v0.1.19` Preview migration feed remains solely for existing Preview installations.
 
 `.github/workflows/release-diagnostics.yml` is a separate manual or reusable verification
 entry. It may build a temporary Standard diagnostic artifact and run the first-run VM harness, but
