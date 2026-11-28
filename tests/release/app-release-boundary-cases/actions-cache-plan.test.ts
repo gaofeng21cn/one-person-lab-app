@@ -388,7 +388,7 @@ test('Full cache-only builder returns before payload sync and DMG construction',
     'utf8',
   );
   const cacheOnlyBranch = source.indexOf('if (options.warmRuntimeCacheOnly)');
-  const payloadSync = source.indexOf('syncRuntimePayloadToBuildRoots(');
+  const payloadSync = source.indexOf('syncOfflineSeedToBuiltApp(');
   assert.ok(cacheOnlyBranch >= 0 && payloadSync > cacheOnlyBranch);
   assert.match(source.slice(cacheOnlyBranch, payloadSync), /fs\.rmSync\(prepared\.stagingRoot/);
   assert.match(source.slice(cacheOnlyBranch, payloadSync), /status: 'runtime_cache_warmed'/);

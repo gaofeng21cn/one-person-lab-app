@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS,
 } from '../full-first-install-package.ts';
+import { fileSha256 } from '../release-file-helpers.ts';
 import { resolveFullCarrierProfile } from './carrier-profile.ts';
 
 const PRECOMPRESSION_GATE_SCHEMA = 'opl_full_precompression_gate.v1';
@@ -72,10 +73,18 @@ type PackagedManifest = {
   native_trust?: {
     status?: string;
   };
+  offline_seed?: Partial<{
+    schema: string;
+    format: string;
+    relative_path: string;
+    sha256: string;
+    size_bytes: number;
+  }>;
 };
 
 type GateInput = {
   builtAppPath: string;
+  runtimeRoot?: string;
   resolvedRefs: Record<string, ResolvedRef>;
   runtimeCurrentness: Record<string, unknown>;
   reportPath?: string;
@@ -460,12 +469,13 @@ function collectRuntimeEvidenceIssues(
 function collectFrameworkCodexAbsenceIssues(
   builtAppPath: string,
   manifest: PackagedManifest | null,
+  explicitRuntimeRoot?: string,
 ) {
   const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
   const issues: GateIssue[] = [];
   const declarations = manifest?.runtime_assertions?.declared_pruned_paths ?? [];
   const declarationByPath = new Map(declarations.map((entry) => [entry.path, entry]));
-  const runtimeRoot = path.join(
+  const runtimeRoot = explicitRuntimeRoot ?? path.join(
     builtAppPath,
     'Contents',
     'Resources',
@@ -494,6 +504,87 @@ function collectFrameworkCodexAbsenceIssues(
     }
   }
   return issues;
+}
+
+function collectOfflineSeedIssues(
+  builtAppPath: string,
+  manifest: PackagedManifest | null,
+) {
+  const seed = manifest?.offline_seed;
+  if (seed === undefined) {
+    return { issues: [] as GateIssue[], present: false, sizeBytes: 0 };
+  }
+  const carrier = resolveFullCarrierProfile({ carrierId: process.env.OPL_FULL_CARRIER_ID });
+  const resourceDir = path.join(
+    builtAppPath,
+    'Contents',
+    'Resources',
+    carrier.runtimeResourceDir,
+  );
+  const issues: GateIssue[] = [];
+  if (
+    !seed
+    || typeof seed !== 'object'
+    || Array.isArray(seed)
+    || seed.schema !== 'opl_full_offline_seed.v1'
+    || seed.format !== 'tar.zst'
+    || seed.relative_path !== 'opl-offline-seed.tar.zst'
+    || !Number.isSafeInteger(seed.size_bytes)
+    || (seed.size_bytes ?? 0) <= 0
+    || typeof seed.sha256 !== 'string'
+    || !/^[0-9a-f]{64}$/i.test(seed.sha256)
+  ) {
+    issues.push({
+      code: 'offline_seed_manifest_invalid',
+      failure_class: 'artifact_invalid',
+      message: 'Packaged Full manifest contains invalid offline_seed metadata.',
+    });
+    return { issues, present: false, sizeBytes: 0 };
+  }
+
+  const seedPath = path.join(resourceDir, seed.relative_path);
+  let sizeBytes = 0;
+  let present = false;
+  if (!fs.existsSync(seedPath) || !fs.statSync(seedPath).isFile()) {
+    issues.push({
+      code: 'offline_seed_archive_missing',
+      failure_class: 'artifact_invalid',
+      relative_path: normalizeRelativePath(builtAppPath, seedPath),
+      message: `Packaged Full offline seed archive is missing: ${seedPath}`,
+    });
+  } else {
+    present = true;
+    sizeBytes = fs.statSync(seedPath).size;
+    if (sizeBytes !== seed.size_bytes) {
+      issues.push({
+        code: 'offline_seed_archive_size_mismatch',
+        failure_class: 'artifact_invalid',
+        relative_path: normalizeRelativePath(builtAppPath, seedPath),
+        message: `Packaged Full offline seed archive size is ${sizeBytes}, expected ${seed.size_bytes}.`,
+      });
+    }
+    const actualSha256 = fileSha256(seedPath);
+    if (actualSha256 !== seed.sha256.toLowerCase()) {
+      issues.push({
+        code: 'offline_seed_archive_sha256_mismatch',
+        failure_class: 'artifact_invalid',
+        relative_path: normalizeRelativePath(builtAppPath, seedPath),
+        message: `Packaged Full offline seed archive sha256 mismatch: expected ${seed.sha256}, got ${actualSha256}.`,
+      });
+    }
+  }
+
+  const looseRuntimeDir = path.join(resourceDir, 'runtime');
+  if (fs.existsSync(looseRuntimeDir)) {
+    issues.push({
+      code: 'offline_seed_loose_runtime_present',
+      failure_class: 'artifact_invalid',
+      relative_path: normalizeRelativePath(builtAppPath, looseRuntimeDir),
+      message: 'Lightweight Full App bundle must not ship loose runtime files beside opl-offline-seed.tar.zst.',
+    });
+  }
+
+  return { issues, present, sizeBytes };
 }
 
 function collectMachOPortabilityIssues(builtAppPath: string) {
@@ -606,10 +697,26 @@ export function runFullPackagePrecompressionGate(input: GateInput) {
   const frameworkCodexAbsenceIssues = collectFrameworkCodexAbsenceIssues(
     input.builtAppPath,
     manifest,
+    input.runtimeRoot,
   );
+  const offlineSeedGate = collectOfflineSeedIssues(input.builtAppPath, manifest);
   let machoGate;
   try {
     machoGate = collectMachOPortabilityIssues(input.builtAppPath);
+    if (
+      input.runtimeRoot
+      && fs.existsSync(input.runtimeRoot)
+      && !path.resolve(input.runtimeRoot).startsWith(`${path.resolve(input.builtAppPath)}${path.sep}`)
+    ) {
+      const runtimeMachoGate = collectMachOPortabilityIssues(input.runtimeRoot);
+      machoGate = {
+        issues: [...machoGate.issues, ...runtimeMachoGate.issues],
+        machoFileCount: machoGate.machoFileCount + runtimeMachoGate.machoFileCount,
+        dependencyCount: machoGate.dependencyCount + runtimeMachoGate.dependencyCount,
+        rpathCount: machoGate.rpathCount + runtimeMachoGate.rpathCount,
+        ignoredInstallIdCount: machoGate.ignoredInstallIdCount + runtimeMachoGate.ignoredInstallIdCount,
+      };
+    }
   } catch (error) {
     const issue: GateIssue = {
       code: 'otool_unavailable',
@@ -634,6 +741,7 @@ export function runFullPackagePrecompressionGate(input: GateInput) {
     ...refParityIssues,
     ...runtimeGate.issues,
     ...frameworkCodexAbsenceIssues,
+    ...offlineSeedGate.issues,
     ...machoGate.issues,
   ];
   const durationSeconds = Number(
@@ -669,6 +777,11 @@ export function runFullPackagePrecompressionGate(input: GateInput) {
       framework_codex_payload_absence: {
         status: frameworkCodexAbsenceIssues.length === 0 ? 'passed' : 'failed',
         forbidden_paths: FULL_RUNTIME_FORBIDDEN_FRAMEWORK_CODEX_PATHS,
+      },
+      offline_seed_archive: {
+        status: offlineSeedGate.issues.length === 0 ? 'passed' : 'failed',
+        present: offlineSeedGate.present,
+        size_bytes: offlineSeedGate.sizeBytes,
       },
       macho_portability: {
         status: machoGate.issues.length === 0 ? 'passed' : 'failed',

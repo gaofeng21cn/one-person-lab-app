@@ -336,10 +336,11 @@ runs:
         output_dir="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release"
         dmg_path="$output_dir/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
         mount_point="$(mktemp -d)"
+        extracted_runtime_dir="$(mktemp -d)"
         mounted=false
         cleanup_mount() {
           if [ "$mounted" = true ]; then hdiutil detach "$mount_point" >/dev/null 2>&1 || true; fi
-          rm -rf "$mount_point"
+          rm -rf "$mount_point" "$extracted_runtime_dir"
         }
         trap cleanup_mount EXIT
         hdiutil verify "$dmg_path"
@@ -352,12 +353,14 @@ runs:
         test "${#app_paths[@]}" -eq 1 || { echo "::error::ARM-finalized Full DMG must contain exactly one App bundle."; exit 1; }
         mounted_app_path="${app_paths[0]}"
         test "$(basename "$mounted_app_path")" = 'One Person Lab.app'
-        mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
         codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
         codesign --verify --strict --verbose=2 "$dmg_path"
         xcrun stapler validate "$dmg_path"
         spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
         spctl --assess --type execute --verbose=4 "$mounted_app_path"
+        mounted_runtime_root="$(node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/materialize-mounted-full-runtime.ts" \
+          --resource-dir "$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}" \
+          --extract-dir "$extracted_runtime_dir")"
         receipt="$output_dir/full-apple-notarization-receipt.json"
         jq -e --arg team_id "$EXPECTED_TEAM_ID" '
           .schema == "opl_apple_notarized_dmg_receipt.v1"

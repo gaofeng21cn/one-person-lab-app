@@ -5,11 +5,17 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import zlib from 'node:zlib';
+
 import {
   copyRuntimePayloadTree,
   copyAppBundleForDmg,
-  syncRuntimePayloadToBuiltApp,
+  FULL_OFFLINE_SEED_FILENAME,
+  FULL_OFFLINE_SEED_SCHEMA,
+  syncOfflineSeedToBuiltApp,
 } from '../../../scripts/build-full-first-install-package/archive-output.ts';
+import { materializeMountedFullRuntime } from '../../../scripts/materialize-mounted-full-runtime.ts';
+import { fileSha256 } from '../../../scripts/release-file-helpers.ts';
 
 test('Full runtime copy preserves internal relative symlinks inside the packaged tree', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-runtime-copy-'));
@@ -53,13 +59,13 @@ test('Full runtime copy rejects absolute links before App signing', () => {
   }
 });
 
-test('skip-build Full packaging injects the prepared runtime into the existing carrier App bundle', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-runtime-built-app-'));
+test('lightweight Full packaging attaches only opl-offline-seed.tar.zst and manifest without loose runtime files', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-full-offline-seed-built-app-'));
   const previousCarrier = process.env.OPL_FULL_CARRIER_ID;
   process.env.OPL_FULL_CARRIER_ID = 'opl-studio';
   try {
     const runtimeRoot = path.join(tempRoot, 'runtime');
-    const builtAppPath = path.join(tempRoot, 'One Person Lab Preview.app');
+    const builtAppPath = path.join(tempRoot, 'One Person Lab.app');
     const oldRuntimeRoot = path.join(
       builtAppPath,
       'Contents',
@@ -68,31 +74,65 @@ test('skip-build Full packaging injects the prepared runtime into the existing c
       'runtime',
       'old',
     );
-    fs.mkdirSync(path.join(runtimeRoot, 'manifest'), { recursive: true });
-    fs.writeFileSync(path.join(runtimeRoot, 'manifest', 'full-package-manifest.json'), '{"source":"runtime"}\n');
-    fs.writeFileSync(path.join(runtimeRoot, 'payload.txt'), 'prepared-runtime\n');
+    fs.mkdirSync(path.join(runtimeRoot, 'bin'), { recursive: true });
+    fs.mkdirSync(path.join(runtimeRoot, 'opl'), { recursive: true });
+    fs.writeFileSync(path.join(runtimeRoot, 'bin', 'opl'), '#!/bin/sh\nexit 0\n', { mode: 0o444 });
+    fs.writeFileSync(path.join(runtimeRoot, 'opl', 'package.json'), '{"name":"opl-framework"}\n');
+    fs.symlinkSync('../opl/package.json', path.join(runtimeRoot, 'bin', 'opl-pkg.json'));
     fs.mkdirSync(oldRuntimeRoot, { recursive: true });
     fs.writeFileSync(path.join(oldRuntimeRoot, 'stale.txt'), 'stale\n');
-    const manifest = { schema: 'opl_full_package_manifest.v1', resolved_refs: { opl_framework: {} } };
+    const baseManifest = { schema: 'opl_full_package_manifest.v1', resolved_refs: { opl_framework: {} } };
 
-    const payloadRoot = syncRuntimePayloadToBuiltApp(runtimeRoot, manifest, builtAppPath);
+    const synced = syncOfflineSeedToBuiltApp(runtimeRoot, baseManifest, builtAppPath);
 
     assert.equal(
-      payloadRoot,
+      synced.appPayloadRoot,
       path.join(builtAppPath, 'Contents', 'Resources', 'opl-studio-full-runtime'),
     );
-    assert.equal(fs.existsSync(oldRuntimeRoot), false);
-    assert.equal(
-      fs.readFileSync(path.join(payloadRoot, 'runtime', 'current', 'payload.txt'), 'utf8'),
-      'prepared-runtime\n',
+    assert.equal(fs.existsSync(path.join(synced.appPayloadRoot, 'runtime')), false);
+    assert.equal(path.basename(synced.seedPath), FULL_OFFLINE_SEED_FILENAME);
+    assert.equal(fs.existsSync(synced.seedPath), true);
+    assert.equal(synced.manifest.offline_seed.schema, FULL_OFFLINE_SEED_SCHEMA);
+    assert.equal(synced.manifest.offline_seed.format, 'tar.zst');
+    assert.equal(synced.manifest.offline_seed.relative_path, FULL_OFFLINE_SEED_FILENAME);
+    assert.equal(synced.manifest.offline_seed.sha256, fileSha256(synced.seedPath));
+    assert.equal(synced.manifest.offline_seed.size_bytes, fs.statSync(synced.seedPath).size);
+
+    const writtenManifest = JSON.parse(
+      fs.readFileSync(path.join(synced.appPayloadRoot, 'manifest', 'full-package-manifest.json'), 'utf8'),
     );
-    assert.deepEqual(
-      JSON.parse(fs.readFileSync(path.join(payloadRoot, 'manifest', 'full-package-manifest.json'), 'utf8')),
-      manifest,
+    assert.deepEqual(writtenManifest.offline_seed, synced.manifest.offline_seed);
+
+    const tarBytes = zlib.zstdDecompressSync(fs.readFileSync(synced.seedPath));
+    const listing = spawnSync('tar', ['-tf', '-'], { input: tarBytes, encoding: 'utf8' });
+    assert.equal(listing.status, 0, listing.stderr);
+    const entries = listing.stdout.split(/\r?\n/).filter(Boolean);
+    assert.ok(entries.some((entry) => entry === './bin/opl' || entry === 'bin/opl'));
+    assert.ok(entries.some((entry) => entry === './opl/package.json' || entry === 'opl/package.json'));
+    assert.equal(entries.some((entry) => path.posix.basename(entry).startsWith('._')), false);
+
+    const extractDir = path.join(tempRoot, 'extracted');
+    const resolvedExtract = await materializeMountedFullRuntime({
+      resourceDir: synced.appPayloadRoot,
+      extractDir,
+    });
+    assert.equal(resolvedExtract, path.resolve(extractDir));
+    assert.equal(fs.readFileSync(path.join(extractDir, 'opl', 'package.json'), 'utf8'), '{"name":"opl-framework"}\n');
+    assert.equal(fs.readlinkSync(path.join(extractDir, 'bin', 'opl-pkg.json')), '../opl/package.json');
+
+    fs.writeFileSync(synced.seedPath, 'tampered');
+    await assert.rejects(
+      materializeMountedFullRuntime({ resourceDir: synced.appPayloadRoot, extractDir }),
+      /size mismatch|sha256 mismatch/,
     );
+
+    const legacyResource = path.join(tempRoot, 'legacy-resource');
+    fs.mkdirSync(path.join(legacyResource, 'runtime', 'current', 'bin'), { recursive: true });
+    fs.mkdirSync(path.join(legacyResource, 'manifest'), { recursive: true });
+    fs.writeFileSync(path.join(legacyResource, 'manifest', 'full-package-manifest.json'), JSON.stringify(baseManifest));
     assert.equal(
-      fs.readFileSync(path.join(runtimeRoot, 'payload.txt'), 'utf8'),
-      'prepared-runtime\n',
+      await materializeMountedFullRuntime({ resourceDir: legacyResource, extractDir }),
+      path.resolve(path.join(legacyResource, 'runtime', 'current')),
     );
   } finally {
     if (previousCarrier === undefined) delete process.env.OPL_FULL_CARRIER_ID;

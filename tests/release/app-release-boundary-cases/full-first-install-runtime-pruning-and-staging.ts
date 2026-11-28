@@ -532,6 +532,64 @@ test("Studio Full App bundle trim preserves its runtime and native Codex composi
 
 });
 
+test("Studio Full bundle audit supports 2-file offline seed layout with external runtimeRoot", async (context) => {
+  const { syncOfflineSeedToBuiltApp } =
+    await import("../../../scripts/build-full-first-install-package/archive-output.ts");
+  const { optimizeFullAppBundleForDmg, withFullPackageOptimization } =
+    await import("../../../scripts/build-full-first-install-package/package-optimization.ts");
+  const crypto = await import("node:crypto");
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opl-full-offline-seed-audit-"));
+  context.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+
+  const runtimeRoot = path.join(tempRoot, "staged-runtime");
+  const pkgArchive = path.join(runtimeRoot, "runtime-payloads/codex-cli/0.5.0/package.tgz");
+  const platArchive = path.join(runtimeRoot, "runtime-payloads/codex-cli/0.5.0/platform.tgz");
+  writeFile(pkgArchive, "codex-pkg");
+  writeFile(platArchive, "codex-plat");
+  writeExecutable(path.join(runtimeRoot, "bin/opl"), "#!/bin/sh\nexit 0\n");
+
+  const appPath = path.join(tempRoot, "One Person Lab.app");
+  writeFile(path.join(appPath, "Contents/Resources/app.asar"), "app");
+  writeFile(path.join(appPath, "Contents/Frameworks/Electron Framework.framework/Electron Framework"), "electron");
+
+  const seed = {
+    schema: "opl_full_offline_seed.v1",
+    codex_offline_seed: {
+      schema: "opl_full_codex_offline_seed.v1",
+      version: "0.5.0",
+      archives: {
+        package: {
+          path: "runtime-payloads/codex-cli/0.5.0/package.tgz",
+          sha256: crypto.createHash("sha256").update("codex-pkg").digest("hex"),
+          size_bytes: Buffer.byteLength("codex-pkg"),
+        },
+        platform: {
+          path: "runtime-payloads/codex-cli/0.5.0/platform.tgz",
+          sha256: crypto.createHash("sha256").update("codex-plat").digest("hex"),
+          size_bytes: Buffer.byteLength("codex-plat"),
+        },
+      },
+    },
+    manifest_version: 2,
+    package_kind: "opl_full_first_install_macos_arm64",
+  };
+  const synced = syncOfflineSeedToBuiltApp(runtimeRoot, seed, appPath);
+  const { trimReport, boundaryAudit } = optimizeFullAppBundleForDmg(appPath, synced.manifest, {
+    runtimeRoot,
+  });
+
+  assert.equal(boundaryAudit.full_package_boundary.contains_opl_full_runtime, true);
+  assert.equal(boundaryAudit.full_package_boundary.offline_seed_archive_present, true);
+  assert.equal(boundaryAudit.full_package_boundary.loose_runtime_absent, true);
+  assert.equal(boundaryAudit.full_package_boundary.codex_offline_seed_present, true);
+  assert.equal(boundaryAudit.full_package_boundary.framework_codex_payload_absent, true);
+
+  const finalized = withFullPackageOptimization(synced.manifest, { trimReport, boundaryAudit });
+  assert.equal(finalized.package_optimization.offline_first_install_completeness_preserved, true);
+  assert.equal(finalized.package_optimization.package_boundary_audit.offline_seed_archive_present, true);
+  assert.equal(finalized.package_optimization.package_boundary_audit.loose_runtime_absent, true);
+});
+
 test("Full runtime node payload prunes package-only docs while preserving offline launch executables", async () => {
   const { copyNodeRuntimePayload } =
     await import("../../../scripts/build-full-first-install-package/filesystem.ts");

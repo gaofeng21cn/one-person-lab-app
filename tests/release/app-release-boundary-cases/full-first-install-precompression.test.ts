@@ -392,3 +392,87 @@ test('Full precompression gate rejects missing declarations or physical Framewor
     }
   });
 });
+
+test('Full precompression gate validates lightweight offline_seed archives and inspects staged runtimeRoot Mach-O binaries', async (context) => {
+  const { syncOfflineSeedToBuiltApp } = await import(
+    '../../../scripts/build-full-first-install-package/archive-output.ts'
+  );
+  const { appPath, binDir, reportPath, resolvedRefs, tempRoot } = createFixture();
+  const runtimeRoot = path.join(tempRoot, 'staged-runtime');
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${binDir}${path.delimiter}${previousPath ?? ''}`;
+  context.after(() => {
+    if (previousPath === undefined) delete process.env.PATH;
+    else process.env.PATH = previousPath;
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  writeMachO(path.join(runtimeRoot, 'python', 'cpython-3.12-macos-aarch64-none', 'bin', 'portable-python'));
+  writeMachO(path.join(appPath, 'Contents', 'Frameworks', 'self-id.dylib'));
+  const baseManifest = {
+    resolved_refs: resolvedRefs,
+    runtime_assertions: {
+      offline_required_payloads: [{ path: 'node/bin/node', exists: true, executable: true }],
+      declared_pruned_paths: FORBIDDEN_FRAMEWORK_CODEX_PATHS.map((relativePath) => ({
+        path: relativePath,
+        expected: 'absent',
+        present: false,
+      })),
+    },
+    native_trust: { status: 'local_authorized_unsigned' },
+  };
+  const synced = syncOfflineSeedToBuiltApp(runtimeRoot, baseManifest, appPath);
+
+  const report = runFullPackagePrecompressionGate({
+    builtAppPath: appPath,
+    runtimeRoot,
+    resolvedRefs,
+    runtimeCurrentness: { status: 'passed' },
+    reportPath,
+  });
+  assert.equal(report.status, 'passed');
+  assert.equal(report.gates.offline_seed_archive.status, 'passed');
+  assert.equal(report.gates.offline_seed_archive.present, true);
+  assert.equal(report.gates.macho_portability.macho_file_count, 2);
+
+  writeMachO(path.join(runtimeRoot, 'bin', 'bad-rpath'));
+  assert.throws(
+    () => runFullPackagePrecompressionGate({
+      builtAppPath: appPath,
+      runtimeRoot,
+      resolvedRefs,
+      runtimeCurrentness: { status: 'passed' },
+      reportPath,
+    }),
+    /homebrew_cellar_rpath/,
+  );
+  fs.rmSync(path.join(runtimeRoot, 'bin', 'bad-rpath'), { force: true });
+
+  const tampered = Buffer.from(fs.readFileSync(synced.seedPath));
+  tampered[0] = tampered[0] ^ 0xff;
+  fs.writeFileSync(synced.seedPath, tampered);
+  assert.throws(
+    () => runFullPackagePrecompressionGate({
+      builtAppPath: appPath,
+      runtimeRoot,
+      resolvedRefs,
+      runtimeCurrentness: { status: 'passed' },
+      reportPath,
+    }),
+    /offline_seed_archive_sha256_mismatch/,
+  );
+
+  const syncedFresh = syncOfflineSeedToBuiltApp(runtimeRoot, baseManifest, appPath);
+  assert.ok(syncedFresh.seedPath);
+  fs.mkdirSync(path.join(appPath, 'Contents', 'Resources', RUNTIME_RESOURCE_DIR, 'runtime', 'current'), { recursive: true });
+  assert.throws(
+    () => runFullPackagePrecompressionGate({
+      builtAppPath: appPath,
+      runtimeRoot,
+      resolvedRefs,
+      runtimeCurrentness: { status: 'passed' },
+      reportPath,
+    }),
+    /offline_seed_loose_runtime_present/,
+  );
+});

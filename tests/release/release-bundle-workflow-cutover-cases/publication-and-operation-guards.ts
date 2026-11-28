@@ -645,9 +645,13 @@ test('production Standard and Full builds fail closed on Apple distribution trus
     String(preFinalizerRuntimeVerification.run),
     /\$GITHUB_WORKSPACE\/release-executor\/scripts\/verify-full-runtime-native-trust\.ts/,
   );
+  assert.match(
+    String(preFinalizerRuntimeVerification.run),
+    /\$GITHUB_WORKSPACE\/release-executor\/scripts\/materialize-mounted-full-runtime\.ts/,
+  );
   assert.doesNotMatch(
     String(preFinalizerRuntimeVerification.run),
-    /one-person-lab-app\/scripts\/(?:assert-full-runtime-currentness|verify-full-runtime-native-trust)\.ts/,
+    /one-person-lab-app\/scripts\/(?:assert-full-runtime-currentness|verify-full-runtime-native-trust|materialize-mounted-full-runtime)\.ts/,
   );
   assert.equal(handoffUpload.with['compression-level'], 0);
   assert.ok(
@@ -759,6 +763,10 @@ test('production Standard and Full builds fail closed on Apple distribution trus
   );
   const finalTrustScript = String(finalTrust.run);
   assert.match(finalTrustScript, /timestamp_signing\.authority_endpoint == "system_default"/);
+  assert.match(
+    finalTrustScript,
+    /\$GITHUB_WORKSPACE\/release-executor\/scripts\/materialize-mounted-full-runtime\.ts/,
+  );
   assert.match(
     finalTrustScript,
     /\$GITHUB_WORKSPACE\/release-executor\/scripts\/verify-full-runtime-native-trust\.ts/,

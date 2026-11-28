@@ -144,11 +144,8 @@ Codex 与生产由 Framework 选用的 Codex 是不同输入；涉及协议或�
 ### 2. 轻量单文件 macOS Full DMG 目标架构（Wave 2A）
 
 - **单文件体验不变**：对终端用户继续仅提供单一 `One-Person-Lab-Full-<version>-mac-arm64.dmg` 下载入口，严禁拆成「Standard App + 独立 Seed包」两个需用户分别下载和手动挂载的文件。
-- **取消二次编译**：Wave 2A 彻底撤销 `_release-studio-full.yml` 与 `build-mac:arm64` 的 Electron/Studio 二次重编译兜底；Full DMG 直接复用同一 cohort 已通过签名与公证的 Standard `.app` 字节，并挂载一个无编译、无需对内部数千散文件逐一 re-sign 的单一离线资源归档 `opl-offline-seed.tar.zst`。
-- **落盘形态选型**：Wave 2A 实现时在以下两种单一 DMG 形态间二选一固化：
-  - 方案 A：将 `opl-offline-seed.tar.zst` 放入 Standard `.app` 的 `Contents/Resources/`，仅做一次外层签名/公证；
-  - 方案 B：将 `opl-offline-seed.tar.zst` 作为 `.app` 同级资源放在 Full DMG 根目录（保持 Standard `.app` 原签名零改写），由应用首次启动时直接挂载解包；
-  - 两种方案的离线解包、校验与包激活均继续由 Framework `one-person-lab` 负责。
+- **已落地形态（方案 A：单文件离线种子归档）**：彻底撤销二次 Electron/Studio 重编译兜底（`OPL_REQUIRE_FULL_RUNTIME`、`withShellFullRuntimeSigningExcluded`、`withShellMacosSigningFsPreload` 与 pre-build `syncRuntimePayloadToBuildRoots`），优先复用同一 cohort 已公证的 Standard `.app`（仅在独立开发构建、candidate_only 或 repair cohort 时编译纯 Standard 外壳），仅向 `.app` 内 `Contents/Resources/opl-studio-full-runtime/` 挂载 2 个文件（`opl-offline-seed.tar.zst` 与含 `offline_seed` 清单校验元数据的 `manifest/full-package-manifest.json`），消除包内散文件并由外层单次签名与公证覆盖。
+- **冷启动零外部依赖解包与挂载验真**：`opl-studio` 首次启动直接以内置 `zlib.createZstdDecompress()` 管道流式解包 `opl-offline-seed.tar.zst` 至 `~/Library/Application Support/OPL/runtime/current` 并激活（无需 Clean macOS 预装 `zstd`）；工作流与 `finalize-full` 挂载验证统一通过 `scripts/materialize-mounted-full-runtime.ts` 验真后解包校验，离线包初始化与后续升级仍由 Framework `one-person-lab` 负责。
 
 ### 3. Wave 2A / Wave 2B / Wave 3 收敛边界与保留红线
 

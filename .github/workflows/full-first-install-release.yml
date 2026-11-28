@@ -1349,10 +1349,11 @@ jobs:
           set -euo pipefail
           dmg_path="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
           mount_point="$(mktemp -d)"
+          extracted_runtime_dir="$(mktemp -d)"
           mounted=false
           cleanup_mount() {
             if [ "$mounted" = true ]; then hdiutil detach "$mount_point" >/dev/null 2>&1 || true; fi
-            rm -rf "$mount_point"
+            rm -rf "$mount_point" "$extracted_runtime_dir"
           }
           trap cleanup_mount EXIT
           test -f "$dmg_path" && test ! -L "$dmg_path"
@@ -1365,8 +1366,10 @@ jobs:
           )
           test "${#app_paths[@]}" -eq 1 || { echo "::error::Full finalizer input must contain exactly one App bundle."; exit 1; }
           mounted_app_path="${app_paths[0]}"
-          mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
           codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
+          mounted_runtime_root="$(node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/materialize-mounted-full-runtime.ts" \
+            --resource-dir "$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}" \
+            --extract-dir "$extracted_runtime_dir")"
           node --experimental-strip-types "$GITHUB_WORKSPACE/release-executor/scripts/assert-full-runtime-currentness.ts" \
             --runtime-root "$mounted_runtime_root" \
             --framework-root "$GITHUB_WORKSPACE/one-person-lab" \
@@ -1445,13 +1448,14 @@ jobs:
           app_path="$GITHUB_WORKSPACE/one-person-lab-app/${{ steps.shell_profile.outputs.shell_root }}/out/mac-arm64/One Person Lab.app"
           dmg_path="$GITHUB_WORKSPACE/one-person-lab-app/dist/opl-full-release/One-Person-Lab-Full-${OPL_RELEASE_VERSION}-mac-arm64.dmg"
           mounted_app_dir="$(mktemp -d)"
+          extracted_runtime_dir="$(mktemp -d)"
           mounted_app_path=""
           mounted_full_dmg="false"
           cleanup_mounted_full_dmg() {
             if [ "$mounted_full_dmg" = "true" ]; then
               hdiutil detach "$mounted_app_dir" >/dev/null 2>&1 || true
             fi
-            rm -rf "$mounted_app_dir"
+            rm -rf "$mounted_app_dir" "$extracted_runtime_dir"
           }
           trap cleanup_mounted_full_dmg EXIT
           hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mounted_app_dir" >/dev/null
@@ -1466,7 +1470,9 @@ jobs:
           fi
           mounted_app_path="${mounted_app_paths[0]}"
           test -d "$mounted_app_path" && test ! -L "$mounted_app_path"
-          mounted_runtime_root="$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}/runtime/current"
+          mounted_runtime_root="$(node --experimental-strip-types one-person-lab-app/scripts/materialize-mounted-full-runtime.ts \
+            --resource-dir "$mounted_app_path/Contents/Resources/${{ steps.shell_profile.outputs.full_runtime_resource_dir }}" \
+            --extract-dir "$extracted_runtime_dir")"
           node --experimental-strip-types one-person-lab-app/scripts/assert-full-runtime-currentness.ts \
             --runtime-root "$mounted_runtime_root" \
             --framework-root "$GITHUB_WORKSPACE/one-person-lab" \
