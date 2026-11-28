@@ -1903,17 +1903,11 @@
     },
     "auto_model_policy": {
       "authority": "one-person-lab-app",
-      "recommendation_authority": "opl-flow",
-      "policy_source_ref": "app_state.agent_packages.status_index.packages.opl-flow.model_projection",
-      "projection_surface_kind": "opl_codex_model_policy_projection.v1",
-      "projection_presence_rule": "consume_only_when_fresh_opl_flow_presence_installed_true_and_projection_is_valid",
-      "app_role": "resolve_auto_from_fresh_catalog_and_projected_recommendation_then_persist_user_override",
+      "app_role": "resolve_auto_from_app_policy_and_fresh_catalog_then_persist_user_override",
       "resolution_precedence": [
         "explicit_user_selection",
         "app_default_then_catalog_compatibility",
-        "installed_opl_flow_recommendation",
-        "fresh_codex_live_default",
-        "app_fallback_when_flow_unavailable"
+        "app_fallback_when_catalog_unavailable"
       ],
       "app_fallback_role": "configured_default_when_catalog_metadata_is_unavailable",
       "configured_default": {
@@ -2704,9 +2698,9 @@
             "opl_flow_managed": {
               "label_zh": "OPL Flow 推荐",
               "label_en": "Recommended by OPL Flow",
-              "source": "opl_base_typed_flow_dependency_catalog",
-              "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies",
-              "membership_policy": "derive_from_typed_opl_base_flow_dependencies_never_from_app_hardcoded_skill_list",
+              "source": "framework_agent_package_directory_and_status_index",
+              "source_ref": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index",
+              "membership_policy": "derive_from_framework_agent_package_projection_never_from_app_hardcoded_skill_list",
               "lifecycle_owner": "opl_packages",
               "reconciliation_policy": "package_dependency_closure_reconciliation_on_startup_daily_maintenance_and_explicit_package_update",
               "flow_role": "dependency_and_profile_intent_only_not_a_second_updater",
@@ -3898,9 +3892,6 @@
       },
       "model_reasoning_policy_source": {
         "owner": "one-person-lab-app",
-        "recommendation_owner": "opl-flow",
-        "recommendation_projection_ref": "app_state.agent_packages.status_index.packages.opl-flow.model_projection",
-        "recommendation_projection_surface_kind": "opl_codex_model_policy_projection.v1",
         "flow_policy_file_parsing": "forbidden",
         "source_refs": [
           "contracts/app-product-profile.json#codex",
@@ -3911,7 +3902,7 @@
         "default_model_ref": "contracts/app-product-profile.json#codex.default_model",
         "default_reasoning_effort_ref": "contracts/app-product-profile.json#codex.default_reasoning_effort",
         "auto_model_policy_ref": "contracts/app-product-profile.json#codex.auto_model_policy",
-        "configured_default_role": "App fallback used only when no valid installed Flow projection and no usable live catalog resolution exists",
+        "configured_default_role": "App default with catalog compatibility fallback when live catalog metadata is unavailable",
         "ordinary_surface": "home_and_conversation_shared_session_configuration_menu_with_model_reasoning_and_reset_rows",
         "settings_surface": "settings_access.model_access",
         "adapter_policy": "GUI shells render App-derived model and reasoning policy only",
@@ -4173,9 +4164,9 @@
             ],
             "local_configuration_source": "Shell local configuration#MCP servers + image generation + voice input",
             "flow_projection_policy": {
-              "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies",
-              "nonempty_policy": "when_flow_dependencies_contains_entries_the_opl_flow_managed_group_must_project_at_least_one_row",
-              "empty_state_policy": "empty_is_valid_only_when_the_canonical_flow_dependencies_projection_is_empty_or_unavailable_with_a_visible_reason"
+              "source_ref": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index",
+              "nonempty_policy": "when_framework_package_projection_contains_opl_flow_entries_the_opl_flow_managed_group_must_project_at_least_one_row",
+              "empty_state_policy": "empty_is_valid_only_when_the_generic_framework_package_projection_reports_no_entries_or_is_unavailable_with_a_visible_reason"
             },
             "third_party_projection_policy": {
               "display_name_policy": "use_product_profile_display_names_and_never_raw_provider_ids_as_primary_labels",
@@ -7074,9 +7065,9 @@
     "exposure_classes_ref": "contracts/app-install-exposure-policy.json#exposure_classes",
     "domain_modules": ["med-autoscience", "med-autogrant", "redcube-ai", "opl-meta-agent", "opl-bookforge", "med-autocast"],
     "capability_strategy_consumer": {
+      "consumption_scope": "full_build_time_only",
       "strategy_authority": "opl-flow",
       "compiler_authority": "opl-framework",
-      "runtime_projection_ref": "app_state.agent_packages.status_index.packages.opl-flow.capability_strategy",
       "full_build_lock_kind": "opl_flow_capability_build_lock.v1",
       "app_policy_inventory_allowed": false,
       "app_direct_workflow_policy_parse_allowed": false

@@ -29,20 +29,20 @@ test("first-run matrix delegates policy shape to the active-shell validator", ()
   const capabilityStrategy = matrix.scenarios.find(
     (entry) => entry.id === 'flow_capability_strategy_framework_managed',
   );
+  assert.equal('runtime_projection_ref' in capabilityStrategy, false);
   assert.deepEqual(
     {
+      consumption_scope: capabilityStrategy.consumption_scope,
       strategy_authority: capabilityStrategy.strategy_authority,
       compiler_authority: capabilityStrategy.compiler_authority,
       app_role: capabilityStrategy.app_role,
-      runtime_projection_ref: capabilityStrategy.runtime_projection_ref,
       full_build_lock_kind: capabilityStrategy.full_build_lock_kind,
     },
     {
+      consumption_scope: 'full_build_time_only',
       strategy_authority: 'opl-flow',
       compiler_authority: 'opl-framework',
       app_role: 'projection_consumer_only',
-      runtime_projection_ref:
-        'app_state.agent_packages.status_index.packages.opl-flow.capability_strategy',
       full_build_lock_kind: 'opl_flow_capability_build_lock.v1',
     },
   );

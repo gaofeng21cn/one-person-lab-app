@@ -5,15 +5,15 @@ export function assertCompanionPayloadProfileShape(profile: AppProductProfile): 
   assertStringArray(profile.companion_payloads.domain_modules, 'companion_payloads.domain_modules');
   const strategy = profile.companion_payloads.capability_strategy_consumer;
   if (
-    strategy?.strategy_authority !== 'opl-flow'
+    strategy?.consumption_scope !== 'full_build_time_only'
+    || 'runtime_projection_ref' in strategy
+    || strategy.strategy_authority !== 'opl-flow'
     || strategy.compiler_authority !== 'opl-framework'
-    || strategy.runtime_projection_ref !==
-      'app_state.agent_packages.status_index.packages.opl-flow.capability_strategy'
     || strategy.full_build_lock_kind !== 'opl_flow_capability_build_lock.v1'
     || strategy.app_policy_inventory_allowed !== false
     || strategy.app_direct_workflow_policy_parse_allowed !== false
   ) {
-    throw new Error('App product profile must consume the Framework-compiled OPL Flow capability strategy');
+    throw new Error('App product profile must consume the Framework-compiled OPL Flow capability build lock at Full build time only');
   }
   if (profile.companion_payloads.install_exposure_policy_ref !== 'contracts/app-install-exposure-policy.json') {
     throw new Error('App product profile companion payloads must reference app-install-exposure-policy.json');

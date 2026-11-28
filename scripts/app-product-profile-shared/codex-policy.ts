@@ -18,19 +18,22 @@ export function assertCodexAutoModelPolicy(
   ) {
     throw new Error(`${label} Codex Auto model policy must define one configured default model and reasoning effort`);
   }
+  for (const retiredField of [
+    'recommendation_authority',
+    'policy_source_ref',
+    'projection_surface_kind',
+    'projection_presence_rule',
+  ]) {
+    if (policy && retiredField in policy) {
+      throw new Error(`${label} Codex Auto model policy must not declare retired Flow runtime projection field ${retiredField}`);
+    }
+  }
   assertExpectedFields(
     [
       { actual: policy?.authority, expected: 'one-person-lab-app' },
-      { actual: policy?.recommendation_authority, expected: 'opl-flow' },
-      { actual: policy?.policy_source_ref, expected: 'app_state.agent_packages.status_index.packages.opl-flow.model_projection' },
-      { actual: policy?.projection_surface_kind, expected: 'opl_codex_model_policy_projection.v1' },
-      {
-        actual: policy?.projection_presence_rule,
-        expected: 'consume_only_when_fresh_opl_flow_presence_installed_true_and_projection_is_valid',
-      },
       {
         actual: policy?.app_role,
-        expected: 'resolve_auto_from_fresh_catalog_and_projected_recommendation_then_persist_user_override',
+        expected: 'resolve_auto_from_app_policy_and_fresh_catalog_then_persist_user_override',
       },
       { actual: policy?.configured_default_role, expected: 'app_default_with_catalog_compatibility_fallback' },
       { actual: policy?.mode_default, expected: 'auto' },

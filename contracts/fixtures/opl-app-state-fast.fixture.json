@@ -508,7 +508,6 @@
                 "actions": [],
                 "service_actions": [],
                 "dependency_sync": null,
-                "model_projection": null,
                 "backup_root": null,
                 "backup_active": false,
                 "writes_performed": false,

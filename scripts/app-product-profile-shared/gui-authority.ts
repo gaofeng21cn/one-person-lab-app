@@ -94,7 +94,7 @@ function assertHomeCodexAutoSelectionPolicy(
       { actual: autoSelection?.user_can_override_reasoning_effort, expected: true },
       { actual: autoSelection?.user_can_restore_auto, expected: true },
     ],
-    `${label} GUI home must expose the OPL Flow model projection and user override on the home path`,
+    `${label} GUI home must expose the App Auto model policy and user override on the home path`,
   );
   if (options.requireSelectionPersistence && autoSelection?.selection_persists_into_conversation !== true) {
     throw new Error(`${label} GUI home Codex model selection must persist into conversation`);

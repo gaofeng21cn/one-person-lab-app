@@ -142,14 +142,14 @@ function validateCommandLineToolsScenario(cltInstaller) {
 
 function validateFlowCapabilityStrategyScenario(strategy) {
   if (
-    strategy?.strategy_authority !== 'opl-flow'
+    strategy?.consumption_scope !== 'full_build_time_only'
+    || 'runtime_projection_ref' in strategy
+    || strategy?.strategy_authority !== 'opl-flow'
     || strategy?.compiler_authority !== 'opl-framework'
     || strategy?.app_role !== 'projection_consumer_only'
-    || strategy?.runtime_projection_ref !==
-      'app_state.agent_packages.status_index.packages.opl-flow.capability_strategy'
     || strategy?.full_build_lock_kind !== 'opl_flow_capability_build_lock.v1'
   ) {
-    throw new Error('First-run matrix must consume the Framework-compiled OPL Flow capability strategy');
+    throw new Error('First-run matrix must consume the Framework-compiled OPL Flow capability build lock at Full build time only');
   }
 }
 

@@ -326,24 +326,20 @@ test('Framework compatibility receipt validation rejects empty, unbound, expired
   );
 });
 
-test('model precedence keeps a supported App frontier ahead of stale recommendations', () => {
+test('App owns Codex Auto model policy without runtime Flow model_projection coupling', () => {
   const installExposure = readJson('contracts/app-install-exposure-policy.json');
   const productProfile = readJson('contracts/app-product-profile.json');
   assert.deepEqual(productProfile.codex.auto_model_policy.resolution_precedence, [
     'explicit_user_selection',
     'app_default_then_catalog_compatibility',
-    'installed_opl_flow_recommendation',
-    'fresh_codex_live_default',
-    'app_fallback_when_flow_unavailable',
+    'app_fallback_when_catalog_unavailable',
   ]);
   assert.equal(
     productProfile.codex.auto_model_policy.app_fallback_role,
     'configured_default_when_catalog_metadata_is_unavailable',
   );
-  assert.equal(
-    productProfile.codex.auto_model_policy.policy_source_ref,
-    'app_state.agent_packages.status_index.packages.opl-flow.model_projection',
-  );
+  assert.equal('policy_source_ref' in productProfile.codex.auto_model_policy, false);
+  assert.equal('recommendation_authority' in productProfile.codex.auto_model_policy, false);
   assert.equal(
     productProfile.codex.auto_model_policy.configured_default_role,
     'app_default_with_catalog_compatibility_fallback',
@@ -352,12 +348,19 @@ test('model precedence keeps a supported App frontier ahead of stale recommendat
   const competingAppDefault = structuredClone(productProfile);
   competingAppDefault.codex.auto_model_policy.resolution_precedence = [
     'explicit_user_selection',
-    'app_fallback_when_flow_unavailable',
-    'installed_opl_flow_recommendation',
-    'fresh_codex_live_default',
+    'app_fallback_when_catalog_unavailable',
+    'app_default_then_catalog_compatibility',
   ];
   assert.throws(
     () => validateProductProfile(competingAppDefault, installExposure),
+    { code: 'app_model_policy_precedence' },
+  );
+
+  const legacyFlowProjection = structuredClone(productProfile);
+  legacyFlowProjection.codex.auto_model_policy.policy_source_ref =
+    'app_state.agent_packages.status_index.packages.opl-flow.model_projection';
+  assert.throws(
+    () => validateProductProfile(legacyFlowProjection, installExposure),
     { code: 'app_model_policy_precedence' },
   );
 });

@@ -30,25 +30,22 @@ export function validateProductProfileCodexDefaults(profile, guiContract, instal
     throw new Error('Product profile must preserve the system Codex home without App environment injection');
   }
   if (
-    profile.codex.auto_model_policy?.recommendation_authority !== 'opl-flow' ||
-    profile.codex.auto_model_policy.policy_source_ref !==
-      'app_state.agent_packages.status_index.packages.opl-flow.model_projection' ||
-    profile.codex.auto_model_policy.projection_surface_kind !== 'opl_codex_model_policy_projection.v1' ||
-    profile.codex.auto_model_policy.projection_presence_rule !==
-      'consume_only_when_fresh_opl_flow_presence_installed_true_and_projection_is_valid' ||
+    profile.codex.auto_model_policy?.authority !== 'one-person-lab-app' ||
+    'recommendation_authority' in profile.codex.auto_model_policy ||
+    'policy_source_ref' in profile.codex.auto_model_policy ||
+    'projection_surface_kind' in profile.codex.auto_model_policy ||
+    'projection_presence_rule' in profile.codex.auto_model_policy ||
     JSON.stringify(profile.codex.auto_model_policy.resolution_precedence) !== JSON.stringify([
       'explicit_user_selection',
       'app_default_then_catalog_compatibility',
-      'installed_opl_flow_recommendation',
-      'fresh_codex_live_default',
-      'app_fallback_when_flow_unavailable',
+      'app_fallback_when_catalog_unavailable',
     ]) ||
     profile.codex.auto_model_policy.app_fallback_role !==
       'configured_default_when_catalog_metadata_is_unavailable' ||
     profile.codex.auto_model_policy.configured_default_role !==
       'app_default_with_catalog_compatibility_fallback'
   ) {
-    throw Object.assign(new Error('Product profile model policy must use user, fresh frontier/App default, installed Flow, compatible catalog, then App fallback precedence'), { code: 'app_model_policy_precedence' });
+    throw Object.assign(new Error('Product profile model policy must stay App-owned with user, App default/compatible catalog, then App catalog-unavailable fallback precedence'), { code: 'app_model_policy_precedence' });
   }
   validateOplFlowContext(profile.codex?.opl_flow_context, 'Product profile OPL Flow Context');
   const additionalInstructions = profile.codex?.new_conversation_additional_instructions;
