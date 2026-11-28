@@ -78,9 +78,20 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     'studio-full-append-admission', 'studio-full-append',
     'protected-operation-admission', 'admission', 'stable-admission-manifest',
     'reconcile-completed-webui', 'webui-source-authority', 'webui-carrier', 'webui-promotion',
-    'stable-followups', ...Object.keys(stableEntrySpecs),
+    'stable-followups', 'emit-stable-receipt', 'emit-stable-full-receipt', ...Object.keys(stableEntrySpecs),
   ].sort();
   failures += failIf(id, !sameJson(Object.keys(jobs).sort(), expectedJobs), `jobs must be exactly ${expectedJobs.join(', ')}`);
+  for (const receiptJobId of ['emit-stable-receipt', 'emit-stable-full-receipt']) {
+    const receiptJob = jobs[receiptJobId];
+    failures += failIf(
+      id,
+      !receiptJob || !exactObject(receiptJob.permissions, exactReadPermissions) ||
+        receiptJob.uses !== 'gaofeng21cn/opl-release/.github/workflows/reusable-emit-receipt.yml@v1' ||
+        Object.prototype.hasOwnProperty.call(receiptJob, 'steps') ||
+        Object.prototype.hasOwnProperty.call(receiptJob, 'secrets'),
+      `${receiptJobId} must be a step-free read-only call to reusable-emit-receipt.yml@v1`,
+    );
+  }
   failures += failIf(
     id,
     Boolean(jobs['source-qualification']) ||

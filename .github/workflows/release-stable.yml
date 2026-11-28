@@ -1549,3 +1549,45 @@ jobs:
       operation_started_at: ${{ needs.admission.outputs.operation_started_at }}
       operation_deadline_at: ${{ needs.admission.outputs.operation_deadline_at }}
     secrets: inherit
+
+  emit-stable-receipt:
+    if: ${{ always() && !cancelled() && (inputs.entry == 'studio_carrier_admission' || (inputs.entry == 'framework_release' && (inputs.operation == 'standard' || inputs.operation == 'resume_standard'))) }}
+    needs: [admission, protected-operation-admission, stable-admission-manifest, standard, resume-standard, stable-followups, studio-protected-release]
+    permissions:
+      contents: read
+      actions: read
+    uses: gaofeng21cn/opl-release/.github/workflows/reusable-emit-receipt.yml@v1
+    with:
+      subject_id: opl-app
+      lane: stable
+      stage: ${{ (needs.standard.result == 'success' || needs.resume-standard.result == 'success' || needs.studio-protected-release.result == 'success') && 'verified' || 'blocked' }}
+      version: ${{ inputs.entry != 'studio_carrier_admission' && (inputs.operation == 'standard' && needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version) || '' }}
+      tag: ${{ inputs.entry == 'studio_carrier_admission' && inputs.studio_tag || ((inputs.operation == 'standard' && needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version) != '' && format('v{0}', inputs.operation == 'standard' && needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version) || '') }}
+      commit: ${{ inputs.entry == 'studio_carrier_admission' && inputs.studio_sha || (inputs.operation == 'standard' && needs.protected-operation-admission.outputs.app_ref || needs.admission.outputs.app_ref) }}
+      published_version: ${{ inputs.entry != 'studio_carrier_admission' && (needs.standard.result == 'success' || needs.resume-standard.result == 'success') && (inputs.operation == 'standard' && needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version) || '' }}
+      published_tag: ${{ (needs.standard.result == 'success' || needs.resume-standard.result == 'success' || needs.studio-protected-release.result == 'success') && (inputs.entry == 'studio_carrier_admission' && inputs.studio_tag || ((inputs.operation == 'standard' && needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version) != '' && format('v{0}', inputs.operation == 'standard' && needs.stable-admission-manifest.outputs.version || needs.resume-standard.outputs.version) || '')) || '' }}
+      qualification_required: true
+      qualification_status: ${{ (needs.standard.result == 'success' || needs.resume-standard.result == 'success' || needs.studio-protected-release.result == 'success') && 'passed' || 'failed' }}
+      blocker_code: ${{ !(needs.standard.result == 'success' || needs.resume-standard.result == 'success' || needs.studio-protected-release.result == 'success') && 'stable_release_failed' || '' }}
+      blocker_message: ${{ !(needs.standard.result == 'success' || needs.resume-standard.result == 'success' || needs.studio-protected-release.result == 'success') && 'OPL Stable release did not complete publication' || '' }}
+
+  emit-stable-full-receipt:
+    if: ${{ always() && !cancelled() && (inputs.entry == 'studio_full_append' || (inputs.entry == 'framework_release' && inputs.operation == 'append_full')) }}
+    needs: [admission, append-full, studio-full-append-admission, studio-full-append]
+    permissions:
+      contents: read
+      actions: read
+    uses: gaofeng21cn/opl-release/.github/workflows/reusable-emit-receipt.yml@v1
+    with:
+      subject_id: opl-app
+      lane: stable-full
+      stage: ${{ (needs.append-full.result == 'success' || needs.studio-full-append.result == 'success') && 'verified' || 'blocked' }}
+      version: ${{ inputs.entry == 'studio_full_append' && inputs.studio_version || needs.admission.outputs.version }}
+      tag: ${{ inputs.entry == 'studio_full_append' && inputs.studio_tag || (needs.admission.outputs.version != '' && format('v{0}', needs.admission.outputs.version) || '') }}
+      commit: ${{ inputs.entry == 'studio_full_append' && inputs.studio_sha || (needs.admission.outputs.app_ref || github.sha) }}
+      published_version: ${{ (needs.append-full.result == 'success' || needs.studio-full-append.result == 'success') && (inputs.entry == 'studio_full_append' && inputs.studio_version || needs.admission.outputs.version) || '' }}
+      published_tag: ${{ (needs.append-full.result == 'success' || needs.studio-full-append.result == 'success') && (inputs.entry == 'studio_full_append' && inputs.studio_tag || (needs.admission.outputs.version != '' && format('v{0}', needs.admission.outputs.version) || '')) || '' }}
+      qualification_required: true
+      qualification_status: ${{ (needs.append-full.result == 'success' || needs.studio-full-append.result == 'success') && 'passed' || 'failed' }}
+      blocker_code: ${{ !(needs.append-full.result == 'success' || needs.studio-full-append.result == 'success') && 'stable_full_append_failed' || '' }}
+      blocker_message: ${{ !(needs.append-full.result == 'success' || needs.studio-full-append.result == 'success') && 'OPL Stable Full append did not complete publication' || '' }}

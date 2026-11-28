@@ -1033,32 +1033,23 @@ test('Nightly publisher refuses an unexpected public asset before publishing a d
   assert.equal(remote.calls.includes('publish'), false);
 });
 
-test('Nightly admission accepts the scoped controller and rejects copied or invalid schedule claims', () => {
+test('Nightly admission accepts the scoped controller via shared verify-dispatch and rejects invalid local claims', () => {
   const workflow = parseYaml(fs.readFileSync('.github/workflows/release-nightly.yml', 'utf8')) as any;
-  const requestStep = workflow.jobs.admission.steps.find((step: any) => step.id === 'request');
+  const steps = workflow.jobs.admission.steps;
+  const verifyIndex = steps.findIndex((step: any) =>
+    typeof step.uses === 'string' && step.uses.startsWith('gaofeng21cn/opl-release/.github/actions/verify-dispatch@'));
+  const requestIndex = steps.findIndex((step: any) => step.id === 'request');
+  assert.ok(verifyIndex > -1 && verifyIndex < requestIndex);
+  assert.match(steps[verifyIndex].uses, /@[0-9a-f]{40}$/);
+  assert.equal(steps[verifyIndex].with.control_run_id, '${{ inputs.opl_release_control_run_id }}');
+  assert.equal(steps[verifyIndex].with.workflow, 'release-nightly.yml');
+  assert.equal(steps[verifyIndex].with.gh_token, '${{ github.token }}');
+  const requestStep = steps[requestIndex];
   const run = requestStep.run.split('app_ref="$(git rev-parse HEAD)"')[0];
-  const controllerRun = {
-    id: 54321,
-    repository: { full_name: 'gaofeng21cn/opl-release' },
-    head_repository: { full_name: 'gaofeng21cn/opl-release' },
-    path: '.github/workflows/control-daily-releases.yml',
-    event: 'schedule',
-    head_branch: 'main',
-    run_attempt: 1,
-    status: 'in_progress',
-    conclusion: null,
-  };
-  const matchingRun = {
-    run_number: 9,
-    display_title: 'OPL Standard Nightly (scheduled-production) [opl-release:54321]',
-    actor: { id: 356454848 },
-  };
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opl-nightly-admission-'));
   try {
-    const runAdmission = (source = controllerRun, previous = [matchingRun], env = {}) => spawnSync(
+    const runAdmission = (env = {}) => spawnSync(
       'bash', ['-c', `
-        curl() { printf '%s\\n' "$SOURCE_RUN"; }
-        gh() { printf '%s\\n' "$OWNER_RUNS"; }
         ${run}
         printf '%s %s' "$invocation_mode" "$authority_source"
       `], {
@@ -1074,33 +1065,13 @@ test('Nightly admission accepts the scoped controller and rejects copied or inva
           GITHUB_ACTOR_ID: '356454848',
           OPERATOR_CONFIRMATION: '',
           OPL_RELEASE_CONTROL_RUN_ID: '54321',
-          SOURCE_RUN: JSON.stringify(source),
-          OWNER_RUNS: JSON.stringify([{ workflow_runs: previous }]),
           ...env,
         },
       },
     );
-    const accepted = runAdmission(controllerRun, [matchingRun, { ...matchingRun, run_number: 10 }, {
-      ...matchingRun, run_number: 8, actor: { id: 1 },
-    }]);
+    const accepted = runAdmission();
     assert.equal(accepted.status, 0, accepted.stderr);
     assert.equal(accepted.stdout, 'scheduled_production opl_release_control');
-    const previous = runAdmission(controllerRun, [{ ...matchingRun, run_number: 8 }]);
-    assert.equal(previous.status, 1);
-    assert.match(previous.stdout, /already dispatched/);
-    for (const invalid of [
-      { id: 54320 },
-      { repository: { full_name: 'someone/opl-release' } },
-      { head_repository: { full_name: 'someone/opl-release' } },
-      { path: '.github/workflows/other.yml' },
-      { head_branch: 'feature' },
-      { event: 'workflow_dispatch' },
-      { run_attempt: 2 },
-    ]) {
-      const rejected = runAdmission({ ...controllerRun, ...invalid });
-      assert.equal(rejected.status, 1);
-      assert.match(rejected.stdout, /exact first-attempt schedule/);
-    }
     for (const invalid of [
       { GITHUB_ACTOR_ID: '1' },
       { GITHUB_ACTOR_ID: '173561466' },
@@ -1108,11 +1079,11 @@ test('Nightly admission accepts the scoped controller and rejects copied or inva
       { GITHUB_REF: 'refs/heads/feature' },
       { OPERATOR_CONFIRMATION: 'publish_nonlatest_nightly' },
       { GITHUB_RUN_ATTEMPT: '2' },
-    ]) assert.equal(runAdmission(controllerRun, [], invalid).status, 1);
-    assert.equal(runAdmission(controllerRun, [], {
+    ]) assert.equal(runAdmission(invalid).status, 1);
+    assert.equal(runAdmission({
       GITHUB_EVENT_NAME: 'schedule', OPL_RELEASE_CONTROL_RUN_ID: '',
     }).stdout, 'scheduled_production daily_schedule');
-    assert.equal(runAdmission(controllerRun, [], {
+    assert.equal(runAdmission({
       OPL_RELEASE_CONTROL_RUN_ID: '', OPERATOR_CONFIRMATION: 'publish_nonlatest_nightly',
     }).stdout, 'development_validation user_explicit');
   } finally {
@@ -1141,8 +1112,16 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
     release.jobs.admission.if,
     "${{ github.event_name != 'schedule' || vars.OPL_RELEASE_CENTRAL_DAILY != 'true' }}",
   );
+  const admissionSteps = release.jobs.admission.steps;
+  const verifyStep = admissionSteps.find((step: any) =>
+    typeof step.uses === 'string' && step.uses.startsWith('gaofeng21cn/opl-release/.github/actions/verify-dispatch@'));
+  assert.ok(verifyStep);
+  assert.equal(
+    verifyStep.with.expected_title,
+    "${{ format('OPL Standard Nightly (scheduled-production) [opl-release:{0}]', inputs.opl_release_control_run_id) }}",
+  );
   const admissionRun = String(
-    release.jobs.admission.steps.find((step: any) => step.id === 'request')?.run ?? '',
+    admissionSteps.find((step: any) => step.id === 'request')?.run ?? '',
   );
   assert.match(admissionRun, /invocation_mode=scheduled_production/);
   assert.match(admissionRun, /invocation_mode=development_validation/);
@@ -1150,20 +1129,10 @@ test('Nightly workflows keep one shared build implementation and post-publicatio
   assert.match(admissionRun, /authority_source=opl_release_control/);
   assert.match(admissionRun, /authority_source=user_explicit/);
   assert.match(admissionRun, /GITHUB_ACTOR_ID" = 356454848/);
-  assert.match(admissionRun, /api\.github\.com\/repos\/gaofeng21cn\/opl-release\/actions\/runs/);
-  assert.match(admissionRun, /\.repository\.full_name == "gaofeng21cn\/opl-release"/);
-  assert.match(admissionRun, /\.head_repository\.full_name == "gaofeng21cn\/opl-release"/);
-  assert.match(admissionRun, /\.path == "\.github\/workflows\/control-daily-releases\.yml"/);
-  assert.match(admissionRun, /\.event == "schedule"/);
-  assert.match(admissionRun, /\.head_branch == "main"/);
-  assert.match(admissionRun, /\.run_attempt == 1/);
-  assert.match(admissionRun, /\.display_title == \$title/);
-  assert.match(admissionRun, /already dispatched a Nightly/);
   assert.match(admissionRun, /--opl-release-control-run-id "\$OPL_RELEASE_CONTROL_RUN_ID"/);
   assert.match(admissionRun, /--invocation-mode "\$invocation_mode"/);
   assert.match(admissionRun, /--event "\$GITHUB_EVENT_NAME"/);
   assert.match(admissionRun, /--authority-source "\$authority_source"/);
-  const admissionSteps = release.jobs.admission.steps;
   const credentialCheck = admissionSteps.findIndex(
     (step: any) => step.name === 'Check Nightly publication credential availability',
   );

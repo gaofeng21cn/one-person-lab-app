@@ -72,6 +72,22 @@ jobs:
         id: profile
         run: node --experimental-strip-types scripts/active-shell-build-profile.ts --github-output "$GITHUB_OUTPUT"
 
+      - name: Reject conflicting confirmation on centralized Nightly dispatch
+        if: inputs.opl_release_control_run_id != ''
+        env:
+          OPERATOR_CONFIRMATION: ${{ inputs.operator_confirmation || '' }}
+        shell: bash
+        run: test -z "$OPERATOR_CONFIRMATION" || { echo "::error::Centralized Nightly dispatch cannot include operator_confirmation."; exit 1; }
+
+      - name: Verify centralized Nightly dispatch
+        if: inputs.opl_release_control_run_id != ''
+        uses: gaofeng21cn/opl-release/.github/actions/verify-dispatch@0b992e3bf28ee4caf87de7628fd22eaeb9721c12
+        with:
+          control_run_id: ${{ inputs.opl_release_control_run_id }}
+          workflow: release-nightly.yml
+          expected_title: ${{ format('OPL Standard Nightly (scheduled-production) [opl-release:{0}]', inputs.opl_release_control_run_id) }}
+          gh_token: ${{ github.token }}
+
       - name: Freeze one exact Standard Nightly request
         id: request
         env:
@@ -107,36 +123,6 @@ jobs:
                   exit 1
                 }
                 test "$GITHUB_REF" = refs/heads/main
-                curl --fail --silent --show-error \
-                  --header 'Accept: application/vnd.github+json' \
-                  "https://api.github.com/repos/gaofeng21cn/opl-release/actions/runs/$OPL_RELEASE_CONTROL_RUN_ID" \
-                  > "$RUNNER_TEMP/opl-release-control-run.json"
-                jq -e --arg run "$OPL_RELEASE_CONTROL_RUN_ID" '
-                  (.id | tostring) == $run
-                  and .repository.full_name == "gaofeng21cn/opl-release"
-                  and .head_repository.full_name == "gaofeng21cn/opl-release"
-                  and .path == ".github/workflows/control-daily-releases.yml"
-                  and .event == "schedule"
-                  and .head_branch == "main"
-                  and .run_attempt == 1
-                ' "$RUNNER_TEMP/opl-release-control-run.json" >/dev/null || {
-                  echo "::error::The source must be the exact first-attempt schedule from opl-release main."
-                  exit 1
-                }
-                gh api --paginate --slurp \
-                  "repos/$GITHUB_REPOSITORY/actions/workflows/release-nightly.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
-                  > "$RUNNER_TEMP/opl-nightly-dispatch-runs.json"
-                control_title="OPL Standard Nightly (scheduled-production) [opl-release:$OPL_RELEASE_CONTROL_RUN_ID]"
-                jq -e --arg title "$control_title" --argjson current "$GITHUB_RUN_NUMBER" --argjson actor "$GITHUB_ACTOR_ID" '
-                  [
-                    .[]?.workflow_runs[]?
-                    | select(.run_number < $current and .actor.id == $actor)
-                    | select(.display_title == $title)
-                  ] | length == 0
-                ' "$RUNNER_TEMP/opl-nightly-dispatch-runs.json" >/dev/null || {
-                  echo "::error::This centralized controller run ID has already dispatched a Nightly."
-                  exit 1
-                }
                 invocation_mode=scheduled_production
                 authority_source=opl_release_control
               else
@@ -443,3 +429,42 @@ jobs:
             nightly-publication.json
           if-no-files-found: error
           retention-days: 30
+
+      - name: Checkout opl-release receipt emitter
+        if: ${{ !cancelled() }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: gaofeng21cn/opl-release
+          ref: 0b992e3bf28ee4caf87de7628fd22eaeb9721c12
+          path: .opl-release-emitter
+          persist-credentials: false
+
+      - name: Emit Nightly opl.release-receipt.v1
+        if: ${{ !cancelled() }}
+        env:
+          PYTHONPATH: .opl-release-emitter/src
+          PYTHONDONTWRITEBYTECODE: '1'
+          CANDIDATE_VERSION: ${{ needs.admission.outputs.version }}
+          CANDIDATE_COMMIT: ${{ needs.admission.outputs.app_ref }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v${CANDIDATE_VERSION}"
+          args=(--subject-id opl-app --lane nightly --version "$CANDIDATE_VERSION" --tag "$tag" --commit "$CANDIDATE_COMMIT" --run-url "$RUN_URL" --output "$RUNNER_TEMP/release-receipt.json")
+          if [ "$JOB_STATUS" = success ] && [ -f nightly-publication.json ]; then
+            args+=(--stage published --published-version "$CANDIDATE_VERSION" --published-tag "$tag" --qualification-status passed)
+          else
+            args+=(--stage blocked --qualification-status failed --blocker-code nightly_publish_failed --blocker-message "Nightly qualification or GitHub prerelease publication failed")
+          fi
+          python3 -B -m opl_release emit-receipt "${args[@]}"
+
+      - name: Upload Nightly opl.release-receipt.v1
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opl-release-receipt-opl-app-nightly-${{ github.run_id }}
+          path: ${{ runner.temp }}/release-receipt.json
+          overwrite: true
+          if-no-files-found: error
