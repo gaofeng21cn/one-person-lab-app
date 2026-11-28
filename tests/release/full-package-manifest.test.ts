@@ -20,7 +20,7 @@ test('Full and qualification manifests retain Codex/CLI seeds and exclude retire
     fullManifest.runtime_payloads.codex_cli.qualification_input_ref,
     'contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli',
   );
-  assert.equal(fullManifest.runtime_payloads.temporal_cli.dependency_id, 'temporal-cli');
+  assert.equal(fullManifest.runtime_payloads.temporal_cli, undefined);
   assert.equal(fullManifest.runtime_payloads.officecli.dependency_id, 'officecli');
   assert.equal(qualificationManifest.runtime_payloads.codex_cli.dependency_id, 'codex-cli');
   assert.equal(

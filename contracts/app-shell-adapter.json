@@ -11,7 +11,7 @@
     "owner": "OPL Framework",
     "service_id": "opl-workbench-services",
     "schema_version": "opl-workbench-services.v1",
-    "scheduler_authority": "framework_temporal_schedule_and_history",
+    "scheduler_authority": "framework_workbench_schedule_and_history",
     "state_path": "workbench_services.tasks",
     "read_refs": {
       "list": "workbench#tasks",
@@ -583,7 +583,6 @@
     "desktop_download": "silent",
     "desktop_install": "after_normal_host_shutdown_or_explicit_idle_restart",
     "bootstrap_pin": "first_install_only_preserve_existing_managed_framework_updates",
-    "external_temporal_server": "report_external_owner_without_brew_upgrade_or_service_restart",
     "disabled_by": [
       "OPL_STUDIO_MANAGED_UPDATES=0",
       "OPL_STUDIO_READ_ONLY=1",

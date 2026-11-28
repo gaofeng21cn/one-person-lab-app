@@ -426,8 +426,6 @@ function runBuild(
     '--officecli-root', upstreams.officecli.source_root,
     '--officecli-bin', upstreams.officecli.binary,
     '--mineru-open-api-bin', upstreams.mineru_open_api.binary,
-    '--temporal-cli-bin', upstreams.temporal.binary,
-    '--temporal-cli-archive', upstreams.temporal.archive,
   ];
   if (options.mode === 'local-app') args.push('--app-only');
   if (options.reuseGuiViteOutput) args.push('--reuse-gui-vite-output');

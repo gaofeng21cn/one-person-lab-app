@@ -1309,7 +1309,6 @@
     },
     "diagnostic_source_policy": "provider/projection/ref/ledger/current_control_state details stay secondary and are not the default page language",
     "must_not_default_display_terms": [
-      "Temporal",
       "provider",
       "projection",
       "ref",
@@ -2146,13 +2145,11 @@
       "domain_verdict_authority": false,
       "candidate_policy": "report_first_candidate_refs_review_needs_changes_continue_in_conversation_no_auto_enable_no_skill_body_write"
     },
-    "temporal_policy": "diagnostics_only_never_user_task_model",
     "app_role": "display_only_task_awareness_consumer",
     "shell_role": "thin_renderer_no_runtime_store",
     "forbidden_claims": [
       "new_task_dashboard",
       "shell_runtime_truth",
-      "temporal_as_user_task_model",
       "artifact_body",
       "owner_receipt_authority",
       "domain_quality_verdict",

@@ -113,7 +113,7 @@ function appStateFixture(profile, stageAttemptCount, actions = []) {
       schema: "opl_app_state.v1",
       profile,
       operator: { summary: { stage_attempt_count: stageAttemptCount }, ...(actions.length ? { actions } : {}) },
-      provider: { temporal: { status: "ready" } },
+      provider: { runway: { status: "ready" } },
     },
   };
 }
@@ -141,7 +141,7 @@ function actionExecutionFixture(actionId, dryRun) {
 }
 
 export function writeRuntimeEvidenceJsonFiles(tempRoot) {
-  const triggerAction = { action_id: "provider-scheduler:temporal:trigger" };
+  const triggerAction = { action_id: "provider-scheduler:runway:trigger" };
   const stageActionId = "stage-production-attempt:medautoscience:analysis-campaign";
   writeJsonFixtures(tempRoot, [
     ["app-state-summary.json", appStateFixture("fast", 1, [triggerAction])],

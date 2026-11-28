@@ -210,7 +210,7 @@ test("Settings keeps a compact background-task summary while Service Status owns
 
   const staleSummary = contracts();
   staleSummary.controlPlane.experience_contract.page_contracts.overview.background_services_summary.source =
-    "app_state.provider.temporal";
+    "app_state.provider.legacy";
   assert.throws(() => validate(staleSummary), /Settings Overview background_services_summary/);
 
   assert.equal(

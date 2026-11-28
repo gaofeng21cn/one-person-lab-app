@@ -291,7 +291,7 @@ export function buildReleaseAdmissionChecks(
     forbidden: [],
   },
   {
-    id: "install_exposure_unsigned_and_temporal_policy",
+    id: "install_exposure_unsigned_policy",
     file: "contracts/app-install-exposure-policy.json",
     required: [
       '"surface": "stable_local_authorized_macos_install"',
@@ -313,12 +313,6 @@ export function buildReleaseAdmissionChecks(
       '"xattr -dr com.apple.quarantine"',
       '"codesign --verify --deep --strict --verbose=2"',
       '"spctl --assess --type execute --verbose=4"',
-      '"auto_configuration_entrypoints"',
-      '"opl system startup-maintenance"',
-      '"must_export_local_defaults_before_provider_checks": true',
-      '"must_surface_service_worker_and_dependency_diagnostics": true',
-      '"must_not_block_ready_to_launch_on_worker_residency": true',
-      '"must_fail_closed_when_packaged_temporal_payload_is_missing": true',
     ],
     forbidden: [],
   },

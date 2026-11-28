@@ -408,7 +408,6 @@ export function writeFullRemoteAssets(outDir, version) {
     buildFullPackageManifest({
       version,
       runtimeAssertions: {
-        temporal_core_bridge_releases: ["aarch64-apple-darwin"],
         excluded_module_venv_count: 0,
         declared_pruned_paths: forbiddenFrameworkCodexPaths.map((relativePath) => ({
           path: relativePath,
@@ -426,18 +425,7 @@ export function writeFullRemoteAssets(outDir, version) {
           skills: { size_bytes: 8 },
         },
       },
-      components: {
-        temporal_cli: {
-          source_path: "/tmp/temporal",
-          version: "temporal version 1.7.0",
-          size_bytes: 801,
-          role: "temporal_cli_offline_archive_wrapper",
-          required: true,
-          binary_path: null,
-          archive_path: "runtime/current/vendor/temporal/temporal_cli_darwin_arm64.tar.gz",
-          archive_size_bytes: 114835528,
-        },
-      },
+      components: {},
       optionalComponents: {
         bun: {
           source_path: null,

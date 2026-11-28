@@ -38,7 +38,7 @@ const attachedArtifactPaths = {
 };
 const completeAttachedArtifacts = Object.keys(attachedArtifactPaths);
 
-const collectorActionId = 'provider-scheduler:temporal:trigger';
+const collectorActionId = 'provider-scheduler:runway:trigger';
 
 function writeCompleteEvidence(root, {
   runtime = null,
@@ -175,8 +175,8 @@ test('release evidence collector captures live OPL runtime refs and keeps missin
     ['app', 'state', '--profile', 'fast', '--json'],
     ['app', 'state', '--profile', 'full', '--json'],
     ['runtime', 'app-operator-drilldown', '--detail', 'full', '--json'],
-    ['app', 'action', 'execute', '--action', 'provider-scheduler:temporal:trigger', '--dry-run', '--json'],
-    ['app', 'action', 'execute', '--action', 'provider-scheduler:temporal:trigger', '--json'],
+    ['app', 'action', 'execute', '--action', 'provider-scheduler:runway:trigger', '--dry-run', '--json'],
+    ['app', 'action', 'execute', '--action', 'provider-scheduler:runway:trigger', '--json'],
   ]);
 });
 

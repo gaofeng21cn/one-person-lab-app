@@ -372,8 +372,6 @@ test("Settings keeps Gateway ownership, cached storage freshness, managed depend
   );
   assert.deepStrictEqual(managedDependencies.required_ids, [
     "codex-cli",
-    "temporal-runtime",
-    "temporal-system-cli",
   ]);
   assert.deepStrictEqual(managedDependencies.required_fields, [
     "dependency_id",

@@ -376,7 +376,6 @@ jobs:
           for selector in \
             bun_version:.toolchain.bun.version go_version:.toolchain.go.version \
             python_version:.toolchain.python.version uv_version:.toolchain.uv.version zstd_version:.toolchain.zstd.version \
-            temporal_version:.runtime_payloads.temporal_cli.version temporal_sha256:.runtime_payloads.temporal_cli.darwin_arm64_archive_sha256 \
             officecli_version:.runtime_payloads.officecli.version officecli_sha256:.runtime_payloads.officecli.darwin_arm64_asset_sha256; do
             output="${selector%%:*}"; query="${selector#*:}"; value="$(jq -er "$query" "$resolved_full")"
             echo "${output}=$value" >> "$GITHUB_OUTPUT"
@@ -753,7 +752,7 @@ jobs:
           cache: ${{ runner.environment != 'self-hosted' }}
           cache-dependency-path: MinerU-Ecosystem/cli/mineru-open-api/go.sum
 
-      - name: Install zstd, Temporal CLI, OfficeCLI, and MinerU
+      - name: Install zstd, OfficeCLI, and MinerU
         shell: bash
         run: |
           set -euo pipefail
@@ -802,17 +801,6 @@ jobs:
           chmod +x "$officecli_bin"
           officecli --version
           mineru-open-api version
-          temporal_version='${{ steps.full-build-inputs.outputs.temporal_version }}'
-          temporal_archive="$RUNNER_TEMP/temporal_cli_${temporal_version}_darwin_arm64.tar.gz"
-          temporal_url="https://github.com/temporalio/cli/releases/download/v${temporal_version}/temporal_cli_${temporal_version}_darwin_arm64.tar.gz"
-          if [ -f one-person-lab/scripts/fetch-dependency-archive.mjs ]; then
-            node one-person-lab/scripts/fetch-dependency-archive.mjs --url "$temporal_url" --sha256 '${{ steps.full-build-inputs.outputs.temporal_sha256 }}' --output "$temporal_archive"
-          else
-            curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$temporal_url" -o "$temporal_archive"
-          fi
-          echo '${{ steps.full-build-inputs.outputs.temporal_sha256 }}  '"$temporal_archive" | shasum -a 256 -c -
-          tar -xzf "$temporal_archive" -C "$HOME/.local/bin" temporal
-          temporal --version | grep -F "temporal version $temporal_version"
           uv --version
           uv --version | grep -F 'uv ${{ steps.full-build-inputs.outputs.uv_version }}'
           zstd --version | grep -F 'v${{ steps.full-build-inputs.outputs.zstd_version }}'
@@ -820,8 +808,6 @@ jobs:
           go version | grep -F 'go${{ steps.full-build-inputs.outputs.go_version }}'
           python --version | grep -F 'Python ${{ steps.full-build-inputs.outputs.python_version }}'
           echo "OPL_FULL_BUN_BIN=$(command -v bun)" >> "$GITHUB_ENV"
-          echo "OPL_FULL_TEMPORAL_CLI_BIN=$(command -v temporal)" >> "$GITHUB_ENV"
-          echo "OPL_FULL_TEMPORAL_CLI_ARCHIVE=$temporal_archive" >> "$GITHUB_ENV"
           echo "OPL_FULL_TOOLCHAIN_READY_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Write Full toolchain supply-chain observation receipt
@@ -1036,7 +1022,6 @@ jobs:
           test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
           export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
           export OPL_FULL_UV_BIN="$OPL_FULL_UV_BIN"
-          export OPL_FULL_TEMPORAL_CLI_BIN="${OPL_FULL_TEMPORAL_CLI_BIN:-$(command -v temporal)}"
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
           export OPL_FULL_MAC_ROOT="$GITHUB_WORKSPACE/med-autocast"
@@ -1274,7 +1259,6 @@ jobs:
           test -x "${OPL_FULL_UV_BIN:-}" || { echo '::error::The exact Full uv binary was not materialized.'; exit 1; }
           export PATH="$(dirname "$OPL_FULL_UV_BIN"):$PATH"
           export OPL_FULL_UV_BIN="$OPL_FULL_UV_BIN"
-          export OPL_FULL_TEMPORAL_CLI_BIN="${OPL_FULL_TEMPORAL_CLI_BIN:-$(command -v temporal)}"
           export OPL_FULL_MAS_ROOT="$GITHUB_WORKSPACE/med-autoscience"
           export OPL_FULL_MAS_SCHOLAR_SKILLS_ROOT="$GITHUB_WORKSPACE/mas-scholar-skills"
           export OPL_FULL_MAC_ROOT="$GITHUB_WORKSPACE/med-autocast"

@@ -1,6 +1,6 @@
 import { assertDeepEqualJson, assertIncludesAll } from './assertions.ts';
 
-const schedulerAuthority = 'framework_temporal_schedule_and_history';
+const schedulerAuthority = 'framework_workbench_schedule_and_history';
 const adapterContractRef = 'contracts/app-shell-adapter.json#scheduled_tasks_adapter';
 const productPolicyRef = 'contracts/app-gui-product-contract.json#scheduled_tasks_policy';
 const executorIdentity = 'opl_codex_native_canonical_app_server_transport';
@@ -12,7 +12,7 @@ export function validateScheduledTasksProductPolicy(policy, label = 'Scheduled T
     || policy.route !== '/scheduled' || policy.scheduler_authority !== schedulerAuthority
     || policy.single_scheduler_store_required !== true || policy.active_adapter_contract_ref !== adapterContractRef
     || 'active_aionui_contract_ref' in policy || 'legacy_non_codex_job_policy' in policy) {
-    throw new Error(`${label} must use the current Framework workbench service and one Temporal store`);
+    throw new Error(`${label} must use the current Framework workbench service and one Framework scheduler store`);
   }
   assertDeepEqualJson(policy.capabilities, capabilities, `${label} capabilities`);
   assertDeepEqualJson(policy.navigation, {
@@ -28,7 +28,7 @@ export function validateScheduledTasksProductPolicy(policy, label = 'Scheduled T
     app_must_remain_running: true, schedule_kinds: ['once', 'daily', 'weekly', 'interval'],
     timezone: 'explicit_iana_timezone_on_write', permissions: [':read-only', ':workspace'],
     write_confirmation: 'framework_preview_then_explicit_confirm', overlap_policy: 'skip', late_start_limit_minutes: null,
-    missed_schedule_policy: 'framework_temporal_catchup_policy',
+    missed_schedule_policy: 'framework_schedule_catchup_policy',
     network_access: 'enabled_independently_of_file_write_permissions',
     timeout_minutes: 'user_defined_positive_integer_within_runtime_duration_range',
     unchanged_once_time_on_content_edit: true,
@@ -38,10 +38,10 @@ export function validateScheduledTasksProductPolicy(policy, label = 'Scheduled T
       '@deepseek-ai/dsh-client-ui-schedule/TaskManagerPage',
       '@deepseek-ai/dsh-client-ui-schedule/TaskDetail',
     ],
-    reuse_mode: 'official_schedule_ui_with_framework_temporal_owner_adapter',
-    catalog_owner: 'framework_workbench_services_temporal',
+    reuse_mode: 'official_schedule_ui_with_framework_owner_adapter',
+    catalog_owner: 'framework_workbench_services',
     action_owner: 'framework_workbench_services_task_actions',
-    run_history_owner: 'framework_temporal_workflow_history',
+    run_history_owner: 'framework_workbench_task_history',
     execution_result_owner: 'opl_codex_native_canonical_thread_turn',
     native_dsh_schedule_host_loaded: false,
     native_dsh_schedule_session_authority_adopted: false,

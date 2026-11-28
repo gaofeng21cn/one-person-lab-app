@@ -47,7 +47,7 @@ test('Full restores raw archives before discovery and consumes the same cache be
   assert.ok(steps.indexOf(save) < steps.indexOf(named('Build Full first-install package')), 'verified downloads survive a later packaging failure');
   assert.equal(restore.with.path, save.with.path);
   assert.match(save.if, /github.ref == 'refs\/heads\/main'/);
-  for (const name of ['Setup exact Python and packaged uv', 'Install zstd, Temporal CLI, OfficeCLI, and MinerU']) {
+  for (const name of ['Setup exact Python and packaged uv', 'Install zstd, OfficeCLI, and MinerU']) {
     assert.match(named(name).run, /scripts\/fetch-dependency-archive\.mjs/);
     assert.match(named(name).run, /shasum -a 256/);
   }
@@ -55,13 +55,13 @@ test('Full restores raw archives before discovery and consumes the same cache be
   assert.match(resolveInputsRun, /dependency-resolution\.json/);
   assert.match(resolveInputsRun, /zstd_url=/);
   assert.match(resolveInputsRun, /zstd_sha256=/);
-  const installToolsRun = named('Install zstd, Temporal CLI, OfficeCLI, and MinerU').run;
+  const installToolsRun = named('Install zstd, OfficeCLI, and MinerU').run;
   assert.doesNotMatch(installToolsRun, /brew install zstd/);
   assert.match(installToolsRun, /zstd_url=/);
   assert.match(installToolsRun, /zstd-release/);
   assert.match(installToolsRun, /\$HOME\/\.local\/bin\/zstd/);
   assert.match(named('Configure dependency archive cache').run, /OPL_DEPENDENCY_ARCHIVE_CACHE_DIR/);
-  assert.ok(steps.indexOf(named('Install zstd, Temporal CLI, OfficeCLI, and MinerU')) < steps.indexOf(named('Restore Full toolchain runtime cache')));
+  assert.ok(steps.indexOf(named('Install zstd, OfficeCLI, and MinerU')) < steps.indexOf(named('Restore Full toolchain runtime cache')));
 });
 
 function walkFiles(dir: string): string[] {

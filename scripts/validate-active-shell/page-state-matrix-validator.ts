@@ -552,7 +552,6 @@ export function validatePageStateMatrix(matrix, contract, guiProductContract) {
       'provider diagnostics',
       'State Index',
       'artifact provenance',
-      'Temporal',
       'release evidence',
     ],
     'Runtime page forbidden display terms',

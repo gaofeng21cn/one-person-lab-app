@@ -3752,7 +3752,7 @@
       ]
     },
     "full_first_install_policy": "the already-public mutable Standard GitHub Release is the exact same-tag append target; workflow asset name+digest CAS and the unified public attestation bind the Full DMG and manifest. After exact Full asset readback, append_full idempotently updates the same Release body with the Full download URL, digest, size, and manifest so publication is visible to users. The protected Homebrew Full follower consumes those exact same-tag assets with digest CAS and public readback; physical clean-machine certification remains optional and non-blocking; no independent Full release or tag is created, and the Standard assets, Latest, and updater metadata remain unchanged",
-    "codex_temporal_policy": {
+    "codex_tool_policy": {
       "compatibility_mode": "minimum_version_plus_capability_smoke",
       "prefer_valid_newer_system_tool": true,
       "bundled_fallback_allowed": true
@@ -3913,73 +3913,9 @@
         "verification": "Full carries the operation-resolved stable Codex npm and macOS arm64 platform archives as a Studio first-install seed. Before starting the persistent App Server, Framework installs and verifies that seed without registry, Gateway or model access. Existing usable Codex is preserved; subsequent managed updates resolve current upstream stable versions. Framework duplicate bin/codex, bin/rg, vendor/codex and cache paths remain absent from the packaged payload.",
         "offline_seed_contract_ref": "contracts/app-release-qualification-input-manifest.json#runtime_payloads.codex_cli.full_offline_seed"
       },
-      "temporal_cli": {
-        "compatibility_mode": "minimum_version_plus_capability_smoke",
-        "minimum_version_source": "distribution cohort manifest components.temporal_cli.minimum_version",
-        "preferred_sources": [
-          "app_owned_archive_wrapper"
-        ],
-        "fallback_version_source": "distribution cohort manifest components.temporal_cli.fallback_version",
-        "fallback_runtime_path": "runtime/current/bin/temporal",
-        "fallback_payload_path": "runtime/current/vendor/temporal/temporal_cli_darwin_arm64.tar.gz",
-        "must_prefer_valid_newer_user_version": false,
-        "system_sources_visible_as_diagnostics": true,
-        "system_sources_require_expert_opt_in": true,
-        "verification": "App-owned runtime/current/bin/temporal must satisfy minimum_version, execute offline from the packaged archive wrapper, and pass Temporal provider smoke; system PATH/Homebrew/global Temporal may be reported as diagnostics but is not the default runtime source"
-      },
-      "temporal_runtime_provider": {
-        "provider_env_default": "OPL_FAMILY_RUNTIME_PROVIDER=temporal",
-        "local_service_defaults": {
-          "address_env": "OPL_TEMPORAL_ADDRESS",
-          "default_address": "127.0.0.1:7233",
-          "namespace_env": "OPL_TEMPORAL_NAMESPACE",
-          "namespace_resolution": "framework_explicit_environment_then_live_address_matched_worker_then_framework_default",
-          "task_queue_env": "OPL_TEMPORAL_TASK_QUEUE",
-          "default_task_queue": "opl-stage-attempts"
-        },
-        "managed_commands": [
-          "opl family-runtime service start --provider temporal",
-          "opl family-runtime service restart --provider temporal",
-          "opl family-runtime service supervisor status --provider temporal",
-          "opl family-runtime service supervisor install --provider temporal",
-          "opl family-runtime service supervisor trigger --provider temporal",
-          "opl family-runtime worker status --provider temporal",
-          "opl family-runtime worker start --provider temporal",
-          "opl family-runtime residency proof --provider temporal --production"
-        ],
-        "required_packages": [
-          "@temporalio/activity",
-          "@temporalio/client",
-          "@temporalio/common",
-          "@temporalio/worker",
-          "@temporalio/workflow"
-        ],
-        "forbidden_packages": [
-          "@temporalio/testing"
-        ],
-        "required_native_node_module_paths": [
-          "node_modules/@swc/core-darwin-arm64/swc.darwin-arm64.node"
-        ],
-        "native_core_bridge_releases": [
-          "aarch64-apple-darwin"
-        ],
-        "service_supervisor": {
-          "required": true,
-          "platform_scope": "desktop_macos_local_managed_service",
-          "login_resident": true,
-          "run_at_load": true,
-          "keep_alive": true,
-          "launcher_policy": "discovered_absolute_executable_entrypoint_preserve_carrier_symlink_or_packaged_runtime_path_never_repo_TypeScript_checkout",
-          "persistent_database_path": "${HOME}/Library/Application Support/OPL/state/family-runtime/temporal-server/temporal.sqlite",
-          "persistent_database_argument": "--db-filename",
-          "configuration_current_required": true
-        },
-        "framework_api_version": "1.0",
-        "verification": "For Framework v1, Full manifest runtime_assertions.temporal_core_bridge_releases must be exactly aarch64-apple-darwin, runtime_assertions.offline_required_payloads must prove the macOS arm64 SWC native binding, wrapper must export local Temporal defaults, and the same-run Full qualification receipt must bind a passed opl_temporal_service_supervisor_proof.v1"
-      },
       "framework_daemon_runtime": {
         "framework_api_version": "2.0",
-        "verification": "Full runs the packaged built CLI and daemon, verifies their versions, SQLite migrations and Pack readback in an isolated state directory. The v2 workspace does not ship the retired Temporal worker bridge or require its SWC binding. The standalone Temporal CLI archive remains available."
+        "verification": "Full runs the packaged built CLI and daemon, verifies their versions, SQLite migrations and Pack readback in an isolated state directory."
       }
     },
     "optional_payloads": {
@@ -5686,7 +5622,7 @@
       "measurement_command": "npm run release:full:size -- --markdown",
       "policy_audit_command": "npm run release:full:prune-audit -- --markdown",
       "domain_runtime_allowlist_owner": "domain_repositories",
-      "app_policy": "exclude local indexes, dependency caches, tests, package docs/fixtures/examples, Python stdlib tests, and user/runtime state; do not prune declared offline first-install payloads, Codex/Temporal archives, domain modules, or packaged skills; do not infer domain truth or artifact authority from package pruning"
+      "app_policy": "exclude local indexes, dependency caches, tests, package docs/fixtures/examples, Python stdlib tests, and user/runtime state; do not prune declared offline first-install payloads, Codex archives, domain modules, or packaged skills; do not infer domain truth or artifact authority from package pruning"
     },
     "vm_local_authorization_policy": {
       "artifact": "artifacts/gatekeeper-launch-policy.json",
@@ -6666,7 +6602,7 @@
         "lifecycle_receipt_required_when_apply_executed": true,
         "package_plan_eligibility": "available_during_check_and_plan_before_apply",
         "package_currentness": "unknown_until_native_owner_check_not_inferred_from_callability",
-        "background_base_policy": "stage_only_without_pending_activation_or_temporal_restart",
+        "background_base_policy": "stage_only_without_pending_activation_or_daemon_restart",
         "startup_pending_activation": "At every cold start, resolve the selected owner channels and verified offline candidates, stage missing eligible updates, then run opl update activate --json before Host, App Server and plugin graph start with a new OPL_APP_PROCESS_INSTANCE_ID; re-resolve the effective runtime environment after activation and verify its bytes and protocol. A compatible older installation is not an activation bypass.",
         "package_success_gate": "fresh_native_presence_and_required_entrypoints",
         "recovery_policy": "persist_failure_retry_and_restart_guidance_and_recheck_when_online_or_visible"

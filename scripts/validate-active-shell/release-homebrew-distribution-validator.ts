@@ -53,7 +53,7 @@ export function validateReleaseHomebrewDistribution(releaseChannel) {
   validateReleaseHomebrewTapUpdatePolicy(homebrew);
   validateReleaseHomebrewVmGate(releaseChannel);
   validateReleaseHomebrewOplPackagesBoundary(homebrew);
-  validateReleaseHomebrewCodexTemporalPolicy(homebrew);
+  validateReleaseHomebrewCodexToolPolicy(homebrew);
 }
 
 function validateReleaseHomebrewCaskInstallPolicy(homebrew) {
@@ -192,12 +192,12 @@ function validateReleaseHomebrewOplPackagesBoundary(homebrew) {
   }, 'Release channel Homebrew OPL Packages boundary');
 }
 
-function validateReleaseHomebrewCodexTemporalPolicy(homebrew) {
+function validateReleaseHomebrewCodexToolPolicy(homebrew) {
   if (
-    homebrew.codex_temporal_policy?.compatibility_mode !== 'minimum_version_plus_capability_smoke' ||
-    homebrew.codex_temporal_policy?.prefer_valid_newer_system_tool !== true ||
-    homebrew.codex_temporal_policy?.bundled_fallback_allowed !== true
+    homebrew.codex_tool_policy?.compatibility_mode !== 'minimum_version_plus_capability_smoke' ||
+    homebrew.codex_tool_policy?.prefer_valid_newer_system_tool !== true ||
+    homebrew.codex_tool_policy?.bundled_fallback_allowed !== true
   ) {
-    throw new Error('Release channel Codex/Temporal policy must prefer compatible newer user tools with bundled fallback');
+    throw new Error('Release channel Codex tool policy must prefer compatible newer user tools with bundled fallback');
   }
 }

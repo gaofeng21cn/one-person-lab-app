@@ -63,10 +63,6 @@
       "dependency_id": "codex-cli",
       "selection_policy": "latest_stable_at_operation_start"
     },
-    "temporal_cli": {
-      "dependency_id": "temporal-cli",
-      "selection_policy": "latest_stable_at_operation_start"
-    },
     "officecli": {
       "dependency_id": "officecli",
       "selection_policy": "latest_stable_at_operation_start"

@@ -51,18 +51,6 @@ esac
 mkdir -p "$OPL_RUNTIME_PYCACHE_ROOT"
 export OPL_FULL_RUNTIME_PYCACHE_ROOT="$OPL_RUNTIME_PYCACHE_ROOT"
 export PYTHONPYCACHEPREFIX="$OPL_RUNTIME_PYCACHE_ROOT"
-export OPL_FAMILY_RUNTIME_PROVIDER="\${OPL_FAMILY_RUNTIME_PROVIDER:-temporal}"
-if [[ -z "\${OPL_TEMPORAL_ADDRESS:-}" ]]; then
-  export OPL_TEMPORAL_ADDRESS="127.0.0.1:7233"
-  if [[ -z "\${OPL_TEMPORAL_ADDRESS_SOURCE:-}" ]]; then
-    export OPL_TEMPORAL_ADDRESS_SOURCE="packaged_local_default"
-  fi
-else
-  export OPL_TEMPORAL_ADDRESS
-fi
-# Framework resolves an omitted namespace from the live address-matched worker.
-# Injecting a fallback here would make it an explicit override of that state.
-export OPL_TEMPORAL_TASK_QUEUE="\${OPL_TEMPORAL_TASK_QUEUE:-opl-stage-attempts}"
 export OPL_MODULE_PATH_MEDAUTOSCIENCE="$RUNTIME_HOME/modules/mas"
 export OPL_MODULE_PATH_MAS_SCHOLAR_SKILLS="$RUNTIME_HOME/modules/mas-scholar-skills"
 export OPL_MODULE_PATH_MEDAUTOGRANT="$RUNTIME_HOME/modules/mag"

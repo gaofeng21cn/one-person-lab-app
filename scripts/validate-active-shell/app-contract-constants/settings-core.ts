@@ -24,7 +24,7 @@ export const appOwnedSettingsAboutUpdaterStatePolicy = {
 export const appOwnedSettingsManagedDependencySummary = {
   source_ref:
     "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.dependencies[]",
-  required_ids: ["codex-cli", "temporal-runtime", "temporal-system-cli"],
+  required_ids: ["codex-cli"],
   required_fields: [
     "dependency_id",
     "dependency_kind",
@@ -43,19 +43,9 @@ export const appOwnedSettingsManagedDependencySummary = {
   optional_fields: ["real_path"],
   optional_fields_by_dependency_id: {
     "codex-cli": ["external_installations"],
-    "temporal-runtime": [],
-    "temporal-system-cli": ["note"],
   },
   localized_display_names: {
     "codex-cli": { label_zh: "Codex CLI", label_en: "Codex CLI" },
-    "temporal-runtime": {
-      label_zh: "OPL 托管 Temporal 运行时",
-      label_en: "OPL-managed Temporal Runtime",
-    },
-    "temporal-system-cli": {
-      label_zh: "系统 Temporal CLI",
-      label_en: "System Temporal CLI",
-    },
   },
   currentness_values: ["current", "update_available", "unknown", "missing"],
   update_mode_values: [
@@ -64,7 +54,7 @@ export const appOwnedSettingsManagedDependencySummary = {
     "detect_only_guidance",
   ],
   display_policy:
-    "show active Codex CLI, OPL-managed Temporal Runtime, and optional system Temporal CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
+    "show active Codex CLI directly on Maintenance with version, source, currentness, and owner-specific update guidance",
   path_deduplication_policy:
     "deduplicate Codex PATH candidates by normalized real_path when present otherwise binary_path and retain shadowed candidates in diagnostics",
   path_identity_precedence: ["real_path", "binary_path"],
@@ -101,11 +91,6 @@ export const appOwnedSettingsManagedDependencySummary = {
     optional_fields: ["real_path"],
     path_policy:
       "normalize_real_path_when_present_otherwise_binary_path_before_deduplication_and_keep_shadowed_rows_in_diagnostics",
-  },
-  temporal_component_version_policy: {
-    runtime_component_id: "temporal-runtime",
-    cli_component_id: "temporal-system-cli",
-    normalization: "normalize_semver_without_v_prefix_and_never_compare_runtime_bundle_version_to_system_cli_version",
   },
 };
 export const appOwnedSecondarySettingsPages = ["about"];
