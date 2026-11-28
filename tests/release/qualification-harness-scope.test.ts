@@ -62,7 +62,6 @@ test('qualification harness scope allows a paired VM smoke mechanics subset', ()
   const appChangedPaths = [
     '.github/workflows/_release-full-addon.yml',
     '.github/workflows/opl-first-run-vm.yml',
-    '.github/workflows/opl-studio-candidate-carriers.yml',
     '.github/workflows/release-stable-post-success-followups.yml',
     '.github/workflows/release-stable.yml',
     'contracts/app-shell-candidates.json',

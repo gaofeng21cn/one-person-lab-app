@@ -171,20 +171,6 @@ test('App approves one DSH-derived renderer and Node host core across desktop, h
       'npm run validate:package',
     ],
   );
-  const desktopQualificationStep = parseYaml(
-    fs.readFileSync(path.join(appRoot, '.github/workflows/opl-studio-candidate-carriers.yml'), 'utf8'),
-  ).jobs['desktop-headless'].steps.find(
-    (step: { name?: string }) => step.name === 'Build and validate Electron candidate package',
-  );
-  assert.ok(desktopQualificationStep);
-  assert.deepEqual(
-    desktopQualificationStep.run.trim().split('\n').map((line: string) => line.trim()),
-    [
-      'npm run package:desktop',
-      'npm run smoke:desktop-live',
-      'npm run validate:package',
-    ],
-  );
   const studioAdapter = readJson('contracts/shell-adapters/opl-studio.json');
   assert.equal(studioAdapter.delivery_topology.carrier_evidence_manifest.candidate_only, true);
   assert.equal(studioAdapter.delivery_topology.carrier_evidence_manifest.release_authority, false);
@@ -250,27 +236,5 @@ test('delivery topology validator rejects runtime duplication, host drift, or pr
     const profile = readJson('contracts/app-product-profile.json');
     mutate(profile);
     assert.throws(() => validateProductProfile(profile, installExposure), error);
-  }
-});
-
-test('Studio carrier workflow creates candidate evidence without release or publication authority', () => {
-  const workflowPath = path.join(appRoot, '.github/workflows/opl-studio-candidate-carriers.yml');
-  const source = fs.readFileSync(workflowPath, 'utf8');
-  const workflow = parseYaml(source);
-
-  assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
-  assert.deepEqual(workflow.permissions, { contents: 'read' });
-  assert.deepEqual(Object.keys(workflow.jobs), [
-    'resolve-studio',
-    'desktop-headless',
-    'docker-webui',
-    'validate-manifest',
-  ]);
-  assert.match(source, /opl-studio-carrier-evidence-manifest\.json/);
-  assert.match(source, /standalone-headless-webui\.tgz/);
-  assert.doesNotMatch(source, /headless-index\.html/);
-  assert.match(source, /release_authority: false/);
-  for (const forbidden of ['git push', 'docker push', 'gh release', 'npm publish', 'packages: write']) {
-    assert.equal(source.includes(forbidden), false, `candidate workflow must not contain ${forbidden}`);
   }
 });

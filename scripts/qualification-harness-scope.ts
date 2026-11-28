@@ -243,7 +243,6 @@ export function buildQualificationHarnessScopeProof(input: {
     '.github/workflows/_release-full-addon.yml',
     '.github/workflows/full-first-install-release.yml',
     '.github/workflows/opl-first-run-vm.yml',
-    '.github/workflows/opl-studio-candidate-carriers.yml',
     '.github/workflows/release-stable-post-success-followups.yml',
     '.github/workflows/release-stable.yml',
     'contracts/app-shell-candidates.json',

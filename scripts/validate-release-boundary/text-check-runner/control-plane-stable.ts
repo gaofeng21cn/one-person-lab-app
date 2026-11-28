@@ -12,10 +12,8 @@ import {
   requireSubstrings,
   sameJson,
 } from './report.ts';
-import { validateStudioFullAppendTopology } from './control-plane-studio-full-append.ts';
 import {
   exactReadPermissions,
-  studioReleaseWorkflowPath,
   stableEntrySpecs,
   isAuthorizedInlineStableFollowups,
   isAuthorizedStableWebuiWriteJob,
@@ -47,21 +45,14 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     id,
     authorityInputs.entry?.type !== 'choice' || authorityInputs.entry?.required !== false ||
       authorityInputs.entry?.default !== 'framework_release' ||
-      !sameJson(authorityInputs.entry?.options, ['framework_release', 'studio_carrier_admission', 'studio_full_append']),
-    'Stable entry selector must separate Framework release from plan-only Studio admission',
+      !sameJson(authorityInputs.entry?.options, ['framework_release']),
+    'Stable entry selector must expose only the canonical framework_release lane',
   );
   for (const name of ['authority_id', 'operation_id', 'authority_carrier', 'authority_digest']) {
     failures += failIf(
       id,
       authorityInputs[name]?.required !== false || authorityInputs[name]?.default !== '',
       `${name} must remain an optional recovery input with an empty default; Standard admission enforces it conditionally`,
-    );
-  }
-  for (const name of ['studio_sha', 'studio_tree', 'studio_tag']) {
-    failures += failIf(
-      id,
-      authorityInputs[name]?.required !== false || authorityInputs[name]?.default !== '',
-      `${name} must remain empty unless the protected Studio admission operation is selected`,
     );
   }
   failures += failIf(
@@ -74,8 +65,6 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
   );
 
   const expectedJobs = [
-    'studio-protected-release-admission', 'studio-protected-release',
-    'studio-full-append-admission', 'studio-full-append',
     'protected-operation-admission', 'admission', 'stable-admission-manifest',
     'reconcile-completed-webui', 'webui-source-authority', 'webui-carrier', 'webui-promotion',
     'stable-followups', 'emit-stable-receipt', 'emit-stable-full-receipt', ...Object.keys(stableEntrySpecs),
@@ -159,104 +148,6 @@ export function validateStableReleaseControlPlane(appRoot: string): number {
     !admissionRun.includes('if [ "$OPERATION" = standard ] || [ "$OPERATION" = resume_standard ] || [ "$OPERATION" = append_full ]; then'),
     'standard, bounded resume_standard, and append_full operations must resolve their controller window from Actions created_at',
   );
-
-  const studioAdmission = jobs['studio-protected-release-admission'];
-  const studioAdmissionRun = jobRuns(studioAdmission);
-  const studioAdmissionEvidence = jobEvidenceText(studioAdmission);
-  failures += failIf(
-    id,
-    !studioAdmission || studioAdmission.if !== "${{ inputs.entry == 'studio_carrier_admission' }}" ||
-      Object.prototype.hasOwnProperty.call(studioAdmission, 'needs') ||
-      studioAdmission.environment !== 'release-stable' ||
-      !exactObject(studioAdmission.permissions, exactReadPermissions),
-    'studio-protected-release-admission must remain one initial read-only release-stable source gate',
-  );
-  failures += failIf(id, workflowMutationCommandPattern.test(studioAdmissionRun) || /openssl\s+rand/.test(studioAdmissionRun), 'Studio protected source admission must not perform release or public mutation');
-  failures += failIf(id, /secrets\./.test(JSON.stringify(studioAdmission)) || /\$\{\{\s*inputs\./.test(studioAdmissionRun), 'Studio protected source admission must not map or read protected secret values');
-  failures += requireSubstrings(id, studioAdmissionEvidence, [
-    'Reject mutable or mixed Studio admission request', 'test "$GITHUB_EVENT_NAME" = workflow_dispatch',
-    'test "$GITHUB_REF" = refs/heads/main', '[[ "$STUDIO_SHA" =~ ^[0-9a-f]{40}$ ]]',
-    '[[ "$STUDIO_TREE" =~ ^[0-9a-f]{40}$ ]]', '"repository":"gaofeng21cn/opl-studio"',
-    '"persist-credentials":false', 'studio-protected-release-admission.ts plan',
-    '.public_mutation_authorized == false', '.external_mutation_attempted == false',
-    'Upload immutable Studio protected admission receipt',
-  ], 'Studio protected source admission is missing');
-
-  const studioRelease = jobs['studio-protected-release'];
-  failures += failIf(
-    id,
-    !studioRelease || studioRelease.if !== "${{ !cancelled() && inputs.entry == 'studio_carrier_admission' && needs.studio-protected-release-admission.result == 'success' }}" ||
-      !needsExactly(studioRelease, ['studio-protected-release-admission']) ||
-      studioRelease.uses !== './.github/workflows/_release-studio.yml' || studioRelease.secrets !== 'inherit' ||
-      !exactObject(studioRelease.permissions, exactReadPermissions) || Object.prototype.hasOwnProperty.call(studioRelease, 'steps') ||
-      studioRelease.with?.app_ref !== '${{ github.sha }}' || studioRelease.with?.studio_sha !== '${{ inputs.studio_sha }}' ||
-      studioRelease.with?.studio_tree !== '${{ inputs.studio_tree }}' || studioRelease.with?.studio_tag !== '${{ inputs.studio_tag }}' ||
-      studioRelease.with?.prior_studio_artifact_run_id !== '${{ inputs.prior_studio_artifact_run_id }}',
-    'Studio execution must be one step-free reusable call after protected source admission',
-  );
-
-  const studioWorkflow = parseWorkflow(appRoot, studioReleaseWorkflowPath, id);
-  if (!studioWorkflow) {
-    failures += 1;
-  } else {
-    const releaseJobs = workflowJobs(studioWorkflow.workflow);
-    const { 'build-signed-notarized': build, 'resolve-checkpoint': resolve, 'restore-checkpoint': restore, 'qualify-checkpoint': qualify, publish, 'public-readback': readback } = releaseJobs;
-    const [buildEvidence, restoreEvidence, qualifyEvidence, publishEvidence, readbackEvidence] =
-      [build, restore, qualify, publish, readback].map(jobEvidenceText);
-    const releaseEvidence = [buildEvidence, restoreEvidence, qualifyEvidence, publishEvidence, readbackEvidence].join('\n');
-    failures += failIf(
-      id,
-      !sameJson(Object.keys(studioWorkflow.workflow.on ?? {}), ['workflow_call']) ||
-        studioWorkflow.workflow.concurrency !== undefined ||
-        !exactObject(studioWorkflow.workflow.permissions, exactReadPermissions) ||
-        studioWorkflow.workflow.on?.workflow_call?.inputs?.prior_studio_artifact_run_id?.type !== 'string' ||
-        studioWorkflow.workflow.on?.workflow_call?.inputs?.prior_studio_artifact_run_id?.default !== '' ||
-        !sameJson(Object.keys(releaseJobs), ['build-signed-notarized', 'resolve-checkpoint', 'restore-checkpoint', 'qualify-checkpoint', 'publish', 'public-readback']) ||
-        !build || build.if !== "${{ inputs.prior_studio_artifact_run_id == '' }}" || build.environment !== 'release-stable' ||
-        !exactObject(build.permissions, exactReadPermissions) || build['runs-on'] !== 'macos-15' ||
-        !resolve || !needsExactly(resolve, ['build-signed-notarized']) || resolve.outputs?.restore_required !== '${{ steps.resolve.outputs.restore_required }}' ||
-        !restore || !needsExactly(restore, ['resolve-checkpoint']) || restore.if !== "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.resolve-checkpoint.outputs.restore_required == 'true' }}" ||
-        !qualify || !needsExactly(qualify, ['resolve-checkpoint', 'restore-checkpoint']) ||
-        qualify.environment !== "${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && 'release-stable' || null }}" ||
-        qualify['runs-on'] !== "${{ needs.resolve-checkpoint.outputs.terminal_preview == 'true' && fromJSON('[\"self-hosted\",\"macOS\",\"ARM64\",\"opl-cert-mac-tart\"]') || fromJSON('[\"macos-15\"]') }}" ||
-        resolve.outputs?.terminal_preview !== '${{ steps.terminal.outputs.enabled }}' ||
-        !qualifyEvidence.includes('scripts/desktop/stable-qualify-preview-upgrade.mjs') ||
-        !qualifyEvidence.includes('OPL_PREVIEW_UPGRADE_VM_RECEIPT') ||
-        !publish || !needsExactly(publish, ['resolve-checkpoint', 'restore-checkpoint', 'qualify-checkpoint']) ||
-        publish.environment !== 'release-stable' || publish['runs-on'] !== 'ubuntu-latest' ||
-        !exactObject(publish.permissions, exactReadPermissions) ||
-        !exactObject(publish.concurrency, { group: 'opl-studio-publication-global', 'cancel-in-progress': false }) ||
-        !readback || !needsExactly(readback, ['resolve-checkpoint', 'publish']) ||
-        readback.if !== "${{ always() && needs.resolve-checkpoint.result == 'success' && needs.publish.result == 'success' }}" ||
-        readback.environment !== undefined || readback['runs-on'] !== 'macos-15' || !exactObject(readback.permissions, exactReadPermissions),
-      'Studio reusable release must expose recoverable build, qualification, thin publication, and independent public readback jobs',
-    );
-    failures += requireSubstrings(id, releaseEvidence, [
-      'scripts/studio-protected-release-admission.ts plan', 'scripts/verify-apple-release-credentials.ts',
-      'scripts/studio-release-checkpoint.ts seal', 'scripts/studio-release-checkpoint.ts validate-qualification',
-      'security import', 'electron-builder --mac --arm64 --dir', 'pwd -P', 'notarytool submit',
-      '--prepackaged "$app_path"', 'scripts/notarize-macos-dmg.ts', 'scripts/update-electron-updater-metadata.ts',
-      '--require-release-trust', 'gh release create', '--latest', 'releases/latest', 'git/ref/tags/$STUDIO_TAG',
-      '--require-public-feed', 'latest-arm64-mac.yml', '.zip.blockmap', 'select(.draft == false)',
-      'shasum -a 256', 'public-asset-readback.json',
-    ], 'Studio protected execution is missing');
-    failures += failIf(
-      id,
-      requestsWritePermission(studioWorkflow.workflow.permissions) ||
-        Object.values(releaseJobs).some((job) => requestsWritePermission(job.permissions)) ||
-        releaseEvidence.includes('secrets.GITHUB_TOKEN') ||
-        !JSON.stringify(publish).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN') ||
-        JSON.stringify(build).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN') ||
-        JSON.stringify(readback).includes('OPL_GITHUB_RELEASE_ADMIN_TOKEN') ||
-        [buildEvidence, qualifyEvidence, readbackEvidence].some((ev) => workflowMutationCommandPattern.test(ev)) ||
-        /notarytool\s+submit/.test(publishEvidence) || !/gh\s+release\s+create/.test(publishEvidence) ||
-        !/gh\s+release\s+upload/.test(publishEvidence) || !/--clobber/.test(publishEvidence) ||
-        !releaseEvidence.includes('gaofeng21cn/opl-studio'),
-      'Studio public mutation must remain isolated in one protected same-tag-capable job while build, qualification, and readback stay mutation-free',
-    );
-  }
-
-  failures += validateStudioFullAppendTopology(appRoot, id, jobs);
 
   const protectedAdmission = jobs['protected-operation-admission'];
   const protectedAdmissionRun = jobRuns(protectedAdmission);
