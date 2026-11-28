@@ -1,26 +1,34 @@
 {
-  "schema_version": "opl.product-release.v1",
-  "product_id": "opl-app",
+  "schema_version": "opl.release.v1",
+  "subject_id": "opl-app",
+  "kind": "product",
   "repository": "gaofeng21cn/one-person-lab-app",
-  "strategy": "owner_schedule",
+  "schedule": "owner_schedule",
   "trigger": "owner_schedule",
-  "publisher_workflow": "release-nightly.yml",
-  "primary_lane": "nightly",
-  "daily_dispatch": true,
-  "channel": {
-    "kind": "github_prerelease",
-    "tag_pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+-nightly(\\.r[0-9]+)?"
-  },
-  "observed_publishers": [
+  "lanes": [
+    {
+      "lane": "nightly",
+      "workflow": "release-nightly.yml",
+      "primary": true,
+      "daily_dispatch": true,
+      "channel": {
+        "kind": "github_prerelease",
+        "tag_pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+-nightly(\\.r[0-9]+)?"
+      }
+    },
     {
       "lane": "stable",
       "workflow": "release-stable.yml",
+      "primary": false,
       "title_pattern": " (standard operation:|resume_standard source:|Studio release ref:)",
-      "channel": { "kind": "github_release" }
+      "channel": {
+        "kind": "github_release"
+      }
     },
     {
       "lane": "stable-full",
       "workflow": "release-stable.yml",
+      "primary": false,
       "title_pattern": " (append_full source:|Studio Full append ref:)",
       "channel": {
         "kind": "github_release",
