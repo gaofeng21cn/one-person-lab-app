@@ -107,7 +107,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   assert.equal(stablePlan.policy.homebrew_allowed_software_objects, 'opl_base,opl_app');
   assert.equal(stablePlan.policy.opl_packages_lifecycle_owned_by_homebrew, false);
   assert.equal(stablePlan.policy.opl_packages_lifecycle_owner, 'one-person-lab');
-  assert.equal(stablePlan.policy.opl_packages_lifecycle_command, 'opl packages');
+  assert.equal(stablePlan.policy.opl_packages_lifecycle_command, 'opl pack');
   assert.equal(stablePlan.policy.package_specific_formula_allowed, false);
   assert.equal(stablePlan.policy.package_specific_cask_allowed, false);
   assert.equal(stablePlan.policy.stable_promotion_from_nightly_allowed, false);
@@ -120,7 +120,7 @@ test('Homebrew tap updater is a local cohort-bound manifest and checksum planner
   assert.match(stableCask, /homebrew_allowed_software_objects: opl_base,opl_app/);
   assert.match(stableCask, /opl_packages_lifecycle_owned_by_homebrew: false/);
   assert.match(stableCask, /opl_packages_lifecycle_owner: one-person-lab/);
-  assert.match(stableCask, /opl_packages_lifecycle_command: opl packages/);
+  assert.match(stableCask, /opl_packages_lifecycle_command: opl pack/);
   assert.match(stableCask, /package_specific_formula_allowed: false/);
   assert.match(stableCask, /package_specific_cask_allowed: false/);
   assert.match(stableCask, /conflicts_with cask: \["one-person-lab-full", "one-person-lab-nightly"\]/);

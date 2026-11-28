@@ -138,8 +138,10 @@ brew install --cask gaofeng21cn/one-person-lab/one-person-lab
 open -a "One Person Lab"
 ```
 
+Homebrew Tap（`gaofeng21cn/homebrew-one-person-lab`）仅分发 `opl` Formula（`opl_base`）与 `one-person-lab*` Cask（`opl_app`）；全部 OPL Packages 生命周期归属 Framework `opl pack`（Cask 边界标记 `# opl_packages_lifecycle_command: opl pack`），Nightly Tap 更新由 App `release-nightly-followups.yml` 单写推送。
+
 直接安装使用 exact Stable tag 中的 DMG，或同 tag 的 `opl-install.sh`。Full 只从该
-Release 的 `opl-release-manifest.json` 解析；缺失、重复或 digest 不一致均失败关闭。
+Release 的 `opl-release-manifest.json` 解析；缺失、重复或 digest 不一致均失败关闭。对用户端继续坚持**单一 Full DMG 下载入口**（不拆分为双文件下载）；按 Wave 2A 收敛目标，Full DMG 将取消二次 Electron/Studio 全量重编译，改为复用已签名/公证的 Standard `.app` 与单一无编译离线资源归档（`opl-offline-seed.tar.zst`），具体排期与保留边界见 [发布路径中的架构收敛规划](release/release-paths.md#家族架构收敛路线与轻量单文件-full-dmg-目标wave-1--wave-3)。
 
 ### Linux
 

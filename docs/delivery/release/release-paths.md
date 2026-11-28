@@ -132,3 +132,34 @@ IP 等待时间掩盖。正常首装、迁移、Docker 持久化和 Homebrew 安
 新包首装要在公开前通过；升级修复用公开后的同一字节核对实际版本与数据延续。测试注入的
 Codex 与生产由 Framework 选用的 Codex 是不同输入；涉及协议或迁移的修复应验证实际运行时，
 不能只用旧测试版本证明兼容。普通后续发布无需重跑所有历史切换基线，仅覆盖本次变更影响的路径。
+
+## 家族架构收敛路线与轻量单文件 Full DMG 目标（Wave 1 – Wave 3）
+
+### 1. Homebrew Tap 边界对齐（Wave 1）
+
+- `gaofeng21cn/homebrew-one-person-lab` 仅作为已发布产物的薄携带索引：保留 `Formula/opl.rb`（`opl_base`）与 `Casks/one-person-lab*.rb`（`opl_app`）。
+- 全部 OPL Packages 生命周期统一归属 Framework `opl pack`；Cask 边界标记同步为 `# opl_packages_lifecycle_command: opl pack`。
+- Nightly Cask 同步仅由 App `release-nightly-followups.yml` 单向推送，Tap 侧定时 `schedule` cron 已取消；`Formula/opl.rb` 移除已退役的 `temporal_dependency_scope` 注释元数据。
+
+### 2. 轻量单文件 macOS Full DMG 目标架构（Wave 2A）
+
+- **单文件体验不变**：对终端用户继续仅提供单一 `One-Person-Lab-Full-<version>-mac-arm64.dmg` 下载入口，严禁拆成「Standard App + 独立 Seed包」两个需用户分别下载和手动挂载的文件。
+- **取消二次编译**：Wave 2A 彻底撤销 `_release-studio-full.yml` 与 `build-mac:arm64` 的 Electron/Studio 二次重编译兜底；Full DMG 直接复用同一 cohort 已通过签名与公证的 Standard `.app` 字节，并挂载一个无编译、无需对内部数千散文件逐一 re-sign 的单一离线资源归档 `opl-offline-seed.tar.zst`。
+- **落盘形态选型**：Wave 2A 实现时在以下两种单一 DMG 形态间二选一固化：
+  - 方案 A：将 `opl-offline-seed.tar.zst` 放入 Standard `.app` 的 `Contents/Resources/`，仅做一次外层签名/公证；
+  - 方案 B：将 `opl-offline-seed.tar.zst` 作为 `.app` 同级资源放在 Full DMG 根目录（保持 Standard `.app` 原签名零改写），由应用首次启动时直接挂载解包；
+  - 两种方案的离线解包、校验与包激活均继续由 Framework `one-person-lab` 负责。
+
+### 3. Wave 2A / Wave 2B / Wave 3 收敛边界与保留红线
+
+- **Wave 2A（跨 `one-person-lab-app` / `opl-studio` / `one-person-lab` 联动）**：
+  - 同步拆除三仓残留的 `temporal-cli`、`OPL_FAMILY_RUNTIME_PROVIDER=temporal`、`OPL_TEMPORAL_ADDRESS` 与 `@temporalio/*` 契约及 Full 打包接线，并在之后将 `temporal-cli` 从 Framework `dependency-release-sources.json` 移除。
+  - 删除已退役的 Studio Preview 流水线（`_release-studio.yml`、`_release-studio-full.yml`、`opl-studio-preview-vm.yml`、`opl-studio-candidate-carriers.yml` 及 `release-stable.yml` 内 4 个 `studio-*` job，连带更新 `validate-release-boundary`）。
+  - 保留 `opl-studio` 的 `studio-webui-preview.yml` 与 `studio-webui-latest.yml`（`contracts/opl-studio-cloud-workspace-image-handoff.schema.json` 强绑定 `ghcr.io/gaofeng21cn/opl-studio-webui`）。
+- **Wave 2B（App / Studio / Catalog）**：
+  - 在保持 `opl-studio` CI 固定 App cohort 查找与 `_build-reusable.yml` 可运行的前提下收口单壳候选脚手架（`contracts/app-shell-candidates.json`、`contracts/shell-adapters/opl-studio.json`、`opl-studio/src/candidateContractEvidence.json`、`scripts/validate-opl-studio-candidate.mjs`）。
+  - 消除 `app-product-profile.json` 等大块 JSON 互抄并精简重叠校验脚本；`opl-studio` 逐步移出 `vendor/dsh-remote/`、`vendor/dsh-superagent/` 与 DSH UI 补丁；`opl-catalog` 切换至纯净 `opl_software_catalog_index.v2`；Framework 剥离 `migrate-v1.ts` 出 `opld` 核心并退役 `opl_software_installation.v1`。
+- **锁定保留或单独立项**：
+  - `opl-flow`：由用户单开专题对话重理设计目标，保持能力不降级，不在本轮收口裁剪。
+  - `one-person-lab-cloud`：沿既有控制面收敛重构主线独立推进（`2ba33bba`），本轮不越界改动。
+  - 重型外围分支：`opl-codex-model-manager/windows`、`opl-netfleet/desktop`、`opl-link-android` 继续保留。

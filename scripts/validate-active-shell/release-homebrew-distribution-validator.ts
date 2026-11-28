@@ -184,7 +184,7 @@ function validateReleaseHomebrewOplPackagesBoundary(homebrew) {
     homebrew_distribution_allowed: false,
     homebrew_formula_allowed: false,
     homebrew_cask_allowed: false,
-    canonical_lifecycle: 'opl packages',
+    canonical_lifecycle: 'opl pack',
     source_policy: 'framework_resolved_compatible_source',
     package_set_policy: 'open_composition_no_fixed_package_ids',
     allowed_homebrew_formulae: ['opl'],
