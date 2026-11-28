@@ -14,27 +14,23 @@ export function assertCodexOplFlowContext(profile: AppProductProfile): void {
   }
   if (
     profile.codex.auto_model_policy.authority !== 'one-person-lab-app' ||
-    profile.codex.auto_model_policy.recommendation_authority !== 'opl-flow' ||
-    profile.codex.auto_model_policy.policy_source_ref !==
-      'app_state.agent_packages.status_index.packages.opl-flow.model_projection' ||
-    profile.codex.auto_model_policy.projection_surface_kind !== 'opl_codex_model_policy_projection.v1' ||
-    profile.codex.auto_model_policy.projection_presence_rule !==
-      'consume_only_when_fresh_opl_flow_presence_installed_true_and_projection_is_valid' ||
+    'recommendation_authority' in profile.codex.auto_model_policy ||
+    'policy_source_ref' in profile.codex.auto_model_policy ||
+    'projection_surface_kind' in profile.codex.auto_model_policy ||
+    'projection_presence_rule' in profile.codex.auto_model_policy ||
     profile.codex.auto_model_policy.app_role !==
-      'resolve_auto_from_fresh_catalog_and_projected_recommendation_then_persist_user_override' ||
+      'resolve_auto_from_app_policy_and_fresh_catalog_then_persist_user_override' ||
     JSON.stringify(profile.codex.auto_model_policy.resolution_precedence) !== JSON.stringify([
       'explicit_user_selection',
       'app_default_then_catalog_compatibility',
-      'installed_opl_flow_recommendation',
-      'fresh_codex_live_default',
-      'app_fallback_when_flow_unavailable',
+      'app_fallback_when_catalog_unavailable',
     ]) ||
     profile.codex.auto_model_policy.app_fallback_role !==
       'configured_default_when_catalog_metadata_is_unavailable' ||
     profile.codex.auto_model_policy.configured_default_role !==
       'app_default_with_catalog_compatibility_fallback'
   ) {
-    throw new Error('App product profile must consume the OPL Flow model policy projection');
+    throw new Error('App product profile must keep Codex Auto model policy App-owned without Flow runtime projection coupling');
   }
   if (
     profile.codex.opl_flow_context?.flow_id !== 'opl-flow' ||

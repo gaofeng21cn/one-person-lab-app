@@ -370,11 +370,11 @@ export function validateSettingsControlPlane(
     "Settings capability entity kinds",
   );
   if (
-    capabilityOwnership?.groups?.opl_flow_managed?.source !== "opl_base_typed_flow_dependency_catalog" ||
+    capabilityOwnership?.groups?.opl_flow_managed?.source !== "framework_agent_package_directory_and_status_index" ||
     capabilityOwnership?.groups?.opl_flow_managed?.source_ref !==
-      "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies" ||
+      "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index" ||
     capabilityOwnership?.groups?.opl_flow_managed?.membership_policy !==
-      "derive_from_typed_opl_base_flow_dependencies_never_from_app_hardcoded_skill_list" ||
+      "derive_from_framework_agent_package_projection_never_from_app_hardcoded_skill_list" ||
     capabilityOwnership?.groups?.opl_flow_managed?.lifecycle_owner !== "opl_packages" ||
     capabilityOwnership?.groups?.opl_flow_managed?.cli_currentness_owner !== "opl_base" ||
     capabilityOwnership?.groups?.opl_managed_companion?.source !== "framework_managed_companion_projection" ||

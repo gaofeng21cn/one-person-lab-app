@@ -12,10 +12,6 @@ export type AppCodexProfile = {
   };
   auto_model_policy: {
     authority: string;
-    recommendation_authority: string;
-    policy_source_ref: string;
-    projection_surface_kind: string;
-    projection_presence_rule: string;
     app_role: string;
     resolution_precedence: string[];
     app_fallback_role: string;

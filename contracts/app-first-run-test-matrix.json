@@ -1328,10 +1328,10 @@
     {
       "id": "flow_capability_strategy_framework_managed",
       "package_type": "standard_or_full",
+      "consumption_scope": "full_build_time_only",
       "strategy_authority": "opl-flow",
       "compiler_authority": "opl-framework",
       "app_role": "projection_consumer_only",
-      "runtime_projection_ref": "app_state.agent_packages.status_index.packages.opl-flow.capability_strategy",
       "full_build_lock_kind": "opl_flow_capability_build_lock.v1",
       "expects": [
         "default Codex capabilities are selected by OPL Flow and compiled by Framework",

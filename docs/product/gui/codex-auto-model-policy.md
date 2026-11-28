@@ -4,16 +4,15 @@ Owner: `one-person-lab-app`
 Purpose: `codex_auto_model_product_policy`
 State: `active`
 Machine boundary: 本文解释 App-owned Codex Auto 产品策略。Auto 算法、UI、持久化与
-fallback 的机器真相在 `contracts/app-product-profile.json#codex.auto_model_policy`；已安装
-OPL Flow 的推荐值只从 Framework
-`app_state.agent_packages.status_index.packages.opl-flow.model_projection` 消费。App、Shell、
-安装器和候选 GUI 都不得直接读取 Flow policy 文件或复制选择逻辑。Codex CLI 模型目录是
-运行时输入，不是 App 或 Flow 的可用性证明。
+fallback 的机器真相在 `contracts/app-product-profile.json#codex.auto_model_policy`，由
+`one-person-lab-app` 独占持有；Framework 不再向 App state 产出 OPL Flow 运行时
+`model_projection`。App、Shell、安装器和候选 GUI 都不得读取 Flow policy 文件或复制选择逻辑。
+Codex CLI 模型目录是运行时输入，不是 App 或 Flow 的可用性证明。
 
 ## 结论
 
 One Person Lab App 默认保存的是 `Auto` 模式，不是某次解析得到的具体模型。每次需要
-解析 Auto 时，消费者 fresh 读取 Framework App state 与 Codex CLI `model/list`，用
+解析 Auto 时，消费者读取 App product profile 并 fresh 读取 Codex CLI `model/list`，用
 `cursor` 继续翻页，直到响应 `nextCursor=null` 后才把 `data` 视为完整目录：
 
 1. 用户明确固定的模型和推理档优先，升级不覆盖用户选择。
@@ -82,27 +81,23 @@ npm run codex:model-policy:check -- --bundled
 
 | Surface | 职责 | 不得拥有 |
 | --- | --- | --- |
-| OPL Flow | 定义推荐模型与推理档。 | live catalog 可用性、App UI、Auto 持久化与 fallback。 |
-| OPL Framework | 从已安装 Flow policy 产生严格 `model_projection` 并放入 App state。 | App Auto 算法、用户固定选择。 |
-| App product profile | 定义 Auto 算法、已知覆盖、fallback、持久化语义和自定义模型高级开关。 | Flow policy 文件、CLI 实时目录、provider readiness、用户凭证。 |
+| OPL Flow | 独立工作流能力包；不参与 App Auto 默认模型解析，也不向 App state 输出 `model_projection`。 | App Auto 算法、App 默认模型、live catalog 可用性、App UI、Auto 持久化与 fallback。 |
+| OPL Framework | 提供通用包发现、状态投影与执行桥接（`opl-package.v2`）。 | App Auto 算法、用户固定选择、运行时 `model_projection`。 |
+| App product profile | 独占定义 Auto 算法、App 默认模型、已知覆盖、fallback、持久化语义和自定义模型高级开关。 | Flow policy 文件、CLI 实时目录、provider readiness、用户凭证。 |
 | Codex CLI | 通过 `model/list` 提供 `isDefault` 和 `supportedReasoningEfforts`。 | App fallback、用户选择持久化、GUI 文案。 |
 | Studio / 其它 admitted Shell | 读取 product profile 和 CLI 目录，解析并展示 Auto，保存 mode、fixed override 和高级开关。 | 私有 allowlist、私有模型排序、私有 fallback。 |
-| OPL Framework 安装器 | 从 Flow 策略生成首次安装默认配置。 | 另一份默认模型/推理策略。 |
 
-App 新会话和恢复 Auto 使用同一 App 默认；完整目录确认不支持时才兼容回退。Framework 安装器仍按 Flow 策略生成 CLI 初始配置。Shell 当前解析出的具体模型只是运行时结果，不得回写成新的 App product truth。
+App 新会话和恢复 Auto 统一使用 App 默认；完整目录确认不支持时仅在 App 已知模型中兼容回退。Shell 当前解析出的具体模型只是运行时结果，不得回写成新的 App product truth。
 
 ## 维护默认模型
 
-人工调整 Flow 缺席时的 App fallback 模型或推理档时，只修改：
+人工调整 App 默认模型或推理档时，只修改：
 
 ```text
 contracts/app-product-profile.json#codex.auto_model_policy.configured_default
 ```
 
-这个值是 App 默认，不修改 Flow 自身的推荐策略。不要同时修改 `codex.default_*`、
-`default_session_profile`、GUI contract、page-state matrix、Shell generated profile 或
-Framework install profile；这些都是 App fallback 的生成投影。Flow 推荐应在 OPL Flow
-policy 修改并由 Framework installed projection 传入。App fallback 的标准维护顺序是：
+不要同时手工修改 `codex.default_*`、`default_session_profile`、GUI contract、page-state matrix 或 Shell generated profile；这些都是由 `codex.auto_model_policy.configured_default` 生成的投影。标准维护顺序是：
 
 ```bash
 # one-person-lab-app
@@ -111,18 +106,13 @@ npm run codex:model-policy:check
 node --experimental-strip-types scripts/app-product-profile.ts
 npm run test:release-boundary
 
-# one-person-lab
-npm run codex:export-default-profile -- \
-  --workflow-policy /absolute/path/to/opl-flow/contracts/workflow-policy.json
-npm run test:fresh-install
-
 # opl-studio
 npm run validate:candidate
 ```
 
 `scripts/app-product-profile.ts` 处理当前 adapter 对应的 App profile projection；Studio 在
 build/validation 时直接读取指定 App checkout 的 profile，不维护独立产品副本。App 的内置模型与默认值由
-[`app-product-profile.json`](../../../contracts/app-product-profile.json) 投影持有，App 默认优先于 Flow 推荐；Flow 自身的工作负载策略保持其 owner 管理。
+[`app-product-profile.json`](../../../contracts/app-product-profile.json) 独占持有。
 
 若新推理档只是 Codex CLI 未来新增的非空字符串，消费者不得扩展本地 enum/allowlist；
 运行时 Auto 会直接使用 CLI 广告的最后一个支持档位。只有要改变已知模型的产品默认、
@@ -131,6 +121,6 @@ fallback 或显示标签时，才修改 App authority 并重新生成投影。
 ## 验证边界
 
 App contract 和 focused tests 能证明策略结构及消费者引用没有漂移；Shell 行为测试应
-覆盖 Astra 默认、旧 Flow 推荐、本机自定义模型保留、目录不可用和 fixed/Auto 重启场景。真实 GPT-6 是否已
+覆盖 Astra 默认、兼容回退、本机自定义模型保留、目录不可用和 fixed/Auto 重启场景。真实 GPT-6 是否已
 进入当前 CLI 目录，必须由届时 fresh `model/list` readback 证明，不能由本文或静态测试
 提前宣称。

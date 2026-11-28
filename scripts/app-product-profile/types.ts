@@ -247,9 +247,9 @@ export type AppProductProfile = {
     };
     domain_modules: string[];
     capability_strategy_consumer: {
+      consumption_scope: string;
       strategy_authority: string;
       compiler_authority: string;
-      runtime_projection_ref: string;
       full_build_lock_kind: string;
       app_policy_inventory_allowed: boolean;
       app_direct_workflow_policy_parse_allowed: boolean;

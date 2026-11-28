@@ -8388,7 +8388,7 @@
         "on_demand_tab_ids": []
       },
       "group_policy": {
-        "opl_flow_managed": "derive membership from the OPL Base typed Flow dependency catalog and keep reconciliation owned by OPL Packages",
+        "opl_flow_managed": "derive membership from the generic Framework package directory and status index and keep reconciliation owned by OPL Packages",
         "opl_managed_companion": "show OPL-owned default companions from Framework managed companion projection; install, register, enable, repair, and permission actions remain owner-projected",
         "manual_and_third_party": "show local built-in, user-managed, third-party, and shell-local capabilities with detected owner and product-profile display names; mutate only after explicit user action"
       },
@@ -8413,9 +8413,9 @@
         "hardcoded_app_skill_list_allowed": false
       },
       "flow_projection_policy": {
-        "source_ref": "opl update status --json#managed_update.components[component_id=opl_base].current.dependency_catalog.flow_dependencies",
-        "nonempty_policy": "when_flow_dependencies_contains_entries_the_opl_flow_managed_group_must_project_at_least_one_row",
-        "empty_state_policy": "empty_is_valid_only_when_the_canonical_flow_dependencies_projection_is_empty_or_unavailable_with_a_visible_reason"
+        "source_ref": "opl app state --profile fast --json#app_state.agent_packages.directory.entries + app_state.agent_packages.status_index",
+        "nonempty_policy": "when_framework_package_projection_contains_opl_flow_entries_the_opl_flow_managed_group_must_project_at_least_one_row",
+        "empty_state_policy": "empty_is_valid_only_when_the_generic_framework_package_projection_reports_no_entries_or_is_unavailable_with_a_visible_reason"
       },
       "third_party_projection_policy": {
         "display_name_policy": "use_product_profile_display_names_and_never_raw_provider_ids_as_primary_labels",
