@@ -49,10 +49,9 @@ still require readback from the target machine.
 
 ## macOS arm64
 
-For a first macOS install, use the same-tag Full DMG. It preloads Base, Package
-seeds, and the pinned Computer Use archive, reducing first-launch downloads. If
-Full is not yet visible immediately after a release, wait for its same-tag append
-to finish before downloading.
+For a first macOS install, use the same-tag Full DMG. It preloads Base and Package
+seeds, reducing first-launch downloads. If Full is not yet visible immediately after a
+release, wait for its same-tag append to finish before downloading.
 
 For Homebrew users with a strong network path, Standard is the shortest online path:
 
@@ -169,7 +168,7 @@ prerequisite for bytes that pass the required exact Release identity checks.
 ## Headless And Update Ownership
 
 `--headless` installs OPL Framework Base/CLI only. Headless automation should
-use the [OPL Framework installation instructions](https://github.com/gaofeng21cn/one-person-lab#installation),
+use the [OPL Framework installation instructions](https://github.com/gaofeng21cn/one-person-lab#getting-started),
 not a Desktop or Docker WebUI guide.
 
 | Installed object | Update owner |

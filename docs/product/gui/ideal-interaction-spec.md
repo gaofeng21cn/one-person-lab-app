@@ -86,7 +86,7 @@ macOS 所做的 composition 翻译；精确版本由每次 observation receipt �
 3. **选择工作目的。** 用户优先从 Home starter 选择科研、基金、演示、写书等能力，也可在首次发送前从
    `+` palette 选择同一动态发现、已安装且对当前 surface 可见的 Agent Package；两条入口写入同一个 active capability 与 route receipt，
    Home 由 starter 选中态表达当前能力，不在 composer 重复标签。Package 安装、Home 显示与 lifecycle 管理在
-   Settings → Agents 完成 package lifecycle；Settings → Capabilities 完成 Skills/Plugins/Flow 管理。普通文本中的
+   软件中心（`/apps`；`/settings/agents` 只作兼容深链）完成；Settings → 能力配置（`/settings/capabilities`）完成 Skills/Plugins/Flow 管理。普通文本中的
    Agent 名称和普通文本 `@` 引用不改变 active capability；首次发送前，用户在明确的 `@` 选择器中选择 Agent
    可以设置该新会话的 active capability。同一 prompt 可引用多个 Agent，但新会话仍只有零或一个 active
    Agent Package。跨 Agent 准入由目标主 Skill 阅读完整请求做语义判断，不由关键词、文件扩展名或失败码决定。
@@ -103,10 +103,10 @@ macOS 所做的 composition 翻译；精确版本由每次 observation receipt �
 
 Rail 负责 navigation，不承担 dashboard：
 
-- 产品一级入口按 New task、运行状态、Scheduled tasks、Archived 组织；Runtime 是核心
+- 产品一级入口默认固定软件中心（`/apps`）、运行状态（`/runtime`）与应用工作台（`/apps/workbench`），计划任务、智能体协作与 Superagent 默认收纳于「更多」（Archived 保留在归档入口）；Runtime 是核心
   Agent 工作入口。会话级 current-task context 独立成立，不依赖全局 Runtime。Package/capability
-  选择由 Home starter 承接，package 管理由 Settings → Agents 承接，Skills/Plugins/Flow
-  管理由 Settings → Capabilities 承接，不在 rail 重复。
+  选择由 Home starter 承接，package 管理由软件中心承接，Skills/Plugins/Flow
+  管理由 Settings → 能力配置承接，不在 rail 重复。
   其它全局入口仅在 OPL 有真实对应能力时保留。
 - 中段优先按显式 Project-affinity marker 分组 App Server threads，并以 canonical thread ID join。App Server overview
   可用时是 Codex session directory authority；carrier 只持有 affinity、draft、preference 和可重建 cache，不拥有 history。
@@ -172,7 +172,7 @@ Rail 负责 navigation，不承担 dashboard：
 selection 或当前草稿。Back/Forward、Previous/Next Task、New Window 是 desktop
 affordance，通过 application menu 与现有 conversation header 提供，并保持键盘可达；
 Previous/Next 只在当前可见 ordinary conversations 中移动，不扩张 WebUI 产品 IA。
-一级导航按当前 App contract 组织 New task、运行状态、Scheduled tasks、Archived；
+一级功能入口按第「侧栏入口固定与收纳」一节（默认固定软件中心、运行状态、应用工作台，计划任务等收纳于「更多」）及当前 App contract 组织；
 “运行状态”在展开栏、折叠栏和窄窗口 drawer 中都可见并可键盘访问，目标为 `/runtime`。
 Runtime 的显示范围与采用要求由当前 App contract 决定，Home 保持对话工作区。
 
@@ -290,7 +290,7 @@ Composer 是普通路径唯一主 command surface：
   Team/internal negative filter 的 server、tool 和 metadata；普通文案不暴露 raw MCP id。
 - `+` palette 不伪造 Plugin、provider、backend、team、raw MCP 或 Codex reference 中但当前 adapter
   不支持的 Chrome/目标/计划动作；无真实可用项时显示明确空态或管理入口，不把管理入口伪装成直接选择。
-- Settings → Agents 负责 package 安装、Home visibility 和 lifecycle；Settings → Capabilities
+- 软件中心（`/apps`；`/settings/agents` 为兼容深链）负责 package 安装、Home visibility 和 lifecycle；Settings → 能力配置
   负责 Skills/Plugins/Flow 与本机能力；历史
   `/capabilities` 只能作为 compatibility redirect，不能重新挂载第二套 capability directory。
 
@@ -316,7 +316,7 @@ owner，成功后的 readback 失败也不能重发已成功动作。确认必�
 向服务端传入 `query/status/offset/limit`，筛选变化重置 offset，以服务端分页元数据决定后续页，
 旧请求不能覆盖新查询，不用本地全量筛选/切片冒充服务端分页。
 
-安装更新仍在 Settings，Base/Package lifecycle 由 Framework 与原生 carrier 持有，工作台不接管。
+安装更新仍在软件中心与设置运行维护对应入口，Base/Package lifecycle 由 Framework 与原生 carrier 持有，工作台不接管。
 上述是产品目标；知识管理、网站管理与真人 ASR 的完成度仍须各 owner 的真实路径证据。
 机器边界与状态验收复用
 [`package_app_contributions`](../../../contracts/app-gui-product-contract.json#framework_surfaces)
@@ -360,10 +360,10 @@ Bottom panel、file tree、Terminal、Browser 等 advanced work surfaces 保留�
 ## Runtime 交互
 
 Runtime 是 `core_dynamic_agent_runtime`：跨 conversation/project 展示动态发现的 Agent tasks。
-Agent/domain owner 提供业务状态，Temporal 提供执行状态，Framework 负责投影，App 负责显示。
+Agent/domain owner 提供业务状态，Framework **Runway** 提供执行状态，Framework 负责投影，App 负责显示。
 当前任务和 Inspector 在 conversation 内仍独立可用：
 
-- 普通读取和 refresh 使用 `opl app state --profile fast --json`。
+- 普通读取和 refresh 使用本机 `opld` `app.state.get`（`profile: "fast"`；v1 CLI: `opl app state --profile fast --json`）。
 - Full state/operator drilldown 只在 Maintenance diagnostics 或 release tooling 使用。
 - 首屏先回答：哪些任务真实在跑、哪些项目仍在推进、哪些排队、哪些需要关注。
 - User-facing primary state 与 automation/provider secondary state 分开展示。

@@ -24,7 +24,7 @@ carrier 状态和 release evidence 仍归 contracts、source/tests、validators 
 | Product identity | 普通导航 chrome 使用 text-only `One Person Lab`；完整 App identity 保留在 window metadata、About 与 release assets | 用户必须知道正在使用 One Person Lab，同时避免 logo 在深浅主题间产生不协调。 | 普通导航 chrome 出现 App logo、`App` 后缀或 carrier identity。 |
 | Current context | Recorded workspace 在 rail，live branch/locality 在 Environment，active capability/attachment 在 composer 附近 | 当前执行环境必须可理解，但目录不拥有 context；runtime `pwd` 不反写 rail。 | 只在 Settings/raw path 中可见、无 workspace 时静默禁用，或 composer 重复 rail/Environment 全量状态。 |
 | Directory/conversation rail | 宽桌面左侧 `280-340px` 可调；窄窗口 drawer | Navigation 是连续工作所需，不应占用 conversation 主区。 | 宽桌面缺失、被移到 Home grid，或关闭 drawer 后丢 selection。 |
-| Rail global skeleton | 顶部固定 New task/Runtime/Scheduled tasks/Archived。主体按 canonical session 的 Project affinity 分组，底部 account/help/Settings | 稳定全局入口与 session history 分层；能力选择与管理分别位于 Home/composer 和 Settings。 | 核心 Runtime 入口缺失、无真实能力的入口照搬、Capabilities 重回 rail，或 Settings 混入 conversation rows。 |
+| Rail global skeleton | 顶部默认固定软件中心（`/apps`）、运行状态（`/runtime`）、应用工作台（`/apps/workbench`），计划任务等默认收入「更多」（独立 Archived 保留在归档入口）。主体按 canonical session 的 Project affinity 分组，底部 account/help/Settings | 稳定全局入口与 session history 分层；能力选择与管理分别位于 Home/composer 和软件中心/设置。 | 核心 Runtime 入口缺失、无真实能力的入口照搬、Capabilities 重回 rail，或 Settings 混入 conversation rows。 |
 | Directory group semantics | Conversations rows、“使用此工作目录新建对话”与 projectless adoption target | 目录组只是单一 Project-affinity projection、新 session 快捷入口和 projectless session 的一次性归口目标；拖动必须有键盘等价动作。 | “添加上下文”、组级删除、级联删除 session、已绑定 session 任意换组、仅改 Shell 分组，或按标题/workspace/Git origin 去重。 |
 | Session attachments | 当前 composer | 文件/目录只由用户为当前 session/send 显式加入。 | 从 workspace 预载、隐式注入，或附件只能从 Settings/rail 添加。 |
 | Conversation management | Rail rows、search 与独立 Archived surface | Search/pin/rename/archive/reset 属于持续工作管理。 | Archive 无独立 surface，或 reset 与 delete 语义混淆。 |
@@ -32,8 +32,8 @@ carrier 状态和 release evidence 仍归 contracts、source/tests、validators 
 | Home question/starters | Main 空 conversation；动态问题标题 + 全部用户可见 configured starters，紧凑固定宽度、稳定排序、按实际数量居中并响应式换行 | 帮助开始任务，但不建立 landing/dashboard；用户显式启用的入口不能被静默截断，Home root、composer shell 与 footer account/Settings entry 各只有一个实例。 | 静态营销 hero、固定四/五列的 dashboard card grid、隐藏用户已启用入口、无序重排或 resize 后重复画面。 |
 | Composer | Main canvas bottom，浮动或保留安全距；Home 桌面使用 `736px` 最大宽度、`98px` 最小高度和 `22px` 圆角，目录/模式/branch 控件在同一 composer 内部透明排列 | 输入是普通路径主动作，应始终接近当前 conversation。 | 变成营销卡、单行或过矮 input、外置 context cap、settings bar、多层 card 或贴边遮挡。 |
 | Preview inputs | 独立 Preview 或 conversation disclosure | 只打开当前 session 显式 attachment、可见 conversation result 或用户选择的合法绝对路径。 | Workspace-scoped project ref、hidden prompt injection、静默读取或复制 artifact body。 |
-| Active capability | Home 使用 starter 的安静选中态；new-session `+` palette 可选择同一动态发现、已安装且用户可见的 Agent；conversation 可在 action row 邻近显示低权重 chip | 显示已选 OPL 能力；两条 new-session 入口同步同一 active capability，既有 conversation 不重绑 Agent；安装/显示/lifecycle 归 Settings。 | Home 重复“能力：”标签、App/Shell 固定 Agent 清单、常驻可变 purpose selector、既有会话 Agent 重绑、backend selector 或 agent dashboard。 |
-| Package starter readiness | Home 只显示 installed + Home-visible starter；`ready/degraded` 可选择，`package_unavailable` 显示原因和恢复动作但不强制可选 | 用户先从真实可用组合选择工作目的；已卸载 Package 留在 Settings discovery/Restore。发送边界只检查 owner-projected identity presence/callability、入口、安全目标与权限。 | 已卸载入口继续强制占位、无限 loading、无原因阻断，或 presence/callability 明确失败后仍发送。 |
+| Active capability | Home 使用 starter 的安静选中态；new-session `+` palette 可选择同一动态发现、已安装且用户可见的 Agent；conversation 可在 action row 邻近显示低权重 chip | 显示已选 OPL 能力；两条 new-session 入口同步同一 active capability，既有 conversation 不重绑 Agent；安装/显示/lifecycle 归软件中心（`/apps`） | Home 重复“能力：”标签、App/Shell 固定 Agent 清单、常驻可变 purpose selector、既有会话 Agent 重绑、backend selector 或 agent dashboard。 |
+| Package starter readiness | Home 只显示 installed + Home-visible starter；`ready/degraded` 可选择，`package_unavailable` 显示原因和恢复动作但不强制可选 | 用户先从真实可用组合选择工作目的；已卸载 Package 留在软件中心（`/apps`）与 Restore 入口。发送边界只检查 owner-projected identity presence/callability、入口、安全目标与权限。 | 已卸载入口继续强制占位、无限 loading、无原因阻断，或 presence/callability 明确失败后仍发送。 |
 | Model/reasoning control | Composer 中的 App-owned model control | 用户可见但不应抢占输入；策略由 product profile 统一。 | Shell 复制 allowlist、Home/Conversation 不一致、provider 进入普通层。 |
 | Permission/access mode | Home/conversation bottom action row | 用用户语言解释自动化与文件权限，保留安全透明度。 | 隐藏关键权限，或显示 provider/backend 术语。 |
 | Attach controls | Composer action row | Attachment、paste/drop 与 `/open` 只影响当前发送。 | 藏在 Settings、被 workspace readiness 禁用，或 overlay 覆盖输入/不可点击。 |
@@ -63,7 +63,7 @@ conversation、composer、active capability、model/access 和 current-turn feed
 普通本地对话和显式文件输入不依赖 workspace readiness；Workspace/managed target 只在
 owner-projected action 的 `required_payload_fields` 明确要求时校验，单个 Package 故障只局部影响对应入口。
 跨项目 Runtime 是独立的核心 Agent 工作状态页；continue-work 留在 conversation，artifact
-provenance 留在 Inspector，package maintenance 和 raw diagnostics 留在对应 Settings，完整
+provenance 留在 Inspector，package maintenance 留在软件中心（`/apps`）与设置维护诊断，完整
 evidence ledger 留在 release tooling。它们都不得挤入 Home 主区或相互混装。
 
 ### Rail
@@ -91,8 +91,7 @@ Runtime 回答“跨项目工作现在处于什么状态、下一步是谁”；
 
 - 宽桌面是否仍有 persistent directory/conversation rail？
 - Rail 是否保持 `280-340px`、全局骨架和独立 Archived surface？
-- Rail 是否保持 New task/Runtime/Scheduled tasks/Archived，而没有恢复
-  Capabilities、Team 或其它未采纳入口？
+- Rail 是否保持默认固定入口与「更多」收纳，而没有恢复未采纳的平行入口？
 - Main 是否仍是一条 timeline，而不是 dashboard 或三列 workbench？
 - Environment details 是否默认关闭、anchored，且打开/关闭不丢 draft、scroll、selection？
 - OPL artifact/evidence 是否作为次级内容，而不是默认全高第三列？

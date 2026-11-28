@@ -29,7 +29,7 @@ tests 与 evidence。
 | Priority | Product layer | 包含 | 完成定义 |
 | --- | --- | --- | --- |
 | `P0 Codex Core` | 日常主工作流 | App frame、project/conversation rail、New task、conversation timeline、composer、streaming、history、model/reasoning、access/permission。 | 用户不离开 chat canvas 即可开始、继续和完成普通任务。 |
-| `P1 OPL Professional` | OPL 专业增量 | Dynamic Package/capability selection、用户触发的线程操作、Agent task Runtime、Temporal execution、typed views、approval、evidence/artifact preview 与 safe action。 | 增量嵌入 P0 稳定位置；不引入第二套 Package manager、thread store、task truth 或领域 schema。 |
+| `P1 OPL Professional` | OPL 专业增量 | Dynamic Package/capability selection、用户触发的线程操作、Agent task Runtime、Framework Runway execution、typed views、approval、evidence/artifact preview 与 safe action。 | 增量嵌入 P0 稳定位置；不引入第二套 Package manager、thread store、task truth 或领域 schema。 |
 | `P2 Administration` | 配置和运维 | Settings、first-run、安装、独立静默更新、诊断。 | 可发现、可恢复，但不反向决定 P0/P1 的布局和视觉。 |
 
 任何工作若只改善 `P2`，不能据此声称 GUI 主体验已对齐 Codex。设计评审和视觉证据
@@ -56,7 +56,7 @@ tests 与 evidence。
 | `B0-09` | Terminal、Browser、Environment details | Agent 工作经常需要按需查看运行与环境。 | 作为次级工具按需打开，不做默认第三栏或 OPL dashboard。 |
 | `B0-10` | Workspace 初始 cwd、Project adoption 与本地 Worktree 工作模式 | 本地任务需要明确主要目录、隔离目录和执行上下文。 | Composer 只设置新 session 初始 cwd；projectless session 允许一次性 adoption。已绑定 session 不任意重绑，Shell 不自造 managed handoff；未来 Worktree 能力先由 App contract 准入并复用真实 owner。 |
 | `B0-11` | Codex Subagents / 并行子任务 | 复杂任务需要并行探索、验证与汇总。 | Portable core 是 read-only Active/Done lists、completed detail/result、open subagent thread，以及既有 App Server/ACP owner-supported controls。私有 Team 编排保持关闭；不新增第二 App Server client、Team store、scheduler、执行 authority 或 bespoke direct-control buttons。 |
-| `B0-12` | Scheduled tasks/Cron、后台继续与通知 | 长任务和周期任务需要离开前台后继续。 | Framework 现有 Temporal 持有计划与历史；侧栏计划任务使用 canonical Codex App Server 执行，明确 App 须运行；发布和安装验收独立于源码实现。 |
+| `B0-12` | Scheduled tasks/Cron、后台继续与通知 | 长任务和周期任务需要离开前台后继续。 | Framework **Runway** 持有计划与历史；侧栏计划任务使用 canonical Codex App Server 执行，明确 App 须运行；发布和安装验收独立于源码实现。 |
 | `B0-13` | Memory、personalization、instructions | 稳定偏好和项目指令决定长期易用性。 | 复用 owner-correct profile/refs，不新建独立 memory 平台。 |
 | `B0-14` | 通用 Settings 容器、search/back/redirect、a11y、theme、i18n | 所有配置与长期使用能力需要一致容器。 | 容器行为属于 B0；OPL 栏目、owner route 与数据语义归 `R1-05`。 |
 
@@ -113,7 +113,7 @@ R1 与 U1 的当前实现程度按 carrier 分开维护在
 | ID | 条件能力 | 当前处理 |
 | --- | --- | --- |
 | `X0-02` | 完整 Evidence/Provenance/receipt/route-ref 平台 | 只保留 owner-required refs、confirmation 与 receipt；完整 cockpit 条件推进。 |
-| `X0-03` | Hosted Workspace / cloud-continuous execution | `optional_owner_projected_resource_refs`：App contract 与 Studio Resources & Connections 已实现 owner projection 条件启用、独立分组和空投影无占位；不再维护 hosted promise copy。 |
+| `X0-03` | Hosted Workspace / cloud-continuous execution | `optional_owner_projected_resource_refs`：App contract 与 Studio Libraries & Connections 已实现 owner projection 条件启用、独立分组和空投影无占位；不再维护 hosted promise copy。 |
 | `X0-04` | Fabric/HPC/远程资源控制面 | `optional_owner_projected_resource_refs`：真实 owner/backend projection 存在时才提供 refs/owner route；空投影不挂载 group/anchor。完整调度仍归 domain/runtime 产品。 |
 | `X0-05` | 跨主机 handoff、carrier 自建 managed remote Worktree 或第二协调面 | 当前明确不自造；只有稳定 upstream 能力与真实需求同时成立才重评。 |
 | `X0-06` | Raw runtime/operator diagnostics 与完整 repair cockpit | 仅留 Settings > Maintenance diagnostics 和 release tooling；Advanced 只重定向，ordinary UI 不展示 raw protocol。 |
@@ -184,14 +184,14 @@ Runtime 是 `U1-07` 核心 Agent 工作入口；页面消费动态 task producer
 
 | 功能 | 用户结果 | Authority / machine owner |
 | --- | --- | --- |
-| Runtime overview | 看到任务/项目主状态、阶段、进度、下一步和责任方。 | `opl app state --profile fast --json` 的 App projection。 |
+| Runtime overview | 看到任务/项目主状态、阶段、进度、下一步和责任方。 | `opld` `app.state.get` (`fast`，v1 CLI: `opl app state --profile fast --json`) 的 App projection。 |
 | Scope switching | 在全局、workspace 或选中任务范围查看状态。 | App runtime view model。 |
 | Active/queued/attention separation | 区分真实 running、仍在推进的 project line、排队和需要关注。 | Framework-owned projection；UI 保留原始 status。 |
 | Pinnable current-task summary | 长任务与 OPL current-task projection 共用 status、elapsed、progress、next action、stop summary bar，并允许 pin。 | Current task slice / bridge refs。 |
 | Current-turn run artifact | 在 conversation 内查看本轮最近事件和恢复动作。 | Current task slice / bridge refs。 |
 | Task/project drilldown | 按需查看 evidence、blocker、owner、resource 和 next-action refs。 | Runtime bridge / domain-owned refs。 |
 | Agent-owned typed view | Agent Package 可按 item 提供 typed view，例如 MAS 科研路线；App只按 `view_kind` 选通用 renderer。未知/invalid view 局部 unavailable，task list和其他 views保持可用。 | Agent owns schema/data；Framework validate/proxy；App owns generic renderer，不按 Agent id分支。 |
-| Safe action | 对允许的运行或维护动作先 preview，再 confirm/execute。 | `opl app action execute ... --json`。 |
+| Safe action | 对允许的运行或维护动作先 preview，再 confirm/execute。 | `opld` `app.action.execute`（v1 CLI: `opl app action execute ... --json`）。 |
 | Files and artifact refs | 从 conversation、Environment details 或 preview 打开输入、输出和交付引用。 | Workspace/domain artifact refs；App 不拥有 artifact body。 |
 | Artifact preview adapter | 用户显式打开时，当前 session attachment、可见 conversation result 或合法任意绝对本地路径进入现有 Preview。Traversal、非法 scheme、隐式 workspace ref、自动静默读取及 unsafe/unsupported ref fail closed。 | App GUI contract定义 ref policy；外部 owner 继续拥有 artifact body。 |
 | Review pane | 复用 Files/Changes diff surface；target 支持 uncommitted/base branch/commit/custom，交付支持 inline/detached，默认 Unstaged 并有 Staged/Commit/Branch/Last turn；Last turn 读取最近用户回合之后已完成的 workspace edits。Custom instructions 只通过 `review/start.target.custom` 发送；公开 App Server 尚无非 custom `Review Focus` input，因此该输入不展示并在调用边界返回 `protocol_unavailable`，不得回退到 `turn/steer`、创建 Review、写成功 audit 或产生其它副作用。PR context 依赖 `gh`，缺失时明确 unavailable。行级评论只有在 Codex App Server 提供 typed file/line request与失败语义后才可提交。 | 既有 message store、Codex `review/start` 与 Git integration；Shell 不复制 Git store，也不建立本地 annotation store。 |
@@ -210,7 +210,7 @@ GUI contract 与 Settings Control Plane 拥有。
 | --- | --- | --- |
 | 概览 > 概览 | 判断 App 当前是否可用、后台任务是否正常，以及最重要的下一步。Runway 详细指标不在这里展开。 | Settings Control Plane、fast App state。 |
 | 账户与模型 > 账户与访问 | 登录 OPL Gateway 或配置手工 API Key；账户连接时查看脱敏身份、余额、Token/实际成本、专用 Key 状态和数据新鲜度。 | Framework Gateway account projection/secret bridge；密码不进入 App state 或 generic action。 |
-| 账户与模型 > 模型 | 查看模型访问来源、默认模型、推理偏好与 Codex CLI 可用性，不复制 Gateway 账户和凭据控制；版本与更新策略统一在运行与维护查看。 | Framework model access projection、App model/reasoning preference。 |
+| 账户与模型 > 模型与执行 | 查看模型访问来源、默认模型、推理偏好与 Codex CLI 可用性，不复制 Gateway 账户和凭据控制；版本与更新策略统一在运行与维护查看。 | Framework model access projection、App model/reasoning preference。 |
 | 资料与连接 > 资料与连接 | 查看真实存在的本机访问、WebUI 和外部连接 refs；内置 OPL Gateway 不在这里重复。Hosted Workspace、Fabric/HPC、Console 仅在稳定 owner/backend 存在时出现。 | Framework/Connect refs；X0-03/X0-04 owner routes 条件启用，App 不拥有资源 truth。 |
 | 工作区 > 工作目录 | Desktop 查看、切换、验证 Framework logical workspace root；standalone WebUI 只读显示实际 owner 投影，Docker WebUI 只读显示 `/projects`；任何 WebUI 都不执行 `workspace_root_set` 或修改宿主 bind。 | Framework workspace state/action、carrier policy。 |
 | 工作区 > 数据与存储 | 查看空间、数据分类、preview、安全 cleanup，以及 Docker `/projects`、`/data` 与可选 `/recovery` 的只读部署位置。 | App-owned storage lifecycle、Framework/host projections。 |
@@ -218,7 +218,7 @@ GUI contract 与 Settings Control Plane 拥有。
 | 能力与指令 > 能力配置 | 动态查看 Package 暴露的 Skill/Tool/Plugin/MCP/producer/view capability 及 Computer Use 等能力开关；不维护 App allowlist。 | Package/native discovery + user presentation preference。 |
 | 能力与指令 > 指令与上下文 | 编辑用户 `AGENTS.md` 和新对话附加说明；复用 Workspace carrier，但不属于工作区导航。 | App personalization contract、typed host actions。 |
 | 运行与维护 > 服务状态 | 查看 Codex CLI 与 Framework Runway（`app_state.services.runway`）及 `schedule_runner` 的只读健康状态。 | Framework runtime state projection。 |
-| 运行与维护 > 更新与修复 | 查看 Base/App currentness 和 Package聚合状态；Package具体动作链接到 Agents/native owner。 | App/Base updater + per-Package native status aggregation。 |
+| 运行与维护 > 更新与修复 | 查看 Base/App currentness 和 Package聚合状态；Package具体动作链接到软件中心（`/apps`）与 native owner。 | App/Base updater + per-Package native status aggregation。 |
 | 运行与维护 > 日志与诊断 | Desktop 打开或更改 App 日志目录；standalone WebUI 只读显示 systemInfo 日志投影，Docker WebUI 只读显示 `/data/logs`；raw paths、receipts 和诊断信息默认折叠。 | App typed log action、Maintenance diagnostic projection。 |
 | 偏好 > 偏好 | 配置语言、主题、通知、启动、密度、字体和 motion。 | App settings/profile；不承载 runtime diagnostics。 |
 | 关于（底部辅助入口） | 查看版本、channel、链接和共享 update summary。 | About secondary route、release/settings contracts。 |

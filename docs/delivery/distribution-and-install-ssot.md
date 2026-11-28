@@ -29,8 +29,7 @@ Codex CLI 以官方 npm `latest` 的稳定版本为升级来源。每次升级�
 下的 `internal-package-carrier`，由同一个原生插件管理器负责生命周期，Framework 聚合
 实际安装状态。App 不另建插件清单，也不复制认证、Profile 或会话。
 
-Scholar Skills 是 MAS/MAG 按任务消费的能力包；微信通道、Fleet Agent 和 Link Connector
-是内部模块。它们应保留 OPL 能力，而不出现在系统 Codex 的已安装插件列表中。
+Scholar Skills 与 Fleet Agent 等内部能力包使用 `internal-package-carrier`；微信远程通道与 OPL Link 手机伴侣已由 Studio 原生插件（`opl-channel-weixin`）和 `opl-host-core` 直接交付。它们不以普通交互插件出现在系统 Codex 的已安装插件列表中。
 
 升级后的 App 通过既有启动维护入口迁移旧安装：核验并复用已安装文件，验证内部安装和
 Framework descriptor 可读取，再原生卸载系统 Codex 的旧条目。历史下载地址不可用不妨碍

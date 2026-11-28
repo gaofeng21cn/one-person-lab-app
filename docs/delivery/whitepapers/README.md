@@ -17,6 +17,6 @@ bytes it claims to verify.
 App `main` has no whitepaper publication workflow or write token. Build and
 inspect the App profile locally with `npm run docs:whitepaper`. The Framework
 repository owns the protected family publisher, binds the exact App source into
-the five-whitepaper bundle, and publishes it on the One Person Lab branded site.
+the family whitepaper bundle, and publishes it on the One Person Lab branded site.
 Only that publisher's artifact and post-deployment exact-byte receipt, not this
 directory or an App build, is publication evidence.

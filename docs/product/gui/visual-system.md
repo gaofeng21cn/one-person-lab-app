@@ -31,7 +31,7 @@ OPL App 在基准上保留以下产品例外：
   与用户偏好，本文不维护固定 Agent 名单或默认顺序。
 - Executor、模型策略和当前默认值由 `contracts/app-product-profile.json` 决定；本文
   不复制 model/reasoning 值或模型 allowlist。
-- Runtime、Home capability starters、Settings → Agents / Capabilities、first-run、receipts 和 action refs 使用
+- Runtime、Home capability starters、软件中心（`/apps`）、Settings → 能力配置、first-run、receipts 和 action refs 使用
   App-owned contracts 与 OPL authority boundary。
 - OPL 品牌身份、状态语义和双语 copy 由 App 拥有；普通配色直接使用 DSH theme，
   不覆盖官方视觉语法形成第二套私有风格。
@@ -181,14 +181,13 @@ hairline divider。只有独立重复实体、确认或明确 bounded tool 才�
 
 ## Icons
 
-- 首批迁移的 Titlebar、navigation rail、Home、composer 和 Settings navigation 统一通过
+- Titlebar、navigation rail、Home、composer 和 Settings navigation 统一通过
   `OplIcon` 使用 pinned DSH icon cohort；普通 utility/navigation icon 使用 `currentColor`、
   `14-16px` 稳定 slot，不使用彩色图标底板或字母头像。只有 typed warning、error、success
-  和品牌动作使用语义色。未迁移 surface 可暂留 IconPark，但它不再是已迁移 surface 的视觉
-  authority；vendor 外不手画平行 SVG，也不借此批量改写无关 upstream fork body。纯刷新动作只显示 refresh icon，并用
+  和品牌动作使用语义色；vendor 外不手画平行 SVG，也不借此批量改写无关 upstream fork body。纯刷新动作只显示 refresh icon，并用
   tooltip 与 accessible name 提供文字。
 - 项目/对话 rail 的空状态使用同一 DSH 单色语法：稳定 conversation glyph 配
-  `13/18` muted 文案。不得回退到 Arco 默认的大号插画、彩色 empty illustration、边框卡片
+  `13/18` muted 文案，不得使用大号彩色插画、边框卡片
   或占据 rail 主体的装饰性图形。
 - 全局标题栏帮助/反馈入口使用 `OplIcon` 的 DSH 单色帮助图标，保留 tooltip、
   accessible name 和既有 GitHub issue 路由。
@@ -237,8 +236,8 @@ Composer 是底部唯一主 command surface：
 ## Project / Conversation Rail
 
 - 宽桌面默认可见，宽度在 `280-340px` 内可调，窄窗口改 drawer。
-- 产品一级入口按当前合同组织 New task、运行状态、Scheduled tasks、Archived；Runtime 按当前核心能力合同验收。capability starter
-  属于 Home，package/capability 管理属于 Settings。Sites/Chat 没有 OPL 对应能力时不显示。
+- 产品一级入口按当前合同组织（默认固定软件中心、运行状态、应用工作台，其余默认收入「更多」）；Runtime 按当前核心能力合同验收。capability starter
+  属于 Home，package 管理属于软件中心，本机能力配置属于 Settings。Sites/Chat 没有 OPL 对应能力时不显示。
 - 中段优先按显式 Project-affinity metadata 组织 canonical sessions；无显式 affinity 的普通 recorded cwd 可生成
   只读目录组，`~/Documents/Codex/**` 与 `~/.codex/worktrees/<id>/**` managed scratch 则保持 projectless，避免按
   叶目录生成同名 Project。分组不拥有 session、context 或 artifact。尚无显式 UI affinity 的

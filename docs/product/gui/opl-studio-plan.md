@@ -39,10 +39,10 @@ App repo 不复制 Studio source，Studio 也不复制 App product truth。App w
 并把当前 App checkout 的绝对 `OPL_APP_REPO_ROOT` 注入 Studio 命令。这样 task worktree、CI checkout
 和 sibling repo 都读取同一 App contract cohort，不会误用旁边另一个 App checkout。
 
-Studio 不是 `one-person-lab` Framework Host 的子插件。两个 Cordis Host 通过公开协议对接：
+Studio 不是 `one-person-lab` 的子插件。Framework 的 `opld` 守护进程与 Studio 的 DSH/Cordis Application Host 通过公开协议对接：
 
 ```text
-Framework Host scope
+Framework opld scope
   = framework_runtime_package_graph_and_app_projection
 
 Studio Application Host scope
@@ -69,7 +69,7 @@ Host 结构、DSH plugin 兼容性和上游升级方法只维护在
 - 左侧是 project/conversation/search/Settings rail；
 - 中心是 DSH conversation timeline 和 persistent composer；
 - 右侧只按需打开 Run status、Files and results、Agents and capabilities；
-- Package lifecycle 位于 Settings；
+- Package lifecycle 位于一级“软件中心（`/apps`）”（Settings 提供深链与能力配置）；
 - files 只来自用户选择，results 只来自 owner-projected artifacts；
 - 用户可见 identity 是 `One Person Lab`，`OPL Studio` 只用于 repo、candidate 和 Preview artifact。
 

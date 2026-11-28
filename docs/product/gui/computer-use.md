@@ -20,7 +20,7 @@ Full 离线归档 seed 或额外解析源。
 | 字段 | SSOT |
 | --- | --- |
 | Provider | `dsh-cua` |
-| Owner / Adapter | `opl-studio` (`plugins/opl-codex-native/src/computer-use.mjs`) |
+| Owner / Adapter | `opl-studio` (`plugins/core/opl-codex-native/src/computer-use.mjs`) |
 | MCP 包 / Native Helper | `@deepseek-ai/dsh-cua-mcp` + `@deepseek-ai/dsh-cua-macos` |
 | MCP Server ID | `dsh_cua` |
 | 平台与架构 | macOS（arm64；预签/公证包中 `dsh-cua-macos/native/bin` 通过 `mac.signIgnore` 保留上游签名） |
