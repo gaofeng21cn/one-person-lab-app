@@ -300,7 +300,7 @@ function validateHomebrewAgentPackPolicy(homebrew) {
   assertDeepEqualJson(homebrew.opl_packages_boundary, {
     lifecycle_owner: 'one-person-lab',
     app_role: 'status_action_and_receipt_projection_only',
-    canonical_lifecycle: 'opl packages',
+    canonical_lifecycle: 'opl pack',
     homebrew_distribution_allowed: false,
     homebrew_formula_allowed: false,
     ordinary_component_picker_allowed: false,

@@ -79,7 +79,7 @@ export function renderHomebrewBoundaryBlock({
     '# homebrew_allowed_software_objects: opl_base,opl_app',
     '# opl_packages_lifecycle_owned_by_homebrew: false',
     '# opl_packages_lifecycle_owner: one-person-lab',
-    '# opl_packages_lifecycle_command: opl packages',
+    '# opl_packages_lifecycle_command: opl pack',
     '# package_specific_formula_allowed: false',
     '# package_specific_cask_allowed: false',
     '# forbidden_package_formulae: mas,mag,rca,oma,obf,mas-scholar-skills,opl-flow',
